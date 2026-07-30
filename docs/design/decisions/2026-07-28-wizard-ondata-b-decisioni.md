@@ -415,7 +415,15 @@ passo paziente rifatto (due caselle, niente «Salta») · **ricerca del paziente
 **i due difetti del codice paziente** · **passo foto sempre presente** · cassetta saltabile ·
 avanzamento dei passi **a briciole toccabili, con avviso quando un cambio a monte perde dati** (D17) ·
 **via d'uscita esplicita dal wizard + correzione della freccia indietro** (D18) ·
-**riscrittura della regola DS sul nome** · gate estetico L2 (FASE 9b).
+**riscrittura della regola DS sul nome** · gate estetico L2 (FASE 9b)
+· 🆕 **L'ALBUM DELLE FOTO sulla scheda del lavoro** *(aggiunto il 30/07: **D60** lo aveva spostato qui il
+29 e questo elenco non se n'era accorto)* — carta con foto grande (D64) · **visore a tutto schermo**
+(D64, D66) · categoria **chiesta allo scatto** (D65, D72, D74) · **ordine per categoria** (D68, D71) ·
+**eliminazione** con conferma, traccia e menù ⋯ (D61, D63, D69) · la colonna `categoria` e la rimozione di
+`tipo` (**D73**, migration). 🛑 **Un elenco di perimetro che sembra completo e non lo è è la classe di
+difetto già pagata tre volte in questo progetto** (voce 57 · il ruolo `admin_sistema` · l'intestazione
+«OTTO decisioni»): qui l'aveva mancato per **un giorno intero**. Spec propria:
+`docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md`.
 
 **Fuori:** unione delle schede doppie · pagina `/pazienti` in scrittura · le tre eredità della scheda
 del lavoro · i due difetti della home · la fotografia congelata del nome (tappa 1-bis).

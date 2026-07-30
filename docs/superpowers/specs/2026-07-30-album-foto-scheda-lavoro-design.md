@@ -450,6 +450,12 @@ quella riga: va portata in `ua-app/CLAUDE.md` §0B, o la prossima sessione rifar
 8. **Il tasto «indietro» a tre strati** (§4.3), a mano con
    `scripts/guardia-navigazione-overlay.mjs`: il piano dice **chi la lancia e quando**.
 
+🛑 **E una riga che riguarda il PIANO, non questa spec, ma che sta qui perché è da qui che il piano si
+scrive:** `ua-app/CLAUDE.md` §0C impone che **ogni piano di un'ondata con UI includa il GATE ESTETICO L2
+(FASE 9b) come step finale**, prima del merge — micro-audit della sola superficie dell'ondata contro
+`docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md`, ai tre tagli in chiaro e scuro, con gli screenshot
+prima/dopo. **L'album è una superficie nuova: il gate vale.**
+
 ---
 
 ## 15. Cosa NON è verificato — dichiarato

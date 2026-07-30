@@ -49,7 +49,14 @@ Restano aperti quattro difetti **verificati**, non ipotizzati:
 l'odontogramma v3 e le illustrazioni (W15/W18) · passo colore sui soli denti scelti (W19) · **passo foto
 sempre presente** (D8) · cassetta come ultimo passo saltabile (W4) · **rimozione di «Dimmelo a voce»**
 (D13) · **bozza portata a `v:2`** (§7) · **riscrittura della regola DS sul nome del paziente** (D7, già
-fatta) · **FASE 9b, gate estetico L2**.
+fatta) · **FASE 9b, gate estetico L2**
+· 🆕 **L'ALBUM DELLE FOTO SULLA SCHEDA DEL LAVORO** *(emendamento 30/07/2026 — **D60** ha spostato qui la
+metà «guardare le foto» dell'ondata (c))*: carta con foto grande · **visore a tutto schermo** · categoria
+**chiesta allo scatto** · **eliminazione** con conferma e traccia · la colonna `categoria` (migration).
+🛑 **Questa riga mancava, e l'assenza non era innocua:** l'elenco qui sopra *sembrava* completo dal 28/07
+mentre il perimetro era cresciuto il 29 — la stessa classe di difetto della voce 57 e del ruolo
+`admin_sistema`. **Spec propria, che questa NON duplica:**
+`docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md`.
 
 **FUORI, tracciato:** unione di due schede doppie · pagina `/pazienti` in scrittura · le tre eredità della
 **scheda del lavoro** (tendina 19/48, colore di caso non correggibile alla creazione, tre zone senza dente)
@@ -445,7 +452,14 @@ generati: costa 30 secondi e chiude il dubbio.
 vero da **prima che la spec fosse chiusa**: i tre mockup sono stati disegnati e le varianti **ratificate la
 sera stessa** (D21-D25, quarta tornata del verbale), e ne esistono gli screenshot ai tre tagli in chiaro e
 scuro. Un esecutore che leggesse questa tabella si fermerebbe a un gate che non esiste più.
-🚧 **Restano dietro gate SOLO denti e colore** (larghezza da riverificare, D14).
+| 🆕 **album foto · visore · menù ⋯ del visore · foglio della categoria** | — | 🔴 **MAI DISEGNATE.** Quattro superfici decise (D64 · D65 · D69 · D71) e mai messe su schermo: il confronto delle tre direzioni (`docs/design/mockups/2026-07-29-album-foto-tre-direzioni.html`) mostrava **la sola carta**, ed è su quello che è stata presa D64. Elenco e vincoli: `docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md` §12. 🛑 **Si mostrano DENTRO la schermata vera** (D58), 390/768/1280 × chiaro e scuro |
+
+🔧 **AGGIORNATA IL 30/07/2026 — questa riga diceva «Restano dietro gate SOLO denti e colore», e da stamattina
+è FALSA.** 🚧 **Dietro gate ci sono: denti e colore** (larghezza da riverificare, D14) **e le QUATTRO
+superfici dell'album** (riga qui sopra). 🔑 **È lo stesso difetto corretto il 29/07 su questa stessa
+tabella, rovesciato:** allora un esecutore si sarebbe fermato a un gate che non esisteva più, adesso
+sarebbe passato **oltre quattro gate che esistono**. Una tabella che elenca gli sbarramenti è pericolosa
+esattamente quanto è creduta completa.
 
 ---
 
