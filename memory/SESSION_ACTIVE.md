@@ -67,10 +67,26 @@ vuota**, cioè quando costava zero.
 stato che niente produce. Non urgente (zero righe già cancellate, nessun file orfano), ma va scritto
 accanto ai filtri o confonderà qualcuno fra sei mesi.
 
-➡️ **PROSSIMO: Task 5** (blocco C) — 🚪 **GATE, e NON contiene codice**: si propongono le **cinque** §5.x
-(`CartaAlbum`, `VisoreFoto`, `TendinaMenu`, `FoglioCategoria`, **`FoglioConferma`** di D80) **prima** che i
-componenti esistano. Include l'emendamento a §5.17 e **come il foglio di conferma NON blocca lo
-scorrimento** (`Sheet` lo blocca con un `useRef` per istanza: sopra il visore lascerebbe la pagina bloccata).
+✅ **Task 5 SCRITTO** (`8822fa05` · `8cdd7fc4` · `430d86e6`): le cinque §5.x in
+`docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` (773 righe), **zero codice**.
+🛑 **MA IL GATE NON È RATIFICATO.** Panel di tre (architettura · accessibilità · verificabilità) →
+**sette bloccanti**, verbale in `docs/roadmap/2026-07-30-panel-gate-sezioni-album.md`. Convergenza a tre su
+uno: **nessuna delle cinque §5.x dichiara cosa fa il `Tab`**, e la via di `Escape` ci poggia sopra.
+🔑 **Due prove prescritte erano CIECHE** (la sentinella dello scorrimento è il valore che `Sheet` stesso
+scriverebbe; la prova di `Escape` asserisce su uno `Sheet` che non può chiudersi da solo) · **i numeri di
+contrasto del visore sono calcolati sull'elemento sbagliato** (`.vis-capo .mezzo` non ha sfondo: 2,1:1, non
+4,2) · **i 148,5 px di D79 sono presi dentro la cornice di telefono del mockup** e `nowrap` rompe il
+text-zoom 200%. ✅ **A-1 è VERA**, provata in `react-dom` e riverificata: il piano B non serve.
+
+🆕 **D83:** il visore **copre tutto** → z-index **1010 · 1020 · 1030** (sopra `Sheet`/`DialogConferma`, sotto
+gli avvisi). L'assunzione A-2 smette di essere portante.
+🆕 **D84:** il blocco dello scorrimento si **ripara alla radice** → nasce **T5-bis** (modulo a contatore,
+`blocca()` → `sblocca()` **idempotente** per lo sblocco differito di `Sheet.tsx:328`), **prima di T6**.
+⚠️ Gli attori sono **due**: `Sheet.tsx:227-257` e `NuovoOrdineSheet.tsx:91-95` (il secondo scrive
+`overflow=''` a mano senza catturare).
+
+➡️ **PROSSIMO: T5-bis**, poi le correzioni del panel dentro il documento del gate, poi la ratifica, **poi**
+T6 → T9-bis. 🛑 **T6 porta il gruppo di token `sopraFoto`**, non T7: `CartaAlbum` lo usa già.
 
 **Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9, T9-bis) → D (T10→T11→T12) → E (T13).
 🛑 **A prima di D** · 🛑 **B prima di D-T12**.
