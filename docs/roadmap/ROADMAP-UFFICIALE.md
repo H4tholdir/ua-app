@@ -779,6 +779,31 @@ corregge di nascosto.** Sono elencati in ordine di gravità, non di scoperta.
 
 ---
 
+## 🖼️ ONDATA (c) «LE FOTO, PER BENE» — RIDEFINITA il 29/07/2026 (D60 · D64 · D66)
+
+**La metà «guardare» è entrata nell'ondata (b)** e resta all'ondata (c) solo la **modifica dell'immagine**.
+
+| pezzo | dove sta ora | perché |
+|---|---|---|
+| album (carta con foto grande) · **visore a tutto schermo** · ingrandimento · categoria **chiesta allo scatto** · eliminazione | **ondata (b)**, insieme al bottone «Elimina foto» | **D60/D64**: la forma si disegna **una volta sola** — e col visore la superficie dell'editor **esiste già**, che è ciò che ha sciolto il contro della direzione «A» |
+| **ruota · ritaglia** | **ondata (c)**, lavoro proprio con **panel proprio** | **D66**: in casa **non esiste** modo di sostituire i byte di un'immagine (allowlist `PATCH` = `descrizione, tipo, ordine`) → ritagliare vuol dire «nuova foto + cancella l'originale», e con **D61/D63** quella cancellazione è **vera**: un ritaglio storto sarebbe **definitivo**. Più la **ricompressione** che si accumula (webp q.85, max 1920). ➡️ La forma giusta è **non distruttiva** (originale intatto + trasformazioni come istruzioni), ed è la più costosa: tocca come le foto si **conservano** e come si **mostrano** in ogni punto |
+
+**🔴 Due voci che nessuna decisione copre e che la spec dell'album deve prendere in carico:**
+① **l'ordine delle foto non esiste** (`ordine: 0` fisso all'INSERT, nessuna query ordina l'innesto → «la
+prima foto» non ha referente stabile); ② il **TTL** delle URL firmate è **un'ora** contro i **5 minuti** del
+portale dentisti, e una URL firmata è **un link al portatore** — il visore a schermo pieno è la superficie
+che la espone.
+
+**🔴 Voce nuova, e non è codice: il DPA (D62).** `DpaTemplate.tsx:149,169,197` promette «almeno **10 anni**»
+di conservazione citando l'**Art. 10(8)** (norma dei dispositivi **non** su misura) e scrive 10 dove gli
+**impiantabili** sono **15**. Va corretto **prima** che la cancellazione fisica entri in produzione: è un
+impegno contrattuale verso il dentista, e oggi **contraddice** il comportamento che stiamo per costruire.
+Costo quasi nullo (il documento si **rigenera** a ogni scarico, zero righe persistite; nessuna copia
+firmata). ⚠️ E `DpaTemplate.tsx:168` promette di assistere il titolare sulle richieste di **cancellazione**
+degli interessati: **quel canale non esiste nel prodotto** — voce propria.
+
+---
+
 ## 🔴 USCITI DAL PANEL D46-D48 (29/07/2026) — sette voci, tutte FUORI dal perimetro dell'ondata (b)
 
 Il panel che ha sciolto l'ultimo bloccante di T6 (contratto API · costi del database · sicurezza e dati)
