@@ -3,6 +3,9 @@
 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-t5-ter-referto.md`** — poi **T6 (`CartaAlbum`)**, a un
 esecutore fresco (R-E1). 🛑 **T6 porta i NOVE token `sopraFoto`** in `src/design-system/v3/tokens.ts`,
 non T7. Mandato: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` → Task 6.
+📎 Motivazioni e prove: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` (§1.6 = la
+trappola) · verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` (D85 · D86 · D89)
+· mandato eseguito: `docs/roadmap/2026-07-30-t5-ter-brief.md`.
 
 **Ramo `ondata-b-schermate`** — niente su `origin`. Verbale a **ottantanove** decisioni.
 
