@@ -120,17 +120,26 @@ export function DialogConferma(props: {
   // sul pannello all'apertura, il `Tab` resta dentro finché è aperto, e alla
   // chiusura torna a chi aveva aperto.
   //
-  // Il focus va sul PANNELLO, non sul tasto sicuro: §5.17 non dice dove va, e il
-  // pannello è ciò che fa `Sheet` e ciò che prescrivono §5.39 e §5.41 — è il
-  // default che non promette niente di nuovo. 🔑 `FoglioConferma` (§5.42) vuole
-  // invece il focus sulla PRIMA AZIONE, che è quella sicura: lo dichiarerà col
-  // parametro `focusIniziale` del modulo, in T9-bis.
+  // 🔑 D90 (Francesco, 31/07/2026) — il focus si posa sulla VIA SICURA, non sul
+  // pannello. La ragione è una PROPRIETÀ, non una posizione: un Invio dato a
+  // caso, o dato da chi non ha ancora finito di leggere, deve ANNULLARE e mai
+  // cancellare. È la stessa riga che §5.42 prescrive per `FoglioConferma`: le due
+  // forme della conferma distruttiva si comportano adesso allo stesso modo.
+  //
+  // 🛑 Il tasto sicuro si cerca per IDENTITÀ (la sua etichetta), non per
+  // posizione: con `primarioSopra` — la deroga del rito consegna — l'ordine dei
+  // due tasti si inverte, e «il primo bottone del pannello» sarebbe quello
+  // DISTRUTTIVO. Un ripiego sul pannello copre il caso in cui il tasto non si
+  // trovi: meglio il focus dentro un pannello che il focus sul `body`, dove
+  // l'`Escape` non avrebbe più destinatario.
   useEffect(() => {
     if (!aperto) return
     const pannello = cardRef.current
     if (!pannello) return
-    return trappolaFocus(pannello)
-  }, [aperto])
+    const bottoni = Array.from(pannello.querySelectorAll('button'))
+    const sicuro = bottoni.find((b) => b.textContent?.trim() === etichettaSicura.trim())
+    return trappolaFocus(pannello, { focusIniziale: sicuro })
+  }, [aperto, etichettaSicura])
 
   if (typeof document === 'undefined') return null
 

@@ -161,13 +161,33 @@ D85, entrato dalla finestra. ✅ **E la scelta è provata, non asserita:** la pr
 pannelli aperti insieme** (il caso vero di `CassettaSheet`) mostra che due trappole non si
 contendono niente, perché il `keydown` arriva solo a quella che contiene il focus.
 
-**② `DialogConferma`: il focus va sul PANNELLO.** §5.17 non dice dove va. §5.42 dice «alla PRIMA
-azione, che è quella sicura» — ma quello è `FoglioConferma`, non questo. Ho preso il default che
-**non promette niente di nuovo**: è ciò che fa `Sheet` ed è ciò che prescrivono §5.39 e §5.41.
-🔑 **Un revisore che legge §5.42 chiederà perché le due conferme distruttive differiscono:** la
-risposta è che la spec non lo dice per §5.17, e che il foglio dichiarerà il proprio bersaglio col
-parametro `focusIniziale` in T9-bis. **Se Francesco preferisce che anche la card centrata parta dal
-tasto sicuro, è una riga sola** — ma è un cambiamento di grammatica, e non me lo sono preso da solo.
+**② `DialogConferma`: il focus va sul PANNELLO → 🔄 SUPERATA da D90, il focus va sul TASTO SICURO.**
+La scelta iniziale era il default che non prometteva niente di nuovo (§5.17 non diceva dove va il
+focus; §5.42 dice «alla prima azione, che è quella sicura», ma quello è `FoglioConferma`). **Posta a
+Francesco invece di essere decisa da me, ha risposto: «il cursore sul tasto *Lascia stare*».**
+➡️ **D90**, verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, ventisettesima
+tornata. La ragione è una **proprietà, non una posizione**: un Invio dato a caso deve annullare, mai
+cancellare — e le due forme della conferma distruttiva adesso si comportano **allo stesso modo**,
+invece di divergere per una riga che nessuno aveva scritto.
+
+**Come è stato fatto, e perché non è banale.** Il tasto sicuro si cerca **per identità** (la sua
+etichetta), mai per posizione: con `primarioSopra` — la deroga del rito consegna — i due tasti si
+**invertono**, e «il primo bottone del pannello» sarebbe quello **distruttivo**. La prova che tiene
+ferma la distinzione monta proprio quella variante, e la mutazione lo conferma: sostituendo la
+ricerca con `bottoni[0]`, **quella prova e solo quella si accende**.
+⚠️ **Scartato il contenitore con `ref`:** `TastoSecondario` non ha larghezza propria — si allarga
+perché è **figlio diretto** della colonna flex. Avvolgerlo avrebbe cambiato la grafica in silenzio.
+🛑 **E `TastoSecondario` non è stato toccato:** è un componente condiviso, fuori mandato (R-E2).
+
+**I due numeri di questo giro, contati come impone il passo 4:** **2 rossi**, entrambi **prove che
+descrivevano il comportamento vecchio** — le due che avevo scritto poche ore prima asserendo che il
+focus entrasse sul pannello — e **0 difetti veri**. Aggiornate, non spente: adesso asseriscono il
+bersaglio nuovo, e una di loro conta un giro di `Tab` in meno perché il focus **parte già dentro**.
+Più **3 prove nuove**: il bersaglio, la variante `primarioSopra`, e «un Invio dato subito annulla».
+
+✅ **La spec ha ricevuto la riga che le mancava:** §5.17 ora dichiara focus, trappola, ritorno
+all'apritore e bersaglio sicuro — prima non diceva niente sul focus, ed è per questo che la domanda
+è dovuta arrivare fino a Francesco.
 
 **③ Nessuna prop `ancoraFocus` su `Sheet` e `DialogConferma`.** Il ripiego esiste proprio perché
 quei due migrino invarianti; una prop che nessun chiamante passa è superficie morta che invita il

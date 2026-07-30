@@ -17,8 +17,12 @@ commento di D80 è nel file). **FASE 7:** `tsc` 0 · `vitest` **363 | 3** e **39
 invariante e nessuna prova in casa tabulava fino al bordo. La rete morde lo stesso: mutazione di
 controllo → **5 prove si accendono**. R-P4: **13 su 19** → sei prove deboli rinforzate → **18 su 19**.
 
-🟡 **Una domanda per Francesco:** `DialogConferma` porta il focus **sul pannello** (default di casa,
-§5.17 non dice dove va). Se lo vuole sul tasto sicuro, come `FoglioConferma`, è una riga.
+✅ **D90 (Francesco, 31/07):** in `DialogConferma` il focus si posa sul **tasto SICURO** («Lascia
+stare»), non sul pannello — un Invio dato a caso deve **annullare**. È una **proprietà, non una
+posizione**: con `primarioSopra` i tasti si invertono e «il primo» sarebbe il distruttivo, quindi il
+bersaglio si cerca per **identità**. Le due forme della conferma distruttiva ora coincidono, e
+**§5.17 ha la riga sul focus che non aveva**. Passo 4 di quel giro: **2 rossi, entrambi prove del
+vecchio comportamento** (le mie di poche ore prima), **0 difetti**.
 🔴 **R-E2 riferiti, non corretti:** la firma di `VisoreFoto` nel piano (`:1201`) **non ha
 `ancoraFocus`** e T7 la deve aggiungere · una trappola a mano esiste già in
 `src/components/features/fatture/InviaPecButton.tsx:80-114` (su `window`) · **tredici** overlay di

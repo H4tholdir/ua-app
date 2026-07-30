@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla ventiseiesima tornata (i quattro bivi del gate, e poi la RATIFICA del gate stesso)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla ventisettesima tornata (dove si posa il focus in una conferma distruttiva)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Ottantanove decisioni in ventisei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Novanta decisioni in ventisette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -489,3 +489,21 @@ decisa ma NON implementata.** La cancellazione oggi sul ramo è ancora **morbida
 per iscritto (`api/lavori/[id]/immagini/[imgId]/route.ts:91-93`, «il file nello storage **NON** si tocca»)
 e non esiste alcuna chiamata a `storage.remove`. L'emendamento di T8 è **da fare**, e finché non è fatto
 ogni frase dell'interfaccia che promette «cancellata» è falsa.
+
+---
+
+## Ventisettesima tornata — dove si posa il focus in una conferma distruttiva (D90)
+
+Nata da una domanda posta a Francesco in coda a **T5-ter**: la trappola del focus porta il cursore
+dentro `DialogConferma`, ma **dove**, di preciso? La spec v3 §5.17 non lo diceva. Fino a quel momento
+il componente non gestiva il focus affatto, quindi non c'era nemmeno un comportamento da conservare.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D90** | 🎯 **In `DialogConferma` il focus si posa sul TASTO SICURO, non sul pannello** — «il cursore sul tasto “Lascia stare”» | scelta esplicita fra due (sul pannello, com'era il default di casa e come fa `Sheet` · sul tasto sicuro, come §5.42 prescrive già per `FoglioConferma`), posta in coda a T5-ter con entrambe le ragioni scritte | 🔑 **La ragione è una PROPRIETÀ, non una posizione:** un Invio dato a caso — o dato da chi non ha ancora finito di leggere — deve **annullare**, mai cancellare. ✅ **E chiude una differenza che sarebbe nata storta:** §5.42 vuole il focus sulla prima azione sicura per `FoglioConferma`, quindi senza questa decisione **le due forme della stessa conferma distruttiva si sarebbero comportate in modo diverso** — un revisore l'avrebbe chiesto, e la risposta sarebbe stata «la spec non lo diceva». 🛑 **Il tasto si cerca per IDENTITÀ, mai per posizione:** con `primarioSopra` (la deroga del rito consegna, decision record 16/07) l'ordine dei due tasti si **inverte**, e «il primo bottone del pannello» sarebbe quello **distruttivo**. La prova che tiene ferma la distinzione monta proprio quella variante; una mutazione che prende il primo bottone la fa fallire — verificato. ➡️ **Conseguenze:** `src/components/ds/DialogConferma.tsx` passa `focusIniziale` a `trappola-focus.ts` · la spec v3 **§5.17 riceve la riga che non aveva** · **due prove scritte poche ore prima diventano rosse e vanno aggiornate**, perché descrivevano il comportamento appena sostituito (contate e classificate nel referto di T5-ter) |
+
+🔑 **Perché questa decisione ha un numero anche se «sposta un cursore»:** §0A-bis dice che una scelta
+di Francesco riceve la sua riga **nello stesso turno**, e questa cambia il comportamento di **ogni**
+conferma distruttiva dell'app — non solo dell'album. Senza riga, la sessione dopo l'avrebbe trovata
+come un dettaglio di implementazione senza padrone, e la prima revisione l'avrebbe rimessa in
+discussione.

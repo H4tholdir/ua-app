@@ -1009,7 +1009,7 @@ describe('Sheet · DialogConferma — reduced motion (§8.4)', () => {
     }
   })
 
-  it('DialogConferma ridotto: la trappola vale anche qui — il focus entra sul pannello', () => {
+  it('DialogConferma ridotto: la trappola vale anche qui — il focus entra sul tasto sicuro (D90)', () => {
     render(
       <DialogConferma
         aperto
@@ -1021,7 +1021,7 @@ describe('Sheet · DialogConferma — reduced motion (§8.4)', () => {
         onAnnulla={() => {}}
       />
     )
-    expect(document.activeElement).toBe(screen.getByRole('dialog'))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Lascia stare' }))
   })
 
   it('Sheet: la chiusura è ISTANTANEA — nulla nel DOM subito dopo aperto=false', async () => {
@@ -1359,7 +1359,7 @@ describe('Sheet · DialogConferma — il Tab resta dentro il pannello (§1.6, D8
     expect(document.activeElement).toBe(raggiungibili[0])
   })
 
-  it('DialogConferma: il focus ENTRA sul pannello all\'apertura (prima non ci entrava affatto) e torna all\'apritore alla chiusura', async () => {
+  it('DialogConferma: il focus ENTRA sul tasto SICURO all\'apertura (prima non entrava affatto) e torna all\'apritore alla chiusura', async () => {
     function Wrapper() {
       const [aperto, setAperto] = useState(false)
       return (
@@ -1382,12 +1382,62 @@ describe('Sheet · DialogConferma — il Tab resta dentro il pannello (§1.6, D8
     apriBtn.focus()
     fireEvent.click(apriBtn)
 
-    const pannello = screen.getByRole('dialog')
-    expect(document.activeElement).toBe(pannello)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Lascia stare' }))
 
     fireEvent.keyDown(window, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(document.activeElement).toBe(apriBtn)
+  })
+
+  // D90 (Francesco, 31/07/2026) — il focus si posa sulla VIA SICURA.
+  // La ragione è una proprietà, non una posizione: un Invio dato a caso — o dato
+  // da chi non ha ancora letto — deve ANNULLARE, mai cancellare. Per questo le
+  // due prove qui sotto: una fissa il bersaglio, l'altra prova che resta il tasto
+  // giusto anche quando l'ordine dei due tasti è invertito (`primarioSopra`, la
+  // deroga del rito consegna). Un'implementazione che prendesse «il primo bottone
+  // del pannello» passerebbe la prima e fallirebbe la seconda.
+  it('DialogConferma: con `primarioSopra` il focus resta sul tasto SICURO, che nel DOM è il SECONDO (proprietà, non posizione)', () => {
+    render(
+      <DialogConferma
+        aperto
+        primarioSopra
+        titolo="Consegni il lavoro n.148?"
+        testo="Il lavoro n.148 di Studio Bianchi risulta consegnato."
+        etichettaDistruttiva="Consegna"
+        etichettaSicura="Non ancora"
+        onConferma={() => {}}
+        onAnnulla={() => {}}
+      />
+    )
+    const dialog = screen.getByRole('dialog')
+    const bottoni = within(dialog).getAllByRole('button')
+    // L'ordine nel DOM è invertito: prima il primario, poi il sicuro.
+    expect(bottoni[0]).toHaveTextContent('Consegna')
+    expect(bottoni[1]).toHaveTextContent('Non ancora')
+
+    expect(document.activeElement).toBe(bottoni[1])
+  })
+
+  it('DialogConferma: un Invio dato SUBITO, senza toccare niente, annulla — non cancella', async () => {
+    const utente = userEvent.setup()
+    const onConferma = vi.fn()
+    const onAnnulla = vi.fn()
+    render(
+      <DialogConferma
+        aperto
+        titolo="Butto via il lavoro n.148?"
+        testo="Il lavoro n.148 di Studio Bianchi sparisce dalla pila."
+        etichettaDistruttiva="Butta via"
+        etichettaSicura="Lascia stare"
+        onConferma={onConferma}
+        onAnnulla={onAnnulla}
+      />
+    )
+
+    await utente.keyboard('{Enter}')
+
+    expect(onAnnulla).toHaveBeenCalledTimes(1)
+    expect(onConferma).not.toHaveBeenCalled()
   })
 
   it('DialogConferma: il Tab gira fra le due azioni e non raggiunge la pagina dietro', async () => {
@@ -1410,7 +1460,10 @@ describe('Sheet · DialogConferma — il Tab resta dentro il pannello (§1.6, D8
     const azioni = Array.from(pannello.querySelectorAll('button'))
     expect(azioni).toHaveLength(2)
 
-    for (let i = 0; i < azioni.length + 1; i += 1) {
+    // Da D90 il focus parte GIÀ dentro il giro (sul tasto sicuro), quindi il giro
+    // si chiude in `azioni.length` pressioni, non in una di più.
+    expect(document.activeElement).toBe(azioni[0])
+    for (let i = 0; i < azioni.length; i += 1) {
       await utente.tab()
       expect(pannello.contains(document.activeElement)).toBe(true)
     }
@@ -1438,10 +1491,11 @@ describe('Sheet · DialogConferma — il Tab resta dentro il pannello (§1.6, D8
     const pannelli = screen.getAllByRole('dialog')
     const sheet = pannelli.find((p) => p.classList.contains('ds-sheet')) as HTMLElement
     const dialog = pannelli.find((p) => !p.classList.contains('ds-sheet')) as HTMLElement
-    expect(document.activeElement).toBe(dialog)
-
+    // Da D90 il focus entra sul tasto SICURO del dialog, non sul suo pannello.
     const azioni = Array.from(dialog.querySelectorAll('button'))
-    for (let i = 0; i < azioni.length + 1; i += 1) {
+    expect(document.activeElement).toBe(azioni[0])
+
+    for (let i = 0; i < azioni.length; i += 1) {
       await utente.tab()
       expect(dialog.contains(document.activeElement)).toBe(true)
       expect(sheet.contains(document.activeElement)).toBe(false)
