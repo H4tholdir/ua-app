@@ -7,6 +7,11 @@
 // gesto irreversibile, non un form. `testo` DEVE contenere l'oggetto
 // esplicito della conferma: è un contratto del chiamante, non verificabile a
 // runtime (come le altre regole "di legge" del design system — solo JSDoc).
+//
+// Emendamento 30/07/2026 (D80): resta l'UNICA card centrata, ma non è più
+// l'unica FORMA di conferma distruttiva — sopra un overlay a tutto schermo
+// la forma è il foglio dal basso (§5.42, FoglioConferma). Stessi due tasti,
+// stesso ordine, contenitore diverso.
 
 import { useEffect, useId, useRef, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
@@ -17,6 +22,7 @@ import { TastoPrimario } from './TastoPrimario'
 import { TastoSecondario } from './TastoSecondario'
 import { useTapScrim } from './useTapScrim'
 import { entraOverlay, esciOverlay } from './storia-overlay'
+import { trappolaFocus } from './trappola-focus'
 
 /**
  * DialogConferma — conferma distruttiva centrata (§5.17).
@@ -71,6 +77,7 @@ export function DialogConferma(props: {
   const reduced = useReducedMotion()
   const titoloId = useId()
   const testoId = useId()
+  const cardRef = useRef<HTMLDivElement>(null)
   // Collaudo R3 (P9): stesso contratto anti-ghost-click dello Sheet — lo scrim annulla solo se
   // il gesto è nato sullo scrim (v. useTapScrim). Cablato su ENTRAMBE le varianti.
   const tapScrim = useTapScrim(aperto, onAnnulla)
@@ -105,6 +112,26 @@ export function DialogConferma(props: {
     return () => esciOverlay(token)
   }, [aperto])
 
+  // T5-ter (D85) — il focus. 🔴 Fino a oggi questo componente non lo gestiva
+  // AFFATTO: non lo tratteneva, non lo restituiva, e non lo portava nemmeno
+  // dentro. Una conferma distruttiva aperta da tastiera lasciava il focus dov'era
+  // — sull'elemento della pagina dietro — mentre il dialog dichiarava
+  // `aria-modal="true"`, cioè «dietro non esiste niente». Da qui: il focus entra
+  // sul pannello all'apertura, il `Tab` resta dentro finché è aperto, e alla
+  // chiusura torna a chi aveva aperto.
+  //
+  // Il focus va sul PANNELLO, non sul tasto sicuro: §5.17 non dice dove va, e il
+  // pannello è ciò che fa `Sheet` e ciò che prescrivono §5.39 e §5.41 — è il
+  // default che non promette niente di nuovo. 🔑 `FoglioConferma` (§5.42) vuole
+  // invece il focus sulla PRIMA AZIONE, che è quella sicura: lo dichiarerà col
+  // parametro `focusIniziale` del modulo, in T9-bis.
+  useEffect(() => {
+    if (!aperto) return
+    const pannello = cardRef.current
+    if (!pannello) return
+    return trappolaFocus(pannello)
+  }, [aperto])
+
   if (typeof document === 'undefined') return null
 
   const tasti = [
@@ -136,7 +163,15 @@ export function DialogConferma(props: {
     aperto ? (
       <div data-ds="v3" style={wrapperStile}>
         <div className="ds-dialog-scrim" onPointerDown={tapScrim.onPointerDown} onClick={tapScrim.onClick} style={scrimStile} />
-        <div role="dialog" aria-modal="true" aria-labelledby={titoloId} aria-describedby={testoId} style={cardStile}>
+        <div
+          ref={cardRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titoloId}
+          aria-describedby={testoId}
+          tabIndex={-1}
+          style={cardStile}
+        >
           {contenutoCard}
         </div>
       </div>
@@ -156,10 +191,12 @@ export function DialogConferma(props: {
             style={scrimStile}
           />
           <motion.div
+            ref={cardRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titoloId}
             aria-describedby={testoId}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}

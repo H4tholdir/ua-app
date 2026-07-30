@@ -1081,10 +1081,12 @@ dita, per sempre**. La via alternativa era una regola in spec («blocca solo il 
 
 ---
 
-### Task 5-ter — la trappola del focus, e i due overlay di casa che diventano suoi utenti (D85) 🆕
+### Task 5-ter — la trappola del focus, e i due overlay di casa che diventano suoi utenti (D85) ✅ FATTO
 
-**File:** 🆕 **da creare** `src/components/ds/trappola-focus.ts` ·
-🆕 **da creare** `tests/unit/ds-v3/componenti/trappola-focus.test.tsx` ·
+**Referto:** `docs/roadmap/2026-07-30-t5-ter-referto.md` — i sei passi, i due numeri del passo 4 (zero e zero, con la ragione misurata), l'`N su M` (13 su 19 → 18 su 19 dopo il rinforzo delle prove deboli) e i tre ritrovamenti fuori mandato.
+
+**File:** ✅ **creato** `src/components/ds/trappola-focus.ts` ·
+✅ **creato** `tests/unit/ds-v3/componenti/trappola-focus.test.tsx` (19 prove) ·
 `src/components/ds/Sheet.tsx` · `src/components/ds/DialogConferma.tsx`
 **Gira PRIMA di T6.** Esecutore fresco (R-E1).
 
@@ -1096,35 +1098,35 @@ dell'`Escape` di §1.5 poggia su un punto che non è vero (col `Tab` si esce, si
 `src/components/layout/SkipToContent.tsx:12` a z-index 9999, e `Escape` risale a `window` dove vivono
 **nove** ascoltatori e chiude **lo strato sbagliato**).
 
-- [ ] **Passo 1 — misura il terreno PRIMA di toccare, e scrivi i numeri.** Questo task cambia il
+- [x] **Passo 1 — misura il terreno PRIMA di toccare, e scrivi i numeri.** Questo task cambia il
       comportamento della **tastiera** su due componenti in produzione, contro una suite di **3936** prove.
       🛑 **Le prove che oggi tabulano fuori da uno sheet diventeranno rosse per una ragione che NON è un
       difetto.** Riferimento prima di iniziare: `npx vitest run` → incolla passati/saltati.
-- [ ] **Passo 2 — RED.** Le prove del modulo: con lo strato aperto, `Tab` premuto tante volte quanti sono
+- [x] **Passo 2 — RED.** Le prove del modulo: con lo strato aperto, `Tab` premuto tante volte quanti sono
       gli elementi raggiungibili **più uno** → il focus è **tornato al primo**, e `document.activeElement`
       **non è mai uscito** dal pannello. Più `Shift+Tab` all'indietro dal primo → va all'**ultimo**.
       ⛔ **R-P4:** dopo il primo rosso, abbozzo inerte e **conta** quante asserzioni si accendono (`N su M`).
       **Enumera le forme d'input prima delle asserzioni:** pannello senza nessun elemento raggiungibile ·
       un solo elemento · elementi che compaiono *dopo* l'apertura · elemento disabilitato in mezzo ·
       `tabIndex` negativo · il pannello stesso con `tabIndex={-1}`.
-- [ ] **Passo 3 — GREEN: il modulo.** `trappola-focus.ts`, sulla forma di `blocca-scorrimento.ts`: si
+- [x] **Passo 3 — GREEN: il modulo.** `trappola-focus.ts`, sulla forma di `blocca-scorrimento.ts`: si
       scrive **una volta**, e chi lo usa lo chiama e basta. Porta il focus dentro all'apertura, lo trattiene,
       e lo restituisce all'**àncora dichiarata dal chiamante** (**non** `document.activeElement` catturato al
       montaggio: chi apre il foglio di conferma è **una voce di menù che sta smontando**, e catturare un nodo
       staccato lascia il focus sul `body`). 🛑 **Non spegne la pagina dietro** (`inert`): valutata e scartata
       in D85 — il contenitore degli avvisi è appeso a `document.body` anche lui
       (`src/components/ds/Avviso.tsx:99`) e si spegnerebbe con tutto il resto.
-- [ ] **Passo 4 — i due utenti di casa.** `Sheet` e `DialogConferma` diventano utenti del modulo. **Conta e
+- [x] **Passo 4 — i due utenti di casa.** `Sheet` e `DialogConferma` diventano utenti del modulo. **Conta e
       CLASSIFICA i rossi** che compaiono: quanti sono difetti veri, quanti sono prove che descrivevano il
       vecchio comportamento. **Il numero si scrive.** ⚠️ È la stessa classe di trappola già pagata in T8 (la
       finta dei test esponeva solo `from`, e il primo `storage.remove` ruppe una prova **senza** che ci fosse
       un difetto): chi non la sa in anticipo ci perde mezza sessione.
-- [ ] **Passo 5 — il commento di `DialogConferma`.** Il file dichiara «l'**UNICA** card centrata ammessa dal
+- [x] **Passo 5 — il commento di `DialogConferma`.** Il file dichiara «l'**UNICA** card centrata ammessa dal
       design system». **Resta vero per la card, non per la forma:** si aggiunge in coda al commento di testa
       il testo pronto in `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §3.4 (D80).
       🔑 Era la riga **FM-5**, rimandata perché «un gate documentale non tocca il codice»: adesso ha un
       padrone, ed è questo task.
-- [ ] **Passo 6 — FASE 7** (`tsc --noEmit` · `vitest run` · `next build`) con **l'output vero incollato**.
+- [x] **Passo 6 — FASE 7** (`tsc --noEmit` · `vitest run` · `next build`) con **l'output vero incollato**.
       ⚠️ `vitest` non è deterministico: un solo rosso con durata anomala su un file **non toccato** va
       isolato; la stessa firma su un file **toccato** è un difetto tuo finché non provi il contrario.
 

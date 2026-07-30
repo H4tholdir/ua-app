@@ -24,6 +24,7 @@ import { LinkQuieto } from './LinkQuieto'
 import { useTapScrim } from './useTapScrim'
 import { entraOverlay, esciOverlay } from './storia-overlay'
 import { bloccaScorrimento } from './blocca-scorrimento'
+import { trappolaFocus } from './trappola-focus'
 
 /**
  * deveChiudere — soglia dismiss dello swipe giù (§5.16, §8.2.3): pura, senza
@@ -55,8 +56,9 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  * risalita a molla · body scroll lock mentre è aperto (esteso a tutta
  * l'uscita animata, non solo mentre `aperto` è true — evita il layout shift
  * scoperto in QA live: la scrollbar che ricompare a metà animazione sposta
- * lateralmente il pannello centrato) · focus semplice: al primo elemento (il
- * contenitore) all'apertura, torna all'elemento precedente alla chiusura.
+ * lateralmente il pannello centrato) · focus: al contenitore all'apertura,
+ * TRATTENUTO dentro il pannello finché è aperto (`trappola-focus.ts`, §1.6 —
+ * D85), e restituito all'elemento precedente alla chiusura.
  *
  * Swipe giù (§5.16, §8.2.3): `drag="y"` + `dragConstraints={{top:0}}` (solo
  * verso il basso — verso l'alto il pannello non si stacca dalla posizione di
@@ -311,15 +313,26 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     }
   }, [aperto, reduced])
 
-  // Focus semplice: al contenitore all'apertura, torna all'elemento
-  // precedente alla chiusura (o allo smontaggio mentre era aperto).
+  // T5-ter (D85) — il focus non è più gestito qui: lo fa `trappolaFocus()`
+  // (`trappola-focus.ts`), lo stesso modulo che useranno tutti gli overlay del
+  // sistema. Prima questo effect portava il focus al contenitore e lo
+  // restituiva alla chiusura, ma NON lo tratteneva: col `Tab` si usciva dal
+  // pannello e si atterrava su `SkipToContent.tsx:12` (raggiungibile, globale,
+  // z-index 9999) — e da lì l'`Escape` risaliva a `window`, dove vivono nove
+  // ascoltatori, chiudendo lo strato sbagliato. Questo componente dichiara
+  // `aria-modal="true"` (sotto), cioè «dietro non esiste niente»: la trappola è
+  // la metà mancante di quella promessa.
+  //
+  // Nessuna àncora dichiarata: si ricade su `document.activeElement` catturato
+  // al montaggio, che è ESATTAMENTE ciò che questo effect faceva prima — la
+  // migrazione è a comportamento invariato su quell'asse. 🛑 Il ripiego vale
+  // per gli overlay di casa, il cui apritore resta montato; chi apre uno strato
+  // il cui apritore può SMONTARSI (una voce di menù, §5.42) passa `ancora`.
   useEffect(() => {
     if (!aperto) return
-    const precedenteFocus = document.activeElement as HTMLElement | null
-    dialogRef.current?.focus()
-    return () => {
-      precedenteFocus?.focus()
-    }
+    const pannello = dialogRef.current
+    if (!pannello) return
+    return trappolaFocus(pannello)
   }, [aperto])
 
   // SSR-safety (constraint 12): niente document/createPortal durante il

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
@@ -1286,5 +1287,129 @@ describe('Ghost click Android (Collaudo R3, P9) — lo scrim chiude solo se il g
     } finally {
       ripristina()
     }
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T5-ter (D85) — la trappola del focus sui due overlay di casa.
+// Le prove del MODULO stanno in `trappola-focus.test.tsx`; qui si prova solo che
+// i due componenti lo usino davvero, e il caso che nasce dal metterli insieme.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Sheet · DialogConferma — il Tab resta dentro il pannello (§1.6, D85)', () => {
+  it('Sheet: Tab premuto tante volte quanti gli elementi raggiungibili PIÙ UNO → torna al primo, e non esce mai dal pannello', async () => {
+    const utente = userEvent.setup()
+    // Il gemello di SkipToContent: raggiungibile, fuori dallo sheet. È dove il focus
+    // atterrava prima di questo modulo.
+    render(
+      <div>
+        <a href="#main-content">Vai al contenuto</a>
+        <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+          <button>Uno</button>
+          <button>Due</button>
+        </Sheet>
+      </div>
+    )
+    const pannello = screen.getByRole('dialog')
+    expect(document.activeElement).toBe(pannello)
+
+    // Dentro lo sheet: «Uno», «Due» e il LinkQuieto «Chiudi» (che è un <button>).
+    const raggiungibili = Array.from(pannello.querySelectorAll('button'))
+    expect(raggiungibili).toHaveLength(3)
+
+    for (let i = 0; i < raggiungibili.length + 1; i += 1) {
+      await utente.tab()
+      expect(pannello.contains(document.activeElement)).toBe(true)
+    }
+    expect(document.activeElement).toBe(raggiungibili[0])
+  })
+
+  it('DialogConferma: il focus ENTRA sul pannello all\'apertura (prima non ci entrava affatto) e torna all\'apritore alla chiusura', async () => {
+    function Wrapper() {
+      const [aperto, setAperto] = useState(false)
+      return (
+        <div>
+          <button onClick={() => setAperto(true)}>Apri</button>
+          <DialogConferma
+            aperto={aperto}
+            titolo="Butto via il lavoro n.148?"
+            testo="Il lavoro n.148 di Studio Bianchi sparisce dalla pila."
+            etichettaDistruttiva="Butta via"
+            etichettaSicura="Lascia stare"
+            onConferma={() => {}}
+            onAnnulla={() => setAperto(false)}
+          />
+        </div>
+      )
+    }
+    render(<Wrapper />)
+    const apriBtn = screen.getByRole('button', { name: 'Apri' })
+    apriBtn.focus()
+    fireEvent.click(apriBtn)
+
+    const pannello = screen.getByRole('dialog')
+    expect(document.activeElement).toBe(pannello)
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(document.activeElement).toBe(apriBtn)
+  })
+
+  it('DialogConferma: il Tab gira fra le due azioni e non raggiunge la pagina dietro', async () => {
+    const utente = userEvent.setup()
+    render(
+      <div>
+        <a href="#main-content">Vai al contenuto</a>
+        <DialogConferma
+          aperto
+          titolo="Butto via il lavoro n.148?"
+          testo="Il lavoro n.148 di Studio Bianchi sparisce dalla pila."
+          etichettaDistruttiva="Butta via"
+          etichettaSicura="Lascia stare"
+          onConferma={() => {}}
+          onAnnulla={() => {}}
+        />
+      </div>
+    )
+    const pannello = screen.getByRole('dialog')
+    const azioni = Array.from(pannello.querySelectorAll('button'))
+    expect(azioni).toHaveLength(2)
+
+    for (let i = 0; i < azioni.length + 1; i += 1) {
+      await utente.tab()
+      expect(pannello.contains(document.activeElement)).toBe(true)
+    }
+    expect(document.activeElement).toBe(azioni[0])
+  })
+
+  it('un DialogConferma aperto SOPRA uno Sheet (pattern CassettaSheet): il Tab resta nel dialog e non scende mai nello sheet sotto', async () => {
+    const utente = userEvent.setup()
+    render(
+      <div>
+        <Sheet aperto onChiudi={() => {}} titolo="Cassetta 12">
+          <button>Sposta</button>
+        </Sheet>
+        <DialogConferma
+          aperto
+          titolo="Butto via il lavoro n.148?"
+          testo="Il lavoro n.148 di Studio Bianchi sparisce dalla pila."
+          etichettaDistruttiva="Butta via"
+          etichettaSicura="Lascia stare"
+          onConferma={() => {}}
+          onAnnulla={() => {}}
+        />
+      </div>
+    )
+    const pannelli = screen.getAllByRole('dialog')
+    const sheet = pannelli.find((p) => p.classList.contains('ds-sheet')) as HTMLElement
+    const dialog = pannelli.find((p) => !p.classList.contains('ds-sheet')) as HTMLElement
+    expect(document.activeElement).toBe(dialog)
+
+    const azioni = Array.from(dialog.querySelectorAll('button'))
+    for (let i = 0; i < azioni.length + 1; i += 1) {
+      await utente.tab()
+      expect(dialog.contains(document.activeElement)).toBe(true)
+      expect(sheet.contains(document.activeElement)).toBe(false)
+    }
+    expect(document.activeElement).toBe(azioni[0])
   })
 })
