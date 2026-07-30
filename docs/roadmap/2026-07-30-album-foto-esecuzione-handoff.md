@@ -1,5 +1,12 @@
 # Handoff — l'album delle foto: si passa all'esecuzione
 
+> 🛑 **DOCUMENTO SUPERATO il 30/07/2026 — NON è più il punto di ripresa.**
+> Descrive lo stato **prima** dell'esecuzione. Da allora: **T1-T4 fatti**, il gate T5 **scritto e fermato da
+> un panel**, e T5-bis ha **riparato alla radice** la seconda delle tre trappole qui sotto (D84), mentre il
+> punto 1 di §4 è stato **deciso** da Francesco (D80: la conferma è un **foglio**, S1 ritirato).
+> ➡️ **Il punto di ripresa è `docs/roadmap/2026-07-30-album-ripresa-post-panel.md`.**
+> Resta utile per: le decisioni D57-D79 in tabella, le trappole ① e ③ (ancora vere) e le regole operative.
+
 **Per:** la sessione successiva, **contesto pulito**.
 **Prima di tutto:** BP-0 — `memory/SESSION_ACTIVE.md`, poi **questo documento**, poi il piano
 `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` (**è il documento operativo**).
