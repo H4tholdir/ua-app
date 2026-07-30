@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   mapTitolareKpiRow,
   mapTecnicoLavoriRows,
@@ -101,6 +101,26 @@ describe('mapFrontDeskConsegneRows', () => {
 // nel mese in cui è stato emesso — l'originale e la nota di credito possono
 // cadere in mesi diversi.
 describe('getTrendMensile', () => {
+  // ── Perché qui il tempo è PILOTATO (31/07/2026) ─────────────────────────────
+  // `getTrendMensile` costruisce la finestra a partire da `new Date()`, quindi
+  // ogni prova con date fisse dipende in silenzio dal giorno in cui gira: le
+  // cinque prove sotto usano luglio 2026 come «mese corrente» e sarebbero
+  // diventate rosse il 1° agosto, tutte insieme, senza che nulla fosse
+  // cambiato. Non è pedanteria: è successo davvero — a mezzanotte del 31 luglio
+  // 2026 una di loro si è accesa da sola, ed è così che il difetto di
+  // `queries.ts:366-369` è venuto fuori (v. le due prove in fondo).
+  // 🛑 Si falsifica SOLO `Date`, non l'intera famiglia dei timer: la finta di
+  // Supabase qui sotto risolve in modo sincrono dentro una funzione `async`, e
+  // falsificare anche la coda dei microtask sarebbe un rischio di stallo che
+  // questa prova non ha bisogno di correre.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 15, 12, 0, 0))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   function fakeSupabase(rowsIn: Array<{
     data: string; totale: number; tipo_documento: string
     stornata_at?: string | null; stato_sdi?: string; deleted_at?: string | null
@@ -205,6 +225,57 @@ describe('getTrendMensile', () => {
     const result = await getTrendMensile(svc, 'lab-1', 1)
     expect(result).toHaveLength(1)
     expect(result[0].totale).toBe(700)
+  })
+
+  // ── I giorni in cui la finestra si sposta di un mese (difetto del 31/07/2026) ──
+  //
+  // Il conto dei mesi partiva da `new Date()` e faceva `setMonth()` PRIMA di
+  // `setDate(1)`. Se oggi è il 31 e il mese di destinazione ne ha 30, quel
+  // giorno non esiste: JavaScript non sbaglia, TRABOCCA al mese dopo — e il
+  // `setDate(1)` fissa poi il primo del mese sbagliato.
+  //
+  // 🛑 L'asserzione è sull'ELENCO dei mesi, mai sul loro numero: il ciclo che
+  // riempie i bucket ne produce sempre `months`, quindi un `toHaveLength` non
+  // può fallire mai. È l'IDENTITÀ dei mesi a portare l'informazione — ed è
+  // anche il modo per vedere il difetto per intero: non «perde giugno», ma
+  // «perde giugno E dipinge agosto», un mese che non è ancora cominciato.
+  //
+  // ⚠️ Non coperta, e va detto: queste prove fissano la GENERAZIONE dei bucket,
+  // non l'effetto della finestra sulle righe che il database restituisce
+  // davvero — la finta di Supabase qui sopra ha un `gte()` inerte. Per provare
+  // anche quello la finta dovrebbe smettere di esserlo, ed è un lavoro suo.
+  it('il 31 di un mese che ne guarda uno da 30: la finestra parte dal mese giusto e NON inventa un mese futuro', async () => {
+    vi.setSystemTime(new Date(2026, 6, 31, 12, 0, 0))
+    const svc = fakeSupabase([
+      { data: '2026-06-15', totale: 900, tipo_documento: 'TD01' },
+      { data: '2026-07-03', totale: 400, tipo_documento: 'TD01' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 2)
+
+    expect(result.map((r) => r.month)).toEqual(['2026-06', '2026-07'])
+    expect(result.find((r) => r.month === '2026-06')?.totale).toBe(900)
+    expect(result.find((r) => r.month === '2026-07')?.totale).toBe(400)
+  })
+
+  it('il 31 marzo, che guarda febbraio (il salto più lungo): febbraio c\'è', async () => {
+    vi.setSystemTime(new Date(2026, 2, 31, 12, 0, 0))
+    const svc = fakeSupabase([
+      { data: '2026-02-10', totale: 300, tipo_documento: 'TD01' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 2)
+
+    expect(result.map((r) => r.month)).toEqual(['2026-02', '2026-03'])
+    expect(result.find((r) => r.month === '2026-02')?.totale).toBe(300)
+  })
+
+  it('la finestra vera del grafico (dodici mesi, come `analytics`) resta intera anche il 31', async () => {
+    vi.setSystemTime(new Date(2026, 6, 31, 12, 0, 0))
+    const svc = fakeSupabase([])
+    const result = await getTrendMensile(svc, 'lab-1', 12)
+
+    expect(result).toHaveLength(12)
+    expect(result[0].month).toBe('2025-08')
+    expect(result[11].month).toBe('2026-07')
   })
 })
 

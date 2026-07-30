@@ -22,7 +22,15 @@ solo nell'album.
 | `tests/unit/ds-v3/componenti/trappola-focus.test.tsx` | 🆕 creato — **19** prove |
 | `src/components/ds/Sheet.tsx` | l'effect del focus **diventa** la chiamata al modulo (non gli si affianca) |
 | `src/components/ds/DialogConferma.tsx` | riceve `ref` + `tabIndex={-1}` su **entrambe** le varianti, l'effect del focus (che **non aveva**) e il commento di D80 (passo 5) |
-| `tests/unit/ds-v3/componenti/sheet-dialog.test.tsx` | **+4** prove: la trappola sui due componenti, e il caso dei due strati insieme |
+| `tests/unit/ds-v3/componenti/sheet-dialog.test.tsx` | **+6** prove: la trappola sui due componenti, il caso dei due strati insieme, e i due rami «riduci movimento» |
+
+**E fuori dal mandato originale, su richiesta esplicita di Francesco arrivata a lavoro chiuso**
+(v. §6 ⑥ per il meccanismo e la sequenza delle prove):
+
+| file | che cosa gli è successo |
+|---|---|
+| `src/lib/dashboard/queries.ts` | `setDate(1)` spostato **prima** di `setMonth`: la finestra del grafico non perde più un mese, e non inventa più un mese futuro |
+| `tests/unit/dashboard-kpi.test.ts` | tempo **pilotato** (le cinque prove esistenti leggevano l'orologio vero e sarebbero morte tutte il 1° agosto) e **+3** prove sulle date pericolose |
 
 ---
 
@@ -185,7 +193,7 @@ $ npx next build
 EXIT=0   (build completa, tutte le route generate)
 ```
 
-### 🔴 La riesecuzione dopo mezzanotte ha UN rosso, e non è mio — è del calendario
+### 🔴 La riesecuzione dopo mezzanotte ha avuto UN rosso — non era mio, ed è stato poi corretto su richiesta
 
 Rifatta la FASE 7 dopo le ultime rifiniture (alle **00:05 del 31/07**, mentre la prima era delle
 23:52 del 30):
@@ -198,7 +206,7 @@ Rifatta la FASE 7 dopo le ultime rifiniture (alle **00:05 del 31/07**, mentre la
 Il rosso è `tests/unit/dashboard-kpi.test.ts > getTrendMensile > originale e TD04 in mesi diversi`
 — **un file che non ho toccato**, e che con gli overlay non c'entra niente.
 `provato:` messe da parte le mie modifiche (`git stash`) e rieseguito **quel solo file
-sull'albero al commit precedente** → **rosso lo stesso**. Non è mio. È in §6 ⑥, col meccanismo.
+sull'albero al commit precedente** → **rosso lo stesso**. Non era mio. ✅ **Poi Francesco ha chiesto di sistemarlo, ed è stato fatto nello stesso turno: il meccanismo, la sequenza delle prove e i numeri stanno in §6 ⑥.** FASE 7 rifatta dopo la correzione: `tsc` **0** · `vitest` **363 | 3** file e **3964 | 19** prove, **nessun rosso** · `next build` **ok**.
 
 ---
 
@@ -249,6 +257,15 @@ ma la verifica va scritta, o «non l'ho toccata» e «non l'ho guardata» si som
 di questo piano. Dire «pianificata» sarebbe vero per l'album e **falso** per il wizard. Il confine
 lo traccia il coordinatore, non l'esecutore di un task.
 
+### ⑤-bis Lo stesso difetto, un anno più in là — riferito, questo sì non corretto
+`src/app/api/clienti/[id]/route.ts:87-89` fa `setFullYear(getFullYear() - 1)` sulla data di oggi.
+Stessa classe: il **29 febbraio** l'anno precedente non ha il 29 febbraio, quindi la data trabocca
+al 1° marzo. **La misura del danno, onesta:** sposta di **un giorno** il confine della finestra
+«ultimi 12 mesi» di un **conteggio**, una volta ogni quattro anni. Una riga di censimento, non una
+sezione: il mandato di Francesco diceva «il grafico mensile».
+`provato:` `grep -rn "setMonth\|setFullYear" src/` → **tre** siti in tutto: i due di
+`queries.ts` (`:367` corretto, `:423` al sicuro perché il cursore parte da un giorno 1) e questo.
+
 ### ⑤ Due citazioni di riga che questo task fa invecchiare (documenti ratificati, non li tocco)
 - `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §1.6 e §5.42 citano
   «`Sheet.tsx:314-322` cattura `document.activeElement` al montaggio». **Da oggi `Sheet` non
@@ -289,12 +306,45 @@ con `months=12`. Nei giorni in cui il giorno di oggi non esiste nel mese bersagl
 guardano un mese di 30, e il 29/30/31 che guardano febbraio) **il grafico mostra undici mesi invece
 di dodici**, senza dirlo. Non sbaglia i numeri: **perde una colonna**.
 
-🛑 **Non l'ho corretto: è fuori dal mio mandato** (R-E2 — la dashboard non è un overlay, e il
-mandato era un compito solo). La riparazione è una riga — mettere `setDate(1)` **prima** di
-`setMonth` — ma il test che la protegge va scritto **con la data pilotata**, o resterà una prova che
-funziona 360 giorni l'anno e mente negli altri cinque. ⚠️ **E vale la pena notare la classe:** la
-prova esisteva, era giusta, ed è stata **il calendario a renderla capace di vedere**. Una suite che
-dipende da `new Date()` non è deterministica: **questa volta il caso ha lavorato per noi.**
+✅ **CORRETTO — su richiesta esplicita di Francesco («sistema anche il difetto del grafico
+mensile»), nello stesso turno.** Era stato riferito e lasciato lì, com'è giusto per un ritrovamento
+fuori mandato; il mandato è arrivato subito dopo.
+
+**Ed era peggio di come l'avevo raccontato.** L'asserzione giusta non è sul *numero* dei mesi — il
+ciclo che riempie i bucket ne produce sempre `months`, quindi un conteggio non può accorgersi di
+niente — ma sul loro **elenco**. Con l'elenco si vede il difetto intero: il 31 luglio con `months=2`
+la funzione non restituiva `['2026-06','2026-07']` ma **`['2026-07','2026-08']`**. Non perdeva
+giugno soltanto: **dipingeva agosto**, un mese non ancora cominciato, a zero.
+
+**La correzione, una riga spostata:** `setDate(1)` va **prima** di `setMonth`. Il giorno 1 esiste in
+ogni mese, quindi il traboccamento non può accadere. Il commento nel file dice **perché** l'ordine è
+il punto, e dichiara che la riga gemella del ciclo (`cursor.setMonth(+1)`) è al sicuro **per la
+stessa ragione, non per fortuna**: il cursore parte da un giorno 1.
+
+**Le prove — e il difetto era DOPPIO.** Non era rotto solo il codice: **tutte e cinque** le prove di
+`getTrendMensile` usavano luglio 2026 come «mese corrente» leggendolo dall'orologio vero. Sarebbero
+diventate rosse **tutte insieme il 1° agosto**, senza che nulla fosse cambiato. Il tempo è ora
+pilotato (`vi.useFakeTimers({ toFake: ['Date'] })` — solo `Date`, non l'intera famiglia dei timer,
+che con una finta sincrona sarebbe un rischio di stallo inutile), e la sequenza è stata questa:
+
+| passo | esito |
+|---|---|
+| 1. tempo fissato al **15 luglio**, codice **intatto** | **14 su 14 verdi** → il pin conserva l'intento, non maschera il difetto |
+| 2. aggiunte le prove delle date pericolose, codice **ancora intatto** | **2 rosse**: `['2026-07','2026-08']` invece di `['2026-06','2026-07']`, e `['2026-03','2026-04']` invece di `['2026-02','2026-03']` |
+| 3. corretto `queries.ts` | **17 su 17 verdi** |
+| 4. mutazione (rimesso l'ordine sbagliato) | **le 2 prove si riaccendono** |
+
+🛑 **Il passo 1 non è cerimonia:** al 15 luglio il difetto **non si manifesta**, quindi fissare la
+data avrebbe reso verde la prova rossa **senza correggere niente**. Fare pin, prove nuove e
+correzione in un colpo solo avrebbe cancellato la prova del rosso.
+
+⚠️ **Non coperto, e va detto:** le tre prove nuove fissano la **generazione dei bucket**, non
+l'effetto della finestra sulle righe che il database restituisce davvero — il `gte()` della finta di
+Supabase è inerte. Per provare anche quello la finta dovrebbe smettere di esserlo: è un lavoro suo.
+
+🔑 **E la classe vale oltre il caso:** la prova esisteva ed era giusta — è stato **il calendario a
+renderla capace di vedere**. Una suite che legge `new Date()` non è deterministica: stavolta il caso
+ha lavorato per noi, e la riparazione vera è che adesso non serve più il caso.
 
 ---
 

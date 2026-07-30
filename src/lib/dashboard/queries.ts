@@ -363,9 +363,29 @@ export async function getTrendMensile(
   labId: string,
   months = 12
 ): Promise<{ month: string; totale: number; label: string }[]> {
+  // ⚠️ L'ORDINE DI QUESTE TRE RIGHE È IL PUNTO, e ci è già costato un difetto in
+  // produzione (31/07/2026). `setDate(1)` va PRIMA di `setMonth`, mai dopo.
+  // Il perché: `setMonth` non fallisce mai — se il giorno corrente non esiste nel
+  // mese di destinazione (oggi è il 31, il mese bersaglio ne ha 30), JavaScript
+  // TRABOCCA al mese successivo, e il `setDate(1)` fissa poi il primo del mese
+  // sbagliato. La finestra nasceva corta di un mese, in silenzio: il 31 luglio
+  // 2026 con `months=2` partiva dal 1° luglio invece che dal 1° giugno, e il
+  // grafico mostrava luglio e AGOSTO — un mese non ancora cominciato, dipinto a
+  // zero. Capita nei «31» che guardano un mese di 30 e nel 29/30/31 che guarda
+  // febbraio: cinque o sei giorni l'anno, mai due di fila, cioè il modo migliore
+  // per sembrare un caso isolato. Portando il giorno a 1 per primo il traboccamento
+  // non può accadere: il giorno 1 esiste in ogni mese.
+  // 🔑 La riga `cursor.setMonth(cursor.getMonth() + 1)` in fondo (il ciclo che
+  // riempie i bucket) è al sicuro PER LA STESSA RAGIONE, non per fortuna: il
+  // cursore parte da qui, cioè da un giorno 1. Chi cambiasse questa normalizzazione
+  // riaprirebbe il difetto anche là.
+  // Prove: `tests/unit/dashboard-kpi.test.ts`, i tre casi col tempo pilotato in
+  // fondo a `getTrendMensile` — l'asserzione è sull'ELENCO dei mesi, perché il
+  // ciclo ne produce sempre `months` e un conteggio non potrebbe accorgersi di
+  // niente.
   const startDate = new Date()
-  startDate.setMonth(startDate.getMonth() - months + 1)
   startDate.setDate(1)
+  startDate.setMonth(startDate.getMonth() - months + 1)
   startDate.setHours(0, 0, 0, 0)
 
   // NOTA (Task 5, audit letture storno TD04): la colonna data emissione di

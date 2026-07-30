@@ -23,11 +23,18 @@ controllo → **5 prove si accendono**. R-P4: **13 su 19** → sei prove deboli 
 `ancoraFocus`** e T7 la deve aggiungere · una trappola a mano esiste già in
 `src/components/features/fatture/InviaPecButton.tsx:80-114` (su `window`) · **tredici** overlay di
 `features/**` promettono `aria-modal` senza mantenerlo — elencati nel referto, **nessuno toccato**.
-🔴 **E un difetto NUOVO, trovato dal calendario a mezzanotte:** `src/lib/dashboard/queries.ts:366-369`
-fa `setMonth` **prima** di `setDate(1)`, quindi nei giorni «31» che guardano un mese di 30 la
-finestra **perde un mese** e il grafico di `analytics` mostra **11 mesi su 12**. La suite era verde
-alle 23:52 e rossa alle 00:05: non è cambiato il codice, è cambiato il giorno. **Riferito, non
-corretto** (fuori mandato); dettaglio e sonda nel referto §6 ⑥.
+✅ **E un difetto NUOVO, trovato dal calendario a mezzanotte, RIFERITO e poi CORRETTO su richiesta
+esplicita di Francesco:** `src/lib/dashboard/queries.ts` faceva `setMonth` **prima** di `setDate(1)`,
+quindi nei giorni «31» che guardano un mese di 30 la finestra traboccava — e non «perdeva un mese»
+soltanto: **dipingeva un mese futuro a zero** (`['2026-07','2026-08']` invece di
+`['2026-06','2026-07']`). 🔑 **Il difetto era DOPPIO:** tutte e cinque le prove di `getTrendMensile`
+leggevano l'orologio vero e sarebbero morte **insieme il 1° agosto**. Ora il tempo è **pilotato**
+(solo `Date`), e la sequenza è stata: pin al 15 luglio a codice intatto → **14 su 14 verdi** (il pin
+conserva l'intento, non maschera) → due prove nuove sulle date pericolose → **rosse** → correzione →
+**17 su 17** → mutazione → **le due si riaccendono**. Dettaglio nel referto §6 ⑥.
+🟡 **Riferito e NON corretto** (fuori dal mandato di quella richiesta): `src/app/api/clienti/[id]/route.ts:87-89`
+ha la stessa classe di difetto con `setFullYear` — sposta di **un giorno** una finestra di
+conteggio, il 29 febbraio, una volta ogni quattro anni.
 
 🔴 **Restano vivi: R27** (`tsc` non protegge le query) · **R29 + D81** (un solo database: il
 caricamento foto su uachelab.com è rotto fino al merge, si ripara in **T13**) · **FM-8** (l'eliminazione
