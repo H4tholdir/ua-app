@@ -521,6 +521,28 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   //  • `storage_path` NULL o vuoto sulla riga: la colonna è `NOT NULL` in banca
   //    dati (`002_fase2_schema.sql`) e il POST la scrive sempre — sarebbe una
   //    prova su uno stato che lo schema esclude, non su un ingresso.
+
+  // ── Verbale delle MUTAZIONI (T4, Passo 6, 30/07/2026) ──
+  // Una prova che nessuna mutazione riesce a uccidere è decorativa. Le tre
+  // mutazioni sono state applicate al codice VERO, una per volta, e l'esito è
+  // qui perché il prossimo che tocca queste righe sappia cosa le regge.
+  // Comando, ogni volta: `npx vitest run tests/unit/lavori-id-immagini-imgid-route.test.ts`
+  //
+  //  1. INVERTITO l'ordine (storage.remove spostato DOPO la cancellazione della
+  //     riga) → **3 falliti su 64**: «toglie il FILE prima della riga», e i due
+  //     fail-closed — che con l'ordine invertito non hanno più niente da
+  //     difendere, perché la riga se n'è già andata.
+  //  2. TOLTO il fail-closed (l'errore dell'archivio si registra e si tira
+  //     dritto) → **1 fallito su 64**: «se il file non si toglie, la riga NON
+  //     si cancella».
+  //  3. TOLTO l'insert della traccia → **3 falliti su 64**: le chiavi, i valori
+  //     e il fail-soft dichiarato.
+  //
+  // E una quarta, sulla FINTA invece che sul codice, per verificare la
+  // previsione del piano (P12): rimessa la finta a esporre SOLO `from`, come
+  // prima del Passo 1 → `TypeError: Cannot read properties of undefined
+  // (reading 'from')` su ogni prova che arriva alla mutazione. È esattamente il
+  // rosso «che non è un difetto del codice» che il Passo 1 esiste per evitare.
 })
 
 // ============================================================
