@@ -65,6 +65,20 @@ const NUMERI_A_PAROLE = {
   cinquanta: 50, cinquantuno: 51, cinquantadue: 52, cinquantatre: 53, cinquantatré: 53,
   cinquantaquattro: 54, cinquantacinque: 55, cinquantasei: 56, cinquantasette: 57,
   cinquantotto: 58, cinquantanove: 59, sessanta: 60,
+  // 🛑 TERZA volta che questa tabella finisce prima del documento (dopo «quaranta» e
+  //    «trentatre»): il 29/07 il verbale e' arrivato a SESSANTATRE e il riconoscimento
+  //    sarebbe fallito di nuovo, degradando il controllo del conteggio in un avviso —
+  //    cioe' la rete si spegne da sola proprio mentre il documento cresce. Estesa a CENTO
+  //    in un colpo, con entrambe le grafie di «…tre» e «…sei/…otto» dove l'elisione cambia.
+  sessantuno: 61, sessantadue: 62, sessantatre: 63, sessantatré: 63, sessantaquattro: 64,
+  sessantacinque: 65, sessantasei: 66, sessantasette: 67, sessantotto: 68, sessantanove: 69,
+  settanta: 70, settantuno: 71, settantadue: 72, settantatre: 73, settantatré: 73,
+  settantaquattro: 74, settantacinque: 75, settantasei: 76, settantasette: 77,
+  settantotto: 78, settantanove: 79, ottanta: 80, ottantuno: 81, ottantadue: 82,
+  ottantatre: 83, ottantatré: 83, ottantaquattro: 84, ottantacinque: 85, ottantasei: 86,
+  ottantasette: 87, ottantotto: 88, ottantanove: 89, novanta: 90, novantuno: 91,
+  novantadue: 92, novantatre: 93, novantatré: 93, novantaquattro: 94, novantacinque: 95,
+  novantasei: 96, novantasette: 97, novantotto: 98, novantanove: 99, cento: 100,
 }
 const errori = []
 const avvisi = []
