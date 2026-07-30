@@ -35,6 +35,43 @@ export function aggiungiGiorniISO(iso: string, giorni: number): string {
   return `${data.getFullYear()}-${mm}-${dd}`
 }
 
+/**
+ * Indietro di `mesi` su una data-only (YYYY-MM-DD), **senza traboccare**.
+ *
+ * ── Il difetto che questa funzione esiste per togliere di mezzo (31/07/2026) ──
+ * `d.setFullYear(d.getFullYear() - 1)` e `d.setMonth(d.getMonth() - n)` non
+ * falliscono MAI: se il giorno corrente non esiste nel punto d'arrivo — il **29
+ * febbraio** guardato da un anno non bisestile, il **31** guardato da un mese di
+ * 30 — JavaScript scivola in avanti al mese successivo, e la finestra nasce
+ * spostata **in silenzio**. È lo stesso difetto trovato la stessa notte in
+ * `src/lib/dashboard/queries.ts` (là il grafico dipingeva un mese futuro a zero);
+ * qui la finestra «ultimi dodici mesi» di `src/app/api/clienti/[id]/route.ts`
+ * cominciava un giorno più tardi ogni 29 febbraio.
+ *
+ * ── La regola, ed è una scelta dichiarata ────────────────────────────────────
+ * Quando il giorno non esiste nel mese d'arrivo ci si ferma all'**ULTIMO giorno
+ * di quel mese**, mai al primo del successivo: una finestra all'indietro deve
+ * poter solo allargarsi, mai stringersi sotto il periodo chiesto. Il 29 febbraio
+ * 2028, dodici mesi indietro, è il **28 febbraio 2027**.
+ * 🔑 Il traboccamento è impossibile per costruzione, non per attenzione: si parte
+ * dal **giorno 1** del mese d'arrivo — che esiste sempre — e solo dopo si posa il
+ * giorno, limitato alla lunghezza vera di quel mese.
+ *
+ * `mesi` negativo va in avanti, con la stessa protezione.
+ * Come `aggiungiGiorniISO`, non passa **mai** da UTC: entra ed esce una data
+ * civile.
+ */
+export function mesiFaISO(iso: string, mesi: number): string {
+  const [anno, mese, giorno] = iso.split('-').map(Number)
+  const bersaglio = new Date(anno, mese - 1 - mesi, 1)
+  // Giorno 0 del mese SEGUENTE = ultimo giorno del mese d'arrivo.
+  const ultimoGiorno = new Date(bersaglio.getFullYear(), bersaglio.getMonth() + 1, 0).getDate()
+  bersaglio.setDate(Math.min(giorno, ultimoGiorno))
+  const mm = String(bersaglio.getMonth() + 1).padStart(2, '0')
+  const dd = String(bersaglio.getDate()).padStart(2, '0')
+  return `${bersaglio.getFullYear()}-${mm}-${dd}`
+}
+
 export const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
 export const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 

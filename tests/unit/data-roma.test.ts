@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { oggiRomaISO, adessoRoma, aggiungiGiorniISO, annoRoma, GIORNI, MESI, saluto } from '@/lib/utils/data-roma'
+import { oggiRomaISO, adessoRoma, aggiungiGiorniISO, annoRoma, mesiFaISO, GIORNI, MESI, saluto } from '@/lib/utils/data-roma'
 
 describe('annoRoma — anno del giorno civile di Roma (date fiscali)', () => {
   it('capodanno: 23:30 UTC del 31/12 è GIÀ il 2027 a Roma (CET +1)', () => {
@@ -71,5 +71,74 @@ describe('GIORNI / MESI / saluto — copy della home', () => {
     expect(saluto(new Date(2026, 6, 20, 12, 0))).toBe('Buon pomeriggio')
     expect(saluto(new Date(2026, 6, 20, 18, 0))).toBe('Buonasera')
     expect(saluto(new Date(2026, 6, 20, 4, 0))).toBe('Buonasera')
+  })
+})
+
+// ── `mesiFaISO` — la finestra all'indietro che non trabocca (31/07/2026) ────────
+//
+// Nasce da un difetto vero, gemello di quello riparato in `queries.ts` la stessa
+// notte: `setFullYear(y - 1)` su una Date NON fallisce mai. Se il giorno non
+// esiste nell'anno (o nel mese) di arrivo — il 29 febbraio guardato da un anno
+// non bisestile, il 31 guardato da un mese di 30 — JavaScript TRABOCCA al mese
+// successivo, e la finestra nasce spostata in avanti senza che nessuno se ne
+// accorga.
+//
+// Le FORME D'INPUT enumerate PRIMA delle asserzioni (R-P4):
+//   1. giorno che NON esiste nel mese di arrivo (29 feb → anno non bisestile) ✔
+//   2. giorno 31 verso un mese di 30 ✔
+//   3. giorno 29/30/31 verso febbraio ✔
+//   4. giorno che esiste (il caso normale, che non deve cambiare) ✔
+//   5. bisestile → bisestile (il 29 febbraio SOPRAVVIVE se l'arrivo ce l'ha) ✔
+//   6. `mesi = 0` (identità) ✔
+//   7. salto che attraversa il capodanno ✔
+//   8. `mesi` NEGATIVO, cioè in avanti ✔
+//   9. data d'INGRESSO che non esiste (29 febbraio non bisestile) ✔ — trovata
+//      sbagliando la prova del caso 6, e vale la pena fissarla
+// 🛑 Non coperta, e il perché: nessun fuso orario. Questa funzione lavora su una
+// data-only (YYYY-MM-DD) e non passa MAI da UTC — è la stessa scelta di
+// `aggiungiGiorniISO` qui sopra, ed è il motivo per cui il fuso non può entrarci.
+describe('mesiFaISO — indietro di N mesi senza traboccare (difetto 29 febbraio)', () => {
+  it('🔴 il 29 febbraio, un anno indietro: si ferma al 28, NON scivola al 1° marzo', () => {
+    expect(mesiFaISO('2028-02-29', 12)).toBe('2027-02-28')
+  })
+
+  it('il 31 verso un mese di 30: si ferma al 30', () => {
+    expect(mesiFaISO('2026-07-31', 1)).toBe('2026-06-30')
+  })
+
+  it('il 31 marzo verso febbraio (il salto più corto del calendario)', () => {
+    expect(mesiFaISO('2026-03-31', 1)).toBe('2026-02-28')
+  })
+
+  it('il caso normale non cambia: un giorno che esiste resta quel giorno', () => {
+    expect(mesiFaISO('2026-07-15', 12)).toBe('2025-07-15')
+    expect(mesiFaISO('2026-07-15', 1)).toBe('2026-06-15')
+  })
+
+  it('bisestile → bisestile: il 29 febbraio SOPRAVVIVE quando l\'anno di arrivo ce l\'ha', () => {
+    expect(mesiFaISO('2028-02-29', 48)).toBe('2024-02-29')
+  })
+
+  it('zero mesi: la data torna identica', () => {
+    expect(mesiFaISO('2028-02-29', 0)).toBe('2028-02-29')
+    expect(mesiFaISO('2026-07-31', 0)).toBe('2026-07-31')
+  })
+
+  // Trovata scrivendo la prova qui sopra, sbagliandola: il 2026 NON è bisestile,
+  // quindi `2026-02-29` è una data che non esiste. Vale la pena fissare cosa
+  // succede, perché è la stessa scelta di tutto il resto — si scende all'ultimo
+  // giorno vero del mese, non si trabocca al primo del successivo.
+  it('una data d\'ingresso che non esiste (29 febbraio di un anno non bisestile) scende al 28, non trabocca', () => {
+    expect(mesiFaISO('2026-02-29', 0)).toBe('2026-02-28')
+  })
+
+  it('attraversa il capodanno all\'indietro', () => {
+    expect(mesiFaISO('2026-01-15', 2)).toBe('2025-11-15')
+    expect(mesiFaISO('2026-01-31', 1)).toBe('2025-12-31')
+  })
+
+  it('mesi negativi: va in AVANTI, e non trabocca nemmeno lì', () => {
+    expect(mesiFaISO('2026-01-31', -1)).toBe('2026-02-28')
+    expect(mesiFaISO('2026-07-15', -1)).toBe('2026-08-15')
   })
 })

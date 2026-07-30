@@ -6,6 +6,7 @@ import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { validaPinNuovo, hashPin } from '@/lib/portale/pin'
 import { logPortaleAudit, type AzionePortale } from '@/lib/portale/audit'
+import { oggiRomaISO, mesiFaISO } from '@/lib/utils/data-roma'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -83,10 +84,20 @@ export async function GET(_req: Request, { params }: RouteContext) {
       )
     }
 
-    // Count lavori recenti (ultimi 12 mesi) separatamente
-    const dodiciMesiFa = new Date()
-    dodiciMesiFa.setFullYear(dodiciMesiFa.getFullYear() - 1)
-    const dodiciMesiFaISO = dodiciMesiFa.toISOString().split('T')[0]
+    // Count lavori recenti (ultimi 12 mesi) separatamente.
+    //
+    // ⚠️ Due difetti chiusi qui il 31/07/2026, ed erano nella stessa riga.
+    // ① `setFullYear(y - 1)` su una Date NON fallisce mai: il **29 febbraio**
+    //    l'anno precedente non esiste, quindi JavaScript scivolava al 1° marzo e
+    //    la finestra cominciava un giorno più tardi — una volta ogni quattro anni,
+    //    in silenzio. `mesiFaISO` scende all'ultimo giorno vero del mese (28
+    //    febbraio) invece di traboccare: una finestra all'indietro può allargarsi,
+    //    mai stringersi sotto il periodo chiesto.
+    // ② `new Date().toISOString()` è **UTC**: fra mezzanotte e le due di Roma
+    //    dava il giorno prima — il difetto che `oggiRomaISO` (O1b) esiste per
+    //    chiudere, e che qui era rimasto. Ora il conto parte dal giorno civile
+    //    italiano, come ovunque.
+    const dodiciMesiFaISO = mesiFaISO(oggiRomaISO(), 12)
 
     const { count: lavori_recenti_count } = await svc
       .from('lavori')

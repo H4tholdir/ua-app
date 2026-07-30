@@ -32,9 +32,15 @@ leggevano l'orologio vero e sarebbero morte **insieme il 1° agosto**. Ora il te
 (solo `Date`), e la sequenza è stata: pin al 15 luglio a codice intatto → **14 su 14 verdi** (il pin
 conserva l'intento, non maschera) → due prove nuove sulle date pericolose → **rosse** → correzione →
 **17 su 17** → mutazione → **le due si riaccendono**. Dettaglio nel referto §6 ⑥.
-🟡 **Riferito e NON corretto** (fuori dal mandato di quella richiesta): `src/app/api/clienti/[id]/route.ts:87-89`
-ha la stessa classe di difetto con `setFullYear` — sposta di **un giorno** una finestra di
-conteggio, il 29 febbraio, una volta ogni quattro anni.
+✅ **E anche il gemello del 29 febbraio è chiuso, su seconda richiesta di Francesco:** nasce
+`mesiFaISO(iso, mesi)` in `src/lib/utils/data-roma.ts` (**9 prove**) — quando il giorno non esiste
+nel mese d'arrivo si scende all'**ultimo giorno vero**, mai al primo del successivo. La usa la
+finestra «ultimi 12 mesi» di `src/app/api/clienti/[id]/route.ts`, dove **c'era anche un secondo
+difetto nella stessa riga**: `toISOString()` è UTC, quindi di notte il conto partiva dal giorno
+prima (è O1b, che `oggiRomaISO` esiste per chiudere). R-P4: abbozzo inerte → **7 su 8**; la nona
+forma d'input è nata **sbagliando una prova** (avevo scritto `2026-02-29`, che non esiste: il 2026
+non è bisestile). ✅ **Censimento chiuso:** `setMonth`/`setFullYear` in `src/` sono **tre** siti,
+tutti verificati.
 
 🔴 **Restano vivi: R27** (`tsc` non protegge le query) · **R29 + D81** (un solo database: il
 caricamento foto su uachelab.com è rotto fino al merge, si ripara in **T13**) · **FM-8** (l'eliminazione

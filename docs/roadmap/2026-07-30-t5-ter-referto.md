@@ -31,6 +31,9 @@ solo nell'album.
 |---|---|
 | `src/lib/dashboard/queries.ts` | `setDate(1)` spostato **prima** di `setMonth`: la finestra del grafico non perde più un mese, e non inventa più un mese futuro |
 | `tests/unit/dashboard-kpi.test.ts` | tempo **pilotato** (le cinque prove esistenti leggevano l'orologio vero e sarebbero morte tutte il 1° agosto) e **+3** prove sulle date pericolose |
+| `src/lib/utils/data-roma.ts` | 🆕 `mesiFaISO(iso, mesi)` — la finestra all'indietro che non trabocca |
+| `tests/unit/data-roma.test.ts` | **+9** prove sulla funzione nuova |
+| `src/app/api/clienti/[id]/route.ts` | la finestra «ultimi 12 mesi» usa `mesiFaISO(oggiRomaISO(), 12)`: niente traboccamento il 29 febbraio, e niente giorno UTC di notte |
 
 ---
 
@@ -257,14 +260,44 @@ ma la verifica va scritta, o «non l'ho toccata» e «non l'ho guardata» si som
 di questo piano. Dire «pianificata» sarebbe vero per l'album e **falso** per il wizard. Il confine
 lo traccia il coordinatore, non l'esecutore di un task.
 
-### ⑤-bis Lo stesso difetto, un anno più in là — riferito, questo sì non corretto
-`src/app/api/clienti/[id]/route.ts:87-89` fa `setFullYear(getFullYear() - 1)` sulla data di oggi.
-Stessa classe: il **29 febbraio** l'anno precedente non ha il 29 febbraio, quindi la data trabocca
-al 1° marzo. **La misura del danno, onesta:** sposta di **un giorno** il confine della finestra
-«ultimi 12 mesi» di un **conteggio**, una volta ogni quattro anni. Una riga di censimento, non una
-sezione: il mandato di Francesco diceva «il grafico mensile».
-`provato:` `grep -rn "setMonth\|setFullYear" src/` → **tre** siti in tutto: i due di
-`queries.ts` (`:367` corretto, `:423` al sicuro perché il cursore parte da un giorno 1) e questo.
+### ⑤-bis ✅ Lo stesso difetto un anno più in là — riferito, poi CORRETTO su richiesta di Francesco
+`src/app/api/clienti/[id]/route.ts` faceva `setFullYear(getFullYear() - 1)` sulla data di oggi.
+Stessa classe del precedente: il **29 febbraio** l'anno prima non esiste, quindi la data traboccava
+al 1° marzo e la finestra «ultimi 12 mesi» di un **conteggio** cominciava un giorno più tardi — una
+volta ogni quattro anni.
+
+**La correzione non è stata una riga in linea: è una funzione, e la ragione è che una riga in linea
+non si può provare.** Testare quel punto avrebbe voluto dire montare la rotta intera (autenticazione,
+contesto di laboratorio, finta di Supabase) per asserire su una data. Nasce quindi
+**`mesiFaISO(iso, mesi)`** in `src/lib/utils/data-roma.ts` — il file che in questo progetto è già
+«l'unico punto che risponde a *che giorno è adesso*» e che ospita di suo `aggiungiGiorniISO`, cioè
+la stessa aritmetica di calendario senza mai passare da UTC. **Nove prove**, `tests/unit/data-roma.test.ts`.
+
+**La regola che la funzione incide, dichiarata:** quando il giorno non esiste nel mese d'arrivo si
+scende all'**ultimo giorno di quel mese**, mai al primo del successivo — una finestra all'indietro
+può allargarsi, mai stringersi sotto il periodo chiesto. Il traboccamento è impossibile **per
+costruzione**: si parte dal giorno 1 del mese d'arrivo (che esiste sempre) e solo dopo si posa il
+giorno, limitato alla lunghezza vera del mese.
+
+**R-P4:** primo rosso da «funzione inesistente» (che non prova niente), poi abbozzo inerte
+(`iso => iso`) → **7 su 8**. L'unica verde è `mesi = 0`, che è l'identità per definizione.
+**Nove forme d'input**, e la nona è arrivata **sbagliando una prova**: avevo scritto `2026-02-29`
+per il caso identità, ma il 2026 non è bisestile e quella data **non esiste**. La funzione la
+riportava al 28 — comportamento giusto — e adesso è una prova sua, invece che una svista corretta e
+dimenticata.
+
+🔑 **E nella stessa riga c'era un SECONDO difetto, di un'altra famiglia:** `new Date().toISOString()`
+è **UTC**, quindi fra mezzanotte e le due di Roma quel conto partiva dal giorno prima. È
+esattamente ciò che `oggiRomaISO` (O1b) esiste per chiudere, ed era rimasto qui. ⚠️ **Lo dichiaro
+invece di lasciarlo passare come rifinitura:** correggerlo non era nel mandato letterale («il 29
+febbraio»), ma la riga si riscriveva comunque e lasciarci dentro un difetto già bandito altrove
+sarebbe stato peggio che sistemarlo. **Effetto: nelle ore notturne il confine della finestra si
+sposta di un giorno — verso quello giusto.**
+
+`provato:` censimento chiuso — `grep -rn "setMonth\|setFullYear" src/` → **tre** siti in tutto:
+i due di `queries.ts` (`:388` corretto, il `cursor.setMonth(+1)` al sicuro perché parte da un giorno
+1) e questo. 🔑 Un quarto candidato, `src/app/(app)/qualita/psur/page.tsx:34`, fa la sottrazione su
+un **numero**, non su una data: **non può traboccare**.
 
 ### ⑤ Due citazioni di riga che questo task fa invecchiare (documenti ratificati, non li tocco)
 - `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §1.6 e §5.42 citano
