@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Album foto — tre direzioni, dentro la scheda vera (29/07/2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ═══ Token DS v3 — verbatim da src/app/ds-v3.css:11-58 ═══ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [data-ds="v3"] {
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E; --blue:#1D5FBF; --blue-tint:#EBF1FA;
+    --amber:#9A5C00; --amber-tint:#F8F0E1; --green:#1B7F3B;
+    --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --scrim: rgba(29,25,19,.35);
+    --font-v3:'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-v3); color: var(--ink);
+  }
+  [data-theme="dark"] [data-ds="v3"] {
+    --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910; --blue:#5B9BFF; --blue-tint:rgba(91,155,255,.14);
+    --amber:#E8A13D; --amber-tint:rgba(232,161,61,.14); --green:#34C468;
+    --sh-card: none; --sh-press: none;
+  }
+  body { background: var(--bg); padding: 24px 0 80px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  h1 { font-size: 27px; font-weight: 800; letter-spacing:-.02em; margin-bottom: 8px; }
+  .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+  .sub strong, .nota b { color: var(--ink); }
+  h2 { font-size: 21px; font-weight: 800; letter-spacing:-.02em; margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .nota { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 6px 0 14px; }
+  .pro { color: var(--green); font-weight: 700; }
+  .contro { color: var(--red); font-weight: 700; }
+  .fila { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .col { width: 366px; flex: none; }
+  .cap { font-size: 12.5px; font-weight: 700; letter-spacing:.14em; text-transform: uppercase;
+         color: var(--faint); margin-bottom: 8px; }
+
+  /* ═══ RIPRODUZIONE della scheda vera (misure dalle catture del 29/07:
+         docs/design/screenshots/2026-07-29-foto-stato-attuale/scheda-390-light.png).
+         Telefono 390 con i suoi 24 di margine = 342 utili. ═══ */
+  .tel { width: 366px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px;
+         padding: 12px; }
+  .schermo { width: 342px; margin: 0 auto; }
+  .testata { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 14px; }
+  .tondo { width: 48px; height: 48px; border-radius: 999px; background: var(--card);
+           box-shadow: var(--sh-card); display: flex; align-items: center; justify-content: center;
+           font-size: 20px; font-weight: 700; color: var(--ink); flex: none; }
+  [data-theme="dark"] .tondo { background: var(--elv); }
+  .num { font-size: 27px; font-weight: 800; letter-spacing:-.02em; }
+  .badge { display: inline-block; padding: 8px 16px; border-radius: 999px; background: var(--blue-tint);
+           color: var(--blue); font-size: 13px; font-weight: 800; letter-spacing:.06em;
+           text-transform: uppercase; margin-bottom: 14px; }
+  .carta { background: var(--card); border-radius: 24px; box-shadow: var(--sh-card); padding: 16px 20px;
+           margin-bottom: 12px; }
+  [data-theme="dark"] .carta { background: var(--card); }
+  .riga { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+          padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .riga:last-child { border-bottom: none; }
+  .et { font-size: 12.5px; font-weight: 700; letter-spacing:.12em; text-transform: uppercase; color: var(--faint); }
+  .val { font-size: 17px; font-weight: 700; text-align: right; }
+  .val.rosso { color: var(--red); }
+  .titolo-carta { font-size: 12.5px; font-weight: 700; letter-spacing:.12em; text-transform: uppercase;
+                  color: var(--faint); margin-bottom: 6px; }
+  .testo-carta { font-size: 17px; }
+  .consegna { width: 100%; min-height: 64px; border-radius: 20px; background: var(--bg-deep);
+              color: var(--faint); border: none; font-family: var(--font-v3); font-size: 21px;
+              font-weight: 800; letter-spacing:.04em; margin-top: 6px; }
+  .sotto-consegna { font-size: 15.5px; color: var(--muted); margin-top: 10px; }
+
+  /* ── OGGI: la striscia (FotoStrip.tsx verbatim: 72×72, radius 12, gap 8) ── */
+  .strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 12px; }
+  .th72 { width: 72px; height: 72px; border-radius: 12px; flex: none; overflow: hidden; background: var(--bg-deep); }
+  .th72 img, .th72 svg { width: 100%; height: 100%; display: block; }
+
+  /* ── A · la carta delle foto: hero + rail ── */
+  .hero { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 18px; overflow: hidden;
+          background: var(--bg-deep); }
+  .hero svg, .hero img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .hero .piu { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 999px;
+               background: rgba(255,255,255,.94); color: var(--ink); display: flex; align-items: center;
+               justify-content: center; font-size: 19px; font-weight: 800; box-shadow: 0 2px 8px rgba(50,40,25,.3); }
+  [data-theme="dark"] .hero .piu { background: rgba(43,38,32,.96); color: var(--ink); }
+  .rail { display: flex; gap: 8px; margin-top: 10px; }
+  .th60 { width: 60px; height: 60px; border-radius: 12px; flex: none; overflow: hidden; background: var(--bg-deep);
+          opacity: .55; }
+  .th60.sel { opacity: 1; box-shadow: 0 0 0 2px var(--ink); }
+  .th60 svg { width: 100%; height: 100%; display: block; }
+  .meta-foto { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; }
+  .meta-foto .cat { font-size: 17px; font-weight: 700; }
+  .meta-foto .conta { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+  /* ── B · indice + visore a schermo pieno ── */
+  .griglia3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tessera { border-radius: 14px; overflow: hidden; background: var(--bg-deep); aspect-ratio: 1; }
+  .tessera svg { width: 100%; height: 100%; display: block; }
+  .sotto-tess { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 5px;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .palco { position: relative; width: 342px; height: 700px; border-radius: 22px; overflow: hidden;
+           background: #0B0906; }
+  .visore-testata { position: absolute; top: 0; left: 0; right: 0; height: 60px; display: flex;
+                    align-items: center; justify-content: space-between; padding: 0 14px; color: #fff;
+                    background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,0)); z-index: 2; }
+  .visore-testata .t { font-size: 15.5px; font-weight: 700; }
+  .visore-testata .x { font-size: 22px; font-weight: 700; }
+  .visore-foto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .visore-foto svg { width: 100%; height: auto; display: block; }
+  .visore-piede { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px;
+                  background: linear-gradient(0deg, rgba(0,0,0,.66), rgba(0,0,0,0)); z-index: 2;
+                  display: flex; gap: 8px; align-items: center; }
+  .vp-tasto { flex: 1; min-height: 48px; border-radius: 16px; background: rgba(255,255,255,.16);
+              color: #fff; border: none; font-family: var(--font-v3); font-size: 15.5px; font-weight: 700; }
+  .vp-tasto.pericolo { color: #FF6E74; }
+  .vp-rail { position: absolute; bottom: 78px; left: 0; right: 0; display: flex; gap: 6px;
+             padding: 0 14px; z-index: 2; }
+  .vp-rail div { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; opacity: .5; }
+  .vp-rail div.sel { opacity: 1; box-shadow: 0 0 0 2px #fff; }
+  .vp-rail svg { width: 100%; height: 100%; display: block; }
+
+  /* ── C · assaggio + pagina dedicata ── */
+  .assaggio { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .assaggio .tessera { aspect-ratio: 1; border-radius: 16px; }
+  .tutte { display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
+           font-size: 15.5px; font-weight: 700; color: var(--ink); }
+  .pagina { width: 342px; }
+  .griglia2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .griglia2 .tessera { aspect-ratio: 1; border-radius: 16px; }
+
+  /* ── tablet / desktop ── */
+  .tab { width: 720px; flex: none; background: var(--bg); border: 1px solid var(--line);
+         border-radius: 22px; padding: 14px; }
+  .desk { width: 1180px; flex: none; background: var(--bg); border: 1px solid var(--line);
+          border-radius: 22px; padding: 16px; }
+  .due-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+  .griglia5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .griglia4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 800px) { .col, .tel { width: 100%; } .tab, .desk { width: 100%; } .schermo { width: 100%; } .palco { width: 100%; } }
+</style>
+</head>
+<body data-ds="v3">
+<div class="wrap">
+
+<h1>L'album delle foto — tre direzioni, dentro la scheda vera</h1>
+<p class="sub">
+  Come chiesto: <strong>non frammenti</strong>. La colonna «oggi» è la riproduzione fedele della cattura
+  reale (testata, badge, carta dati, note, tasto Consegna); nelle altre tre <strong>cambia solo la zona
+  foto</strong>, tutto il resto è identico. Token e misure copiati dal codice
+  (<code>ds-v3.css:11-58</code> · <code>FotoStrip.tsx</code> · <code>TabImmagini.tsx</code>).
+</p>
+<p class="nota">
+  🛑 <b>Nella cattura vera la foto è un quadrato nero</b>: è così che si presenta oggi il contenuto di
+  prova. Qui uso immagini finte riconoscibili (un'impronta, un modello, una radiografia) <b>solo</b> perché
+  con un quadrato nero non si distingue una direzione dall'altra — la forma, le misure e i colori restano
+  quelli veri.
+</p>
+
+<!-- ══════════════ TELEFONO — le quattro colonne ══════════════ -->
+<h2>Telefono (390) — oggi, e le tre direzioni</h2>
+<div class="fila">
+
+  <!-- ─────────── OGGI ─────────── -->
+  <div class="col">
+    <div class="cap">Oggi</div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Paziente</span><span class="val">—</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+        <div class="riga"><span class="et">Tecnico</span><span class="val">Non assegnato</span></div>
+      </div>
+      <div class="carta"><div class="titolo-carta">Note (laboratorio)</div><div class="testo-carta">TEST BADGE PRIORITÀ</div></div>
+      <div class="strip">
+        <div class="th72"><svg viewBox="0 0 72 72"><rect width="72" height="72" fill="#C9BFA9"/><ellipse cx="36" cy="44" rx="22" ry="14" fill="#EFE7D5"/><path d="M18 44c4-9 32-9 36 0" stroke="#B9A98C" stroke-width="2" fill="none"/></svg></div>
+      </div>
+      <button class="consegna">CONSEGNA</button>
+      <p class="sotto-consegna">Completa il controllo finale per consegnare</p>
+    </div></div>
+    <p class="nota">
+      🛑 <b>Il difetto è triplo, e «piccole» è solo uno dei tre.</b> ① Non ha <b>intestazione</b>: tutte le
+      carte hanno un titolo, la striscia no — è un quadrato appeso fra le note e il tasto Consegna.
+      ② Non si <b>apre</b>: 72 px e nessun ingrandimento possibile. ③ Non dice <b>cos'è</b>: la categoria
+      esiste in banca dati e qui non compare mai. E se le foto fossero sei, non lo sapresti.
+    </p>
+  </div>
+
+  <!-- ─────────── A ─────────── -->
+  <div class="col">
+    <div class="cap">A · la carta delle foto</div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Paziente</span><span class="val">—</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+        <div class="riga"><span class="et">Tecnico</span><span class="val">Non assegnato</span></div>
+      </div>
+      <div class="carta"><div class="titolo-carta">Note (laboratorio)</div><div class="testo-carta">TEST BADGE PRIORITÀ</div></div>
+      <div class="carta">
+        <div class="titolo-carta">Foto</div>
+        <div class="hero">
+          <svg viewBox="0 0 320 240"><rect width="320" height="240" fill="#C9BFA9"/><ellipse cx="160" cy="150" rx="105" ry="62" fill="#EFE7D5"/><path d="M55 150c22-42 188-42 210 0" stroke="#B9A98C" stroke-width="5" fill="none"/><path d="M92 128q68-26 136 0" stroke="#CFC0A4" stroke-width="4" fill="none"/></svg>
+          <span class="piu">⋯</span>
+        </div>
+        <div class="meta-foto"><span class="cat">Impronta</span><span class="conta">1 di 4</span></div>
+        <div class="rail">
+          <div class="th60 sel"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#C9BFA9"/><ellipse cx="30" cy="37" rx="19" ry="12" fill="#EFE7D5"/></svg></div>
+          <div class="th60"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#B8AEA0"/><rect x="12" y="17" width="36" height="26" rx="4" fill="#E8E0D2"/></svg></div>
+          <div class="th60"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#8E8E93"/><circle cx="30" cy="28" r="13" fill="#D8D8DC"/></svg></div>
+          <div class="th60"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#C4B7A2"/><path d="M14 44c8-18 24-18 32 0" fill="#F0E9D9"/></svg></div>
+        </div>
+      </div>
+      <button class="consegna">CONSEGNA</button>
+      <p class="sotto-consegna">Completa il controllo finale per consegnare</p>
+    </div></div>
+    <p class="nota">
+      La foto grande è <b>4,7 volte più larga</b> di oggi (≈22 volte in area). Diventa una <b>carta con
+      titolo</b>, come le altre. Sotto: la categoria scritta e «1 di 4». Il tondo <b>⋯</b> apre il foglio
+      con «Elimina foto».<br>
+      <span class="pro">Pro</span> — nessuna schermata nuova, nessun rischio sul tasto «indietro»,
+      la più veloce da fare.<br>
+      <span class="contro">Contro</span> — non è un vero ingrandimento (resta dentro la pagina): per
+      leggere una prescrizione scritta piccola può non bastare. E quando arriveranno <b>ritaglia e
+      ruota</b>, quelli vorranno una superficie loro: <b>si disegnerà due volte</b>.
+    </p>
+  </div>
+
+  <!-- ─────────── B ─────────── -->
+  <div class="col">
+    <div class="cap">B · il visore a schermo pieno</div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+      </div>
+      <div class="carta">
+        <div class="titolo-carta">Foto · 4</div>
+        <div class="griglia3">
+          <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/><ellipse cx="50" cy="60" rx="32" ry="20" fill="#EFE7D5"/></svg></div><div class="sotto-tess">Impronta</div></div>
+          <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/><rect x="20" y="28" width="60" height="44" rx="5" fill="#E8E0D2"/></svg></div><div class="sotto-tess">Pre-lavoro</div></div>
+          <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/><circle cx="50" cy="46" r="22" fill="#D8D8DC"/></svg></div><div class="sotto-tess">Radiografia</div></div>
+        </div>
+        <div class="griglia3" style="margin-top:10px">
+          <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C4B7A2"/><path d="M22 72c10-30 46-30 56 0" fill="#F0E9D9"/></svg></div><div class="sotto-tess">Guida colore</div></div>
+        </div>
+      </div>
+      <button class="consegna">CONSEGNA</button>
+      <p class="sotto-consegna">Completa il controllo finale per consegnare</p>
+    </div></div>
+    <p class="nota">
+      Le tessere passano da 72 a <b>108 px</b> e portano la <b>categoria scritta sotto</b>, non sopra la
+      foto. Il tocco apre il visore →
+    </p>
+  </div>
+
+  <!-- ─────────── B: il visore aperto ─────────── -->
+  <div class="col">
+    <div class="cap">B · il visore, aperto</div>
+    <div class="palco">
+      <div class="visore-testata"><span class="t">2 di 4 · Pre-lavoro</span><span class="x">✕</span></div>
+      <div class="visore-foto">
+        <svg viewBox="0 0 342 420"><rect width="342" height="420" fill="#B8AEA0"/><rect x="46" y="120" width="250" height="180" rx="10" fill="#E8E0D2"/><path d="M76 200h190M76 232h140" stroke="#A2968A" stroke-width="7"/><circle cx="171" cy="168" r="16" fill="#CFC5B6"/></svg>
+      </div>
+      <div class="vp-rail">
+        <div><svg viewBox="0 0 44 44"><rect width="44" height="44" fill="#C9BFA9"/></svg></div>
+        <div class="sel"><svg viewBox="0 0 44 44"><rect width="44" height="44" fill="#B8AEA0"/></svg></div>
+        <div><svg viewBox="0 0 44 44"><rect width="44" height="44" fill="#8E8E93"/></svg></div>
+        <div><svg viewBox="0 0 44 44"><rect width="44" height="44" fill="#C4B7A2"/></svg></div>
+      </div>
+      <div class="visore-piede">
+        <button class="vp-tasto">Categoria</button>
+        <button class="vp-tasto pericolo">Elimina foto</button>
+      </div>
+    </div>
+    <p class="nota">
+      A schermo pieno: <b>doppio tocco per ingrandire</b>, si scorre di lato, «2 di 4 · Pre-lavoro» in
+      testa. Da qui si cambia categoria e si elimina.<br>
+      <span class="pro">Pro</span> — è l'unico che risolve <b>davvero</b> «guardare da vicino», e vale
+      <b>uguale</b> sulla scheda e in modifica (un pezzo solo, due chiamanti). Quando arriveranno
+      <b>ritaglia e ruota</b> saranno <b>un modo di questo visore</b>: si disegna una volta.<br>
+      <span class="contro">Contro</span> — è un pezzo nuovo che non esiste in casa, deve entrare nella
+      gestione del tasto «indietro» (regola già pagata su altri pannelli) e chiede <b>un colore nuovo</b>
+      nei token: il velo attuale è troppo trasparente per ospitare una foto.
+    </p>
+  </div>
+
+</div>
+
+<!-- ══════════════ C ══════════════ -->
+<h2>C · le foto diventano una pagina</h2>
+<p class="nota">
+  Sulla scheda resta un <b>assaggio</b> (due foto grandi + «Tutte le foto ›»); il resto vive in una pagina
+  sua. 🛑 <b>Rompe una regola che ci siamo dati</b> — mai più di tre livelli di profondità: casa → pila →
+  scheda, e questa sarebbe la quarta. Serve una tua deroga esplicita.
+</p>
+<div class="fila">
+  <div class="col">
+    <div class="cap">C · la scheda (assaggio)</div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+      </div>
+      <div class="carta">
+        <div class="titolo-carta">Foto</div>
+        <div class="assaggio">
+          <div class="tessera"><svg viewBox="0 0 160 160"><rect width="160" height="160" fill="#C9BFA9"/><ellipse cx="80" cy="96" rx="52" ry="32" fill="#EFE7D5"/></svg></div>
+          <div class="tessera"><svg viewBox="0 0 160 160"><rect width="160" height="160" fill="#B8AEA0"/><rect x="32" y="46" width="96" height="70" rx="7" fill="#E8E0D2"/></svg></div>
+        </div>
+        <div class="tutte"><span>Tutte le foto</span><span>4 ›</span></div>
+      </div>
+      <button class="consegna">CONSEGNA</button>
+      <p class="sotto-consegna">Completa il controllo finale per consegnare</p>
+    </div></div>
+  </div>
+  <div class="col">
+    <div class="cap">C · la pagina delle foto</div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num" style="font-size:21px">Le foto di n.2026/0002</span><span class="tondo">⋯</span></div>
+      <p class="nota" style="margin:0 0 12px">4 foto</p>
+      <div class="griglia2">
+        <div><div class="tessera"><svg viewBox="0 0 160 160"><rect width="160" height="160" fill="#C9BFA9"/><ellipse cx="80" cy="96" rx="52" ry="32" fill="#EFE7D5"/></svg></div><div class="sotto-tess">Impronta</div></div>
+        <div><div class="tessera"><svg viewBox="0 0 160 160"><rect width="160" height="160" fill="#B8AEA0"/><rect x="32" y="46" width="96" height="70" rx="7" fill="#E8E0D2"/></svg></div><div class="sotto-tess">Pre-lavoro</div></div>
+        <div><div class="tessera"><svg viewBox="0 0 160 160"><rect width="160" height="160" fill="#8E8E93"/><circle cx="80" cy="74" r="35" fill="#D8D8DC"/></svg></div><div class="sotto-tess">Radiografia</div></div>
+        <div><div class="tessera"><svg viewBox="0 0 160 160"><rect width="160" height="160" fill="#C4B7A2"/><path d="M35 115c16-48 74-48 90 0" fill="#F0E9D9"/></svg></div><div class="sotto-tess">Guida colore</div></div>
+      </div>
+    </div></div>
+    <p class="nota">
+      <span class="pro">Pro</span> — tessere <b>165 px</b>, spazio vero per ogni futura funzione, e
+      l'ondata «Le foto, per bene» non chiederebbe più niente di nuovo.<br>
+      <span class="contro">Contro</span> — la più costosa; una <b>deroga</b> alla regola dei tre livelli;
+      e va deciso che fine fa la scheda «Foto» dentro la modifica.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════ tablet e desktop ══════════════ -->
+<h2>Come cambia sugli schermi grandi (direzione B, che è quella che cambia di più)</h2>
+<div class="fila">
+  <div class="tab">
+    <div class="cap">Tablet 768 — indice a 4 colonne</div>
+    <div class="carta">
+      <div class="titolo-carta">Foto · 4</div>
+      <div class="griglia4">
+        <div><div class="tessera"><svg viewBox="0 0 140 140"><rect width="140" height="140" fill="#C9BFA9"/><ellipse cx="70" cy="84" rx="45" ry="28" fill="#EFE7D5"/></svg></div><div class="sotto-tess">Impronta</div></div>
+        <div><div class="tessera"><svg viewBox="0 0 140 140"><rect width="140" height="140" fill="#B8AEA0"/><rect x="28" y="40" width="84" height="62" rx="6" fill="#E8E0D2"/></svg></div><div class="sotto-tess">Pre-lavoro</div></div>
+        <div><div class="tessera"><svg viewBox="0 0 140 140"><rect width="140" height="140" fill="#8E8E93"/><circle cx="70" cy="64" r="30" fill="#D8D8DC"/></svg></div><div class="sotto-tess">Radiografia</div></div>
+        <div><div class="tessera"><svg viewBox="0 0 140 140"><rect width="140" height="140" fill="#C4B7A2"/><path d="M30 100c14-42 66-42 80 0" fill="#F0E9D9"/></svg></div><div class="sotto-tess">Guida colore</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="desk">
+    <div class="cap">Scrivania 1280 — il visore usa lo spazio: foto grande + miniature + frecce da tastiera</div>
+    <div class="due-col">
+      <div style="background:#0B0906; border-radius:18px; padding:14px; position:relative">
+        <div style="display:flex; align-items:center; justify-content:space-between; color:#fff; margin-bottom:10px">
+          <span style="font-size:15.5px; font-weight:700">2 di 4 · Pre-lavoro</span>
+          <span style="font-size:13px; opacity:.7">← → per scorrere · Esc per chiudere</span>
+        </div>
+        <svg viewBox="0 0 640 400" style="width:100%; display:block; border-radius:10px"><rect width="640" height="400" fill="#B8AEA0"/><rect x="90" y="70" width="460" height="260" rx="12" fill="#E8E0D2"/><path d="M140 200h360M140 250h250" stroke="#A2968A" stroke-width="9"/><circle cx="320" cy="150" r="26" fill="#CFC5B6"/></svg>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <div style="width:56px;height:56px;border-radius:8px;overflow:hidden;opacity:.5"><svg viewBox="0 0 56 56"><rect width="56" height="56" fill="#C9BFA9"/></svg></div>
+          <div style="width:56px;height:56px;border-radius:8px;overflow:hidden;box-shadow:0 0 0 2px #fff"><svg viewBox="0 0 56 56"><rect width="56" height="56" fill="#B8AEA0"/></svg></div>
+          <div style="width:56px;height:56px;border-radius:8px;overflow:hidden;opacity:.5"><svg viewBox="0 0 56 56"><rect width="56" height="56" fill="#8E8E93"/></svg></div>
+          <div style="width:56px;height:56px;border-radius:8px;overflow:hidden;opacity:.5"><svg viewBox="0 0 56 56"><rect width="56" height="56" fill="#C4B7A2"/></svg></div>
+          <div style="flex:1"></div>
+          <button class="vp-tasto" style="max-width:150px">Categoria</button>
+          <button class="vp-tasto pericolo" style="max-width:160px">Elimina foto</button>
+        </div>
+      </div>
+      <div>
+        <div class="carta">
+          <div class="titolo-carta">Foto · 4</div>
+          <div class="griglia3">
+            <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/><ellipse cx="50" cy="60" rx="32" ry="20" fill="#EFE7D5"/></svg></div><div class="sotto-tess">Impronta</div></div>
+            <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/><rect x="20" y="28" width="60" height="44" rx="5" fill="#E8E0D2"/></svg></div><div class="sotto-tess">Pre-lavoro</div></div>
+            <div><div class="tessera"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/><circle cx="50" cy="46" r="22" fill="#D8D8DC"/></svg></div><div class="sotto-tess">Radiografia</div></div>
+          </div>
+        </div>
+        <p class="nota">
+          Sul grande il contatore conta <b>più</b> che sul telefono: gli studi dicono che è proprio a
+          schermo largo che le foto in più non si trovano.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Tre cose che valgono per tutte e tre</h2>
+<p class="nota">
+  ① <b>L'ordine delle foto oggi non esiste</b>: tutte nascono con lo stesso numero d'ordine e nessuna
+  query le ordina — «la prima foto» non ha un referente stabile. Va sistemato in ogni caso, o l'album
+  mette in cima una foto a caso.<br>
+  ② <b>La categoria oggi è indovinata</b>: una foto scattata con la fotocamera nasce «Impronta» anche se è
+  una guida colore. Se la mettiamo bene in vista, un'etichetta sbagliata diventa credibile: da decidere se
+  mostrarla com'è, chiederla allo scatto, o partire da «Da classificare».<br>
+  ③ <b>L'indirizzo temporaneo della foto vale un'ora</b>, mentre nel portale dei dentisti gli stessi
+  documenti valgono cinque minuti. Su un album grande, dove il gesto naturale è «apri in una scheda
+  nuova», è la differenza fra una chiave che scade subito e una che gira per un'ora.
+</p>
+
+</div>
+</body>
+</html>
