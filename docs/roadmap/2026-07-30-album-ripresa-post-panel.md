@@ -5,8 +5,8 @@
 🛑 **SOSTITUISCE `docs/roadmap/2026-07-30-album-foto-esecuzione-handoff.md`**, che descrive lo stato *prima*
 dell'esecuzione ed è **superato**: due delle sue tre trappole sono state chiuse, e il suo §4 punto 1 è stato
 deciso (D80).
-**Documenti operativi:** il piano `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` (**14 task**:
-13 + T9-bis) · la proposta del gate `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` ·
+**Documenti operativi:** il piano `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`
+(🛑 **ne dichiara 14** — 13 + T9-bis — ma **i task veri sono 16**: non conosce né T5-bis né T5-ter, v. §4 p.3) · la proposta del gate `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` ·
 🔴 **il verbale del panel `docs/roadmap/2026-07-30-panel-gate-sezioni-album.md`, che è la lista di lavoro di
 chi riprende**. Spec ratificata: `docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md`.
 Verbale decisioni: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **ottantotto**.
@@ -178,7 +178,7 @@ Serve a chi ratifica: dice **dove guardare**, invece di far rileggere 1.100 righ
 | **§1.3** | z-index **1010/1020/1030** · censimento rifatto **con i due overlay della consegna** che mancavano · dichiarato il soffitto (avvisi 1100, `SkipToContent` 9999) |
 | **§1.4** | riscritta sul contatore · **la prova non è più cieca** · aggiunto **C-1**: `overscrollBehavior` è inerte senza `overflowY:'auto'` |
 | **§1.5** | **nove** ascoltatori, non due · A-1 marcata `provato:` con le righe di `react-dom` · **confine della bolla** inciso · il bivio ha un proprietario |
-| **§1.6** 🆕 | **riscritta da capo**: la trappola del focus, perché `inert` è stata scartata, e l'**àncora dichiarata** invece di `document.activeElement` |
+| **§1.6** 🆕 | **riscritta da capo**: la trappola del focus, perché `inert` è stata scartata, e l'**àncora dichiarata** invece di `document.activeElement`. 🛑 **La trappola vale per i TRE DIALOGHI, non per la tendina:** quella è `role="menu"` senza `aria-modal`, e nel modello del menù il `Tab` **esce** — quindi lì **chiude e riporta il focus al ⋯**, che sta dentro il visore (che la trappola ce l'ha). Le risposte sul `Tab` sono **tre**, non una |
 | **§1.9** | **riscritta**: la variante ridotta esplicita, e `SheetRidotto` indicato come **il modello da non copiare** |
 | **§1.11** | 🆕 **la prova che mancava** sull'indirizzo firmato — l'unica regola del documento che si poteva violare restando verdi ovunque |
 | **§2** | tutte e cinque le §5.x: quota, blocco, `Tab`, pastiglia del visore, ⋯ con `aria-expanded`, fascia che scorre, nessuna pastiglia pre-scelta allo scatto, larghezza del foglio, «Riduci movimento» |

@@ -38,7 +38,9 @@ di conferma) · **D83** (il visore copre tutto) · **D84** (il blocco dello scor
 |---|---|---|
 | **G-1** | I numeri di sezione sono **§5.38 → §5.42**. `provato:` `grep -rn "5\.38\|5\.39\|5\.40\|5\.41\|5\.42"` sulla spec v3 e su `src/components/ds/*.tsx` → **zero riscontri**: nessuno dei cinque numeri è già in uso | §2 |
 | **G-2** | **Raggio delle miniature = `raggio.riga - 6` (cioè 12)**, non un 12 nudo e non un token nuovo | §1.7 |
-| **G-3** 🔧 | ~~Solo `VisoreFoto` blocca lo scorrimento del corpo~~ 🛑 **SUPERATA il 30/07 da D84 — il difetto è stato RIPARATO ALLA RADICE, non aggirato.** La forma in vigore è: **ogni strato che copre la pagina chiama `bloccaScorrimento()`** (`src/components/ds/blocca-scorrimento.ts`, a contatore: cattura al **primo** blocco, ripristina all'**ultimo** sblocco, in qualunque ordine arrivino i rilasci, compensazione della barra inclusa). ✅ **Cade anche il costo residuo dichiarato in §1.4** — il foglio della categoria allo scatto **blocca** come gli altri. ✅ E cade l'invariante «esattamente un bloccante, e dev'essere il più basso», che nessuna guardia poteva verificare. ⚠️ `Sheet` e `NuovoOrdineSheet` sono **già migrati** (`c268b54b` · `47e77069` · `daeb0efc` · `636c10b4`): chi scrive uno strato nuovo **usa il modulo**, non scrive mai `document.body.style`. ✅ **§1.4 è riscritta**, e con essa **la prova, che era CIECA DUE VOLTE** (B-3): sentinella `'scroll'` invece di `'hidden'`, asserzione **mentre è aperto** e non solo dopo, `paddingRight` incluso, **il caso che deve fallire** e la prova **speculare** dei due strati chiusi nell'ordine sbagliato | §1.4 ✅ **riscritta** |
+| **G-3** 🔧 | ~~Solo `VisoreFoto` blocca lo scorrimento del corpo~~ 🛑 **SUPERATA il 30/07 da D84 — il difetto è stato RIPARATO ALLA RADICE, non aggirato.** La forma in vigore è: **ogni strato SOPRA la pagina chiama `bloccaScorrimento()`** — anche la tendina, che
+è un pannello ancorato da 260 px e non copre niente: **un componente che blocca *a volte* è un componente
+che indovina** (`src/components/ds/blocca-scorrimento.ts`, a contatore: cattura al **primo** blocco, ripristina all'**ultimo** sblocco, in qualunque ordine arrivino i rilasci, compensazione della barra inclusa). ✅ **Cade anche il costo residuo dichiarato in §1.4** — il foglio della categoria allo scatto **blocca** come gli altri. ✅ E cade l'invariante «esattamente un bloccante, e dev'essere il più basso», che nessuna guardia poteva verificare. ⚠️ `Sheet` e `NuovoOrdineSheet` sono **già migrati** (`c268b54b` · `47e77069` · `daeb0efc` · `636c10b4`): chi scrive uno strato nuovo **usa il modulo**, non scrive mai `document.body.style`. ✅ **§1.4 è riscritta**, e con essa **la prova, che era CIECA DUE VOLTE** (B-3): sentinella `'scroll'` invece di `'hidden'`, asserzione **mentre è aperto** e non solo dopo, `paddingRight` incluso, **il caso che deve fallire** e la prova **speculare** dei due strati chiusi nell'ordine sbagliato | §1.4 ✅ **riscritta** |
 | **G-4** 🔧 | **`Escape` non si ascolta più su `window`:** si ascolta sul **pannello che ha il focus**, con `stopPropagation()`. Contratto: i quattro strati si montano **fratelli**. 🛑 **Il panel l'aveva bocciata a tre su tre (B-1), e la ragione era che il punto 2 NON ERA VERO:** col `Tab` si esce dal pannello e l'`Escape` risale a `window`, dove vivono **nove** ascoltatori. ✅ **Chiusa da G-11**, che rende il punto 2 vero per costruzione. ✅ **E il punto 3 non è più una previsione: è `provato:`** in `react-dom` (v. G-12 e §6, A-1) | §1.5 ✅ **riscritta** |
 | **G-5** 🔧 | ~~z-index: visore 400 · tendina 500 · fogli 600~~ 🛑 **CORRETTA il 30/07 da D83: visore 1010 · tendina 1020 · fogli di terzo strato 1030** — sopra `Sheet` e `DialogConferma` (1000), sotto gli avvisi (1100). 🔑 **Il censimento di §1.3 era incompleto e nascondeva il precedente che rispondeva alla domanda:** `src/components/features/lavori/consegna-v3/FlussoConsegna.tsx:56` e `FrameConsegnato.tsx:90` sono **due overlay v3 a tutto schermo a 1000**, montati **dalla stessa pagina** dell'album. ✅ **E l'assunzione A-2 smette di essere portante** | §1.3 ✅ **riscritta** |
 | **G-6** 🔧 | **`molla.smooth` per tutti e quattro gli strati** — **è una scelta, non un token già pronto** per visore e tendina; per i due fogli la coreografia esiste già (`coreografie.sheetSu`, §8.3 n.6). 🛑 **CORRETTA il 30/07 dal panel (B-6): per i due fogli NON BASTA nominarla.** `provato:` `src/design-system/v3/motion.ts:85-86` porta la transizione **dentro** la variante, in **entrambe** le chiavi: una `transition` passata come prop **non ci arriva mai**. A «Riduci movimento» i due fogli si muoverebbero comunque. ➡️ Serve una **variante ridotta esplicita**, e la prova diventa «`y` finale = 0 **e** nessun tween su `y`» | §1.8, §1.9 **riscritte** |
@@ -46,7 +48,7 @@ di conferma) · **D83** (il visore copre tutto) · **D84** (il blocco dello scor
 | **G-8** 🔧 | **L'ordine dei due tasti della conferma resta quello di §5.17** (sicura sopra, distruttiva sotto) — **il mockup mostra l'opposto**, ed è ormai **D82**, non più una deduzione. 🛑 **CORRETTA (C-5): la conclusione regge, la RAGIONE citata in §5.40 no.** «In fondo alla tendina c'è il pollice» è falso: una tendina ancorata sotto il ⋯ vive nel terzo **alto** dello schermo — il suo fondo sta a ~220 px su 844. La mitigazione di D78 resta (rosso + linea + parola esplicita); **la frase sulla zona del pollice si toglie**, e S3 si riscrive senza appoggiarcisi | §5, riga S3 |
 | **G-9** 🔧 | **I controlli del visore non si appoggiano alla sfumatura per il contrasto**: ognuno porta la propria faccia e il proprio confine. 🔑 **Il panel l'ha chiamata «la decisione migliore del gate» — e ha trovato che l'APPLICAZIONE era incompleta proprio sui due elementi che voleva difendere** (B-4): `provato:` `docs/design/mockups/2026-07-30-album-visore-categoria.html:118-120` — `.vis-capo .mezzo` **non ha nessun `background`**, quindi etichetta e contatore stanno **direttamente sulla sfumatura** e valgono **~2,1:1**, non 4,2. ➡️ Diventano **una pastiglia con faccia** (`sopraFoto.faccia` + `sopraFoto.confine`, `raggio.pill`, min-height **44**) — che chiude anche B-5 | §5, righe S1·S2·S4·S5 |
 | **G-10** | **L'emendamento a §5.17 e a §13.2** — testo pronto da incollare | §3 |
-| **G-11** 🆕 | 🔒 **La trappola del focus si ripara ALLA RADICE — `src/components/ds/trappola-focus.ts` (🆕 da creare), e `Sheet` e `DialogConferma` diventano suoi utenti.** Nasce **T5-ter**, prima di T6. Chiude il bloccante **B-1**, l'unico su cui il panel ha convergiuto **a tre su tre**. ✅ **Ratificata: D85** | §1.6 **riscritta** |
+| **G-11** 🆕 | 🔒 **La trappola del focus si ripara ALLA RADICE — `src/components/ds/trappola-focus.ts` (🆕 da creare), e `Sheet` e `DialogConferma` diventano suoi utenti.** Nasce **T5-ter**, prima di T6. Chiude il bloccante **B-1**, l'unico su cui il panel ha convergiuto **a tre su tre**. 🛑 **La trappola vale per i TRE DIALOGHI, non per la tendina:** `TendinaMenu` è `role="menu"` **senza `aria-modal`**, e l'argomento di D85 («l'attributo promette che dietro non esista niente, la trappola è la metà mancante») **lì non si applica**; nel modello del menù il `Tab` **esce** ➡️ chiude e riporta il focus al ⋯, che sta dentro il visore. **B-1 chiedeva che ognuna DICHIARI, non che tutte dicano lo stesso.** ✅ **Ratificata: D85** | §1.6 **riscritta** |
 | **G-12** 🆕 | 🚦 **La via dell'`Escape` di §1.5 si tiene, il confine è la fase di BOLLA, e il ripiego (FM-2) lo decide il COORDINATORE — non l'esecutore di T7.** Chiude il bloccante **B-2**. ✅ **A-1 non è più un'assunzione: è `provato:`** ✅ **Ratificata: D86** | §1.5, §6 riga A-1 |
 | **G-13** 🆕 | 🔠 **L'etichetta di gruppo della carta sale da 11 a 12,5 px** — il minimo assoluto di §4.1, lo stesso che questo documento invoca quattro sezioni più in là per bocciare il contatore. Chiude **C-9**; nasce lo scostamento **S10**. ✅ **Ratificata: D87** | §2 (§5.38), §5 riga S10 |
 | **G-14** 🆕 | 🌑 **`ombraPannello` resta, ed è la SECONDA eccezione ratificata alla legge di §3 «in scuro nessuna ombra»** — precedente: `TastoPiu`, `src/design-system/v3/tokens.ts:75`. Chiude **C-14**. ✅ **Ratificata: D88** | §4, §2 (§5.40) |
@@ -128,7 +130,7 @@ serve **anche** la trappola del focus di §1.6: la quota da sola non lo tiene fu
 precedente prescriveva «solo il più basso blocca», che era la scorciatoia attorno a un difetto di `Sheet`;
 D84 ha scelto la riparazione, e **T5-bis è in casa** (`c268b54b` · `47e77069` · `daeb0efc` · `636c10b4`).
 
-**La regola, in una riga: ogni strato che copre la pagina chiama `bloccaScorrimento()`**
+**La regola, in una riga: ogni strato SOPRA la pagina chiama `bloccaScorrimento()`**
 (`src/components/ds/blocca-scorrimento.ts`) e tiene la funzione che quella gli restituisce, per chiamarla
 alla chiusura. Nessuno scrive **mai** `document.body.style`. Il modulo cattura il valore vero al **primo**
 blocco e lo ripristina all'**ultimo** sblocco, in qualunque ordine arrivino i rilasci; la `sblocca()` è
@@ -265,12 +267,36 @@ conferma **non funziona**, perché chi lo apre è **una voce di menù che sta sm
 nodo staccato dall'albero, il focus finirebbe sul `body`, e da lì (regola di §1.5) **`Escape` è morto**.
 ➡️ Chi apre uno strato **passa** l'elemento a cui tornare, o ne dichiara uno che sopravvive alla chiusura.
 
-**Ogni §5.x dichiara il proprio comportamento sul `Tab`**, e con D85 la riga è la stessa per tutti e cinque
-— il che è il punto: cinque righe diverse sarebbero cinque implementazioni da verificare a una a una.
+#### 🛑 La trappola vale per i tre DIALOGHI, **non** per la tendina — e non è un'eccezione di comodo
+Il ragionamento di D85 è: **`aria-modal="true"` promette che dietro non esista niente, e la trappola è la
+metà mancante di quella promessa.** L'argomento vale **dove quella promessa c'è**, cioè su `VisoreFoto`,
+`FoglioCategoria` e `FoglioConferma` — tutti `role="dialog"` + `aria-modal="true"`.
 
-**La prova che T5-ter deve portare:** con lo strato aperto, `Tab` premuto tante volte quanti sono gli
-elementi raggiungibili **più uno** → il focus è **tornato al primo**, e `document.activeElement` **non è mai
-uscito** dal pannello. Più il caso che deve fallire: la stessa prova **senza** la trappola diventa rossa.
+**`TendinaMenu` è `role="menu"` e NON porta `aria-modal`:** lì il modello di riferimento è quello del menù,
+dove **un solo elemento è nella sequenza del `Tab`** e a muoversi fra le voci sono ↑ e ↓ — ed è esattamente
+quello che §5.40 prescrive già (↑/↓, `Home`/`End`, senza avvolgere). Metterci sopra una trappola da dialogo
+sarebbe **incollare due modelli diversi sullo stesso pannello**.
+➡️ **Sulla tendina il `Tab` CHIUDE e restituisce il focus al ⋯.** 🔑 **E §1.5 punto 2 resta vero lo stesso,
+per costruzione:** il ⋯ vive dentro `VisoreFoto`, che **la trappola ce l'ha** — quindi dopo un `Tab` il
+focus è tornato dentro lo strato che sta sotto, e l'`Escape` successivo trova il destinatario giusto.
+
+**Ogni §5.x dichiara il proprio comportamento sul `Tab`, e le risposte NON sono tutte uguali** — è quel che
+B-1 chiedeva (che ognuna **dichiari**, non che tutte dicano lo stesso). Le tre risposte, per intero:
+
+| componente | `Tab` |
+|---|---|
+| `CartaAlbum` (§5.38) | **niente** — non è uno strato, è contenuto di pagina: il `Tab` la attraversa |
+| `VisoreFoto` · `FoglioCategoria` · `FoglioConferma` | **trattenuto** dalla trappola (`trappola-focus.ts`) |
+| `TendinaMenu` (§5.40) | **chiude la tendina** e riporta il focus al ⋯, che sta dentro il visore |
+
+**La prova che T5-ter deve portare** (su ognuno dei **cinque utenti** della trappola — i tre dialoghi nuovi
+più `Sheet` e `DialogConferma`, **non** la tendina): con lo strato aperto, `Tab` premuto tante volte quanti
+sono gli elementi raggiungibili **più uno** → il focus è **tornato al primo**, e `document.activeElement`
+**non è mai uscito** dal pannello. Più il caso che deve fallire: la stessa prova **senza** la trappola
+diventa rossa.
+
+**E la prova della tendina, che è l'opposto e va scritta come tale** (T8): con la tendina aperta, `Tab` →
+**la tendina è chiusa e il focus è sul ⋯**, che sta dentro il visore.
 
 ### 1.7 Il raggio — la scelta, e la sua ragione
 ⚠️ `raggio` (`src/design-system/v3/tokens.ts:32`) ha `card 24 · sheet 28 · tile 22 · riga 18 · tasto 20 ·
@@ -401,8 +427,14 @@ attributo che il browser copia insieme al testo.
 
 **Ogni componente che riceve una foto porta questa prova:**
 > reso il componente con `url = 'https://esempio/FIRMA-SENTINELLA'`, si cerca quella stringa **in tutto
-> l'HTML prodotto** e la si trova **una volta sola**: nell'attributo `src` di un `<img>`. Zero riscontri in
-> `title`, `href`, `download`, `aria-label`, `data-*`, o nel testo dei nodi.
+> l'HTML prodotto** e **OGNI riscontro cade dentro un `src` di `<img>`**. **Zero** riscontri in `title`,
+> `href`, `download`, `aria-label`, `data-*`, o nel testo dei nodi.
+
+🛑 **È un vincolo di POSTO, non di conteggio, e la differenza non è cavillosa:** in `CartaAlbum` la prima
+foto compare **legittimamente due volte** — come foto grande **e** come miniatura del suo gruppo (è
+l'esistenza stessa dello stato *selezionata*). Una prova che pretendesse «una volta sola» diventerebbe
+**rossa su un componente corretto**, e il primo esecutore o «riparerebbe» il componente o indebolirebbe la
+prova. Le due strade sono peggio del difetto.
 
 E la sua metà speculare, che è quella che la rende non aggirabile:
 > **nessuna prop di tipo callback riceve mai la foto intera.** Chi deve dire «questa» dice l'**indice** o
@@ -671,9 +703,13 @@ più di un suono per gesto. Scelta di una voce → `vibra('light')`.
 
 **Accessibilità — 🛑 va rifatto da zero ciò che un foglio ha già.** `role="menu"` sul pannello,
 `role="menuitem"` su ogni voce · **focus alla prima voce** all'apertura, **ritorno al ⋯** alla chiusura ·
-**`Tab` TRATTENUTO dentro il pannello** con `trappola-focus.ts` (§1.6, **D85**) · ↑ e ↓ scorrono le voci,
-`Home`/`End` ai capi, **senza avvolgere** · **`Escape` sulla voce con `stopPropagation()`**, mai su `window` ·
-il chiamante passa `etichettaAria` del pannello («Altre cose da fare su questa foto»).
+🛑 **`Tab` CHIUDE la tendina e riporta il focus al ⋯** — **non** la trappola dei tre dialoghi (§1.6): questo
+pannello è `role="menu"` **senza `aria-modal`**, e nel modello del menù un solo elemento sta nella sequenza
+del `Tab` mentre a muoversi fra le voci sono ↑ e ↓. Una trappola da dialogo qui sarebbe **due modelli
+incollati sullo stesso pannello**. 🔑 **E §1.5 punto 2 regge lo stesso: il ⋯ vive dentro `VisoreFoto`, che
+la trappola ce l'ha** — dopo il `Tab` il focus è dentro lo strato di sotto, non sul `body` · ↑ e ↓ scorrono
+le voci, `Home`/`End` ai capi, **senza avvolgere** · **`Escape` sulla voce con `stopPropagation()`**, mai su
+`window` · il chiamante passa `etichettaAria` del pannello («Altre cose da fare su questa foto»).
 
 ⚠️ **Nota per chi collauda: la guardia degli overlay sarà CIECA a questa tendina.**
 `scripts/guardia-navigazione-overlay.mjs` conta `.ds-sheet` e `[role="dialog"]`; questo pannello avrà
@@ -1094,6 +1130,13 @@ comando o quale prova** si chiude, e **chi** la chiude.
 2. **T5-ter PRIMA di T6** (**D85**, §1.6): `src/components/ds/trappola-focus.ts` 🆕 **da creare**, e `Sheet`
    e `DialogConferma` diventano suoi utenti. Senza, la via dell'`Escape` di §1.5 **poggia su un punto che
    non è vero** — è il bloccante B-1, l'unico su cui il panel ha convergiuto a tre su tre.
+   🛑 **Il mandato di T5-ter deve portare questo avviso, o l'esecutore brucia la sessione sulla diagnosi
+   sbagliata:** questo task cambia il comportamento della **tastiera** su due componenti in produzione,
+   contro una suite di **3936** prove. Le prove che oggi tabulano **fuori** da uno sheet diventeranno
+   **rosse per una ragione che NON è un difetto**. ➡️ Prima di toccare qualunque cosa: **contare e
+   classificare i rossi** (quanti sono difetti veri, quanti sono prove che descrivevano il vecchio
+   comportamento), e scrivere il numero. È la stessa classe di trappola già pagata in T8 — la finta dei test
+   esponeva solo `from`, e il primo `storage.remove` ha rotto una prova **senza che ci fosse un difetto**.
 3. **T6 porta il gruppo `sopraFoto`** in `src/design-system/v3/tokens.ts` (§4) — 🛑 **non T7**, come diceva
    la stesura precedente: `CartaAlbum` usa già `sopraFoto.faccia` e **T6 gira prima** (C-3). Senza, il
    controllo pre-commit **blocca**.
