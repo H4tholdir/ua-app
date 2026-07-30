@@ -226,7 +226,7 @@ migliora da sola perché il trigger compone `COGNOME NOME` (v. §5).
 
 | File | Cosa cambia |
 |---|---|
-| `src/lib/domain/nome-paziente.ts` | **nuovo** — funzione pura della scala, gemella di `nome-studio.ts`, con i corpi **del paziente** (§5-bis) |
+| `src/lib/domain/nome-paziente-scrittura.ts` | **nuovo** — funzione pura della scala, gemella di `nome-studio.ts`, con i corpi **del paziente** (§5-bis). 🔧 **Nome corretto il 30/07/2026 (R-E2, fuori mandato dell'ondata (b) ma dichiarato):** questa riga diceva `nome-paziente.ts`, che **non esiste**; il file creato dall'esecuzione si chiama `nome-paziente-scrittura.ts` e cita a sua volta questa spec §5 nella propria intestazione. Il difetto è emerso perché le modifiche del 30/07 hanno riavvicinato questa spec alla catena dei documenti vivi — **non era nuovo, era solo fuori dal raggio della guardia** |
 | `src/components/ds/Cassetta.tsx:696-702` + `463-513` | consumo della scala con misura **anche orizzontale** e le tre guardie del clinico |
 | `src/components/ds/Cassetta.tsx:724-737` + `837` | `aria-label` intero + `title` sul paziente |
 | `src/lib/cassette/parco.ts:72` · `src/app/api/cassette/lavori-liberi/route.ts:95` | la proiezione porta il valore **già deciso server-side** (R5), non la coppia grezza. `lavori-liberi` **non va dimenticata**, o dopo un'assegnazione ottimistica la targa resta indietro (R8) |

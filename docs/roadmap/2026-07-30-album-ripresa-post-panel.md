@@ -90,19 +90,18 @@ in 7 file, **non verificato** che siano tutti scoperti) · **R32** (`ordine` sen
 > che cosa è cambiato, sezione per sezione, sta in §8 qui sotto.
 
 1. ✅ ~~Applicare le correzioni del panel al documento del gate~~ — **fatto.**
-2. 🚪 **RATIFICARE IL GATE**, riga per riga sull'elenco di §0 della proposta — **quindici voci, non più
-   dieci**: le cinque nuove sono **G-11** (D85) · **G-12** (D86) · **G-13** (D87) · **G-14** (D88) ·
-   **G-15** (la larghezza del foglio dichiarata e la misura di D79 rifatta).
-3. 🆕 **T5-ter, PRIMA di T6** (**D85**): `src/components/ds/trappola-focus.ts` (🆕 **da creare**), e `Sheet`
-   e `DialogConferma` diventano suoi utenti. 🛑 **Il piano NON conosce questo task** — e non conosce
-   nemmeno **T5-bis**, che è già stato eseguito ieri: **il piano dice 14 task e i task veri sono 16.** Si
-   allinea insieme al passo 4.
-4. **Correggere i mandati di T6/T7/T8/T9/T9-bis PRIMA che partano**, o quattro esecutori su cinque
-   leggeranno un testo che sa meno del documento. Le righe sono **F-1**, **F-6**, **F-7**, **F-8**,
-   **F-10**, **F-11**, **F-12**, **F-13** di §7 della proposta.
-5. **T6 → T9-bis**, un esecutore fresco per task. 🛑 **T6 porta il gruppo di token `sopraFoto`** in
-   `src/design-system/v3/tokens.ts` — **non T7**, come diceva il documento: `CartaAlbum` lo usa già, e
-   senza il controllo pre-commit lo blocca. E sono **nove** valori, non sette.
+2. ✅ ~~Ratificare il gate~~ — **fatto: D89.** Le cinque sezioni sono nella spec v3 **rev. 3.4**, in forma
+   **normativa**; §5.17 e §13.2 emendate, §5.33 chiusa. La convenzione era già in casa e l'ho verificata:
+   §5.29, §5.31 e §5.34 portano «React in Ondata X» — **una §5.x entra nella spec PRIMA del componente**.
+3. ✅ ~~Correggere i mandati~~ — **fatto.** Il piano è allineato a **16 task** (T5-bis registrato a
+   posteriori, T5-ter scritto), e T6, T7, T8, T9 e T9-bis portano ognuno **in testa al proprio mandato** un
+   blocco «MANDATO CORRETTO» che vince sul resto del task.
+4. 🚪 **DA QUI: T5-ter**, `src/components/ds/trappola-focus.ts` (🆕 **da creare**), con `Sheet` e
+   `DialogConferma` che diventano suoi utenti. **Esecutore fresco, contesto pulito** (R-E1): è codice che
+   cambia il comportamento della tastiera su **due componenti in produzione**, contro **3936** prove.
+   🛑 **Il primo passo del mandato è misurare il terreno e CONTARE i rossi**, che in buona parte non saranno
+   difetti ma prove che descrivevano il vecchio comportamento.
+5. **T6 → T9-bis**, un esecutore fresco per task. 🛑 **T6 porta i NOVE token `sopraFoto`**, non T7.
 6. Poi **D (T10 → T11 → T12)** ed **E (T13)**.
 
 🛑 **T11 è la RIPARAZIONE, non un abbellimento:** da T3 il server pretende `categoria` e

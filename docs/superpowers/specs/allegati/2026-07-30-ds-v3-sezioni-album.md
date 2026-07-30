@@ -5,7 +5,11 @@
 > una sezione §5.x si **proponga PRIMA** che il componente esista. **Nessuna riga di React è stata
 > scritta**: T6, T7, T8, T9 e T9-bis non partono finché quello che c'è qui non è ratificato.
 
-**Data:** 30 luglio 2026 · **Stato:** 🟡 **PROPOSTA — da ratificare**
+**Data:** 30 luglio 2026 · **Stato:** ✅ **RATIFICATO da Francesco il 30/07/2026 — D89**
+🚪 **Il gate è chiuso.** Le cinque sezioni sono entrate nella spec v3 (**rev. 3.4**) in **forma normativa**;
+§5.17 e §13.2 sono emendate, §5.33 è chiusa. **Da qui in poi questo documento non è più una proposta: è la
+motivazione dietro la legge** — la spec dice *che cosa si fa*, qui stanno le prove, i numeri rifatti e le
+stesure superate. ⚠️ **Se spec e allegato divergessero, vince la spec.**
 🔧 **Revisione 2, 30/07 sera: le correzioni del panel sono ENTRATE.** Il panel di tre
 (`docs/roadmap/2026-07-30-panel-gate-sezioni-album.md`) aveva fermato la revisione 1 con **sette bloccanti**
 e **quindici rilievi**; sono applicati tutti, e i **quattro bivi** che il panel non poteva chiudere da sé
@@ -1112,7 +1116,7 @@ comando o quale prova** si chiude, e **chi** la chiude.
 | **FM-2** 🚦 | 🔴 **La riparazione VERA di P18 (`Escape`):** mediarlo con la stessa pila LIFO che già media il tasto «indietro», dentro `src/components/ds/storia-overlay.ts`. Chiuderebbe il difetto anche per `Sheet` e `DialogConferma`, non solo per questa superficie — ed è **l'unica via** se **A-1** cade | ✅ **D86 ha dato al bivio un proprietario, che era ciò che mancava (B-2):** A-1 è **provata**, quindi con ogni probabilità non serve; **se la prova di comportamento di T7 fallisse, l'esecutore SI FERMA e riferisce — decide il coordinatore.** Resta fuori dal mandato degli esecutori (modulo condiviso, R-E2) |
 | **FM-3** | Il `preventDefault()` sul `pointerdown` del velo (§1.5 punto 4) starebbe bene dentro `src/components/ds/useTapScrim.ts`, accanto agli altri due handler | **È un file condiviso.** Nei componenti nuovi si scrive **accanto** alla coppia dell'hook, non dentro l'hook. Se il gate preferisce l'altra via, è una modifica a `useTapScrim.ts` e va detta |
 | **FM-4** | **«Salva sul telefono»** — due cose insieme: ① la parola è contro il dizionario (F-9) e serve un'eccezione ratificata come quella del 26/07; ② 🛑 **la sua implementazione è un punto in cui l'indirizzo firmato può uscire** (G5 · D75), e vive nel **chiamante** (T11/T12), non in `TendinaMenu` | Fuori dal mandato di un gate documentale. **Va nel mandato di chi scrive la voce** |
-| **FM-5** | Il commento di testa di `src/components/ds/DialogConferma.tsx:3-9` («l'UNICA card centrata…») | **È codice.** Il testo pronto è in §3.4; applicarlo è di chi tocca quel file |
+| **FM-5** ✅ | Il commento di testa di `src/components/ds/DialogConferma.tsx:3-9` («l'UNICA card centrata…») | 🔧 **SI SCIOGLIE con D85, e va detto o resta una proposta senza padrone:** era rimandata perché «modificare un componente è fuori dal mandato di un gate documentale», ma **T5-ter entra proprio in quel file** (`DialogConferma` diventa utente della trappola del focus). ➡️ **Il testo di §3.4 entra nel mandato di T5-ter**, che lo applica nella stessa passata |
 | **FM-6** | Dare a `src/components/ds/MenuVoce.tsx` una prop `ruolo?: 'menuitem'` e togliere il chevron alla variante `butta`, per farlo riusare dalla tendina (F-6) | `MenuVoce.tsx` **non è nell'elenco dei file** del piano ed è usato altrove (menù della scheda). **Proposta** |
 | **FM-7** | **BP-1 (memoria).** Il controllo pre-commit avvisa che questo salvataggio tocca una spec **senza toccare la memoria** | Questo documento è una **proposta**: lo stato del progetto cambia **alla ratifica**, non adesso. `memory/MEMORY.md` e `docs/roadmap/ROADMAP-UFFICIALE.md` **non sono nel mandato di T5** — l'aggiornamento è del coordinatore, dopo il gate |
 | **FM-8** 🆕 | 🔴 **Un'azione irreversibile riuscita non produce NESSUN ritorno non visivo (C-10).** La regola «niente suono per la distruzione» è rispettata, ma la catena vera finisce in `src/components/ds/Avviso.tsx:81-91`, dove **solo l'errore** suona e vibra: l'avviso della riuscita è **muto**. Al banco, col guanto, l'unica conferma che la foto è sparita è un cartellino che compare e sparisce | **Tocca `Avviso.tsx`**, componente condiviso e in produzione: fuori mandato per R-E2. ⚠️ **E non è un ritocco:** dare un ritorno alla riuscita distruttiva è una **decisione di grammatica** del design system (§9.2), non una riga di codice — va posta a Francesco, non decisa da un esecutore. **Riferita, non fatta** |
@@ -1124,9 +1128,9 @@ comando o quale prova** si chiude, e **chi** la chiude.
 
 > 🔧 **Sezione riscritta il 30/07, dopo il panel e dopo le quattro decisioni D85-D88.**
 
-1. **Il gate si chiude con una ratifica**, riga per riga sull'elenco di §0 — **quindici voci**, non più
-   dieci. Quelle che cambiano il **comportamento** e non solo la scrittura sono **G-3**, **G-4**, **G-9**,
-   **G-11**, **G-12** e **G-15**.
+1. ✅ ~~Il gate si chiude con una ratifica~~ — **FATTO il 30/07 sera: D89.** Le quindici voci di §0 sono
+   ratificate; le cinque sezioni sono nella spec v3 **rev. 3.4** in forma normativa, §5.17 e §13.2 emendate,
+   §5.33 chiusa.
 2. **T5-ter PRIMA di T6** (**D85**, §1.6): `src/components/ds/trappola-focus.ts` 🆕 **da creare**, e `Sheet`
    e `DialogConferma` diventano suoi utenti. Senza, la via dell'`Escape` di §1.5 **poggia su un punto che
    non è vero** — è il bloccante B-1, l'unico su cui il panel ha convergiuto a tre su tre.

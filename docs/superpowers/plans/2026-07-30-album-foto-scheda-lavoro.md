@@ -216,13 +216,23 @@ sulla pagina dietro. **`DialogConferma` non ha né focus né blocco dello scorri
 
 ## I task, in blocchi
 
+> 🔧 **Tabella corretta il 30/07 sera: i task sono SEDICI, non quattordici.** Il piano ne dichiarava 14 e
+> non conosceva i due nati durante l'esecuzione — **T5-bis** (D84, già fatto) e **T5-ter** (D85, da fare).
+> Entrambi nascono dallo stesso meccanismo: **un difetto di fondo che si è scelto di riparare alla radice
+> invece di aggirarlo con una regola scritta in spec**, e un piano che non li registra è un piano che
+> sembra completo e non lo è.
+
 | blocco | task | che cosa consegna |
 |---|---|---|
 | **A — il dato** | T1 · T2 · T3 | la categoria diventa un dato che il database difende |
 | **B — la cancellazione vera** | T4 | l'emendamento di T8 (D61 + D63): il file sparisce davvero, e resta la traccia |
-| **C — i componenti** | T5 · T6 · T7 · T8 · T9 · **T9-bis** | le **cinque** superfici, in `ds/`, v3 pure — la quinta è il foglio di conferma di **D80** |
+| **C — i componenti** | T5 · **T5-bis** ✅ · **T5-ter** 🆕 · T6 · T7 · T8 · T9 · **T9-bis** | le **cinque** superfici, in `ds/`, v3 pure — la quinta è il foglio di conferma di **D80** — più i **due moduli condivisi** su cui poggiano |
 | **D — l'innesto** | T10 · T11 · T12 | l'album entra sulle due superfici e il vecchio esce |
 | **E — la chiusura** | T13 | FASE 7 · FASE 9 nel browser · **FASE 9b gate estetico L2** |
+
+🛑 **T5-bis e T5-ter stanno FRA il gate e T6, e l'ordine non è negoziabile:** T6 monta `CartaAlbum` e apre
+`VisoreFoto`, cioè il primo strato — e uno strato che nasce prima dei suoi due moduli condivisi nasce con
+dentro la copia locale che quei moduli esistono per togliere di mezzo.
 
 🛑 **L'ordine non è negoziabile fra A e D:** T11 tocca `TabImmagini`, che oggi scrive la categoria in
 `descrizione`. Farlo prima di T1 significherebbe scrivere in una colonna che sta per cambiare.
@@ -1050,14 +1060,104 @@ descriverli, cioè il contrario del processo.
   è FUORI mandato: si riferisce** (R-E2).
 - [ ] **Passo 3** — **fermati e fai rivedere.** È un gate: T6-T9 e T9-bis non partono senza.
 
+✅ **T5 è CHIUSO. Il gate è stato fermato da un panel di tre (sette bloccanti, quindici rilievi), corretto,
+e RATIFICATO da Francesco il 30/07 — D89.** Le cinque §5.x sono nella spec v3 **rev. 3.4**.
+🛑 **Due dei sette bloccanti hanno prodotto altrettanti task che questo piano non aveva: T5-bis e T5-ter.**
+
+---
+
+### Task 5-bis — il blocco dello scorrimento diventa a contatore (D84) ✅ FATTO
+
+**File:** `src/components/ds/blocca-scorrimento.ts` (creato) · `src/components/ds/Sheet.tsx` ·
+`src/components/features/ordini/NuovoOrdineSheet.tsx`
+**Commit:** `c268b54b` · `47e77069` · `daeb0efc` · `636c10b4`
+
+Registrato qui **a posteriori**, perché un piano che non nomina un task eseguito è un piano che mente sul
+proprio stato. **Perché è nato:** con due strati che bloccavano lo scorrimento, il secondo catturava
+`overflow:'hidden'` come «valore precedente» e alla chiusura lo ripristinava — **pagina bloccata sotto le
+dita, per sempre**. La via alternativa era una regola in spec («blocca solo il più basso»), scartata perché
+**nessuna macchina di questo repo può verificarla**. ⚠️ **Gli attori erano due, non uno**, e il secondo
+(`NuovoOrdineSheet`) era il peggiore: non catturava niente e scriveva `overflow = ''` a mano.
+
+---
+
+### Task 5-ter — la trappola del focus, e i due overlay di casa che diventano suoi utenti (D85) 🆕
+
+**File:** 🆕 **da creare** `src/components/ds/trappola-focus.ts` ·
+🆕 **da creare** `tests/unit/ds-v3/componenti/trappola-focus.test.tsx` ·
+`src/components/ds/Sheet.tsx` · `src/components/ds/DialogConferma.tsx`
+**Gira PRIMA di T6.** Esecutore fresco (R-E1).
+
+**Perché esiste, in una riga:** tutti gli overlay di casa dichiarano `aria-modal="true"` — che a un lettore
+di schermo significa alla lettera «quello che c'è dietro non esiste» — e **nessuno lo mantiene**.
+`provato:` in tutto `src/components/ds/` non esiste **una sola** gestione del `Tab`. Il velo copre già i
+clic, l'attributo copre già i lettori di schermo: manca **la tastiera**, e senza di essa l'intera via
+dell'`Escape` di §1.5 poggia su un punto che non è vero (col `Tab` si esce, si atterra su
+`src/components/layout/SkipToContent.tsx:12` a z-index 9999, e `Escape` risale a `window` dove vivono
+**nove** ascoltatori e chiude **lo strato sbagliato**).
+
+- [ ] **Passo 1 — misura il terreno PRIMA di toccare, e scrivi i numeri.** Questo task cambia il
+      comportamento della **tastiera** su due componenti in produzione, contro una suite di **3936** prove.
+      🛑 **Le prove che oggi tabulano fuori da uno sheet diventeranno rosse per una ragione che NON è un
+      difetto.** Riferimento prima di iniziare: `npx vitest run` → incolla passati/saltati.
+- [ ] **Passo 2 — RED.** Le prove del modulo: con lo strato aperto, `Tab` premuto tante volte quanti sono
+      gli elementi raggiungibili **più uno** → il focus è **tornato al primo**, e `document.activeElement`
+      **non è mai uscito** dal pannello. Più `Shift+Tab` all'indietro dal primo → va all'**ultimo**.
+      ⛔ **R-P4:** dopo il primo rosso, abbozzo inerte e **conta** quante asserzioni si accendono (`N su M`).
+      **Enumera le forme d'input prima delle asserzioni:** pannello senza nessun elemento raggiungibile ·
+      un solo elemento · elementi che compaiono *dopo* l'apertura · elemento disabilitato in mezzo ·
+      `tabIndex` negativo · il pannello stesso con `tabIndex={-1}`.
+- [ ] **Passo 3 — GREEN: il modulo.** `trappola-focus.ts`, sulla forma di `blocca-scorrimento.ts`: si
+      scrive **una volta**, e chi lo usa lo chiama e basta. Porta il focus dentro all'apertura, lo trattiene,
+      e lo restituisce all'**àncora dichiarata dal chiamante** (**non** `document.activeElement` catturato al
+      montaggio: chi apre il foglio di conferma è **una voce di menù che sta smontando**, e catturare un nodo
+      staccato lascia il focus sul `body`). 🛑 **Non spegne la pagina dietro** (`inert`): valutata e scartata
+      in D85 — il contenitore degli avvisi è appeso a `document.body` anche lui
+      (`src/components/ds/Avviso.tsx:99`) e si spegnerebbe con tutto il resto.
+- [ ] **Passo 4 — i due utenti di casa.** `Sheet` e `DialogConferma` diventano utenti del modulo. **Conta e
+      CLASSIFICA i rossi** che compaiono: quanti sono difetti veri, quanti sono prove che descrivevano il
+      vecchio comportamento. **Il numero si scrive.** ⚠️ È la stessa classe di trappola già pagata in T8 (la
+      finta dei test esponeva solo `from`, e il primo `storage.remove` ruppe una prova **senza** che ci fosse
+      un difetto): chi non la sa in anticipo ci perde mezza sessione.
+- [ ] **Passo 5 — il commento di `DialogConferma`.** Il file dichiara «l'**UNICA** card centrata ammessa dal
+      design system». **Resta vero per la card, non per la forma:** si aggiunge in coda al commento di testa
+      il testo pronto in `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §3.4 (D80).
+      🔑 Era la riga **FM-5**, rimandata perché «un gate documentale non tocca il codice»: adesso ha un
+      padrone, ed è questo task.
+- [ ] **Passo 6 — FASE 7** (`tsc --noEmit` · `vitest run` · `next build`) con **l'output vero incollato**.
+      ⚠️ `vitest` non è deterministico: un solo rosso con durata anomala su un file **non toccato** va
+      isolato; la stessa firma su un file **toccato** è un difetto tuo finché non provi il contrario.
+
+🛑 **Fuori mandato, si riferisce (R-E2):** la tendina `TendinaMenu` **non** è utente della trappola —
+`role="menu"` senza `aria-modal`, lì il `Tab` **chiude** (§5.40). Se durante il lavoro emergesse che anche
+altri overlay di `features/` ne avrebbero bisogno, **si elenca, non si migra**.
+
+---
+
 ### Task 6 — `CartaAlbum`
 
-**File:** 🆕 da creare — `src/components/ds/CartaAlbum.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx`
+**File:** 🆕 da creare — `src/components/ds/CartaAlbum.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx` · `src/design-system/v3/tokens.ts`
+
+> 🔧 **MANDATO CORRETTO il 30/07 sera, dopo il panel e la ratifica (D89). Quello che segue vince sul resto
+> del task. La legge è la §5.38 della spec v3 (rev. 3.4).**
+> 1. 🔴 **È T6 a portare il gruppo di token `sopraFoto` in `src/design-system/v3/tokens.ts`, non T7** — e
+>    sono **NOVE** valori, non sette. `CartaAlbum` usa già `sopraFoto.faccia` per la pastiglia «⤢ Apri»:
+>    eseguito alla lettera, questo task scriverebbe un colore inline e **il pre-commit lo blocca**. Il blocco
+>    pronto sta in §4 dell'allegato.
+> 2. 🔴 **Manca una prop nella firma (F-10):** la categoria si corregge «dal visore **o dall'album**» (D70),
+>    quindi serve `onCorreggiCategoria(indice: number)` — e con essa **l'etichetta sotto la foto grande
+>    diventa un comando**, con `min-height 44` e nome accessibile proprio.
+> 3. **L'etichetta di gruppo è 12,5, non 11** (D87): il mockup dice 11, che è **sotto il minimo di §4.1**.
+> 4. **`Tab`: nessuna trappola** — questa non è uno strato, è contenuto di pagina.
+> 5. 🔴 **La prova di sicurezza G5·D75 è un vincolo di POSTO, non di conteggio:** reso con
+>    `url = 'https://esempio/FIRMA-SENTINELLA'`, **ogni** riscontro cade dentro un `src` di `<img>`, **zero**
+>    in `title`/`href`/`download`/`aria-label`/`data-*`/testo. 🛑 **Mai «una volta sola»:** la prima foto
+>    compare **legittimamente due volte** — foto grande **e** miniatura del suo gruppo.
 
 **Interfacce**
 - **Consuma:** `raggruppaPerCategoria`, `etichettaCategoria` (T2).
 - **Produce:**
-  `CartaAlbum(props: { foto: Array<{id: string; url: string; categoria: string; created_at: string; nome_file: string | null}>; indiceAperto?: number; onApri: (indice: number) => void })`
+  `CartaAlbum(props: { foto: Array<{id: string; url: string; categoria: string; created_at: string; nome_file: string | null}>; indiceAperto?: number; onApri: (indice: number) => void; onCorreggiCategoria: (indice: number) => void })`
 
 - [ ] **Passo 1 — le prove PRIMA**: la carta **ha un titolo** («Foto» — è il difetto n.1 di oggi) · mostra
   la **prima foto dell'ordine** come grande · il contatore dice **«1 di N»** e **N è il numero delle foto,
@@ -1076,8 +1176,29 @@ descriverli, cioè il contrario del processo.
 
 **File:** 🆕 da creare — `src/components/ds/VisoreFoto.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/VisoreFoto.test.tsx`
 
+> 🔧 **MANDATO CORRETTO il 30/07 sera (D89). Quello che segue vince sul resto del task. La legge è la
+> §5.39 della spec v3 (rev. 3.4).**
+> 1. **z-index 1010**, non 400 (D83) · **blocca lo scorrimento con `bloccaScorrimento()`**, come tutti
+>    (D84) · pannello con **`overflowY:'auto'`**, o l'`overscrollBehavior:'contain'` è inerte.
+> 2. 🛑 **La citazione del modello nel testo vecchio è SCADUTA e mandava a riprodurre un bug già pagato**
+>    (F-11 + F-13): l'intervallo giusto oggi è **`src/components/ds/Sheet.tsx:267-311`**. Il ripiego «per
+>    istanza» di F-8 **è decaduto**: basta tenere **un solo posto nel contatore per istanza**
+>    (`if (!ref.current)`, modello `Sheet.tsx:304-306`).
+> 3. 🔴 **Etichetta e contatore diventano UNA PASTIGLIA con faccia** (`sopraFoto.faccia` +
+>    `sopraFoto.confine`, `raggio.pill`, **min-height 44**, nome accessibile proprio): nudi sulla sfumatura
+>    valgono **2,1:1** e **non arrivano in soglia nemmeno a opacità piena**. L'etichetta **è un comando**
+>    (apre `FoglioCategoria`, D70), quindi serve anche la prop per aprirlo (F-10).
+> 4. **Il ⋯ acceso non può essere solo colore:** su radiografia le due facce valgono **1,02:1**. Servono
+>    **`aria-haspopup="menu"`** e **`aria-expanded`** sull'innesco.
+> 5. **La fascia oltre le sei foto SCORRE**, e le miniature **restano 44×44** — mai rimpicciolite.
+> 6. **`Tab` trattenuto** dalla trappola di T5-ter · **ritorno all'àncora dichiarata dal chiamante**, non a
+>    `document.activeElement` catturato al montaggio (F-12).
+> 7. **Prima prova del task, e resta obbligatoria anche se A-1 è ormai `provato:` alla fonte:** uno `Sheet`
+>    aperto sotto + una tendina sopra, focus dentro la tendina, `Escape` → **si chiude solo la tendina**.
+>    🚦 **Se fallisce, NON scegliere il ripiego: fermati e riferisci — decide il coordinatore (D86).**
+
 **Interfacce**
-- **Produce:** `VisoreFoto(props: { aperto: boolean; foto: […]; indice: number; onIndice: (i:number)=>void; onChiudi: () => void; azioni?: React.ReactNode })`
+- **Produce:** `VisoreFoto(props: { aperto: boolean; foto: […]; indice: number; onIndice: (i:number)=>void; onChiudi: () => void; onCorreggiCategoria: () => void; azioni?: React.ReactNode })`
 
 🔑 **Le decisioni tecniche, già prese con la prova in mano — non si riaprono dentro il task:**
 - **Marca dell'overlay: `'uaSheet'`.** `provato:` il **valore** della marca non cambia **nessun**
@@ -1118,10 +1239,27 @@ descriverli, cioè il contrario del processo.
 
 **File:** 🆕 da creare — `src/components/ds/TendinaMenu.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/TendinaMenu.test.tsx`
 
+> 🔧 **MANDATO CORRETTO il 30/07 sera (D89). Quello che segue vince sul resto del task. La legge è la
+> §5.40 della spec v3 (rev. 3.4).**
+> 1. **z-index 1020** (D83) · **chiama `bloccaScorrimento()` come tutti** (D84): la vecchia riga «non
+>    blocca, lo blocca già il visore» legava la correttezza di questo componente **a chi c'è sotto**.
+> 2. 🛑 **`Tab` CHIUDE la tendina e riporta il focus al ⋯ — NON la trappola dei tre dialoghi.** Questo
+>    pannello è `role="menu"` **senza `aria-modal`**, e nel modello del menù un solo elemento sta nella
+>    sequenza del `Tab`. Il ⋯ vive dentro `VisoreFoto`, che la trappola ce l'ha: il focus resta comunque
+>    dentro uno strato. La prova è **l'opposto** di quella di T5-ter: `Tab` → **tendina chiusa, focus sul ⋯**.
+> 3. 🔴 **La ragione «in fondo c'è il pollice» è FALSA e va tolta ovunque compaia:** ancorata sotto il ⋯,
+>    la tendina vive nel terzo **alto** dello schermo — il suo fondo sta a ~220 px su 844. **La posizione in
+>    fondo resta** (è il punto più lontano dal dito che ha appena toccato il ⋯), ma la ragione è quella.
+> 4. **L'ombra `sopraFoto.ombraPannello` è una DEROGA DICHIARATA a §3** (D88), non una svista.
+> 5. **La firma delle voci non riusa `MenuVoce`** (F-6): quel componente non sa dire `role="menuitem"` e
+>    mostra sempre il chevron. L'anatomia di §5.34 si **copia verbatim**.
+> ⚠️ **`scripts/guardia-navigazione-overlay.mjs` sarà CIECA a questa tendina** (conta `.ds-sheet` e
+> `[role="dialog"]`): un suo verde non è una conferma su questo componente.
+
 🛑 **Questo componente esiste perché Francesco ha scelto M2 contro la raccomandazione, e i suoi due costi
 erano dichiarati.** Qui si pagano, e vanno pagati **per intero**:
-1. **La voce distruttiva sta IN FONDO** — il punto più lontano dai tre puntini e **più vicino al pollice**.
-   Rossa, staccata da una linea, con margine extra (§5.34).
+1. **La voce distruttiva sta IN FONDO** — il punto più lontano dal dito che ha appena toccato il ⋯, quindi
+   il più difficile da centrare per sbaglio. Rossa, staccata da una linea, con margine extra (§5.34).
 2. **La tendina deve RIFARE da zero ciò che `Sheet` ha già** (misurato): `role="menu"` + voci
    `role="menuitem"` · **Esc** · **focus alla prima voce** all'apertura e **ritorno all'apritore** alla
    chiusura · **portale su `document.body`** · chiusura toccando fuori · chiusura allo scorrimento.
@@ -1139,8 +1277,28 @@ erano dichiarati.** Qui si pagano, e vanno pagati **per intero**:
 
 **File:** 🆕 da creare — `src/components/ds/FoglioCategoria.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/FoglioCategoria.test.tsx`
 
+> 🔧 **MANDATO CORRETTO il 30/07 sera (D89). Quello che segue vince sul resto del task. La legge è la
+> §5.41 della spec v3 (rev. 3.4).**
+> 1. 🔴 **Questo foglio È il terzo strato** quando arriva da «Cambia categoria» della tendina (F-1), e il
+>    piano non lo diceva: **z-index 1030** · portale su `document.body` · `entraOverlay('uaSheet', …)` ·
+>    **`bloccaScorrimento()`** (in **entrambi** i suoi momenti) · pannello con **`overflowY:'auto'`**.
+> 2. 📏 **La misura di D79 è VOID e la griglia si rifà:** i 148,5 px sono presi dentro la cornice di
+>    telefono del mockup (342 px). **La larghezza si DICHIARA** — `width:'100%'`, `maxWidth: 480` — e la
+>    colonna vera è **171 a 390** e **216 da 768**.
+> 3. 🔴 **VIA il `whiteSpace:'nowrap'`:** rompe il **text-zoom 200%**, che è un requisito di rilascio
+>    (§13.3). **Due righi ammessi**, `min-height` 60. **La prova cambia:** non «misura che non va a capo»
+>    (che era la fotografia di un contenitore inesistente) ma **«a 200%, a 390 e a 768, nessun testo è
+>    tagliato»** — prova di **browser** (Playwright / `webapp-testing`), non un'asserzione unitaria.
+> 4. 🛑 **Allo scatto NESSUNA pastiglia è scelta** (`scelta = undefined`): il mockup ne mostra una accesa,
+>    ma quello illustra la **correzione**, non lo scatto. Pre-selezionarla darebbe **due default in
+>    contraddizione con D74**, e quello affermato a schermo sarebbe il più sbagliato.
+> 5. **«Riduci movimento»: nominare `coreografie.sheetSu` NON basta** — porta la transizione **dentro** la
+>    variante, su entrambe le chiavi. Serve la **variante ridotta esplicita**, e la prova è **«`y` finale = 0
+>    e nessun tween su `y`»**. 🛑 Mai copiare `SheetRidotto`: il suo pannello non ha `y` affatto.
+> 6. **`Tab` trattenuto** (T5-ter) · **ritorno all'àncora dichiarata dal chiamante** (F-12).
+
 **Interfacce**
-- **Produce:** `FoglioCategoria(props: { aperto: boolean; quante: number; anteprime: string[]; onScegli: (c: CategoriaFoto) => void; onChiudi: () => void })`
+- **Produce:** `FoglioCategoria(props: { aperto: boolean; quante: number; anteprime: string[]; ancoraFocus?: HTMLElement | null; onScegli: (c: CategoriaFoto) => void; onChiudi: () => void })`
 
 - [ ] **Passo 1 — le prove PRIMA:** sei pastiglie, **una per categoria**, **nell'ordine D71** · ognuna
   **≥ 44 px** · con `quante > 1` il testo dice che **la scelta vale per tutte** (D65, scatto multiplo) ·
@@ -1155,6 +1313,29 @@ erano dichiarati.** Qui si pagano, e vanno pagati **per intero**:
 ### Task 9-bis — `FoglioConferma` (D80)
 
 **File:** 🆕 da creare — `src/components/ds/FoglioConferma.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/FoglioConferma.test.tsx`
+
+> 🔧 **MANDATO CORRETTO il 30/07 sera (D89). Quello che segue vince sul resto del task. La legge è la
+> §5.42 della spec v3 (rev. 3.4).**
+> 1. **z-index 1030** (D83) · **`bloccaScorrimento()`** (D84) · pannello con **`overflowY:'auto'`**.
+> 2. 🔧 **La ragione «non può essere uno `Sheet` nudo» è CAMBIATA:** quella vecchia (il doppio blocco dello
+>    scorrimento) **è stata riparata da D84 e non vale più**. Le due che valgono adesso: ① `Sheet` ha
+>    z-index **1000 cablato** (`src/components/ds/Sheet.tsx:466`), quindi sopra il visore (1010) si
+>    dipingerebbe **sotto la fotografia**; ② cattura l'àncora del focus al montaggio e non ha la prop per
+>    riceverla dal chiamante.
+> 3. 🔴 **L'àncora del focus si DICHIARA (F-12), e qui non è un dettaglio:** chi apre questa conferma è
+>    **una voce di menù che sta smontando**. Catturare `document.activeElement` significa catturare un nodo
+>    staccato → il focus finisce sul `body` → e da lì **`Escape` è morto proprio sulla superficie
+>    distruttiva**. Serve `ancoraFocus` nella firma.
+> 4. **«Focus alla prima azione» si scrive come PROPRIETÀ, non come posizione** (F-7): «alla prima azione,
+>    **che è quella sicura**». Con l'ordine di D82 oggi coincidono; una frase che prescrive una posizione,
+>    il giorno che l'ordine si invertisse, manderebbe il focus sul tasto che cancella.
+> 5. **Servono l'anteprima dell'oggetto e l'etichetta sicura nella firma** (F-10), che il piano non aveva.
+> 6. **«Riduci movimento»: variante ridotta esplicita**, come §5.41 — prova «`y` finale = 0 e nessun tween
+>    su `y`». **`Tab` trattenuto** (T5-ter).
+> ⚠️ **Un limite che NON si chiude qui, e va lasciato stare (R-E2):** la cancellazione riuscita **non
+> produce nessun ritorno non visivo** — `src/components/ds/Avviso.tsx:81-91` fa suonare e vibrare **solo
+> l'errore**. È riferito come **FM-8** ed è una decisione di grammatica del design system: **non si
+> improvvisa dentro questo task**.
 
 🛑 **Questo task esiste perché Francesco, il 30/07, ha scelto il foglio dal basso contro la card centrata
 che il piano aveva dichiarato come scostamento S1 senza chiederglielo (D80).** Numerato **9-bis** e non
