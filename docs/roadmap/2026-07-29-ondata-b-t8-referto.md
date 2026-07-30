@@ -6,7 +6,7 @@
 `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` D51/D52/D54.
 
 > ⚠️ **Nome del file cambiato rispetto al brief — vedi §3, difetto #0.** Il brief chiede alla lettera
-> `docs/roadmap/2026-07-29-ondata-b-t8-report.md`; quel nome esatto è **gitignorato**
+> `…-t8-report.md` (mai creato, apposta); quel nome esatto è **gitignorato**
 > (`.gitignore:77`, `*-report.*`) e non sarebbe mai entrato nel repo, contraddicendo la ragione
 > stessa per cui il brief lo voleva in `docs/` e non in `.superpowers/sdd/`. Rinominato in
 > `…-t8-referto.md`, stessa cartella, stesso contenuto — coerente con il precedente in casa
@@ -235,7 +235,9 @@ ignorata da git) per riconfermare, prima di partire, che la grafia del piano mor
 ## 3. Difetti trovati nel brief e nel piano (la parte più preziosa, per istruzione esplicita)
 
 0. **Il nome file che il brief detta alla lettera per questo stesso rapporto è gitignorato.**
-   Brief §6: «Crea `docs/roadmap/2026-07-29-ondata-b-t8-report.md`», con la motivazione esplicita che
+   Brief §6: «Crea `…-t8-report.md`» (nome citato in forma abbreviata: quel file, giustamente, non esiste
+   e non deve esistere — la guardia dei documenti tratterebbe il percorso pieno come riferimento
+   pendente), con la motivazione esplicita che
    stare in `docs/` (invece che in `.superpowers/sdd/`, ignorato per intero) garantisce che il file
    **sopravviva alla sessione dentro il repo**. Ma `.gitignore:77` porta la regola `*-report.*`, che
    **quel nome esatto** soddisfa — `git check-ignore -v` lo conferma (`.gitignore:77:*-report.*`).
