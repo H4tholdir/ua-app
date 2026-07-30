@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { motionTokens, useReducedMotion } from '@/design-system/motion'
 import { hapticMedium, hapticLight } from '@/lib/feedback/haptic'
+// Unico import da `components/ds/` in una superficie ancora v2.3, e NON è una mescolanza dei due
+// design system (regola di convivenza, DS v3 §14): `blocca-scorrimento` non porta token, colori,
+// molle né markup — è comportamento puro sul `document.body`, che è uno solo per tutta l'app,
+// v2.3 e v3 comprese. Un contatore con un non-partecipante non sarebbe un contatore.
+import { bloccaScorrimento } from '@/components/ds/blocca-scorrimento'
 import type { OrdineRow, ArticoloSottoScorta } from '@/app/(app)/ordini/page'
 
 interface Fornitore {
@@ -85,14 +90,18 @@ export function NuovoOrdineSheet({
     if (open) hapticLight()
   }, [open])
 
-  // Blocca scroll body
+  // Blocca scroll body — a contatore, condiviso con ogni altro strato che blocca
+  // (`blocca-scorrimento.ts`, D84). Prima qui c'era la forma peggiore del difetto: si scriveva
+  // 'hidden' all'apertura e si rimetteva '' alla chiusura e alla pulizia, senza MAI catturare il
+  // valore di partenza. Un non-partecipante che sovrascrive il valore rende incompleto per
+  // costruzione qualunque contatore — bastava che questo pannello si chiudesse sopra un altro
+  // strato ancora aperto per sbloccare la pagina sotto di lui, e bastava che partisse da una
+  // pagina con un `overflow` proprio per perderlo.
+  // Il MOMENTO dello sblocco non cambia: come prima, si sblocca quando `open` diventa falso
+  // (questo pannello non ha lo sblocco deferito a fine uscita che ha `Sheet`).
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
+    if (!open) return
+    return bloccaScorrimento()
   }, [open])
 
   // Carica articoli magazzino
