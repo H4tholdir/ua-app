@@ -5,7 +5,7 @@
 
 ## Contesto
 
-Il backlog descrive B5 come "download DdC/Buono dal portale dentista strutturalmente impossibile": `ddc_signed_url`/`buono_signed_url` sono hardcoded a `null` in `src/app/api/portale/[token]/route.ts` e `src/app/portale/[token]/page.tsx`, mentre il messaggio WhatsApp (`whatsapp-template.ts`) promette esplicitamente "scarica i documenti".
+Il backlog descrive B5 come "download DdC/Buono dal portale dentista strutturalmente impossibile": `ddc_signed_url`/`buono_signed_url` sono hardcoded a `null` in `src/app/api/portale/[token]/route.ts` (⚠️ **eliminato da questa stessa spec**, v. §"Da rimuovere") e `src/app/portale/[token]/page.tsx`, mentre il messaggio WhatsApp (`whatsapp-template.ts`) promette esplicitamente "scarica i documenti".
 
 Un'indagine approfondita (autorizzata esplicitamente da Francesco) ha rivelato che il problema è più profondo e più esteso del previsto, con quattro root cause distinte:
 
@@ -25,7 +25,7 @@ Il bucket Supabase `documenti` è **privato** (`public: false`, verificato via q
 
 ### Scoperte aggiuntive (stessa categoria, zero impatto live, incluse su richiesta esplicita)
 - `generateEtichetta()` (`src/lib/pdf/generate-etichetta.ts`, variante che persiste su Storage) non ha alcun chiamante in produzione — solo il proprio test unitario. Codice morto.
-- `GET /api/portale/[token]/route.ts` non ha alcun consumer — la pagina SSR fa le proprie query dirette, duplicando la stessa logica. Codice morto.
+- `GET /api/portale/[token]/route.ts` non ha alcun consumer — la pagina SSR fa le proprie query dirette, duplicando la stessa logica. Codice morto. ⚠️ **Poi eliminato**, come prescrive questa spec più sotto: il percorso oggi non esiste più.
 - `fatture.xml_url` è salvato rotto (stesso bug C) ma non è mai renderizzato come link cliccabile — nessun bottone "Scarica XML" esiste oggi in `/fatture/[id]`.
 
 ## Principio architetturale

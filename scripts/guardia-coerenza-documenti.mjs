@@ -196,8 +196,17 @@ function controllaFileCitati(percorso, testo) {
     //    prodotto. Ma devono essere DICHIARATI tali sulla stessa riga — «(nuovo)»,
     //    «da creare», «🆕». Chi non lo dichiara e' indistinguibile da chi ha
     //    sbagliato un percorso: la guardia lo tratta come un errore, ed e' giusto.
+    // 🔑 E il caso SIMMETRICO, aggiunto il 30/07/2026: una spec cita legittimamente
+    //    un file che non esiste PIU', quando e' quella stessa spec ad averlo fatto
+    //    eliminare (caso vero: la spec B5 del 05/07 prescrive «Elimina
+    //    `GET /api/portale/[token]/route.ts`» e poi lo nomina tre volte al passato).
+    //    Vale la stessa regola, non una piu' larga: si dichiara sulla riga
+    //    («eliminato», «rimosso», «non esiste piu'») o resta un errore. La guardia
+    //    difende il suo scopo dichiarato — «non mandare una sessione nuova a cercare
+    //    una cosa che non c'e'» — e un percorso dichiarato morto non manda nessuno.
     const dichiaratoNuovo = /\(nuovo|da creare|🆕/i.test(riga)
-    if (dichiaratoNuovo) continue
+    const dichiaratoEliminato = /elimina|rimoss|rimuov|non esiste (più|piu')/i.test(riga)
+    if (dichiaratoNuovo || dichiaratoEliminato) continue
     for (const m of riga.matchAll(/`([^`\n]+)`/g)) {
       let p = m[1].trim()
     // Segnaposto, non percorsi: `<timestamp>_x.sql`, `{a,b,c}.html`, glob.
