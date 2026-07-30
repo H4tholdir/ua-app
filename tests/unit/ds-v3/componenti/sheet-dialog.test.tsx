@@ -348,11 +348,28 @@ describe('Sheet — bottom sheet (§5.16)', () => {
 
   it('unmount REALE mentre aperto (es. navigazione client-side con lo sheet aperto) → scroll ripristinato subito, mai bloccato per sempre', () => {
     // Nessun rerender con aperto=false: qui il componente sparisce dal tree
-    // mentre è ancora aperto. React esegue le cleanup in ORDINE DI SETUP
-    // (verificato empiricamente su React 19.2: A setup, B setup, A cleanup,
-    // B cleanup — NON LIFO): l'effect-sentinella che marca lo smontaggio deve
-    // quindi essere dichiarato PRIMA dell'effect dello scroll lock, altrimenti
-    // la cleanup del lock legge montatoRef ancora true e non sblocca mai.
+    // mentre è ancora aperto.
+    //
+    // ⚠️ AGGIORNATO 30/07/2026 — questo commento diceva che la sentinella «deve
+    // essere dichiarata PRIMA dell'effect dello scroll lock, altrimenti la
+    // cleanup del lock legge montatoRef ancora true e non sblocca mai». Non è
+    // più vero: da quando il rilascio vive nella cleanup della sentinella
+    // (`Sheet.tsx`), a sentinella dichiarata DOPO questo caso resterebbe verde
+    // lo stesso — la cleanup del lock girerebbe per prima senza sbloccare, e la
+    // sentinella rilascerebbe subito dopo. L'ordine non è più portante, e
+    // nessuna guardia lo protegge: non scriverlo come se lo fosse.
+    //
+    // Quello che il caso prova ANCORA, e che è utile sapere:
+    //  · fino alla riparazione era la misura dell'ordine delle cleanup per
+    //    contraddizione — su quel codice l'unico sblocco possibile qui era la
+    //    cleanup del lock che legge `montatoRef.current === false`, quindi il
+    //    suo verde diceva che React 19.2.4 esegue le cleanup in ORDINE DI SETUP
+    //    (A setup, B setup, A cleanup, B cleanup), non LIFO;
+    //  · oggi è il percorso che fa DAVVERO la doppia chiamata: la sentinella
+    //    rilascia, poi la cleanup del lock richiama `sbloccaScroll` con il ref
+    //    già azzerato. Il suo verde è la prova che la seconda chiamata è
+    //    innocua — un secondo decremento porterebbe il contatore a −1 e il
+    //    blocco successivo non scriverebbe più 'hidden'.
     document.body.style.overflow = 'scroll'
     const { unmount } = render(
       <Sheet aperto onChiudi={() => {}}>
@@ -421,6 +438,113 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     rerender(<DueSheet sotto={false} sopra={false} />)
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(document.body.style.overflow).toBe('scroll')
+  })
+
+  // ── Smontaggio A METÀ USCITA — il rilascio del posto nel contatore ──────────────────────────
+  // La sequenza, che è quella vera del gesto «chiudi lo sheet e cambia rotta nello stesso
+  // momento» (`PilaAperta.tsx`, `PilaSplit.tsx`: `onConfermato={(id) => { navigaDaOverlay(...);
+  // setConfermaId(null) }}` su un `ConfermaCassettaSheet` montato sempre e pilotato da
+  // `aperto={confermaId !== null}`):
+  //   1. `aperto` passa da true a false: la pulizia dell'esecuzione precedente dell'effect del
+  //      lock gira, ma con le animazioni attive e il componente ANCORA MONTATO non sblocca —
+  //      giusto, aspetta `onExitComplete` (è il comportamento provato nei due casi qui sopra);
+  //   2. l'effect rigira con `aperto = false`, esce alla prima riga e NON registra pulizia;
+  //   3. il componente si smonta: dell'effect del lock non c'è più niente da eseguire.
+  //
+  // 🛑 QUELLO CHE IL CASO PROVA, E QUELLO CHE NON PROVA — misurato, non dedotto.
+  // L'ipotesi di partenza era «il posto resta occupato per sempre». È FALSA: anche senza la
+  // riparazione il rilascio arriva lo stesso, ~1 frame dopo (misura con
+  // `MotionGlobalConfig.skipAnimations = false` e smontaggio a 0 ms dall'inizio dell'uscita:
+  // 2 ms, contro i 23 ms del completamento naturale — è lo smontaggio a farlo arrivare, non
+  // l'animazione che finisce). Il perché sta in framer-motion
+  // (`features/animation/exit.mjs`): `ExitAnimationFeature.update()` registra
+  // `exitAnimation.then(() => onExitComplete(this.id))`, lo smontaggio risolve quella promise
+  // (`AnimationFeature.unmount()` → `animationState.reset()`), e il `.then` è una chiusura JS
+  // che sopravvive all'albero React smontato.
+  // Quindi il rosso qui sotto NON è «il corpo resta bloccato per sempre»: è **il rilascio è
+  // sincrono con lo smontaggio invece di essere appeso a una promise di framer-motion che spara
+  // dopo**. È una differenza sincrono-vs-microtask, deterministica: non è un'asserzione di
+  // tempistica ballerina. E vale la riga perché quel rilascio dipendeva da due invarianti che
+  // nessuna guardia di questo repo può verificare — che React esegua le cleanup in ordine di
+  // setup (con LIFO quel percorso perderebbe il posto DAVVERO) e che framer-motion continui a
+  // risolvere la promise di un'uscita interrotta. La riparazione le ritira entrambe.
+  //
+  // Il secondo braccio (pannello NUOVO che apre e chiude dopo) è un guardiano di regressione,
+  // NON il discriminante: è verde sia prima sia dopo la riparazione, proprio perché il rilascio
+  // tardivo ripulisce comunque il contatore. Quello che sa prendere è un rilascio DOPPIO —
+  // contatore a −1, e il `bloccaScorrimento()` successivo non arriverebbe mai a
+  // `bloccanti === 1`, quindi il pannello nuovo non scriverebbe mai 'hidden'.
+  it('smontaggio A METÀ USCITA (chiusura + cambio rotta nello stesso gesto, cfr. PilaAperta/PilaSplit): il posto nel contatore viene rilasciato — il corpo torna al valore di prima E un pannello nuovo blocca/sblocca normalmente', async () => {
+    // Sentinelle che nessun bloccante scriverebbe mai: `overflow:'scroll'` non è `'hidden'`, e
+    // `paddingRight:'3px'` non è la compensazione simulata (17px) — «ripristinato» e «compensato»
+    // restano distinguibili. Stessa scelta, e stesso motivo, di blocca-scorrimento.test.ts.
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 })
+    Object.defineProperty(document.documentElement, 'clientWidth', { configurable: true, value: 1263 })
+    document.body.style.overflow = 'scroll'
+    document.body.style.paddingRight = '3px'
+    try {
+      const { rerender, unmount } = render(
+        <Sheet aperto onChiudi={() => {}}>
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      // MENTRE è bloccato: senza questa coppia, un verde finale proverebbe solo che il corpo era
+      // già come lo volevamo — non che il blocco sia mai partito.
+      expect(document.body.style.overflow).toBe('hidden')
+      expect(document.body.style.paddingRight).toBe('17px')
+
+      rerender(
+        <Sheet aperto={false} onChiudi={() => {}}>
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      // Uscita avviata, NON completata (vedi la nota skipAnimations nel primo test scroll-lock).
+      // Questa riga è anche la guardia del caso: se un giorno l'uscita completasse in modo
+      // sincrono, qui si vedrebbe 'scroll' e il caso non starebbe più provando lo smontaggio a
+      // metà uscita — rosso rumoroso, ripartire da qui.
+      expect(document.body.style.overflow).toBe('hidden')
+
+      // Il gesto vero: la rotta cambia e l'albero sparisce mentre l'uscita sta ancora giocando.
+      unmount()
+
+      // 🔑 LE DUE ASSERZIONI CHE SI ACCENDONO CON LA RIPARAZIONE (2 su 10 del caso). Il rilascio
+      // deve essere avvenuto DENTRO il commit di smontaggio — non un microtask dopo, appeso alla
+      // promise di framer-motion (v. il blocco sopra: senza la riparazione qui si legge ancora
+      // 'hidden'/'17px', e il rilascio arriva a +2 ms).
+      expect(document.body.style.overflow).toBe('scroll')
+      expect(document.body.style.paddingRight).toBe('3px')
+
+      // ── Guardiano di regressione: il contatore è a zero, non a −1 ──────────────────────────
+      // Verde sia prima sia dopo la riparazione (v. il blocco sopra: non è il discriminante).
+      // Prende il caso opposto, il rilascio DOPPIO: con il contatore a −1 il `bloccaScorrimento()`
+      // di questo pannello non arriverebbe mai a `bloccanti === 1` e non scriverebbe mai 'hidden'.
+      const nuovo = render(
+        <Sheet aperto={false} onChiudi={() => {}}>
+          <p>Pannello nuovo</p>
+        </Sheet>
+      )
+      nuovo.rerender(
+        <Sheet aperto onChiudi={() => {}}>
+          <p>Pannello nuovo</p>
+        </Sheet>
+      )
+      expect(document.body.style.overflow).toBe('hidden')
+      expect(document.body.style.paddingRight).toBe('17px')
+
+      nuovo.rerender(
+        <Sheet aperto={false} onChiudi={() => {}}>
+          <p>Pannello nuovo</p>
+        </Sheet>
+      )
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect(document.body.style.overflow).toBe('scroll')
+      expect(document.body.style.paddingRight).toBe('3px')
+    } finally {
+      // `afterEach` fa `vi.restoreAllMocks()`, che NON disfa una `Object.defineProperty`: senza
+      // questo finally la larghezza simulata della barra resterebbe addosso a tutto il file.
+      delete (document.documentElement as unknown as { clientWidth?: number }).clientWidth
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 })
+    }
   })
 
   it('focus management: al momento dell\'apertura il dialog riceve il focus; alla chiusura torna all\'elemento precedente', async () => {

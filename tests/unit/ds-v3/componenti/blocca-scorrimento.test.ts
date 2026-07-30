@@ -113,7 +113,9 @@ describe('bloccaScorrimento — blocco del corpo a contatore (D84)', () => {
     expect(document.body.style.overflow).toBe('hidden')
 
     // È l'ordine che React usa per le pulizie (ordine di SETUP, non LIFO — misurato su React
-    // 19.2 e documentato in Sheet.tsx:217-221): prima il primo, poi il secondo. Col vecchio
+    // 19.2, v. il commento sull'effect-sentinella in Sheet.tsx): prima il primo, poi il secondo.
+    // ⚠️ Qui l'ordine è comunque solo il MOTIVO per cui questo è il caso realistico: il modulo
+    // deve reggere qualunque ordine di rilascio, ed è quello che il caso prova. Col vecchio
     // ref-per-istanza qui il secondo «ripristinava» 'hidden' e la pagina restava bloccata per
     // sempre.
     sbloccaPrimo()

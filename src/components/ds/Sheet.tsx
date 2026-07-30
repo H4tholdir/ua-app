@@ -225,12 +225,45 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // mentre era aperto, bypassando `onChiudi` — uso scorretto, ma il body non
   // deve restare bloccato per sempre) sbloccano subito nella cleanup; il ramo
   // animato normale sblocca da `onExitComplete` di AnimatePresence, quando il
-  // pannello è già fuori schermo. `montatoRef` (effect-sentinella qui sotto)
-  // traccia lo smontaggio reale: React esegue le cleanup in ORDINE DI SETUP
-  // (verificato empiricamente su React 19.2: «A setup, B setup, A cleanup, B
-  // cleanup» — NON LIFO come da credenza comune), quindi la sentinella è
-  // dichiarata PRIMA dell'effect dello scroll lock, così `montatoRef.current =
-  // false` gira in tempo per essere letto dalla cleanup del lock.
+  // pannello è già fuori schermo.
+  //
+  // ── Perché il rilascio vive nella cleanup della SENTINELLA (30/07/2026) ──────
+  // C'è una sequenza in cui la cleanup di QUESTO effect non gira affatto:
+  // `aperto` passa a false (la cleanup precedente non sblocca — giusto, aspetta
+  // `onExitComplete`), l'effect rigira, esce alla prima riga e NON registra
+  // nessuna cleanup; se adesso il componente si smonta, qui non c'è più niente
+  // da eseguire. È il gesto che chiude uno sheet e cambia rotta insieme
+  // (`PilaAperta.tsx`, `PilaSplit.tsx`: `onConfermato` fa `navigaDaOverlay(...)`
+  // e `setConfermaId(null)` nello stesso handler).
+  // 🛑 MISURATO, contro l'ipotesi di partenza: il posto nel contatore NON resta
+  // occupato per sempre. Anche smontato, il rilascio arriva lo stesso ~1 frame
+  // dopo (misura: 2 ms, con `MotionGlobalConfig.skipAnimations = false` e
+  // smontaggio a 0 ms dall'inizio dell'uscita, contro i 23 ms del completamento
+  // naturale — è lo smontaggio a farlo arrivare, non l'animazione che finisce).
+  // Il perché sta in `framer-motion/.../features/animation/exit.mjs`:
+  // `ExitAnimationFeature.update()` registra `exitAnimation.then(() =>
+  // onExitComplete(this.id))`, lo smontaggio risolve quella promise
+  // (`AnimationFeature.unmount()` → `animationState.reset()`) e il `.then` è una
+  // chiusura JS che sopravvive all'albero React smontato.
+  // Il rilascio è quindi appeso a DUE invarianti che nessuna macchina di questo
+  // repo può verificare: (a) che React esegua le cleanup in ordine di setup —
+  // con LIFO la cleanup del lock girerebbe con `montatoRef` ancora true e quel
+  // percorso perderebbe il posto davvero, per sempre; (b) che framer-motion
+  // continui a risolvere la promise di un'uscita interrotta e a lasciar sparare
+  // una callback dopo lo smontaggio. Mettere il rilascio nella cleanup della
+  // sentinella (`[]`, gira SEMPRE allo smontaggio, in quel commit) le ritira
+  // entrambe: è lo stesso argomento con cui `blocca-scorrimento.ts` ha preferito
+  // il contatore a una regola scritta nella spec.
+  //
+  // `montatoRef` (effect-sentinella qui sotto) traccia lo smontaggio reale.
+  // React esegue le cleanup in ORDINE DI SETUP (verificato empiricamente su
+  // React 19.2: «A setup, B setup, A cleanup, B cleanup» — NON LIFO come da
+  // credenza comune), e per questo la sentinella è dichiarata PRIMA dell'effect
+  // dello scroll lock. ⚠️ Dal 30/07/2026 quell'ordine NON è più portante: la
+  // sentinella rilascia da sé, quindi il posto torna al contatore in entrambi
+  // gli ordini. Il ramo `!montatoRef.current` nella cleanup del lock qui sotto è
+  // di conseguenza un no-op ridondante — si tiene apposta (difesa in profondità,
+  // e `sbloccaScroll` è idempotente per costruzione), non perché serva.
   const sbloccaScorrimentoRef = useRef<(() => void) | null>(null)
   const montatoRef = useRef(true)
   function sbloccaScroll() {
@@ -243,12 +276,18 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     sblocca()
   }
 
-  // Effect-sentinella dello smontaggio reale — PRIMA dello scroll lock
-  // (ordine di setup = ordine delle cleanup, vedi sopra).
+  // Effect-sentinella dello smontaggio reale, e da qui il rilascio del posto nel
+  // contatore. Resta dichiarata PRIMA dello scroll lock (ordine di setup = ordine
+  // delle cleanup), ma dal 30/07/2026 è una scelta di forma, non un vincolo: il
+  // rilascio qui sotto è incondizionato, quindi funziona in entrambi gli ordini.
   useEffect(() => {
     montatoRef.current = true
     return () => {
       montatoRef.current = false
+      // Il rilascio vive QUI (v. sopra): questa cleanup è l'unica che gira SEMPRE
+      // allo smontaggio, anche quando l'effect del lock è uscito alla prima riga
+      // perché `aperto` era già false e non ha registrato niente.
+      sbloccaScroll()
     }
   }, [])
 
