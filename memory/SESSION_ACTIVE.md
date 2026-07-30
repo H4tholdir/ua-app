@@ -51,9 +51,26 @@ patchabile senza validazione).
 Francesco (dati di prova, nessun cliente vero). Causa: **un solo database** per prove e produzione (**R29**).
 **Si ripara al merge, ed è un passo di collaudo di T13.**
 
-➡️ **PROSSIMO: Task 4** (blocco B) — la cancellazione diventa **vera**: il file sparisce dall'archivio, poi
-la riga, e resta la **traccia** di D63. ⚠️ La finta dei test espone **solo `from`**: va estesa **prima**, o
-il primo `storage.remove` romperà un test esistente per una ragione che non è un difetto del codice.
+✅ **Task 4 FATTO** — **blocco B chiuso** (`912096a8` la tabella di traccia · `bc6ccd1f` la finta ·
+`cdb96f6a` handler + prove · `246d09db` il verbale delle mutazioni · `20260730150200` la revoca dei
+permessi). La cancellazione è **vera**: file prima, riga dopo, traccia dopo. **Fail-closed sul file**
+(se non si toglie, la riga resta e la risposta è 500) · **fail-soft dichiarato sulla traccia**. vitest
+**3926 | 19** (+9), `tsc` 0, tre mutazioni **tutte con vittime**.
+🔑 **Due sonde che valgono più delle asserzioni:** la prova che la finta *senza* `storage` rompe davvero
+(P12 verificata, non assunta), e l'`INSERT` come **`service_role`** — perché la traccia è fail-soft e un
+permesso mancante avrebbe prodotto foto sparita, **200 OK e nessun audit, in silenzio**.
+🔧 **R33 chiusa dal coordinatore:** la traccia nasceva difesa dalla sola RLS, coi permessi di tabella
+ancora aperti ad `anon`/`authenticated` (14 righe, come `lab_stato_log`). Allineata al precedente più
+stretto di casa (`cassette_backfill_audit`): `REVOKE ALL` + `GRANT` esplicito. Fatto **mentre la tabella era
+vuota**, cioè quando costava zero.
+⚠️ **R34 aperta:** `deleted_at` su `lavori_immagini` **non ha più scrittori** — otto filtri sorvegliano uno
+stato che niente produce. Non urgente (zero righe già cancellate, nessun file orfano), ma va scritto
+accanto ai filtri o confonderà qualcuno fra sei mesi.
+
+➡️ **PROSSIMO: Task 5** (blocco C) — 🚪 **GATE, e NON contiene codice**: si propongono le **cinque** §5.x
+(`CartaAlbum`, `VisoreFoto`, `TendinaMenu`, `FoglioCategoria`, **`FoglioConferma`** di D80) **prima** che i
+componenti esistano. Include l'emendamento a §5.17 e **come il foglio di conferma NON blocca lo
+scorrimento** (`Sheet` lo blocca con un `useRef` per istanza: sopra il visore lascerebbe la pagina bloccata).
 
 **Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9, T9-bis) → D (T10→T11→T12) → E (T13).
 🛑 **A prima di D** · 🛑 **B prima di D-T12**.

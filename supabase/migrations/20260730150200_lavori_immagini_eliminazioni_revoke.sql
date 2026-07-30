@@ -1,0 +1,37 @@
+-- 20260730150200_lavori_immagini_eliminazioni_revoke.sql
+-- R33 — la traccia delle cancellazioni prende la difesa DOPPIA, non solo la RLS.
+--
+-- Che cosa cambia: niente, oggi. `lavori_immagini_eliminazioni` nasce con RLS
+-- attiva e ZERO policy (20260730150100), quindi `anon` e `authenticated` non
+-- leggono e non scrivono già adesso. Ma i PERMESSI DI TABELLA ci sono lo
+-- stesso — sono i default privileges dello schema `public` di Supabase, che
+-- danno a entrambi i ruoli SELECT, INSERT, UPDATE, DELETE e perfino TRUNCATE.
+-- Misurato il 30/07 su `information_schema.role_table_grants`: 14 righe fra
+-- `anon` e `authenticated`, esattamente come su `lab_stato_log`.
+--
+-- 🔑 Perché va chiuso adesso e non «quando servirà»: la RLS è l'UNICA cosa che
+--    regge, e lo scenario che la toglie è prevedibile e benintenzionato — il
+--    giorno in cui si vorrà mostrare al titolare l'elenco delle foto cancellate
+--    si aggiungerà una policy di LETTURA, e con quella `authenticated`
+--    erediterebbe anche UPDATE, DELETE e TRUNCATE su un registro di audit.
+--    Un audit che chi vi è registrato può riscrivere non è un audit.
+--    La tabella oggi è NUOVA e VUOTA: è il momento in cui questa correzione
+--    costa zero.
+--
+-- 🔑 La forma NON è inventata: è già in casa, ed è la più stretta delle tre
+--    tabelle di sola traccia esistenti — `cassette_backfill_audit`
+--    (`20260721090200_parete_cassette_backfill.sql:52-54`) fa RLS + REVOKE ALL
+--    + GRANT esplicito, con la ragione scritta accanto («esplicito, non
+--    default privileges»). `lavori_immagini_eliminazioni` aveva ricalcato
+--    `lab_stato_log`, che è più vecchia e si ferma alla RLS.
+--
+-- ⚠️ Il GRANT a `service_role` è INSERT + SELECT, non solo SELECT come nel
+--    precedente: qui il ruolo di servizio ci SCRIVE (è l'handler del DELETE).
+--    🛑 E la parte da non sbagliare: la scrittura della traccia è FAIL-SOFT
+--       per scelta (D63) — se il permesso mancasse, la foto sparirebbe, la
+--       risposta sarebbe 200 e la riga di audit NON esisterebbe, in silenzio e
+--       con tutte le prove verdi. Per questo il GRANT è esplicito e la prova
+--       che segue gira come `service_role`, non come `postgres`.
+
+REVOKE ALL ON lavori_immagini_eliminazioni FROM PUBLIC, anon, authenticated;
+GRANT INSERT, SELECT ON lavori_immagini_eliminazioni TO service_role;
