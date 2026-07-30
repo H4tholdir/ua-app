@@ -1,15 +1,20 @@
 # Spec — L'album delle foto sulla scheda del lavoro
 
-**Data:** 30 luglio 2026 · **Stato:** 🟡 **DA RATIFICARE** — §12 elenca **quattro superfici mai disegnate**
+**Data:** 30 luglio 2026 · **aggiornata la sera con le quattro varianti scelte (D76-D79)** ·
+**Stato:** 🟡 **DA RATIFICARE** — ✅ **§0B soddisfatto**, §12 porta le quattro varianti approvate
 **Decide:** Francesco Formicola · **Scrive:** coordinatore di sessione
 **Nasce da:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **D57-D75**, con i panel
 di §9 · punto di ripresa `docs/roadmap/2026-07-29-ondata-b-album-foto-handoff.md`
 **Emenda:** `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md` §5.33 (v. §8)
-**Precede:** i quattro mockup §0B → la ratifica → il piano (`superpowers:writing-plans`, R-P1/R-P2/R-P6)
+**Mockup (§0B, fatto):** `docs/design/mockups/2026-07-30-album-visore-categoria.html` + gli screenshot
+390/768/1280 × chiaro/scuro in `docs/design/mockups/screenshots/`
+**Precede:** la ratifica → il piano (`superpowers:writing-plans`, R-P1/R-P2/R-P6) → l'esecuzione a task
+singoli (R-E1)
 
-> 🛑 **Questa spec NON autorizza una riga di React.** §0B chiede mockup → screenshot → approvazione
-> **prima** del codice, e §12 dice esattamente quali mancano. Una spec ratificata con §12 aperta
-> autorizza il **piano**, non l'implementazione delle superfici non ancora viste.
+> ✅ **§0B è soddisfatto** (mockup → screenshot ai tre tagli × due temi → **quattro varianti scelte**,
+> D76-D79): §12 non è più uno sbarramento. 🟡 **Restano DUE cose prima del codice**, ed entrambe sono nel
+> piano, non qui: la **marca dell'overlay** di visore e tendina (§4.3, §16) e le **icone vere** al posto
+> delle emoji segnaposto del foglio categoria (§12).
 
 ---
 
@@ -139,7 +144,9 @@ componente:** i valori `rgba` letterali dentro `src/components/ds/` sono vietati
 `storia-overlay.ts:67` dichiara `type Marca = 'uaSheet' | 'uaDialog'` — **un'unione chiusa a due**, e il
 visore non è nessuno dei due.
 
-E D69 impila: **visore → menù ⋯ → conferma di eliminazione** (D55). Fino a **tre strati**.
+E D69 impila: **visore → menù ⋯ → conferma di eliminazione** (D55). Fino a **tre strati** — e con **D78**
+il secondo è una **tendina**, cioè un componente che in casa non esiste e che **non ha già** il
+comportamento di storia che un foglio v3 porta con sé (§9).
 
 **La spec deve fissare, prima che si scriva una riga:**
 1. **Quale marca** prende il visore — una terza (`uaVisore`, esplicita, tocca il modulo) o il riuso di
@@ -328,9 +335,22 @@ documento **una volta sola**.
 
 | componente | dove | perché |
 |---|---|---|
-| carta album | `src/components/ds/` (🆕 da creare) | §13.1 p.3 della spec v3: i componenti condivisi stanno **solo** lì |
-| visore | `src/components/ds/` (🆕 da creare) | idem, più §4.3 (marca dell'overlay) |
-| foglio della categoria | `src/components/ds/` (🆕 da creare) | serve su entrambe le superfici |
+| carta album (variante A1) | `src/components/ds/` (🆕 da creare) | §13.1 p.3 della spec v3: i componenti condivisi stanno **solo** lì |
+| visore (variante V1) | `src/components/ds/` (🆕 da creare) | idem, più §4.3 (marca dell'overlay) |
+| foglio della categoria (variante C1) | `src/components/ds/` (🆕 da creare) | serve su entrambe le superfici |
+| 🆕 **tendina del menù** (variante M2, **D78**) | `src/components/ds/` (🆕 da creare) | 🛑 **In casa NON esiste: l'app usa fogli, non tendine.** Nasce con la sua **§5.x proposta prima di essere scritta** — non si improvvisa dentro un task |
+
+### 🛑 Quello che la scelta M2 impone, e che un foglio non avrebbe chiesto
+**D78 è una scelta di Francesco e si esegue.** I due costi erano scritti nella domanda e restano veri,
+quindi si **progettano** invece di scoprirli in esecuzione:
+1. **La voce distruttiva sta IN FONDO alla tendina** — il punto più lontano dai tre puntini e **più vicino
+   al pollice**, perché in alto a destra è la zona meno raggiungibile su un telefono grande ed è lì che
+   finirebbe la voce che **cancella davvero** (D61). Resta rossa, staccata da una linea, con margine extra
+   (§5.34).
+2. **La tendina è uno STRATO, non un dettaglio grafico:** entra in `storia-overlay.ts` esattamente come un
+   foglio, o «indietro» chiuderebbe **il visore** invece del menù. Da progettare con lei: chiusura toccando
+   fuori · chiusura allo scorrimento · **raggiungibilità da tastiera e da lettore di schermo**, che un
+   foglio v3 ha già e una tendina nuova **no**.
 
 `src/components/ds/FotoStrip.tsx` **esiste già** ed è v3 puro (28 righe, legge solo `v3/tokens`): la carta
 album **lo assorbe o lo sostituisce** — non gli si affianca un terzo componente foto.
@@ -396,26 +416,39 @@ bucket pubblico con cui confonderla (`src/lib/utils/storage-url.ts:6-10`).
 
 ---
 
-## 12. 🔴 Le superfici e il loro stato di approvazione visiva (§0B)
+## 12. ✅ Le superfici e il loro stato di approvazione visiva (§0B)
 
-**§0B NON è soddisfatto.** Il confronto delle tre direzioni
-(`docs/design/mockups/2026-07-29-album-foto-tre-direzioni.html`) ha mostrato **la carta**, e su quello è
-stata presa D64. **Quattro superfici sono state decise e MAI disegnate:**
+**§0B è soddisfatto.** Mockup: `docs/design/mockups/2026-07-30-album-visore-categoria.html`, screenshot a
+**390 / 768 / 1280** in **chiaro e scuro** in `docs/design/mockups/screenshots/2026-07-30-album-visore-categoria-*.png`
+— e **dentro la schermata vera** (D58), non a frammenti.
 
-| # | superficie | decisa da | stato |
+| # | superficie | decisa da | variante scelta |
 |---|---|---|---|
-| 1 | **il visore** a tutto schermo | D64 | 🔴 mai disegnato |
-| 2 | **il menù ⋯ dentro il visore** | D69 (oggi) | 🔴 mai disegnato |
-| 3 | **il foglio della categoria allo scatto**, compreso lo scatto multiplo | D65, D74 | 🔴 mai disegnato |
-| 4 | **l'album con le sei etichette raggruppate** nell'ordine di D71 | D68, D71, D72 (oggi) | 🔴 mai disegnato |
+| 1 | **l'album con i gruppi** nell'ordine di D71 | D68, D71, D72 | ✅ **A1** — etichette sopra i blocchi (**D76**) |
+| 2 | **il visore** a tutto schermo | D64, D66 | ✅ **V1** — controlli sempre visibili (**D77**) |
+| 3 | **il menù ⋯ dentro il visore** | D69 | ✅ **M2** — tendina ancorata ai tre puntini (**D78**) |
+| 4 | **il foglio della categoria allo scatto** (compreso lo scatto multiplo) | D65, D74 | ✅ **C1** — sei pastiglie su due colonne (**D79**) |
 
-🛑 **E si mostrano DENTRO LA SCHERMATA VERA** (D58), a **390 / 768 / 1280** in **chiaro e scuro**. Non
-frammenti: una variante può sembrare buona in un ritaglio e impossibile nella pagina — è la seconda delle
-tre obiezioni con cui Francesco ha fermato il primo disegno, e ripeterla sarebbe farla scattare due volte
-in tre giorni.
+### 🔎 Tre cose che il disegno ha prodotto e che nessuna decisione poteva prevedere
+1. 📏 **A 390 la pastiglia utile è 148,5 px e «Guida colore» — la più lunga delle sei — ANDAVA A CAPO**,
+   sfalsando la griglia. Rientra a **15 px** di testo. 🔑 Stessa trappola dei nomi lunghi già pagata con le
+   briciole del wizard (D39): **l'etichetta più lunga si misura, non si stima** — e se una voce cambierà
+   nome, la misura va rifatta.
+2. 🔴 **Il caso peggiore del visore è la radiografia**, ed è stato disegnato apposta (colonna V1-bis): su una
+   foto scura le sfumature che reggono i controlli **spariscono**, e con loro il contrasto del testo bianco.
+   ➡️ **Il contrasto dei controlli si prova sulla foto più scura**, mai su quella media.
+3. 🛑 **Il testo della conferma è cambiato, e non è una rifinitura:** la stesura del 29/07 diceva «il file
+   resta conservato». Con **D61** è **falso**. Testo in vigore: «Sparisce dalla scheda **e dall'archivio**:
+   non si recupera. Resta annotato chi l'ha eliminata e quando.»
 
-⚠️ **Nota su §0B:** la regola scritta chiede i **tre formati**, non l'**intera schermata**. D58 aggiunge
-quella riga: va portata in `ua-app/CLAUDE.md` §0B, o la prossima sessione rifarà frammenti in buona fede.
+### 🛑 Il vincolo di D75 verificato sul disegno
+**Nessuna variante mostra, copia o esporta l'indirizzo firmato della foto.** È il motivo per cui il menù
+porta «**Salva sul telefono**» e **non** «Copia link»: la contropartita del rinvio (§11) è che questa
+superficie **non peggiori l'esposizione in modo evitabile**, e una voce «copia link» l'avrebbe peggiorata
+in un punto nuovo.
+
+⚠️ **Nota su §0B, da portare in `ua-app/CLAUDE.md`:** la regola scritta chiede i **tre formati**, non
+l'**intera schermata**. D58 aggiunge quella riga — senza, la prossima sessione rifarà frammenti in buona fede.
 
 ---
 
@@ -474,8 +507,9 @@ prima/dopo. **L'album è una superficie nuova: il gate vale.**
 
 | # | domanda | chi decide |
 |---|---|---|
-| 1 | **La marca dell'overlay del visore** (§4.3): terza marca `uaVisore` o riuso di `uaSheet` | Decisione tecnica → panel se non è ovvia guardando il modulo. **Non si sceglie di nascosto dentro un task** |
-| 2 | **I quattro mockup** di §12 | Francesco, sul disegno |
+| 1 | **La marca dell'overlay** (§4.3): serve a **due** componenti nuovi, visore **e** tendina (D78) — terza marca `uaVisore` o riuso di `uaSheet`, e se la tendina ne vuole una sua | Decisione tecnica → panel se non è ovvia guardando il modulo. **Non si sceglie di nascosto dentro un task** |
+| ~~2~~ | ~~I quattro mockup di §12~~ | ✅ **CHIUSA il 30/07** — D76 (album A1) · D77 (visore V1) · D78 (menù M2) · D79 (categoria C1) |
+| 4 | 🆕 **Le icone vere delle sei categorie** — le emoji del mockup sono un **segnaposto dichiarato** | Francesco, sul disegno. Va nel piano come passo proprio |
 | 3 | **Dove si colloca l'ondata di D67** (allegati + condivisione) nella roadmap | Francesco |
 
 ---
