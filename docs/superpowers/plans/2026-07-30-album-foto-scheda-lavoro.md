@@ -153,9 +153,9 @@ riassunto.
 ### Chiavi JSON e campi di modulo
 | chiave | dove | destinazione |
 |---|---|---|
-| `descrizione` (campo FormData del POST) | inviata da `TabImmagini.tsx:131`, letta a `immagini/route.ts:97-98` | 🔄 **T3**: diventa `categoria`, **obbligatoria** — un POST senza di lei è **422** |
+| `descrizione` (campo FormData del POST) | inviata da `TabImmagini.tsx:131`, letta a `immagini/route.ts:97-98` | 🔄 **Due lati, due task — 🔧 CORRETTO da T3 (30/07), questa riga li confondeva:** il lato **server** (leggere `categoria`, 422 se manca o è fuori elenco) è **T3, fatto**; il lato **client** (`TabImmagini.tsx:131` che smette di spedire `descrizione` e spedisce `categoria`) è **T11**, dove la tabella delle righe lo rivendica già. 🔴 **Conseguenza vera e dichiarata: da T3 fino a T11 il caricamento di una foto riceve 422** — prima riceveva 201 con la categoria nel posto sbagliato. È coerente con **D81** (il guasto si ripara al merge), ma **«T3 fatto» NON significa «il caricamento funziona»** |
 | `immagine` (chiave della risposta 201) | `immagini/route.ts:120` | ⏸️ invariata |
-| `{ descrizione: … }` (corpo del PATCH) | `TabImmagini.tsx:236,253` | 🔄 **T12**: diventa `{ categoria: … }` |
+| `{ descrizione: … }` (corpo del PATCH) | `TabImmagini.tsx:236,253` | 🔄 **T11, non T12 — 🔧 CORRETTO da T3 (30/07):** diventa `{ categoria: … }`, e le due righe che lo fanno (`:224-244` e `:247-260`, i due gestori che si fondono in **una** funzione di scrittura, D70) stanno nella tabella di **T11**. Il lato server accetta già `categoria` da T3 |
 
 ---
 
@@ -1224,6 +1224,12 @@ catalogo mostra un componente che la spec dichiara superata.
 ### Task 11 — `TabImmagini`: la categoria si chiede, si scrive da un punto solo, e i due difetti si chiudono
 
 **File:** modifica `src/components/features/lavori/form/TabImmagini.tsx` · crea/estendi il suo test
+
+🔴 **T11 È LA RIPARAZIONE, non un abbellimento.** Da T3 (30/07) il server **pretende** `categoria` e
+`TabImmagini.tsx:131` spedisce ancora `descrizione`: **ogni caricamento di foto riceve 422** finché questo
+task non atterra. Sommato a **D81** (il codice pubblicato scrive una colonna che non esiste più), significa
+che **la funzione «carica una foto» è ferma su entrambi i lati fino a qui.** ➡️ Chi esegue T11 lo sappia:
+la sua prova più importante non è un'asserzione, è **caricare una foto e vederla salire**.
 
 **Cosa cambia, con le righe** — tutto già censito (R-P6):
 

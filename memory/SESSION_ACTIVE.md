@@ -35,8 +35,25 @@ Francesco (dati di prova, nessun cliente vero). Causa: **un solo database** per 
 — la migration ha tolto `tipo`, il codice pubblicato la scrive ancora. **Si ripara al merge, ed è un passo
 di collaudo di T13.**
 
-➡️ **PROSSIMO: Task 3** — le rotte scrivono e validano la categoria (POST 422 · PATCH 422), e si chiudono
-**R26** (la corsa D52-a) e **R28** (messaggio grezzo del database al browser + prima prova di quella rotta).
+✅ **Task 3 FATTO** (`b925a866`): POST e PATCH pretendono e **validano** `categoria` (**422**, non 500),
+importando `isCategoriaFoto` (la terza copia dell'elenco è coperta) · chiuse **R26** (tre `.eq()` +
+`deleted_at` + conteggio righe) e **R28** (niente più messaggi grezzi del database al browser, e la rotta
+POST ha la sua **prima** prova). vitest **3917 | 19** (+54), `tsc` 0, **sette mutazioni, tutte uccidono**.
+Quattro difetti trovati nel piano (finta del PATCH, codice di prova che non compila, file di prova
+mancante dall'elenco, censimento contraddittorio su chi tocca il client) — **tutti corretti nel piano**.
+🔴 **Nuovi rilievi: R30** (l'errore dello Storage va ancora grezzo al browser) · **R31** (corpo JSON
+non-oggetto → 500; stessa grafia in 7 file, **non verificato** che siano tutti scoperti) · **R32** (`ordine`
+patchabile senza validazione).
+🛑 **Da T3 il caricamento foto riceve 422**, perché `TabImmagini.tsx:131` spedisce ancora `descrizione`:
+**la riparazione è T11**, ed è dichiarata nel piano.
+
+🔴 **D81 (30/07): il caricamento foto su uachelab.com è ROTTO e resta così fino al merge**, per scelta di
+Francesco (dati di prova, nessun cliente vero). Causa: **un solo database** per prove e produzione (**R29**).
+**Si ripara al merge, ed è un passo di collaudo di T13.**
+
+➡️ **PROSSIMO: Task 4** (blocco B) — la cancellazione diventa **vera**: il file sparisce dall'archivio, poi
+la riga, e resta la **traccia** di D63. ⚠️ La finta dei test espone **solo `from`**: va estesa **prima**, o
+il primo `storage.remove` romperà un test esistente per una ragione che non è un difetto del codice.
 
 **Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9, T9-bis) → D (T10→T11→T12) → E (T13).
 🛑 **A prima di D** · 🛑 **B prima di D-T12**.
