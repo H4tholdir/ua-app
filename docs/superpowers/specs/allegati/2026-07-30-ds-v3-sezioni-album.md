@@ -462,3 +462,250 @@ dipenderebbe da chi chiama.
 §5.34 per l'anatomia delle voci.
 
 ---
+
+### 5.41 `FoglioCategoria` (🆕 emendamento 30/07/2026, ondata (b) — D65 · D70 · D72 · D74 · D79)
+Il foglio che chiede **che foto è**, variante **C1** (**D79**): **sei pastiglie su due colonne**. Vive in
+**due momenti**: subito **dopo lo scatto** (D65 — mai prima: non si blocca la fotocamera) e come
+**correzione** dal visore o dall'album (D70).
+
+**Anatomia.** Foglio dal basso con: **manico** · **anteprima** della foto (o fino a tre, con «{n} foto», per
+lo scatto multiplo) · **titolo** «Che foto è?» — «Che foto **sono**?» con `quante > 1` · **dida** «Serve per
+ritrovarla dopo. Se non lo dici adesso finisce in «Altro».» — con `quante > 1`: «La scelta vale per tutte e
+{quante}. Le puoi cambiare una per una dopo.» · **sei pastiglie**, una per categoria, **nell'ordine di D71**.
+
+**Misure.** Foglio `raggio.sheet` (28) **solo in alto**, 0 in basso · faccia `var(--card)` (`var(--elv)` in
+scuro) · padding `spazio.sm` sopra / `spazio.ml` ai lati e sotto · manico 36×4 `raggio.pill` `var(--line)`,
+`spazio.sm` sotto · anteprima 56×56 `raggio.riga - 6` (= 12) · titolo **19/800** · dida **13.5**
+`var(--muted)` · **pastiglie: griglia a 2 colonne, `gap spazio.s`, min-height 60, `raggio.riga` (18), faccia
+`var(--bg-deep)`, padding orizzontale `spazio.sm`, testo 15/700, `whiteSpace: 'nowrap'`, emoji 18
+`aria-hidden`**.
+
+📏 **La misura da NON perdere, ed è un vincolo non un'estetica:** a **390** la pastiglia utile è **148,5 px**
+e «**Guida colore**» — l'etichetta più lunga delle sei — **andava a capo** a 15,5/700, sfalsando la griglia.
+**Rientra a 15 px.** ➡️ La prova di questo componente **misura che non va a capo**, e **se una voce cambierà
+nome la misura va rifatta** (stessa trappola già pagata con le briciole del wizard, D39).
+
+🚧 **Le emoji sono un SEGNAPOSTO dichiarato** (S2 del piano): le icone vere sono un passo suo, fuori da
+questa ondata. Non sono lo stato di niente (§4.4: mai emoji come stato) — il senso lo porta il testo.
+
+**Stati.** *default* · *pressed*: la pastiglia scende di 2 px, `molla.press` · *disabled*: non previsto (le
+sei ci sono sempre: l'elenco è chiuso) · *focus-visible*: anello 2px `var(--blue)` offset 2 · **scelta**:
+faccia invertita `var(--ink)`/`var(--bg)` **+ `aria-pressed="true"`** — non è una differenza di solo colore
+ma di luminanza piena, e la semantica la porta l'attributo.
+
+**Semantica dei gesti.** *tap su una pastiglia* = sceglie e chiude. 🔑 **Ogni altra uscita — velo, manico,
+swipe giù, `Escape`, «indietro» — chiama `onScegli('altro')` e POI `onChiudi()`, mai `onChiudi()` da solo**
+(**D74**: la foto deve nascere con una categoria; non è un errore, quindi **niente avviso e niente suono
+d'errore**). Lo swipe giù riusa `deveChiudere`, che `src/components/ds/Sheet.tsx:39` **esporta già**: si
+importa, non si estrae e non si riscrive.
+
+**Strato.** z-index **600** · portale su `document.body` · `entraOverlay('uaSheet', …)` · 🛑 **NON blocca lo
+scorrimento del corpo.** 🔴 **Vale anche quando è il PRIMO strato (allo scatto), ed è una scelta:** un
+componente che blocca *a volte* è un componente che indovina, e quando arriva dal visore — che blocca già —
+il secondo blocco lascerebbe la pagina bloccata per sempre. Il gesto si ferma dove nasce: `touchAction:
+'none'` sul velo, `overscrollBehavior: 'contain'` sul pannello (§1.4 dell'allegato, col costo residuo
+dichiarato).
+
+**Movimento.** `coreografie.sheetSu` (§8.3 n.6) — **questa esiste già**, non è una scelta nuova.
+
+**Suono e vibrazione.** Scegliere → **`vibra('selection')` e MAI `suona()`** (quattro precedenti in casa,
+§1.10 dell'allegato). Chiudere senza scegliere → **niente**: D74 dice che non è un errore.
+
+**«Riduci movimento».** `y` resta nel bersaglio e arriva con `istantaneo`.
+
+**Accessibilità.** `role="dialog"` + `aria-modal="true"` + `aria-labelledby` sul titolo + `aria-describedby`
+sulla dida · `tabIndex={-1}` sul pannello, **focus al PANNELLO** all'apertura — 🔑 **non alla prima
+pastiglia: porterebbe il focus su «Impronta» e suggerirebbe una scelta che l'utente non ha fatto** — e
+**ritorno all'apritore** alla chiusura · **`Escape` sul pannello con `stopPropagation()`**, mai su `window` ·
+ogni pastiglia è un `<button>` **≥ 44 px** (visibili 60) col testo dell'etichetta come nome accessibile.
+
+**Fonte di verità visiva:** `docs/design/mockups/2026-07-30-album-visore-categoria.html`, colonne **C1** e
+**C3** (lo scatto multiplo).
+
+---
+
+### 5.42 `FoglioConferma` (🆕 emendamento 30/07/2026, ondata (b) — D55 · D61 · D63 · D80)
+La conferma distruttiva **a foglio dal basso**, scelta da Francesco il 30/07 contro la card centrata
+(**D80**). 🔑 **È la seconda forma ammessa di conferma distruttiva** — v. l'emendamento a §5.17.
+**`DialogConferma` (§5.17) resta la conferma di casa per tutto il resto**: qui si affianca, non si sostituisce.
+
+**Quando si usa quale.** **Foglio** se sotto c'è già un overlay a tutto schermo (il visore dell'album):
+una card centrata sopra una fotografia a tutto schermo si legge come un ritaglio sospeso, e §5.16 vuole che
+su mobile una superficie del genere sia un foglio. **Card centrata** in ogni altro caso.
+
+**Anatomia.** Manico · **anteprima dell'oggetto** (la miniatura della foto + la sua etichetta di categoria +
+quando è stata caricata) · **titolo** con **l'oggetto esplicito** («Elimini questa foto?») · **testo** che
+dice **che cosa succede davvero** · **due azioni in colonna**: `TastoSecondario` «Annulla» **sopra**,
+`TastoPrimario` «Elimina foto» **sotto** — **stesso ordine di §5.17**.
+
+**Misure.** Foglio `raggio.sheet` (28) solo in alto, 0 in basso · faccia `var(--card)` (`var(--elv)` in
+scuro) · padding `spazio.sm` sopra / `spazio.ml` ai lati e sotto · manico 36×4 · miniatura dell'anteprima
+60×60 `raggio.riga - 6` (= 12) · etichetta dell'anteprima `callout` 15.5/700, sotto-riga 13.5 `var(--muted)`
+· titolo **19/800** · testo **`callout` 15.5** `var(--muted)`, con la parte che pesa in `var(--ink)`/700 ·
+azioni: **`TastoPrimario` e `TastoSecondario` così come sono** (H 70 e H 58), `gap spazio.m`.
+
+🔑 **Perché i due tasti sono i componenti di casa e non due bottoni disegnati qui:** portano la loro fisica,
+il loro anello di focus e — soprattutto — **il loro suono e la loro vibrazione**. È da lì che arriva
+`suona('tap')` + `vibra('medium')` della conferma. Sono **gli stessi due** che monta `DialogConferma`
+(`src/components/ds/DialogConferma.tsx:111-112`): le due forme differiscono per contenitore, **non per
+grammatica**.
+
+**Il testo — ratificato, non riscrivibile a piacere.** «Sparisce dalla scheda **e dall'archivio**: non si
+recupera. Resta annotato chi l'ha eliminata e quando.» 🛑 **La stesura del 29/07 diceva «il file resta
+conservato»: con D61 è FALSA** — si cancella davvero, riga **e** file. ❌ **«elimina definitivamente» è
+vietata** dal dizionario (`src/design-system/v3/dizionario.ts`, che propone «Butta via»); il testo qui sopra
+non la contiene. Il **titolo deve portare l'oggetto esplicito** (contratto del chiamante, come §5.17).
+
+**Stati.** *default* · *pressed*: dei due tasti, per conto loro · *disabled*: il tasto distruttivo può essere
+disabilitato dal chiamante mentre la cancellazione è in volo (una sola pressione) · *focus-visible*: quello
+dei due tasti, anello 2px `var(--blue)` offset 2.
+
+**Semantica dei gesti.** *tap su «Elimina foto»* = `onConferma` · *tap su «Annulla»*, *tap sul velo*, *swipe
+giù*, *`Escape`*, *«indietro»* = **`onAnnulla`, MAI `onConferma`** — un gesto di ritorno non conferma
+un'azione distruttiva. Lo swipe giù riusa `deveChiudere` esportata da `src/components/ds/Sheet.tsx:39`
+(si importa: non è una modifica di quel file).
+
+**Strato.** z-index **600** · portale su `document.body` · `entraOverlay('uaSheet', …)` — o «indietro»
+chiuderebbe il visore invece della conferma · 🛑 **NON blocca lo scorrimento del corpo**, e questa è **la
+ragione per cui non può essere uno `Sheet` nudo**: `Sheet` tiene il valore precedente in un `useRef` **per
+istanza** (`src/components/ds/Sheet.tsx:222`, cattura a `:248-252`) e non si difende da un secondo blocco.
+Sopra il visore, che blocca già, **la pagina resterebbe bloccata per sempre** (§1.4 dell'allegato, con la
+sequenza misurata).
+
+**Movimento.** `coreografie.sheetSu` (§8.3 n.6).
+
+**Suono e vibrazione.** **Nessuno, mai, chiamato da questo componente**: i due tasti suonano e vibrano per
+conto proprio, e §9.2 vieta più di un suono per gesto. 🛑 **Non esiste un suono per la distruzione riuscita
+e non se ne inventa uno**: l'esito lo dice l'`Avviso` (§5.18) che mostra il chiamante.
+
+**«Riduci movimento».** `y` resta nel bersaglio e arriva con `istantaneo`.
+
+**Accessibilità.** `role="dialog"` + `aria-modal="true"` + `aria-labelledby` sul titolo + `aria-describedby`
+sul testo · `tabIndex={-1}` sul pannello · **focus alla PRIMA azione, che è quella SICURA** («Annulla») —
+con l'ordine di §5.17 le due cose coincidono, e un Invio dato a caso **annulla**, non cancella · **ritorno
+all'apritore** alla chiusura · **`Escape` sul pannello con `stopPropagation()`**, mai su `window`.
+
+**Fonte di verità visiva:** `docs/design/mockups/2026-07-30-album-visore-categoria.html`, terza colonna di
+§3 («La conferma (D55) — uguale nei due casi»). ⚠️ **Con uno scostamento dichiarato sull'ordine dei due
+tasti:** `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §5, riga **S3**.
+
+---
+
+## 3. L'emendamento — testo pronto da incollare
+
+### 3.1 A §5.17 `DialogConferma` — si AGGIUNGE questo terzo punto elenco
+
+> - **Emendamento 30/07/2026 (ondata (b), D80) — la card centrata è UNA delle DUE forme, non l'unica.** Per
+>   una conferma distruttiva che si apre **sopra un altro overlay a tutto schermo** la forma è il **foglio dal
+>   basso** `FoglioConferma` (§5.42 — 🆕 da creare). 🔑 **Non è una deroga a §5.16, è un allineamento:** §5.16
+>   impone che su mobile una superficie del genere sia uno sheet e **mai** un modal centrato, quindi il foglio
+>   si allinea all'invariante invece di violarlo. Quel che si emenda è **questa** sezione: `DialogConferma`
+>   **resta la conferma di casa per tutto il resto** e resta l'**unica card centrata** ammessa dal sistema;
+>   smette di essere l'**unica forma** di una conferma distruttiva. **Il contenuto non cambia:** stesso oggetto
+>   esplicito nel titolo, stessi due componenti d'azione (`TastoPrimario` + `TastoSecondario`), **stesso ordine
+>   — sicura sopra, distruttiva sotto**. Cambia il contenitore, non la grammatica. **Quando si usa quale:**
+>   *foglio* se sotto c'è già un overlay a tutto schermo (il visore dell'album, §5.39 — 🆕 da creare); *card
+>   centrata* in ogni altro caso.
+
+### 3.2 A §13.2 (riga 521) — si SOSTITUISCE una voce dell'elenco dei divieti
+
+**Oggi dice:**
+> `❌ modal centrato su mobile (salvo DialogConferma)`
+
+**Diventa:**
+> `❌ modal centrato su mobile (salvo `DialogConferma` §5.17 — che dal 30/07/2026 è UNA delle due forme di conferma distruttiva: l'altra è il foglio `FoglioConferma` §5.42)`
+
+### 3.3 A §5.33 `FotoStrip` (ultima riga) — una parola sbagliata
+
+**Oggi dice:** «🚧 **Le §5.x dei quattro componenti nuovi** (carta album · visore · tendina del menù ·
+foglio della categoria) **si propongono col processo §13.1 p.3 PRIMA di essere scritte**».
+
+**Diventa:**
+> ✅ **Le §5.x dei CINQUE componenti nuovi** (carta album §5.38 · visore §5.39 · tendina del menù §5.40 ·
+> foglio della categoria §5.41 · **foglio della conferma §5.42**, nato da D80 il 30/07) **sono state proposte
+> col processo §13.1 p.3 PRIMA di essere scritte**: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md`.
+
+🔑 **Perché è cinque e non quattro:** D80 ha aggiunto il foglio della conferma **dopo** che quella riga era
+stata scritta. Un elenco che sembra completo e non lo è è il modo classico per dimenticare un caso.
+
+### 3.4 Al commento di testa di `src/components/ds/DialogConferma.tsx:3-9` — 🛑 è CODICE, quindi è una PROPOSTA
+
+Il file dichiara oggi «l'**UNICA** card centrata ammessa dal design system, riservata alle conferme
+distruttive». **Resta vero per la card**, ma va detto che non è l'unica **forma**. Testo proposto da
+aggiungere in coda a quel commento — **non applicato qui: modificare un componente è fuori dal mandato di un
+gate documentale** (v. §8, riga FM-5):
+
+> `// Emendamento 30/07/2026 (D80): resta l'UNICA card centrata, ma non è più`
+> `// l'unica FORMA di conferma distruttiva — sopra un overlay a tutto schermo`
+> `// la forma è il foglio dal basso (§5.42, FoglioConferma). Stessi due tasti,`
+> `// stesso ordine, contenitore diverso.`
+
+---
+
+## 4. I sette valori nuovi in `src/design-system/v3/tokens.ts` — senza, i componenti non compilano il pre-commit
+
+🛑 **Non è una comodità: è un obbligo del controllo.** `scripts/check-ds-compliance.sh` §4a greppa
+`#[0-9A-Fa-f]{6}` e `rgba?(` su `src/components/ds` + `src/design-system/v3`, e l'**unica** esclusione è
+`v3/tokens.ts`. Ogni `rgba` che serve al visore o alla tendina **deve** nascere lì.
+
+Gruppo nuovo, nella forma dei gruppi già presenti (`gradiente`, `tastoPiu`, `pillVoce`):
+
+```ts
+// §5.38-§5.42 — la materia SOPRA una fotografia (ondata (b), 30/07/2026).
+// Vive qui e non nei componenti perché `src/components/ds/` non ammette rgba
+// letterali (check pre-commit 4a). Il bianco NON si duplica: si usa
+// `testoSuFaccia`, che è già il bianco assoluto indipendente dal tema.
+export const sopraFoto = {
+  /** Il velo dietro la foto nel visore. `materia.scrim` (.35) è troppo
+   *  trasparente per starci dietro una fotografia (spec album §4.2). */
+  velo: 'rgba(9,7,5,.94)',
+  /** Raccordo estetico sotto il capo e sopra il piede — NON è ciò che regge
+   *  il contrasto: quello lo reggono `faccia` e `confine`. */
+  sfumaturaAlto: 'linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0))',
+  sfumaturaBasso: 'linear-gradient(0deg, rgba(0,0,0,.72), rgba(0,0,0,0))',
+  /** Faccia di ogni controllo appoggiato su una foto (tondi ✕/⋯, pastiglia
+   *  della categoria, pastiglia «⤢ Apri» della carta): rende il contrasto del
+   *  glifo indipendente dalla fotografia sotto. */
+  faccia: 'rgba(9,7,5,.62)',
+  /** Il ⋯ mentre la tendina è aperta: si vede da dove è uscita. */
+  facciaAttiva: 'rgba(9,7,5,.8)',
+  /** Il CONFINE del controllo sulla foto scura, dove la faccia scura da sola
+   *  non si stacca. Anello interno, non un bordo che sposta la geometria. */
+  confine: 'inset 0 0 0 1px rgba(255,255,255,.22)',
+  /** Ombra del pannello della tendina. NON `var(--sh-card)`: in scuro vale
+   *  `none`, e un pannello che galleggia su una foto deve staccarsi in
+   *  entrambi i temi. */
+  ombraPannello: '0 14px 40px rgba(0,0,0,.4)',
+  /** Bordo tratteggiato del posto riservato alla barra dell'editor (D66). */
+  tratteggio: 'rgba(255,255,255,.3)',
+  /** Miniatura non scelta nella fascia del visore. */
+  miniaturaSpenta: 0.48,
+} as const
+```
+
+⚠️ **`miniaturaSpenta` è un numero, non un colore, e sta qui apposta:** `materia` ospita già
+`granaOpacityLight`/`granaOpacityDark` con lo stesso ruolo.
+
+---
+
+## 5. Scostamenti dal mockup approvato — dichiarati, mai silenziosi
+
+🛑 Il mockup è **la fonte di verità visiva** (D76-D79). Dove queste §5.x se ne discostano, la ragione è di
+**legge** (accessibilità, griglia, elenco chiuso dei token) o di **decisione ratificata**, mai di comodo.
+
+| # | il mockup mostra | la §5.x prescrive | perché |
+|---|---|---|---|
+| **S1** | contatore del visore **12 px, opacità .78** (`.vis-capo .mezzo .n`) | **12.5 px, opacità piena** | **Due difetti in una riga.** 12 px è **sotto il minimo assoluto** del sistema (§4.1: 12.5). E il bianco al 78% sopra la sfumatura, **su una foto chiara**, sta intorno a **4,2:1** — sotto AA (4,5) per testo piccolo. A opacità piena sale a ~5,7:1 |
+| **S2** | tondi ✕ e ⋯ con faccia **chiara** (`rgba(255,255,255,.14)`) | faccia **scura** `sopraFoto.faccia` + anello `sopraFoto.confine` | Su una foto **chiara** un disco bianco al 14% con un glifo bianco **sparisce**. La faccia scura regge su chiaro **e** su scuro; l'anello dà il confine dove la faccia scura si confonde con una radiografia. 🔑 **Il mockup usa già la faccia scura** per la pastiglia «⤢ Apri» della carta: qui si rende coerente con la sua metà migliore |
+| **S3** | conferma con **«Elimina foto» SOPRA e «Annulla» sotto** | **«Annulla» sopra, «Elimina foto» sotto** (ordine di §5.17) | 🔑 **La via che sembrava giusta non regge alla decisione ratificata di questa stessa ondata.** L'argomento «in fondo a un foglio c'è il pollice, quindi lì va la voce sicura» è **l'opposto** di quello con cui **D78** ha ratificato la tendina: lì la voce distruttiva sta **in fondo proprio perché è la zona del pollice**, e la sicurezza la portano **rosso + linea + parola esplicita**. Due grammatiche opposte nella stessa ondata sarebbero peggio di entrambe. ➡️ **Vince §5.17**, e la conferma resta identica nelle due forme |
+| **S4** | foglio con `border-radius: 28px 28px 18px 18px` · visore con `border-radius: 22px` | fogli **28 in alto, 0 in basso** · visore **0** | Sono artefatti della **cornice di telefono disegnata dentro il mockup**, non misure di prodotto: un foglio vero è ancorato al fondo (`src/components/ds/Sheet.tsx:450-451`) |
+| **S5** | voci della tendina a **50 px**, icona 32, testo 15.5 | **56 px, icona 38, testo 17** (anatomia di §5.34 verbatim) | Una voce che **cancella davvero** (D61) non si rimpicciolisce per far stare la tendina. E una seconda serie di misure per la stessa cosa è il modo di avere due menù invece di uno |
+| **S6** | miniature della fascia del visore a **9 px** di raggio | **12** (`raggio.riga - 6`), come tutte le altre miniature | Un nome per una cosa. 3 px su una tessera da 44 non cambiano la lettura, due raggi diversi per due miniature sì |
+| **S7** | «La scelta vale **per tutte e tre**» | «La scelta vale **per tutte e {quante}**» | Un componente non sa scrivere in lettere un numero qualunque, e inventare una tabella di numeri-parola è lavoro fuori perimetro |
+| **S8** | padding dei fogli **10/18/18**, manico **40×4** | **12/20/20**, manico **36×4** | La griglia di §4.2 ammette 8/12/16/20 (10 e 14 **solo** sotto i 700 px di altezza) e §5.16 fissa il manico a 36×4. Il bilancio verticale di **D79** cambia di **4 px** a 390: le sei pastiglie e l'anteprima restano dove D79 le ha ratificate |
+| **S9** | dida della **conferma** a 13.5 | **15.5** (`callout`) | È il testo che dice che la foto **non torna più**. È lo stesso ruolo che in `DialogConferma` vale 15.5 (`src/components/ds/DialogConferma.tsx:219`): le due forme devono **leggersi uguali**. ⚠️ La dida del **foglio categoria** resta **13.5** come il mockup: lì il bilancio verticale è ratificato da D79 |
+
+🔎 **Restano fedeli al mockup, e sono le misure che qualcuno sarebbe tentato di «sistemare»:** il testo delle
+pastiglie a **15 px** (misurato: a 15,5 «Guida colore» va a capo) · i titoli dei fogli a **19/800** e la dida
+del foglio categoria a **13.5** (fuori dalla scala «chiusa» di §4.1, ma con tre precedenti ratificati —
+§5.19, §5.22, §5.30) · la foto grande a **4/3** e le pastiglie a **60**.
