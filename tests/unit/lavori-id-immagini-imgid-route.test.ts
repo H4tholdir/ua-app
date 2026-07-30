@@ -52,13 +52,51 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 
-const { mockFrom, mockGetFreshLabContext } = vi.hoisted(() => ({
-  mockFrom: vi.fn(),
-  mockGetFreshLabContext: vi.fn(),
-}))
+// ============================================================
+// T4 — Passo 1: la finta cresce PRIMA del codice
+// ============================================================
+// 🔴 Fino a T4 la finta del client di servizio esponeva SOLO `from`
+//    (`getServiceClient: () => ({ from: mockFrom })`). Da D61 il DELETE tocca
+//    l'archivio, e la PRIMA chiamata a `svc.storage` avrebbe fatto fallire un
+//    test esistente con «Cannot read properties of undefined (reading 'from')»
+//    — un rosso che NON è un difetto del codice ma un buco della finta. Per
+//    questo la finta si estende prima di scrivere una riga di handler.
+// 🔑 `statoStorage` vive dentro `vi.hoisted` perché la fabbrica di `vi.mock`
+//    viene eseguita all'IMPORT del modulo finto, cioè prima che i `const` di
+//    questo file siano inizializzati: un riferimento a una costante di modulo
+//    esploderebbe in zona morta temporale.
+// 🔑 `ordine` è UNO SOLO e condiviso con la finta della mutazione: è ciò che
+//    rende la prova dell'ordine (file → riga) capace di avere una vittima. Due
+//    contatori separati resterebbero verdi anche invertendo le due istruzioni.
+const { mockFrom, mockGetFreshLabContext, storageFinto, statoStorage } = vi.hoisted(() => {
+  const statoStorage = {
+    /** ogni chiamata a `storage.from(bucket).remove(paths)`, col bucket registrato */
+    removeCalls: [] as { bucket: string; paths: string[] }[],
+    /** cosa risponde `remove` — di norma successo, per la prova fail-closed un errore */
+    risultato: { data: [] as unknown, error: null as { message: string } | null },
+    /** `remove` solleva invece di restituire `{ error }` (caduta di rete) */
+    solleva: false,
+    /** traccia condivisa dell'ORDINE reale: 'file' dallo storage, 'riga' dalla mutazione */
+    ordine: [] as string[],
+  }
+  const storageFinto = {
+    from: (bucket: string) => ({
+      remove: async (paths: string[]) => {
+        // 🛑 Il bucket si REGISTRA e si asserisce fuori: un `expect` dentro la
+        //    finta non gira mai se l'handler non la chiama — sarebbe un
+        //    controllo che tace proprio nel caso in cui dovrebbe gridare.
+        statoStorage.removeCalls.push({ bucket, paths })
+        statoStorage.ordine.push('file')
+        if (statoStorage.solleva) throw new Error('rete caduta durante la rimozione')
+        return statoStorage.risultato
+      },
+    }),
+  }
+  return { mockFrom: vi.fn(), mockGetFreshLabContext: vi.fn(), storageFinto, statoStorage }
+})
 
 vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+  getServiceClient: () => ({ from: mockFrom, storage: storageFinto }),
 }))
 vi.mock('@/lib/supabase/lab-context', () => ({
   getFreshLabContext: mockGetFreshLabContext,
@@ -96,6 +134,12 @@ function reqNoOrigin(method: string) {
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+  // `vi.clearAllMocks()` non sa niente di questi array: si azzerano a mano, o
+  // il secondo test erediterebbe le chiamate del primo.
+  statoStorage.removeCalls.length = 0
+  statoStorage.ordine.length = 0
+  statoStorage.risultato = { data: [], error: null }
+  statoStorage.solleva = false
 })
 
 // ============================================================
