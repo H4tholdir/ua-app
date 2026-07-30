@@ -23,6 +23,7 @@ import { raggio, spazio, tipografia, materia } from '@/design-system/v3/tokens'
 import { LinkQuieto } from './LinkQuieto'
 import { useTapScrim } from './useTapScrim'
 import { entraOverlay, esciOverlay } from './storia-overlay'
+import { bloccaScorrimento } from './blocca-scorrimento'
 
 /**
  * deveChiudere — soglia dismiss dello swipe giù (§5.16, §8.2.3): pura, senza
@@ -204,29 +205,42 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // wrapper centrato (`justifyContent:'center'`) si ricentra sul nuovo
   // viewport più stretto e il pannello slitta visibilmente di lato.
   //
-  // Lo sblocco è DEFERITO: il valore precedente (overflow + paddingRight, la
-  // compensazione della larghezza scrollbar — l'altra metà del fix, evita che
-  // il viewport cambi larghezza mentre è bloccato) è salvato in un ref, non
-  // ripristinato nella cleanup di questo effect. Reduced motion (nessuna
-  // uscita animata) e lo smontaggio "vero" del componente (il chiamante ha
-  // rimosso `<Sheet>` mentre era aperto, bypassando `onChiudi` — uso
-  // scorretto, ma il body non deve restare bloccato per sempre) sbloccano
-  // subito nella cleanup; il ramo animato normale sblocca da
-  // `onExitComplete` di AnimatePresence, quando il pannello è già fuori
-  // schermo. `montatoRef` (effect-sentinella qui sotto) traccia lo smontaggio
-  // reale: React esegue le cleanup in ORDINE DI SETUP (verificato
-  // empiricamente su React 19.2: «A setup, B setup, A cleanup, B cleanup» —
-  // NON LIFO come da credenza comune), quindi la sentinella è dichiarata
-  // PRIMA dell'effect dello scroll lock, così `montatoRef.current = false`
-  // gira in tempo per essere letto dalla cleanup del lock.
-  const scrollLockPrecedenteRef = useRef<{ overflow: string; padding: string } | null>(null)
+  // T5-bis (D84) — il blocco NON è più fatto qui: lo fa `bloccaScorrimento()`
+  // (`blocca-scorrimento.ts`), UN SOLO contatore per tutta l'applicazione, e
+  // questo componente ne è solo uno degli utenti. Motivo: il ref che viveva
+  // qui teneva il valore precedente del body PER ISTANZA — difendeva dalla
+  // propria rientranza, non da un SECONDO pannello che blocca sopra. Due
+  // strati sovrapposti e il più alto catturava 'hidden' (il valore scritto dal
+  // più basso): alla chiusura nello stesso commit il ripristino del secondo
+  // riscriveva 'hidden' sopra quello del primo e la pagina restava bloccata
+  // sotto le dita, per sempre. Il modulo cattura al PRIMO blocco e ripristina
+  // all'ULTIMO sblocco, in qualunque ordine arrivino i rilasci — compensazione
+  // della larghezza scrollbar inclusa (l'altra metà del fix: evita che il
+  // viewport cambi larghezza mentre è bloccato).
+  //
+  // Quello che NON cambia, ed è il punto: QUANDO si sblocca. Lo sblocco resta
+  // DEFERITO — qui si tiene solo la funzione di rilascio, non la si chiama
+  // nella cleanup di questo effect. Reduced motion (nessuna uscita animata) e
+  // lo smontaggio "vero" del componente (il chiamante ha rimosso `<Sheet>`
+  // mentre era aperto, bypassando `onChiudi` — uso scorretto, ma il body non
+  // deve restare bloccato per sempre) sbloccano subito nella cleanup; il ramo
+  // animato normale sblocca da `onExitComplete` di AnimatePresence, quando il
+  // pannello è già fuori schermo. `montatoRef` (effect-sentinella qui sotto)
+  // traccia lo smontaggio reale: React esegue le cleanup in ORDINE DI SETUP
+  // (verificato empiricamente su React 19.2: «A setup, B setup, A cleanup, B
+  // cleanup» — NON LIFO come da credenza comune), quindi la sentinella è
+  // dichiarata PRIMA dell'effect dello scroll lock, così `montatoRef.current =
+  // false` gira in tempo per essere letto dalla cleanup del lock.
+  const sbloccaScorrimentoRef = useRef<(() => void) | null>(null)
   const montatoRef = useRef(true)
   function sbloccaScroll() {
-    const precedente = scrollLockPrecedenteRef.current
-    if (!precedente) return
-    document.body.style.overflow = precedente.overflow
-    document.body.style.paddingRight = precedente.padding
-    scrollLockPrecedenteRef.current = null
+    const sblocca = sbloccaScorrimentoRef.current
+    if (!sblocca) return
+    // Si azzera PRIMA di chiamare: `sblocca` è già idempotente per contratto del modulo, ma
+    // così anche il ramo immediato e `onExitComplete` — che possono arrivare entrambi per lo
+    // stesso ciclo di vita — vedono un ref vuoto e non ci riprovano.
+    sbloccaScorrimentoRef.current = null
+    sblocca()
   }
 
   // Effect-sentinella dello smontaggio reale — PRIMA dello scroll lock
@@ -240,21 +254,16 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
 
   useEffect(() => {
     if (!aperto) return
-    // Cattura il valore precedente SOLO se non è già bloccato: riaprire
-    // mentre l'uscita precedente sta ancora giocando (sblocco deferito, ref
-    // già valorizzato) NON deve sovrascrivere il valore originale con
-    // 'hidden' — altrimenti alla chiusura successiva `sbloccaScroll` lo
-    // "ripristinerebbe" a 'hidden' per sempre (bug trovato in review).
-    if (!scrollLockPrecedenteRef.current) {
-      scrollLockPrecedenteRef.current = {
-        overflow: document.body.style.overflow,
-        padding: document.body.style.paddingRight,
-      }
-    }
-    const larghezzaScrollbar = window.innerWidth - document.documentElement.clientWidth
-    document.body.style.overflow = 'hidden'
-    if (larghezzaScrollbar > 0) {
-      document.body.style.paddingRight = `${larghezzaScrollbar}px`
+    // UN SOLO posto nel contatore per istanza di Sheet, non uno per esecuzione
+    // dell'effect: riaprire mentre l'uscita precedente sta ancora giocando
+    // (sblocco deferito, rilascio non ancora chiamato) NON deve prendere un
+    // SECONDO posto — resterebbe appeso per sempre e il body bloccato con lui.
+    // È la stessa guardia di prima (bug trovato in review), spostata dal
+    // valore catturato al rilascio: prima difendeva il valore originale
+    // dall'essere sovrascritto con 'hidden', ora difende il contatore da un
+    // incremento senza decremento. Stessa forma, stesso punto, stesso motivo.
+    if (!sbloccaScorrimentoRef.current) {
+      sbloccaScorrimentoRef.current = bloccaScorrimento()
     }
     return () => {
       if (reduced || !montatoRef.current) {

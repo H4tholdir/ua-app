@@ -384,6 +384,45 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     expect(document.body.style.overflow).toBe('scroll')
   })
 
+  it('DUE Sheet sovrapposti (D84): chiudere quello SOTTO non sblocca la pagina finché quello SOPRA è ancora aperto, e alla fine il body torna al valore originale', async () => {
+    // È il difetto che ha fatto nascere `blocca-scorrimento.ts`, nella sua forma osservabile da
+    // fuori. Col ref-per-istanza di prima: il pannello sopra catturava 'hidden' (il valore appena
+    // scritto da quello sotto), e la chiusura di quello sotto «ripristinava» il body a 'scroll'
+    // MENTRE il pannello sopra era ancora aperto — pagina che scorre sotto un pannello modale — e
+    // alla chiusura successiva il ripristino a 'hidden' lasciava la pagina bloccata per sempre.
+    //
+    // Chiusure SFALSATE, non nello stesso commit: due `AnimatePresence` indipendenti completano
+    // in un ordine che questo test non controlla, e un finale giusto per caso non proverebbe
+    // niente. L'ordine strettamente controllato (sblocchi in ordine di apertura) è provato dove
+    // le chiamate sono esplicite: tests/unit/ds-v3/componenti/blocca-scorrimento.test.ts.
+    document.body.style.overflow = 'scroll'
+    function DueSheet({ sotto, sopra }: { sotto: boolean; sopra: boolean }) {
+      return (
+        <>
+          <Sheet aperto={sotto} onChiudi={() => {}}>
+            <p>Pannello sotto</p>
+          </Sheet>
+          <Sheet aperto={sopra} onChiudi={() => {}}>
+            <p>Pannello sopra</p>
+          </Sheet>
+        </>
+      )
+    }
+    const { rerender } = render(<DueSheet sotto sopra />)
+    expect(screen.getAllByRole('dialog')).toHaveLength(2)
+    expect(document.body.style.overflow).toBe('hidden')
+
+    // Chiude SOLO quello sotto, e si lascia completare la sua uscita (sblocco deferito arrivato).
+    rerender(<DueSheet sotto={false} sopra />)
+    await waitFor(() => expect(screen.getAllByRole('dialog')).toHaveLength(1))
+    // ASSERZIONE DISCRIMINANTE: qui il vecchio codice rimetteva 'scroll'.
+    expect(document.body.style.overflow).toBe('hidden')
+
+    rerender(<DueSheet sotto={false} sopra={false} />)
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(document.body.style.overflow).toBe('scroll')
+  })
+
   it('focus management: al momento dell\'apertura il dialog riceve il focus; alla chiusura torna all\'elemento precedente', async () => {
     function Wrapper() {
       const [aperto, setAperto] = useState(false)
