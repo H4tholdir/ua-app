@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Album · visore · menù · categoria — le quattro superfici mai disegnate (30/07/2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ═══ Token DS v3 — verbatim da src/app/ds-v3.css:11-58 ═══ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [data-ds="v3"] {
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E; --blue:#1D5FBF; --blue-tint:#EBF1FA;
+    --amber:#9A5C00; --amber-tint:#F8F0E1; --green:#1B7F3B;
+    --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --scrim: rgba(29,25,19,.35);      /* v3/tokens.ts:40 — quello che ESISTE */
+    --velo-foto: rgba(9,7,5,.94);     /* 🆕 PROPOSTO — §4.2 della spec: dietro una foto serve un coprente */
+    --font-v3:'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-v3); color: var(--ink);
+  }
+  [data-theme="dark"] [data-ds="v3"] {
+    --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910; --blue:#5B9BFF; --blue-tint:rgba(91,155,255,.14);
+    --amber:#E8A13D; --amber-tint:rgba(232,161,61,.14); --green:#34C468;
+    --sh-card: none; --sh-press: none;
+  }
+  body { background: var(--bg); padding: 24px 0 90px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  h1 { font-size: 27px; font-weight: 800; letter-spacing:-.02em; margin-bottom: 8px; }
+  .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+  .sub strong, .nota b { color: var(--ink); }
+  h2 { font-size: 21px; font-weight: 800; letter-spacing:-.02em; margin: 40px 0 6px; padding-top: 24px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; font-weight: 800; margin: 22px 0 8px; }
+  .nota { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 6px 0 14px; max-width: 1140px; }
+  .pro { color: var(--green); font-weight: 700; }
+  .contro { color: var(--red); font-weight: 700; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: .92em; background: var(--bg-deep);
+         padding: 1px 5px; border-radius: 5px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .col { width: 366px; flex: none; }
+  .cap { font-size: 12.5px; font-weight: 700; letter-spacing:.14em; text-transform: uppercase;
+         color: var(--faint); margin-bottom: 8px; min-height: 32px; }
+  .cap b { color: var(--ink); }
+
+  /* ═══ Riproduzione della scheda vera — misure dalle catture del 29/07
+         (docs/design/screenshots/2026-07-29-foto-stato-attuale/). 390 con 24 di margine = 342 utili ═══ */
+  .tel { width: 366px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px; padding: 12px; }
+  .schermo { width: 342px; margin: 0 auto; position: relative; }
+  .testata { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 14px; }
+  .tondo { width: 48px; height: 48px; border-radius: 999px; background: var(--card); box-shadow: var(--sh-card);
+           display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+           color: var(--ink); flex: none; }
+  [data-theme="dark"] .tondo { background: var(--elv); }
+  .num { font-size: 27px; font-weight: 800; letter-spacing:-.02em; }
+  .badge { display: inline-block; padding: 8px 16px; border-radius: 999px; background: var(--blue-tint);
+           color: var(--blue); font-size: 13px; font-weight: 800; letter-spacing:.06em;
+           text-transform: uppercase; margin-bottom: 14px; }
+  .carta { background: var(--card); border-radius: 24px; box-shadow: var(--sh-card); padding: 16px 20px; margin-bottom: 12px; }
+  .riga { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0;
+          border-bottom: 1px solid var(--line); }
+  .riga:last-child { border-bottom: none; }
+  .et { font-size: 12.5px; font-weight: 700; letter-spacing:.12em; text-transform: uppercase; color: var(--faint); }
+  .val { font-size: 17px; font-weight: 700; text-align: right; }
+  .val.rosso { color: var(--red); }
+  .titolo-carta { font-size: 12.5px; font-weight: 700; letter-spacing:.12em; text-transform: uppercase;
+                  color: var(--faint); }
+  .testo-carta { font-size: 17px; }
+  .consegna { width: 100%; min-height: 64px; border-radius: 20px; background: var(--bg-deep); color: var(--faint);
+              border: none; font-family: var(--font-v3); font-size: 21px; font-weight: 800; letter-spacing:.04em; margin-top: 6px; }
+  .sotto-consegna { font-size: 15.5px; color: var(--muted); margin-top: 10px; }
+
+  /* ═══ LA CARTA ALBUM ═══ */
+  .capo-carta { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .hero { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 18px; overflow: hidden; background: var(--bg-deep); }
+  .hero svg { width: 100%; height: 100%; display: block; }
+  .hero .lente { position: absolute; right: 10px; bottom: 10px; height: 32px; padding: 0 12px; border-radius: 999px;
+                 background: rgba(9,7,5,.62); color: #fff; display: flex; align-items: center; gap: 6px;
+                 font-size: 12.5px; font-weight: 700; }
+  .meta-foto { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; }
+  .meta-foto .cat { font-size: 17px; font-weight: 700; }
+  .meta-foto .conta { font-size: 13px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .th { border-radius: 12px; flex: none; overflow: hidden; background: var(--bg-deep); }
+  .th svg { width: 100%; height: 100%; display: block; }
+  .th60 { width: 60px; height: 60px; }
+  .th60.sel { box-shadow: 0 0 0 2px var(--ink); }
+  .rail { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; padding-bottom: 2px; }
+
+  /* A1 — etichette di gruppo sopra i blocchi */
+  .gruppi { display: flex; gap: 14px; margin-top: 12px; overflow-x: auto; padding-bottom: 2px; }
+  .gruppo { flex: none; }
+  .gr-et { font-size: 11px; font-weight: 800; letter-spacing:.1em; text-transform: uppercase; color: var(--faint);
+           margin-bottom: 5px; }
+  .gr-foto { display: flex; gap: 8px; }
+  /* A2 — striscia continua con separatori */
+  .sep { width: 1px; align-self: stretch; background: var(--line); flex: none; margin: 0 3px; }
+  /* A3 — una riga per gruppo */
+  .riga-gr { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .riga-gr:last-child { border-bottom: none; }
+  .riga-gr .nome { font-size: 13.5px; font-weight: 700; width: 92px; flex: none; }
+  .riga-gr .foto { display: flex; gap: 6px; }
+  .th48 { width: 48px; height: 48px; }
+
+  /* ═══ IL VISORE ═══ */
+  .palco { position: relative; width: 342px; height: 690px; border-radius: 22px; overflow: hidden;
+           background: var(--velo-foto); }
+  .vis-foto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .vis-foto svg { width: 100%; height: auto; display: block; }
+  .vis-capo { position: absolute; top: 0; left: 0; right: 0; height: 64px; display: flex; align-items: center;
+              justify-content: space-between; padding: 0 10px; color: #fff; z-index: 3;
+              background: linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0)); }
+  .vt { width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+        font-size: 21px; font-weight: 700; color: #fff; background: rgba(255,255,255,.14); flex: none; }
+  .vis-capo .mezzo { text-align: center; }
+  .vis-capo .mezzo .c { font-size: 15.5px; font-weight: 700; }
+  .vis-capo .mezzo .n { font-size: 12px; opacity: .78; font-variant-numeric: tabular-nums; }
+  .vis-piede { position: absolute; bottom: 0; left: 0; right: 0; z-index: 3; padding: 12px 12px 14px;
+               background: linear-gradient(0deg, rgba(0,0,0,.72), rgba(0,0,0,0)); }
+  .vis-rail { display: flex; gap: 6px; justify-content: center; }
+  .vis-rail div { width: 44px; height: 44px; border-radius: 9px; overflow: hidden; opacity: .48; }
+  .vis-rail div.sel { opacity: 1; box-shadow: 0 0 0 2px #fff; }
+  .vis-rail svg { width: 100%; height: 100%; display: block; }
+  .barra-futura { margin-top: 12px; height: 52px; border-radius: 16px; border: 1.5px dashed rgba(255,255,255,.3);
+                  display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.55);
+                  font-size: 12.5px; font-weight: 700; letter-spacing:.04em; }
+  .pill-cat { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 14px;
+              border-radius: 999px; background: rgba(255,255,255,.18); color: #fff; font-size: 14px; font-weight: 700; }
+  .pill-cat .matita { opacity: .7; font-size: 12.5px; }
+
+  /* ═══ FOGLI (Sheet v3) ═══ */
+  .telsheet { position: relative; }
+  .velo { position: absolute; inset: 0; background: var(--scrim); border-radius: 18px; z-index: 2; }
+  .velo.scuro { background: var(--velo-foto); }
+  .foglio { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; background: var(--card);
+            border-radius: 28px 28px 18px 18px; padding: 10px 18px 18px; box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
+  [data-theme="dark"] .foglio { background: var(--elv); }
+  .manico { width: 40px; height: 4px; border-radius: 999px; background: var(--line); margin: 0 auto 12px; }
+  .foglio h4 { font-size: 19px; font-weight: 800; letter-spacing:-.01em; margin-bottom: 4px; }
+  .foglio .dida { font-size: 13.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.45; }
+  .voce { display: flex; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid var(--line); }
+  .voce:last-child { border-bottom: none; }
+  .voce .ic { width: 38px; height: 38px; border-radius: 11px; background: var(--bg-deep); color: var(--muted);
+              display: flex; align-items: center; justify-content: center; font-size: 17px; flex: none; }
+  .voce .tx { font-size: 17px; font-weight: 700; flex: 1; }
+  .voce .chev { color: var(--faint); font-size: 18px; }
+  .voce.butta { color: var(--red); border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; }
+  .voce.butta .ic { background: rgba(217,0,18,.1); color: var(--red); }
+  [data-theme="dark"] .voce.butta .ic { background: rgba(255,59,68,.16); }
+
+  /* pastiglie categoria */
+  .pastiglie { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  /* 🔎 font 15 e padding 12 NON sono estetica: a 390 la pastiglia utile è 148,5 px e
+     «Guida colore» — l'etichetta più lunga delle sei — a 15,5/700 andava A CAPO,
+     rendendo la seconda riga della griglia più alta delle altre. Misurato sul mockup. */
+  .pas { min-height: 60px; border-radius: 18px; background: var(--bg-deep); display: flex; align-items: center;
+         gap: 8px; padding: 0 12px; font-size: 15px; font-weight: 700; white-space: nowrap; }
+  .pas .e { font-size: 18px; flex: none; }
+  .pas.att { background: var(--ink); color: var(--bg); }
+  [data-theme="dark"] .pas.att { background: var(--ink); color: #171411; }
+  .anteprima { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .anteprima .th { width: 56px; height: 56px; }
+  .anteprima .qt { font-size: 13.5px; color: var(--muted); font-weight: 600; }
+  .lista-cat .voce .ic { background: var(--bg-deep); }
+
+  /* tablet / desktop */
+  .tab { width: 720px; flex: none; background: var(--bg); border: 1px solid var(--line); border-radius: 22px; padding: 14px; }
+  .desk { width: 1180px; flex: none; background: var(--bg); border: 1px solid var(--line); border-radius: 22px; padding: 16px; }
+  .centrata { max-width: 640px; margin: 0 auto; }
+  .dialogo { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 420px; z-index: 3;
+             background: var(--card); border-radius: 28px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+  [data-theme="dark"] .dialogo { background: var(--elv); }
+  @media (max-width: 800px) {
+    .col, .tel, .tab, .desk { width: 100%; }
+    .schermo, .palco { width: 100%; }
+  }
+</style>
+</head>
+<body data-ds="v3">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="im" viewBox="0 0 120 90"><rect width="120" height="90" fill="#C9BFA9"/><ellipse cx="60" cy="54" rx="40" ry="24" fill="#EFE7D5"/><path d="M20 54c8-17 72-17 80 0" stroke="#B9A98C" stroke-width="3" fill="none"/><ellipse cx="60" cy="50" rx="26" ry="14" fill="#DCCFB4"/></symbol>
+  <symbol id="im2" viewBox="0 0 120 90"><rect width="120" height="90" fill="#BFB49D"/><ellipse cx="60" cy="58" rx="42" ry="22" fill="#E7DDC8"/><path d="M22 56c10-14 66-14 76 0" stroke="#A8987B" stroke-width="3" fill="none"/><circle cx="44" cy="52" r="6" fill="#CBBEA0"/><circle cx="76" cy="52" r="6" fill="#CBBEA0"/></symbol>
+  <symbol id="pre" viewBox="0 0 120 90"><rect width="120" height="90" fill="#D7C9B4"/><rect x="26" y="30" width="68" height="40" rx="8" fill="#F2EADA"/><path d="M40 46h40M40 56h28" stroke="#B6A488" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="col1" viewBox="0 0 120 90"><rect width="120" height="90" fill="#8E8778"/><rect x="16" y="20" width="20" height="50" rx="4" fill="#F6EFE0"/><rect x="40" y="20" width="20" height="50" rx="4" fill="#EFE3CC"/><rect x="64" y="20" width="20" height="50" rx="4" fill="#E4D3B4"/><rect x="88" y="20" width="16" height="50" rx="4" fill="#D6C199"/></symbol>
+  <symbol id="col2" viewBox="0 0 120 90"><rect width="120" height="90" fill="#7F7869"/><rect x="24" y="16" width="30" height="58" rx="5" fill="#F3EBDB"/><rect x="62" y="16" width="30" height="58" rx="5" fill="#E0CDA9"/><path d="M54 45h8" stroke="#fff" stroke-width="2"/></symbol>
+  <symbol id="post" viewBox="0 0 120 90"><rect width="120" height="90" fill="#C08A82"/><ellipse cx="60" cy="48" rx="36" ry="26" fill="#E9B7AE"/><rect x="46" y="34" width="12" height="20" rx="3" fill="#FBF7EE"/><rect x="62" y="34" width="12" height="20" rx="3" fill="#F4EDE0"/></symbol>
+  <symbol id="rx" viewBox="0 0 120 90"><rect width="120" height="90" fill="#12161A"/><rect x="30" y="20" width="14" height="34" rx="3" fill="#8FA0AE"/><rect x="52" y="18" width="16" height="38" rx="3" fill="#A9B8C4"/><rect x="76" y="22" width="14" height="32" rx="3" fill="#8FA0AE"/><path d="M22 62h76" stroke="#5C6B78" stroke-width="3"/></symbol>
+  <symbol id="alt" viewBox="0 0 120 90"><rect width="120" height="90" fill="#B9B2A4"/><rect x="34" y="18" width="52" height="56" rx="6" fill="#EDE7DA"/><path d="M46 36h28M46 48h28M46 60h18" stroke="#A79C88" stroke-width="3" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+
+<h1>Le quattro superfici che erano state decise e mai disegnate</h1>
+<p class="sub">
+  <strong>Album · visore · menù del visore · foglio della categoria.</strong> Come chiesto il 29/07 (D58):
+  <strong>dentro la schermata vera</strong>, non a ritagli — la testata, il badge, la carta dati, le note e il
+  tasto Consegna sono la riproduzione fedele delle catture reali. Token e misure copiati dal codice
+  (<code>ds-v3.css:11-58</code> · <code>FotoStrip.tsx</code> · <code>Sheet</code> v3).
+</p>
+<p class="nota">
+  🖼️ <b>Le foto sono finte ma riconoscibili</b> (impronta · modello · guida colore · post-prova · radiografia ·
+  documento): nelle catture vere il contenuto di prova è un quadrato nero, con cui non si distinguerebbe una
+  variante dall'altra. Forma, misure e colori restano quelli veri.<br>
+  📦 <b>Il lavoro di esempio ha SEI foto</b>, scelte per far vedere il raggruppamento: 2 impronte · 2 guide colore ·
+  1 radiografia · 1 «altro». <b>Nell'ordine di D71</b> — impronta, pre-lavoro, colore, post-prova, radiografia, altro.
+</p>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>1 · La carta album — dove si vedono i sei gruppi (D64 · D68 · D71)</h2>
+<p class="nota">
+  La forma è già decisa: <b>carta con titolo, foto grande, categoria, «1 di 6», striscia sotto</b>. Quello che
+  <b>nessuno ha ancora disegnato</b> è come si vedono i <b>gruppi</b> nella striscia — e le tre risposte non
+  costano lo stesso.
+</p>
+<div class="fila">
+
+  <div class="col">
+    <div class="cap">A1 · <b>etichette sopra i blocchi</b></div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+      </div>
+      <div class="carta">
+        <div class="capo-carta"><span class="titolo-carta">Foto</span><span class="meta-foto"><span class="conta">6 foto</span></span></div>
+        <div class="hero"><svg><use href="#im"/></svg><span class="lente">⤢ Apri</span></div>
+        <div class="meta-foto"><span class="cat">Impronta</span><span class="conta">1 di 6</span></div>
+        <div class="gruppi">
+          <div class="gruppo"><div class="gr-et">Impronta</div><div class="gr-foto">
+            <div class="th th60 sel"><svg><use href="#im"/></svg></div><div class="th th60"><svg><use href="#im2"/></svg></div></div></div>
+          <div class="gruppo"><div class="gr-et">Guida colore</div><div class="gr-foto">
+            <div class="th th60"><svg><use href="#col1"/></svg></div><div class="th th60"><svg><use href="#col2"/></svg></div></div></div>
+          <div class="gruppo"><div class="gr-et">Radiografia</div><div class="gr-foto">
+            <div class="th th60"><svg><use href="#rx"/></svg></div></div></div>
+          <div class="gruppo"><div class="gr-et">Altro</div><div class="gr-foto">
+            <div class="th th60"><svg><use href="#alt"/></svg></div></div></div>
+        </div>
+      </div>
+      <div class="carta"><div class="titolo-carta">Note (laboratorio)</div><div class="testo-carta">TEST BADGE PRIORITÀ</div></div>
+      <button class="consegna">CONSEGNA</button>
+    </div></div>
+    <p class="nota">
+      <span class="pro">Pro</span> il raggruppamento <b>si vede senza spiegazioni</b>, e l'ordine di D71 diventa
+      leggibile invece che subito. Ogni foto porta il suo nome anche quando non è quella grande.<br>
+      <span class="contro">Contro</span> le etichette costano <b>~17 px</b> di altezza e la striscia scorre prima:
+      con sei gruppi presenti si scorre parecchio.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">A2 · <b>striscia continua, separatori</b></div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+      </div>
+      <div class="carta">
+        <div class="capo-carta"><span class="titolo-carta">Foto</span><span class="meta-foto"><span class="conta">6 foto</span></span></div>
+        <div class="hero"><svg><use href="#im"/></svg><span class="lente">⤢ Apri</span></div>
+        <div class="meta-foto"><span class="cat">Impronta</span><span class="conta">1 di 6</span></div>
+        <div class="rail">
+          <div class="th th60 sel"><svg><use href="#im"/></svg></div>
+          <div class="th th60"><svg><use href="#im2"/></svg></div>
+          <span class="sep"></span>
+          <div class="th th60"><svg><use href="#col1"/></svg></div>
+          <div class="th th60"><svg><use href="#col2"/></svg></div>
+          <span class="sep"></span>
+          <div class="th th60"><svg><use href="#rx"/></svg></div>
+          <span class="sep"></span>
+          <div class="th th60"><svg><use href="#alt"/></svg></div>
+        </div>
+      </div>
+      <div class="carta"><div class="titolo-carta">Note (laboratorio)</div><div class="testo-carta">TEST BADGE PRIORITÀ</div></div>
+      <button class="consegna">CONSEGNA</button>
+    </div></div>
+    <p class="nota">
+      <span class="pro">Pro</span> è <b>la più compatta</b>: la carta resta corta e ci stanno più foto senza scorrere.
+      Il nome della categoria vive solo sulla foto grande, e cambia mentre scorri.<br>
+      <span class="contro">Contro</span> 🛑 <b>un separatore non dice PERCHÉ divide.</b> Chi non sa che l'ordine è per
+      categoria vede solo delle stanghette — e il raggruppamento, che è la decisione D68, resta invisibile.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">A3 · <b>una riga per gruppo</b></div>
+    <div class="tel"><div class="schermo">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta">
+        <div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Lavoro</span><span class="val">Corona zirconia — elem.14</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div>
+      </div>
+      <div class="carta">
+        <div class="capo-carta"><span class="titolo-carta">Foto</span><span class="meta-foto"><span class="conta">6 foto</span></span></div>
+        <div class="hero"><svg><use href="#im"/></svg><span class="lente">⤢ Apri</span></div>
+        <div class="meta-foto"><span class="cat">Impronta</span><span class="conta">1 di 6</span></div>
+        <div style="margin-top:12px">
+          <div class="riga-gr"><span class="nome">Impronta</span><span class="foto">
+            <span class="th th48 sel"><svg><use href="#im"/></svg></span><span class="th th48"><svg><use href="#im2"/></svg></span></span></div>
+          <div class="riga-gr"><span class="nome">Guida colore</span><span class="foto">
+            <span class="th th48"><svg><use href="#col1"/></svg></span><span class="th th48"><svg><use href="#col2"/></svg></span></span></div>
+          <div class="riga-gr"><span class="nome">Radiografia</span><span class="foto">
+            <span class="th th48"><svg><use href="#rx"/></svg></span></span></div>
+          <div class="riga-gr"><span class="nome">Altro</span><span class="foto">
+            <span class="th th48"><svg><use href="#alt"/></svg></span></span></div>
+        </div>
+      </div>
+      <button class="consegna">CONSEGNA</button>
+    </div></div>
+    <p class="nota">
+      <span class="pro">Pro</span> <b>niente scorrimento orizzontale</b> — il gesto che al banco, con le mani
+      sporche, si sbaglia più spesso. Si legge come le altre righe della scheda: etichetta a sinistra, valore a destra.<br>
+      <span class="contro">Contro</span> <b>cresce in altezza</b>: con sei categorie presenti la carta diventa lunga e
+      spinge il tasto CONSEGNA sotto la piega. Le miniature scendono a 48 px.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>2 · Il visore a tutto schermo (D64 · D66)</h2>
+<p class="nota">
+  Si apre toccando la foto grande. 🛑 <b>Due vincoli già scritti nella spec:</b> la foto si mostra
+  <b>alla sorgente, senza degradarla</b> (§4.1 — la fedeltà del colore è uno dei tre motivi per cui quelle
+  foto esistono), e il <b>posto per la barra dell'editor è previsto ma vuoto</b> (D66: ruota e ritaglia sono
+  un lavoro suo). Il velo dietro è <b>quello nuovo</b>: <code>rgba(9,7,5,.94)</code> — quello che esiste oggi
+  (<code>.35</code>) lascia trasparire la pagina sotto la fotografia.
+</p>
+<div class="fila">
+  <div class="col">
+    <div class="cap">V1 · <b>controlli sempre visibili</b></div>
+    <div class="palco">
+      <div class="vis-foto"><svg viewBox="0 0 120 90" style="width:100%"><use href="#im"/></svg></div>
+      <div class="vis-capo">
+        <span class="vt">✕</span>
+        <span class="mezzo"><div class="c">Impronta</div><div class="n">1 di 6</div></span>
+        <span class="vt">⋯</span>
+      </div>
+      <div class="vis-piede">
+        <div class="vis-rail">
+          <div class="sel"><svg><use href="#im"/></svg></div><div><svg><use href="#im2"/></svg></div>
+          <div><svg><use href="#col1"/></svg></div><div><svg><use href="#col2"/></svg></div>
+          <div><svg><use href="#rx"/></svg></div><div><svg><use href="#alt"/></svg></div>
+        </div>
+        <div class="barra-futura">qui andrà la barra dell'editor — ondata (c)</div>
+      </div>
+    </div>
+    <p class="nota">
+      <span class="pro">Pro</span> <b>tutto è raggiungibile senza scoprire nulla</b>: chiudi, categoria, menù e
+      le altre foto stanno lì. Al banco non si cercano gesti nascosti.<br>
+      <span class="contro">Contro</span> le due sfumature scure coprono <b>~124 px</b> di fotografia. Su una guida
+      colore, dove conta il bordo, è proprio la zona che si vorrebbe vedere.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">V2 · <b>solo la foto, i controlli al tocco</b></div>
+    <div class="palco">
+      <div class="vis-foto"><svg viewBox="0 0 120 90" style="width:100%"><use href="#im"/></svg></div>
+      <div style="position:absolute;left:0;right:0;bottom:16px;text-align:center;z-index:3">
+        <span class="pill-cat">Impronta · 1 di 6</span>
+      </div>
+    </div>
+    <p class="nota">
+      <span class="pro">Pro</span> <b>la foto si vede intera</b>, che è il motivo per cui il visore esiste. Una sola
+      pastiglia in basso dice cosa stai guardando.<br>
+      <span class="contro">Contro</span> 🛑 <b>i controlli sono nascosti dietro un tocco che nessuno ti insegna</b>, e
+      il tocco è anche il gesto che si usa per ingrandire: due significati sullo stesso dito. E il posto della barra
+      dell'editor <b>non si vede</b>, quindi D66 non si può giudicare guardando.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">V1-bis · <b>V1 su una radiografia</b></div>
+    <div class="palco">
+      <div class="vis-foto"><svg viewBox="0 0 120 90" style="width:100%"><use href="#rx"/></svg></div>
+      <div class="vis-capo">
+        <span class="vt">✕</span>
+        <span class="mezzo"><div class="c">Radiografia</div><div class="n">5 di 6</div></span>
+        <span class="vt">⋯</span>
+      </div>
+      <div class="vis-piede">
+        <div class="vis-rail">
+          <div><svg><use href="#im"/></svg></div><div><svg><use href="#im2"/></svg></div>
+          <div><svg><use href="#col1"/></svg></div><div><svg><use href="#col2"/></svg></div>
+          <div class="sel"><svg><use href="#rx"/></svg></div><div><svg><use href="#alt"/></svg></div>
+        </div>
+        <div class="barra-futura">qui andrà la barra dell'editor — ondata (c)</div>
+      </div>
+    </div>
+    <p class="nota">
+      🔎 <b>Perché questa colonna esiste:</b> su una radiografia — che è scura — le sfumature dei controlli
+      <b>spariscono</b>, e con loro il contrasto del testo bianco. È il caso peggiore, e va guardato adesso e non
+      dopo. Se V1 regge qui, regge ovunque.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>3 · Il menù ⋯ dentro il visore, e la conferma (D69 · D55 · D63)</h2>
+<p class="nota">
+  <b>D69:</b> il tasto per eliminare <b>non sta in vista</b> — il gesto distruttivo non va accanto al gesto di
+  scorrere, che nel visore è continuo. 🛑 <b>Con D61 la cancellazione è vera:</b> sparisce la riga <i>e</i> il file.
+  Il percorso completo è <b>menù → Elimina foto → conferma</b>, tre strati sopra la pagina.
+</p>
+<div class="fila">
+  <div class="col">
+    <div class="cap">M1 · <b>foglio dal basso</b></div>
+    <div class="palco telsheet">
+      <div class="vis-foto"><svg viewBox="0 0 120 90" style="width:100%"><use href="#im"/></svg></div>
+      <div class="velo scuro" style="border-radius:22px"></div>
+      <div class="foglio" style="border-radius:28px 28px 22px 22px">
+        <div class="manico"></div>
+        <div class="voce"><span class="ic">🏷️</span><span class="tx">Cambia categoria</span><span class="chev">›</span></div>
+        <div class="voce"><span class="ic">⤓</span><span class="tx">Salva sul telefono</span><span class="chev">›</span></div>
+        <div class="voce butta"><span class="ic">🗑</span><span class="tx">Elimina foto</span></div>
+      </div>
+    </div>
+    <p class="nota">
+      <span class="pro">Pro</span> è <b>la forma che l'app già usa</b> per il menù della scheda (§5.34 `MenuVoce`:
+      altezza 56, icona 38, variante distruttiva rossa e staccata). Nessun gesto nuovo, e le voci sono grandi.<br>
+      <span class="contro">Contro</span> copre la foto per intero mentre è aperto.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">M2 · <b>tendina ancorata al ⋯</b></div>
+    <div class="palco telsheet">
+      <div class="vis-foto"><svg viewBox="0 0 120 90" style="width:100%"><use href="#im"/></svg></div>
+      <div class="vis-capo"><span class="vt">✕</span><span class="mezzo"><div class="c">Impronta</div><div class="n">1 di 6</div></span><span class="vt" style="background:rgba(255,255,255,.34)">⋯</span></div>
+      <div style="position:absolute;top:60px;right:10px;width:236px;z-index:4;background:var(--card);border-radius:20px;padding:6px 14px;box-shadow:0 14px 40px rgba(0,0,0,.4)">
+        <div class="voce" style="min-height:50px"><span class="ic" style="width:32px;height:32px;font-size:15px">🏷️</span><span class="tx" style="font-size:15.5px">Cambia categoria</span></div>
+        <div class="voce" style="min-height:50px"><span class="ic" style="width:32px;height:32px;font-size:15px">⤓</span><span class="tx" style="font-size:15.5px">Salva sul telefono</span></div>
+        <div class="voce butta" style="min-height:50px"><span class="ic" style="width:32px;height:32px;font-size:15px">🗑</span><span class="tx" style="font-size:15.5px">Elimina foto</span></div>
+      </div>
+    </div>
+    <p class="nota">
+      <span class="pro">Pro</span> <b>la foto resta visibile</b> e si capisce da dove è uscito il menù.<br>
+      <span class="contro">Contro</span> 🛑 <b>è un componente che in casa non esiste</b> (l'app usa fogli, non
+      tendine), e in alto a destra è la zona <b>meno raggiungibile col pollice</b> su un telefono grande — proprio
+      dove sta la voce che cancella.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">La conferma (D55) — <b>uguale nei due casi</b></div>
+    <div class="palco telsheet">
+      <div class="vis-foto"><svg viewBox="0 0 120 90" style="width:100%"><use href="#im"/></svg></div>
+      <div class="velo scuro" style="border-radius:22px"></div>
+      <div class="foglio" style="border-radius:28px 28px 22px 22px">
+        <div class="manico"></div>
+        <div class="anteprima"><span class="th th60"><svg><use href="#im"/></svg></span>
+          <span><div style="font-size:15.5px;font-weight:700">Impronta</div><div class="qt">caricata il 22 mag</div></span></div>
+        <h4>Elimini questa foto?</h4>
+        <p class="dida">Sparisce dalla scheda <b>e dall'archivio</b>: non si recupera. Resta annotato chi l'ha
+          eliminata e quando.</p>
+        <button style="width:100%;min-height:56px;border-radius:20px;background:var(--red);color:#fff;border:none;font-family:var(--font-v3);font-size:17px;font-weight:800;margin-bottom:9px">Elimina foto</button>
+        <button style="width:100%;min-height:56px;border-radius:20px;background:var(--bg-deep);color:var(--ink);border:none;font-family:var(--font-v3);font-size:17px;font-weight:700">Annulla</button>
+      </div>
+    </div>
+    <p class="nota">
+      🛑 <b>La frase è cambiata rispetto al 29/07, e non è una rifinitura:</b> il testo precedente diceva «il file
+      resta conservato». Con <b>D61</b> non è più vero — <b>si cancella davvero</b>, e la conferma deve dirlo o
+      promette il contrario di quello che fa.<br>
+      ⚠️ <b>«Non si recupera» è quasi vero</b>, e la spec §6 lo dichiara: restano una copia di sicurezza di 7 giorni
+      lato fornitore e una coda di cache fino a un'ora. Non lo scriviamo all'utente, ma <b>non lo nascondiamo a te</b>.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>4 · Il foglio della categoria allo scatto (D65 · D74)</h2>
+<p class="nota">
+  <b>D65:</b> la domanda arriva <b>dopo</b> lo scatto — mai prima, non si blocca la fotocamera — con le sei voci a
+  portata di pollice; e per lo <b>scatto multiplo si chiede una volta per gruppo</b>, non foto per foto.
+  <b>D74:</b> se chiudi senza scegliere, la foto nasce <b>«Altro»</b>: non è un errore, niente avviso e niente suono.
+  🛑 <b>Ma allora il foglio deve rendere EVIDENTE che una scelta è attesa</b>, o «Altro» diventa la risposta normale.
+</p>
+<div class="fila">
+  <div class="col">
+    <div class="cap">C1 · <b>sei pastiglie, due colonne</b></div>
+    <div class="tel telsheet"><div class="schermo" style="min-height:640px">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta"><div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div></div>
+      <div class="velo"></div>
+      <div class="foglio">
+        <div class="manico"></div>
+        <div class="anteprima"><span class="th"><svg><use href="#im"/></svg></span>
+          <span><div style="font-size:15.5px;font-weight:700">Foto scattata</div><div class="qt">adesso</div></span></div>
+        <h4>Che foto è?</h4>
+        <p class="dida">Serve per ritrovarla dopo. Se non lo dici adesso finisce in <b>«Altro»</b>.</p>
+        <div class="pastiglie">
+          <div class="pas att"><span class="e">🦷</span>Impronta</div>
+          <div class="pas"><span class="e">🔧</span>Pre-lavoro</div>
+          <div class="pas"><span class="e">🎨</span>Guida colore</div>
+          <div class="pas"><span class="e">✨</span>Post-prova</div>
+          <div class="pas"><span class="e">🩻</span>Radiografia</div>
+          <div class="pas"><span class="e">📄</span>Altro</div>
+        </div>
+      </div>
+    </div></div>
+    <p class="nota">
+      <span class="pro">Pro</span> <b>tutte e sei si vedono insieme, senza scorrere</b>, e stanno nella metà bassa
+      dello schermo — la zona del pollice. Ogni pastiglia è <b>60 px</b>, ben oltre i 44 di legge.<br>
+      <span class="contro">Contro</span> le emoji sono un <b>segnaposto</b>: servirebbero icone vere, e sono lavoro
+      di disegno in più.<br>
+      📏 <b>Trovato disegnando, e vale come vincolo:</b> a 390 la pastiglia utile è <b>148,5 px</b> e
+      «<b>Guida colore</b>» — la più lunga delle sei — <b>andava a capo</b>, facendo diventare la seconda riga più
+      alta delle altre. Rientra a <b>15 px</b> di testo. ➡️ È la stessa trappola dei nomi lunghi già pagata con le
+      briciole del wizard (D39): <b>l'etichetta più lunga va misurata, non stimata</b>. E se un giorno una voce
+      cambia nome, questa misura va rifatta.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">C2 · <b>elenco a righe</b></div>
+    <div class="tel telsheet"><div class="schermo" style="min-height:640px">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta"><div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div></div>
+      <div class="velo"></div>
+      <div class="foglio lista-cat">
+        <div class="manico"></div>
+        <h4>Che foto è?</h4>
+        <p class="dida">Se non lo dici adesso finisce in <b>«Altro»</b>.</p>
+        <div class="voce"><span class="ic">🦷</span><span class="tx">Impronta</span><span class="chev">›</span></div>
+        <div class="voce"><span class="ic">🔧</span><span class="tx">Pre-lavoro</span><span class="chev">›</span></div>
+        <div class="voce"><span class="ic">🎨</span><span class="tx">Guida colore</span><span class="chev">›</span></div>
+        <div class="voce"><span class="ic">✨</span><span class="tx">Post-prova</span><span class="chev">›</span></div>
+        <div class="voce"><span class="ic">🩻</span><span class="tx">Radiografia</span><span class="chev">›</span></div>
+        <div class="voce"><span class="ic">📄</span><span class="tx">Altro</span><span class="chev">›</span></div>
+      </div>
+    </div></div>
+    <p class="nota">
+      <span class="pro">Pro</span> è <b>la forma già in casa</b> (§5.34 `MenuVoce`), quindi zero componenti nuovi e
+      i nomi lunghi non si troncano mai.<br>
+      <span class="contro">Contro</span> 🛑 <b>sei righe da 56 px sono 336 px</b>: il foglio arriva quasi a metà
+      schermo, l'anteprima della foto non ci sta più, e <b>le ultime voci finiscono lontano dal pollice</b> — proprio
+      dove c'è «Radiografia», che al banco non è rara.
+    </p>
+  </div>
+
+  <div class="col">
+    <div class="cap">C3 · <b>lo scatto multiplo — una volta per gruppo</b></div>
+    <div class="tel telsheet"><div class="schermo" style="min-height:640px">
+      <div class="testata"><span class="tondo">‹</span><span class="num">n.2026/0002</span><span class="tondo">⋯</span></div>
+      <span class="badge">Appena arrivato</span>
+      <div class="carta"><div class="riga"><span class="et">Dentista</span><span class="val">BARALE S.A.S.</span></div>
+        <div class="riga"><span class="et">Consegna</span><span class="val rosso">22 mag</span></div></div>
+      <div class="velo"></div>
+      <div class="foglio">
+        <div class="manico"></div>
+        <div class="anteprima">
+          <span class="th"><svg><use href="#col1"/></svg></span>
+          <span class="th"><svg><use href="#col2"/></svg></span>
+          <span class="th"><svg><use href="#post"/></svg></span>
+          <span class="qt">3 foto</span>
+        </div>
+        <h4>Che foto sono?</h4>
+        <p class="dida">La scelta vale <b>per tutte e tre</b>. Le puoi cambiare una per una dopo.</p>
+        <div class="pastiglie">
+          <div class="pas"><span class="e">🦷</span>Impronta</div>
+          <div class="pas"><span class="e">🔧</span>Pre-lavoro</div>
+          <div class="pas att"><span class="e">🎨</span>Guida colore</div>
+          <div class="pas"><span class="e">✨</span>Post-prova</div>
+          <div class="pas"><span class="e">🩻</span>Radiografia</div>
+          <div class="pas"><span class="e">📄</span>Altro</div>
+        </div>
+      </div>
+    </div></div>
+    <p class="nota">
+      🔑 <b>Questo è il caso che D65 nomina esplicitamente</b>: se si chiedesse foto per foto, il tocco in più
+      diventerebbe sei. Qui è <b>uno solo</b>, e la frase dice subito che vale per tutte — insieme al fatto che si
+      correggono dopo (D70).<br>
+      ⚠️ <b>Aperto:</b> se le tre foto sono davvero di categorie diverse, questa strada le fa nascere tutte uguali.
+      Vale la pena, o serve un «poi le sistemo»?
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>5 · Il costo di D74, visto a schermo</h2>
+<p class="nota">
+  Non è una variante da scegliere: è la <b>conseguenza</b> di una scelta già fatta, e va guardata perché a parole
+  suona più piccola di com'è.
+</p>
+<div class="fila">
+  <div class="col">
+    <div class="cap">Due foto «Altro», due storie diverse</div>
+    <div class="tel"><div class="schermo">
+      <div class="carta">
+        <div class="capo-carta"><span class="titolo-carta">Foto</span><span class="conta">6 foto</span></div>
+        <div class="hero"><svg><use href="#alt"/></svg><span class="lente">⤢ Apri</span></div>
+        <div class="meta-foto"><span class="cat">Altro</span><span class="conta">6 di 6</span></div>
+        <div class="gruppi">
+          <div class="gruppo"><div class="gr-et">Altro</div><div class="gr-foto">
+            <div class="th th60"><svg><use href="#alt"/></svg></div>
+            <div class="th th60 sel"><svg><use href="#post"/></svg></div></div></div>
+        </div>
+      </div>
+    </div></div>
+    <p class="nota">
+      🔴 <b>La seconda è una POST-PROVA che è finita in «Altro»</b> perché chi ha scattato ha chiuso il foglio.
+      A schermo le due sono <b>indistinguibili</b>: l'album non sa dire «ho scelto Altro» da «non ho risposto».
+      È il costo che era scritto nella domanda di D74 ed è stato accettato.<br>
+      ✅ <b>Ciò che lo contiene, ed è per costruzione non per fortuna:</b> «Altro» è <b>l'ultimo</b> gruppo di D71,
+      quindi queste foto <b>non occupano mai la foto grande</b> quando c'è altro — qui la occupano solo perché ho
+      scelto apposta l'ultimo posto per mostrartelo.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>6 · Tablet (768) e desktop (1280)</h2>
+<p class="nota">
+  La scheda del lavoro su schermi grandi è una <b>carta centrata da 640</b> (`SchedaLavoroV3`, desktop ≥768).
+  Quindi la carta album <b>non si allarga all'infinito</b>: guadagna larghezza fino a 640 e lì si ferma. Il visore
+  invece è a tutto schermo davvero, e cambia parecchio.
+</p>
+<h3>Tablet 768 — la carta album (variante A1)</h3>
+<div class="tab">
+  <div class="centrata">
+    <div class="carta">
+      <div class="capo-carta"><span class="titolo-carta">Foto</span><span class="conta">6 foto</span></div>
+      <div class="hero" style="aspect-ratio:16/9"><svg><use href="#im"/></svg><span class="lente">⤢ Apri</span></div>
+      <div class="meta-foto"><span class="cat">Impronta</span><span class="conta">1 di 6</span></div>
+      <div class="gruppi">
+        <div class="gruppo"><div class="gr-et">Impronta</div><div class="gr-foto">
+          <div class="th th60 sel"><svg><use href="#im"/></svg></div><div class="th th60"><svg><use href="#im2"/></svg></div></div></div>
+        <div class="gruppo"><div class="gr-et">Guida colore</div><div class="gr-foto">
+          <div class="th th60"><svg><use href="#col1"/></svg></div><div class="th th60"><svg><use href="#col2"/></svg></div></div></div>
+        <div class="gruppo"><div class="gr-et">Radiografia</div><div class="gr-foto">
+          <div class="th th60"><svg><use href="#rx"/></svg></div></div></div>
+        <div class="gruppo"><div class="gr-et">Altro</div><div class="gr-foto">
+          <div class="th th60"><svg><use href="#alt"/></svg></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="nota">
+  ✅ A 640 di larghezza <b>tutti e quattro i gruppi ci stanno senza scorrere</b> — che è l'argomento più forte a
+  favore di A1: la stessa forma che a 390 scorre, qui si apre da sola. La foto grande passa a 16/9 per non
+  diventare enorme.
+</p>
+
+<h3>Desktop 1280 — il visore (variante V1)</h3>
+<div class="desk">
+  <div style="position:relative;height:520px;border-radius:20px;overflow:hidden;background:var(--velo-foto)">
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+      <svg viewBox="0 0 120 90" style="height:420px"><use href="#im"/></svg></div>
+    <div class="vis-capo" style="padding:0 18px">
+      <span class="vt">✕</span>
+      <span class="mezzo"><div class="c">Impronta</div><div class="n">1 di 6</div></span>
+      <span class="vt">⋯</span>
+    </div>
+    <div class="vis-piede" style="padding:14px 18px 18px">
+      <div class="vis-rail">
+        <div class="sel"><svg><use href="#im"/></svg></div><div><svg><use href="#im2"/></svg></div>
+        <div><svg><use href="#col1"/></svg></div><div><svg><use href="#col2"/></svg></div>
+        <div><svg><use href="#rx"/></svg></div><div><svg><use href="#alt"/></svg></div>
+      </div>
+      <div class="barra-futura" style="max-width:420px;margin:12px auto 0">qui andrà la barra dell'editor — ondata (c)</div>
+    </div>
+  </div>
+</div>
+<p class="nota">
+  🔑 <b>Su desktop la foto NON si stira a tutta larghezza</b>: resta al suo rapporto, centrata sul velo. Stirarla
+  vorrebbe dire deformarla o ritagliarla, e <b>D66 vieta di degradarla</b>. Le sfumature dei controlli qui costano
+  in proporzione molto meno che a 390.
+</p>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>7 · Le tre cose che valgono per tutte le varianti</h2>
+<p class="nota">
+  ① <b>Nessuna variante mostra o copia l'indirizzo della foto.</b> È il vincolo che l'ondata si è imposta
+  rinviando la durata dei collegamenti (D75, spec §11): la superficie nuova <b>non deve peggiorare l'esposizione
+  in modo evitabile</b>. Per questo il menù ⋯ ha «Salva sul telefono» e <b>non</b> «Copia link».<br>
+  ② <b>Il colore non è mai l'unica fonte di stato:</b> la voce che cancella è rossa <i>e</i> staccata <i>e</i>
+  chiamata «Elimina foto»; la miniatura scelta ha un anello <i>e</i> l'opacità piena.<br>
+  ③ <b>Ogni cosa toccabile è ≥ 44 px:</b> pastiglie 60, voci del menù 56, tondi del visore 44, miniature 44-60.
+</p>
+
+<h2>8 · Cosa NON è deciso e resta da scegliere</h2>
+<p class="nota">
+  <b>Quattro scelte:</b> ① la variante dell'album <b>A1 · A2 · A3</b> · ② il visore <b>V1 · V2</b> · ③ il menù
+  <b>M1 · M2</b> · ④ il foglio della categoria <b>C1 · C2</b> (C3 è il caso multiplo della variante scelta).<br>
+  🟡 <b>E una domanda tecnica che non è tua ma va detta:</b> il visore è il <b>terzo</b> tipo di strato sopra la
+  pagina, e il meccanismo del tasto «indietro» in casa ne conosce <b>due</b> (<code>storia-overlay.ts:67</code>).
+  La scelta si fa nel piano, con panel se non è ovvia — <b>non di nascosto dentro un compito</b>.
+</p>
+
+</div>
+</body>
+</html>
