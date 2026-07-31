@@ -1,36 +1,39 @@
-# Sessione attiva — ondata (b): T8 FATTO, si riparte da T9 `FoglioCategoria` (01/08/2026)
+# Sessione attiva — ondata (b): T9 FATTO, si riparte da T9-bis `FoglioConferma` (01/08/2026)
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **Task 9**
-(`FoglioCategoria`, §5.41), **un compito solo** a un esecutore fresco (R-E1). 🆕 **Da creare:** il suo brief.
-📎 Legge: spec v3 rev. 3.4 **§5.41** — `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`
-📎 Prove e ragioni: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §5.41 e §1.1-§1.6
-📎 Da dove veniamo: `docs/roadmap/2026-08-01-t8-referto.md`
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **Task 9-bis**
+(`FoglioConferma`, §5.42, D80), **un compito solo** a un esecutore fresco (R-E1). 🆕 **Da creare:** il suo brief.
+📎 Legge: spec v3 rev. 3.4 **§5.42** — `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`
+📎 Prove e ragioni: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §5.42 e **§1.9 (B-6)**
+📎 Da dove veniamo: `docs/roadmap/2026-08-01-t9-referto.md` · prima: `docs/roadmap/2026-08-01-t8-referto.md`
 
-**Ramo `ondata-b-schermate`** — niente su `origin`. ✅ **Fatti: T1 · T2 · T3 · T4 · T5 · T5-bis · D89 · T5-ter · D90 · T6 · T7 · T8.**
-🔑 **Riferimento MISURATO il 01/08 a T8 chiuso:** `vitest` **366 | 3** file, **4104 | 19** prove · `tsc` **0** · `next build` ok.
+**Ramo `ondata-b-schermate`** — niente su `origin`. ✅ **Fatti: T1 · T2 · T3 · T4 · T5 · T5-bis · D89 · T5-ter · D90 · T6 · T7 · T8 · T9.**
+🔑 **Riferimento MISURATO il 01/08 a T9 chiuso:** `vitest` **367 | 3** file, **4140 | 19** prove · `tsc` **0** · `next build` ok.
 
-**Che cosa ha lasciato T8:** `src/components/ds/TendinaMenu.tsx` (37 prove). `role="menu"` **senza `aria-modal`**,
-`Tab` **chiude** e restituisce il focus al ⋯, blocca lo scorrimento **come tutti** (D84). **Non è montato da
-nessuna parte: è T10**, che dovrà anche lanciare `scripts/guardia-navigazione-overlay.mjs` (cieca a un `role="menu"`).
+**Che cosa ha lasciato T9:** `src/components/ds/FoglioCategoria.tsx` (35 prove). Ogni uscita porta una
+categoria (**D74**, provato da due lati: che arrivi, e che arrivi **prima** della chiusura) · allo scatto
+**nessuna** pastiglia accesa · focus al **pannello** · `Tab` **trattenuto**. **Non è montato da nessuna parte:
+è T11 (lo scatto) e T10/T12 (la correzione).**
 
-🔴 **Riferiti da T8, nessuno corretto (R-E2):** il **Task 8 del piano** dice ancora «NON blocca lo scorrimento»
-sotto un riquadro che dice il contrario · **`MenuVoce.tsx:77-79`** mostra il chevron **anche sulla distruttiva**,
-contro la sua legge visiva (si aggiunge a F-6) · il mockup **M2** non mostra chevron su nessuna voce mentre §5.40
-lo presuppone (**gate estetico L2, T13**) · il pressed «si scurisce di un tono» è in `:active`, non in Motion, che
-non interpola `var(--…)` — **scostamento dichiarato** · **`ROADMAP-UFFICIALE.md` dice ancora «ondata (b) *da
-pianificare*»** mentre è eseguita fino a T8: da sistemare **prima del merge**.
+🔑 **T9-bis eredita due cose che gli servono subito:** ① §1.9 **(B-6)** vale **anche per lui** — è il secondo
+dei due fogli, e `coreografie.sheetSu` porta la transizione **dentro** la variante: si riusa la forma di
+`variantePannello` in `FoglioCategoria.tsx`, provata sull'**oggetto vero**; ② l'apritore di `FoglioConferma` è
+**una voce di menù che smonta**, quindi l'àncora del focus va **dichiarata** (C-12), mai catturata.
 
-⚠️ **La lezione di T8, per chi scrive il prossimo componente:** FASE 7 verde e guardie verdi **non vedono la
-forma di una transizione**. Il difetto trovato dopo il primo commit era «riduci movimento» che spegneva anche
-la dissolvenza, perché la forma è stata **copiata dal vicino senza copiarne la condizione** (§5.39 vuole
-istantanee tutte le chiavi, §5.40 solo lo `scale`). Chi fa T9 legga la **sua** riga «Riduci movimento», non
-quella accanto — e §5.41 ne ha una **ancora diversa** (variante ridotta esplicita, `sheetSu` non basta).
+🔴 **Riferiti da T9, nessuno corretto (R-E2):** il **piano** porta ancora due righe annullate dal suo riquadro
+(la misura **148,5 px** e la mutazione a 15,5) — **due task su due** con lo stesso difetto · la **firma del
+piano** non poteva rendere il momento della correzione (aggiunta `scelta?: CategoriaFoto`) · `ancoraFocus` è
+**`RefObject` obbligatoria** (F-12), non l'opzionale del piano · «il manico» è elencato fra le uscite ma in
+casa **non è un comando** · **nessuno dei tre strati anima l'uscita** (nessun `AnimatePresence`): si decide
+**insieme** al **gate estetico L2 (T13)**.
 
-🔴 **Restano aperti dai task prima:** **`facciaAttiva`** e **`TastoTondo`** senza `aria-haspopup`/`aria-expanded`
-(entrambi **T10**) · **R27** · **R29 + D81** (foto rotte su uachelab.com fino al merge, si riparano in **T13**) ·
-**FM-8** · **tredici** overlay di `src/components/features/**` che promettono `aria-modal` senza mantenerlo ·
-**§5.38 non nomina mai `indiceAperto`** (decisione di Francesco: la prossima è **D91**).
+🔴 **Restano aperti dai task prima:** **`ROADMAP-UFFICIALE.md`** dice ancora «ondata (b) *da pianificare*» —
+da sistemare **prima del merge** · **`MenuVoce`** col chevron sulla distruttiva (F-6) · **`TastoTondo`** senza
+`aria-haspopup`/`aria-expanded` e **`facciaAttiva`** a zero usi (entrambi **T10**) · **R27** · **R29 + D81**
+(foto rotte su uachelab.com fino al merge, **T13**) · **FM-8** · **tredici** overlay di
+`src/components/features/**` che promettono `aria-modal` senza mantenerlo.
 
-➡️ **Dopo T9: T9-bis, uno per esecutore.** Verbale
-(`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`) fermo a **novanta** decisioni: T8 non ne ha
-aggiunte, la prossima è **D91**.
+⚠️ **La lezione che vale per T9-bis:** FASE 7 verde **non vede la forma di una transizione**, e ogni §5.x ha
+la **sua** riga «Riduci movimento» — §5.40 per chiave, §5.41 dentro la variante. Si legge **la propria**, mai
+quella del vicino.
+
+➡️ Verbale (`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`) fermo a **novanta**: la prossima è **D91**.
