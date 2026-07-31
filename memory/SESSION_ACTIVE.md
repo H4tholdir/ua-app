@@ -17,7 +17,14 @@ nessuna parte: è T10**, che dovrà anche lanciare `scripts/guardia-navigazione-
 sotto un riquadro che dice il contrario · **`MenuVoce.tsx:77-79`** mostra il chevron **anche sulla distruttiva**,
 contro la sua legge visiva (si aggiunge a F-6) · il mockup **M2** non mostra chevron su nessuna voce mentre §5.40
 lo presuppone (**gate estetico L2, T13**) · il pressed «si scurisce di un tono» è in `:active`, non in Motion, che
-non interpola `var(--…)` — **scostamento dichiarato**.
+non interpola `var(--…)` — **scostamento dichiarato** · **`ROADMAP-UFFICIALE.md` dice ancora «ondata (b) *da
+pianificare*»** mentre è eseguita fino a T8: da sistemare **prima del merge**.
+
+⚠️ **La lezione di T8, per chi scrive il prossimo componente:** FASE 7 verde e guardie verdi **non vedono la
+forma di una transizione**. Il difetto trovato dopo il primo commit era «riduci movimento» che spegneva anche
+la dissolvenza, perché la forma è stata **copiata dal vicino senza copiarne la condizione** (§5.39 vuole
+istantanee tutte le chiavi, §5.40 solo lo `scale`). Chi fa T9 legga la **sua** riga «Riduci movimento», non
+quella accanto — e §5.41 ne ha una **ancora diversa** (variante ridotta esplicita, `sheetSu` non basta).
 
 🔴 **Restano aperti dai task prima:** **`facciaAttiva`** e **`TastoTondo`** senza `aria-haspopup`/`aria-expanded`
 (entrambi **T10**) · **R27** · **R29 + D81** (foto rotte su uachelab.com fino al merge, si riparano in **T13**) ·

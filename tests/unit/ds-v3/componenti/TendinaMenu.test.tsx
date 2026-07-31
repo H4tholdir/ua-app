@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { type RefObject } from 'react'
 import { render, screen, fireEvent, createEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -240,9 +242,12 @@ describe('TendinaMenu — la tendina ancorata al ⋯ (§5.40)', () => {
       const [prima, seconda, ultima] = voci()
       expect(prima.style.borderBottomWidth).toBe('1.5px')
       expect(prima.style.borderBottomColor).toBe('var(--line)')
-      // La seconda è l'ultima PRIMA della distruttiva: la sua linea di sotto
-      // sarebbe un doppione della linea di SOPRA della distruttiva.
-      expect(seconda.style.borderBottomWidth).toBe('')
+      // Anche quella PRIMA della distruttiva tiene la sua linea: la distruttiva
+      // ci mette sopra la propria, staccata di `spazio.xs`. È ciò che fa il
+      // contenitore vero di casa (`MenuSchedaSheet.tsx:162-164`) e la legge
+      // visiva di §5.34 (`.menu-voce:not(:last-child)` + `.butta`).
+      expect(seconda.style.borderBottomWidth).toBe('1.5px')
+      // L'ultima non ha niente sotto: sotto non c'è più nessuno.
       expect(ultima.style.borderBottomWidth).toBe('')
     })
 
@@ -311,9 +316,14 @@ describe('TendinaMenu — la tendina ancorata al ⋯ (§5.40)', () => {
 
   // ══ TASTIERA — il modello del MENÙ, non quello del dialogo ═════════════
   describe('la tastiera', () => {
-    it('all\'apertura il focus si posa sulla PRIMA voce', () => {
-      render(<TendinaMenu {...props()} />)
+    it('all\'apertura il focus si posa sulla PRIMA voce — e l\'apertura non si richiude da sé', () => {
+      const chiudi = vi.fn()
+      render(<TendinaMenu {...props({ onChiudi: chiudi })} />)
       expect(document.activeElement).toBe(voci()[0])
+      // 🔑 Inchioda l'ORDINE degli effect: il `focus()` può far scorrere un
+      // antenato, e l'ascolto dello scorrimento chiude. Registrarlo PRIMA del
+      // focus farebbe chiudere la tendina nell'istante in cui si apre.
+      expect(chiudi).not.toHaveBeenCalled()
     })
 
     it('↓ e ↑ scorrono le voci, e NON avvolgono ai capi', () => {
@@ -433,10 +443,13 @@ describe('TendinaMenu — la tendina ancorata al ⋯ (§5.40)', () => {
       expect(document.body.style.paddingRight).toBe('7px')
     })
 
-    it('controprova per costruzione: senza montare niente, il corpo resta com\'era', () => {
-      document.body.style.overflow = 'scroll'
-      expect(document.body.style.overflow).not.toBe('hidden')
-    })
+    // 🛑 QUI NON C'È UNA «controprova» PERMANENTE, ed è deliberato. §1.4 la
+    // vuole come ESPERIMENTO — la stessa asserzione senza lo strato montato
+    // deve diventare ROSSA — e quell'esperimento è stato eseguito sull'abbozzo
+    // inerte e registrato nel referto (`docs/roadmap/2026-08-01-t8-referto.md`
+    // §2). Scritta come test permanente diventava
+    // `expect('scroll').not.toBe('hidden')`: una riga che non può diventare
+    // rossa, cioè esattamente ciò che §1.4 condanna, col nome di ciò che chiede.
 
     it('due strati chiusi NELL\'ORDINE SBAGLIATO (prima quello sotto): il corpo torna comunque suo', () => {
       document.body.style.overflow = 'scroll'
@@ -506,6 +519,22 @@ describe('TendinaMenu — la tendina ancorata al ⋯ (§5.40)', () => {
       render(<TendinaMenu {...props({ voci: [] })} />)
       expect(screen.queryByRole('menu')).toBeNull()
     })
+  })
+
+  // ══ «RIDUCI MOVIMENTO» — si legge il sorgente, e il perché è dichiarato ══
+  // 🛑 Il comportamento NON è misurabile in questo ambiente: con
+  // `MotionGlobalConfig.skipAnimations` (`tests/setup.ts:16`) Motion lascia
+  // scritto l'`initial` e non applica MAI l'`animate`, quindi ogni asserzione
+  // sui valori finali misurerebbe l'ambiente. Resta la FORMA della transizione,
+  // che è ciò che la spec prescrive e ciò che un lettore futuro «correggerebbe»
+  // per errore verso la forma del vicino.
+  it('«riduci movimento»: istantaneo SOLO lo `scale`, la dissolvenza resta una molla (§5.40)', () => {
+    const sorgente = readFileSync(join(process.cwd(), 'src/components/ds/TendinaMenu.tsx'), 'utf8')
+    expect(sorgente).toContain('reduced ? { ...molla.smooth, scale: istantaneo } : molla.smooth')
+    // Il caso che deve fallire: la forma INTERA di `VisoreFoto` (§5.39, dove
+    // tutte le chiavi sono istantanee) qui spegnerebbe anche la dissolvenza,
+    // che §5.40 chiede espressamente di tenere.
+    expect(sorgente).not.toContain('reduced ? istantaneo :')
   })
 
   // ══ L'ANELLO DEL FOCUS ═════════════════════════════════════════════════

@@ -250,9 +250,16 @@ export function TendinaMenu(props: {
   }
 
   // §1.9 — sotto «riduci movimento» si cambia la TRANSIZIONE, MAI il bersaglio:
-  // `scale` e `opacity` restano dentro `animate` e ci arrivano istantaneamente.
-  // Toglierle dal bersaglio le lascerebbe congelate dov'erano (difetto D1/D2).
-  const transizione = reduced ? istantaneo : molla.smooth
+  // `scale` e `opacity` restano dentro `animate`, o resterebbero congelate
+  // dov'erano (difetto D1/D2 del 26/07).
+  // 🛑 E qui la forma è PER CHIAVE, non l'intera transizione — è la differenza
+  // col vicino, ed è voluta: §5.40 dice «`scale` resta nel bersaglio con
+  // `istantaneo`; resta la SOLA DISSOLVENZA», quindi l'`opacity` continua ad
+  // arrivare con la molla. `VisoreFoto` può sostituire la transizione INTERA
+  // (`VisoreFoto.tsx:182-186`) solo perché §5.39 vuole istantanee TUTTE le sue
+  // chiavi. Sostituirla intera anche qui spegnerebbe la dissolvenza, che la
+  // spec chiede espressamente di tenere (idioma in `v3/motion.ts:20`).
+  const transizione = reduced ? { ...molla.smooth, scale: istantaneo } : molla.smooth
 
   // Ripiego dichiarato: senza àncora la posizione non è calcolabile, e una
   // tendina che si pianta a caso in mezzo allo schermo sarebbe peggio. Il
@@ -307,10 +314,13 @@ export function TendinaMenu(props: {
         }}
       >
         {ordinate.map((v, i) => {
-          const prossima = ordinate[i + 1]
-          // La linea sotto NON si mette dove la prossima porta già la sua linea
-          // sopra: sarebbero due tratti appiccicati.
-          const separatore = prossima !== undefined && !prossima.distruttiva
+          // La linea di sotto sta su tutte tranne l'ultima, e la distruttiva ci
+          // aggiunge la PROPRIA linea di sopra a `spazio.xs` di distanza: sono
+          // due tratti staccati, non un doppione.
+          // 🔑 Non è una scelta mia: è ciò che fa il contenitore vero di casa
+          // (`MenuSchedaSheet.tsx:162-164`) ed è la legge visiva di §5.34
+          // (`scheda-lavoro.html:232` + `:241`), che §5.40 vuole «verbatim».
+          const separatore = i < ordinate.length - 1 && !v.distruttiva
           return (
             <button
               key={v.id}
