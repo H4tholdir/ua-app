@@ -194,7 +194,12 @@ In `tests/unit/ddc-pdf-content.test.ts`, sostituisci il test a riga 109-112 con:
     // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
     // tornata silenziosa in entrambe le direzioni.
     expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
-    expect(pdfText).not.toContain('DICHIARAZIONE DI CONFORMITA ')
+    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: «CONFORMITA» senza
+    //    accento non è sottostringa di «CONFORMITÀ» (À ≠ A), quindi questa riga
+    //    si accende su qualunque occorrenza rimasta — comprese quelle che le
+    //    asserzioni puntuali non guardano.
+    expect(pdfText).not.toContain('CONFORMITA')
+    expect(pdfText).not.toContain('Conformita')
   })
 
   it('l\'etichetta della firma porta l\'accento', () => {
@@ -202,7 +207,12 @@ In `tests/unit/ddc-pdf-content.test.ts`, sostituisci il test a riga 109-112 con:
   })
 
   it('il titolo del §7 porta l\'accento', () => {
-    expect(pdfText).toContain('§7 — Dichiarazione di Conformità')
+    // ⚠️ CORRETTO IN CORSA (difetto del piano, trovato dall'esecutore del Task 2):
+    //    `styles.sectionTitle` (DdcTemplate.tsx:86) ha `textTransform:'uppercase'`,
+    //    quindi il foglio stampa il §7 in MAIUSCOLO. L'etichetta della firma no
+    //    (`firmaLabel` non ha uppercase): le due asserzioni hanno forme diverse
+    //    perché i due stili sono diversi, non per distrazione.
+    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
   })
 ```
 
