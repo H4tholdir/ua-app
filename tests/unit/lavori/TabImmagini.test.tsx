@@ -447,13 +447,30 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), file)
 
       const primaChiamata = foglioCalls.at(-1)
+      const lunghezzaPrima = foglioCalls.length
       expect(primaChiamata?.aperto).toBe(true)
 
       // Forza un re-render di TabImmagini SENZA toccare il foglio: il
-      // listener di resize aggiorna `windowW`, uno stato TUTTO SUO.
+      // listener di resize aggiorna `windowW`, uno stato TUTTO SUO. 🛑 jsdom
+      // parte da `innerWidth: 1024` e un `resize` che non lo cambia farebbe
+      // scrivere a `setWindowW` lo STESSO valore — React salterebbe il
+      // render (bailout su stato invariato) e lo stub non verrebbe MAI
+      // richiamato una seconda volta: cambio davvero la larghezza, prima.
+      Object.defineProperty(window, 'innerWidth', {
+        writable: true,
+        configurable: true,
+        value: 800,
+      })
       await act(async () => {
         window.dispatchEvent(new Event('resize'))
       })
+
+      // 🛑 Prova che lo stub sia stato DAVVERO richiamato una seconda volta
+      // (non che React abbia bypassato il render): senza questa riga
+      // `secondaChiamata` potrebbe essere lo STESSO oggetto della prima per
+      // assenza di un secondo render, e il confronto sotto passerebbe per il
+      // motivo sbagliato — proprio la trappola che questa prova deve chiudere.
+      expect(foglioCalls.length).toBeGreaterThan(lunghezzaPrima)
 
       const secondaChiamata = foglioCalls.at(-1)
       expect(secondaChiamata?.aperto).toBe(true)
