@@ -113,14 +113,41 @@ describe('SchedaLavoroV3', () => {
         nome_file: null, descrizione: null, data_scatto: null,
         categoria: 'rx', created_at: '2026-07-30T10:00:00Z', ordine: 0,
       },
+      // Terza foto (rilievo di revisione): stessa categoria di img-1 ma
+      // `created_at` PRIMA — serve a rendere osservabile anche il passaggio
+      // di `created_at`, che con sole due categorie diverse non lascia
+      // traccia (l'ordine fra gruppi segue D71, non la data).
+      {
+        id: 'img-3', laboratorio_id: 'lab', lavoro_id: 'lav',
+        url: 'https://esempio/imp-presto.jpg', storage_path: 'lab/lav/imp-presto.jpg',
+        nome_file: null, descrizione: null, data_scatto: null,
+        categoria: 'impronta', created_at: '2026-07-30T08:00:00Z', ordine: 0,
+      },
     ]
     const { container } = render(<SchedaLavoroV3 lavoro={makeLavoro({ immagini })} />)
     // La carta ha un TITOLO vero — la striscia (FotoStrip) non ne aveva mai uno.
     expect(screen.getByRole('heading', { name: 'Foto' })).toBeInTheDocument()
-    expect(screen.getByText('2 foto')).toBeInTheDocument()
+    expect(screen.getByText('3 foto')).toBeInTheDocument()
     // Firma della vecchia striscia (il suo unico contenitore portava questo
     // aria-label): se comparisse ancora, la sostituzione non è avvenuta.
     expect(container.querySelector('[aria-label="Foto del lavoro"]')).toBeNull()
+    // Guardia sull'innesto (rilievo di revisione): l'unica cosa di cui QUESTO
+    // task è responsabile è che la scheda passi alla carta la `categoria` VERA
+    // di ciascuna foto, non un valore fisso. La carta raggruppa per categoria
+    // mostrandone l'etichetta (§5.38, superficie pubblica `role="group"`, non
+    // la classe interna della carta) — con impronta + rx devono comparire DUE
+    // gruppi distinti. Se l'innesto passasse una categoria fissa (es. sempre
+    // 'altro'), le tre foto crollerebbero in un unico gruppo «Altro» e questa
+    // ricerca fallirebbe (il gruppo «Impronta» non esisterebbe più).
+    expect(screen.getByRole('group', { name: 'Impronta' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Radiografia' })).toBeInTheDocument()
+    // Guardia sul `created_at` VERO di ciascuna foto: dentro il gruppo
+    // «Impronta» ci sono due foto (img-3 delle 08:00, img-1 delle 09:00) — se
+    // l'innesto passasse un `created_at` fisso, il loro ordine dipenderebbe
+    // solo dallo spareggio per `id` ('img-1' < 'img-3' alfabeticamente) e
+    // img-3 (quella vera più vecchia) non sarebbe più la prima del gruppo.
+    const primaImpronta = screen.getByRole('button', { name: 'Impronta, 1 di 3' })
+    expect((primaImpronta.querySelector('img') as HTMLImageElement).src).toContain('imp-presto.jpg')
   })
 
   it('dopo router.refresh() il nuovo tecnico dal prop fresco sostituisce quello locale (bug FK-refresh)', () => {
