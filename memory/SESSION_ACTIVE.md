@@ -1,4 +1,20 @@
-# Sessione attiva — ondata (b): la SETTIMA categoria è FATTA e in banca dati (02/08/2026)
+# Sessione attiva — ondata (b) MERGIATA su `main` in locale, in attesa del push (02/08/2026)
+
+🚀 **MERGE FATTO (02/08): `ondata-b-schermate` → `main`, fast-forward pulito, 118 commit.** `tsc` 0 · `vitest`
+**369 | 3** file, **4233 | 19** prove · `next build` ok, verificati **su main** dopo il merge.
+🔒 **E prima del merge si sono chiusi TOK-1 e CLI-1, come D53 prescriveva** (commit `6f25f075`): la chiave del
+portale non esce più dall'elenco dei dentisti — **due fonti**, la proiezione e una allowlist in uscita
+(`CAMPI_ELENCO`), perché la sola proiezione lascerebbe rientrare il token in silenzio da una vista o da un
+`select('*')` rimesso un domani — e la ricerca rende **letterali** `%` e `_` (ordine di D48). Tre prove nuove.
+🧹 Gli **11 file di `.superpowers/`** tracciati contro il `.gitignore` sono usciti dall'indice (restano sul disco).
+🛑 **IL PUSH NON È STATO FATTO:** il comando è stato **bloccato dal controllo dei permessi**, non da un errore.
+`main` locale è avanti di 118 commit su `origin/main`. ➡️ **Serve che Francesco lanci `git push origin main`**
+(o autorizzi il comando), poi: **CI verde su Vercel** → **verifica su uachelab.com**.
+🔴 **E SUBITO DOPO IL PUSH, il Passo 4-bis di T13 — non è un collaudo fra i tanti:** dal 30/07 il caricamento di
+una foto su uachelab.com risponde **500** (il codice pubblicato scriveva ancora la colonna `tipo`, tolta dalla
+migration di T1 — D81/R29). **Il merge lo ripara: va caricata una foto VERA e vista comparire.** Con foto vere
+va anche dato il giudizio estetico che il gate L2 non ha potuto dare (le prove usavano PNG 1×1 trasparenti).
+
 
 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md`** — **D91: la
 prescrizione diventa la SETTIMA categoria della foto.** Il brief porta il censimento già fatto (i **tre**
