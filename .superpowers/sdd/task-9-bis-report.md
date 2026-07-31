@@ -416,3 +416,91 @@ nominando la funzione passata a `forwardRef`).
   del focus dipende dall'identità dell'oggetto `ancoraFocus` (condiviso con `FoglioCategoria`) — non
   l'ho toccato.
 - **Nessun nuovo difetto trovato fuori mandato** in questo giro, oltre a quelli già registrati al §7.
+
+---
+
+## Secondo giro di correzioni (T9-bis)
+
+File toccato: **solo** `tests/unit/ds-v3/componenti/FoglioConferma.test.tsx`. `src/components/ds/FoglioConferma.tsx`
+non è stato toccato per il salvataggio finale: le tre mutazioni della sezione seguente l'hanno
+modificato SOLO temporaneamente, e dopo ognuna il file è stato ripristinato e confermato identico
+all'originale con `git diff` vuoto. Nessuna delle due correzioni di questo giro richiedeva un
+cambiamento permanente della logica di produzione.
+
+### Rilievo 1 (importante) — «PROVATO» copriva solo metà del commento (`FoglioConferma.tsx:129-136`)
+
+Il commento affermava che nessuno dei tre rami di fuga — Escape, tap sul velo, swipe giù — legge
+`distruttivaDisabilitata`. La prova citata dal commento (`«Annulla» resta attivo mentre la
+distruttiva è disabilitata`) copriva solo che «Annulla» resta cliccabile quando la distruttiva è
+disabilitata; nessuna prova sorvegliava i tre rami di fuga stessi.
+
+Aggiunto un nuovo `describe` — `i tre rami di fuga chiudono comunque, anche con la distruttiva
+disabilitata (T9-bis, secondo giro)` — con tre prove, ognuna con `distruttivaDisabilitata: true`:
+- **Escape**: `fireEvent.keyDown(pannello(), { key: 'Escape' })` → `onAnnulla` chiamata 1 volta,
+  `onConferma` mai.
+- **Tap sul velo**: stesso pattern del test esistente (`pointerDown` + `click` sullo stesso
+  elemento, per rispettare il contratto anti-ghost-click di `useTapScrim`) → idem.
+- **Swipe giù**: riusa `catturaPannello` — l'`onDragEnd` VERO catturato dal mock parziale di
+  `motion/react` già in testa al file (nessuna via nuova, come richiesto) — invocato a mano con
+  `{ offset: { y: 1000 }, velocity: { y: 0 } }` → idem.
+
+**Mutazioni (una per ramo, produzione modificata temporaneamente con `Edit`, poi ripristinata):**
+
+| Ramo mutato | Modifica applicata (poi rimossa) | Prove accese (rosse) su 50 |
+|---|---|---|
+| Escape (`alTasto`) | aggiunto `if (distruttivaDisabilitata) return` subito prima di `onAnnulla()` | **1** — esattamente la nuova prova Escape |
+| Tap sul velo (`useTapScrim`) | callback riscritta in `() => { if (distruttivaDisabilitata) return; onAnnullaRef.current() }` | **1** — esattamente la nuova prova del velo |
+| Swipe giù (`fineTrascinamento`) | aggiunto `if (distruttivaDisabilitata) return` dentro il ramo `if (deveChiudere(...))`, prima di `onAnnulla()` | **1** — esattamente la nuova prova dello swipe |
+
+Ogni mutazione ha acceso solo ed esattamente la prova dedicata al proprio ramo — nessuna delle altre
+49 prove si è mossa in nessuno dei tre casi (confermato leggendo l'output completo di `vitest run` su
+questo file dopo ciascuna mutazione: sempre `1 failed | 49 passed (50)`, e il test fallito è sempre
+quello atteso). Dopo la terza mutazione e il suo ripristino, `git diff src/components/ds/FoglioConferma.tsx`
+non ha prodotto output: il file di produzione è tornato bit-per-bit uguale all'originale.
+
+Il commento in `FoglioConferma.tsx:129-136` non è stato ritoccato: il testo era già accurato (non
+affermava un'esaustività di test, solo un fatto), mancavano solo le prove — che ora esistono, quindi
+la parola «PROVATO» resta legittima senza modifiche al commento stesso.
+
+### Rilievo 2 (minore) — la condizione che distingue i due pannelli, falsa dentro il file di prova
+
+Il commento a `FoglioConferma.test.tsx:41-42` diceva: «Solo il pannello passa `onDragEnd` (il velo
+no): condizione sufficiente per distinguerli». Vero dentro `FoglioConferma`, falso dentro QUESTO
+file di prova: due prove esistenti (`due strati chiusi NELL'ORDINE SBAGLIATO...`, `Escape non
+collassa lo strato di sotto`) montano anche `Sheet`, il cui pannello passa anch'esso `onDragEnd`
+(`Sheet.tsx:418`) — oggi innocuo (nessuna di quelle due prove esercita lo swipe), ma una trappola per
+una futura prova di swipe con due strati aperti insieme.
+
+Stretta la condizione del mock: `catturaPannello` ora si aggiorna solo se `props.onDragEnd` è
+presente **e** `props.className` è una stringa che contiene `ds-foglioconferma-pannello` — la
+classe che SOLO il pannello di questo componente porta (`FoglioConferma.tsx:292`); il pannello di
+`Sheet` porta `ds-sheet` (`Sheet.tsx:404`), quindi non passa più il filtro. Commento riscritto per
+dire il vero: spiega perché `onDragEnd` da solo non basta in questo file specifico (le due prove che
+montano `Sheet` insieme) e che la `className` è la condizione che li distingue davvero qui dentro.
+
+Verificato che tutte le prove di swipe (incluse le tre nuove del rilievo 1) restano verdi dopo la
+stretta — la suite completa del file, eseguita subito dopo la modifica del mock, è risultata
+`50 passed (50)` — e che la mutazione del rilievo 1 sul ramo swipe continua ad accendersi
+esattamente 1 prova (v. tabella sopra, ultima riga): la stretta non ha reso la cattura più fragile né
+ha smesso di mordere.
+
+### Verifica finale — output vero
+
+```
+$ npx tsc --noEmit
+(nessun output — 0 errori)
+
+$ npx vitest run
+ Test Files  368 passed | 3 skipped (371)
+      Tests  4192 passed | 19 skipped (4211)
+
+$ npx next build
+✓ Compiled successfully in 5.6s
+✓ Generating static pages using 15 workers (81/81) in 291ms
+(exit 0; unico warning preesistente: "middleware" deprecato verso "proxy", non toccato in questo giro)
+```
+
+Riferimento dato dal task prima di questa chiusura: 368 file | 3 saltati, 4189 prove | 19 saltate.
+Delta osservato: **+3 prove** (47 → 50 nel file di `FoglioConferma`, 4189 → 4192 nel totale), **0
+nuovi file di test**, `tests/unit/ds-v3/componenti/FoglioConferma.test.tsx` è l'unico file
+modificato, `src/components/ds/FoglioConferma.tsx` invariato (verificato con `git diff`).

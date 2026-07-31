@@ -38,9 +38,15 @@ let catturaPannello: Record<string, unknown> | null = null
 vi.mock('motion/react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('motion/react')>()
   const DivSpia = forwardRef<HTMLDivElement, Record<string, unknown>>(function DivSpia(props, ref) {
-    // Solo il pannello passa `onDragEnd` (il velo no): condizione sufficiente
-    // per distinguerli senza toccare la struttura del componente.
-    if (props.onDragEnd) catturaPannello = props
+    // 🛑 `onDragEnd` da solo NON basta: due prove di questo file montano
+    // anche `Sheet` insieme a `FoglioConferma` (righe ~518, ~534), e il
+    // pannello di `Sheet` passa `onDragEnd` a sua volta (`Sheet.tsx:418`) —
+    // sarebbe l'ultimo a montare a vincere la cattura, in modo silenzioso.
+    // La condizione vera, dentro QUESTO file, è la `className`: solo il
+    // pannello di `FoglioConferma` porta `ds-foglioconferma-pannello`.
+    if (props.onDragEnd && typeof props.className === 'string' && props.className.includes('ds-foglioconferma-pannello')) {
+      catturaPannello = props
+    }
     return createElement(actual.motion.div, { ...props, ref })
   })
   // 🛑 `motion` NON è un oggetto con chiavi enumerabili: è un Proxy che genera
@@ -636,6 +642,47 @@ describe('FoglioConferma — il foglio di conferma prima di cancellare una foto 
     it('il pannello porta un `exit` reale — uguale a `variantePannello(false).exit` — non assente', () => {
       render(<FoglioConferma {...props()} />)
       expect(catturaPannello?.exit).toEqual(variantePannello(false).exit)
+    })
+  })
+
+  // ══ REVISIONE T9-bis, secondo giro — I TRE RAMI DI FUGA NON LEGGONO
+  // `distruttivaDisabilitata` (FoglioConferma.tsx:129-136) ═══════════════════
+  // Il commento sopra `distruttivaDisabilitata` diceva «GARANTITO E PROVATO»
+  // anche per questa metà — che nessuno dei tre rami di fuga (Escape, tap sul
+  // velo, swipe giù) legge lo stato *disabled* del tasto distruttivo — ma
+  // nessuna prova la sorvegliava: la prova citata dal commento copriva solo
+  // che «Annulla» resta cliccabile, non che i TRE RAMI restino vivi. Qui si
+  // prova che ognuno dei tre, con `distruttivaDisabilitata: true`, continui a
+  // chiamare `onAnnulla` (e MAI `onConferma`) esattamente come a tasto
+  // abilitato — il comportamento non cambia, ma ora ha la sua prova.
+  describe('i tre rami di fuga chiudono comunque, anche con la distruttiva disabilitata (T9-bis, secondo giro)', () => {
+    it('Escape chiude anche con la distruttiva disabilitata', () => {
+      const onConferma = vi.fn()
+      const onAnnulla = vi.fn()
+      render(<FoglioConferma {...props({ onConferma, onAnnulla, distruttivaDisabilitata: true })} />)
+      fireEvent.keyDown(pannello(), { key: 'Escape' })
+      expect(onAnnulla).toHaveBeenCalledTimes(1)
+      expect(onConferma).not.toHaveBeenCalled()
+    })
+
+    it('tap sul velo chiude anche con la distruttiva disabilitata', () => {
+      const onConferma = vi.fn()
+      const onAnnulla = vi.fn()
+      render(<FoglioConferma {...props({ onConferma, onAnnulla, distruttivaDisabilitata: true })} />)
+      fireEvent.pointerDown(velo())
+      fireEvent.click(velo())
+      expect(onAnnulla).toHaveBeenCalledTimes(1)
+      expect(onConferma).not.toHaveBeenCalled()
+    })
+
+    it('swipe giù (decisione pura, come sopra) chiude anche con la distruttiva disabilitata', () => {
+      const onConferma = vi.fn()
+      const onAnnulla = vi.fn()
+      render(<FoglioConferma {...props({ onConferma, onAnnulla, distruttivaDisabilitata: true })} />)
+      const onDragEnd = catturaPannello!.onDragEnd as (e: unknown, i: unknown) => void
+      onDragEnd(null, { offset: { y: 1000 }, velocity: { y: 0 } })
+      expect(onAnnulla).toHaveBeenCalledTimes(1)
+      expect(onConferma).not.toHaveBeenCalled()
     })
   })
 
