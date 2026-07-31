@@ -24,8 +24,12 @@
 // bloccare da sé («il valore precedente si cattura per istanza, il secondo
 // leggerebbe "hidden" e lo ripristinerebbe per sempre») è stata riparata alla
 // RADICE da `blocca-scorrimento.ts`: un contatore unico per tutta l'app, non
-// più per istanza. Questo componente chiama `bloccaScorrimento()` come ogni
-// altro strato — non c'è più niente da escludere.
+// più per istanza. Questo componente blocca come ogni altro strato — non c'è
+// più niente da escludere.
+// 🔧 D100: il blocco passa da `bloccaScorrimento()` diretto a
+// `useScorrimentoBloccato()`, che è lo stesso contatore con il RILASCIO
+// DIFFERITO a fine uscita. Con un'uscita animata, sbloccare alla chiusura fa
+// ricomparire la barra a metà discesa del pannello e la pagina dietro slitta.
 //
 // ── Il focus va alla PRIMA azione, che è quella SICURA — è una PROPRIETÀ ───
 // «Annulla» riceve il focus perché è il tasto sicuro, non perché è il primo
@@ -41,13 +45,14 @@
 
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, animate as animaValore, useMotionValue, useDragControls } from 'motion/react'
+import { motion, AnimatePresence, animate as animaValore, useMotionValue, useDragControls } from 'motion/react'
 import { coreografie, istantaneo, molla, useReducedMotion } from '@/design-system/v3/motion'
 import { materia, raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { entraOverlay, esciOverlay } from '@/components/ds/storia-overlay'
-import { bloccaScorrimento } from '@/components/ds/blocca-scorrimento'
+import { StratoRadice } from '@/components/ds/StratoRadice'
+import { useScorrimentoBloccato } from '@/components/ds/useScorrimentoBloccato'
 import { trappolaFocus } from '@/components/ds/trappola-focus'
 import { useTapScrim } from '@/components/ds/useTapScrim'
 // 🛑 `deveChiudere` si IMPORTA, non si riscrive: è pura e vive già in casa
@@ -192,10 +197,7 @@ export function FoglioConferma(props: {
   // D84 — un contatore unico per tutta l'app: si chiama e basta, come ogni
   // altro strato. Non c'è più «il secondo blocco leggerebbe hidden» da
   // evitare: quel difetto è stato riparato alla radice in `blocca-scorrimento.ts`.
-  useEffect(() => {
-    if (!aperto) return
-    return bloccaScorrimento()
-  }, [aperto])
+  const rilasciaScorrimento = useScorrimentoBloccato(aperto)
 
   useEffect(() => {
     if (!aperto) return
@@ -217,7 +219,11 @@ export function FoglioConferma(props: {
   const tapVelo = useTapScrim(aperto, () => onAnnullaRef.current())
 
   if (typeof document === 'undefined') return null
-  if (!aperto) return null
+  // 🛑 Il `return null` su `aperto` si è spostato DENTRO l'`AnimatePresence`
+  // (D100). 🔑 E per questo foglio non è una scelta nuova: l'uscita era GIÀ
+  // scritta qui sotto (`coreografie.sheetSu.exit`, e la sua variante ridotta) —
+  // semplicemente non poteva girare, perché rendendo `null` l'albero era già
+  // staccato. D100 la fa partire, non la inventa.
 
   function alTasto(evento: React.KeyboardEvent<HTMLDivElement>) {
     if (evento.key !== 'Escape') return
@@ -246,19 +252,12 @@ export function FoglioConferma(props: {
   const etichetta = etichettaCategoria(foto.categoria)
   const caricataIl = formattaCaricamento(foto.created_at)
 
-  const overlay = (
-    <div
-      data-ds="v3"
+  const overlay = aperto ? (
+    <StratoRadice
+      key="ds-foglioconferma"
+      zIndex={1030}
       className="ds-foglioconferma-radice"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1030,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        background: 'transparent',
-      }}
+      stile={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
     >
       <style>{`
         .ds-foglioconferma-testo strong,
@@ -275,6 +274,10 @@ export function FoglioConferma(props: {
         onClick={tapVelo.onClick}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        // 🛑 D100 — il velo esce INSIEME al pannello, e non è una scelta di
+        // stile: senza questa riga il pannello scenderebbe con la sua molla
+        // sopra uno sfondo già sparito, cioè peggio del taglio secco di prima.
+        exit={{ opacity: 0 }}
         // La dissolvenza RESTA anche a preferenza accesa (scelta, non
         // dimenticanza): §1.9 legifera sulle chiavi di SPOSTAMENTO, e
         // un'opacità non sposta niente — stessa ragione di `FoglioCategoria`.
@@ -422,8 +425,11 @@ export function FoglioConferma(props: {
           </TastoPrimario>
         </div>
       </motion.div>
-    </div>
-  )
+    </StratoRadice>
+  ) : null
 
-  return createPortal(overlay, document.body)
+  return createPortal(
+    <AnimatePresence onExitComplete={rilasciaScorrimento}>{overlay}</AnimatePresence>,
+    document.body
+  )
 }

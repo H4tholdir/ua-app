@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { type RefObject } from 'react'
-import { render, screen, fireEvent, createEvent } from '@testing-library/react'
+import { render, screen, fireEvent, createEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { raggio, sopraFoto, spazio, tipografia } from '@/design-system/v3/tokens'
 
@@ -429,7 +429,7 @@ describe('TendinaMenu — la tendina ancorata al ⋯ (§5.40)', () => {
 
   // ══ LO SCORRIMENTO — la ricetta di §1.4, con la sentinella ═════════════
   describe('lo scorrimento del corpo (D84)', () => {
-    it('blocca mentre è aperta e RESTITUISCE il valore vero alla chiusura', () => {
+    it('blocca mentre è aperta e RESTITUISCE il valore vero alla chiusura', async () => {
       // Sentinella: nessun bloccante scriverebbe mai «scroll». Con «hidden»
       // la prova sarebbe verde anche per un componente che non blocca affatto.
       document.body.style.overflow = 'scroll'
@@ -439,6 +439,10 @@ describe('TendinaMenu — la tendina ancorata al ⋯ (§5.40)', () => {
       expect(document.body.style.overflow).toBe('hidden')
 
       rerender(<TendinaMenu {...props({ aperta: false })} />)
+      // 🔧 D100 — il rilascio è differito a fine uscita (`useScorrimentoBloccato`):
+      // la barra che ricompare a metà uscita allarga la pagina dietro. Quel che
+      // questa prova guarda resta identico: il valore restituito è quello VERO.
+      await act(async () => {})
       expect(document.body.style.overflow).toBe('scroll')
       expect(document.body.style.paddingRight).toBe('7px')
     })

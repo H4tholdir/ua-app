@@ -1,5 +1,5 @@
 import { createElement, forwardRef, type RefObject } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { raggio, materia, spazio } from '@/design-system/v3/tokens'
@@ -503,7 +503,7 @@ describe('FoglioConferma — il foglio di conferma prima di cancellare una foto 
       expect((window.history.state as Record<string, unknown>)?.uaSheet).toBe(true)
     })
 
-    it('blocca lo scorrimento mentre è aperto e restituisce il valore VERO (non \'\') alla chiusura', () => {
+    it('blocca lo scorrimento mentre è aperto e restituisce il valore VERO (non \'\') alla chiusura', async () => {
       // Sentinella: nessun bloccante scriverebbe MAI 'scroll'/'7px' — se dopo la
       // chiusura vale ancora questo, il componente ha bloccato E sbloccato davvero.
       document.body.style.overflow = 'scroll'
@@ -512,6 +512,9 @@ describe('FoglioConferma — il foglio di conferma prima di cancellare una foto 
       const { rerender } = render(<FoglioConferma {...props()} />)
       expect(document.body.style.overflow).toBe('hidden')
       rerender(<FoglioConferma {...props({ aperto: false })} />)
+      // 🔧 D100 — rilascio differito a fine uscita (`useScorrimentoBloccato`),
+      // come già faceva `Sheet`. La sentinella resta quella: valore VERO, non ''.
+      await act(async () => {})
       expect(document.body.style.overflow).toBe('scroll')
       expect(document.body.style.paddingRight).toBe('7px')
     })

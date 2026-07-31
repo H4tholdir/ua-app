@@ -180,7 +180,7 @@ describe('VisoreFoto — il visore a tutto schermo (§5.39)', () => {
   })
 
   // ══ Lo scorrimento del corpo — §1.4, con la sentinella ═════════════════
-  it('blocca lo scorrimento mentre è aperto e RESTITUISCE il valore vero alla chiusura (sentinella «scroll»)', () => {
+  it('blocca lo scorrimento mentre è aperto e RESTITUISCE il valore vero alla chiusura (sentinella «scroll»)', async () => {
     // «scroll» e «7px» sono valori che NESSUN bloccante scriverebbe mai: se
     // alla fine li ritroviamo, il modulo ha restituito il valore VERO e non
     // una stringa vuota.
@@ -191,6 +191,12 @@ describe('VisoreFoto — il visore a tutto schermo (§5.39)', () => {
     expect(document.body.style.overflow).toBe('hidden')
 
     rerender(<VisoreFoto {...props({ aperto: false })} />)
+    // 🔧 D100 — il rilascio è DIFFERITO a fine uscita, come già faceva `Sheet`
+    // (v. la prova dei due strati qui sotto, che aspettava così da prima):
+    // sbloccare a metà uscita fa ricomparire la barra e la pagina dietro
+    // slitta. Ciò che questa prova guarda NON è cambiato: che il valore
+    // restituito sia quello VERO («scroll», «7px») e non una stringa vuota.
+    await act(async () => {})
     expect(document.body.style.overflow).toBe('scroll')
     expect(document.body.style.paddingRight).toBe('7px')
     unmount()
@@ -233,13 +239,17 @@ describe('VisoreFoto — il visore a tutto schermo (§5.39)', () => {
     unmount()
   })
 
-  it('apri → chiudi → riapri: un solo posto nel contatore per ciclo, e il corpo torna al valore vero', () => {
+  it('apri → chiudi → riapri: un solo posto nel contatore per ciclo, e il corpo torna al valore vero', async () => {
     document.body.style.overflow = 'scroll'
     const { rerender, unmount } = render(<VisoreFoto {...props()} />)
     rerender(<VisoreFoto {...props({ aperto: false })} />)
+    // 🔑 La riapertura avviene DENTRO la finestra d'uscita, e da D100 è il caso
+    // che conta davvero: il posto nel contatore è ancora quello di prima e non
+    // se ne prende un secondo.
     rerender(<VisoreFoto {...props()} />)
     expect(document.body.style.overflow).toBe('hidden')
     rerender(<VisoreFoto {...props({ aperto: false })} />)
+    await act(async () => {})
     // Se l'apertura avesse preso DUE posti, qui il corpo resterebbe «hidden».
     expect(document.body.style.overflow).toBe('scroll')
     unmount()

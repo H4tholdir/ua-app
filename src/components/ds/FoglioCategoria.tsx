@@ -65,12 +65,13 @@
 
 import { useEffect, useId, useRef, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, animate as animaValore, useMotionValue, useDragControls } from 'motion/react'
+import { motion, AnimatePresence, animate as animaValore, useMotionValue, useDragControls } from 'motion/react'
 import { coreografie, istantaneo, molla, useReducedMotion } from '@/design-system/v3/motion'
 import { materia, raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 import { entraOverlay, esciOverlay } from '@/components/ds/storia-overlay'
-import { bloccaScorrimento } from '@/components/ds/blocca-scorrimento'
+import { StratoRadice } from '@/components/ds/StratoRadice'
+import { useScorrimentoBloccato } from '@/components/ds/useScorrimentoBloccato'
 import { trappolaFocus } from '@/components/ds/trappola-focus'
 import { useTapScrim } from '@/components/ds/useTapScrim'
 // 🛑 `deveChiudere` si IMPORTA, non si riscrive: è pura e vive già in casa
@@ -193,10 +194,11 @@ export function FoglioCategoria(props: {
     return () => esciOverlay(token)
   }, [aperto])
 
-  useEffect(() => {
-    if (!aperto) return
-    return bloccaScorrimento()
-  }, [aperto])
+  // Rilascio differito a fine uscita (D100, `useScorrimentoBloccato`).
+  // ⚠️ Questo foglio vive su DUE superfici — la scheda del lavoro e la pagina di
+  // modifica (`TabImmagini.tsx`, ancora legacy per D98): il differimento vale
+  // per entrambe, e su entrambe il fatto osservabile è lo stesso.
+  const rilasciaScorrimento = useScorrimentoBloccato(aperto)
 
   useEffect(() => {
     if (!aperto) return
@@ -215,7 +217,10 @@ export function FoglioCategoria(props: {
   const tapVelo = useTapScrim(aperto, () => esciRef.current())
 
   if (typeof document === 'undefined') return null
-  if (!aperto) return null
+  // 🛑 Il `return null` su `aperto` si è spostato DENTRO l'`AnimatePresence`
+  // (D100). 🔑 Come nel foglio della conferma, qui l'uscita era GIÀ scritta
+  // (`coreografie.sheetSu.exit` + variante ridotta) e non poteva girare: rendere
+  // `null` staccava l'albero nello stesso commit. D100 la fa partire.
 
   function scegli(categoria: CategoriaFoto) {
     // §1.10: vibrazione sì, suono MAI — quattro precedenti in casa.
@@ -253,19 +258,12 @@ export function FoglioCategoria(props: {
   // chiave, non che passi da un nome.
   const movimento = variantePannello(reduced)
 
-  const overlay = (
-    <div
-      data-ds="v3"
+  const overlay = aperto ? (
+    <StratoRadice
+      key="ds-fogliocategoria"
+      zIndex={1030}
       className="ds-foglio-radice"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1030,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        background: 'transparent',
-      }}
+      stile={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
     >
       <style>{`
         .ds-foglio-pastiglia:focus-visible {
@@ -281,6 +279,9 @@ export function FoglioCategoria(props: {
         onClick={tapVelo.onClick}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        // 🛑 D100 — il velo esce INSIEME al pannello: un pannello che scende con
+        // la sua molla sopra uno sfondo già sparito è peggio del taglio secco.
+        exit={{ opacity: 0 }}
         // 🔑 La dissolvenza del velo RESTA anche a preferenza accesa, ed è una
         // scelta, non una dimenticanza: §1.9 legifera sulle chiavi di
         // SPOSTAMENTO («ogni chiave di spostamento… per chiave»), §8.4 dice che
@@ -490,8 +491,11 @@ export function FoglioCategoria(props: {
           })}
         </div>
       </motion.div>
-    </div>
-  )
+    </StratoRadice>
+  ) : null
 
-  return createPortal(overlay, document.body)
+  return createPortal(
+    <AnimatePresence onExitComplete={rilasciaScorrimento}>{overlay}</AnimatePresence>,
+    document.body
+  )
 }

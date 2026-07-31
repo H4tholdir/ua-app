@@ -1,5 +1,5 @@
 import { type RefObject } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
@@ -369,13 +369,16 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
       expect((window.history.state as Record<string, unknown>)?.uaSheet).toBe(true)
     })
 
-    it('blocca lo scorrimento in ENTRAMBI i suoi momenti, e restituisce il valore VERO alla chiusura', () => {
+    it('blocca lo scorrimento in ENTRAMBI i suoi momenti, e restituisce il valore VERO alla chiusura', async () => {
       document.body.style.overflow = 'scroll'
       document.body.style.paddingRight = '7px'
 
       const { rerender } = render(<FoglioCategoria {...props()} />)
       expect(document.body.style.overflow).toBe('hidden')
       rerender(<FoglioCategoria {...props({ aperto: false })} />)
+      // 🔧 D100 — rilascio differito a fine uscita (`useScorrimentoBloccato`).
+      // Il fatto guardato non cambia: il valore restituito è quello VERO.
+      await act(async () => {})
       expect(document.body.style.overflow).toBe('scroll')
       expect(document.body.style.paddingRight).toBe('7px')
 
@@ -383,6 +386,7 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
       rerender(<FoglioCategoria {...props({ scelta: 'impronta' })} />)
       expect(document.body.style.overflow).toBe('hidden')
       rerender(<FoglioCategoria {...props({ scelta: 'impronta', aperto: false })} />)
+      await act(async () => {})
       expect(document.body.style.overflow).toBe('scroll')
     })
 

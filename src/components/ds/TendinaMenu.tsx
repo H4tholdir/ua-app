@@ -63,12 +63,13 @@
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { istantaneo, molla, useReducedMotion } from '@/design-system/v3/motion'
 import { raggio, sopraFoto, spazio, tipografia } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 import { entraOverlay, esciOverlay } from '@/components/ds/storia-overlay'
-import { bloccaScorrimento } from '@/components/ds/blocca-scorrimento'
+import { StratoRadice } from '@/components/ds/StratoRadice'
+import { useScorrimentoBloccato } from '@/components/ds/useScorrimentoBloccato'
 import { useTapScrim } from '@/components/ds/useTapScrim'
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect'
 
@@ -131,10 +132,10 @@ export function TendinaMenu(props: {
     return () => esciOverlay(token)
   }, [viva])
 
-  useEffect(() => {
-    if (!viva) return
-    return bloccaScorrimento()
-  }, [viva])
+  // Il rilascio è differito a `onExitComplete` (D100, `useScorrimentoBloccato`):
+  // la barra che ricompare a metà uscita allarga la pagina dietro, e qui dietro
+  // c'è il visore a tutto schermo.
+  const rilasciaScorrimento = useScorrimentoBloccato(viva)
 
   // La misura si prende PRIMA del paint: con un `useEffect` normale la tendina
   // comparirebbe per un fotogramma nel suo ripiego e poi salterebbe al suo posto.
@@ -185,7 +186,10 @@ export function TendinaMenu(props: {
   const tapVelo = useTapScrim(viva, () => onChiudiRef.current())
 
   if (typeof document === 'undefined') return null
-  if (!viva) return null
+  // 🛑 Il `return null` su `viva` si è spostato DENTRO l'`AnimatePresence`, in
+  // fondo al file (D100): reso `null` nello stesso commit, l'albero è già
+  // staccato e non c'è più niente da far uscire. Il MONTAGGIO non cambia — il
+  // chiamante tiene questo componente montato sempre (lezione ① del 02/08).
 
   function vai(indice: number) {
     const bottoni = vociRef.current
@@ -266,12 +270,8 @@ export function TendinaMenu(props: {
   // difetto vero (l'àncora mancante) è già stato detto in console, sopra.
   const posto = posizione ?? { top: spazio.m, right: spazio.m }
 
-  const overlay = (
-    <div
-      data-ds="v3"
-      className="ds-tendina-radice"
-      style={{ position: 'fixed', inset: 0, zIndex: 1020, background: 'transparent' }}
-    >
+  const overlay = viva ? (
+    <StratoRadice key="ds-tendina" zIndex={1020} className="ds-tendina-radice">
       <style>{`
         .ds-tendina-voce:focus-visible {
           outline: 2px solid var(--blue);
@@ -299,6 +299,11 @@ export function TendinaMenu(props: {
         onKeyDown={alTasto}
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
+        // Rientra dove è nata: `transformOrigin: '100% 0'` vale anche
+        // all'indietro, quindi la tendina si richiude VERSO il ⋯ da cui è
+        // uscita. Simmetrica come l'entrata (D100): §5.40 non aveva scritto
+        // l'uscita — questo è il vuoto vero che D100 riempie.
+        exit={{ opacity: 0, scale: 0.96 }}
         transition={transizione}
         style={{
           position: 'fixed',
@@ -400,8 +405,11 @@ export function TendinaMenu(props: {
           )
         })}
       </motion.div>
-    </div>
-  )
+    </StratoRadice>
+  ) : null
 
-  return createPortal(overlay, document.body)
+  return createPortal(
+    <AnimatePresence onExitComplete={rilasciaScorrimento}>{overlay}</AnimatePresence>,
+    document.body
+  )
 }

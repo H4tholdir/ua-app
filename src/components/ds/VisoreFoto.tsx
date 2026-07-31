@@ -43,14 +43,21 @@
 // Se l'àncora è vuota all'apertura si avvisa in sviluppo: il focus che non
 // torna è un difetto che non si vede in nessuno screenshot.
 //
-// ── Lo scorrimento: si rilascia nella pulizia, e la differenza è dichiarata ─
-// `Sheet` differisce lo sblocco a `onExitComplete` perché il suo pannello è
-// centrato e la barra che ricompare a metà uscita lo fa slittare di lato
-// (difetto pagato in collaudo). Qui il pannello è `inset: 0`: la barra che
-// ricompare non sposta niente di visibile. Quindi il rilascio sta nella
-// pulizia dell'effect — un blocco, uno sblocco, e nessun bisogno della
-// guardia «un solo posto per istanza» che a `Sheet` serve proprio perché
-// differisce.
+// ── Lo scorrimento: il rilascio è DIFFERITO, e il PERCHÉ è cambiato (D100) ──
+// 🛑 Fino a D100 qui c'era scritto l'opposto, con una motivazione vera nel suo
+// mondo: «`Sheet` differisce perché il suo pannello è centrato e la barra che
+// ricompare lo fa slittare; qui il pannello è `inset: 0` e non sposta niente
+// di visibile, quindi si rilascia subito». Quella frase era scritta per un
+// visore che NON animava l'uscita: spariva di taglio, e non esisteva nessun
+// «durante» in cui qualcosa potesse slittare. Con l'uscita esiste — e ciò che
+// slitta non è il pannello, è la PAGINA DIETRO, che si allarga quando la barra
+// ricompare e si vede attraverso un velo ancora in dissolvenza.
+// La motivazione è decaduta insieme alla sua premessa: il rilascio passa a
+// `onExitComplete` (`useScorrimentoBloccato`).
+// ⚠️ È la lezione ③ dell'handoff del 02/08 colta sul fatto: un commento che
+// afferma una protezione — o, come qui, un'ESENZIONE — non più vera è peggio
+// del silenzio. Chi l'avesse letto dopo l'uscita avrebbe dedotto che il caso
+// era stato considerato.
 //
 // ── Sicurezza (G5 · D75) ───────────────────────────────────────────────────
 // Come §5.38: l'indirizzo firmato entra SOLO come `src` di un `<img>`, mai in
@@ -59,13 +66,14 @@
 
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { istantaneo, molla, useReducedMotion } from '@/design-system/v3/motion'
 import { raggio, sopraFoto, spazio, testoSuFaccia, tipografia } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 import { etichettaCategoria } from '@/lib/domain/categorie-foto'
 import { entraOverlay, esciOverlay } from '@/components/ds/storia-overlay'
-import { bloccaScorrimento } from '@/components/ds/blocca-scorrimento'
+import { StratoRadice } from '@/components/ds/StratoRadice'
+import { useScorrimentoBloccato } from '@/components/ds/useScorrimentoBloccato'
 import { trappolaFocus } from '@/components/ds/trappola-focus'
 import { useTapScrim } from '@/components/ds/useTapScrim'
 // Il tipo vive in un posto solo: due copie dello stesso dato sono due copie che
@@ -116,10 +124,8 @@ export function VisoreFoto(props: {
     return () => esciOverlay(token)
   }, [vivo])
 
-  useEffect(() => {
-    if (!vivo) return
-    return bloccaScorrimento()
-  }, [vivo])
+  // Il rilascio è differito a `onExitComplete` (v. il commento di testa, D100).
+  const rilasciaScorrimento = useScorrimentoBloccato(vivo)
 
   useEffect(() => {
     if (!vivo) return
@@ -139,9 +145,16 @@ export function VisoreFoto(props: {
   const tapVelo = useTapScrim(vivo, chiudi)
 
   if (typeof document === 'undefined') return null
-  if (!vivo) return null
 
-  const etichetta = etichettaCategoria(corrente.categoria)
+  // 🛑 IL `return null` NON STA PIÙ QUI, ed è la differenza fra un'uscita e un
+  // taglio (D100): un componente che rende `null` appena `aperto` è falso
+  // stacca il suo albero dal documento nello stesso commit, e `AnimatePresence`
+  // non ha più niente da far uscire. La condizione si è spostata DENTRO
+  // l'`AnimatePresence`, in fondo al file.
+  // ⚠️ Quel che NON cambia — ed è il difetto pagato il 02/08 (lezione ①): il
+  // componente resta montato SEMPRE dal chiamante e pilotato da `aperto`. Qui
+  // si sposta il `null`, non il montaggio.
+  const etichetta = corrente ? etichettaCategoria(corrente.categoria) : ''
   const totale = foto.length
 
   function chiudi() {
@@ -186,11 +199,8 @@ export function VisoreFoto(props: {
   // lì la dissolvenza resta una molla.
   const transizione = reduced ? istantaneo : molla.smooth
 
-  const overlay = (
-    <div
-      data-ds="v3"
-      style={{ position: 'fixed', inset: 0, zIndex: 1010, background: 'transparent' }}
-    >
+  const overlay = vivo && corrente ? (
+    <StratoRadice key="ds-visore" zIndex={1010} className="ds-visore-radice">
       <style>{`
         .ds-visore-tondo:focus-visible,
         .ds-visore-pastiglia:focus-visible,
@@ -205,6 +215,11 @@ export function VisoreFoto(props: {
         aria-hidden="true"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        // 🛑 L'uscita del VELO non è una scelta di stile (D100): un pannello che
+        // se ne va con la sua molla sopra uno sfondo che sparisce di colpo è
+        // peggio del taglio secco — si vedrebbe la scheda dietro riapparire in
+        // pieno mentre la foto è ancora lì.
+        exit={{ opacity: 0 }}
         transition={transizione}
         style={{
           position: 'absolute',
@@ -320,6 +335,11 @@ export function VisoreFoto(props: {
           onClick={tapVelo.onClick}
           initial={{ scale: 0.98, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
+          // Simmetrica, e la spec lo diceva già: §5.39 «entra ED ESCE con
+          // `molla.smooth`». D100 la esegue, non la corregge — l'uscita è
+          // l'andata al rovescio, che è il modo in cui Apple tratta una
+          // transizione (in SwiftUI l'asimmetria va dichiarata a mano).
+          exit={{ scale: 0.98, opacity: 0 }}
           transition={transizione}
           style={{
             flex: 1,
@@ -417,10 +437,13 @@ export function VisoreFoto(props: {
           />
         </div>
       </div>
-    </div>
-  )
+    </StratoRadice>
+  ) : null
 
-  return createPortal(overlay, document.body)
+  return createPortal(
+    <AnimatePresence onExitComplete={rilasciaScorrimento}>{overlay}</AnimatePresence>,
+    document.body
+  )
 }
 
 /** Lo stile dei tondi del capo (✕ e ⋯).

@@ -146,7 +146,11 @@ describe('T12 — la scheda: dal visore si elimina una foto', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /Apri la foto grande.*1 di 1/ })).toBeInTheDocument(),
     )
-    expect(screen.queryByRole('dialog')).toBeNull()
+    // 🔧 D100 — gli strati ora ANIMANO l'uscita: fra la chiusura e la sparizione
+    // dal documento c'è la loro uscita, quindi si aspetta invece di leggere
+    // nello stesso istante. Il fatto preteso non cambia: alla fine il visore
+    // non c'è più.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     // e si chiede al server la versione fresca: la rimozione locale è ottimistica
     expect(refresh).toHaveBeenCalled()
   })
@@ -244,7 +248,7 @@ describe('T12 — la scheda: dal visore si elimina una foto', () => {
   })
 
   // ── Escape: UNO strato per volta, non tutti e tre insieme ────────────────
-  it('con visore + tendina aperti, un Escape chiude SOLO la tendina', () => {
+  it('con visore + tendina aperti, un Escape chiude SOLO la tendina', async () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro()} />)
     apriVisore()
     apriTendina()
@@ -252,7 +256,11 @@ describe('T12 — la scheda: dal visore si elimina una foto', () => {
 
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
 
-    expect(screen.queryByRole('menu')).toBeNull()
+    // 🔧 D100 — la tendina esce con la sua molla, quindi resta nel documento per
+    // la durata dell'uscita: si aspetta che se ne vada. 🔑 E il fatto che questa
+    // prova esiste per presidiare è INTATTO, anzi più forte: alla fine dell'uscita
+    // il menù non c'è più e il visore sotto è ancora lì. Un Escape, uno strato.
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })
