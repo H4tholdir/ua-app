@@ -83,8 +83,31 @@ const RICETTA = `   Il primo braccio ha bisogno di un lavoro consegnabile nella 
       where numero_lavoro='E2E-CAS-002';
    (E2E-CAS-001 non si tocca.)`
 
-/** Firma osservabile: indirizzo, profondità della history, overlay dipinti. Sola lettura. */
+/** Firma osservabile: indirizzo, profondità della history, overlay dipinti. Sola lettura.
+ *
+ *  ⚠️ LA RETE SUL SECONDO TENTATIVO NON È PIGNOLERIA — è il difetto misurato il 03/08/2026.
+ *  Una traversal CROSS-document (la seconda pressione «indietro» dei bracci 1-2 lascia la SPA e
+ *  atterra su /tutto-il-resto) può ancora essere in volo quando parte questo `evaluate`: Chromium
+ *  distrugge il contesto e l'evaluate LANCIA. Nessuno catturava quell'eccezione, quindi moriva
+ *  l'INTERA guardia — al primo tentativo con la fixture in piedi si è persa anche la misura dei
+ *  bracci che avevano già funzionato. `provato:` sonda su 12 tentativi per versione (documento
+ *  sostituito di proposito durante la lettura) → versione nuda **12 rotture su 12**, questa
+ *  **0 su 12**, stesso messaggio d'errore visto sul campo.
+ *  🔑 Non nasconde niente: si aspetta il documento NUOVO e si rilegge lì — l'osservazione va
+ *  fatta sul documento che c'è — e se anche il secondo tentativo fallisce l'errore esce lo stesso.
+ *  Il ritardo a tempo di `indietro()` NON basta: 900 ms sono una scommessa sulla velocità della
+ *  macchina, e a freddo la si perde. */
 async function firma(page) {
+  try {
+    return await firmaOra(page)
+  } catch (e) {
+    if (!/Execution context was destroyed|Target closed|frame was detached/i.test(String(e))) throw e
+    await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {})
+    return firmaOra(page)
+  }
+}
+
+async function firmaOra(page) {
   return page.evaluate(() => {
     const visibile = (el) => {
       const r = el.getBoundingClientRect()
@@ -197,6 +220,11 @@ async function braccio({ nome, partenza, apri, tocca, attesa }) {
       guasti.push(`[${nome}] D-1: la SECONDA pressione indietro non fa niente (pressione morta su ${b2.url}) — è l'entry dell'overlay rimasta sepolta`)
     }
     nota.push(`${nome}: destinazione raggiunta, profondità ${aperto.len} → ${dopo.len}, ritorno ${b1.url} poi ${b2.url}`)
+  } catch (e) {
+    // Lezione ⑤ del 02/08 applicata allo strumento: si controlla anche COME la rete si spegne.
+    // Un'eccezione qui dentro riguarda QUESTO braccio — diventa un suo guasto, con il suo nome,
+    // e gli altri bracci danno comunque il loro verdetto.
+    guasti.push(`[${nome}] la guardia si è rotta prima di finire: ${String(e).slice(0, 200)}`)
   } finally {
     await page.close()
   }
@@ -303,6 +331,11 @@ await braccio({
         }
       }
     }
+  } catch (e) {
+    // Lezione ⑤ del 02/08 applicata allo strumento: si controlla anche COME la rete si spegne.
+    // Un'eccezione qui dentro riguarda QUESTO braccio — diventa un suo guasto, con il suo nome,
+    // e gli altri bracci danno comunque il loro verdetto.
+    guasti.push(`[${'indietro non conferma'}] la guardia si è rotta prima di finire: ${String(e).slice(0, 200)}`)
   } finally {
     await page.close()
   }
@@ -401,6 +434,11 @@ await braccio({
         }
       }
     }
+  } catch (e) {
+    // Lezione ⑤ del 02/08 applicata allo strumento: si controlla anche COME la rete si spegne.
+    // Un'eccezione qui dentro riguarda QUESTO braccio — diventa un suo guasto, con il suo nome,
+    // e gli altri bracci danno comunque il loro verdetto.
+    guasti.push(`[${'album: tre strati'}] la guardia si è rotta prima di finire: ${String(e).slice(0, 200)}`)
   } finally {
     await page.close()
   }

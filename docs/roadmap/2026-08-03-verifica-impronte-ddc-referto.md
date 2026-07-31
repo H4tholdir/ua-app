@@ -3,9 +3,10 @@
 **Esito: ✅ PROVATO in produzione.** Una Dichiarazione di Conformità **nuova** nasce con le sue due
 impronte: `payload_sha256` valorizzato e `template_version = 'ddc-v1'`.
 
-**Chiude:** `docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md` §0, **primo braccio**.
-🛑 **Il secondo braccio della §0 resta aperto:** il primo braccio della guardia
-`scripts/guardia-navigazione-overlay.mjs` (fixture `E2E-CAS-002`) **non è stato toccato** — vedi §5.
+**Chiude:** `docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md` §0 — **per intero**.
+✅ **Anche la seconda cosa della §0 è chiusa** (v. §8): il primo braccio della guardia
+`scripts/guardia-navigazione-overlay.mjs` ha finalmente misurato, ed è verde — ma per arrivarci ha
+dovuto essere **riparata la guardia stessa**, che si rompeva.
 
 ⚠️ **Sulla data.** L'orologio della macchina dice **31 luglio**, i nomi dei documenti del progetto seguono
 il **3 agosto**. Questo referto tiene il nome della serie. 🔑 **Ma ora c'è un fatto misurato:** la
@@ -197,3 +198,87 @@ genera sempre in sequenza (`orchestrate.ts` Step 3 → Step 4), quindi quella ri
 da una consegna completa** (uno script, o un tentativo interrotto dopo la dichiarazione). **Non l'ho
 determinato**, ed essendo un laboratorio di prova non ho speso altro tempo: sta qui perché una domanda
 lasciata senza risposta è meglio dichiararla che dimenticarla.
+
+---
+
+## 8. Il secondo braccio della §0 — il primo braccio della guardia overlay, e la guardia riparata
+
+**Esito: ✅ tutti e quattro i bracci verdi, due corse di fila.** Il braccio che non aveva mai misurato
+adesso ha il suo verdetto:
+
+```
+consegna dalla pila → completa i dati: destinazione raggiunta, profondità 4 → 4,
+                                       ritorno /lavori?pila=rossa poi /tutto-il-resto
+menu ⋯ → ponte di modifica:            destinazione raggiunta, profondità 4 → 4
+indietro non conferma:                 dialogo via, sheet resta, secondo indietro chiude lo sheet,
+                                       6 cassette intatte dopo il ricarico
+album: tre strati:                     indietro chiude la tendina e lascia il visore aperto sotto ·
+                                       indietro sulla conferma annulla: la foto è ancora lì
+✅ navigare da un overlay: si arriva a destinazione, nessuna entry sepolta, nessuna pressione
+   indietro morta, e indietro non conferma mai          → uscita 0
+```
+
+### La fixture, e come è stata rimessa a posto
+
+Il primo braccio vuole un lavoro **consegnabile con un ostacolo** nella pila rossa, che il seed non crea.
+Preparato `E2E-CAS-002` (`stato='pronto'`, `data_consegna_prevista` = oggi) e **rimesso com'era** subito
+dopo, con `scripts/tmp/giro-guardia-overlay.ts`: prepara → esegue → ripristina, col ripristino in un
+`finally` che gira **anche se la guardia esplode** — e che si è dimostrato utile, perché alla prima corsa
+la guardia è esplosa davvero.
+
+🔑 **Il ripristino non usa i valori scritti nella ricetta** (`in_lavorazione` / `2026-12-31`, annotati il
+26/07): **rilegge la riga vera** un istante prima di toccarla e riscrive quei valori, poi rilegge e
+**dimostra** di averla rimessa. Una ricetta a mano invecchia rispetto al dato; una lettura no. Il comando di
+riparazione viene stampato **prima** di eseguire, così se il processo muore è già a schermo.
+
+### 🔴 Ma la guardia si rompeva — due difetti dello strumento, trovati usandolo
+
+**Al primo tentativo con la fixture in piedi, la guardia è morta** con
+`page.evaluate: Execution context was destroyed, most likely because of a navigation`, e con lei sono
+spariti anche i verdetti dei bracci che avevano già funzionato.
+
+**① La causa: la lettura non regge la sostituzione del documento.** `firma()` fa un `page.evaluate`
+nudo. La **seconda pressione «indietro»** dei bracci 1-2 lascia la SPA e atterra su `/tutto-il-resto`: è una
+traversal **cross-document**, e se è ancora in volo quando parte l'`evaluate`, Chromium distrugge il
+contesto e la chiamata lancia. L'attesa che doveva coprirla è un `waitForTimeout(900)` — **una scommessa
+sulla velocità della macchina**, che a freddo si perde.
+
+`provato:` sonda `scripts/tmp/sonda-firma.mjs`, 12 tentativi per versione, documento sostituito di
+proposito durante la lettura:
+
+```
+firma NUDA (com'era):     12 rotture su 12      ← stesso messaggio d'errore visto sul campo
+firma CON RETE (rimedio):  0 rotture su 12
+```
+
+E nella direzione opposta, per provare che è **il tempo** la variabile: azzerando i `waitForTimeout(900)`
+la guardia diventa **rossa sistematicamente** (2 corse su 2), coi bracci 3 e 4 che riportano guasti
+inesistenti. Non è pignoleria: è la dimostrazione che quella misura poggiava su un'attesa a tempo.
+
+**Rimedio:** se il contesto è stato distrutto, si aspetta il documento **nuovo** (`domcontentloaded`) e si
+rilegge lì. 🔑 Non nasconde niente — l'osservazione va fatta sul documento che c'è — e se anche il secondo
+tentativo fallisce, l'errore esce lo stesso.
+
+**② Il modo in cui si spegneva, che è il difetto peggiore.** L'eccezione di un braccio **uccideva l'intera
+guardia**: nessun verdetto per gli altri tre, nessun nome del braccio colpevole, e soprattutto il disegno
+delle uscite (0 verde · 1 difetto · 2 non misurato) **scavalcato da un'eccezione nuda**. È la lezione ⑤ del
+02/08 applicata allo strumento: *si controlla anche COME la rete si spegne*.
+
+**Rimedio:** ogni braccio cattura la propria eccezione e la registra come **suo** guasto, con il suo nome;
+gli altri danno comunque il verdetto.
+`provato:` guasto finto iniettato nel primo braccio (`scripts/tmp/guardia-prova-catch.mjs`) →
+
+```
+❌ GUARDIA NAVIGAZIONE-OVERLAY ROSSA
+   - [consegna dalla pila → completa i dati] la guardia si è rotta prima di finire: Error: GUASTO FINTO
+```
+
+…**e gli altri tre bracci hanno misurato lo stesso**, con le loro note. Prima della riparazione, lo stesso
+guasto avrebbe portato via tutto.
+
+### 🔑 La lezione, che vale oltre questo script
+
+**Una rete mai eseguita non è una rete: è una promessa.** Questa guardia era in casa da giorni, dichiarata
+come protezione di una direttiva permanente, e il suo primo braccio non era mai stato fatto girare —
+bastava la fixture. Alla prima esecuzione vera si è rotta in due punti diversi, **nessuno dei quali era un
+difetto dell'applicazione**. Il verde degli altri tre bracci non diceva niente su questo, e non poteva.
