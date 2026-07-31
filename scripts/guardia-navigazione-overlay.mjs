@@ -42,21 +42,25 @@
 //   paziente non ancora identificato, che è ciò che fa comparire la riga «Tocca per risolvere».
 //   Sul banco di collaudo (26/07/2026) la pila rossa è VUOTA e `npx tsx scripts/seed-e2e.ts` non
 //   ne crea uno: ricostruire l'applicazione non cambia il database, quindi questo braccio resta
-//   non misurato finché qualcuno non prepara la fixture a mano. Ricetta (E2E-CAS-002 è il
-//   candidato: nella cassetta C3, senza paziente, quindi con l'ostacolo giusto già addosso):
+//   non misurato finché qualcuno non prepara la fixture. `E2E-CAS-002` è il candidato: cassetta
+//   C3, senza paziente, quindi con l'ostacolo giusto già addosso.
 //
-//     -- prepara
-//     update lavori set stato='pronto', data_consegna_prevista=current_date
-//      where numero_lavoro='E2E-CAS-002';
-//     -- rimetti com'era, SUBITO dopo la misura
-//     update lavori set stato='in_lavorazione', data_consegna_prevista='2026-12-31'
-//      where numero_lavoro='E2E-CAS-002';
+//   ➡️  NON preparare la fixture a mano. C'è un ricambio, e fa il giro intero:
+//
+//         npx tsx scripts/giro-guardia-overlay.ts
+//
+//   (prepara → lancia questa guardia → RIMETTE la riga com'era, con il ripristino in un
+//   `finally` che gira anche se la guardia esplode.) 🔑 Quel ripristino **rilegge la riga vera**
+//   un istante prima di toccarla e riscrive quei valori: fino al 03/08/2026 qui c'erano due
+//   `UPDATE` cablati (`in_lavorazione` / `2026-12-31`) da copiare a mano, ed è la classe di
+//   istruzione che invecchia in silenzio rispetto al dato — il giorno in cui quel lavoro parte da
+//   un altro stato, chi copia glielo sovrascrive senza accorgersene.
 //
 //   (E2E-CAS-001 non si tocca: il banco lo vuole `in_lavorazione`, senza paziente, non
 //   consegnato.) Senza la fixture la guardia NON diventa verde e NON si limita a saltare in
 //   silenzio — un braccio saltato in silenzio è esattamente il modo in cui questo difetto è
 //   arrivato fin qui: esce **2** («incomplèta»), distinto dall'1 di un difetto vero, e stampa
-//   questa ricetta. Gli altri due bracci danno comunque il loro verdetto.
+//   la ricetta. Gli altri due bracci danno comunque il loro verdetto.
 //
 // ⚠️ Le pressioni «indietro» qui sono traversal VERE (`page.goBack()`), mai un `popstate`
 // sintetico: un evento sintetico è esattamente ciò che fanno i test unitari, ed è ciò che non
@@ -75,12 +79,12 @@ const nonMisurati = []
 const nota = []
 
 const RICETTA = `   Il primo braccio ha bisogno di un lavoro consegnabile nella pila rossa, con un ostacolo
-   alla consegna. Il seed standard non lo crea. Preparalo e RIMETTILO com'era:
-     update lavori set stato='pronto', data_consegna_prevista=current_date
-      where numero_lavoro='E2E-CAS-002';
-     -- ... esegui la guardia ...
-     update lavori set stato='in_lavorazione', data_consegna_prevista='2026-12-31'
-      where numero_lavoro='E2E-CAS-002';
+   alla consegna (E2E-CAS-002). Il seed standard non lo crea. NON prepararlo a mano: c'è il
+   ricambio che fa prepara → misura → rimetti com'era, e che rilegge la riga vera invece di
+   riscrivere valori annotati in un commento:
+
+     npx tsx scripts/giro-guardia-overlay.ts
+
    (E2E-CAS-001 non si tocca.)`
 
 /** Firma osservabile: indirizzo, profondità della history, overlay dipinti. Sola lettura.

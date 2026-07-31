@@ -222,9 +222,16 @@ album: tre strati:                     indietro chiude la tendina e lascia il vi
 
 Il primo braccio vuole un lavoro **consegnabile con un ostacolo** nella pila rossa, che il seed non crea.
 Preparato `E2E-CAS-002` (`stato='pronto'`, `data_consegna_prevista` = oggi) e **rimesso com'era** subito
-dopo, con `scripts/tmp/giro-guardia-overlay.ts`: prepara → esegue → ripristina, col ripristino in un
+dopo, con **`scripts/giro-guardia-overlay.ts`**: prepara → esegue → ripristina, col ripristino in un
 `finally` che gira **anche se la guardia esplode** — e che si è dimostrato utile, perché alla prima corsa
 la guardia è esplosa davvero.
+
+🔑 **Quel ricambio sta nel repo, non fra i file usa-e-getta, e la guardia adesso lo indica al posto dei due
+`UPDATE` da copiare a mano.** È la stessa classe di difetto raccontata qui sotto, vista da un'altra parte:
+la ricetta cablata nel commento (`in_lavorazione` / `2026-12-31`) era un'istruzione che **sembra
+affidabile e invecchia in silenzio** — il giorno in cui quel lavoro parte da un altro stato, chi la copia
+glielo sovrascrive senza accorgersene. Una procedura che esiste solo come istruzione da copiare a mano è
+anche una procedura che nessuno esegue: è il motivo per cui questo braccio non era mai stato misurato.
 
 🔑 **Il ripristino non usa i valori scritti nella ricetta** (`in_lavorazione` / `2026-12-31`, annotati il
 26/07): **rilegge la riga vera** un istante prima di toccarla e riscrive quei valori, poi rilegge e
