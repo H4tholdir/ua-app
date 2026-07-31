@@ -869,6 +869,8 @@ export type Database = {
           data_emissione: string
           deleted_at: string | null
           denti_coinvolti: string[] | null
+          denti_snapshot: Json | null
+          denti_snapshot_at: string | null
           descrizione_dispositivo: string
           fabbricante_indirizzo: string
           fabbricante_itca: string | null
@@ -926,6 +928,8 @@ export type Database = {
           data_emissione?: string
           deleted_at?: string | null
           denti_coinvolti?: string[] | null
+          denti_snapshot?: Json | null
+          denti_snapshot_at?: string | null
           descrizione_dispositivo: string
           fabbricante_indirizzo: string
           fabbricante_itca?: string | null
@@ -983,6 +987,8 @@ export type Database = {
           data_emissione?: string
           deleted_at?: string | null
           denti_coinvolti?: string[] | null
+          denti_snapshot?: Json | null
+          denti_snapshot_at?: string | null
           descrizione_dispositivo?: string
           fabbricante_indirizzo?: string
           fabbricante_itca?: string | null
@@ -2419,8 +2425,6 @@ export type Database = {
           denti_coinvolti: string[] | null
           denti_impianti: number[]
           denti_mancanti: number[]
-          denti_snapshot: Json | null
-          denti_snapshot_at: string | null
           descrizione: string
           disinfettante_usato: string | null
           dispositivo_semilavorato: boolean
@@ -2520,8 +2524,6 @@ export type Database = {
           denti_coinvolti?: string[] | null
           denti_impianti?: number[]
           denti_mancanti?: number[]
-          denti_snapshot?: Json | null
-          denti_snapshot_at?: string | null
           descrizione: string
           disinfettante_usato?: string | null
           dispositivo_semilavorato?: boolean
@@ -2621,8 +2623,6 @@ export type Database = {
           denti_coinvolti?: string[] | null
           denti_impianti?: number[]
           denti_mancanti?: number[]
-          denti_snapshot?: Json | null
-          denti_snapshot_at?: string | null
           descrizione?: string
           disinfettante_usato?: string | null
           dispositivo_semilavorato?: boolean
