@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentunesima tornata (le «caratteristiche prescritte» della Dichiarazione di Conformità)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla trentaduesima tornata (la verifica dal vivo delle due impronte della DdC)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centodue decisioni in trentuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centotré decisioni in trentadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -669,3 +669,36 @@ riprenderebbe la proposta demolita dal panel e la implementerebbe.
 - `generate-ddc.ts:93` scrive il **nome completo del paziente** dove l'Allegato XIII ammette «*un acronimo o un codice numerico*»: la minimizzazione è **dentro la norma**, non solo nel GDPR.
 - `prescrizioni_digitali` **non ha firma del prescrittore né numero d'albo**: oggi nulla garantisce che alla consegna esista un documento di prescrizione archiviato.
 - **Il termine di conservazione della PRESCRIZIONE non ha una fonte primaria sotto MDR** (i «5 anni» erano dell'abrogato D.Lgs. 46/97). Scelta di rischio proposta: allinearla a 10/15 anni della dichiarazione — **non è un obbligo con termine scritto**.
+
+---
+
+### Trentaduesima tornata — la verifica dal vivo delle due impronte (§0 dell'handoff del 3 agosto)
+
+Referto completo: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`. **Esito: ✅ provato in
+produzione** — la DdC nuova `DDC-2026-0002` nasce con `payload_sha256` e `template_version = 'ddc-v1'`;
+la vecchia `DDC-2026-0001` (22/07, prima di D102) le ha entrambe `NULL`. Giro chiuso e annullato: il lavoro
+è tornato `pronto`.
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D103** | 🔑 **Per i collaudi dal vivo si accede al banco con le credenziali che stanno nel file di configurazione del repo, senza chiedere ogni volta** | «*logga tranquillamente con i dati nel file env **e ricordati di questa cosa***» — risposta a una domanda esplicita su come accedere | **Vale da qui in avanti**: nessuna domanda per accedere a un ambiente di prova quando le credenziali sono già in `.env.local`. · ⚠️ **Il modo resta il link monouso** (`admin.generateLink` con la chiave di servizio → `/auth/callback?token_hash=…`): nasce dalle stesse credenziali, **non richiede di digitare una password in un campo** — cosa che Claude non fa in nessun caso — e aggira il limite di tentativi ravvicinati citato nell'handoff §5. Ricetta in `scripts/tmp/link-accesso.ts`. · Scritta anche in `ua-app/CLAUDE.md` §9, perché una direttiva che vive solo in un verbale non arriva alla sessione che ne ha bisogno |
+
+**Scelta operativa della stessa tornata (non una decisione di prodotto, ma cambia il fatto misurato):** la
+prova è stata fatta su **`TEST-DdC-001`** e non sul lavoro indicato nell'handoff (`7dba9a57`), che era in
+stato `ricevuto` e **senza paziente** — si sarebbe fermato al gate degli stati e poi al precheck MDR, senza
+generare nulla. Fra «uso il lavoro già pronto» e «preparo quello del banco scrivendo sul database»,
+Francesco ha scelto il primo: *una prova che comincia modificando i dati per far passare un controllo prova
+meno*.
+
+#### Riferiti e NON toccati (R-E2)
+
+- 🟠 **Il PDF della dichiarazione stampa «CONFORMITA», «Conformita (PRRC)» e «e' conforme», senza accenti** —
+  titolo, etichetta della firma e frase di conformità. 🔑 **Non è un limite del carattere:** nello stesso
+  foglio il §8 rende correttamente «*Il dispositivo **è** conforme*», perché quel testo viene dalla banca
+  dati. Gli altri sono scritti senza accento nel sorgente (`DdcTemplate.tsx:292,294,326,486,514` ·
+  `generate-ddc.ts:117`). ⚠️ Non corretto qui perché il testo di conformità **finisce in banca dati e
+  nell'impronta del payload**: cambiarlo è una decisione sul contenuto di un documento conservato dieci
+  anni, non una correzione di battitura.
+- 🟡 **La numerazione dei paragrafi del PDF salta il §2** (data di emissione): il dato c'è, in testa e in
+  calce, ma senza il suo titoletto. Chi legge col trattino dell'Allegato XIII in mano vede un buco che non
+  c'è.

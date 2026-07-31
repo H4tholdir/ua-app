@@ -1,20 +1,22 @@
-# Sessione attiva — uscita degli strati + riparazioni della DdC: tutto IN PRODUZIONE
+# Sessione attiva — la §0 dell'handoff è chiusa: le due impronte della DdC sono PROVATE dal vivo
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md`** — leggilo per intero.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`** — e per ciò che resta
+aperto, `docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md` §3 (la sua §0 è chiusa a metà: resta il
+primo braccio della guardia navigazione-overlay).
 
-🔴 **E la sua §0 va per prima: NON è stato verificato dal vivo** che una Dichiarazione di Conformità **nuova**
-nasca con le due impronte valorizzate. Le prove girano contro il generatore vero, ma la catena in produzione
-si prova solo **consegnando un lavoro** (giro reversibile: consegna → guarda la riga → annulla consegna).
-Non misurato anche il **primo braccio** della guardia navigazione-overlay (serve la fixture `E2E-CAS-002`).
+✅ **Verificato in produzione** — referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`.
+Consegnato `TEST-DdC-001` su uachelab.com → `DDC-2026-0002` nasce con `payload_sha256` (64 hex) e
+`template_version='ddc-v1'`; la vecchia `DDC-2026-0001` (pre-D102) le ha **entrambe NULL** — il prima e il
+dopo nella stessa tabella. Il file archiviato coincide col suo `pdf_sha256`. **Consegna annullata**: lavoro
+tornato `pronto`, DdC `annullata` come storia.
+🛑 Il lavoro indicato dall'handoff (`7dba9a57`) **non era usabile**: stato `ricevuto` e senza paziente.
 
-🚀 **Stato:** `main` = **`c0754abe`**, allineato con origin, albero pulito, CI verde, deploy `success`,
-uachelab.com risponde. **Niente a metà.**
-✅ **Chiuso oggi:** l'uscita dei quattro strati sopra la foto (D99-D100, verificata dal vivo) · la guardia dei
-documenti riparata (numeri a parole generati, non elencati) · la terza voce aperta dell'handoff dell'ondata (b)
-(D101-D102: le due impronte della DdC, il PDF che smette di leggere dati vivi, la migration `20260803090000`
-applicata) · le correzioni a `ANALISI/17` (glossa presentata come norma) e alla cifra dell'ITCA.
+🚀 **Stato:** `main` = `9ea6eea6` + il salvataggio di questa verifica. **Nessuna modifica al codice.**
+📎 Verbale: **centotré** decisioni in trentadue tornate — **D103** (accesso al banco con i dati di
+`.env.local`; scritto anche in `CLAUDE.md` §9). La prossima è **D104**.
 
-🔑 **Le cinque lezioni stanno in §2 dell'handoff** e valgono per il codice futuro, non solo per queste ondate.
-📎 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centodue** decisioni in
-trentuno tornate. La prossima è **D103**.
-⚠️ L'orologio del Mac dice 31/07, i documenti 02-03/08. Da controllare.
+🟠 **Riferiti, non corretti (R-E2):** il PDF stampa «CONFORMITA» / «e' conforme» **senza accenti** — e non è
+il carattere, perché nello stesso foglio il §8 rende «è» correttamente · la numerazione salta il **§2**.
+🔴 **Resta aperto della §0:** il **primo braccio** della guardia navigazione-overlay (fixture `E2E-CAS-002`).
+⚠️ Orologio: il Mac dice 31/07 e **la DdC emessa porta stampato 31/07/2026** — è quell'orologio che finisce
+sui documenti a valore legale.

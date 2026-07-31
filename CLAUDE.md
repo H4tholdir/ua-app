@@ -484,5 +484,28 @@ React attuale» — fra cui `paziente_nome_snapshot`, `classe_rischio`, `numero_
 - **SECURITY DEFINER:** funzioni PL/pgSQL SECURITY DEFINER richiedono `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` esplicito solo a `service_role`
 - **WhatsApp GDPR:** template MAI con nome paziente — solo numero lavoro + link portale token
 
+### Collaudo dal vivo — l'accesso al banco (D103, Francesco 03/08/2026)
+
+> «logga tranquillamente con i dati nel file env e ricordati di questa cosa»
+
+**Non si chiede il permesso di accedere a un ambiente di prova quando le credenziali sono già in
+`.env.local`** (`TEST_EMAIL`/`TEST_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Il modo preferito è il **link
+d'accesso monouso**, che nasce dalle stesse credenziali ma **non richiede di digitare una password in un
+campo** — cosa che Claude non fa in nessun caso — e aggira il limite di tentativi ravvicinati:
+
+```
+npx tsx scripts/tmp/link-accesso.ts <email> <percorso>   # → /auth/callback?token_hash=…&type=magiclink
+```
+
+Ricetta: `admin.generateLink({type:'magiclink'})` con la chiave di servizio → `hashed_token` →
+`https://uachelab.com/auth/callback?token_hash=<t>&type=magiclink&next=<percorso>`
+(`src/app/(auth)/auth/callback/route.ts:21-29`). Esempio d'uso completo, con il giro consegna → lettura →
+annullo: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §6.
+
+⚠️ **Prima di consegnare un lavoro per prova, due controlli — o la prova non prova niente:** lo stato dev'essere
+`pronto`/`in_ritardo` (`src/lib/consegna/costanti.ts:4`) **e** non deve esistere una DdC con stato ≠
+`annullata`, altrimenti il guard di idempotenza (`generate-ddc.ts:85-95`) restituisce quella vecchia **senza
+generare nulla**. La finestra per annullare è **10 minuti**: script di lettura pronti *prima* di premere.
+
 ### Supabase types
 Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → rimuovere eventuale messaggio CLI in fondo al file → `npx tsc --noEmit`
