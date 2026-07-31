@@ -48,37 +48,57 @@ const RADICE = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 //    settimane agganciata a nulla.
 const ESTENSIONI = ['.md', '.ts', '.tsx', '.sql', '.mjs', '.js', '.css', '.html', '.json', '.sh']
 const PREFISSI = ['src/', 'docs/', 'scripts/', 'supabase/', 'tests/', 'memory/', 'public/', '.husky/']
-const NUMERI_A_PAROLE = {
-  otto: 8, nove: 9, dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14,
-  quindici: 15, sedici: 16, diciassette: 17, diciotto: 18, diciannove: 19, venti: 20,
-  ventuno: 21, ventidue: 22, ventitre: 23, ventitré: 23, ventiquattro: 24, venticinque: 25,
-  ventisei: 26, ventisette: 27, ventotto: 28, ventinove: 29, trenta: 30, trentuno: 31,
-  trentadue: 32, trentatre: 33, trentatré: 33, trentaquattro: 34, trentacinque: 35,
-  trentasei: 36, trentasette: 37, trentotto: 38, trentanove: 39, quaranta: 40,
-  // 🛑 Fino al 29/07/2026 la tabella si fermava a «quaranta»: alla 41esima decisione il
-  //    riconoscimento e' fallito e il controllo del conteggio e' DEGRADATO IN AVVISO — cioe'
-  //    ha smesso di proteggere proprio mentre il documento cresceva. E' lo stesso modo di
-  //    rompersi gia' pagato con «trentatre» e le lettere accentate: una rete che finisce
-  //    senza dirlo. Estesa a sessanta, con le due grafie di «…tre».
-  quarantuno: 41, quarantadue: 42, quarantatre: 43, quarantatré: 43, quarantaquattro: 44,
-  quarantacinque: 45, quarantasei: 46, quarantasette: 47, quarantotto: 48, quarantanove: 49,
-  cinquanta: 50, cinquantuno: 51, cinquantadue: 52, cinquantatre: 53, cinquantatré: 53,
-  cinquantaquattro: 54, cinquantacinque: 55, cinquantasei: 56, cinquantasette: 57,
-  cinquantotto: 58, cinquantanove: 59, sessanta: 60,
-  // 🛑 TERZA volta che questa tabella finisce prima del documento (dopo «quaranta» e
-  //    «trentatre»): il 29/07 il verbale e' arrivato a SESSANTATRE e il riconoscimento
-  //    sarebbe fallito di nuovo, degradando il controllo del conteggio in un avviso —
-  //    cioe' la rete si spegne da sola proprio mentre il documento cresce. Estesa a CENTO
-  //    in un colpo, con entrambe le grafie di «…tre» e «…sei/…otto» dove l'elisione cambia.
-  sessantuno: 61, sessantadue: 62, sessantatre: 63, sessantatré: 63, sessantaquattro: 64,
-  sessantacinque: 65, sessantasei: 66, sessantasette: 67, sessantotto: 68, sessantanove: 69,
-  settanta: 70, settantuno: 71, settantadue: 72, settantatre: 73, settantatré: 73,
-  settantaquattro: 74, settantacinque: 75, settantasei: 76, settantasette: 77,
-  settantotto: 78, settantanove: 79, ottanta: 80, ottantuno: 81, ottantadue: 82,
-  ottantatre: 83, ottantatré: 83, ottantaquattro: 84, ottantacinque: 85, ottantasei: 86,
-  ottantasette: 87, ottantotto: 88, ottantanove: 89, novanta: 90, novantuno: 91,
-  novantadue: 92, novantatre: 93, novantatré: 93, novantaquattro: 94, novantacinque: 95,
-  novantasei: 96, novantasette: 97, novantotto: 98, novantanove: 99, cento: 100,
+// ── I numeri a parole: COSTRUITI, non elencati a mano ──────────────────────
+// 🛑 QUARTA volta che una tabella scritta a mano finisce prima del documento che
+//    protegge. Le prime tre stanno nella storia di questo file: si fermava a
+//    «trentatre» (le lettere accentate), poi a «quaranta», poi a «sessanta», e
+//    ogni volta il conteggio ha smesso di essere controllato **senza dirlo** —
+//    degradando in un avviso proprio mentre il verbale cresceva.
+//    La quarta è stata vista PRIMA che mordesse: l'elenco arrivava a «cento» e
+//    il verbale era arrivato **esattamente a cento**. La decisione dopo lo
+//    avrebbe spento.
+// 🔑 E il difetto non era che l'elenco fosse corto: era che la sua lunghezza
+//    fosse una SCELTA, cioè qualcosa che qualcuno deve ricordarsi di rifare.
+//    Adesso le parole si costruiscono da 0 a 999 con le regole della lingua —
+//    l'elisione della vocale davanti a «uno» e «otto» (ventuno, ventotto,
+//    centotto) e le due grafie ammesse di «…tre»/«…tré». Nessuno deve più
+//    ricordarsi di niente.
+const UNITA = [
+  'zero', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove',
+  'dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici', 'sedici',
+  'diciassette', 'diciotto', 'diciannove',
+]
+const DECINE = { 2: 'venti', 3: 'trenta', 4: 'quaranta', 5: 'cinquanta', 6: 'sessanta', 7: 'settanta', 8: 'ottanta', 9: 'novanta' }
+
+/** Tutte le grafie ammesse per `n` (0-999). Piu' di una quando la lingua ne
+ *  ammette piu' di una: «ventitre»/«ventitré», «centouno»/«centuno». */
+function paroleDi(n) {
+  if (n < 20) return [UNITA[n]]
+  if (n < 100) {
+    const d = Math.floor(n / 10)
+    const u = n % 10
+    const decina = DECINE[d]
+    if (u === 0) return [decina]
+    // «venti» + «uno» = «ventuno», non «ventiuno»: la vocale cade davanti a
+    // uno e otto. Vale per tutte le decine.
+    const radice = u === 1 || u === 8 ? decina.slice(0, -1) : decina
+    if (u === 3) return [radice + 'tre', radice + 'tré']
+    return [radice + UNITA[u]]
+  }
+  const c = Math.floor(n / 100)
+  const resto = n % 100
+  const testa = c === 1 ? 'cento' : UNITA[c] + 'cento'
+  if (resto === 0) return [testa]
+  const varianti = paroleDi(resto).map((coda) => testa + coda)
+  if (resto === 3) varianti.push(testa + 'tré')
+  // «centouno» e «centuno» sono entrambe in uso; lo stesso per «centootto»/«centotto».
+  if (resto === 1 || resto === 8) varianti.push(testa.slice(0, -1) + UNITA[resto])
+  return varianti
+}
+
+const NUMERI_A_PAROLE = {}
+for (let n = 0; n <= 999; n += 1) {
+  for (const parola of paroleDi(n)) NUMERI_A_PAROLE[parola] = n
 }
 const errori = []
 const avvisi = []
@@ -178,7 +198,19 @@ function controllaConteggioDecisioni(percorso, testo) {
   if (perCifre) dichiarato = Number(perCifre[1])
   else if (perParola && NUMERI_A_PAROLE[perParola[1]] !== undefined) dichiarato = NUMERI_A_PAROLE[perParola[1]]
 
-  if (dichiarato === null) {
+  // 🛑 IL RAMO CHE MANCAVA, ed è il MODO in cui questo controllo si è spento tre
+  //    volte. «Dichiarato ma illeggibile» e «non dichiarato» non sono lo stesso
+  //    fatto, e finivano nello stesso ramo: la guardia diceva «NON dichiara un
+  //    conteggio» a un documento che ne dichiarava uno benissimo — un messaggio
+  //    FALSO, per giunta declassato ad avviso, cioè invisibile in mezzo agli
+  //    altri. Chi lo leggeva concludeva «manca un'intestazione», non «la mia rete
+  //    ha smesso di controllare».
+  //    Adesso è un ERRORE, e dice la cosa vera. Il generatore qui sopra rende
+  //    questo ramo quasi irraggiungibile — ma «quasi irraggiungibile» è
+  //    esattamente ciò che si diceva della tabella a mano, tre volte.
+  if (dichiarato === null && perParola) {
+    errori.push(`${percorso}: dichiara un conteggio A PAROLE che non so leggere («${perParola[1]}»), quindi il controllo del conteggio NON è stato eseguito su questo documento. Non è un'intestazione mancante: è la rete che si è spenta. Il documento ne porta ${unici.length}.`)
+  } else if (dichiarato === null) {
     avvisi.push(`${percorso}: porta ${unici.length} decisioni ma NON dichiara un conteggio in testa. Dichiararlo è ciò che rende il buco visibile.`)
   } else if (dichiarato !== unici.length) {
     errori.push(`${percorso}: la testa dichiara ${dichiarato} decisioni, ma nel documento ce ne sono ${unici.length}. Un elenco che sembra completo e non lo è è il modo classico per dare per chiusa una cosa aperta.`)
