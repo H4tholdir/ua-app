@@ -124,10 +124,25 @@ export function FoglioConferma(props: {
   etichettaDistruttiva: string
   etichettaSicura: string
   /** Il tasto distruttivo può essere disabilitato dal chiamante mentre la
-   *  cancellazione è in volo (§5.42, stato *disabled*). «Annulla», Esc, il
-   *  velo e lo swipe restano SEMPRE attivi: la via di fuga non si chiude mai,
-   *  e la gestione della corsa (ignorare un annullo a richiesta già partita)
-   *  resta del chiamante — questo componente non la conosce. */
+   *  cancellazione è in volo (§5.42, stato *disabled*).
+   *
+   *  Quel che è GARANTITO E PROVATO (revisione T9-bis, A2 — v. il test
+   *  `«Annulla» resta attivo mentre la distruttiva è disabilitata`): questo
+   *  componente non disabilita mai «Annulla», e nessuno dei tre rami — Esc
+   *  (`alTasto` sotto), tap sul velo (`useTapScrim`), swipe giù
+   *  (`fineTrascinamento`) — legge `distruttivaDisabilitata`: nessuno dei tre
+   *  può chiudersi da solo per questo stato.
+   *
+   *  Quel che NON è provato qui, e resta da verificare a browser: la regola
+   *  HTML del reset del focus. Se il focus è SUL tasto distruttivo quando il
+   *  chiamante lo disabilita, il browser sposta il focus al `body` (jsdom non
+   *  riproduce questo comportamento — non c'è modo onesto di provarlo in
+   *  questa suite); da lì l'`onKeyDown` del pannello non riceve più
+   *  `Escape`, perché l'ascoltatore vive sul pannello e il focus non ci sta
+   *  più dentro. Tap sul velo e swipe restano vivi in ogni caso (non
+   *  dipendono dal focus). La gestione della corsa (ignorare un annullo a
+   *  richiesta già partita) resta del chiamante — questo componente non la
+   *  conosce. */
   distruttivaDisabilitata?: boolean
   /** L'anteprima dell'oggetto (§5.42): miniatura, categoria e data di
    *  caricamento. La stessa `FotoAlbum` che `VisoreFoto` già riceve. */
@@ -384,13 +399,25 @@ export function FoglioConferma(props: {
             (D82). Così come sono (§5.42): portano la loro fisica, il loro
             anello di focus e il loro suono/vibrazione — questo componente non
             chiama mai `suona()` né `vibra()` (§1.10). */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+        <div
+          className="ds-foglioconferma-azioni"
+          style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}
+        >
           <TastoSecondario onClick={onAnnulla}>{etichettaSicura}</TastoSecondario>
-          <TastoPrimario
-            onClick={onConferma}
-            disabled={distruttivaDisabilitata}
-            motivoDisabilitato={distruttivaDisabilitata ? 'Un attimo…' : undefined}
-          >
+          {/* 🛑 Revisione T9-bis, A1: NIENTE `motivoDisabilitato`. §5.42 elenca
+              un'anatomia CHIUSA (manico · anteprima · titolo · testo · due
+              azioni) e per *disabled* dice SOLO che il chiamante può
+              disabilitare il tasto — nessuna dida. Una stringa qui
+              diventerebbe testo VISIBILE sotto il tasto (`TastoPrimario.tsx:
+              102-112` la rende come `<p>`), ed è copy non ratificata, senza
+              mockup e senza prove.
+              ⚠️ Conflitto riferito, non risolto qui: `TastoPrimario` avvisa
+              in sviluppo (`console.warn`, `TastoPrimario.tsx:40-46`) quando
+              `disabled` è vero e `motivoDisabilitato` è assente — è un
+              `console.warn` di sola diagnostica, mai testo a schermo, quindi
+              non viola l'anatomia chiusa; lo lascio deliberatamente scoperto
+              invece di toccare `TastoPrimario` (fuori mandato). */}
+          <TastoPrimario onClick={onConferma} disabled={distruttivaDisabilitata}>
             {etichettaDistruttiva}
           </TastoPrimario>
         </div>
