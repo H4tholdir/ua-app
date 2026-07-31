@@ -254,7 +254,7 @@ export function VisoreFoto(props: {
             aria-label="Chiudi"
             whileTap={{ y: 2 }}
             transition={molla.press}
-            style={tondoStile}
+            style={tondoVisore}
           >
             <span aria-hidden="true">✕</span>
           </motion.button>
@@ -306,7 +306,7 @@ export function VisoreFoto(props: {
               className="ds-visore-tondo"
               disabled
               aria-label="Altre cose da fare su questa foto"
-              style={{ ...tondoStile, opacity: 0.4, cursor: 'default' }}
+              style={{ ...tondoVisore, opacity: 0.4, cursor: 'default' }}
             >
               <span aria-hidden="true">⋯</span>
             </button>
@@ -423,7 +423,14 @@ export function VisoreFoto(props: {
   return createPortal(overlay, document.body)
 }
 
-const tondoStile = {
+/** Lo stile dei tondi del capo (✕ e ⋯).
+ *
+ *  🔑 ESPORTATO da T12 e non copiato nel chiamante: l'innesco della tendina è
+ *  il ⋯, sta nel capo di questo visore e deve essere indistinguibile dal ✕ che
+ *  gli sta accanto — ma il contratto di `azioni` (§1.5) vuole che a costruirlo
+ *  sia il chiamante, perché la tendina si monta FRATELLA. Senza questa riga il
+ *  chiamante ricopierebbe undici proprietà, e la copia divergerebbe. */
+export const tondoVisore = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

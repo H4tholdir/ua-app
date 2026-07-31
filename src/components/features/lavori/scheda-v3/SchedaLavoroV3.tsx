@@ -46,7 +46,7 @@
 // del blocco `NotaLaboratorio` sotto. Nessuna misattribuzione qui: è proprio
 // il testo scritto dal dentista.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
@@ -55,6 +55,17 @@ import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { initSuoni } from '@/design-system/v3/sound'
 import { NotaDentista } from '@/components/ds/NotaDentista'
 import { CartaAlbum } from '@/components/ds/CartaAlbum'
+// T12 — i quattro strati dell'album. 🛑 Si montano FRATELLI, mai uno dentro i
+// figli o le props dell'altro: gli eventi sintetici risalgono l'albero REACT,
+// non il DOM, e un `Escape` da uno strato annidato collasserebbe anche quello
+// che lo contiene (§1.5, e il contratto sta scritto in `VisoreFoto.tsx:33-35`).
+// ⚠️ Il piano di T12 elencava «modifica VisoreFoto (aggancia menù e conferma)»:
+// contraddice quel contratto, e si è seguito il contratto. Riferito (R-E2).
+import { VisoreFoto, tondoVisore } from '@/components/ds/VisoreFoto'
+import { TendinaMenu } from '@/components/ds/TendinaMenu'
+import { FoglioConferma } from '@/components/ds/FoglioConferma'
+import { FoglioCategoria } from '@/components/ds/FoglioCategoria'
+import { isCategoriaFoto, type CategoriaFoto } from '@/lib/domain/categorie-foto'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
@@ -74,7 +85,7 @@ import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoC
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
 import { molla } from '@/design-system/v3/motion'
-import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
+import { raggio, sopraFoto, spazio, tipografia } from '@/design-system/v3/tokens'
 import type { LavoroDettaglio, MaterialeIncompletoDettaglio } from '@/types/domain'
 
 const MOTIVO_LABEL: Record<MaterialeIncompletoDettaglio['motivo'], string> = {
@@ -202,6 +213,117 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
     lavoro.stato as 'consegnato' | 'pronto' | 'sospeso'
   )
 
+  // ══ T12 — l'album: visore, tendina, conferma, correzione categoria ═══════
+  //
+  // 🔑 Quattro stati distinti e non uno solo «strato aperto»: la tendina vive
+  //    SOPRA il visore (che resta aperto sotto), e la conferma sopra la
+  //    tendina che si chiude. Un enum unico li renderebbe mutuamente esclusivi
+  //    e il visore sparirebbe da sotto la conferma.
+  const [visoreIndice, setVisoreIndice] = useState<number | null>(null)
+  const [tendinaAperta, setTendinaAperta] = useState(false)
+  const [confermaAperta, setConfermaAperta] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [categoriaIndice, setCategoriaIndice] = useState<number | null>(null)
+
+  // 🛑 Le àncore del focus sono `useRef`, MAI letterali inline `{ current: x }`:
+  //    l'effect del focus di `VisoreFoto`/`FoglioConferma`/`FoglioCategoria`
+  //    dipende dall'IDENTITÀ del ref, e un letterale nuovo a ogni render
+  //    strapperebbe il cursore all'utente a ogni rerender. È la trappola che
+  //    T11 ha già pagato una volta.
+  const ancoraVisoreRef = useRef<HTMLElement | null>(null)
+  const ancoraTendinaRef = useRef<HTMLButtonElement | null>(null)
+  const ancoraConfermaRef = useRef<HTMLElement | null>(null)
+  const ancoraCategoriaRef = useRef<HTMLElement | null>(null)
+
+  const fotoAlbum = lavoro.immagini ?? []
+  const fotoVisore = visoreIndice !== null ? fotoAlbum[visoreIndice] : undefined
+  const fotoCategoria = categoriaIndice !== null ? fotoAlbum[categoriaIndice] : undefined
+  // 🛑 Il server risponde 409 su lavoro consegnato (`[imgId]/route.ts:200`).
+  //    Qui la voce si OMETTE, non si mostra spenta: una voce spenta invita
+  //    comunque, e la carta non deve offrire un gesto che fallisce solo dopo
+  //    il tocco.
+  const eliminabile = lavoro.stato !== 'consegnato'
+
+  /** L'elemento che ha aperto lo strato, catturato NEL GESTO.
+   *
+   *  ⚠️ Non è la cattura al montaggio che F-12 rifiuta: quella legge
+   *  `document.activeElement` dentro l'overlay già aperto e prende quel che
+   *  capita. Questa gira nell'handler del click, quando l'innesco è ancora
+   *  montato e a fuoco.
+   *  ⚠️ Ripiego dichiarato: `CartaAlbum` non espone il proprio innesco e
+   *  passa solo l'indice (`CartaAlbum.tsx:66`), quindi il chiamante non ha un
+   *  ref vero da dichiarare. Riferito come rilievo minore. */
+  function catturaAncora(dove: React.MutableRefObject<HTMLElement | null>) {
+    const attivo = document.activeElement
+    dove.current = attivo instanceof HTMLElement && attivo !== document.body ? attivo : null
+  }
+
+  async function eliminaFotoCorrente() {
+    if (!fotoVisore) return
+    setEliminando(true)
+    try {
+      const res = await fetch(`/api/lavori/${lavoro.id}/immagini/${fotoVisore.id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      })
+      if (!res.ok) {
+        errore('Non sono riuscita a eliminare la foto. Riprova.')
+        return
+      }
+      // Prima si chiudono gli strati, poi si tocca la pagina sotto: un
+      // aggiornamento con l'overlay ancora aperto lo lascerebbe appeso a una
+      // foto che non c'è più.
+      setConfermaAperta(false)
+      setVisoreIndice(null)
+      // Rimozione ottimistica dallo specchio locale + rilettura dal server.
+      // 🔑 Sulla scheda i dati vengono da un componente server: senza il
+      //    filtro locale la foto resterebbe a schermo fino al giro di rete, e
+      //    senza il `refresh` lo specchio locale e il server divergerebbero.
+      //    La riconciliazione `props.lavoro !== lavoroPropPrecedente` (sopra)
+      //    riallinea quando il server risponde.
+      setLavoroLocale((prev) => ({
+        ...prev,
+        immagini: (prev.immagini ?? []).filter((f) => f.id !== fotoVisore.id),
+      }))
+      router.refresh()
+    } catch {
+      errore('Non sono riuscita a eliminare la foto. Riprova.')
+    } finally {
+      setEliminando(false)
+    }
+  }
+
+  async function correggiCategoria(categoria: CategoriaFoto) {
+    const foto = fotoCategoria
+    setCategoriaIndice(null)
+    if (!foto || !isCategoriaFoto(categoria) || foto.categoria === categoria) return
+    // Ottimistico: la pastiglia cambia subito, come ogni altra correzione della
+    // scheda (direttiva «ogni campo si corregge, fino alla consegna»).
+    setLavoroLocale((prev) => ({
+      ...prev,
+      immagini: (prev.immagini ?? []).map((f) => (f.id === foto.id ? { ...f, categoria } : f)),
+    }))
+    try {
+      const res = await fetch(`/api/lavori/${lavoro.id}/immagini/${foto.id}`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoria }),
+      })
+      if (!res.ok) {
+        errore('Non sono riuscita a cambiare la categoria. Riprova.')
+        setLavoroLocale((prev) => ({
+          ...prev,
+          immagini: (prev.immagini ?? []).map((f) => (f.id === foto.id ? { ...f, categoria: foto.categoria } : f)),
+        }))
+        return
+      }
+      router.refresh()
+    } catch {
+      errore('Non sono riuscita a cambiare la categoria. Riprova.')
+    }
+  }
+
   // Aggiornamento ottimistico: scalari nel merge locale, FK via router.refresh.
   function handleSalvato(patch: Record<string, unknown>) {
     setLavoroLocale((prev) => ({ ...prev, ...patch }))
@@ -318,12 +440,21 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
               `categoria`/`created_at` vengono diretti da `LavoroImmagine`
               (types/domain.ts) — lo stesso tipo che il server firma in
               `lavori/[id]/page.tsx`, nessuna trasformazione qui.
-              🛑 T10 monta SOLO la carta: il visore a tutto schermo, la tendina
-              del ⋯ e i due fogli (categoria/conferma) sono di T12 e non
-              esistono ancora — finché non arrivano, `onApri`/
-              `onCorreggiCategoria` restano inerti apposta (nessun overlay da
-              aprire). */}
-          <CartaAlbum foto={lavoro.immagini} onApri={() => {}} onCorreggiCategoria={() => {}} />
+              ✅ T12 li ha collegati: «⤢ Apri» apre il visore, la pastiglia
+              apre il foglio della categoria. I quattro strati NON stanno qui
+              dentro — si montano fratelli, in coda al componente (§1.5). */}
+          <CartaAlbum
+            foto={lavoro.immagini}
+            indiceAperto={visoreIndice ?? undefined}
+            onApri={(i) => {
+              catturaAncora(ancoraVisoreRef)
+              setVisoreIndice(i)
+            }}
+            onCorreggiCategoria={(i) => {
+              catturaAncora(ancoraCategoriaRef)
+              setCategoriaIndice(i)
+            }}
+          />
 
           {/* CardFasiV3 (§5) — se ci sono fasi */}
           {lavoro.fasi.length > 0 && <CardFasiV3 lavoroId={lavoro.id} fasi={lavoro.fasi} onErrore={(msg) => errore(msg)} />}
@@ -425,6 +556,134 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           clienteDisplay={clienteDisplay(lavoro.cliente)}
           isOpen={segnalaAperto}
           onClose={() => setSegnalaAperto(false)}
+        />
+      )}
+
+      {/* ══ T12 — i quattro strati dell'album, FRATELLI fra loro (§1.5) ══════
+          🛑 Nessuno è figlio o prop di un altro: `azioni` riceve SOLO il tondo
+          ⋯, e la tendina che ne esce sta qui accanto, non lì dentro.
+
+          🔴 E SI MONTANO SEMPRE, pilotati da `aperto` — mai dentro una
+          condizione che segue l'apertura. Trovato al collaudo nel browser il
+          02/08: con `{fotoVisore && <VisoreFoto…>}` il visore si apriva e si
+          RICHIUDEVA da solo in un battito. Il ciclo di vita dell'overlay
+          finiva legato all'apertura, e in sviluppo React monta ogni componente
+          due volte: entra nella storia → `pushState`, pulizia → `history.back()`,
+          entra di nuovo → `pushState`; il `popstate` del back, che è asincrono,
+          arrivava DOPO e `storia-overlay.ts:101` lo leggeva come un «indietro»
+          dell'utente. 🔑 Gli overlay v3 rendono `null` da soli quando sono
+          chiusi (`VisoreFoto.tsx:142`): montarli sempre non costa niente e
+          toglie di mezzo l'intero problema. La condizione qui sotto è
+          sull'ESISTENZA delle foto, che cambia solo quando l'album si svuota. */}
+      {fotoAlbum.length > 0 && (
+        <VisoreFoto
+          aperto={visoreIndice !== null}
+          foto={fotoAlbum}
+          indice={visoreIndice ?? 0}
+          onIndice={(i) => setVisoreIndice(i)}
+          onChiudi={() => setVisoreIndice(null)}
+          onCorreggiCategoria={() => {
+            catturaAncora(ancoraCategoriaRef)
+            setCategoriaIndice(visoreIndice)
+          }}
+          ancoraFocus={ancoraVisoreRef}
+          azioni={
+            <button
+              ref={ancoraTendinaRef}
+              type="button"
+              className="ds-visore-tondo"
+              onClick={() => setTendinaAperta(true)}
+              aria-label="Altre cose da fare su questa foto"
+              // I due che `TastoTondo` non ha, ed è la ragione per cui questo
+              // innesco è un `<button>` scritto qui invece di quel componente.
+              aria-haspopup="menu"
+              aria-expanded={tendinaAperta}
+              // Il ⋯ si scurisce mentre la tendina è aperta: si vede da dove è
+              // uscita. 🛑 NON è l'unica fonte di quello stato — su una
+              // radiografia la differenza con la faccia normale vale 1,02:1,
+              // cioè è invisibile: quella vera è `aria-expanded` qui sopra.
+              style={{
+                ...tondoVisore,
+                background: tendinaAperta ? sopraFoto.facciaAttiva : sopraFoto.faccia,
+              }}
+            >
+              <span aria-hidden="true">⋯</span>
+            </button>
+          }
+        />
+      )}
+
+      <TendinaMenu
+        aperta={tendinaAperta && visoreIndice !== null}
+        onChiudi={() => setTendinaAperta(false)}
+        etichettaAria="Cose da fare su questa foto"
+        ancora={ancoraTendinaRef}
+        voci={
+          eliminabile
+            ? [
+                {
+                  id: 'elimina',
+                  distruttiva: true,
+                  icona: (
+                    <>
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4h8v2" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                    </>
+                  ),
+                  testo: 'Elimina foto',
+                  onScegli: () => {
+                    // L'àncora della conferma è il ⋯, non la voce: la voce
+                    // smonta con la tendina, e un nodo staccato non riceve il
+                    // focus (C-12).
+                    ancoraConfermaRef.current = ancoraTendinaRef.current
+                    setTendinaAperta(false)
+                    setConfermaAperta(true)
+                  },
+                },
+              ]
+            : []
+        }
+      />
+
+      {fotoAlbum.length > 0 && (
+        <FoglioConferma
+          aperto={confermaAperta}
+          titolo="Elimini questa foto?"
+          /* 🛑 Testo VERBATIM di §5.42, e il `<strong>` è dove la spec lo vuole:
+             la clausola che pesa è «e dall'archivio» (D61). La stesura del
+             29/07 diceva «il file resta conservato» ed è FALSA da D61.
+             🛑 Mai «elimina definitivamente»: `v3/dizionario.ts:25` lo vieta. */
+          testo={
+            <>
+              Sparisce dalla scheda <strong>e dall’archivio</strong>: non si recupera. Resta annotato chi
+              l’ha eliminata e quando.
+            </>
+          }
+          etichettaDistruttiva="Elimina"
+          etichettaSicura="Annulla"
+          distruttivaDisabilitata={eliminando}
+          /* Ripiego sulla prima: a conferma chiusa questo valore non si vede
+             (il componente rende `null`), ma la prop è obbligatoria e montare
+             sempre è ciò che tiene lontano il difetto di sopra. */
+          foto={fotoVisore ?? fotoAlbum[0]}
+          ancoraFocus={ancoraConfermaRef}
+          onConferma={eliminaFotoCorrente}
+          onAnnulla={() => setConfermaAperta(false)}
+        />
+      )}
+
+      {fotoAlbum.length > 0 && (
+        <FoglioCategoria
+          aperto={categoriaIndice !== null}
+          quante={1}
+          anteprime={fotoCategoria ? [fotoCategoria.url] : []}
+          scelta={
+            fotoCategoria && isCategoriaFoto(fotoCategoria.categoria) ? fotoCategoria.categoria : undefined
+          }
+          ancoraFocus={ancoraCategoriaRef}
+          onScegli={correggiCategoria}
+          onChiudi={() => setCategoriaIndice(null)}
         />
       )}
     </div>
