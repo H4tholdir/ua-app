@@ -13,6 +13,8 @@ appoggia alla sfumatura. ✅ **RILIEVO CHIUSO SU DECISIONE DI FRANCESCO («alza 
 fisso ma **una variabile che cambia col tema** — `--velo-foto` in `ds-v3.css`, **.99 in chiaro** e **.94 in
 scuro** (invariato: lì il fondo è già scuro e alzarlo schiaccerebbe la fotografia). Verificato nel browser sui
 due temi: `rgba(9,7,5,0.99)` e `rgba(9,7,5,0.94)` in vigore, e in chiaro il testo dietro **non si legge più**.
+✅ **E verificato IN PRODUZIONE** (`41b9fe03` in linea): il velo del visore su uachelab.com vale `rgba(9,7,5,0.99)`,
+e dietro la foto non si legge più il testo della scheda. Foto di prova caricata e poi tolta: la scheda è a zero foto.
 🛡️ **La rete:** una prova legge `ds-v3.css` e pretende i due valori — `tsc` non guarda dentro il CSS e nessuno
 screenshot di jsdom vedrebbe un velo tornato trasparente.
 📎 **Il rilievo, per memoria:** in tema chiaro il velo
