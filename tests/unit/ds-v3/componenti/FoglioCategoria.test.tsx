@@ -431,5 +431,14 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
       expect(pastiglie()).toHaveLength(6)
       expect(pannello().querySelectorAll('img')).toHaveLength(0)
     })
+
+    it('cinque foto e NESSUNA miniatura pronta (upload in volo): il «5 foto» resta comunque', () => {
+      // Le due grandezze sono indipendenti: annidare il contatore dentro la
+      // presenza delle anteprime lo farebbe sparire proprio quando l'utente non
+      // ha nient'altro che gli dica quante foto sta categorizzando.
+      render(<FoglioCategoria {...props({ quante: 5, anteprime: [] })} />)
+      expect(screen.getByText('5 foto')).toBeTruthy()
+      expect(pannello().querySelectorAll('img')).toHaveLength(0)
+    })
   })
 })

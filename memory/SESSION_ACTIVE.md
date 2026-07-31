@@ -15,9 +15,14 @@ categoria (**D74**, provato da due lati: che arrivi, e che arrivi **prima** dell
 è T11 (lo scatto) e T10/T12 (la correzione).**
 
 🔑 **T9-bis eredita due cose che gli servono subito:** ① §1.9 **(B-6)** vale **anche per lui** — è il secondo
-dei due fogli, e `coreografie.sheetSu` porta la transizione **dentro** la variante: si riusa la forma di
-`variantePannello` in `FoglioCategoria.tsx`, provata sull'**oggetto vero**; ② l'apritore di `FoglioConferma` è
-**una voce di menù che smonta**, quindi l'àncora del focus va **dichiarata** (C-12), mai catturata.
+dei due fogli, e `coreografie.sheetSu` porta la transizione **dentro** la variante. 🛑 **Ma la variante se la
+DICHIARA sua**, locale al componente, come mostra lo snippet di §1.9 B-6: **non si importa** quella di
+`FoglioCategoria` — un valore di movimento che viaggia da un componente all'altro è un accoppiamento che
+nessuno difenderebbe in review, e §8.3 dice che le coreografie canoniche sono **solo quelle** elencate. Da
+`FoglioCategoria` si copia il **modo di provarla** (variante esportata, asserita sull'oggetto vero), non
+l'oggetto. Se un giorno i due fogli la condividono davvero, la sede è `v3/motion.ts` accanto a `coreografie`,
+**con emendamento a §8.3** — non un import fra pari; ② l'apritore di `FoglioConferma` è **una voce di menù
+che smonta**, quindi l'àncora del focus va **dichiarata** (C-12), mai catturata.
 
 🔴 **Riferiti da T9, nessuno corretto (R-E2):** il **piano** porta ancora due righe annullate dal suo riquadro
 (la misura **148,5 px** e la mutazione a 15,5) — **due task su due** con lo stesso difetto · la **firma del
@@ -25,6 +30,16 @@ piano** non poteva rendere il momento della correzione (aggiunta `scelta?: Categ
 **`RefObject` obbligatoria** (F-12), non l'opzionale del piano · «il manico» è elencato fra le uscite ma in
 casa **non è un comando** · **nessuno dei tre strati anima l'uscita** (nessun `AnimatePresence`): si decide
 **insieme** al **gate estetico L2 (T13)**.
+
+🚦 **DUE PROVE DI BROWSER DOVUTE A T13 (FASE 9b), e nessuna delle due può girare in vitest — se restano qui
+non scritte, non le fa nessuno:**
+1. **`FoglioCategoria` a text-zoom 200%, a 390 e a 768: nessun testo tagliato e la griglia non si sfalsa.**
+   Non è un di più: §5.41 la dichiara **la prova di quel componente**, e §13.3 fa del 200% un **requisito di
+   rilascio**. In vitest c'è solo la sua rete (nessuna pastiglia porta `whiteSpace: nowrap`, che è la causa
+   del taglio), non la prova.
+2. **`scripts/guardia-navigazione-overlay.mjs`**, che nessuno dei task da T6 in poi ha potuto lanciare: le
+   serve l'app accesa con un lavoro preparato, e i componenti non erano montati. ⚠️ È **cieca** a
+   `TendinaMenu` (`role="menu"` senza `aria-modal`): un suo verde non dice niente su quella.
 
 🔴 **Restano aperti dai task prima:** **`ROADMAP-UFFICIALE.md`** dice ancora «ondata (b) *da pianificare*» —
 da sistemare **prima del merge** · **`MenuVoce`** col chevron sulla distruttiva (F-6) · **`TastoTondo`** senza

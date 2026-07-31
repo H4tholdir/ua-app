@@ -251,7 +251,16 @@ export function FoglioCategoria(props: {
         onClick={tapVelo.onClick}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={reduced ? istantaneo : molla.smooth}
+        // 🔑 La dissolvenza del velo RESTA anche a preferenza accesa, ed è una
+        // scelta, non una dimenticanza: §1.9 legifera sulle chiavi di
+        // SPOSTAMENTO («ogni chiave di spostamento… per chiave»), §8.4 dice che
+        // le coreografie degradano **a dissolvenza**, e §5.41 chiede
+        // espressamente che resti la sola dissolvenza. Un'opacità non sposta
+        // niente: è ciò che rimane quando si toglie il movimento.
+        // ⚠️ `VisoreFoto` spegne anche questa, e lì è giusto: §5.39 nomina
+        // `opacity` fra le chiavi che devono arrivare istantanee. Le due righe
+        // di spec sono diverse, quindi lo sono anche i due componenti.
+        transition={molla.smooth}
         style={{
           position: 'absolute',
           inset: 0,
@@ -317,7 +326,11 @@ export function FoglioCategoria(props: {
           }}
         />
 
-        {anteprime.length > 0 && (
+        {/* 🔑 Il contatore NON dipende dalle anteprime: sono due grandezze
+            indipendenti (fino a tre miniature, il numero no), e un chiamante che
+            ha cinque foto ma nessuna miniatura pronta — l'upload in volo —
+            perderebbe il «5 foto» proprio quando serve di più. */}
+        {(anteprime.length > 0 || molte) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: spazio.s, marginBottom: spazio.sm }}>
             {anteprime.slice(0, MAX_ANTEPRIME).map((url, i) => (
               /* eslint-disable-next-line @next/next/no-img-element -- URL Storage firmata a dimensioni variabili (stessa scelta di CartaAlbum/VisoreFoto), next/image non applicabile */
