@@ -1,31 +1,32 @@
-# Sessione attiva — l'uscita dei quattro strati è FATTA (D99 · D100), ramo non mergiato
+# Sessione attiva — uscita degli strati + riparazioni della DdC, tutto IN PRODUZIONE
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-ondata-b-chiusa-handoff.md`** — la sua §0 è **CHIUSA**.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/ROADMAP-UFFICIALE.md`** — l'handoff dell'ondata (b)
+(`docs/roadmap/2026-08-02-ondata-b-chiusa-handoff.md`) è **consumato**: la sua §0 e la sua terza voce sono
+chiuse. Le voci ancora pronte stanno in testa alla roadmap.
 
-⏱️ **Fatto:** visore, tendina e i due fogli **animano l'uscita**. Simmetrica (`molla.smooth`), che è ciò
-che §5.39 diceva già: **nessun emendamento alla spec**. Lo strato in uscita **smette di prendere i tocchi**
-(`StratoRadice.tsx`, `useIsPresent`) e lo scorrimento si rilascia **a uscita finita**
-(`useScorrimentoBloccato.ts`). Il montaggio NON è cambiato: gli strati restano montati sempre.
+🚀 **`main` = `30f6f3e7`**, allineato con origin, albero pulito, CI verde, deploy Vercel `success`.
+**Niente a metà, niente da salvare.**
 
-🚀 **IN PRODUZIONE.** `main` = `8ad360db`, mergiato in avanti (4 commit), CI verde, deploy Vercel `success`,
-**uachelab.com verificato dal vivo**: a metà uscita velo 0,27 e pannello 0,27 — si dissolvono insieme — e i
-tocchi sono già spenti. Niente a metà, niente da salvare.
+⏱️ **D99-D100 — l'uscita dei quattro strati sopra la foto** (visore, tendina, i due fogli): simmetrica
+(`molla.smooth`), che è ciò che §5.39 diceva già — **nessun emendamento alla spec**. Lo strato in uscita
+**smette di prendere i tocchi** (`StratoRadice.tsx`, `useIsPresent`) e lo scorrimento si rilascia a uscita
+finita (`useScorrimentoBloccato.ts`). **Verificato dal vivo su uachelab.com.**
 
-🔧 **Riparata anche la guardia dei documenti** (`scripts/guardia-coerenza-documenti.mjs`): i numeri a parole
-si **costruiscono** da 0 a 999 invece di essere elencati a mano (1107 grafie, era 108 e finiva a «cento»
-mentre il verbale arrivava a cento), e «dichiarato ma illeggibile» non si traveste più da «non dichiarato» —
-era un avviso che diceva il falso, ora è un errore. Provata accendendola apposta in tre modi.
+📜 **D101-D102 — la Dichiarazione di Conformità.** La terza voce aperta dell'handoff è chiusa: il colore
+**non è nella DdC**, ma la norma **non lo nomina** — il buco vero è «*le caratteristiche indicate nella
+prescrizione*», e il dato «prescritto» **non esiste in banca dati**. D101 scarta per iscritto la
+composizione dai campi di caso (panel di tre). D102 ha fatto: le **due impronte** del documento (mai
+scritte prima), il **PDF che smette di leggere dati vivi**, e la **migration `20260803090000` applicata**
+(fotografia dei denti spostata su `dichiarazioni_conformita`).
 
-✅ **Verifiche:** `tsc` 0 · `vitest` **370|3** file e **4256|19** prove (due corse) · `next build` ok ·
-guardia navigazione-overlay **verde sul braccio dell'album** (con `LAVORO_ID` di un lavoro con foto).
+🔴 **NON verificato dal vivo:** che una DdC NUOVA nasca con le due impronte valorizzate — si prova solo
+**consegnando un lavoro in produzione**, e non è stato fatto.
 
-⚠️ **Restano riferiti e non corretti (R-E2):** `Sheet` non usa il nuovo hook dello scorrimento (condiviso e
-in produzione, fuori mandato) · il **primo braccio** della guardia navigazione-overlay non è misurato da
-tempo: gli serve la fixture `E2E-CAS-002` in banca dati · l'orologio del Mac dice **31/07**, i documenti
-**02/08**.
+⚠️ **Aperte e riferite (R-E2):** `Sheet` non usa `useScorrimentoBloccato` · il primo braccio della guardia
+navigazione-overlay non è misurato (serve la fixture `E2E-CAS-002`) · **tre questioni normative**: la DdC non
+arriva al paziente (Art. 21(2)), il nome completo dove basta un codice, la prescrizione senza firma ·
+`ANALISI/17:127` presenta come norma una glossa sul colore, **va corretta** · l'orologio del Mac dice 31/07,
+i documenti 03/08.
 
-➡️ **Da qui si riparte dalle voci pronte dell'handoff §4:** voce 2 (avviso su dente/colore mancanti) ·
-voce 3 (⚠️ prima verificare se il colore compaia nella DdC) · voce 6 (le tinte del manufatto, D42) ·
-voce 7 (allegati e condivisione, D67).
-
-📎 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **cento** decisioni. Prossima: **D101**.
+📎 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centodue** decisioni.
+Prossima: **D103**.
