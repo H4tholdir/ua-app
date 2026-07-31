@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla ventisettesima tornata (dove si posa il focus in una conferma distruttiva)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla ventottesima tornata (la prescrizione entra fra le categorie della foto)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Novanta decisioni in ventisette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Novantuno decisioni in ventotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -507,3 +507,21 @@ di Francesco riceve la sua riga **nello stesso turno**, e questa cambia il compo
 conferma distruttiva dell'app — non solo dell'album. Senza riga, la sessione dopo l'avrebbe trovata
 come un dettaglio di implementazione senza padrone, e la prima revisione l'avrebbe rimessa in
 discussione.
+
+---
+
+## Ventottesima tornata — la prescrizione entra fra le categorie della foto (D91)
+
+**Data:** 1 agosto 2026, a valle di T11-bis. **Innesco:** riparando i tre punti che mandavano ancora il
+campo vecchio si è scoperto che uno di essi spediva l'etichetta `'prescrizione'`, che **non è fra le sei
+categorie ammesse**. Nel referto di T11 la conseguenza era stata scritta come una perdita da decidere: «il
+dettaglio *era la prescrizione* non è più registrato da nessuna parte».
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D91** | 🎯 **La prescrizione diventa una categoria di foto a pieno titolo: le categorie passano da SEI a SETTE.** Parole di Francesco: «*mi sono dimenticato la prescrizione, dobbiamo aggiungerla alle categorie*» | scelta di Francesco, non una proposta: il difetto trovato da T11-bis ha reso visibile una **dimenticanza del progetto**, non un errore di esecuzione | 🔑 **Non è un ripiego, è il caso che mancava:** la prescrizione è il documento con cui il lavoro **nasce**, e finiva in «Altro» insieme a tutto il resto. ⚠️ **L'elenco era dichiarato CHIUSO (D72):** questa decisione lo **riapre una volta**, e la sua stessa esistenza dimostra che «chiuso» significa «si cambia con una decisione scritta», non «non si cambia». ➡️ **Conseguenze da eseguire** — il censimento sta in `docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md` (🆕 **da creare** nella prossima sessione, insieme al lavoro): il vincolo in banca dati, l'elenco unico di dominio, la spia che li tiene allineati, la pastiglia in più nel foglio della categoria (che oggi ne ha sei su due colonne), e i due punti del wizard che T11-bis aveva instradato su «altro» **in attesa di questa decisione**. 🛑 **Nessuna di queste conseguenze è stata eseguita oggi:** la decisione è di fine sessione, e il lavoro si apre pulito nella prossima |
+
+🔑 **Perché la riga esiste PRIMA del lavoro, e non dopo:** §0A-bis dice che una scelta di Francesco riceve
+il suo numero nello stesso turno, e che **una decisione che cambia del lavoro già fatto si scrive per
+prima** — qui T11-bis ha instradato la prescrizione su «altro» **due ore fa**, e senza questa riga la
+sessione dopo avrebbe letto quel codice come una scelta ponderata invece che come un ripiego in attesa.

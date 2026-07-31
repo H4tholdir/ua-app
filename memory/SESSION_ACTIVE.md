@@ -1,7 +1,13 @@
-# Sessione attiva — ondata (b): T11 + T11-bis FATTI, il caricamento foto è VIVO. Si riparte da T12 (01/08/2026)
+# Sessione attiva — ondata (b): si riparte dalla PRESCRIZIONE (D91), poi T12 (01/08/2026, sera)
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **BLOCCO D, Task 12**
-(l'eliminazione dal visore: menù → «Elimina foto» → conferma → la foto sparisce anche dallo schermo).
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md`** — **D91, decisa da
+Francesco a fine sessione: la prescrizione diventa la SETTIMA categoria della foto.** Il brief porta il
+censimento già fatto (i **tre** posti che si muovono insieme, i **tredici** file che consumano l'elenco, le
+**tre** prove che contano «sei») e **quattro cose da decidere con Francesco PRIMA di scrivere codice** — fra
+cui la griglia che diventa **dispari**, che va guardata su un mockup (§0B).
+🛑 **Il lavoro NON è stato iniziato:** la decisione è di fine sessione e si apre pulita nella prossima.
+➡️ **Dopo la prescrizione si torna al piano dell'album:** `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`
+→ **T12** (l'eliminazione dal visore), poi **T13** (la chiusura).
 📎 Da dove veniamo: `docs/roadmap/2026-08-01-t11-referto.md` · prima: `…-t10-referto.md` · `…-t9-bis-referto.md`
 📎 Ledger vivo dell'esecuzione: `.superpowers/sdd/progress.md` — 🛑 **cartella IGNORATA da git**, esiste solo su questa macchina.
 
@@ -24,10 +30,10 @@ che non aprono niente** — «⤢ Apri» (che **vibra** al tocco) e la pastiglia
 nell'anatomia ratificata e le callback sono **prop obbligatorie**: non esisteva un appiglio per non renderli.
 **Li collega T12**, e T13 (FASE 7 + FASE 9 + gate estetico L2) sta prima del merge.
 
-⚠️ **Un dato che PRIMA esisteva e ora no** (T11-bis): la foto della prescrizione viaggiava con l'etichetta
-`'prescrizione'`, che **non è una delle sei categorie** — ora è `'altro'`, e **il dettaglio «era la
-prescrizione» non è registrato da nessuna parte**. Non è un errore del task: è una **decisione da prendere**
-se quel dettaglio serve.
+✅ **DECISA, ed è D91:** la foto della prescrizione viaggiava con l'etichetta `'prescrizione'`, che non era
+fra le sei categorie; T11-bis l'ha instradata su `'altro'` **come ripiego dichiarato**, e Francesco ha deciso
+che **la prescrizione diventa una categoria a pieno titolo**. 🛑 **Quel codice non è una scelta ponderata da
+rispettare: è ciò che il prossimo lavoro sostituisce.**
 
 🔴 **QUATTRO COSE CHE I BRIEF DI T10-T13 DEVONO PORTARSI, o si perdono nel passaggio:**
 1. **L'`exit` non gira su NESSUNO dei quattro strati** (nessuno monta `AnimatePresence`; in `src/` esiste solo in
@@ -61,4 +67,4 @@ erano sbagliate **una prova e una mutazione**. **Chi apre un task nuovo legga PR
 **T13**) · **FM-8** · tredici overlay di `src/components/features/**` che promettono `aria-modal` senza mantenerlo ·
 **cinque Minori di T9-bis** a verbale per la **revisione finale di ramo** (elencati nel suo referto §6).
 
-➡️ Verbale (`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`) fermo a **novanta**: la prossima è **D91**.
+➡️ Verbale (`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`): **novantuno** decisioni in ventotto tornate — l'ultima è **D91** (la prescrizione). La prossima è **D92**.
