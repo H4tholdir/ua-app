@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentaduesima tornata (la verifica dal vivo delle due impronte della DdC)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla trentatreesima tornata (gli accenti nei documenti generati)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centotré decisioni in trentadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosette decisioni in trentatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -702,3 +702,36 @@ meno*.
 - 🟡 **La numerazione dei paragrafi del PDF salta il §2** (data di emissione): il dato c'è, in testa e in
   calce, ma senza il suo titoletto. Chi legge col trattino dell'Allegato XIII in mano vede un buco che non
   c'è.
+
+---
+
+### Trentatreesima tornata — gli accenti nei documenti generati (voce 8 di roadmap)
+
+Spec: `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`. Nasce dal PDF **guardato con
+l'occhio** durante la verifica del 03/08. **Panel di tre con mandato di confutare** (normativo · dato ·
+prodotto): ha corretto il censimento da 7 a **10 punti**, ha posto un gate sui metadati del file (**superato
+misurandolo**) e ha portato **nove ritrovamenti fuori mandato**, alcuni più pesanti del refuso.
+
+🛑 **Un'affermazione portante del panel è stata riverificata a mano ed era FALSA:** il parere normativo
+dava per assodato che *nessuna* dichiarazione porti `template_version = 'ddc-v1'`, e su quel presupposto
+sconsigliava il salto di versione. Il conteggio vero: su 4 righe in archivio **una porta `ddc-v1`**. La sua
+raccomandazione resta difendibile per altra via, ma non per quella. È il motivo per cui le affermazioni
+portanti si riverificano.
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D104** | ✅ **Si correggono gli accenti in TUTTI i punti, frase congelata compresa** | scelta di Francesco fra tre strade (tutto / solo le scritte fisse / prima il panel) | Dieci punti, elencati nella spec §2. 🛑 **Vincolo sul testo congelato: solo i segni d'accento, il resto byte per byte** — una modifica dentro la frase di un documento legale è un invito a riformulare, e quella è un'altra decisione. ⚠️ Il decimo punto è il **DEFAULT di una colonna** in una migration storica: non si riscrive la storia, serve una **migration nuova** (e con essa la FASE 6b) |
+| **D105** | 🔢 **La versione del modello RESTA `ddc-v1`**: il salto si tiene per il primo cambiamento che altera *ciò che il documento dice* | scelta di Francesco fra `ddc-v2` / semver / restare a v1 | 🛑 **Ma così la definizione scritta nel codice diventa falsa** (`generate-ddc.ts:33-34` dice «cambia quando cambia ciò che il PDF rende»). La decisione si realizza **scrivendo il registro delle versioni** accanto alla costante, riformulando la definizione perché sia vera, e **allineando `schema.sql:1249`**, che promette un formato a tre numeri mai usato. Due definizioni contraddittorie della stessa colonna erano il rilievo bloccante del panel: si toglie comunque |
+| **D106** | ➕ **Il §2 mancante entra nello stesso giro** | scelta di Francesco fra insieme / voce separata | Il documento salta da §1 a §3: la data di emissione (elemento 2 dell'Allegato XIII) c'è ma senza titoletto. Farlo dopo significherebbe **due revisioni e tre grafie** dello stesso documento in poche settimane. Forma scelta: nasce la sezione, e **l'intestazione perde la data** — resta in due posti come oggi, non in tre. ⚠️ Un titoletto sposta il flusso: il collaudo guarda **il PDF intero**, non la sola sezione nuova |
+| **D107** | 🚫 **Niente guardia automatica contro i refusi nei documenti** | scelta di Francesco fra farla / non farla | Il panel ne proponeva una a dizionario sui soli undici modelli, agganciata al pre-commit già esistente. ⚠️ **Conseguenza dichiarata, perché non venga scoperta due volte:** il prossimo refuso arriverà sui documenti esattamente come questo, e si troverà **solo guardando un foglio stampato** |
+
+#### Riferiti e NON toccati (R-E2) — nove, dal panel
+
+Elenco completo con `file:riga` nella **spec §5**. I tre che pesano di più: ① la frase del §7 dichiara il
+dispositivo conforme «**e ai disposti dell'Allegato XIII**», che è una **procedura**, non un requisito — e
+`seed.sql:198` conserva una versione migliore e già accentata, quindi quella in uso è una **regressione**;
+② **il luogo di fabbricazione non è mai stampato** benché sia il trattino 1, obbligatorio; ③ il foglio
+**afferma «Sostanze / tessuti: No»** con un valore codificato a mano, mai raccolto.
+⚠️ E una **contraddizione fra due panel da sciogliere**: la base normativa della conservazione decennale è
+«Art. 10(5) + Allegato XIII punto 4» (ratificata il 29/07) o **l'Allegato XIII punto 4 da solo**? Quella
+citazione vive in tre documenti. Non ratificata né scartata: **va verificata sul testo**.
