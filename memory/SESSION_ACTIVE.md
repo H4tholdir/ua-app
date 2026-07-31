@@ -1,27 +1,33 @@
-# Sessione attiva — ondata (b): T10 FATTO, la carta album è SULLA SCHEDA. Si riparte da T11 (01/08/2026)
+# Sessione attiva — ondata (b): T11 + T11-bis FATTI, il caricamento foto è VIVO. Si riparte da T12 (01/08/2026)
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **BLOCCO D, Task 11**
-(`TabImmagini`: la categoria si chiede, si scrive da un punto solo, e i due difetti si chiudono).
-📎 Da dove veniamo: `docs/roadmap/2026-08-01-t10-referto.md` · prima: `…-t9-bis-referto.md` · `…-t9-referto.md`
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **BLOCCO D, Task 12**
+(l'eliminazione dal visore: menù → «Elimina foto» → conferma → la foto sparisce anche dallo schermo).
+📎 Da dove veniamo: `docs/roadmap/2026-08-01-t11-referto.md` · prima: `…-t10-referto.md` · `…-t9-bis-referto.md`
 📎 Ledger vivo dell'esecuzione: `.superpowers/sdd/progress.md` — 🛑 **cartella IGNORATA da git**, esiste solo su questa macchina.
 
-**Ramo `ondata-b-schermate`** — niente su `origin`. ✅ **Fatti: T1 → T9-bis, e T10.** Blocco C (i componenti) **chiuso**; blocco D (l'innesto) **aperto**.
-🔑 **Riferimento MISURATO il 01/08 a T10 chiuso:** `vitest` **367 | 3** file, **4191 | 19** prove · `tsc` **0** · `next build` ok.
-⚠️ Il totale è **calato di uno** ed è giusto: la striscia e il suo test sono stati eliminati (−3), più due prove nuove.
+**Ramo `ondata-b-schermate`** — niente su `origin`. ✅ **Fatti: T1 → T9-bis, T10, T11, T11-bis.** Restano **T12** e **T13**.
+🔑 **Riferimento MISURATO il 01/08 a T11-bis chiuso:** `vitest` **368 | 3** file, **4207 | 19** prove · `tsc` **0** · `next build` ok.
 
 🔑 **Da T9-bis in poi si esegue con `subagent-driven-development`** (esecutore fresco per compito + revisione
 indipendente in mezzo), che è ciò che R-E1 prescrive. **Alla prima applicazione la revisione ha bocciato la
 consegna su entrambi i verdetti e ha trovato un conteggio `N su M` GONFIATO** («4 su 37» → **3 su 47** con un
 abbozzo davvero inerte). Il metodo si tiene.
 
-**Lo stato dell'innesto:** `CartaAlbum` (§5.38) è **MONTATA** sulla scheda e nel catalogo (T10) · `VisoreFoto`
-(§5.39) · `TendinaMenu` (§5.40) · `FoglioCategoria` (§5.41) · `FoglioConferma` (§5.42) sono **pronti e non
-montati**: li monta **T12**.
+**Lo stato dell'innesto:** `CartaAlbum` (§5.38) è **MONTATA** sulla scheda e nel catalogo (T10) ·
+✅ **`FoglioCategoria` (§5.41) è MONTATA** nel caricamento foto (T11): chiede la categoria una volta per gruppo,
+e lì si è chiusa la trappola dell'**identità di `ancoraFocus`** (ref stabile, mai un letterale inline) ·
+`VisoreFoto` (§5.39) · `TendinaMenu` (§5.40) · `FoglioConferma` (§5.42) restano **pronti e non montati**: li
+monta **T12**, che è il prossimo.
 
-🛑 **STATO INTERMEDIO DA SAPERE, e da non portare in produzione così:** sulla scheda ci sono ora **due bottoni
-veri che non aprono niente** — «⤢ Apri» (che **vibra** al tocco) e la pastiglia della categoria. §5.38 li mette
-nell'anatomia ratificata e le loro callback sono **prop obbligatorie**: non esisteva un appiglio per non
-renderli. **Li collega T12**, e T13 (FASE 7 + FASE 9 + gate estetico L2) sta prima del merge.
+🛑 **STATO INTERMEDIO DA SAPERE, e da non portare in produzione così:** sulla scheda ci sono **due bottoni veri
+che non aprono niente** — «⤢ Apri» (che **vibra** al tocco) e la pastiglia della categoria. §5.38 li mette
+nell'anatomia ratificata e le callback sono **prop obbligatorie**: non esisteva un appiglio per non renderli.
+**Li collega T12**, e T13 (FASE 7 + FASE 9 + gate estetico L2) sta prima del merge.
+
+⚠️ **Un dato che PRIMA esisteva e ora no** (T11-bis): la foto della prescrizione viaggiava con l'etichetta
+`'prescrizione'`, che **non è una delle sei categorie** — ora è `'altro'`, e **il dettaglio «era la
+prescrizione» non è registrato da nessuna parte**. Non è un errore del task: è una **decisione da prendere**
+se quel dettaglio serve.
 
 🔴 **QUATTRO COSE CHE I BRIEF DI T10-T13 DEVONO PORTARSI, o si perdono nel passaggio:**
 1. **L'`exit` non gira su NESSUNO dei quattro strati** (nessuno monta `AnimatePresence`; in `src/` esiste solo in
