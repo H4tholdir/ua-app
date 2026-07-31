@@ -1246,7 +1246,9 @@ CREATE TABLE dichiarazioni_conformita (
   pdf_url               TEXT,               -- Supabase Storage URL
   pdf_sha256            TEXT,               -- SHA-256 del blob PDF al momento della generazione
   payload_sha256        TEXT,               -- SHA-256 del JSON input usato per generare il PDF
-  template_version      TEXT,               -- Es. "ddc-v1.2.0" — versione template react-pdf
+  template_version      TEXT,               -- Es. "ddc-v1" — versione della FORMA del documento; il registro
+                                            -- di cosa contiene ogni versione vive accanto alla costante in
+                                            -- src/lib/pdf/generate-ddc.ts. NON è un semver: si conta 1, 2, 3.
   pdf_generato_at       TIMESTAMPTZ,
   generated_by          UUID REFERENCES utenti(id), -- chi ha premuto "Consegna"
   storage_object_version TEXT,             -- versione oggetto Supabase Storage (per audit)

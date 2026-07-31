@@ -30,14 +30,27 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
   }
 }
 
-/** La versione della FORMA del documento. Cambia quando cambia ciò che il PDF
- *  rende — non a ogni ritocco di codice.
+/** La versione della FORMA del documento. Cambia quando cambia **ciò che il
+ *  documento dice** — non a ogni ritocco di codice, e non per un glifo.
  *
  *  🛑 Introdotta con D102, e «introdotta» è la parola giusta: la colonna
  *  `template_version` esiste in `supabase/schema.sql` dal primo giorno e non
- *  l'ha mai scritta nessuno. Ogni DdC emessa fino a oggi la porta `NULL` —
- *  cioè il documento non dice di che forma è. Fra dieci anni (quindici per gli
- *  impiantabili) è la riga che permette di rileggerlo sapendo come andava letto. */
+ *  l'ha mai scritta nessuno. Fra dieci anni (quindici per gli impiantabili) è la
+ *  riga che permette di rileggere un documento sapendo come andava letto.
+ *
+ *  ═══ REGISTRO DELLE VERSIONI ═════════════════════════════════════════════
+ *  `ddc-v1` — dalla prima emissione con le impronte (03/08/2026) a oggi.
+ *     Comprende, per decisione **D105**, anche la correzione ortografica del
+ *     03/08 (gli accenti in titolo, §7 ed etichetta della firma, e `e'` → `è`
+ *     nel testo di conformità) e la comparsa del **§2 — Data di emissione**:
+ *     nessuna delle due cambia ciò che il documento DICE.
+ *  🔑 Il salto a `ddc-v2` è riservato al primo cambiamento di **sostanza** —
+ *     un contenuto dell'Allegato XIII che entra, esce o cambia significato.
+ *     I candidati sono già in `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`
+ *     §5 (referral ①②③④): la clausola «e ai disposti dell'Allegato XIII», il
+ *     luogo di fabbricazione mancante, il «Sostanze/tessuti: No» affermato senza
+ *     dato, l'identificazione del paziente che può ridursi a un trattino.
+ *  ═════════════════════════════════════════════════════════════════════════ */
 const VERSIONE_TEMPLATE_DDC = 'ddc-v1'
 
 /** Serializzazione CANONICA: le chiavi degli oggetti in ordine alfabetico, gli

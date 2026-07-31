@@ -206,6 +206,16 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
   })
 
+  it('template_version resta `ddc-v1` — il salto è riservato a un cambiamento di SOSTANZA (D105)', async () => {
+    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:202`) chiede solo
+    // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
+    // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
+    // costante gli dice quando è lecito farlo.
+    await generateDdC(LAVORO_FIXTURE)
+    const riga = mockInsert.mock.calls[0][0]
+    expect(riga.template_version).toBe('ddc-v1')
+  })
+
   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
     await generateDdC(LAVORO_FIXTURE)
     const riga = mockInsert.mock.calls[0][0]
