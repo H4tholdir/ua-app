@@ -4,6 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 import { FrameFatto } from '@/components/features/wizard/FrameFatto'
 import type { AccessorioFallito } from '@/lib/wizard/crea-lavoro'
+// T11-bis: la prova che lega il client al server — si importa la funzione
+// VERA della rotta (`route.ts:97-103` la usa per rifiutare con 422), non se
+// ne ricopia l'elenco. Regge anche se domani le sei categorie cambiano.
+import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
@@ -172,7 +176,14 @@ describe('FrameFatto — CTA foto (TastoPrimario, unico rosso del frame)', () =>
     expect(screen.getByRole('button', { name: 'Fotografa impronta e prescrizione' })).toBeInTheDocument()
   })
 
-  it('selezionare un file → POST /api/lavori/[id]/immagini FormData{file, descrizione:"prescrizione"} → avviso "Foto salvata ✓", resta sul Fatto', async () => {
+  // T11-bis: la rotta pretende `categoria` (`route.ts:97-103`, validata con
+  // `isCategoriaFoto`) e rifiuta chi manda ancora `descrizione`. Il tasto
+  // fotografa «impronta E prescrizione»: una prescrizione cartacea non è
+  // nessuna delle sei categorie cliniche (impronta/pre_lavoro/colore/
+  // post_prova/rx), quindi il valore giusto è il ripiego dell'elenco stesso,
+  // 'altro' — lo stesso già previsto per il foglio-categoria di TabImmagini
+  // quando l'utente esce senza scegliere (D74, `route.ts:88`).
+  it('selezionare un file → POST /api/lavori/[id]/immagini FormData{file, categoria:"altro"} (valore che isCategoriaFoto accetta), MAI descrizione → avviso "Foto salvata ✓", resta sul Fatto', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
     m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ immagine: { id: 'img-1' } }) })
 
@@ -188,7 +199,11 @@ describe('FrameFatto — CTA foto (TastoPrimario, unico rosso del frame)', () =>
     expect(opt.method).toBe('POST')
     const fd = opt.body as FormData
     expect(fd.get('file')).toBe(file)
-    expect(fd.get('descrizione')).toBe('prescrizione')
+    // La prova che vale: il valore mandato PASSEREBBE isCategoriaFoto sulla
+    // rotta vera, non solo che la chiave 'categoria' esista.
+    expect(isCategoriaFoto(fd.get('categoria'))).toBe(true)
+    expect(fd.get('categoria')).toBe('altro')
+    expect(fd.get('descrizione')).toBeNull()
 
     expect(await screen.findByText('Foto salvata ✓')).toBeInTheDocument()
     // Ripetibile: il frame resta il Fatto (titolo ancora presente).

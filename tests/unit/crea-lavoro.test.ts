@@ -7,6 +7,12 @@ import {
   GIORNI_FALLBACK_LIBERO,
 } from '@/lib/wizard/crea-lavoro'
 import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
+// T11-bis: la prova che lega il client al server. Non basta che la stringa
+// 'categoria' compaia — deve essere un valore che `isCategoriaFoto` (la
+// stessa funzione che la rotta usa per rifiutare, `route.ts:97-103`)
+// accetterebbe DAVVERO. Si importa la funzione vera, non se ne ricopia
+// l'elenco: così la prova regge anche se domani le sei categorie cambiano.
+import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 
 // Stesso pattern di mock fetch sequenziale di WizardNuovoLavoro.test.tsx (Task 9).
 beforeEach(() => {
@@ -231,7 +237,12 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(corpoLavori).not.toHaveProperty('colore_dente')
   })
 
-  it('foto presente → POST immagini FormData{file, descrizione:"impronta"} dopo POST lavori', async () => {
+  // T11-bis: la rotta (`route.ts:97-103`) pretende `categoria` e la valida con
+  // `isCategoriaFoto`, respingendo chi manda ancora il vecchio `descrizione`
+  // con 422. La foto qui è quella dell'impronta (`PassoPaziente.tsx` — «Aggiungi
+  // la foto dell'impronta»), quindi il valore giusto è letteralmente
+  // 'impronta', una delle sei categorie ratificate in `categorie-foto.ts`.
+  it('foto presente → POST immagini FormData{file, categoria:"impronta"} (valore che isCategoriaFoto accetta), MAI descrizione', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-5' } }))
@@ -259,7 +270,11 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     const fd = optImg.body as FormData
     expect(fd instanceof FormData).toBe(true)
     expect(fd.get('file')).toBe(file)
-    expect(fd.get('descrizione')).toBe('impronta')
+    // La prova che vale: il valore mandato PASSEREBBE isCategoriaFoto sulla
+    // rotta vera, non solo che la chiave 'categoria' esista.
+    expect(isCategoriaFoto(fd.get('categoria'))).toBe(true)
+    expect(fd.get('categoria')).toBe('impronta')
+    expect(fd.get('descrizione')).toBeNull()
   })
 
   // Adeguato al Task 11 per la stessa ragione del caso qui sopra: i passi sono

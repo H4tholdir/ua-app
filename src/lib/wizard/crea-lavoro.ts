@@ -386,11 +386,17 @@ export async function creaLavoroDaWizard(input: {
   if (coloreScartato) accessoriFalliti.push('colore')
 
   // Passo 4: foto dell'impronta.
+  //
+  // T11-bis: la rotta (`route.ts:97-103`) pretende `categoria`, validata con
+  // `isCategoriaFoto`, e rifiuta con 422 chi manda ancora il vecchio
+  // `descrizione` (era la forma pre-D73). Questa è letteralmente la foto
+  // dell'impronta (`PassoPaziente.tsx` — «Aggiungi la foto dell'impronta»),
+  // quindi il valore è una delle sei categorie ratificate, non un ripiego.
   if (foto) {
     try {
       const fd = new FormData()
       fd.append('file', foto)
-      fd.append('descrizione', 'impronta')
+      fd.append('categoria', 'impronta')
       const res = await fetch(`/api/lavori/${lavoro.id}/immagini`, {
         method: 'POST',
         credentials: 'same-origin',

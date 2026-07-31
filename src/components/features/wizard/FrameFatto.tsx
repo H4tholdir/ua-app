@@ -167,7 +167,15 @@ export function FrameFatto(props: {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('descrizione', 'prescrizione')
+      // T11-bis: la rotta pretende `categoria` (una delle sei di
+      // `categorie-foto.ts`, validata con `isCategoriaFoto`), non più
+      // `descrizione` — rifiuta con 422 chi manda il campo vecchio. Il tasto
+      // fotografa «impronta E prescrizione»: una prescrizione cartacea non è
+      // nessuna delle cinque categorie cliniche (impronta/pre_lavoro/colore/
+      // post_prova/rx), quindi il valore giusto è il ripiego previsto
+      // dall'elenco stesso, 'altro' — lo stesso che D74 assegna quando
+      // l'utente esce dal foglio-categoria di TabImmagini senza scegliere.
+      fd.append('categoria', 'altro')
       const res = await fetch(`/api/lavori/${lavoro.id}/immagini`, {
         method: 'POST',
         credentials: 'same-origin',
