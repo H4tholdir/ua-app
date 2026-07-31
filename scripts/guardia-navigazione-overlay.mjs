@@ -249,10 +249,25 @@ await braccio({
     await page.waitForTimeout(1800)
     const cassette = page.locator('.ds-cassetta, [data-cassetta]')
     const quante = await cassette.count()
+    // 🛑 SOLO le cassette LIBERE, e non è pignoleria: una cassetta OCCUPATA porta
+    //    al lavoro che contiene (navigazione), non apre nessuno sheet — quindi
+    //    `first()` dava un rosso FALSO ogni volta che la prima cassetta del banco
+    //    era occupata. Misurato il 02/08 (T13): la C1 è occupata, il click portava
+    //    alla scheda di E2E-CAS-001 e il braccio dichiarava «lo sheet non si è
+    //    aperto». Lo sheet con l'azione distruttiva («Butta via») è quello della
+    //    cassetta libera, ed è l'unico che questa proprietà può misurare.
+    const libere = page.locator('.ds-cassetta.is-libera, [data-cassetta].is-libera')
+    const quanteLibere = await libere.count()
     if (quante === 0) {
       nonMisurati.push('[indietro non conferma] nessuna cassetta sulla parete: proprietà critica non misurata')
+    } else if (quanteLibere === 0) {
+      nonMisurati.push(
+        `[indietro non conferma] sulla parete ci sono ${quante} cassette ma nessuna LIBERA: ` +
+          'una cassetta occupata porta al suo lavoro invece di aprire lo sheet, quindi la proprietà non è misurabile. ' +
+          'Libera una cassetta sul banco e rilancia',
+      )
     } else {
-      await cassette.first().click()
+      await libere.first().click()
       await page.waitForTimeout(1600)
       const conSheet = await firma(page)
       if (conSheet.sheet === 0) {
@@ -283,6 +298,104 @@ await braccio({
               guasti.push(`[indietro non conferma] ⛔ una pressione indietro ha CONFERMATO l'azione distruttiva: le cassette erano ${quante}, dopo il ricarico sono ${rimaste}`)
             } else {
               nota.push(`indietro non conferma: dialogo via, sheet resta, secondo indietro chiude lo sheet, ${rimaste} cassette intatte dopo il ricarico`)
+            }
+          }
+        }
+      }
+    }
+  } finally {
+    await page.close()
+  }
+}
+
+// ── 4. I TRE STRATI DELL'ALBUM: indietro ne chiude UNO per volta ────────────────────────────
+// Aggiunto da T13 (02/08/2026). Senza questo braccio la guardia non guarda affatto la
+// superficie nuova dell'ondata (b) — e la superficie nuova è proprio quella che impila TRE
+// overlay sopra la stessa pagina (visore → tendina → conferma), cioè il caso peggiore per una
+// entry sola di history.
+// 🔑 Tutti e tre entrano con la marca `uaSheet` (`VisoreFoto.tsx:115`, `TendinaMenu.tsx:130`,
+//    `FoglioConferma.tsx:188`): è la marca che `firma()` sa riconoscere, quindi nessun rosso
+//    falso — ed è una delle ragioni per cui è stata scelta.
+// 🛑 Le pressioni sono traversal VERE (`page.goBack()`), mai un `popstate` sintetico: proprio
+//    questo difetto — un overlay che si chiudeva da solo perché il `popstate` di un
+//    `history.back()` arrivava in ritardo — è passato indenne davanti a 4.230 prove unitarie,
+//    perché jsdom non esegue nessuna traversal (T12, 02/08).
+{
+  const page = await ctx.newPage()
+  try {
+    await page.goto(`${BASE}/lavori/${LAVORO}`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
+
+    const apri = page.getByRole('button', { name: /^Apri la foto grande/ })
+    if ((await apri.count()) === 0) {
+      nonMisurati.push(
+        '[album: tre strati] il lavoro di prova non ha foto, quindi la carta album non offre «Apri»: ' +
+          'carica una foto su quel lavoro e rilancia',
+      )
+    } else {
+      await apri.click()
+      await page.waitForTimeout(1500)
+      const conVisore = await firma(page)
+      if (conVisore.sheet + conVisore.dialogo === 0) {
+        guasti.push('[album: tre strati] il visore non si è aperto')
+      } else if (!conVisore.marca) {
+        guasti.push('[album: tre strati] col visore aperto la nostra entry non è riconoscibile in cima alla history')
+      } else {
+        // ① il visore da solo: indietro lo chiude e NON lascia la pagina.
+        await indietro(page)
+        const dopoVisore = await firma(page)
+        if (dopoVisore.sheet + dopoVisore.dialogo !== 0) {
+          guasti.push('[album: tre strati] indietro non ha chiuso il visore')
+        }
+        if (!dopoVisore.url.includes(LAVORO)) {
+          guasti.push(`[album: tre strati] indietro ha lasciato la scheda invece di chiudere il visore: ${dopoVisore.url}`)
+        }
+
+        // ② visore + tendina: la prima pressione toglie SOLO la tendina.
+        await apri.click()
+        await page.waitForTimeout(1200)
+        const tondo = page.getByRole('button', { name: 'Altre cose da fare su questa foto' })
+        if ((await tondo.count()) === 0) {
+          guasti.push('[album: tre strati] il ⋯ del visore non c\'è')
+        } else {
+          await tondo.click()
+          await page.waitForTimeout(1000)
+          const conTendina = await page.getByRole('menu').count()
+          if (conTendina === 0) {
+            guasti.push('[album: tre strati] la tendina del ⋯ non si è aperta')
+          } else {
+            await indietro(page)
+            await page.waitForTimeout(600)
+            if ((await page.getByRole('menu').count()) !== 0) {
+              guasti.push('[album: tre strati] indietro non ha chiuso la tendina')
+            }
+            const restaVisore = await firma(page)
+            if (restaVisore.sheet + restaVisore.dialogo === 0) {
+              guasti.push('[album: tre strati] ⛔ indietro ha chiuso ANCHE il visore: doveva togliere solo la tendina')
+            } else {
+              nota.push('album: tre strati — indietro chiude la tendina e lascia il visore aperto sotto')
+            }
+            // ③ e la conferma distruttiva sopra i due: indietro ANNULLA, mai conferma.
+            const foteErano = await page.getByRole('button', { name: /^Apri la foto grande/ }).count()
+            await tondo.click()
+            await page.waitForTimeout(900)
+            const voce = page.getByRole('menuitem', { name: /Elimina foto/ })
+            if ((await voce.count()) === 0) {
+              nonMisurati.push('[album: tre strati] la voce «Elimina foto» non è offerta (lavoro consegnato?): terzo strato non misurato')
+            } else {
+              await voce.click()
+              await page.waitForTimeout(1200)
+              await indietro(page)
+              await page.waitForTimeout(900)
+              // Il DATO, non il messaggio: dopo un ricarico la foto deve esserci ancora.
+              await page.reload({ waitUntil: 'networkidle' })
+              await page.waitForTimeout(2200)
+              const dopoRicarico = await page.getByRole('button', { name: /^Apri la foto grande/ }).count()
+              if (dopoRicarico < foteErano) {
+                guasti.push('[album: tre strati] ⛔ una pressione indietro ha CONFERMATO l\'eliminazione: la foto non c\'è più dopo il ricarico')
+              } else {
+                nota.push('album: tre strati — indietro sulla conferma annulla: la foto è ancora lì dopo il ricarico')
+              }
             }
           }
         }

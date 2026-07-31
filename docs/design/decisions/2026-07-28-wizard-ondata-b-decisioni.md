@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla ventinovesima tornata (le tre risposte sulla settima categoria)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla ventinovesima tornata (la settima categoria, e il perimetro dell'album)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Novantasette decisioni in ventinove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Novantotto decisioni in ventinove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -528,7 +528,7 @@ sessione dopo avrebbe letto quel codice come una scelta ponderata invece che com
 
 ---
 
-## Ventinovesima tornata — la settima categoria, tutte e quattro le risposte (D92-D97)
+## Ventinovesima tornata — la settima categoria (D92-D97) e il perimetro dell'album (D98)
 
 **Data:** 2 agosto 2026, in apertura di sessione. **Innesco:** il brief della settima categoria poneva
 **quattro** domande da chiudere prima di scrivere codice (`docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md`
@@ -575,6 +575,14 @@ identico: chi deve rivedere questa scelta apre quello, non cerca le immagini.
 | n. | La decisione | Come è stata presa | Ragioni e conseguenze |
 |---|---|---|---|
 | **D97** | 📸 **Il tasto «Fotografa impronta e prescrizione» della schermata «Fatto!» registra la foto come `'prescrizione'`** (`FrameFatto.tsx:170`) — non più `'altro'` | conseguenza diretta di D91, decisa qui perché **non è un dettaglio di implementazione**: sceglie sotto quale voce l'operatore ritroverà quella foto | 🔑 **È il valore che quel punto mandava PRIMA**, ed è la perdita che T11 aveva registrato («il dettaglio *era la prescrizione* non è più registrato da nessuna parte»); T11-bis l'ha instradato su `'altro'` come **ripiego dichiarato in attesa di D91**. ⚠️ **Il commento che sta lì (`:170-179`) va RISCRITTO, non solo il valore:** motiva `'altro'` con «una prescrizione cartacea non è nessuna delle cinque categorie cliniche» — premessa che da D91 **è falsa**, e un commento falso lasciato in piedi è ciò che fa ripetere la scelta sbagliata. ⚠️ **Asimmetria dichiarata, e NON si chiude qui:** il tasto promette due cose («impronta **e** prescrizione») e il dato ne registra una. Non è un buco nuovo — è il modello di D65/D74 (*la foto nasce con una categoria, la si corregge dopo*), e la correzione esiste già dalla scheda del lavoro. 🛑 **Aprire il foglio-categoria anche in fondo al wizard sarebbe un cambio di flusso**, e non è questo lavoro. ➡️ **Resta invece `'impronta'`** l'altro punto (`crea-lavoro.ts:393`): lì la schermata dice letteralmente «Aggiungi la foto dell'impronta», e non c'è ambiguità da sciogliere |
+
+---
+
+### Il perimetro dell'album, chiuso a T12 (D98)
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D98** | 📐 **L'album (carta, visore, tendina, conferma) resta SOLO sulla scheda del lavoro: la pagina di modifica tiene la sua galleria vecchia fino alla propria ondata** | scelta di Francesco fra due, poste dopo un ritrovamento di T12: «*lasciala com'è fino alla sua ondata*» | 🔑 **La domanda è nata da una lacuna del piano, non da un capriccio:** il Passo 3 di T12 chiedeva la rimozione dallo stato anche in `LavoroFormClient` (`:128`), ma quella pagina **non ha né carta album né visore** — `TabImmagini` ha ancora la sua griglia. Un `onRemove` lì sarebbe stato **codice che nessuno chiama**, e «niente placeholder» è regola di casa. ⚠️ **Costo dichiarato, e va tenuto d'occhio:** per un po' le foto si guardano in due modi diversi a seconda della pagina da cui si entra — la spec §1 prevede la carta «*sulla scheda del lavoro **e sulla modifica***», quindi questa decisione **non contraddice la spec, la scaglia nel tempo**. ➡️ **La destinazione esiste già:** la migrazione di `/lavori/[id]/modifica` a v3 è **ondata propria** (spec §10, ~3.500 righe su 10 file) — l'album ci entra lì. 🛑 **Quello che NON cambia:** su quella pagina la categoria si chiede e si corregge lo stesso (T11 ha montato lì `FoglioCategoria`), quindi nessuna foto nasce senza categoria da nessuna delle due strade |
 
 ---
 

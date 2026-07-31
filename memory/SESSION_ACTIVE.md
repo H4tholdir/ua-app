@@ -47,7 +47,34 @@ apertura, in Strict Mode) — quella prova, tolta la correzione, si accende (2 i
 ancora la sua griglia; la migrazione di quella route a v3 è **ondata propria**, spec §10). Un `onRemove` lì
 sarebbe **codice morto**: non è stato aggiunto. La spec §1 però prevede la carta «*sulla scheda del lavoro **e
 sulla modifica***» → **serve una decisione di perimetro.**
-➡️ **Poi:** **T13** (FASE 7 · FASE 9 nel browser · gate estetico L2).
+✅ **T13 FATTO (02/08), tranne l'ultimo passo che dipende dal merge.**
+**Passo 1 — FASE 7:** `tsc` **0** · `vitest` **369 | 3** file, **4230 | 19** prove · `next build` ok, con
+`ƒ /api/lavori/[id]/immagini/[imgId]` in tabella.
+**Passo 2 — 🚦 LA GUARDIA DEGLI OVERLAY HA GIRATO, ED È VERDE (uscita 0).** Non girava da T6. Le serviva una
+build di produzione (aggiunta la configurazione **`ua-prod-3020`**) e la fixture di E2E-CAS-002, preparata e
+**rimessa com'era**. ✅ **Aggiunto il quarto braccio, quello dell'album:** indietro chiude **la tendina** e
+lascia il visore aperto sotto · indietro sulla conferma **annulla** (verificato sul DATO, dopo un ricarico).
+🔧 **E il terzo braccio dava un rosso FALSO:** cliccava la *prima* cassetta, e una cassetta **occupata** porta
+al suo lavoro invece di aprire lo sheet. Ora cerca le **libere** (`.is-libera`) e dichiara «non misurato» se
+non ce ne sono.
+**Passo 3 — FASE 9 nel browser vero, 390/768/1280 × chiaro e scuro:** tre foto insieme → «Che foto sono? La
+scelta vale per tutte e 3» · foglio chiuso con `Escape` → le foto **nascono lo stesso** (D74) · visore, 10
+miniature, scorrimento · categoria corretta **dal visore**, e **il visore resta aperto** · conferma annullata,
+niente eliminato · a 768 e 1280 il foglio resta a **480px**. 🛑 **Banco riportato com'era:** foto del collaudo
+eliminate, **294** lavori, fixture ripristinata.
+**Passo 4 — GATE ESTETICO L2:** ✅ **risolto il rilievo previsto** — in scuro «Annulla» spariva dentro il
+pannello (stessa faccia `var(--elv)`, contorno `--line` invisibile). Rimedio **scoped** in `ds-v3.css`, stessa
+forma già usata dal progetto per gli sheet: dentro `.ds-foglioconferma-pannello` il tasto scende a
+`var(--card)` e il contorno sale a `--faint`. `TastoSecondario` **non cambia da nessun'altra parte**, e in
+chiaro la regola non esiste. Screenshot prima/dopo (25 file) in `docs/design/screenshots/2026-07-30-album-foto/`,
+tracciati con `git add -f`.
+⚠️ **LIMITE DEL GATE, dichiarato:** le foto di prova sono PNG **1×1 trasparenti**, quindi il giudizio sui
+controlli **sopra una fotografia vera** — che §5.39 chiama il caso peggiore («la radiografia») — **non è stato
+dato**. Va fatto con foto vere, insieme al Passo 4-bis.
+🔴 **RESTA SOLO IL PASSO 4-BIS, e dipende dal merge:** dal 30/07 su `uachelab.com` il caricamento di una foto
+risponde **500** (il codice pubblicato scrive ancora la colonna `tipo`, tolta dalla migration di T1 — D81/R29).
+Francesco ha scelto di lasciarlo fino al merge. ➡️ **Dopo il merge, e prima di dichiarare chiusa l'ondata:
+caricare una foto vera su uachelab.com e vederla comparire.**
 📎 Da dove veniamo: `docs/roadmap/2026-08-01-t11-referto.md` · prima: `…-t10-referto.md` · `…-t9-bis-referto.md`
 📎 Ledger vivo dell'esecuzione: `.superpowers/sdd/progress.md` — 🛑 **cartella IGNORATA da git**, esiste solo su questa macchina.
 

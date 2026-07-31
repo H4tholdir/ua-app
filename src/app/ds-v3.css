@@ -1761,3 +1761,22 @@
 }
 [data-ds="v3"] .ua-stanza-pile-scroll::-webkit-scrollbar { display: none; }
 
+
+/* ── GATE ESTETICO L2 dell'ondata (b), T13 (02/08/2026) — «Annulla» in scuro ──
+   Il rilievo era previsto e si è misurato al collaudo: dentro `FoglioConferma`
+   il `TastoSecondario` («Annulla») ha faccia `var(--elv)` e il pannello che lo
+   ospita ha la STESSA faccia, distinti dalla sola `--line` (#342E26 su #2B2620).
+   In chiaro il contorno si legge; in scuro il tasto sparisce nel pannello e
+   sembra testo, non un comando — e il comando che sparisce è proprio quello
+   SICURO, accanto a una distruttiva rossa che si vede benissimo.
+   🔑 Il rimedio è quello già usato dal progetto per lo stesso problema dentro
+   gli sheet (la regola `--card: var(--elv)` di :83-87 qui sopra): si rimappa il
+   token SOLO in questo contesto, così il componente non cambia da nessun'altra
+   parte. Qui la faccia scende a `var(--card)` — la superficie SOTTO l'elevata —
+   e il contorno sale a `--faint`: due fonti, non una.
+   🛑 Scoped al pannello della conferma: `TastoSecondario` fuori di qui resta
+   identico, e in chiaro questa regola non esiste. */
+[data-theme="dark"] [data-ds="v3"] .ds-foglioconferma-pannello .ds-tasto-secondario {
+  --elv: var(--card);
+  --line: var(--faint);
+}
