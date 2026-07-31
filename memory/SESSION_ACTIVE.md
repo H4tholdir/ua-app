@@ -1,54 +1,48 @@
-# Sessione attiva — ondata (b): T9 FATTO, si riparte da T9-bis `FoglioConferma` (01/08/2026)
+# Sessione attiva — ondata (b): T9-bis FATTO, il BLOCCO C è chiuso. Si riparte da T10 (01/08/2026)
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **Task 9-bis**
-(`FoglioConferma`, §5.42, D80), **un compito solo** a un esecutore fresco (R-E1). 🆕 **Da creare:** il suo brief.
-📎 Legge: spec v3 rev. 3.4 **§5.42** — `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`
-📎 Prove e ragioni: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §5.42 e **§1.9 (B-6)**
-📎 Da dove veniamo: `docs/roadmap/2026-08-01-t9-referto.md` · prima: `docs/roadmap/2026-08-01-t8-referto.md`
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`** → **BLOCCO D, Task 10**
+(la carta album entra sulla scheda, e la striscia esce da tutti e tre i siti).
+📎 Da dove veniamo: `docs/roadmap/2026-08-01-t9-bis-referto.md` · prima: `…-t9-referto.md` · `…-t8-referto.md`
+📎 Ledger vivo dell'esecuzione: `.superpowers/sdd/progress.md` — 🛑 **cartella IGNORATA da git**, esiste solo su questa macchina.
 
-**Ramo `ondata-b-schermate`** — niente su `origin`. ✅ **Fatti: T1 · T2 · T3 · T4 · T5 · T5-bis · D89 · T5-ter · D90 · T6 · T7 · T8 · T9.**
-🔑 **Riferimento MISURATO il 01/08 a T9 chiuso:** `vitest` **367 | 3** file, **4140 | 19** prove · `tsc` **0** · `next build` ok.
+**Ramo `ondata-b-schermate`** — niente su `origin`. ✅ **Fatti: T1 → T9-bis.** Il **blocco C (i quattro componenti nuovi) è CHIUSO.**
+🔑 **Riferimento MISURATO il 01/08 a T9-bis chiuso:** `vitest` **368 | 3** file, **4192 | 19** prove · `tsc` **0** · `next build` ok.
 
-**Che cosa ha lasciato T9:** `src/components/ds/FoglioCategoria.tsx` (35 prove). Ogni uscita porta una
-categoria (**D74**, provato da due lati: che arrivi, e che arrivi **prima** della chiusura) · allo scatto
-**nessuna** pastiglia accesa · focus al **pannello** · `Tab` **trattenuto**. **Non è montato da nessuna parte:
-è T11 (lo scatto) e T10/T12 (la correzione).**
+🔑 **Da T9-bis in poi si esegue con `subagent-driven-development`** (esecutore fresco per compito + revisione
+indipendente in mezzo), che è ciò che R-E1 prescrive. **Alla prima applicazione la revisione ha bocciato la
+consegna su entrambi i verdetti e ha trovato un conteggio `N su M` GONFIATO** («4 su 37» → **3 su 47** con un
+abbozzo davvero inerte). Il metodo si tiene.
 
-🔑 **T9-bis eredita due cose che gli servono subito:** ① §1.9 **(B-6)** vale **anche per lui** — è il secondo
-dei due fogli, e `coreografie.sheetSu` porta la transizione **dentro** la variante. 🛑 **Ma la variante se la
-DICHIARA sua**, locale al componente, come mostra lo snippet di §1.9 B-6: **non si importa** quella di
-`FoglioCategoria` — un valore di movimento che viaggia da un componente all'altro è un accoppiamento che
-nessuno difenderebbe in review, e §8.3 dice che le coreografie canoniche sono **solo quelle** elencate. Da
-`FoglioCategoria` si copia il **modo di provarla** (variante esportata, asserita sull'oggetto vero), non
-l'oggetto. Se un giorno i due fogli la condividono davvero, la sede è `v3/motion.ts` accanto a `coreografie`,
-**con emendamento a §8.3** — non un import fra pari; ② l'apritore di `FoglioConferma` è **una voce di menù
-che smonta**, quindi l'àncora del focus va **dichiarata** (C-12), mai catturata.
+**I quattro componenti pronti, nessuno montato da nessuna parte:**
+`CartaAlbum` (§5.38) · `VisoreFoto` (§5.39) · `TendinaMenu` (§5.40) · `FoglioCategoria` (§5.41) · `FoglioConferma` (§5.42).
 
-🔴 **Riferiti da T9, nessuno corretto (R-E2):** il **piano** porta ancora due righe annullate dal suo riquadro
-(la misura **148,5 px** e la mutazione a 15,5) — **due task su due** con lo stesso difetto · la **firma del
-piano** non poteva rendere il momento della correzione (aggiunta `scelta?: CategoriaFoto`) · `ancoraFocus` è
-**`RefObject` obbligatoria** (F-12), non l'opzionale del piano · «il manico» è elencato fra le uscite ma in
-casa **non è un comando** · **nessuno dei tre strati anima l'uscita** (nessun `AnimatePresence`): si decide
-**insieme** al **gate estetico L2 (T13)**.
+🔴 **QUATTRO COSE CHE I BRIEF DI T10-T13 DEVONO PORTARSI, o si perdono nel passaggio:**
+1. **L'`exit` non gira su NESSUNO dei quattro strati** (nessuno monta `AnimatePresence`; in `src/` esiste solo in
+   `Sheet`, `DialogConferma`, `RigaFase`, `Avviso`). **Si decide INSIEME al gate estetico L2 (T13)**, mai per un
+   componente solo.
+2. **L'effect del focus dipende dall'IDENTITÀ di `ancoraFocus`** (`FoglioCategoria.tsx:183` e `FoglioConferma`):
+   un chiamante che passa un letterale inline `{ current: x }` si fa **strappare il cursore** a ogni rerender.
+   **I chiamanti veri sono T10-T12: si chiude lì.**
+3. **T12 deve portarsi il testo ratificato di §5.42 VERBATIM** e il `<strong>` su «e dall'archivio»: il componente
+   prova solo di **non troncare** ciò che riceve.
+4. **T10 monta l'innesco della tendina** → è lui che chiude `TastoTondo` senza `aria-haspopup`/`aria-expanded` e
+   consuma `sopraFoto.facciaAttiva` (a zero usi, **non è un difetto**).
 
-🚦 **DUE PROVE DI BROWSER DOVUTE A T13 (FASE 9b), e nessuna delle due può girare in vitest — se restano qui
-non scritte, non le fa nessuno:**
-1. **`FoglioCategoria` a text-zoom 200%, a 390 e a 768: nessun testo tagliato e la griglia non si sfalsa.**
-   Non è un di più: §5.41 la dichiara **la prova di quel componente**, e §13.3 fa del 200% un **requisito di
-   rilascio**. In vitest c'è solo la sua rete (nessuna pastiglia porta `whiteSpace: nowrap`, che è la causa
-   del taglio), non la prova.
-2. **`scripts/guardia-navigazione-overlay.mjs`**, che nessuno dei task da T6 in poi ha potuto lanciare: le
-   serve l'app accesa con un lavoro preparato, e i componenti non erano montati. ⚠️ È **cieca** a
-   `TendinaMenu` (`role="menu"` senza `aria-modal`): un suo verde non dice niente su quella.
+🚦 **TRE PROVE DI BROWSER DOVUTE A T13 (FASE 9b) — nessuna gira in vitest:**
+① **`FoglioCategoria` a text-zoom 200%, a 390 e 768** (§5.41 la chiama «la prova di questo componente», §13.3 la
+rende requisito di **rilascio**) · ② **`scripts/guardia-navigazione-overlay.mjs`**, che nessun task da T6 in poi ha
+potuto lanciare (⚠️ **cieca** a `TendinaMenu`: `role="menu"` senza `aria-modal`) · ③ **screenshot 390/768/1280 ×
+chiaro/scuro**, e con essi **il contrasto di «Annulla» in scuro dentro `FoglioConferma`**: `TastoSecondario` e il
+pannello userebbero **lo stesso `var(--elv)`**, distinti da una hairline al 6% (misurato su `ds-v3.css:13/48/65-68`;
+il rimedio di casa esiste già a `ds-v3.css:83-87`).
 
-🔴 **Restano aperti dai task prima:** **`ROADMAP-UFFICIALE.md`** dice ancora «ondata (b) *da pianificare*» —
-da sistemare **prima del merge** · **`MenuVoce`** col chevron sulla distruttiva (F-6) · **`TastoTondo`** senza
-`aria-haspopup`/`aria-expanded` e **`facciaAttiva`** a zero usi (entrambi **T10**) · **R27** · **R29 + D81**
-(foto rotte su uachelab.com fino al merge, **T13**) · **FM-8** · **tredici** overlay di
-`src/components/features/**` che promettono `aria-modal` senza mantenerlo.
+⚠️ **Difetto di forma del piano, TRE task su tre** (T8, T9, T9-bis): un riquadro «MANDATO CORRETTO» corregge la
+testa del task e **il corpo resta a dire il contrario** — e il corpo è dove stanno i passi da eseguire. In T9-bis
+erano sbagliate **una prova e una mutazione**. **Chi apre un task nuovo legga PRIMA il riquadro, poi il corpo.**
 
-⚠️ **La lezione che vale per T9-bis:** FASE 7 verde **non vede la forma di una transizione**, e ogni §5.x ha
-la **sua** riga «Riduci movimento» — §5.40 per chiave, §5.41 dentro la variante. Si legge **la propria**, mai
-quella del vicino.
+🔴 **Restano aperti:** `ROADMAP-UFFICIALE.md` dice ancora «ondata (b) *da pianificare*» — **prima del merge** ·
+`MenuVoce` col chevron sulla distruttiva (F-6) · **R27** · **R29 + D81** (foto rotte su uachelab.com fino al merge,
+**T13**) · **FM-8** · tredici overlay di `src/components/features/**` che promettono `aria-modal` senza mantenerlo ·
+**cinque Minori di T9-bis** a verbale per la **revisione finale di ramo** (elencati nel suo referto §6).
 
 ➡️ Verbale (`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`) fermo a **novanta**: la prossima è **D91**.
