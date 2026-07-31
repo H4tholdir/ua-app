@@ -11,6 +11,10 @@
 [data-ds="v3"] {
   /* superfici */
   --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA; --elv: var(--card);
+  /* §5.39 — il velo dietro la foto del visore. In CHIARO quasi opaco: il 6%
+     che passava a .94 bastava a far leggere il testo della scheda dietro la
+     fotografia (misurato in produzione il 02/08 su una foto vera). */
+  --velo-foto: rgba(9,7,5,.99);
   /* inchiostri */
   /* rev. 3.1 (bucket B 12/07) — v. decision record 2026-07-09-il-cuore-mockups.md */
   --ink: #1D1913; --muted: #6E6457; --faint: #7B6A59; --line: #EBE4D6;
@@ -46,6 +50,9 @@
 /* Dark — elevazione = superficie più chiara, MAI ombre (spec §3.2) */
 [data-theme="dark"] [data-ds="v3"] {
   --bg: #171411; --bg-deep: #100E0B; --card: #211D18; --elv: #2B2620;
+  /* In scuro resta il valore ratificato di §5.39: il fondo sotto è già
+     scuro, e il velo non deve schiacciare la fotografia. */
+  --velo-foto: rgba(9,7,5,.94);
   /* rev. 3.1 (bucket B 12/07) — v. decision record 2026-07-09-il-cuore-mockups.md */
   --ink: #F2EEE7; --muted: #A69B8C; --faint: #928778; --line: #342E26;
   --red: #FF3B44; --red-dark: #8F0910;

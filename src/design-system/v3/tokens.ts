@@ -120,8 +120,16 @@ export const pillVoce = {
 // `testoSuFaccia`, che è già il bianco assoluto indipendente dal tema.
 export const sopraFoto = {
   /** Il velo dietro la foto nel visore. `materia.scrim` (.35) è troppo
-   *  trasparente per starci dietro una fotografia (spec album §4.2). */
-  velo: 'rgba(9,7,5,.94)',
+   *  trasparente per starci dietro una fotografia (spec album §4.2).
+   *  🔴 E dal 02/08 NON è un colore fisso, ma una variabile che cambia col
+   *  tema — i due valori vivono in `ds-v3.css`. Il perché è stato misurato in
+   *  PRODUZIONE, su una foto vera: al 94% il 6% che passa bastava, su fondo
+   *  CHIARO, a far leggere il testo della scheda dietro la fotografia
+   *  («DENTISTA», «Studio Bianchi», la carta album). Non era un'animazione a
+   *  metà: velo misurato a riposo dopo 5s, 390×844, opacità 1.
+   *  🛑 In chiaro sale a **.99**; in scuro resta **.94**. Un velo dietro una
+   *  foto non deve mostrare il contesto: deve toglierlo di mezzo. */
+  velo: 'var(--velo-foto)',
   /** Raccordo estetico sotto il capo e sopra il piede — NON è ciò che regge
    *  il contrasto: quello lo reggono `faccia` e `confine`. */
   sfumaturaAlto: 'linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0))',

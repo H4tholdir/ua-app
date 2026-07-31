@@ -9,7 +9,13 @@ foglio ha chiesto la categoria con **sette** pastiglie; la foto è comparsa sull
 sparita dopo il ricarico. Il banco è stato **ripulito**: la foto di prova non è rimasta lì.
 🎨 **Il giudizio estetico che mancava, ora dato — con una foto VERA e scura (§5.39, il «caso peggiore»):**
 ✅ i controlli del visore reggono, perché ognuno porta la **propria faccia e il proprio anello** e non si
-appoggia alla sfumatura. ⚠️ **RILIEVO NUOVO, riferito e non corretto:** in tema **chiaro** il velo
+appoggia alla sfumatura. ✅ **RILIEVO CHIUSO SU DECISIONE DI FRANCESCO («alza il velo in tema chiaro»):** il velo non è più un colore
+fisso ma **una variabile che cambia col tema** — `--velo-foto` in `ds-v3.css`, **.99 in chiaro** e **.94 in
+scuro** (invariato: lì il fondo è già scuro e alzarlo schiaccerebbe la fotografia). Verificato nel browser sui
+due temi: `rgba(9,7,5,0.99)` e `rgba(9,7,5,0.94)` in vigore, e in chiaro il testo dietro **non si legge più**.
+🛡️ **La rete:** una prova legge `ds-v3.css` e pretende i due valori — `tsc` non guarda dentro il CSS e nessuno
+screenshot di jsdom vedrebbe un velo tornato trasparente.
+📎 **Il rilievo, per memoria:** in tema chiaro il velo
 (`rgba(9,7,5,.94)`, valore ratificato) lascia **leggere** il testo della scheda dietro la foto — «DENTISTA»,
 «Studio Bianchi», la carta album in fondo. Non tocca il contrasto dei controlli, ma è rumore dietro la
 fotografia. `provato:` velo misurato a riposo dopo 5s — copre 390×844, opacità 1: **non è un'animazione a

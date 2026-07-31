@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia, tastoPiu, pillVoce, sopraFoto } from '@/design-system/v3/tokens'
 
 function lum(hex: string): number {
@@ -145,7 +146,13 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
     ])
   })
   it('sopraFoto: valori-legge VERBATIM da §4 dell\'allegato dell\'album', () => {
-    expect(sopraFoto.velo).toBe('rgba(9,7,5,.94)')
+    // 🔧 CORRETTO il 02/08 dopo il collaudo IN PRODUZIONE su una foto vera: il
+    //    velo non è più un colore fisso ma una variabile che cambia col tema.
+    //    Al 94% il 6% che passa bastava, su fondo CHIARO, a far leggere il testo
+    //    della scheda dietro la fotografia («DENTISTA», «Studio Bianchi»).
+    //    Misurato a riposo: copre 390×844 con opacità 1 — non era un'animazione
+    //    a metà, era il valore. I due valori veri vivono in `ds-v3.css`.
+    expect(sopraFoto.velo).toBe('var(--velo-foto)')
     expect(sopraFoto.sfumaturaAlto).toBe('linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0))')
     expect(sopraFoto.sfumaturaBasso).toBe('linear-gradient(0deg, rgba(0,0,0,.72), rgba(0,0,0,0))')
     expect(sopraFoto.faccia).toBe('rgba(9,7,5,.62)')
@@ -161,5 +168,21 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   })
   it('sopraFoto: il velo NON è materia.scrim — è più fitto, perché dietro ci sta una fotografia', () => {
     expect(sopraFoto.velo).not.toBe(materia.scrim)
+  })
+
+  // 🔴 I due valori veri del velo, e il perché sono DUE.
+  //    Vivono in `ds-v3.css` perché devono cambiare col tema, e questa prova è
+  //    l'unica rete che impedisce a quel file di tornare indietro in silenzio:
+  //    `tsc` non guarda dentro il CSS, e nessuno screenshot di jsdom vedrebbe
+  //    un velo troppo trasparente.
+  it('il velo di §5.39 vale .99 in CHIARO e .94 in scuro, ed è dichiarato nel CSS', () => {
+    const css = readFileSync('src/app/ds-v3.css', 'utf-8')
+    const chiaro = css.match(/--velo-foto:\s*([^;]+);/)
+    expect(chiaro, 'il valore chiaro di --velo-foto non è dichiarato').not.toBeNull()
+    expect(chiaro![1].trim()).toBe('rgba(9,7,5,.99)')
+    const dark = css.slice(css.indexOf('[data-theme="dark"]'))
+    const scuro = dark.match(/--velo-foto:\s*([^;]+);/)
+    expect(scuro, 'il valore scuro di --velo-foto non è dichiarato').not.toBeNull()
+    expect(scuro![1].trim()).toBe('rgba(9,7,5,.94)')
   })
 })
