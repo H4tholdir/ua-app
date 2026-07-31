@@ -97,6 +97,55 @@ describe('GET /api/clienti', () => {
     })
   })
 
+  // ══ TOK-1 — la chiave del portale NON esce da questo elenco (D53) ═══════
+  // 🛑 `portale_token` apre, DA SOLO e senza PIN, le URL firmate della
+  //    dichiarazione di conformità e del buono di lavorazione
+  //    (`api/portale/[token]/lavori/[lavoro_id]/[documento]/route.ts:19-45`):
+  //    il PIN protegge le sole rotte economiche. Metterlo in un elenco di
+  //    RICERCA significa consegnarlo al browser di ogni utente autenticato del
+  //    laboratorio — e lì resta anche dopo che il dipendente se n'è andato.
+  // 🔑 Chi ha bisogno del token è la SCHEDA del singolo cliente
+  //    (`(app)/clienti/[id]/page.tsx:235`, per i tasti del portale), che lo
+  //    legge per conto suo lato server. La ricerca non ne ha mai avuto bisogno.
+  it('🔒 TOK-1: la proiezione NON chiede `portale_token`, e la risposta non lo porta', async () => {
+    const clientiChain = mockLab({ data: CLIENTI_ROWS, error: null })
+    const res = await GET(req('http://localhost/api/clienti?q=Rossi'))
+    const json = await res.json()
+    expect(res.status).toBe(200)
+
+    const select = clientiChain.calls.find((c) => c.method === 'select')
+    expect(select).toBeDefined()
+    expect(String(select!.args[0])).not.toContain('portale_token')
+    // e nessuna riga della risposta lo espone, qualunque cosa torni il database
+    expect(JSON.stringify(json)).not.toContain('portale_token')
+  })
+
+  it('🔒 TOK-1: anche se il database restituisse il token, non arriva al browser', async () => {
+    // Il caso che una prova sulla sola proiezione non copre: una vista, un
+    // trigger o un `select('*')` reintrodotto altrove.
+    mockLab({ data: [{ ...CLIENTI_ROWS[0], portale_token: 'tok-segreto-123' }], error: null })
+    const res = await GET(req('http://localhost/api/clienti'))
+    const json = await res.json()
+    expect(JSON.stringify(json)).not.toContain('tok-segreto-123')
+  })
+
+  // ══ CLI-1 — un jolly digitato NON allarga la ricerca ════════════════════
+  // `pgrestQuote` difende la SINTASSI del filtro; questa difende la SEMANTICA
+  // del pattern SQL: senza, un `%` scritto nella casella fa combaciare tutto
+  // l'elenco, e un `_` fa combaciare qualunque carattere (D48, stesso rimedio
+  // già applicato ai pazienti).
+  it('🔒 CLI-1: `%` e `_` digitati diventano LETTERALI, non jolly', async () => {
+    const clientiChain = mockLab({ data: [], error: null })
+    await GET(req(`http://localhost/api/clienti?q=${encodeURIComponent('100%_sicuro')}`))
+    const or = clientiChain.calls.find((c) => c.method === 'or')
+    expect(or).toBeDefined()
+    const filtro = String(or!.args[0])
+    // i metacaratteri del termine arrivano escapati…
+    expect(filtro).toContain('100\\\\%\\\\_sicuro')
+    // …e le uniche `%` non escapate restano quelle della cornice
+    expect(filtro).toMatch(/ilike\."%100\\\\%\\\\_sicuro%"/)
+  })
+
   it('errore Supabase → 500', async () => {
     mockLab({ data: null, error: { message: 'connection error' } })
     const res = await GET(req('http://localhost/api/clienti?q=Rossi'))
