@@ -145,6 +145,10 @@ arriva dalla banca dati (`rischi_residui_snapshot`); gli altri sono **scritti se
 future, e il testo congelato è un dato conservato dieci anni. Non è una correzione di battitura: è una
 decisione sul contenuto di un documento normativo. **Va deciso, non fatto di passaggio.**
 
+🛑 **E quando si farà, vale solo IN AVANTI: le dichiarazioni già emesse non si rigenerano.** Rigenerarle
+cambierebbe l'impronta di documenti già consegnati — che è esattamente ciò che l'impronta esiste per
+impedire. Scritto qui perché la proposta naturale, davanti a un refuso, è «sistemiamo anche le vecchie».
+
 ### 🟡 ② La numerazione dei paragrafi salta il §2
 
 Il foglio va `§1 → §3 → §4 …`: il §2 (data di emissione) esiste come dato — stampato in testa e in calce —
@@ -164,3 +168,32 @@ non c'è. Cosmetico, ma è il tipo di dettaglio che in ispezione costa una doman
   `verifica-pdf-ddc.ts` (impronta del file archiviato).
 - **L'ordine che rispetta i 10 minuti:** lettura e script **preparati e collaudati prima** di premere
   «Consegna», così fra la consegna e l'annullo restano solo due gesti.
+
+---
+
+## 7. Il controllo sui numeri progressivi — ✅ nessun duplicato, e non ce ne saranno
+
+La consegna ha bruciato `DDC-2026-0002` e `BUO-2026-0001`. **L'annullo non restituisce i numeri**, quindi
+valeva la pena chiedersi se un numero possa poi ripresentarsi su un secondo documento: un progressivo che si
+ripete è un difetto di classe fiscale, e sarebbe nato proprio da un giro come questo.
+
+**Non può succedere, e la ragione è nella funzione, non nella fortuna.** `genera_progressivo`
+(`supabase/schema.sql:93`) fa un `INSERT … ON CONFLICT (laboratorio_id, tipo, anno) DO UPDATE SET
+progressivo = progressivo + 1 RETURNING`: un contatore per laboratorio/tipo/anno che **cresce e basta**, che
+non guarda le righe esistenti e quindi **non recupera i numeri delle dichiarazioni annullate**. Stato del
+contatore dopo il giro:
+
+```
+tipo=ddc    anno=2026  progressivo=2      → la prossima sarà DDC-2026-0003
+tipo=buono  anno=2026  progressivo=1      → il prossimo sarà BUO-2026-0002
+tipo=lavoro anno=2026  progressivo=11
+```
+
+Verificato anche sui dati: **un solo `buono_numero` in tutto il laboratorio, nessuno ripetuto**.
+
+📌 **Un fatto emerso di sbieco, non un difetto misurato:** la dichiarazione del 22/07 (`DDC-2026-0001`)
+**non ha un buono di consegna** — il contatore dei buoni era a zero fino a oggi. Il flusso di consegna li
+genera sempre in sequenza (`orchestrate.ts` Step 3 → Step 4), quindi quella riga probabilmente **non nasce
+da una consegna completa** (uno script, o un tentativo interrotto dopo la dichiarazione). **Non l'ho
+determinato**, ed essendo un laboratorio di prova non ho speso altro tempo: sta qui perché una domanda
+lasciata senza risposta è meglio dichiararla che dimenticarla.
