@@ -231,13 +231,29 @@ export function VisoreFoto(props: {
         }}
       />
 
-      <div
+      <motion.div
         ref={pannelloRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={idPastiglia}
         tabIndex={-1}
         onKeyDown={alTasto}
+        // 🔴 IL FATTO CHE L'HA MESSA QUI, ed è stato l'OCCHIO a trovarlo, non un
+        // numero (collaudo browser di D100, 390 e 1280, chiaro e scuro). Con
+        // l'uscita solo sul velo e sulla scena, i comandi del CAPO (✕,
+        // pastiglia, ⋯) e il piede restavano a PIENA OPACITÀ per tutta l'uscita,
+        // appoggiati su una pagina che riaffiorava: sembravano essersi
+        // dimenticati di andarsene, e a 1280 era vistoso. La misura non poteva
+        // vederlo — velo e tocchi erano quelli giusti in tutti e sei i casi.
+        // 🔑 Lo strato se ne va come UNA COSA SOLA: è ciò che significa
+        // «una cosa alla volta» applicato all'uscita, ed è ciò che fa iOS quando
+        // chiude un visore a tutto schermo — la sua cornice non resta mai
+        // indietro. La dissolvenza sta QUI, sul pannello, perché è il nodo che
+        // contiene capo, scena e piede insieme.
+        // ⚠️ L'ENTRATA non è toccata: §5.39 la ratifica com'è («velo in
+        // dissolvenza, foto `scale` 0.98→1»), e D100 riguarda l'uscita.
+        exit={{ opacity: 0 }}
+        transition={transizione}
         style={{
           position: 'absolute',
           inset: 0,
@@ -339,7 +355,12 @@ export function VisoreFoto(props: {
           // `molla.smooth`». D100 la esegue, non la corregge — l'uscita è
           // l'andata al rovescio, che è il modo in cui Apple tratta una
           // transizione (in SwiftUI l'asimmetria va dichiarata a mano).
-          exit={{ scale: 0.98, opacity: 0 }}
+          // 🛑 Qui SOLO la geometria: la dissolvenza la fa il PANNELLO, che
+          // porta via capo, scena e piede insieme (v. il commento lì sopra).
+          // Lasciare `opacity` anche qui la applicherebbe DUE volte — le opacità
+          // annidate si moltiplicano, e la foto sparirebbe prima della sua
+          // cornice: lo stesso difetto di prima, al rovescio.
+          exit={{ scale: 0.98 }}
           transition={transizione}
           style={{
             flex: 1,
@@ -436,7 +457,7 @@ export function VisoreFoto(props: {
             }}
           />
         </div>
-      </div>
+      </motion.div>
     </StratoRadice>
   ) : null
 

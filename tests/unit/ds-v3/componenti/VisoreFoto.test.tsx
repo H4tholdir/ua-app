@@ -1,5 +1,5 @@
 import { createRef, useRef, type RefObject } from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 import { materia, sopraFoto } from '@/design-system/v3/tokens'
@@ -196,8 +196,12 @@ describe('VisoreFoto — il visore a tutto schermo (§5.39)', () => {
     // sbloccare a metà uscita fa ricomparire la barra e la pagina dietro
     // slitta. Ciò che questa prova guarda NON è cambiato: che il valore
     // restituito sia quello VERO («scroll», «7px») e non una stringa vuota.
-    await act(async () => {})
-    expect(document.body.style.overflow).toBe('scroll')
+    // 🛑 `waitFor` e non un singolo `act`: il rilascio arriva quando l'uscita è
+    // FINITA, e da quante animazioni debba finire non è affare di questa prova
+    // — un numero fisso di tick la renderebbe sensibile a un `exit` in più
+    // (successo davvero: col pannello che si dissolve, un flush non bastava e
+    // il rosso andava e veniva). Si aspetta la CONDIZIONE, non un tempo.
+    await waitFor(() => expect(document.body.style.overflow).toBe('scroll'))
     expect(document.body.style.paddingRight).toBe('7px')
     unmount()
   })
@@ -233,8 +237,7 @@ describe('VisoreFoto — il visore a tutto schermo (§5.39)', () => {
     expect(document.body.style.overflow).toBe('hidden')
 
     rerender(<Due sheet={false} visore={false} />)
-    await act(async () => {})
-    expect(document.body.style.overflow).toBe('scroll')
+    await waitFor(() => expect(document.body.style.overflow).toBe('scroll'))
     expect(document.body.style.paddingRight).toBe('7px')
     unmount()
   })
@@ -249,9 +252,9 @@ describe('VisoreFoto — il visore a tutto schermo (§5.39)', () => {
     rerender(<VisoreFoto {...props()} />)
     expect(document.body.style.overflow).toBe('hidden')
     rerender(<VisoreFoto {...props({ aperto: false })} />)
-    await act(async () => {})
-    // Se l'apertura avesse preso DUE posti, qui il corpo resterebbe «hidden».
-    expect(document.body.style.overflow).toBe('scroll')
+    // Se l'apertura avesse preso DUE posti, qui il corpo resterebbe «hidden»
+    // per sempre e `waitFor` scadrebbe: l'attesa non ammorbidisce la prova.
+    await waitFor(() => expect(document.body.style.overflow).toBe('scroll'))
     unmount()
   })
 
