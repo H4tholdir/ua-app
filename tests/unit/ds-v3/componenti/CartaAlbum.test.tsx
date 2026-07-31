@@ -300,6 +300,23 @@ describe('CartaAlbum — la carta delle foto (§5.38)', () => {
     expect(mini.style.borderRadius).toBe('12px')
   })
 
+  // Eredità di FotoStrip.test.tsx (§5.33, superata): quel file asserisce
+  // 72×72 + radius 12 + objectFit cover + scroll orizzontale. Radius 12 delle
+  // miniature è GIÀ provato sopra ('miniature 60×60 (ben oltre i 44 di G4)
+  // con raggio 12'), e lo scroll orizzontale della fascia è GIÀ provato sopra
+  // ('la fascia dei gruppi scorre in orizzontale…') — non li si duplica qui.
+  // Il 72×72 non ha un equivalente diretto sulla carta (le miniature sono
+  // 60×60, la foto grande segue un aspect-ratio, non una misura fissa): resta
+  // solo `objectFit: cover`, che qui NON era ancora provato su nessuna delle
+  // due immagini — è l'unica riga che si riscrive davvero.
+  it('objectFit cover su foto grande e miniature (ex FotoStrip §5.33): riempiono il riquadro senza deformarsi', () => {
+    render(<CartaAlbum foto={FOTO} {...NULLA} />)
+    const grande = screen.getByRole('button', { name: /^Apri la foto grande/ })
+    expect((grande.querySelector('img') as HTMLImageElement).style.objectFit).toBe('cover')
+    const mini = screen.getByRole('button', { name: 'Impronta, 1 di 5' })
+    expect((mini.querySelector('img') as HTMLImageElement).style.objectFit).toBe('cover')
+  })
+
   it('anello focus-visible di legge (2px --blue, offset 2) su foto grande, etichetta e miniature', () => {
     const { container } = render(<CartaAlbum foto={FOTO} {...NULLA} />)
     const regole = container.querySelector('style')?.textContent ?? ''

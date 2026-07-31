@@ -39,7 +39,7 @@ import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
 import { NotaDentista } from '@/components/ds/NotaDentista'
 import { GiornoAgenda, RigaAgenda } from '@/components/ds/RigaAgenda'
 import { PillVoce } from '@/components/ds/PillVoce'
-import { FotoStrip } from '@/components/ds/FotoStrip'
+import { CartaAlbum } from '@/components/ds/CartaAlbum'
 import { MenuVoce } from '@/components/ds/MenuVoce'
 import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
 import { RigaBloccante } from '@/components/ds/RigaBloccante'
@@ -78,7 +78,7 @@ export const INDICE = [
   { id: 'pill-voce', titolo: 'PillVoce' },
   { id: 'chip-scelta', titolo: 'ChipScelta' },
   { id: 'progress-dots', titolo: 'ProgressDots' },
-  { id: 'foto-strip', titolo: 'FotoStrip' },
+  { id: 'carta-album', titolo: 'CartaAlbum' },
   { id: 'menu-voce', titolo: 'MenuVoce' },
   { id: 'tasto-whatsapp', titolo: 'TastoWhatsApp' },
   { id: 'riga-bloccante', titolo: 'RigaBloccante' },
@@ -1162,12 +1162,20 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="foto-strip" titolo="FotoStrip" spec="§5.33">
-        <FotoStrip foto={[
-          { id: 'f1', url: 'https://wa.me/placeholder-non-usato', alt: 'Impronta arcata superiore' },
-        ]} />
-        {/* NB: nel catalogo le thumb non caricano (nessuna signed URL) — la
-            geometria 72×72 resta verificabile. */}
+      <SezioneCatalogo id="carta-album" titolo="CartaAlbum" spec="§5.38">
+        <CartaAlbum
+          foto={[
+            { id: 'f1', url: 'https://wa.me/placeholder-non-usato', categoria: 'impronta', created_at: '2026-07-30T09:00:00Z', nome_file: null },
+            { id: 'f2', url: 'https://wa.me/placeholder-non-usato-2', categoria: 'rx', created_at: '2026-07-30T10:00:00Z', nome_file: null },
+          ]}
+          onApri={() => {}}
+          onCorreggiCategoria={() => {}}
+        />
+        {/* NB: nel catalogo le thumb non caricano (nessuna signed URL) — le
+            geometrie di legge (foto grande 4/3 a 390 e 16/9 da 768, miniature
+            60×60 raggio 12) restano verificabili. `onApri`/`onCorreggiCategoria`
+            sono no-op qui: il visore e il foglio della categoria sono §5.39/§5.41,
+            fuori da questa sezione. */}
       </SezioneCatalogo>
 
       <SezioneCatalogo id="menu-voce" titolo="MenuVoce" spec="§5.34">

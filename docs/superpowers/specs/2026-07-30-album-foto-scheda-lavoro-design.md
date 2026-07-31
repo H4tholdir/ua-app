@@ -364,8 +364,9 @@ quindi si **progettano** invece di scoprirli in esecuzione:
    fuori · chiusura allo scorrimento · **raggiungibilità da tastiera e da lettore di schermo**, che un
    foglio v3 ha già e una tendina nuova **no**.
 
-`src/components/ds/FotoStrip.tsx` **esiste già** ed è v3 puro (28 righe, legge solo `v3/tokens`): la carta
-album **lo assorbe o lo sostituisce** — non gli si affianca un terzo componente foto.
+`src/components/ds/FotoStrip.tsx` (eliminato in T10) **esisteva già**, al momento di questa spec, ed era v3
+puro (28 righe, legge solo `v3/tokens`): la carta album **lo assorbe o lo sostituisce** — non gli si
+affianca un terzo componente foto.
 
 ---
 

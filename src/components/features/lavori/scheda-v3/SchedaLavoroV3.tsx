@@ -54,7 +54,7 @@ import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { initSuoni } from '@/design-system/v3/sound'
 import { NotaDentista } from '@/components/ds/NotaDentista'
-import { FotoStrip } from '@/components/ds/FotoStrip'
+import { CartaAlbum } from '@/components/ds/CartaAlbum'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
@@ -312,8 +312,18 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
             <NotaLaboratorioVuota onApri={() => setCampoAttivo('note')} />
           )}
 
-          {/* Strip foto read-only (§5.33 — componente ds FotoStrip) */}
-          <FotoStrip foto={lavoro.immagini.map((img) => ({ id: img.id, url: img.url, alt: img.descrizione ?? undefined }))} />
+          {/* Carta album (§5.38 — componente ds CartaAlbum). Sostituisce la
+              vecchia FotoStrip (§5.33, superata dalla spec il 30/07/2026): non
+              più una striscia muta, ma una carta col suo titolo «Foto».
+              `categoria`/`created_at` vengono diretti da `LavoroImmagine`
+              (types/domain.ts) — lo stesso tipo che il server firma in
+              `lavori/[id]/page.tsx`, nessuna trasformazione qui.
+              🛑 T10 monta SOLO la carta: il visore a tutto schermo, la tendina
+              del ⋯ e i due fogli (categoria/conferma) sono di T12 e non
+              esistono ancora — finché non arrivano, `onApri`/
+              `onCorreggiCategoria` restano inerti apposta (nessun overlay da
+              aprire). */}
+          <CartaAlbum foto={lavoro.immagini} onApri={() => {}} onCorreggiCategoria={() => {}} />
 
           {/* CardFasiV3 (§5) — se ci sono fasi */}
           {lavoro.fasi.length > 0 && <CardFasiV3 lavoroId={lavoro.id} fasi={lavoro.fasi} onErrore={(msg) => errore(msg)} />}

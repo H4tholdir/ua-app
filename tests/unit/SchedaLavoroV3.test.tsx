@@ -95,6 +95,34 @@ describe('SchedaLavoroV3', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByText(/tracciabilità materiali incompleta/i)).not.toBeInTheDocument()
   })
+  // T10 — l'innesto della carta album (§5.38) al posto della FotoStrip (§5.33,
+  // superata). `tests/unit/SchedaLavoroV3.test.tsx` passava sempre `immagini: []`
+  // (fixture di riga 27): questa era l'unica zona a copertura zero, perché la
+  // carta e la striscia si distinguono SOLO quando ci sono foto da mostrare.
+  it('con le foto monta la CARTA ALBUM (titolo «Foto», conteggio) e non la striscia nuda (§5.33 superata)', () => {
+    const immagini: LavoroDettaglio['immagini'] = [
+      {
+        id: 'img-1', laboratorio_id: 'lab', lavoro_id: 'lav',
+        url: 'https://esempio/imp.jpg', storage_path: 'lab/lav/imp.jpg',
+        nome_file: null, descrizione: null, data_scatto: null,
+        categoria: 'impronta', created_at: '2026-07-30T09:00:00Z', ordine: 0,
+      },
+      {
+        id: 'img-2', laboratorio_id: 'lab', lavoro_id: 'lav',
+        url: 'https://esempio/rx.jpg', storage_path: 'lab/lav/rx.jpg',
+        nome_file: null, descrizione: null, data_scatto: null,
+        categoria: 'rx', created_at: '2026-07-30T10:00:00Z', ordine: 0,
+      },
+    ]
+    const { container } = render(<SchedaLavoroV3 lavoro={makeLavoro({ immagini })} />)
+    // La carta ha un TITOLO vero — la striscia (FotoStrip) non ne aveva mai uno.
+    expect(screen.getByRole('heading', { name: 'Foto' })).toBeInTheDocument()
+    expect(screen.getByText('2 foto')).toBeInTheDocument()
+    // Firma della vecchia striscia (il suo unico contenitore portava questo
+    // aria-label): se comparisse ancora, la sostituzione non è avvenuta.
+    expect(container.querySelector('[aria-label="Foto del lavoro"]')).toBeNull()
+  })
+
   it('dopo router.refresh() il nuovo tecnico dal prop fresco sostituisce quello locale (bug FK-refresh)', () => {
     const lavoroA = makeLavoro({ tecnico: { nome: 'Ciro', cognome: 'B', sigla: 'CB' } as unknown as LavoroDettaglio['tecnico'] })
     const { rerender } = render(<SchedaLavoroV3 lavoro={lavoroA} />)

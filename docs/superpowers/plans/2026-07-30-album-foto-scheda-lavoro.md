@@ -51,7 +51,7 @@ l'esecutore userà per verificarlo.
 | **P2** | «Una colonna `NOT NULL` **senza** `DEFAULT` diventa obbligatoria nell'`Insert` generato» → **VERA a metà. 🛑 LA CONSEGUENZA CHE NE TRAEVO È FALSA, misurata da T1 il 30/07** | `provato:` stesso blocco — le colonne **con** ripiego escono opzionali (`tipo?: string`, `ordine?: number`, `created_at?: string`), quelle **senza** escono obbligatorie (`laboratorio_id: string`, `storage_path: string`, `url: string`). ⚠️ **Ma questa è una proprietà del FILE GENERATO, non del compilatore su questo repo:** ➡️ 🔴 **il rosso di `tsc` previsto in T1 NON è arrivato — uscita 0, zero file rossi.** I quattro fabbricanti del client (`src/lib/supabase/{server-service,server-user,browser-anon,middleware-client}.ts`) creano il client **senza il generico `<Database>`**, quindi il costruttore di query accetta qualunque chiave: T1 ha messo una colonna **inventata** dentro un `.insert()` e `tsc` è rimasto **0**. È il rilievo **R27** del verbale, e il fatto era già scritto in `src/lib/pdf/typed-service-client.ts:6-10` — file **assente dal registro delle letture**, cioè il censimento R-P6 si è fermato prima. 🔑 **Regola che ne discende e vale per OGNI task a valle: nessuno può contare su `tsc` per scoprire una discordanza di schema. Chi tocca uno scrittore si porta la sua prova** — T1 l'ha chiusa con due `INSERT` in transazione annullata (uno che deve passare, uno **senza `categoria`** che deve essere rifiutato). ✅ **La scelta «senza `DEFAULT`» resta giusta: cambia chi la difende — il database a runtime, non il compilatore** |
 | **P3** | «`tsc --noEmit` è pulito **prima** di toccare qualcosa» → **VERO** | `provato:` `npx tsc --noEmit` → **uscita 0, nessun output**. ➡️ Ogni rosso dopo `gen types` è **causato dal cambiamento**, non preesistente |
 | **P4** | «`tipo` non è letta da nessuno» → **VERA** | `provato:` `grep -rn "LavoroImmagine\|\.tipo" src/ tests/` — l'unico `.tipo` è `TabImmagini.tsx:523`, che è lo **stato locale del caricamento** (`FotoLocale.tipo`, `:31`), non la riga di banca dati. Zero riscontri nei due test della tabella |
-| **P5** | «`FotoStrip` ha un solo chiamante» → **FALSA, e il file mancava dall'elenco** | `provato:` `grep -rn "FotoStrip" src/ tests/` → **tre** siti: `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il catalogo del design system, pagina viva) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`. ➡️ **T11 li tocca tutti e tre** |
+| **P5** | «`FotoStrip` ha un solo chiamante» → **FALSA, e il file mancava dall'elenco** | `provato:` `grep -rn "FotoStrip" src/ tests/` → **tre** siti: `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il catalogo del design system, pagina viva) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10). ➡️ **T11 li tocca tutti e tre** |
 | **P6** | «Il tipo di dominio ha `created_at`, che serve per ordinare dentro il gruppo» → **FALSA** | `provato:` letto `src/types/domain.ts:475-486` — `LavoroImmagine` ha `id, laboratorio_id, lavoro_id, url, storage_path, nome_file, descrizione, data_scatto, tipo, ordine`. **Niente `created_at`.** ➡️ T1 lo aggiunge, o l'ordine dentro il gruppo non è esprimibile |
 | **P7** | «Esiste in casa una prova che legge una migration» → **VERA, ma col suo difetto noto** | `provato:` `tests/unit/colore-dente-idratazione.test.ts:21-33` legge `supabase/migrations/20260727120000_lavori_denti.sql` con una regex. 🛑 **Ma pretende un numero fisso (48)**, quindi **resterebbe verde se il catalogo crescesse** — è il rilievo **R3** del verbale. ➡️ **La spia di T2 confronta INSIEMI, non conteggi** |
 | **P8** | «C'è un precedente di tabella di sola traccia» → **VERO** | `provato:` `supabase/migrations/001_commercial_infra.sql:85-97` — `lab_stato_log`: chiavi, `created_at`, RLS **abilitata** e **nessuna policy pubblica** («solo service role»). ➡️ È la forma che T5 ricalca |
@@ -86,7 +86,7 @@ riassunto.
 | `src/types/database.types.ts` | **letto: 3015-3060** (`Row`/`Insert`/`Update`) |
 | `src/app/(app)/lavori/[id]/page.tsx` | **letto: 25-80** (innesto, filtro, firma delle URL) |
 | `src/app/(app)/lavori/[id]/modifica/page.tsx` | **letto: 45-100** |
-| `src/components/ds/FotoStrip.tsx` | **letto: 1-28** (per intero) |
+| `src/components/ds/FotoStrip.tsx` (eliminato in T10) | **letto: 1-28** (per intero) |
 | `src/app/ds-v3-catalogo/page.tsx` | **letto: 1163-1178** (la sezione §5.33) |
 | `src/app/ds-v3.css` | **letto: 230-262** (il ponte v2.3→v3) |
 | `src/components/features/lavori/form/styles.ts` | **letto: 45-58** (`raisedShadow`, `insetShadow`) |
@@ -95,7 +95,7 @@ riassunto.
 | `tests/unit/lavori-immagini-deleted-embed.test.ts` | **letto: 26-49** (delegato: `FILES`, le due regex, le asserzioni) |
 | `tests/unit/lavori-id-immagini-imgid-route.test.ts` | **letto: per intero** (delegato — 21 `it`, 28 casi) |
 | `tests/unit/helpers/supabase-chain-mock.ts` | **letto: 23-27** (delegato: `createChain`, la lista passthrough) |
-| `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` | **letto: 1-33** (per intero) |
+| `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10) | **letto: 1-33** (per intero) |
 | `tests/unit/colore-dente-idratazione.test.ts` | **letto: 1-40** (il modello di prova che legge una migration) |
 | `tests/unit/prezzo-tripwire.test.ts` | **letto: 1-26** (il modello di «spia onesta», coi limiti dichiarati) |
 | `supabase/migrations/001_commercial_infra.sql` | **letto: 85-104** (`lab_stato_log`, forma della tabella di sola traccia) |
@@ -145,7 +145,7 @@ riassunto.
 | `handleTipoChange` / `handleTipoChangeDb` | `TabImmagini.tsx:224-244` e `:247-260` — **due gestori quasi identici** | 🔗 **T12: si FONDONO in una sola funzione di scrittura** (D70) |
 | `totalFotos` | `TabImmagini.tsx:117` — somma banca dati **+** locali già caricate → **conta doppio** | 🐞 **T12**, difetto chiuso |
 | `foteDaRenderizzare` | `TabImmagini.tsx:287` — rende **tutte** le locali, comprese quelle già salite → **doppione** | 🐞 **T12**, difetto chiuso |
-| `FotoStrip` | `src/components/ds/FotoStrip.tsx` · **tre** chiamanti (P5) | 🔄 **T11**: assorbita dalla carta album. Tutti e tre i siti si aggiornano |
+| `FotoStrip` | `src/components/ds/FotoStrip.tsx` (eliminato in T10) · **tre** chiamanti (P5) | 🔄 **T11**: assorbita dalla carta album. Tutti e tre i siti si aggiornano |
 | `handleAddImmagine` | `LavoroFormClient.tsx:128`, passata a `:204` | ➕ **T13**: gli si affianca il percorso di **rimozione** dallo stato, che **oggi non esiste** |
 | 🆕 `CATEGORIE_FOTO`, `CategoriaFoto`, `etichettaCategoria`, `ordinaFotoPerCategoria` | — | **T2**, in `src/lib/domain/categorie-foto.ts` |
 | 🆕 `CartaAlbum`, `VisoreFoto`, `TendinaMenu`, `FoglioCategoria`, `FoglioConferma` | — | **T6-T9 e T9-bis**, in `src/components/ds/`. `FoglioConferma` nasce da **D80** (30/07) |
@@ -210,7 +210,7 @@ sulla pagina dietro. **`DialogConferma` non ha né focus né blocco dello scorri
 - `src/app/api/lavori/[id]/immagini/route.ts` (POST) · `.../[imgId]/route.ts` (PATCH + DELETE)
 - `src/components/features/lavori/form/TabImmagini.tsx` · `src/components/features/lavori/LavoroFormClient.tsx`
 - `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx:315-316` · `src/app/ds-v3-catalogo/page.tsx:1165-1170`
-- `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`
+- `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10)
 
 ---
 
@@ -1379,12 +1379,12 @@ che il piano aveva dichiarato come scostamento S1 senza chiederglielo (D80).** N
 **File**
 - Modifica: `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx:315-316`
 - Modifica: `src/app/ds-v3-catalogo/page.tsx:1165-1170`
-- Modifica: `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`
+- Modifica: `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (in pratica: eliminato in T10 — v. sotto)
 - Elimina (o svuota): `src/components/ds/FotoStrip.tsx`
 
 🔴 **`FotoStrip` ha TRE chiamanti, non uno**, e il terzo è una **pagina viva**: `provato:` `grep -rn
 "FotoStrip" src/ tests/` → `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il
-catalogo del design system) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`.
+catalogo del design system) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10).
 🛑 **Il file del catalogo NON compariva in nessun elenco prima del censimento.** Se resta indietro, il
 catalogo mostra un componente che la spec dichiara superata.
 

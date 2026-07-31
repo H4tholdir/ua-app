@@ -125,7 +125,7 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
       'PillVoce',
       'ChipScelta',
       'ProgressDots',
-      'FotoStrip',
+      'CartaAlbum',
       'MenuVoce',
       'TastoWhatsApp',
       'RigaBloccante',
