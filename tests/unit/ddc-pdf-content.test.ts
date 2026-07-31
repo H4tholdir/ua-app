@@ -106,9 +106,29 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(buffer.length).toBeGreaterThan(1024)
   })
 
-  it('titolo contiene "dichiarazione di conformita" (case-insensitive)', () => {
-    // textTransform: 'uppercase' — react-pdf rende le lettere maiuscole nel PDF
-    expect(pdfText.toLowerCase()).toContain('dichiarazione di conformita')
+  it('il titolo porta l\'accento: «DICHIARAZIONE DI CONFORMITÀ»', () => {
+    // textTransform:'uppercase' — react-pdf rende le maiuscole nel PDF, À compresa
+    // (provato: scripts/tmp/sonda-accenti.tsx). Questo test PRETENDE l'accento:
+    // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
+    // tornata silenziosa in entrambe le direzioni.
+    expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
+    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: si accende su
+    //    qualunque occorrenza rimasta, comprese quelle che le asserzioni
+    //    puntuali non guardano.
+    expect(pdfText).not.toContain('CONFORMITA')
+    expect(pdfText).not.toContain('Conformita')
+  })
+
+  it('l\'etichetta della firma porta l\'accento', () => {
+    // styles.firmaLabel NON ha textTransform: 'uppercase' (a differenza di
+    // styles.sectionTitle) — qui la forma attesa resta mista.
+    expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
+  })
+
+  it('il titolo del §7 porta l\'accento', () => {
+    // styles.sectionTitle ha textTransform: 'uppercase' (DdcTemplate.tsx:86) —
+    // il §7, come ogni titolo di sezione, esce in maiuscolo nel PDF.
+    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
   })
 
   // ── §1 Fabbricante ────────────────────────────────────────────────────────
@@ -352,4 +372,19 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
       expect(result.text.toLowerCase()).not.toContain('denti coinvolti')
     })
   })
+})
+
+describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 03/08/2026)', () => {
+  it('rende «Sì» con l\'accento quando il dispositivo contiene sostanze o tessuti', async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: { ...DDC_FIXTURE, contiene_sostanze_o_tessuti: true, sostanze_tessuti_dettaglio: null },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    expect(result.text).toContain('Sì — vedere documentazione allegata')
+  }, 30_000)
 })

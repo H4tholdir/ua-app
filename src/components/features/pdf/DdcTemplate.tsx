@@ -289,9 +289,9 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
 
   return (
     <Document
-      title={`Dichiarazione di Conformita ${ddc.numero_ddc ?? ''}`}
+      title={`Dichiarazione di Conformità ${ddc.numero_ddc ?? ''}`}
       author={ddc.fabbricante_nome ?? lab.ragione_sociale ?? lab.nome}
-      subject="Dichiarazione di Conformita MDR 2017/745"
+      subject="Dichiarazione di Conformità MDR 2017/745"
       keywords="DDC MDR 2017/745 Allegato XIII"
       creator="UA PWA"
     >
@@ -323,7 +323,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
 
         {/* ── TITOLO ── */}
         <View style={styles.titoloWrapper}>
-          <Text style={styles.titolo}>Dichiarazione di Conformita</Text>
+          <Text style={styles.titolo}>Dichiarazione di Conformità</Text>
         </View>
         <Text style={styles.sottotitolo}>
           Ai sensi dell&apos;Art. 52(8) e Allegato XIII del Regolamento UE 2017/745
@@ -443,7 +443,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
             <Text style={styles.label}>Sostanze / tessuti:</Text>
             <Text style={styles.value}>
               {ddc.contiene_sostanze_o_tessuti
-                ? (ddc.sostanze_tessuti_dettaglio ?? 'Si — vedere documentazione allegata')
+                ? (ddc.sostanze_tessuti_dettaglio ?? 'Sì — vedere documentazione allegata')
                 : 'No'}
             </Text>
           </View>
@@ -483,7 +483,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
 
         {/* ── §7 CONFORMITA ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformita</Text>
+          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformità</Text>
           <View style={styles.conformitaBox}>
             <Text style={styles.conformitaText}>
               {ddc.testo_conformita_snapshot ?? '—'}
@@ -511,7 +511,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
             ) : null}
           </View>
           <View style={styles.firmaRight}>
-            <Text style={styles.firmaLabel}>Responsabile della Conformita (PRRC)</Text>
+            <Text style={styles.firmaLabel}>Responsabile della Conformità (PRRC)</Text>
             {ddc.firma_ddc_storage_path ? (
               // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={ddc.firma_ddc_storage_path} style={styles.firmaImage} />
