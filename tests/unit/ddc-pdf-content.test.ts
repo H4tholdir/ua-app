@@ -297,4 +297,59 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     // DDC_FIXTURE (usata in beforeAll per pdfText) ha norme_json: null
     expect(pdfText.toLowerCase()).not.toContain('norme armonizzate')
   })
+
+  // ══ D102 ③ — un documento CONGELATO non legge dati VIVI ═══════════════════
+  // 🔴 IL DIFETTO, misurato: `DdcTemplate.tsx` prendeva i denti da
+  //    `lavoro.denti_coinvolti` — il dato VIVO, che continua a cambiare dopo
+  //    l'emissione — mentre la fotografia `ddc.denti_coinvolti` esisteva già
+  //    (`generate-ddc.ts` la scrive) e non veniva letta da nessuno. Su un
+  //    documento conservato dieci anni (quindici per gli impiantabili) significa
+  //    che ristampandolo poteva dire denti diversi da quelli dichiarati.
+  //    La fixture stessa lo aveva messo nero su bianco: `denti_coinvolti: null,
+  //    // letti dal lavoro`.
+  // 🔑 LA FORMA DELLA PROVA: si rende il PDF con la fotografia e il vivo che
+  //    dicono cose DIVERSE. Se il template legge quello giusto, sul foglio
+  //    compare la fotografia e il vivo non compare affatto. Con valori uguali la
+  //    prova sarebbe verde in entrambi i mondi — cioè non proverebbe niente.
+  describe('D102 ③ — il PDF stampa la FOTOGRAFIA, non il dato vivo', () => {
+    let testoDivergente = ''
+
+    beforeAll(async () => {
+      const element = createElement(DdcTemplate, {
+        lavoro: { ...LAVORO_FIXTURE, denti_coinvolti: ['38', '37'] },
+        lab: LAB_FIXTURE,
+        ddc: { ...DDC_FIXTURE, denti_coinvolti: ['47', '46'] },
+      })
+      const buffer = await renderPdfDocument(element)
+      const parser = new PDFParse({ data: buffer })
+      const result = await parser.getText()
+      await parser.destroy()
+      testoDivergente = result.text
+    }, 30_000)
+
+    it('stampa i denti della fotografia', () => {
+      expect(testoDivergente).toContain('47, 46')
+    })
+
+    it('🔴 NON stampa i denti vivi del lavoro', () => {
+      expect(testoDivergente).not.toContain('38, 37')
+    })
+
+    it('senza fotografia dei denti la riga non compare: non si ripiega sul vivo', async () => {
+      // 🛑 Il ripiego `ddc.X ?? lavoro.X` è proprio ciò che si toglie: una
+      //    fotografia vuota è un fatto (quel giorno non c'erano denti), non un
+      //    invito a guardare com'è il lavoro adesso.
+      const element = createElement(DdcTemplate, {
+        lavoro: { ...LAVORO_FIXTURE, denti_coinvolti: ['38', '37'] },
+        lab: LAB_FIXTURE,
+        ddc: { ...DDC_FIXTURE, denti_coinvolti: null },
+      })
+      const buffer = await renderPdfDocument(element)
+      const parser = new PDFParse({ data: buffer })
+      const result = await parser.getText()
+      await parser.destroy()
+      expect(result.text).not.toContain('38, 37')
+      expect(result.text.toLowerCase()).not.toContain('denti coinvolti')
+    })
+  })
 })

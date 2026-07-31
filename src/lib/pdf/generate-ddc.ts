@@ -30,6 +30,50 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
   }
 }
 
+/** La versione della FORMA del documento. Cambia quando cambia ciò che il PDF
+ *  rende — non a ogni ritocco di codice.
+ *
+ *  🛑 Introdotta con D102, e «introdotta» è la parola giusta: la colonna
+ *  `template_version` esiste in `supabase/schema.sql` dal primo giorno e non
+ *  l'ha mai scritta nessuno. Ogni DdC emessa fino a oggi la porta `NULL` —
+ *  cioè il documento non dice di che forma è. Fra dieci anni (quindici per gli
+ *  impiantabili) è la riga che permette di rileggerlo sapendo come andava letto. */
+const VERSIONE_TEMPLATE_DDC = 'ddc-v1'
+
+/** Serializzazione CANONICA: le chiavi degli oggetti in ordine alfabetico, gli
+ *  array nel loro ordine (che è un dato, non una casualità).
+ *
+ *  🔑 Perché canonica e non `JSON.stringify` nudo: l'impronta deve certificare
+ *  i DATI, non l'ordine in cui un refactoring futuro capita di dichiararli. Con
+ *  la stringa nuda, spostare due righe nel builder cambierebbe l'impronta di un
+ *  documento identico — e un'impronta che cambia senza che cambi niente non
+ *  prova più niente. */
+function canonico(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null'
+  if (Array.isArray(v)) return `[${v.map(canonico).join(',')}]`
+  const o = v as Record<string, unknown>
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${canonico(o[k])}`).join(',')}}`
+}
+
+/** L'impronta dei DATI che hanno prodotto il documento.
+ *
+ *  🔑 NON è `pdf_sha256`, ed è la ragione per cui ne servono due: quella è
+ *  l'impronta del FILE e prova che il byte non è stato toccato; questa prova da
+ *  QUALI DATI quel file è nato. Sono due domande diverse e un'ispezione può
+ *  farle entrambe.
+ *
+ *  🛑 Va calcolata sull'oggetto DAVVERO RESO (`ddcConNorma`), mai su `ddc`:
+ *  `norma_riferimento` sta nel primo e non nel secondo, perché non è una colonna
+ *  della tabella e viene passata al template solo per il rendering. Calcolarla
+ *  sull'oggetto sbagliato è l'errore naturale — è quello che si ha sotto mano —
+ *  e produrrebbe una prova d'integrità che certifica un payload DIVERSO da
+ *  quello stampato: una prova che mente, sul documento in cui mentire costa di
+ *  più. La prova che distingue i due mondi è in `tests/unit/generate-ddc.test.ts`
+ *  («cambiare `norma_riferimento` cambia l'impronta»). */
+export function improntaPayload(payload: unknown): string {
+  return crypto.createHash('sha256').update(canonico(payload)).digest('hex')
+}
+
 export async function generateDdC(lavoro: LavoroDettaglio) {
   const supabase = getTypedServiceClient()
 
@@ -119,6 +163,8 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   const ddcConNorma = { ...ddc, norma_riferimento: lavoro.norma_riferimento ?? null }
   const buffer = await renderPdfDocument(createElement(DdcTemplate, { lavoro, lab, ddc: ddcConNorma }))
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex')
+  // 🛑 Su `ddcConNorma`, MAI su `ddc`: v. il commento di `improntaPayload`.
+  const payloadSha256 = improntaPayload(ddcConNorma)
   const storagePath = `${lavoro.laboratorio_id}/ddc/${anno}/${numero}.pdf`
 
   // Upload su Supabase Storage
@@ -146,6 +192,9 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
       pdf_url: pdfUrl,
       storage_path_pdf: storagePath,
       pdf_sha256: sha256,
+      // D102 ① — le due colonne dichiarate come prova e mai scritte da nessuno.
+      payload_sha256: payloadSha256,
+      template_version: VERSIONE_TEMPLATE_DDC,
       pdf_generato_at: new Date().toISOString(),
       inviata_al_dentista: false,
     })

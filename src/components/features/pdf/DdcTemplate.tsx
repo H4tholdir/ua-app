@@ -242,7 +242,19 @@ function formatTipoDispositivo(tipo: string): string {
 interface DdcTemplateProps {
   lavoro: LavoroDettaglio
   lab: Laboratorio
-  ddc: Partial<DichiarazioneConformita>
+  /** La FOTOGRAFIA della dichiarazione — ciò che viene congelato all'emissione.
+   *
+   *  🛑 D102 ③ — perché non è più un `Partial` nudo, ed è la causa RADICE del
+   *  difetto che questa modifica toglie. Con tutto facoltativo il template non
+   *  poteva fidarsi di niente, e si ripiegava sul lavoro VIVO (`ddc.X ?? lavoro.X`
+   *  in quattro punti): un documento a valore legale che, ristampato, poteva dire
+   *  cose diverse da quelle dichiarate. Rimettere i ripieghi avrebbe curato il
+   *  sintomo; il rimedio è dichiarare che senza questi campi la dichiarazione non
+   *  si stampa affatto — sono colonne NOT NULL, quindi la fotografia li ha
+   *  SEMPRE, e un chiamante che li dimenticasse si rompe alla compilazione invece
+   *  che in silenzio sulla carta. */
+  ddc: Partial<DichiarazioneConformita> &
+    Pick<DichiarazioneConformita, 'tipo_dispositivo' | 'classe_rischio'>
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -255,8 +267,14 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
     .join(' ')
     .trim() || '—'
 
-  const dentiFormatted = lavoro.denti_coinvolti?.length
-    ? lavoro.denti_coinvolti.join(', ')
+  // 🛑 D102 ③ — la FOTOGRAFIA (`ddc.`), mai il dato vivo (`lavoro.`).
+  // Questa riga leggeva `lavoro.denti_coinvolti` mentre lo snapshot esisteva già
+  // e non lo leggeva nessuno: un documento conservato dieci anni che, ristampato,
+  // poteva dire denti diversi da quelli dichiarati. E se la fotografia è vuota la
+  // riga NON compare: è un fatto («quel giorno non c'erano denti»), non un invito
+  // a guardare com'è il lavoro adesso.
+  const dentiFormatted = ddc.denti_coinvolti?.length
+    ? ddc.denti_coinvolti.join(', ')
     : null
 
   // Materiali: numero_lotto + nome_materiale + produttore
@@ -395,12 +413,13 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           <View style={styles.row}>
             <Text style={styles.label}>Tipo dispositivo:</Text>
             <Text style={styles.valueBold}>
-              {formatTipoDispositivo(ddc.tipo_dispositivo ?? lavoro.tipo_dispositivo)}
+              {/* D102 ③ — niente ripiego sul vivo: la colonna è NOT NULL. */}
+              {formatTipoDispositivo(ddc.tipo_dispositivo)}
             </Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Descrizione:</Text>
-            <Text style={styles.value}>{ddc.descrizione_dispositivo || lavoro.descrizione || '—'}</Text>
+            <Text style={styles.value}>{ddc.descrizione_dispositivo || '—'}</Text>
           </View>
           {dentiFormatted ? (
             <View style={styles.row}>
@@ -439,7 +458,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           <View style={styles.row}>
             <Text style={styles.label}>Classe di rischio:</Text>
             <Text style={styles.classeRischio}>
-              {formatClasseRischio(ddc.classe_rischio ?? lavoro.classe_rischio)}
+              {formatClasseRischio(ddc.classe_rischio)}
             </Text>
           </View>
           {ddc.norma_riferimento ? (

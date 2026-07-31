@@ -27,7 +27,7 @@ vi.mock('@/lib/db/progressivi', () => ({
   generaProgressivo: mockGeneraProgressivo,
 }))
 
-import { generateDdC } from '../../src/lib/pdf/generate-ddc'
+import { generateDdC, improntaPayload } from '../../src/lib/pdf/generate-ddc'
 
 function mockTables(lab: typeof LAB_FIXTURE, ddcEsistente: { numero_ddc: string; pdf_url: string } | null = null) {
   mockFrom.mockImplementation((table: string) => {
@@ -181,6 +181,105 @@ describe('generateDdC', () => {
     const result = await generateDdC(LAVORO_FIXTURE)
 
     expect(result).toEqual({ numero: 'DDC-2026-0007', url: 'https://example.test/ddc-vincitrice.pdf' })
+  })
+})
+
+describe('D102 ① — le due firme del documento, che non erano MAI state scritte', () => {
+  // 🛑 IL FATTO: `template_version` e `payload_sha256` esistono in
+  //    `supabase/schema.sql` dal primo giorno e NESSUNO le ha mai valorizzate —
+  //    ogni DdC mai emessa le ha `NULL`. Sono le due colonne che, fra dieci anni
+  //    (quindici per gli impiantabili), dicono «questo PDF è quello di allora e
+  //    nasce da QUESTI dati». Una colonna dichiarata come prova e mai scritta è
+  //    la stessa classe di difetto della guardia dichiarata come rete e mai
+  //    agganciata (CLAUDE.md §9, 28/07).
+  // 🔑 `pdf_sha256` c'era già e NON basta: è l'impronta del FILE. Prova che il
+  //    byte non è stato toccato, non da quali dati sia nato. Le due domande sono
+  //    diverse e servono due impronte.
+  beforeEach(() => {
+    mockTables(LAB_FIXTURE)
+  })
+
+  it('l\'insert porta `template_version` e `payload_sha256` valorizzati', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    const riga = mockInsert.mock.calls[0][0]
+    expect(riga.template_version).toBeTruthy()
+    expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    const riga = mockInsert.mock.calls[0][0]
+    expect(riga.pdf_sha256).toMatch(/^[0-9a-f]{64}$/)
+    // 🛑 Questa riga PRIMA del confronto, e non è pignoleria: senza,
+    //    `expect(undefined).not.toBe(<hash>)` è VERDE sul difetto vivo — la
+    //    prova tautologica che le regole di casa vietano (R-P4). Misurato: sul
+    //    codice non ancora corretto questa prova passava.
+    expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+    expect(riga.payload_sha256).not.toBe(riga.pdf_sha256)
+  })
+
+  // 🛑 CORREZIONE DI UNA PROVA SBAGLIATA, scritta e subito rifatta: la prima
+  //    stesura generava DUE volte la stessa DdC e pretendeva la stessa impronta.
+  //    È falso e non deve essere vero — dentro il payload c'è `data_emissione`,
+  //    quindi due emissioni sono due documenti diversi e devono avere impronte
+  //    diverse. Pretendere il contrario avrebbe costretto a togliere la data
+  //    dall'impronta, cioè a non certificare un dato che il PDF stampa.
+  // 🔑 La riproducibilità che conta è quella della FUNZIONE, e si prova lì: lo
+  //    stesso dato dà la stessa impronta anche se le chiavi arrivano in un altro
+  //    ordine. È ciò che rende l'impronta stabile a un refactoring del builder.
+  it('l\'impronta è CANONICA: le stesse chiavi in ordine diverso danno lo stesso valore', () => {
+    const a = { numero_ddc: 'DDC-2026-0001', classe_rischio: 'classe_iia', norme_json: [{ codice: 'X' }, { codice: 'Y' }] }
+    const b = { norme_json: [{ codice: 'X' }, { codice: 'Y' }], classe_rischio: 'classe_iia', numero_ddc: 'DDC-2026-0001' }
+    expect(improntaPayload(a)).toBe(improntaPayload(b))
+  })
+
+  it('ma l\'ordine di un ARRAY è un dato, non una casualità: invertirlo cambia l\'impronta', () => {
+    const a = { norme_json: [{ codice: 'X' }, { codice: 'Y' }] }
+    const b = { norme_json: [{ codice: 'Y' }, { codice: 'X' }] }
+    expect(improntaPayload(a)).not.toBe(improntaPayload(b))
+  })
+
+  it('due emissioni sono due documenti: le impronte DEVONO differire (c\'è la data dentro)', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    const prima = mockInsert.mock.calls[0][0].payload_sha256
+    expect(prima).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('dati diversi → impronta diversa (altrimenti non certifica niente)', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    const conA = mockInsert.mock.calls[0][0].payload_sha256
+    mockInsert.mockClear()
+    mockTables(LAB_FIXTURE)
+    await generateDdC({ ...LAVORO_FIXTURE, descrizione: 'Corona su 26, tutt\'altro pezzo' })
+    expect(mockInsert.mock.calls[0][0].payload_sha256).not.toBe(conA)
+  })
+
+  // 🔴 LA PROVA CHE MORDE, e nasce da una trappola misurata dal panel del
+  //    03/08. L'oggetto DAVVERO reso nel PDF è `ddcConNorma`
+  //    (`generate-ddc.ts:119`), non `ddc` (`:80`): `norma_riferimento` sta nel
+  //    primo e NON nel secondo, perché non è una colonna della tabella e viene
+  //    passata al template solo per il rendering.
+  //    Calcolare l'impronta su `ddc` è l'errore naturale — è l'oggetto che si ha
+  //    sotto mano — e produrrebbe una prova d'integrità che certifica un payload
+  //    DIVERSO da quello stampato: cioè una prova che mente, sul documento in cui
+  //    mentire costa di più.
+  // 🔑 Questa è l'unica asserzione del file che distingue i due mondi: due lavori
+  //    identici in tutto TRANNE `norma_riferimento` devono dare impronte diverse.
+  //    Sull'oggetto sbagliato sarebbero identiche.
+  it('🔴 l\'impronta è calcolata su ciò che viene STAMPATO: cambiare `norma_riferimento` la cambia', async () => {
+    await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: null })
+    const senzaNorma = mockInsert.mock.calls[0][0].payload_sha256
+    mockInsert.mockClear()
+    mockTables(LAB_FIXTURE)
+    await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
+    const conNorma = mockInsert.mock.calls[0][0].payload_sha256
+
+    expect(conNorma).not.toBe(senzaNorma)
+  })
+
+  it('`norma_riferimento` resta comunque FUORI dalle colonne dell\'insert (non esiste in tabella)', async () => {
+    await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
+    expect(mockInsert.mock.calls[0][0]).not.toHaveProperty('norma_riferimento')
   })
 })
 
