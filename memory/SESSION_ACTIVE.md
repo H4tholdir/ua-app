@@ -1,4 +1,21 @@
-# Sessione attiva — ondata (b) MERGIATA su `main` in locale, in attesa del push (02/08/2026)
+# Sessione attiva — ondata (b) IN PRODUZIONE, e il guasto delle foto è chiuso (02/08/2026)
+
+🚀 **PUBBLICATA: `main` → `origin/main` (`e845fc78 → d890545a`, 120 commit).** CI **verde** (TypeScript + ESLint
++ prove · Next.js Build · Deploy to Production), messa in linea Vercel **success** su https://uachelab.com.
+✅ **IL GUASTO VIVO DAL 30/07 È CHIUSO, e non per deduzione: misurato.** Caricata una foto **vera** (una
+finta radiografia scura, generata apposta) su uachelab.com → **`POST 201`** dove prima rispondeva **500**; il
+foglio ha chiesto la categoria con **sette** pastiglie; la foto è comparsa sulla scheda come «Radiografia».
+✅ **E in produzione ha funzionato anche il giro nuovo per intero:** visore → tendina → conferma → eliminata,
+sparita dopo il ricarico. Il banco è stato **ripulito**: la foto di prova non è rimasta lì.
+🎨 **Il giudizio estetico che mancava, ora dato — con una foto VERA e scura (§5.39, il «caso peggiore»):**
+✅ i controlli del visore reggono, perché ognuno porta la **propria faccia e il proprio anello** e non si
+appoggia alla sfumatura. ⚠️ **RILIEVO NUOVO, riferito e non corretto:** in tema **chiaro** il velo
+(`rgba(9,7,5,.94)`, valore ratificato) lascia **leggere** il testo della scheda dietro la foto — «DENTISTA»,
+«Studio Bianchi», la carta album in fondo. Non tocca il contrasto dei controlli, ma è rumore dietro la
+fotografia. `provato:` velo misurato a riposo dopo 5s — copre 390×844, opacità 1: **non è un'animazione a
+metà**, è il 6% di trasparenza su un fondo chiaro. ➡️ Da decidere: alzare il velo verso l'opaco **solo in
+tema chiaro**, o tenerlo così.
+
 
 🚀 **MERGE FATTO (02/08): `ondata-b-schermate` → `main`, fast-forward pulito, 118 commit.** `tsc` 0 · `vitest`
 **369 | 3** file, **4233 | 19** prove · `next build` ok, verificati **su main** dopo il merge.
