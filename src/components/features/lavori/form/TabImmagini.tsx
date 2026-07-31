@@ -4,32 +4,21 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import imageCompression from 'browser-image-compression'
 import type { LavoroImmagine } from '@/types/domain'
-import { motionTokens, useReducedMotion } from '@/design-system/motion'
-import { hapticLight, hapticSuccess, hapticError } from '@/lib/feedback/haptic'
-import { soundError } from '@/lib/feedback/sounds'
+import { molla, useReducedMotion } from '@/design-system/v3/motion'
+import { vibra } from '@/design-system/v3/haptic'
+import { suona } from '@/design-system/v3/sound'
 import { raisedShadow } from './styles'
-
-// ─── Tipi foto ─────────────────────────────────────────────────────
-type TipoFoto = 'impronta' | 'pre_lavoro' | 'colore' | 'post_prova' | 'rx' | 'altro'
-
-const TIPI_FOTO: { value: TipoFoto; label: string }[] = [
-  { value: 'impronta',   label: 'Impronta' },
-  { value: 'pre_lavoro', label: 'Pre-lavoro' },
-  { value: 'colore',     label: 'Guida colore' },
-  { value: 'post_prova', label: 'Post-prova' },
-  { value: 'rx',         label: 'Radiografia' },
-  { value: 'altro',      label: 'Altro' },
-]
+import { CATEGORIE_FOTO, type CategoriaFoto } from '@/lib/domain/categorie-foto'
+import { FoglioCategoria } from '@/components/ds/FoglioCategoria'
 
 // ─── Stato locale per upload ottimistico ────────────────────────────
 interface FotoLocale {
   id: string              // uuid locale temporaneo
   previewUrl: string      // URL.createObjectURL
   nomeFile: string
+  isPdf: boolean          // T11: un PDF si rende come tessera documento, mai <img>
   progress: number        // 0-100, 100 = completato
   error: string | null
-  tipo: TipoFoto
-  uploadedId?: string     // id DB dopo upload success
 }
 
 // ─── Opzioni compressione ───────────────────────────────────────────
@@ -78,6 +67,59 @@ function ProgressRing({ progress }: { progress: number }) {
   )
 }
 
+// ─── Tessera documento (PDF) — mai un <img>, T11 ─────────────────────
+// Riusa SOLO le variabili CSS già in uso in questo file (--sfc, --t2,
+// --font-v3): nessun colore nuovo inventato.
+function TesseraDocumento({ nomeFile, listaVista }: { nomeFile: string; listaVista: boolean }) {
+  return (
+    <div
+      role="img"
+      aria-label={`Documento: ${nomeFile}`}
+      style={{
+        width: listaVista ? '44px' : '100%',
+        height: listaVista ? '44px' : '100%',
+        display: 'flex',
+        flexDirection: listaVista ? 'row' : 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        borderRadius: listaVista ? '8px' : '0',
+        background: 'var(--sfc, #E4DFD9)',
+        flexShrink: listaVista ? 0 : undefined,
+        padding: listaVista ? '0' : '8px',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: listaVista ? '18px' : '28px' }}>📄</span>
+      {!listaVista && (
+        <span
+          style={{
+            fontFamily: 'var(--font-v3, sans-serif)',
+            fontSize: '10px',
+            fontWeight: 600,
+            color: 'var(--t2, #4A3D33)',
+            textAlign: 'center',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '100%',
+          }}
+        >
+          {nomeFile}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** `true` se il percorso di Storage è quello di un PDF. Il percorso porta
+ *  sempre l'estensione (assegnata dalla rotta, `route.ts:111`), a differenza
+ *  di `nome_file` che può mancare. */
+function isPdfPath(storagePath: string): boolean {
+  return storagePath.toLowerCase().endsWith('.pdf')
+}
+
 // ─── Props ──────────────────────────────────────────────────────────
 interface TabImmaginiProps {
   immagini: LavoroImmagine[]
@@ -90,13 +132,22 @@ function genId(): string {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
+// ─── Foglio categoria — stato del gruppo in attesa di una scelta ────
+interface SheetCategoriaState {
+  aperto: boolean
+  quante: number
+  anteprime: string[]
+}
+
 // ─── Componente ─────────────────────────────────────────────────────
 export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
   const reduced = useReducedMotion()
-  const spring = motionTokens.spring.snappy
+  const spring = molla.snappy
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
+  const cameraBtnRef = useRef<HTMLButtonElement>(null)
+  const galleryBtnRef = useRef<HTMLButtonElement>(null)
 
   const [fotoLocali, setFotoLocali] = useState<FotoLocale[]>([])
   const [listaVista, setListaVista] = useState(false)
@@ -114,11 +165,28 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  const totalFotos = immagini.length + fotoLocali.filter((f) => !!f.uploadedId).length
+  // T11 (fix D81-bis): la foto locale SPARISCE non appena arriva quella vera
+  // (`uploadFile`, ramo di successo) — quindi qui non c'è più doppio conteggio:
+  // `fotoLocali` non contiene mai una foto già salita.
+  const totalFotos = immagini.length + fotoLocali.length
+
+  // ─── Il foglio che chiede la categoria — una volta per gruppo (D65/D74) ──
+  // `pendingUploadRef` porta i File grezzi delle foto appena selezionate, in
+  // attesa che l'utente scelga (o esca, e allora è il foglio stesso a
+  // scegliere 'altro' per lui). `ancoraCategoriaRef` è l'àncora del focus:
+  // un `useRef` STABILE, mai un letterale — un letterale ricreato a ogni
+  // render strapperebbe il focus all'utente (vedi FoglioCategoria.tsx).
+  const pendingUploadRef = useRef<Array<{ localId: string; file: File }>>([])
+  const ancoraCategoriaRef = useRef<HTMLElement | null>(null)
+  const [sheetCategoria, setSheetCategoria] = useState<SheetCategoriaState>({
+    aperto: false,
+    quante: 0,
+    anteprime: [],
+  })
 
   // Upload singolo file con XHR (per progress)
   const uploadFile = useCallback(
-    async (file: File, localId: string, tipo: TipoFoto) => {
+    async (file: File, localId: string, categoria: CategoriaFoto) => {
       try {
         // Compressione solo per immagini
         let fileToUpload = file
@@ -128,7 +196,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
 
         const formData = new FormData()
         formData.append('file', fileToUpload)
-        formData.append('descrizione', tipo)
+        formData.append('categoria', categoria)
 
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest()
@@ -148,14 +216,15 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                 const json = JSON.parse(xhr.responseText)
                 if (json.immagine) {
                   onAdd(json.immagine as LavoroImmagine)
-                  setFotoLocali((prev) =>
-                    prev.map((f) =>
-                      f.id === localId
-                        ? { ...f, progress: 100, uploadedId: json.immagine.id }
-                        : f
-                    )
-                  )
-                  hapticSuccess()
+                  // La foto locale sparisce: quella vera arriva già dentro
+                  // `immagini` (via `onAdd`), e tenerle entrambe raddoppierebbe
+                  // sia il conteggio sia il render.
+                  setFotoLocali((prev) => {
+                    const locale = prev.find((f) => f.id === localId)
+                    if (locale) URL.revokeObjectURL(locale.previewUrl)
+                    return prev.filter((f) => f.id !== localId)
+                  })
+                  vibra('success')
                 }
                 resolve()
               } catch {
@@ -180,80 +249,93 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         setFotoLocali((prev) =>
           prev.map((f) => (f.id === localId ? { ...f, error: msg, progress: 0 } : f))
         )
-        hapticError()
-        soundError()
+        vibra('error')
+        suona('errore')
       }
     },
     [lavoro_id, onAdd]
   )
 
-  // Gestione files selezionati (camera o galleria)
+  // Gestione files selezionati (camera o galleria): crea le carte ottimistiche
+  // e apre il foglio categoria. L'upload vero parte SOLO dopo la scelta
+  // (`handleScegliCategoria`) — niente più «indovina dalla sorgente».
   const handleFiles = useCallback(
     (files: FileList | null, fromCamera: boolean) => {
       if (!files || files.length === 0) return
 
       const filesArr = Array.from(files)
-
-      // Tipo di default
-      const tipoDefault: TipoFoto = fromCamera ? 'impronta' : 'altro'
+      const pendenti: Array<{ localId: string; file: File }> = []
+      const nuovi: FotoLocale[] = []
 
       filesArr.forEach((file) => {
         const localId = genId()
         const previewUrl = URL.createObjectURL(file)
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
 
         const nuovaFoto: FotoLocale = {
           id: localId,
           previewUrl,
           nomeFile: file.name,
+          isPdf,
           progress: 0,
           error: null,
-          tipo: tipoDefault,
         }
+
+        nuovi.push(nuovaFoto)
+        pendenti.push({ localId, file })
 
         setFotoLocali((prev) => [...prev, nuovaFoto])
 
-        hapticLight()
+        vibra('light')
+      })
 
-        uploadFile(file, localId, tipoDefault)
+      pendingUploadRef.current = pendenti
+      ancoraCategoriaRef.current = fromCamera ? cameraBtnRef.current : galleryBtnRef.current
+      setSheetCategoria({
+        aperto: true,
+        quante: filesArr.length,
+        // Le anteprime sono SOLO immagini: un PDF passato come `src` di un
+        // <img> del foglio renderebbe un'icona rotta (FoglioCategoria.tsx:123).
+        anteprime: nuovi.filter((f) => !f.isPdf).slice(0, 3).map((f) => f.previewUrl),
+      })
+    },
+    []
+  )
+
+  // La categoria scelta (o 'altro' se l'utente è uscito senza scegliere,
+  // D74 — è il foglio stesso a garantirlo) avvia l'upload di OGNI file del
+  // gruppo in attesa.
+  const handleScegliCategoria = useCallback(
+    (categoria: CategoriaFoto) => {
+      const pendenti = pendingUploadRef.current
+      pendingUploadRef.current = []
+      pendenti.forEach(({ localId, file }) => {
+        void uploadFile(file, localId, categoria)
       })
     },
     [uploadFile]
   )
 
-  // Aggiorna tipo di una foto locale (e persiste se già uploadata)
-  const handleTipoChange = useCallback(
-    async (localId: string, tipo: TipoFoto) => {
-      setFotoLocali((prev) =>
-        prev.map((f) => (f.id === localId ? { ...f, tipo } : f))
-      )
-      // Persisti su DB se upload completato
-      const foto = fotoLocali.find((f) => f.id === localId)
-      if (foto?.uploadedId) {
-        try {
-          await fetch(`/api/lavori/${lavoro_id}/immagini/${foto.uploadedId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ descrizione: tipo }),
-          })
-        } catch {
-          // Non-blocking: il tipo è aggiornato localmente anche se PATCH fallisce
-        }
-      }
-    },
-    [fotoLocali, lavoro_id]
-  )
+  const handleChiudiCategoria = useCallback(() => {
+    setSheetCategoria((s) => ({ ...s, aperto: false }))
+  }, [])
 
-  // Aggiorna tipo di un'immagine già in DB
-  const handleTipoChangeDb = useCallback(
-    async (imgId: string, tipo: TipoFoto) => {
+  // ─── UNA sola funzione di scrittura per la categoria (D70) ──────────
+  // Sostituisce i due gestori quasi identici che c'erano (uno per le foto
+  // ancora locali, uno per quelle già in banca dati): dal momento in cui la
+  // foto locale sparisce non appena sale (sopra), la correzione della
+  // categoria ha un solo punto di applicazione possibile, quello delle foto
+  // già in `immagini`.
+  const handleCategoriaChange = useCallback(
+    async (imgId: string, categoria: CategoriaFoto) => {
       try {
         await fetch(`/api/lavori/${lavoro_id}/immagini/${imgId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ descrizione: tipo }),
+          body: JSON.stringify({ categoria }),
         })
       } catch {
-        // Non-blocking
+        // Non-blocking: come in origine, un fallimento qui non blocca l'utente.
       }
     },
     [lavoro_id]
@@ -317,6 +399,18 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         }}
       />
 
+      {/* Il foglio che chiede «che foto è» — una volta per gruppo appena
+          selezionato (§5.41). L'àncora del focus è il bottone che ha aperto
+          il selettore file, dichiarata da un ref stabile qui sopra. */}
+      <FoglioCategoria
+        aperto={sheetCategoria.aperto}
+        quante={sheetCategoria.quante}
+        anteprime={sheetCategoria.anteprime}
+        ancoraFocus={ancoraCategoriaRef}
+        onScegli={handleScegliCategoria}
+        onChiudi={handleChiudiCategoria}
+      />
+
       <div
         style={{
           display: 'grid',
@@ -326,6 +420,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         }}
       >
         <button
+          ref={cameraBtnRef}
           type="button"
           onClick={() => cameraRef.current?.click()}
           style={{
@@ -350,6 +445,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         </button>
 
         <button
+          ref={galleryBtnRef}
           type="button"
           onClick={() => galleryRef.current?.click()}
           style={{
@@ -428,20 +524,24 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                   padding: listaVista ? '0 10px' : '0',
                 }}
               >
-                {/* Thumbnail */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={foto.previewUrl}
-                  alt={foto.nomeFile}
-                  style={{
-                    width: listaVista ? '44px' : '100%',
-                    height: listaVista ? '44px' : '100%',
-                    objectFit: 'cover',
-                    borderRadius: listaVista ? '8px' : '0',
-                    flexShrink: listaVista ? 0 : undefined,
-                  }}
-                  loading="lazy"
-                />
+                {/* Thumbnail — un PDF è una tessera documento, mai un <img> */}
+                {foto.isPdf ? (
+                  <TesseraDocumento nomeFile={foto.nomeFile} listaVista={listaVista} />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={foto.previewUrl}
+                    alt={foto.nomeFile}
+                    style={{
+                      width: listaVista ? '44px' : '100%',
+                      height: listaVista ? '44px' : '100%',
+                      objectFit: 'cover',
+                      borderRadius: listaVista ? '8px' : '0',
+                      flexShrink: listaVista ? 0 : undefined,
+                    }}
+                    loading="lazy"
+                  />
+                )}
 
                 {/* Progress overlay (solo durante upload) */}
                 {foto.progress < 100 && !foto.error && (
@@ -503,51 +603,6 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                     </span>
                   </div>
                 )}
-
-                {/* Tipo select — disponibile dopo upload completato */}
-                {(foto.uploadedId || foto.progress === 100) && (
-                  <div
-                    style={
-                      listaVista
-                        ? { flex: 1, minWidth: 0 }
-                        : {
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            background: 'rgba(0,0,0,.62)',
-                          }
-                    }
-                  >
-                    <select
-                      value={foto.tipo}
-                      onChange={(e) =>
-                        void handleTipoChange(foto.id, e.target.value as TipoFoto)
-                      }
-                      aria-label={`Categoria foto: ${foto.nomeFile}`}
-                      style={{
-                        width: '100%',
-                        minHeight: '44px',
-                        background: 'transparent',
-                        border: 'none',
-                        color: listaVista ? 'var(--t1, #1C1916)' : 'white',
-                        fontFamily: 'var(--font-v3, sans-serif)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        outline: 'none',
-                        padding: '12px 8px',
-                        appearance: 'none',
-                      }}
-                    >
-                      {TIPI_FOTO.map((tf) => (
-                        <option key={tf.value} value={tf.value}>
-                          {tf.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -588,19 +643,26 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                 }}
               >
                 {img.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={img.url}
-                    alt={img.nome_file ?? 'Immagine allegata'}
-                    style={{
-                      width: listaVista ? '44px' : '100%',
-                      height: listaVista ? '44px' : '100%',
-                      objectFit: 'cover',
-                      borderRadius: listaVista ? '8px' : '0',
-                      flexShrink: listaVista ? 0 : undefined,
-                    }}
-                    loading="lazy"
-                  />
+                  isPdfPath(img.storage_path) ? (
+                    <TesseraDocumento
+                      nomeFile={img.nome_file ?? 'Documento.pdf'}
+                      listaVista={listaVista}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={img.url}
+                      alt={img.nome_file ?? 'Immagine allegata'}
+                      style={{
+                        width: listaVista ? '44px' : '100%',
+                        height: listaVista ? '44px' : '100%',
+                        objectFit: 'cover',
+                        borderRadius: listaVista ? '8px' : '0',
+                        flexShrink: listaVista ? 0 : undefined,
+                      }}
+                      loading="lazy"
+                    />
+                  )
                 )}
                 {listaVista && (
                   <span
@@ -631,10 +693,10 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                   >
                     <select
                       defaultValue={
-                        TIPI_FOTO.find((tf) => tf.value === img.descrizione)?.value ?? 'altro'
+                        CATEGORIE_FOTO.find((c) => c.valore === img.categoria)?.valore ?? 'altro'
                       }
                       onChange={(e) =>
-                        void handleTipoChangeDb(img.id, e.target.value as TipoFoto)
+                        void handleCategoriaChange(img.id, e.target.value as CategoriaFoto)
                       }
                       aria-label={`Categoria foto: ${img.nome_file ?? 'immagine'}`}
                       style={{
@@ -652,9 +714,9 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                         appearance: 'none',
                       }}
                     >
-                      {TIPI_FOTO.map((tf) => (
-                        <option key={tf.value} value={tf.value}>
-                          {tf.label}
+                      {CATEGORIE_FOTO.map((c) => (
+                        <option key={c.valore} value={c.valore}>
+                          {c.etichetta}
                         </option>
                       ))}
                     </select>
