@@ -1,11 +1,29 @@
-# Sessione attiva — ondata (b): si riparte dalla PRESCRIZIONE (D91), poi T12 (01/08/2026, sera)
+# Sessione attiva — ondata (b): la SETTIMA categoria è FATTA e in banca dati (02/08/2026)
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md`** — **D91, decisa da
-Francesco a fine sessione: la prescrizione diventa la SETTIMA categoria della foto.** Il brief porta il
-censimento già fatto (i **tre** posti che si muovono insieme, i **tredici** file che consumano l'elenco, le
-**tre** prove che contano «sei») e **quattro cose da decidere con Francesco PRIMA di scrivere codice** — fra
-cui la griglia che diventa **dispari**, che va guardata su un mockup (§0B).
-🛑 **Il lavoro NON è stato iniziato:** la decisione è di fine sessione e si apre pulita nella prossima.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md`** — **D91: la
+prescrizione diventa la SETTIMA categoria della foto.** Il brief porta il censimento già fatto (i **tre**
+posti che si muovono insieme, i **tredici** file che consumano l'elenco, le **tre** prove che contano «sei»).
+✅ **TUTTE E QUATTRO le domande del brief sono chiuse — D92-D97 — e IL LAVORO È FATTO.** Nome **«Prescrizione»** ·
+emoji **🩺** · posto **quinto, subito prima della radiografia** (🛑 **D92 è una RETTIFICA**: il brief la voleva
+**in testa**, ma la prima del primo gruppo è la foto grande della carta) · la spaiata è **«Altro» come riga di
+chiusura a tutta larghezza** (D95, variante A2 del mockup `docs/design/mockups/2026-08-02-foglio-categoria-sette-pastiglie.html`).
+**Toccati:** migration nuova `20260802090000_lavori_immagini_categoria_prescrizione.sql` (`DROP`+`ADD CONSTRAINT`,
+**nessun backfill**) · `categorie-foto.ts` · `FoglioCategoria.tsx` · `FrameFatto.tsx` → **`'prescrizione'`** (D97) ·
+la **spia** ora punta al vincolo in vigore (🛑 scartata la scansione automatica: verde silenzioso al posto di un
+rosso rumoroso). 🚦 **FASE 7:** `tsc` **0** · `vitest` **368 | 3** e **4219 | 19** (+12) · build ok. **FASE 6b:** tipi
+rigenerati **identici** (`categoria` esce `string`, R27).
+🔴 **DIFETTO DI RILASCIO TROVATO E RIPARATO (D96), e c'era già con SEI categorie:** a testo 200 % la griglia usciva
+dal foglio. ✅ **Provato nell'app vera** (accesso col titolare E2E, `scripts/seed-e2e.ts`): la chiave che regge è
+**`overflowWrap:'anywhere'`** sull'etichetta (0 px fuori); **`minmax(0,1fr)` da solo NON basta** (9 px a 768, 54 a 390).
+La misura ha corretto il commento che stavo scrivendo — non solo quello vecchio.
+✅ **R-P1 FATTA:** la migration è stata eseguita dentro `BEGIN … ROLLBACK` sul database vero (🛑 transazione
+**annullata**, ledger fermo): `'pippo'` **rifiutato** `23514` · **`'Prescrizione'` con la maiuscola RIFIUTATO** —
+il valore è `'prescrizione'` · `'prescrizione'` e `'rx'` accettati. Il blocco `provato:` è in testa alla migration.
+✅ **MIGRATION APPLICATA il 02/08** (`supabase db push`, autorizzato da Francesco): era l'unica non registrata
+(89 su 90 già remote). **Verificata sul database vero:** il vincolo in vigore porta le sette voci · `categoria`
+resta `NOT NULL` **senza default** · `'pippo'`, `'Prescrizione'` e la stringa vuota **rifiutati** `23514`, le sette
+buone accettate (prove dentro `BEGIN…ROLLBACK`: nessun dato toccato) · ledger: `20260802090000` in testa.
+**FASE 6b ripetuta dopo l'apply:** tipi rigenerati **identici**, `tsc` 0.
 ➡️ **Dopo la prescrizione si torna al piano dell'album:** `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`
 → **T12** (l'eliminazione dal visore), poi **T13** (la chiusura).
 📎 Da dove veniamo: `docs/roadmap/2026-08-01-t11-referto.md` · prima: `…-t10-referto.md` · `…-t9-bis-referto.md`
@@ -62,9 +80,9 @@ il rimedio di casa esiste già a `ds-v3.css:83-87`).
 testa del task e **il corpo resta a dire il contrario** — e il corpo è dove stanno i passi da eseguire. In T9-bis
 erano sbagliate **una prova e una mutazione**. **Chi apre un task nuovo legga PRIMA il riquadro, poi il corpo.**
 
-🔴 **Restano aperti:** `ROADMAP-UFFICIALE.md` dice ancora «ondata (b) *da pianificare*» — **prima del merge** ·
+🔴 **Restano aperti:** ✅ *(chiuso il 02/08: la roadmap ora dice «ondata (b) IN ESECUZIONE», col punto di ripresa)* ·
 `MenuVoce` col chevron sulla distruttiva (F-6) · **R27** · **R29 + D81** (foto rotte su uachelab.com fino al merge,
 **T13**) · **FM-8** · tredici overlay di `src/components/features/**` che promettono `aria-modal` senza mantenerlo ·
 **cinque Minori di T9-bis** a verbale per la **revisione finale di ramo** (elencati nel suo referto §6).
 
-➡️ Verbale (`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`): **novantuno** decisioni in ventotto tornate — l'ultima è **D91** (la prescrizione). La prossima è **D92**.
+➡️ Verbale (`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`): **novantasette** decisioni in ventinove tornate — le ultime sono **D92-D97** (ordine, nome, emoji, griglia, rimedio del testo grande, il punto del wizard). La prossima è **D98**.

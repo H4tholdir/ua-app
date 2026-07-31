@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   //    manda 'altro' esplicitamente (D74) — il server non decide al posto suo.
   // 🛑 SI IMPORTA `isCategoriaFoto`, non si ricopia l'elenco: la spia di T2
   //    (`tests/unit/categorie-foto-spia-migration.test.ts`) sorveglia DUE copie
-  //    dei sei valori — il CHECK della migration e la costante TypeScript — e
+  //    dell'elenco (sette voci da D91) — il CHECK della migration e la costante TypeScript — e
   //    una terza copia scritta a mano qui non la vedrebbe nessuno, né la spia
   //    né `tsc` (R27: il client non porta il generico `<Database>`).
   // 🔑 E il controllo sta QUI, PRIMA del caricamento su Storage: un rifiuto

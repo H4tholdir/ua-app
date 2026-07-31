@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla ventottesima tornata (la prescrizione entra fra le categorie della foto)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla ventinovesima tornata (le tre risposte sulla settima categoria)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Novantuno decisioni in ventotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Novantasette decisioni in ventinove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -525,3 +525,86 @@ dettaglio *era la prescrizione* non è più registrato da nessuna parte».
 il suo numero nello stesso turno, e che **una decisione che cambia del lavoro già fatto si scrive per
 prima** — qui T11-bis ha instradato la prescrizione su «altro» **due ore fa**, e senza questa riga la
 sessione dopo avrebbe letto quel codice come una scelta ponderata invece che come un ripiego in attesa.
+
+---
+
+## Ventinovesima tornata — la settima categoria, tutte e quattro le risposte (D92-D97)
+
+**Data:** 2 agosto 2026, in apertura di sessione. **Innesco:** il brief della settima categoria poneva
+**quattro** domande da chiudere prima di scrivere codice (`docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md`
+§1). Francesco ne ha chiuse **tre**; la quarta — la griglia che diventa dispari — è andata al mockup, come
+il brief stesso chiedeva.
+
+> 🛑 **D92 sta per prima perché CORREGGE una proposta già scritta.** Il brief diceva «*il posto naturale è
+> **in testa***» e ne dava anche la ragione (l'ordine è cronologico, D71). Francesco ha deciso il contrario,
+> e la sua ragione è più forte di quella cronologica. Senza questa riga, una sessione che legge solo il
+> brief metterebbe la prescrizione al primo posto **credendo di eseguire**.
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D92** | 🔧 **RETTIFICA della proposta del brief — la prescrizione NON va in testa: va subito prima della radiografia.** L'ordine dei gruppi diventa `impronta → pre_lavoro → colore → post_prova → prescrizione → rx → altro` | rettifica esplicita di Francesco, arrivata a brief già letto: «*l'ordine non è il primo, sennò l'operatore vede sempre la foto della prescrizione, mettila prima della radiografia*» | 🔑 **L'ordine dei gruppi non ordina solo un elenco: sceglie la foto GRANDE della carta dell'album** (la prima del primo gruppo). In testa, la prescrizione sarebbe stata la copertina di quasi ogni lavoro — e la copertina deve dire *com'è il lavoro*, non *chi l'ha ordinato*. ⚠️ **Costo dichiarato, e resta vero:** D71 fondava l'ordine sulla **cronologia**, e la prescrizione arriva davvero per prima; da oggi l'ordine è cronologico **con una deroga motivata**, non cronologico puro. La riga di D71 va letta insieme a questa. ⚠️ **E un caso che la deroga non copre:** un lavoro appena creato che ha **solo** la foto della prescrizione la vedrà comunque grande — è l'unico gruppo che esiste. Il difetto si estingue da sé alla prima foto di lavorazione. ➡️ `src/lib/domain/categorie-foto.ts:17-24` porta l'ordine: la voce nuova va **quinta**, non prima |
+| **D93** | 🏷️ **Il nome a schermo è «Prescrizione»** | scelta di Francesco fra le due parole del banco proposte dal brief («Prescrizione» · «Ricetta») | ✅ È la parola che il progetto usa già ovunque (`numero_prescrizione` su `lavori`, il passo «prescrizione» del wizard): il dizionario resta uno solo, a schermo e sotto. 📏 **Misura fatta sul mockup, e da NON perdere** (è la trappola di D79, che con «Guida colore» era già stata pagata): a 390 la pastiglia è **170 px** e a testo normale «Prescrizione» ci sta comodo. ⚠️ **A testo ingrandito al 200 % no** — ma il guasto **non è suo**: v. il riquadro «un difetto che c'era già», qui sotto |
+| **D94** | 🩺 **L'emoji segnaposto della prescrizione è lo stetoscopio** | scelta di Francesco | ✅ Non collide con le sei già in uso (🦷 🔧 🎨 ✨ 🩻 📄) e non si confonde con 🩻 della radiografia, che le sta **accanto** nella griglia. ⚠️ **Resta un segnaposto dichiarato** (S2 di §5.41), come le altre sei: le icone vere sono un passo suo, fuori da questa ondata. ➡️ Va nel `Record<CategoriaFoto, string>` di `FoglioCategoria.tsx:82-89` — che senza di lei **non compila**, ed è la rete voluta |
+
+### La quarta domanda, chiusa sul mockup (D95-D96)
+
+Mockup: `docs/design/mockups/2026-08-02-foglio-categoria-sette-pastiglie.html`, tre varianti × 390 e 768 ×
+chiaro e scuro. ⚠️ **Gli screenshot NON sono nel repo e non lo saranno:** `.gitignore:62` esclude `*.png`,
+quindi i due file `docs/design/mockups/screenshots/2026-08-02-foglio-categoria-7-{chiaro,scuro}.png` vivono
+**solo su questa macchina**. 🔑 **L'artefatto durevole è il mockup HTML**, che è tracciato e si riapre
+identico: chi deve rivedere questa scelta apre quello, non cerca le immagini.
+🔑 **Da 768 in su la figura non cambia:** il pannello si ferma a `maxWidth: 480` e resta centrato, quindi
+**1280 è identico a 768** — ed è la ragione per cui questa volta i viewport mostrati sono due e non tre.
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D95** | 🎨 **La pastiglia spaiata è «Altro», e prende tutta la larghezza come RIGA DI CHIUSURA — variante A2:** altezza **48** invece di 60, faccia trasparente con contorno `var(--line)` invece del riempimento `var(--bg-deep)`, testo **centrato** e in `var(--muted)` | scelta di Francesco fra tre viste sul mockup (**A1** riga piena alta uguale · **A2** riga di chiusura · **B** il buco a destra) | ✅ **La spaiata cade sulla voce dove essere diversa SIGNIFICA qualcosa:** «Altro» è «nessuna delle precedenti» (D74), e una riga di chiusura lo dice senza una parola in più. ✅ **Scartata B:** il buco a destra si legge come un'impaginazione sbagliata, non come una scelta. ✅ **Scartata A1**, che pure funzionava: dava ad «Altro» lo stesso peso visivo delle categorie vere, e «Altro» **non deve invitare** — D74 avverte che è già il ripiego di chi non risponde. ⚠️ **Due vincoli che la variante NON può violare, e vanno tenuti in fase di codice:** ① **48 px resta sopra i 44** del bersaglio minimo (§0B) — non scendere oltre; ② il contorno non può diventare **l'unica** fonte dello stato: la pastiglia accesa continua a portare `aria-pressed` e la luminanza piena (G4), anche in questa variante |
+| **D96** | 🔧 **Il rimedio al testo ingrandito entra in QUESTO lavoro, non in T13** | scelta di Francesco fra «adesso» e «alla chiusura del ramo», col costo di entrambe dichiarato | ✅ **Il foglio si sta aprendo comunque** per la pastiglia nuova: due righe nello stesso file costano quasi nulla adesso e molto di più fra due task. ➡️ **Che cosa cambia, ed è misurato:** `gridTemplateColumns` da `'1fr 1fr'` a **`'minmax(0,1fr) minmax(0,1fr)'`** (toglie alle colonne il minimo automatico) + **`overflowWrap: 'anywhere'`** sull'etichetta (permette alla parola lunga di andare a capo *dentro* la pastiglia). ✅ **PROVATA SUL COMPONENTE VERO il 02/08, e la prova ha CORRETTO questa stessa riga.** Su indicazione di Francesco («*nel file env abbiamo i dati di test, puoi usarli e devi usarli*») la prova di §13.3 è stata eseguita nell'app vera — accesso col titolare del banco E2E, scheda del lavoro, foglio aperto davvero (sette pastiglie) — invece di fermarsi al mockup. `provato:` Playwright, quattro combinazioni × 390 e 768, testo delle pastiglie portato a 30px (l'emoji a 36), misura di `griglia.scrollWidth` contro il foglio:
+
+| combinazione | fuori a 390 | fuori a 768 |
+|---|---|---|
+| ① com'era: `1fr` + nessun wrap | — | **52 px** |
+| ② **solo** `overflowWrap:'anywhere'` (colonne `1fr`) | — | **0** |
+| ③ **solo** `minmax(0,1fr)` (wrap normale) | **54 px** | **9 px** |
+| ④ com'è adesso: `minmax` + `anywhere` | **0** | **0** |
+
+🛑 **Quindi le due chiavi NON pesano uguale, e la riga che diceva «vanno insieme, nessuna basta da sola» era sbagliata:** a reggere il requisito è **`overflowWrap` sull'etichetta**, da solo; `minmax(0,1fr)` da solo **non basta**. Resta in codice perché toglie un modo di sfondare (una colonna che si allarga oltre la sua metà), ma è dichiarato per quello che è — **non è il rimedio**. ⚠️ **Il commento del componente e quello della prova sono stati corretti insieme a questa riga:** era esattamente il difetto che questa tornata ha denunciato — un commento che afferma una protezione che non c'è. 🛑 **E la riga di commento del componente va corretta insieme al codice** (`FoglioCategoria.tsx:411-412`): «due righi ammessi, ed è ciò che tiene in piedi il text-zoom 200 %» era vera solo per le etichette con uno spazio, ed è il commento che ha fatto credere per tre task che la prova fosse già superata |
+
+### Il punto del wizard che torna alla prescrizione (D97)
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D97** | 📸 **Il tasto «Fotografa impronta e prescrizione» della schermata «Fatto!» registra la foto come `'prescrizione'`** (`FrameFatto.tsx:170`) — non più `'altro'` | conseguenza diretta di D91, decisa qui perché **non è un dettaglio di implementazione**: sceglie sotto quale voce l'operatore ritroverà quella foto | 🔑 **È il valore che quel punto mandava PRIMA**, ed è la perdita che T11 aveva registrato («il dettaglio *era la prescrizione* non è più registrato da nessuna parte»); T11-bis l'ha instradato su `'altro'` come **ripiego dichiarato in attesa di D91**. ⚠️ **Il commento che sta lì (`:170-179`) va RISCRITTO, non solo il valore:** motiva `'altro'` con «una prescrizione cartacea non è nessuna delle cinque categorie cliniche» — premessa che da D91 **è falsa**, e un commento falso lasciato in piedi è ciò che fa ripetere la scelta sbagliata. ⚠️ **Asimmetria dichiarata, e NON si chiude qui:** il tasto promette due cose («impronta **e** prescrizione») e il dato ne registra una. Non è un buco nuovo — è il modello di D65/D74 (*la foto nasce con una categoria, la si corregge dopo*), e la correzione esiste già dalla scheda del lavoro. 🛑 **Aprire il foglio-categoria anche in fondo al wizard sarebbe un cambio di flusso**, e non è questo lavoro. ➡️ **Resta invece `'impronta'`** l'altro punto (`crea-lavoro.ts:393`): lì la schermata dice letteralmente «Aggiungi la foto dell'impronta», e non c'è ambiguità da sciogliere |
+
+---
+
+### 🔴 Un difetto che c'era già — trovato misurando il mockup, riferito, e poi RIPARATO su decisione di Francesco (D96)
+
+Il mockup doveva rispondere a una domanda di forma; misurando la pastiglia ha trovato un **difetto di
+rilascio del componente già in casa**, indipendente dalla prescrizione.
+
+`provato:` Playwright su `2026-08-02-foglio-categoria-sette-pastiglie.html`, viewport 390, testo al 200 %
+(`.pill` a 30 px, emoji a 36 px — la stessa scala del text-zoom di sistema). Misura di quanto la griglia
+esce dal foglio (`griglia.scrollWidth` contro `pannello.clientWidth − 40` di padding):
+
+| caso | serve | disponibile | **esce di** |
+|---|---|---|---|
+| ① **SEI categorie — cioè `main` di oggi** | 404 px | 348 px | **56 px** |
+| ② sette, con «Prescrizione» | 492 px | 348 px | **144 px** |
+| ③ sette + rimedio (`minmax(0,1fr)` sulle colonne + `overflow-wrap:anywhere` sull'etichetta) | 348 px | 348 px | **0** |
+
+🔑 **La causa, ed è una sola:** `gridTemplateColumns: '1fr 1fr'` (`FoglioCategoria.tsx:381`) lascia alle
+colonne un **minimo automatico** pari alla parola più lunga che non si può spezzare. «Radiografia» è una
+parola sola: a testo grande la colonna si allarga per contenerla e trascina con sé tutta la griglia.
+«Guida colore» invece va a capo sullo spazio — ed è per questo che la misura di D79, presa **su
+quell'etichetta**, non aveva visto niente.
+
+🛑 **Quindi la riga del componente «due righi ammessi, ed è ciò che tiene in piedi il text-zoom 200 %»
+(`FoglioCategoria.tsx:411-412`) è vera solo per le etichette CON uno spazio.** Per «Radiografia» — e
+domani per «Prescrizione» — non ha mai retto.
+
+✅ **Ed è stato riparato in questa sessione, perché Francesco ha deciso così: v. D96 sopra.** Il difetto era
+**fuori dal mandato** (R-E2 dice di riferire, non di correggere di nascosto) — quindi è stato riferito, messo
+davanti a Francesco con il costo di entrambe le strade, e riparato **solo dopo la sua scelta**. 🔑 **E la
+misura sul componente vero ha poi corretto anche questa tabella:** il rimedio ③ funziona, ma **non per il
+motivo che c'era scritto qui** — regge `overflowWrap`, non `minmax`. La riga di D96 porta i numeri.

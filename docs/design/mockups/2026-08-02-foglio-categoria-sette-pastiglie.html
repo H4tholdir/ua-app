@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>FoglioCategoria — sette pastiglie, la griglia dispari (D91/D92)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Mockup — DS v3 §5.41 «FoglioCategoria» con SETTE categorie (D91).
+   Geometria copiata VERBATIM da src/components/ds/FoglioCategoria.tsx:
+     pannello  width:100% · max-width:480 · padding 12/20/20 · raggio sheet 28 (solo alto)
+     manico    36 × 4 · raggio pill · var(--line)
+     titolo    19px / 800 / tracking -0.02em      didascalia 13.5px / var(--muted)
+     griglia   2 colonne · gap 8 (spazio.s)
+     pastiglia min-height 60 · padding 0 12 · raggio 18 (raggio.riga)
+               testo 15px/700 · emoji 18px · gap 8 · var(--bg-deep) su var(--elv)
+   Token colore: src/app/ds-v3.css:13 (chiaro) e :48 (scuro).
+   A 390 la colonna della pastiglia misura (390 − 40 − 8) / 2 = 171px.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+  --ink:#1D1913; --muted:#6E6457; --line:#EBE4D6;
+  --scrim:rgba(29,25,19,.35);
+  --pagina:#E7E1D4; --pagina-ink:#1D1913; --pagina-muted:#6E6457; --pagina-line:#D8D0BE;
+}
+body.notte{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --line:#342E26;
+  --pagina:#0F0D0A; --pagina-ink:#F2EEE7; --pagina-muted:#A69B8C; --pagina-line:#2A2520;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; padding:32px 28px 64px;
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+  background:var(--pagina); color:var(--pagina-ink);
+}
+h1{font-size:26px; font-weight:800; letter-spacing:-.02em; margin:0 0 6px}
+.sotto{font-size:14.5px; color:var(--pagina-muted); margin:0 0 4px; max-width:78ch; line-height:1.5}
+h2.sez{font-size:19px; font-weight:800; letter-spacing:-.02em; margin:38px 0 4px; padding-top:22px; border-top:1px solid var(--pagina-line)}
+.sez-nota{font-size:13.5px; color:var(--pagina-muted); margin:0 0 18px; max-width:78ch; line-height:1.5}
+
+.ordine{
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+  margin:14px 0 0; font-size:13px; font-weight:700;
+}
+.ordine b{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 10px; border-radius:999px;
+  background:var(--elv); color:var(--pagina-ink); font-weight:700;
+  border:1px solid var(--pagina-line);
+}
+.ordine b.nuova{outline:2px solid #D90012; outline-offset:1px}
+.ordine i{font-style:normal; color:var(--pagina-muted)}
+
+.fila{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start}
+.caso{display:flex; flex-direction:column; gap:10px}
+.targa{font-size:13.5px; font-weight:800; letter-spacing:-.01em}
+.targa em{font-style:normal; font-weight:600; color:var(--pagina-muted)}
+
+/* la cornice del telefono: NON è parte del disegno, serve a dare la larghezza vera */
+.tel{
+  width:390px; height:660px; position:relative; overflow:hidden;
+  border-radius:26px; background:var(--bg);
+  border:1px solid var(--pagina-line);
+  display:flex; align-items:flex-end;
+}
+.tel.w768{width:768px; height:600px}
+.velo{position:absolute; inset:0; background:var(--scrim)}
+/* accenno di pagina sotto il velo, così il foglio non galleggia nel vuoto */
+.sotto-pagina{position:absolute; inset:0; padding:22px 20px; opacity:.55}
+.sotto-pagina .barra{height:14px; border-radius:7px; background:var(--bg-deep); margin-bottom:12px}
+.sotto-pagina .barra.corta{width:52%}
+.sotto-pagina .rett{height:150px; border-radius:22px; background:var(--bg-deep); margin-bottom:14px}
+
+.pannello{
+  position:relative; width:100%; max-width:480px; margin:0 auto;
+  border-radius:28px 28px 0 0;
+  background:var(--elv);
+  padding:12px 20px 20px;
+}
+.manico{width:36px; height:4px; border-radius:999px; background:var(--line); margin:0 auto 12px}
+.testa{display:flex; align-items:center; gap:8px; margin-bottom:12px}
+.mini{
+  width:56px; height:56px; border-radius:12px;
+  background:
+    radial-gradient(circle at 34% 30%, #FFF6E4 0%, #EAD3A8 42%, #C9A46F 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);
+}
+h3.titolo{margin:0; font-size:19px; font-weight:800; letter-spacing:-.02em; color:var(--ink)}
+p.dida{margin:4px 0 16px; font-size:13.5px; color:var(--muted); line-height:1.4}
+
+.griglia{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.pill{
+  display:flex; align-items:center; gap:8px;
+  min-height:60px; padding:0 12px;
+  border:none; border-radius:18px;
+  background:var(--bg-deep); color:var(--ink);
+  font-family:inherit; font-size:15px; font-weight:700; text-align:left;
+  cursor:pointer;
+}
+.pill .emo{font-size:18px; line-height:1}
+
+/* ── Variante A1 — «Altro» a tutta larghezza, stessa altezza ── */
+.vA1 .pill.altro{grid-column:1 / -1}
+
+/* ── Variante A2 — «Altro» a tutta larghezza, riga di chiusura più bassa e più tenue ── */
+.vA2 .pill.altro{
+  grid-column:1 / -1; min-height:48px;
+  background:transparent; box-shadow:inset 0 0 0 1.5px var(--line);
+  color:var(--muted); justify-content:center; margin-top:2px;
+}
+.vA2 .pill.altro .emo{font-size:16px}
+
+/* ── Variante B — la spaiata resta a sinistra, a destra il buco ── */
+.vB .pill.altro{grid-column:1 / 2}
+
+/* ── prova del testo grande (200%) ── */
+.zoom .titolo{font-size:38px}
+.zoom .pill{font-size:30px; min-height:60px}
+.zoom .pill .emo{font-size:36px}
+/* Il rimedio possibile: le colonne restano metà e la parola lunga si spezza. */
+.rimedio .griglia{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.rimedio .pill span:last-child{overflow-wrap:anywhere}
+.deborda{outline:2px dashed #D90012; outline-offset:-2px}
+.esito{
+  margin-top:10px; font-size:13px; line-height:1.55; max-width:390px;
+  padding:10px 12px; border-radius:12px; background:var(--elv); border:1px solid var(--pagina-line);
+}
+.esito b{color:#D90012}
+.esito .ok{color:#1B7F3B; font-weight:700}
+</style>
+</head>
+<body>
+
+<h1>«Che foto è?» con sette pastiglie — la griglia diventa dispari</h1>
+<p class="sotto">
+  D91 aggiunge la <b>prescrizione</b> alle categorie della foto. Francesco ha scelto il nome
+  («Prescrizione»), l'emoji (🩺) e il posto: <b>prima della radiografia</b>, non in testa — così la foto
+  della prescrizione non finisce sempre grande sulla carta dell'album. Restano <b>sette</b> pastiglie su
+  <b>due</b> colonne: l'ultima è spaiata, ed è «Altro».
+</p>
+<div class="ordine">
+  <b>🦷 Impronta</b><i>→</i><b>🔧 Pre-lavoro</b><i>→</i><b>🎨 Guida colore</b><i>→</i><b>✨ Post-prova</b><i>→</i>
+  <b class="nuova">🩺 Prescrizione</b><i>→</i><b>🩻 Radiografia</b><i>→</i><b>📄 Altro</b>
+</div>
+
+<h2 class="sez">Le tre strade, a 390 px (il telefono)</h2>
+<p class="sez-nota">
+  Il foglio è quello vero: nessuna pastiglia è accesa, perché allo scatto nessuna scelta è ancora stata
+  fatta (§5.41). Cambia solo l'ultima riga.
+</p>
+
+<div class="fila">
+
+  <div class="caso">
+    <div class="targa">A1 — «Altro» a tutta larghezza <em>· stessa altezza delle altre</em></div>
+    <div class="tel">
+      <div class="sotto-pagina"><div class="barra"></div><div class="barra corta"></div><div class="rett"></div><div class="barra"></div><div class="barra corta"></div></div>
+      <div class="velo"></div>
+      <div class="pannello vA1">
+        <div class="manico"></div>
+        <div class="testa"><div class="mini"></div></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <p class="dida">Serve per ritrovarla dopo. Se non lo dici adesso finisce in «Altro».</p>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso">
+    <div class="targa">A2 — «Altro» a tutta larghezza <em>· riga di chiusura, più bassa e più tenue</em></div>
+    <div class="tel">
+      <div class="sotto-pagina"><div class="barra"></div><div class="barra corta"></div><div class="rett"></div><div class="barra"></div><div class="barra corta"></div></div>
+      <div class="velo"></div>
+      <div class="pannello vA2">
+        <div class="manico"></div>
+        <div class="testa"><div class="mini"></div></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <p class="dida">Serve per ritrovarla dopo. Se non lo dici adesso finisce in «Altro».</p>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso">
+    <div class="targa">B — il buco a destra <em>· nessuna riga speciale</em></div>
+    <div class="tel">
+      <div class="sotto-pagina"><div class="barra"></div><div class="barra corta"></div><div class="rett"></div><div class="barra"></div><div class="barra corta"></div></div>
+      <div class="velo"></div>
+      <div class="pannello vB">
+        <div class="manico"></div>
+        <div class="testa"><div class="mini"></div></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <p class="dida">Serve per ritrovarla dopo. Se non lo dici adesso finisce in «Altro».</p>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="sez">A 768 px (il tablet)</h2>
+<p class="sez-nota">
+  Il foglio si ferma a 480 px e resta centrato, quindi da 768 in su la figura non cambia più: il disegno a
+  1280 è identico a questo, pixel per pixel. Le pastiglie qui sono più larghe (216 px), e la riga spaiata si
+  vede ancora meglio.
+</p>
+
+<div class="fila">
+  <div class="caso">
+    <div class="targa">A1 a 768</div>
+    <div class="tel w768">
+      <div class="sotto-pagina"><div class="barra"></div><div class="barra corta"></div><div class="rett"></div></div>
+      <div class="velo"></div>
+      <div class="pannello vA1">
+        <div class="manico"></div>
+        <div class="testa"><div class="mini"></div></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <p class="dida">Serve per ritrovarla dopo. Se non lo dici adesso finisce in «Altro».</p>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso">
+    <div class="targa">A2 a 768</div>
+    <div class="tel w768">
+      <div class="sotto-pagina"><div class="barra"></div><div class="barra corta"></div><div class="rett"></div></div>
+      <div class="velo"></div>
+      <div class="pannello vA2">
+        <div class="manico"></div>
+        <div class="testa"><div class="mini"></div></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <p class="dida">Serve per ritrovarla dopo. Se non lo dici adesso finisce in «Altro».</p>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sez">La prova del testo grande (200 %) — e un guasto che c'è GIÀ oggi</h2>
+<p class="sez-nota">
+  Chi ha la vista stanca ingrandisce il testo dal telefono, e il regolamento del design system dice che a
+  quel punto le parole devono starci lo stesso (§13.3: è un requisito per poter rilasciare).
+  <b>Misurando è venuto fuori che il foglio non regge già adesso, con SEI categorie:</b> «Radiografia» è
+  una parola sola che non si può spezzare, la colonna si allarga per farcela stare e la griglia esce dal
+  foglio. La prescrizione non apre questo buco — lo allarga di una ventina di pixel.
+  La terza cornice mostra il rimedio: colonne che restano ferme a metà foglio e la parola lunga che va a
+  capo dentro la pastiglia. La riga rossa segna dove il contenuto esce dal foglio.
+</p>
+<p class="sez-nota">
+  🔴 <b>Aggiunto dopo, misurando il componente VERO nell'app (02/08):</b> delle due chiavi del rimedio, una
+  sola porta il lavoro. <b>È la parola che va a capo</b> (<code>overflow-wrap: anywhere</code>): da sola
+  azzera il debordamento. Le colonne ferme (<code>minmax(0,1fr)</code>) <b>da sole non bastano</b> — lasciano
+  fuori 9&nbsp;px a 768 e 54 a 390. Restano in codice perché tolgono un modo di sfondare, non perché siano il
+  rimedio. Questa cornice ③ le mostra insieme, ed è com'è il componente oggi.
+</p>
+
+<div class="fila">
+  <div class="caso">
+    <div class="targa">① Oggi, SEI categorie <em>· nessuna prescrizione</em></div>
+    <div class="tel zoom" id="zoom6">
+      <div class="velo"></div>
+      <div class="pannello vA1">
+        <div class="manico"></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="esito" id="esito6">misura in corso…</div>
+  </div>
+
+  <div class="caso">
+    <div class="targa">② Con «Prescrizione» <em>· sette, com'è adesso il foglio</em></div>
+    <div class="tel zoom" id="zoom7">
+      <div class="velo"></div>
+      <div class="pannello vA1">
+        <div class="manico"></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="esito" id="esito7">misura in corso…</div>
+  </div>
+
+  <div class="caso">
+    <div class="targa">③ Con «Prescrizione» + rimedio <em>· colonne ferme, parola a capo</em></div>
+    <div class="tel zoom rimedio" id="zoomR">
+      <div class="velo"></div>
+      <div class="pannello vA1">
+        <div class="manico"></div>
+        <h3 class="titolo">Che foto è?</h3>
+        <div class="griglia">
+          <button class="pill"><span class="emo">🦷</span><span>Impronta</span></button>
+          <button class="pill"><span class="emo">🔧</span><span>Pre-lavoro</span></button>
+          <button class="pill"><span class="emo">🎨</span><span>Guida colore</span></button>
+          <button class="pill"><span class="emo">✨</span><span>Post-prova</span></button>
+          <button class="pill"><span class="emo">🩺</span><span>Prescrizione</span></button>
+          <button class="pill"><span class="emo">🩻</span><span>Radiografia</span></button>
+          <button class="pill altro"><span class="emo">📄</span><span>Altro</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="esito" id="esitoR">misura in corso…</div>
+  </div>
+</div>
+
+<script>
+// Misura vera: di quanto la griglia esce dal foglio, al testo 200 %.
+function misura(idTel, idEsito){
+  const tel = document.getElementById(idTel)
+  const pannello = tel.querySelector('.pannello')
+  const griglia = tel.querySelector('.griglia')
+  const disponibile = pannello.clientWidth - 40 // padding 20 + 20
+  const serve = Math.ceil(griglia.scrollWidth)
+  const fuori = serve - disponibile
+  if (fuori > 1) griglia.classList.add('deborda')
+  const box = document.getElementById(idEsito)
+  box.innerHTML = fuori > 1
+    ? '<b>La griglia esce dal foglio di ' + fuori + ' px</b><br>le serve ' + serve + ' px, ne ha ' + disponibile + '.'
+    : '<span class="ok">Ci sta tutto.</span> Servono ' + serve + ' px su ' + disponibile + ' disponibili.'
+}
+window.addEventListener('load', () => { misura('zoom6','esito6'); misura('zoom7','esito7'); misura('zoomR','esitoR') })
+</script>
+
+</body>
+</html>

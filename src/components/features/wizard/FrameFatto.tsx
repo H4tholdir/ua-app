@@ -167,15 +167,22 @@ export function FrameFatto(props: {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      // T11-bis: la rotta pretende `categoria` (una delle sei di
-      // `categorie-foto.ts`, validata con `isCategoriaFoto`), non più
-      // `descrizione` — rifiuta con 422 chi manda il campo vecchio. Il tasto
-      // fotografa «impronta E prescrizione»: una prescrizione cartacea non è
-      // nessuna delle cinque categorie cliniche (impronta/pre_lavoro/colore/
-      // post_prova/rx), quindi il valore giusto è il ripiego previsto
-      // dall'elenco stesso, 'altro' — lo stesso che D74 assegna quando
-      // l'utente esce dal foglio-categoria di TabImmagini senza scegliere.
-      fd.append('categoria', 'altro')
+      // La rotta pretende `categoria` (una delle sette di `categorie-foto.ts`,
+      // validata con `isCategoriaFoto`), non più `descrizione` — rifiuta con
+      // 422 chi manda il campo vecchio.
+      //
+      // D97 — il valore è 'prescrizione', ed è quello che questo punto mandava
+      // PRIMA che la categoria diventasse una colonna: T11 aveva registrato la
+      // perdita («il dettaglio *era la prescrizione* non è più registrato da
+      // nessuna parte») e T11-bis l'aveva instradato su 'altro' come ripiego
+      // DICHIARATO, in attesa che la prescrizione avesse una casa. Da D91 ce
+      // l'ha.
+      // ⚠️ Il tasto promette due cose («Fotografa impronta e prescrizione») e
+      // il dato ne registra una. Non è un buco nuovo: è il modello di D65/D74
+      // — la foto NASCE con una categoria e si corregge dopo, e la correzione
+      // c'è già dalla scheda del lavoro. Aprire qui il foglio-categoria
+      // sarebbe un cambio di flusso, e D97 lo lascia fuori esplicitamente.
+      fd.append('categoria', 'prescrizione')
       const res = await fetch(`/api/lavori/${lavoro.id}/immagini`, {
         method: 'POST',
         credentials: 'same-origin',

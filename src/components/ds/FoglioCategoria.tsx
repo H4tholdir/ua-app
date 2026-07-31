@@ -1,9 +1,18 @@
 'use client'
 
 // DS v3 §5.41 — FoglioCategoria: il foglio che chiede «che foto è», variante C1
-// (D79): sei pastiglie su due colonne. È il terzo dei quattro strati sopra la
+// (D79): pastiglie su due colonne. È il terzo dei quattro strati sopra la
 // pagina, e vive in DUE momenti — subito dopo lo scatto (D65: mai prima, non si
 // blocca la fotocamera) e come CORREZIONE dal visore o dall'album (D70).
+//
+// ── Dal 02/08 le pastiglie sono SETTE, e l'ultima è spaiata (D91 · D95) ────
+// La prescrizione è entrata fra le categorie (D91) al QUINTO posto, subito
+// prima della radiografia (D92: in testa avrebbe preso la foto grande della
+// carta dell'album quasi in ogni lavoro). Sette su due colonne lasciano una
+// spaiata, e cade su «Altro» — la voce dove essere diversa significa qualcosa,
+// perché «Altro» è «nessuna delle precedenti» (D74). Prende la riga intera
+// come riga di CHIUSURA (D95, variante A2 scelta sul mockup
+// `docs/design/mockups/2026-08-02-foglio-categoria-sette-pastiglie.html`).
 //
 // ── D74, ed è la ragione per cui questo componente si comporta diversamente ─
 // La foto deve NASCERE con una categoria. Quindi ogni uscita che non è una
@@ -39,6 +48,12 @@
 // 🛑 E per la stessa ragione NIENTE `whiteSpace:'nowrap'`: a text-zoom 200% —
 // che è un requisito di rilascio (§13.3) — «Guida colore» si taglierebbe. Due
 // righi ammessi, `min-height` 60 che li accoglie.
+// 🔴 MA I DUE RIGHI DA SOLI NON BASTAVANO, e questo file lo dava per fatto: si
+// va a capo su uno SPAZIO, e «Radiografia» non ne ha. A testo 200% la sua
+// colonna si allargava e la griglia usciva dal foglio — con SEI categorie, cioè
+// da prima della prescrizione (misurato il 02/08 sul mockup a 390: 56px fuori
+// con sei, 144 con sette). Lo tiene in piedi `overflowWrap:'anywhere'`
+// sull'etichetta (D96), provato sul componente vero a 390 e 768.
 //
 // ── Il focus va al PANNELLO, non alla prima pastiglia ──────────────────────
 // Posarlo su «Impronta» suggerirebbe una scelta che l'utente non ha fatto: è la
@@ -68,6 +83,9 @@ const MAX_ANTEPRIME = 3
 const ANTEPRIMA = 56
 const RAGGIO_ANTEPRIMA = raggio.riga - 6 // = 12, §5.41. Mai il 12 nudo: `raggio` non ce l'ha.
 const PASTIGLIA = 60
+/** D95 — la riga di chiusura di «Altro». Più bassa delle categorie vere, MAI
+ *  sotto i 44 del bersaglio minimo (§0B): 48 è il margine che resta. */
+const PASTIGLIA_CHIUSURA = 48
 const MANICO_L = 36
 const MANICO_H = 4
 const TESTO_PASTIGLIA = 15 // valore del mockup, ratificato da D79 (v. §5 S11 dell'allegato)
@@ -76,17 +94,29 @@ const EMOJI_PX = 18
 /** 🚧 SEGNAPOSTO DICHIARATO (S2): le icone vere sono un passo suo, fuori da
  *  questa ondata. Non sono lo stato di niente (§4.4) — il senso lo porta il
  *  testo, e a schermo sono `aria-hidden`.
- *  🔑 È un `Record` sulle sei categorie, non un secondo elenco: se un giorno
+ *  🔑 È un `Record` sulle sette categorie, non un secondo elenco: se un giorno
  *  una categoria si aggiunge, questo file non compila finché non ha la sua —
- *  che è l'opposto di una copia locale che diverge in silenzio. */
+ *  che è l'opposto di una copia locale che diverge in silenzio.
+ *  ✅ **E ha funzionato:** il 02/08, aggiungendo `prescrizione` all'elenco di
+ *  dominio e null'altro, `tsc` si è acceso qui (TS2741) prima di qualunque
+ *  prova. La rete non era un'ipotesi. */
 const EMOJI: Record<CategoriaFoto, string> = {
   impronta: '🦷',
   pre_lavoro: '🔧',
   colore: '🎨',
   post_prova: '✨',
+  prescrizione: '🩺', // D94
   rx: '🩻',
   altro: '📄',
 }
+
+/** D95 — l'unica pastiglia che non è una categoria clinica: «Altro» significa
+ *  «nessuna delle precedenti» (D74), è l'ULTIMA dell'ordine, ed è quella che
+ *  resta spaiata da quando le categorie sono sette. Prende la riga intera come
+ *  riga di CHIUSURA: più bassa, faccia vuota col solo contorno, testo centrato.
+ *  🛑 Vale solo da SPENTA: accesa torna alla luminanza piena come tutte le
+ *  altre, perché il contorno non può essere l'unica fonte dello stato (G4). */
+const CHIUSURA: CategoriaFoto = 'altro'
 
 type VariantiFoglio = {
   initial: { y: string }
@@ -378,10 +408,25 @@ export function FoglioCategoria(props: {
 
         <div
           className="ds-foglio-griglia"
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spazio.s }}
+          style={{
+            display: 'grid',
+            // D96 — `minmax(0,1fr)` e non `1fr` nudo: toglie alla colonna il
+            // minimo automatico, che vale quanto la parola più lunga che non si
+            // può spezzare.
+            // 🛑 MA NON È LEI A REGGERE IL 200%, e la differenza è misurata sul
+            // componente vero (02/08, quattro combinazioni): da sola lascia
+            // fuori 9px a 768 e 54 a 390 — è l'`overflowWrap` dell'etichetta a
+            // portare il fuori a ZERO. Questa riga resta perché toglie un modo
+            // di sfondare, non perché sia il rimedio: chi la togliesse non
+            // vedrebbe nulla rompersi oggi.
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+            gap: spazio.s,
+          }}
         >
           {CATEGORIE_FOTO.map((categoria) => {
             const accesa = scelta === categoria.valore
+            // D95 — la riga di chiusura, e solo da spenta (v. `CHIUSURA`).
+            const chiusura = categoria.valore === CHIUSURA && !accesa
             return (
               <motion.button
                 key={categoria.valore}
@@ -394,28 +439,52 @@ export function FoglioCategoria(props: {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  // La riga di chiusura è larga quanto il foglio: il testo
+                  // centrato le toglie l'aria da «categoria come le altre».
+                  justifyContent: chiusura ? 'center' : 'flex-start',
                   gap: spazio.s,
-                  minHeight: PASTIGLIA,
+                  // 🛑 48, non meno: sotto i 44 sarebbe un bersaglio fuori
+                  // legge (§0B). È il margine che D95 lascia.
+                  minHeight: chiusura ? PASTIGLIA_CHIUSURA : PASTIGLIA,
                   padding: `0 ${spazio.sm}px`,
                   border: 'none',
                   borderRadius: raggio.riga,
                   // Tre fonti per lo stesso stato, e nessuna è il solo colore
                   // (G4): luminanza piena, `aria-pressed`, e il testo che resta.
-                  background: accesa ? 'var(--ink)' : 'var(--bg-deep)',
-                  color: accesa ? 'var(--bg)' : 'var(--ink)',
+                  // 🛑 Da ACCESA «Altro» torna come tutte: il contorno della
+                  // riga di chiusura non deve mai diventare l'unica fonte.
+                  background: accesa ? 'var(--ink)' : chiusura ? 'transparent' : 'var(--bg-deep)',
+                  color: accesa ? 'var(--bg)' : chiusura ? 'var(--muted)' : 'var(--ink)',
+                  // Anello interno, non un bordo: un bordo sposterebbe la
+                  // geometria e la riga non starebbe più in griglia.
+                  boxShadow: chiusura ? 'inset 0 0 0 1.5px var(--line)' : undefined,
+                  // Occupa tutte e due le colonne — è la spaiata delle sette.
+                  gridColumn: categoria.valore === CHIUSURA ? '1 / -1' : undefined,
                   fontFamily: tipografia.famiglia,
                   fontSize: TESTO_PASTIGLIA,
                   fontWeight: tipografia.weight.bold,
                   textAlign: 'left',
                   cursor: 'pointer',
-                  // 🛑 Nessun `whiteSpace: 'nowrap'`: due righi sono ammessi, ed
-                  // è ciò che tiene in piedi il text-zoom 200% (§13.3).
+                  // 🛑 Nessun `whiteSpace: 'nowrap'`: due righi sono ammessi.
+                  // ⚠️ CORRETTA il 02/08 (D96): la riga che stava qui diceva
+                  // che i due righi «tengono in piedi il text-zoom 200%», ed
+                  // era vera SOLO per le etichette con uno spazio dentro
+                  // («Guida colore» va a capo, «Radiografia» no). È il
+                  // commento che ha fatto credere per tre task che la prova di
+                  // §13.3 fosse già superata. A reggerla sono le due chiavi di
+                  // D96: `minmax(0,1fr)` qui sopra e `overflowWrap` qui sotto.
                 }}
               >
                 <span aria-hidden="true" style={{ fontSize: EMOJI_PX, lineHeight: 1 }}>
                   {EMOJI[categoria.valore]}
                 </span>
-                <span>{categoria.etichetta}</span>
+                {/* 🔴 D96 — QUESTA è la riga che regge il text-zoom 200%, ed è
+                    misurata sul componente vero il 02/08 (non sul mockup):
+                    togliendola, a 768 la griglia esce dal foglio di 52px e a
+                    390 di più. `anywhere` e non `break-word`: `break-word`
+                    interviene solo dopo aver provato a spezzare su uno spazio,
+                    e «Radiografia»/«Prescrizione» non ne hanno. */}
+                <span style={{ overflowWrap: 'anywhere' }}>{categoria.etichetta}</span>
               </motion.button>
             )
           })}

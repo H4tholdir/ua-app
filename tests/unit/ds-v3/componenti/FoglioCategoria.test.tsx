@@ -140,9 +140,9 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
     })
   })
 
-  // ══ LE SEI PASTIGLIE ═══════════════════════════════════════════════════
-  describe('le sei pastiglie', () => {
-    it('sono SEI, una per categoria, nell\'ordine di D71 — e l\'elenco non è una copia locale', () => {
+  // ══ LE SETTE PASTIGLIE ═════════════════════════════════════════════════
+  describe('le sette pastiglie', () => {
+    it('sono SETTE, una per categoria, nell\'ordine di D71+D92 — e l\'elenco non è una copia locale', () => {
       render(<FoglioCategoria {...props()} />)
       const nomi = pastiglie().map((p) => p.textContent?.replace(/[^\p{L}\s-]/gu, '').trim())
       expect(nomi).toEqual(CATEGORIE_FOTO.map((c) => c.etichetta))
@@ -167,8 +167,76 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
     it('la griglia è a DUE colonne con `gap spazio.s`', () => {
       render(<FoglioCategoria {...props()} />)
       const griglia = pannello().querySelector('.ds-foglio-griglia') as HTMLElement
-      expect(griglia.style.gridTemplateColumns).toBe('1fr 1fr')
+      expect(griglia.style.gridTemplateColumns).toBe('minmax(0, 1fr) minmax(0, 1fr)')
       expect(griglia.style.gap).toBe(`${spazio.s}px`)
+    })
+
+    // ══ D96 — il rimedio al testo ingrandito ═══════════════════════════════
+    // 🔴 Il difetto era GIÀ in casa con sei categorie, e la riga di commento
+    //    del componente diceva il contrario. Misurato il 02/08 sul mockup, a
+    //    390 e testo al 200 %: con SEI la griglia esce dal foglio di 56 px, con
+    //    SETTE di 144, col rimedio di 0.
+    // 🔑 Le due chiavi NON pesano uguale, e la misura sul componente vero (non
+    //    sul mockup) lo dice: `overflowWrap:'anywhere'` sull'etichetta porta il
+    //    fuori a ZERO da solo; `minmax(0,1fr)` da solo lascia fuori 9px a 768 e
+    //    54 a 390. La seconda prova qui sotto è quella che protegge davvero il
+    //    requisito di §13.3; la prima toglie un modo di sfondare che oggi non
+    //    si manifesta più — e va tenuta per quello, non spacciata per il
+    //    rimedio.
+    describe('D96 — il testo ingrandito non sfonda il foglio', () => {
+      it('le colonne NON possono allargarsi oltre la loro metà: `minmax(0,1fr)`, mai `1fr` nudo', () => {
+        render(<FoglioCategoria {...props()} />)
+        const griglia = pannello().querySelector('.ds-foglio-griglia') as HTMLElement
+        expect(griglia.style.gridTemplateColumns).toContain('minmax(0')
+        expect(griglia.style.gridTemplateColumns).not.toBe('1fr 1fr')
+      })
+
+      it('ogni etichetta può andare a capo DENTRO la parola — «Radiografia» e «Prescrizione» non hanno spazi', () => {
+        render(<FoglioCategoria {...props()} />)
+        const senzaSpazi = pastiglie().filter((p) => {
+          const testo = p.textContent?.replace(/[^\p{L}\s-]/gu, '').trim() ?? ''
+          return !testo.includes(' ')
+        })
+        // Se questa lista si svuotasse, la prova non proverebbe più niente.
+        expect(senzaSpazi.length).toBeGreaterThan(0)
+        senzaSpazi.forEach((p) => {
+          const etichetta = p.querySelector('span:not([aria-hidden])') as HTMLElement
+          expect(etichetta.style.overflowWrap).toBe('anywhere')
+        })
+      })
+    })
+
+    // ══ D95 — «Altro» è la riga di chiusura (variante A2) ══════════════════
+    describe('D95 — la settima pastiglia è la riga di chiusura', () => {
+      function altro(): HTMLElement {
+        return screen.getByRole('button', { name: 'Altro' })
+      }
+
+      it('è ULTIMA e prende tutta la larghezza: la spaiata cade su «nessuna delle precedenti» (D74)', () => {
+        render(<FoglioCategoria {...props()} />)
+        expect(pastiglie()[pastiglie().length - 1]).toBe(altro())
+        expect(altro().style.gridColumn).toBe('1 / -1')
+      })
+
+      it('è più bassa e più tenue delle categorie vere — ma MAI sotto i 44 px di bersaglio (§0B)', () => {
+        render(<FoglioCategoria {...props()} />)
+        expect(altro().style.minHeight).toBe('48px')
+        expect(Number.parseInt(altro().style.minHeight, 10)).toBeGreaterThanOrEqual(44)
+        expect(altro().style.background).toBe('transparent')
+        expect(altro().style.boxShadow).toContain('var(--line)')
+        expect(altro().style.justifyContent).toBe('center')
+        // Le categorie vere restano quelle di §5.41: 60 px e faccia piena.
+        expect(pastiglie()[0].style.minHeight).toBe('60px')
+        expect(pastiglie()[0].style.background).toBe('var(--bg-deep)')
+      })
+
+      it('🛑 il contorno NON diventa l\'unica fonte dello stato: da scelta, «Altro» si accende come tutte (G4)', () => {
+        render(<FoglioCategoria {...props({ scelta: 'altro' })} />)
+        expect(altro().getAttribute('aria-pressed')).toBe('true')
+        // Luminanza piena, non un contorno un po' più marcato.
+        expect(altro().style.background).toBe('var(--ink)')
+        expect(altro().style.color).toBe('var(--bg)')
+      })
     })
 
     it('🚧 l\'emoji è un segnaposto e NON è lo stato di niente (§4.4): è `aria-hidden`, il nome lo porta il testo', () => {
@@ -367,7 +435,7 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
       render(<FoglioCategoria {...props()} />)
       const p = pannello()
       const raggiungibili = pastiglie()
-      expect(raggiungibili).toHaveLength(6)
+      expect(raggiungibili).toHaveLength(7)
 
       for (let i = 0; i < raggiungibili.length + 1; i += 1) {
         await utente.tab()
@@ -426,9 +494,9 @@ describe('FoglioCategoria — il foglio che chiede che foto è (§5.41)', () => 
       expect(document.body.style.overflow).toBe('scroll')
     })
 
-    it('nessuna anteprima: il foglio si apre lo stesso — le sei pastiglie sono il suo lavoro', () => {
+    it('nessuna anteprima: il foglio si apre lo stesso — le sette pastiglie sono il suo lavoro', () => {
       render(<FoglioCategoria {...props({ anteprime: [] })} />)
-      expect(pastiglie()).toHaveLength(6)
+      expect(pastiglie()).toHaveLength(7)
       expect(pannello().querySelectorAll('img')).toHaveLength(0)
     })
 

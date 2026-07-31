@@ -391,7 +391,9 @@ export async function creaLavoroDaWizard(input: {
   // `isCategoriaFoto`, e rifiuta con 422 chi manda ancora il vecchio
   // `descrizione` (era la forma pre-D73). Questa è letteralmente la foto
   // dell'impronta (`PassoPaziente.tsx` — «Aggiungi la foto dell'impronta»),
-  // quindi il valore è una delle sei categorie ratificate, non un ripiego.
+  // quindi il valore è una delle categorie ratificate, non un ripiego.
+  // 🔑 D97 lo lascia a 'impronta': l'ambiguità «impronta o prescrizione?» è
+  //    dell'ALTRO punto (FrameFatto), non di questo.
   if (foto) {
     try {
       const fd = new FormData()

@@ -9,17 +9,41 @@ import {
 
 const f = (id: string, categoria: string, created_at: string) => ({ id, categoria, created_at })
 
-describe('categorie-foto — l\'elenco chiuso di D72 e l\'ordine di D71', () => {
-  it('sei voci, nell\'ordine cronologico di D71 — MAI alfabetico', () => {
+describe('categorie-foto — l\'elenco chiuso di D72 e l\'ordine di D71+D92', () => {
+  it('SETTE voci, nell\'ordine di D71 corretto da D92 — MAI alfabetico', () => {
     expect(CATEGORIE_FOTO.map((c) => c.valore)).toEqual([
-      'impronta', 'pre_lavoro', 'colore', 'post_prova', 'rx', 'altro',
+      'impronta', 'pre_lavoro', 'colore', 'post_prova', 'prescrizione', 'rx', 'altro',
     ])
   })
 
   it('le etichette sono quelle ratificate da Francesco', () => {
     expect(CATEGORIE_FOTO.map((c) => c.etichetta)).toEqual([
-      'Impronta', 'Pre-lavoro', 'Guida colore', 'Post-prova', 'Radiografia', 'Altro',
+      'Impronta', 'Pre-lavoro', 'Guida colore', 'Post-prova', 'Prescrizione', 'Radiografia', 'Altro',
     ])
+  })
+
+  // ── D92, e si prova col COMPORTAMENTO, non rileggendo la lista ──────────
+  // 🛑 Le due prove qui sotto valgono più di un `toEqual` sull'elenco: quello
+  //    si aggiorna copiando la lista nuova senza accorgersi di cosa cambia.
+  //    Queste due si accendono se qualcuno rimette la prescrizione in testa —
+  //    che è ESATTAMENTE ciò che il brief proponeva e che Francesco ha
+  //    rettificato.
+  it('D92 — la prescrizione ordina PRIMA della radiografia', () => {
+    const dato = [f('r', 'rx', '2026-01-01'), f('p', 'prescrizione', '2026-06-01')]
+    expect(ordinaFotoPerCategoria(dato).map((x) => x.id)).toEqual(['p', 'r'])
+  })
+
+  it('D92 — ma NON prima di tutto: l\'impronta le resta davanti, ed è la foto grande della carta', () => {
+    const dato = [f('p', 'prescrizione', '2026-01-01'), f('i', 'impronta', '2026-06-01')]
+    // La prima del primo gruppo è la copertina della scheda: dev'essere il
+    // lavoro, non il foglio del dentista.
+    expect(ordinaFotoPerCategoria(dato).map((x) => x.id)).toEqual(['i', 'p'])
+    expect(raggruppaPerCategoria(dato)[0].categoria).toBe('impronta')
+  })
+
+  it('la prescrizione è una categoria a pieno titolo, non più un ripiego su «altro» (D91)', () => {
+    expect(isCategoriaFoto('prescrizione')).toBe(true)
+    expect(etichettaCategoria('prescrizione')).toBe('Prescrizione')
   })
 
   it('etichettaCategoria ripiega sul valore grezzo se arriva un valore ignoto', () => {

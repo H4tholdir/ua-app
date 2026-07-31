@@ -11,7 +11,7 @@ import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
 // 'categoria' compaia — deve essere un valore che `isCategoriaFoto` (la
 // stessa funzione che la rotta usa per rifiutare, `route.ts:97-103`)
 // accetterebbe DAVVERO. Si importa la funzione vera, non se ne ricopia
-// l'elenco: così la prova regge anche se domani le sei categorie cambiano.
+// l'elenco: così la prova regge anche quando le categorie cambiano (D91: sette).
 import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 
 // Stesso pattern di mock fetch sequenziale di WizardNuovoLavoro.test.tsx (Task 9).
@@ -241,7 +241,7 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
   // `isCategoriaFoto`, respingendo chi manda ancora il vecchio `descrizione`
   // con 422. La foto qui è quella dell'impronta (`PassoPaziente.tsx` — «Aggiungi
   // la foto dell'impronta»), quindi il valore giusto è letteralmente
-  // 'impronta', una delle sei categorie ratificate in `categorie-foto.ts`.
+  // 'impronta', una delle categorie ratificate in `categorie-foto.ts`.
   it('foto presente → POST immagini FormData{file, categoria:"impronta"} (valore che isCategoriaFoto accetta), MAI descrizione', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))

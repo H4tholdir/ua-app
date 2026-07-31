@@ -197,12 +197,12 @@ describe('POST /api/lavori/[id]/immagini — la categoria (T3)', () => {
 
   // ---- le forme di ACCETTAZIONE ----
 
-  // 🛑 I sei valori NON sono ricopiati qui a mano per caso: sono l'elenco che la
+  // 🛑 I sette valori NON sono ricopiati qui a mano per caso: sono l'elenco che la
   //    rotta deve accettare, e se la rotta si scrivesse una copia locale invece
   //    di importare `isCategoriaFoto` questa prova resterebbe verde. La rete
   //    contro la terza copia è l'import nella rotta + la spia di T2; questa
   //    prova verifica il COMPORTAMENTO, non la provenienza.
-  it.each(['impronta', 'pre_lavoro', 'colore', 'post_prova', 'rx', 'altro'])(
+  it.each(['impronta', 'pre_lavoro', 'colore', 'post_prova', 'prescrizione', 'rx', 'altro'])(
     'categoria «%s» → 201, e il valore arriva TALE E QUALE all\'insert',
     async (categoria) => {
       const { insertCalls } = mockPost()
