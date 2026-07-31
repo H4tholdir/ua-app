@@ -237,6 +237,27 @@ tecnico pieno resta in commit, codice, docs e diagnosi. Testo completo della dir
 
 ---
 
+## 0E. Chiusura sessione — `/chiudi` (ratificata 02/08/2026)
+
+**Quando Francesco scrive `/chiudi`** — o chiede di chiudere, di preparare il passaggio a una sessione nuova,
+di «prepararsi per un contesto pulito» — si esegue la **skill `chiudi`**: `.claude/skills/chiudi/SKILL.md`.
+
+🔑 **La ragione:** la sessione nuova parte cieca e vede **solo ciò che è scritto**. Tutto quello che resta in
+chat è perso.
+
+**I sette passi, in breve** (il dettaglio sta nella skill): ① metti al sicuro il lavoro non salvato · ② misura
+lo stato **vero** (`tsc` · `vitest` · `next build`, tutti e tre, output incollato) · ③ **censisci ciò che resta
+aperto cercandolo nel codice**, non ricordandolo — e ricontrolla uno per uno i «si decide insieme» rimandati a
+un gate · ④ scrivi l'handoff in `docs/roadmap/`, con la **§0 dedicata a ciò che NON è stato fatto**, per primo ·
+⑤ allinea memoria, roadmap e verbale (BP-1 + §0A-bis) · ⑥ salva, e pubblica solo se autorizzato ·
+⑦ 🎁 **consegna a Francesco il MESSAGGIO DI APERTURA**, in un blocco copiabile.
+
+🛑 **La consegna è il messaggio di apertura, non «ho aggiornato la memoria».** Senza quello la chiusura non è
+avvenuta. **Il fatto che l'ha generata:** il 02/08/2026 una chiusura fatta bene in tutto il resto si è
+dimenticata proprio quello, e Francesco ha dovuto chiederlo.
+
+---
+
 ## 0B. Workflow UI — Obbligatorio per ogni nuova pagina/feature
 
 Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezioni:
