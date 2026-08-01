@@ -168,7 +168,7 @@ descriveva.
 | File | Responsabilità |
 |---|---|
 | `supabase/migrations/20260803150000_dpa_registro_emissioni.sql` | 🆕 **da creare** — colonne, indice parziale, CHECK, trigger |
-| `src/lib/pdf/dpa-modello.ts` | 🆕 **da creare** — versione del modello, impronta del testo, dati sostanziali e loro impronta. Nessuna dipendenza da Supabase: si prova senza mock |
+| `src/lib/pdf/dpa-modello.ts` | 🆕 **da creare** — versione del modello, impronta del testo, dati sostanziali e loro impronta. Nessuna dipendenza da Supabase: si prova senza mock. ⚠️ **Ma dal Task 3 è transitivamente `server-only`** — importa `improntaPayload` da `generate-ddc`, che porta `import 'server-only'` alla riga 1. **Non è un difetto oggi** (tutti i consumatori previsti — Task 4, 5, 6, 7 e la pagina del Task 8 — girano sul server), ma **vincola**: nessun componente client potrà importare da qui. Se un domani servisse, si sposta `improntaPayload` in un modulo neutro |
 | `src/lib/pdf/generate-dpa.ts` | **Modificare** — da «genera un PDF» a «emette, o restituisce l'emissione esistente» |
 | `src/app/api/clienti/[id]/dpa/route.ts` | **Modificare** — consuma il nuovo ritorno, nome file dal numero |
 | `src/app/(app)/clienti/[id]/page.tsx` | **Modificare** — numero e data dell'ultima emissione; via la frase falsa sui dieci anni |
@@ -877,10 +877,38 @@ describe('l\'impronta dei dati sostanziali', () => {
     expect(improntaDpa({ ...LAB, codice_itca: 'ITCA99999999' } as Laboratorio, CLI)).not.toBe(improntaDpa(LAB, CLI))
   })
 
-  it('porta esattamente i campi che il modello stampa: 10 del lab, 9 del cliente', () => {
+  // 🔄 RISCRITTA il 03/08 — il nome della prima stesura («i campi che il modello
+  //    STAMPA: 10 del lab, 9 del cliente») era FALSO, e l'esecutore si e' fermato
+  //    invece di adattare l'asserzione. `provato:` i campi resi in JSX da
+  //    DpaTemplate.tsx sono NOVE per il lab (manca `codice_fiscale`) e SETTE per
+  //    il cliente (mancano `cap` e `provincia`): 10 e 9 contano i campi che il
+  //    modello ACCETTA nel tipo, non quelli che rende.
+  //    🛑 I NUMERI restano 10 e 9: l'impronta deve essere un SOPRAINSIEME di cio'
+  //    che il documento stampa, perche' i due errori non costano uguale. Un campo
+  //    nell'impronta che il modello non stampa, se cambia, fa nascere
+  //    un'emissione in piu' con lo stesso testo: rumore. Un campo STAMPATO che
+  //    non e' nell'impronta, se cambia, non fa nascere niente — e il dentista
+  //    resta con un documento che porta un dato superato.
+  //    Si asserisce l'ELENCO, non il conteggio: due nomi scambiati passerebbero
+  //    una conta e non passano questo.
+  it('copre TUTTO cio\' che il modello puo\' stampare — soprainsieme, che e\' il lato sicuro', () => {
     const d = datiSostanzialiDpa(LAB, CLI)
-    expect(Object.keys(d.lab)).toHaveLength(10)
-    expect(Object.keys(d.cliente)).toHaveLength(9)
+    expect(Object.keys(d.lab).sort()).toEqual([
+      'cap', 'citta', 'codice_fiscale', 'codice_itca', 'indirizzo',
+      'nome', 'partita_iva', 'provincia', 'prrc_nome', 'ragione_sociale',
+    ])
+    expect(Object.keys(d.cliente).sort()).toEqual([
+      'cap', 'citta', 'codice_fiscale', 'cognome', 'indirizzo',
+      'nome', 'partita_iva', 'provincia', 'studio_nome',
+    ])
+    // Ogni campo che il template RENDE deve stare nell'impronta: se un domani il
+    // modello stampa un campo nuovo e nessuno lo aggiunge qui, si accende.
+    const RESI_DAL_TEMPLATE = {
+      lab: ['cap', 'citta', 'codice_itca', 'indirizzo', 'nome', 'partita_iva', 'provincia', 'prrc_nome', 'ragione_sociale'],
+      cliente: ['citta', 'codice_fiscale', 'cognome', 'indirizzo', 'nome', 'partita_iva', 'studio_nome'],
+    }
+    for (const campo of RESI_DAL_TEMPLATE.lab) expect(Object.keys(d.lab)).toContain(campo)
+    for (const campo of RESI_DAL_TEMPLATE.cliente) expect(Object.keys(d.cliente)).toContain(campo)
   })
 })
 ```

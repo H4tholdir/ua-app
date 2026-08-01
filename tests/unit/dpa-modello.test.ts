@@ -89,14 +89,41 @@ describe('l\'impronta dei dati sostanziali', () => {
     expect(improntaDpa({ ...LAB, codice_itca: 'ITCA99999999' } as Laboratorio, CLI)).not.toBe(improntaDpa(LAB, CLI))
   })
 
-  // 🛑 NON portata la quarta prova del brief ("porta esattamente i campi che il
-  //    modello stampa: 10 del lab, 9 del cliente") — vedi referto Task 3 §2.
-  //    Verificato riga per riga in DpaTemplate.tsx che `lab.codice_fiscale`,
-  //    `cliente.cap` e `cliente.provincia` sono accettati dal tipo `DpaData` ma
-  //    MAI resi in JSX: i numeri 10/9 contano i campi che il template ACCETTA,
-  //    non quelli che STAMPA (che sono 9 e 7). Un'asserzione verde col nome
-  //    "porta esattamente i campi che il modello stampa" sarebbe falsa nel nome
-  //    anche se la conta tornasse contro l'implementazione prescritta — non la
-  //    scrivo, e non correggo l'implementazione (R-E1/non è una decisione mia):
-  //    riferita a chi possiede il piano.
+  // 🔑 La quarta prova, RISCRITTA il 03/08 — il piano la intitolava «porta
+  //    esattamente i campi che il modello STAMPA: 10 del lab, 9 del cliente»,
+  //    e quel nome era FALSO. `provato:` i campi resi in JSX da DpaTemplate.tsx
+  //    sono NOVE per il lab (manca `codice_fiscale`) e SETTE per il cliente
+  //    (mancano `cap` e `provincia`): 10 e 9 contano i campi che il modello
+  //    ACCETTA nel tipo, non quelli che rende.
+  //    🛑 I NUMERI restano 10 e 9, e non è una svista: l'impronta deve essere un
+  //    SOPRAINSIEME di ciò che il documento stampa, perché i due errori non
+  //    costano uguale. Un campo NELL'impronta che il modello non stampa, se
+  //    cambia, fa nascere un'emissione in più con lo stesso testo: rumore. Un
+  //    campo STAMPATO che NON è nell'impronta, se cambia, non fa nascere niente
+  //    — e il dentista resta con un documento che porta un dato superato.
+  //    Si sbaglia dalla parte del rumore.
+  //    Si asserisce l'ELENCO, non il conteggio: due nomi scambiati passerebbero
+  //    una conta e non passano questo.
+  it('copre TUTTO ciò che il modello può stampare — soprainsieme, che è il lato sicuro', () => {
+    const d = datiSostanzialiDpa(LAB, CLI)
+
+    expect(Object.keys(d.lab).sort()).toEqual([
+      'cap', 'citta', 'codice_fiscale', 'codice_itca', 'indirizzo',
+      'nome', 'partita_iva', 'provincia', 'prrc_nome', 'ragione_sociale',
+    ])
+    expect(Object.keys(d.cliente).sort()).toEqual([
+      'cap', 'citta', 'codice_fiscale', 'cognome', 'indirizzo',
+      'nome', 'partita_iva', 'provincia', 'studio_nome',
+    ])
+
+    // 🛑 L'invariante che conta davvero: ogni campo che il template RENDE deve
+    //    stare nell'impronta. Se un domani il modello comincia a stampare un
+    //    campo nuovo e nessuno lo aggiunge qui, questa riga si accende.
+    const RESI_DAL_TEMPLATE = {
+      lab: ['cap', 'citta', 'codice_itca', 'indirizzo', 'nome', 'partita_iva', 'provincia', 'prrc_nome', 'ragione_sociale'],
+      cliente: ['citta', 'codice_fiscale', 'cognome', 'indirizzo', 'nome', 'partita_iva', 'studio_nome'],
+    }
+    for (const campo of RESI_DAL_TEMPLATE.lab) expect(Object.keys(d.lab)).toContain(campo)
+    for (const campo of RESI_DAL_TEMPLATE.cliente) expect(Object.keys(d.cliente)).toContain(campo)
+  })
 })
