@@ -1380,6 +1380,20 @@ qualcuno toglie l'`UPDATE` credendolo ridondante e riapre la porta chiusa.
 > solleva un testo fisso) — la prova «*il messaggio dell'archivio non esce*» già prevista qui **c'è**, ma
 > serve **la gemella sul messaggio del database**, che oggi manca.
 >
+> **①-bis `C2` — GLI ERRORI DI LETTURA SCARTATI SONO TRE, non due, e il terzo è il peggiore.**
+> Il Task 5 ne ha riferiti due (guard e soft-delete). La revisione ne ha trovato un **terzo**:
+> `generate-dpa.ts:81`, `const { data: file } = await svc.storage…download(…)` — **l'errore non è letto**,
+> quindi un guasto **passeggero** (503) vale «file sparito per sempre».
+> 🛑 **E la conseguenza è peggiore di quanto sembri**, perché il soft-delete **precede** il caricamento: su
+> un'indisponibilità vera il download va in 503 → la riga viene **archiviata** → poi fallisce **anche**
+> l'upload e si solleva → **il registro vivo resta SENZA nessun DPA per quel dentista**. E se la riga
+> archiviata era `firmato`, `firmato_da`/`firmato_at` restano nella riga morta: **si perde lo stato vivo**,
+> e da lì in poi ogni lettura vede un contratto «da firmare» dove esiste un accordo **firmato**.
+> 🔑 **Il codice non distingue `404` da `503`**, e l'unica prova che tocca quel ramo usa `'Object not
+> found'`: **il nome della prova descrive una condizione più stretta di quella che il codice implementa.**
+> ⚠️ **Calibrazione, perché non si prenda per una novità:** `generate-ddc.ts:97-103` scarta l'errore di
+> lettura allo stesso modo — **è un modo di casa**, e va corretto qui perché qui si chiama «fail-closed».
+>
 > **② `I3` — «il file prima della riga» è garantito dal CODICE, non protetto dalle PROVE.** `provato:`
 > togliendo il `throw` di `:112`, **7 prove su 7 restano verdi**: `toHaveBeenCalledBefore` prova solo il
 > cammino felice. La prova «*se l'archivio rifiuta, NESSUNA riga viene scritta*» già prevista qui è
@@ -1476,9 +1490,23 @@ già passare dal Task 4. **Contare e scrivere il numero.**
         }
       }
     }
-    throw new Error(`DPA: registro non scritto — ${erroreRiga.message}`)
+    // 🛑 NIENTE `erroreRiga.message` QUI DENTRO. La prima stesura di questo
+    //    blocco rilanciava il messaggio del database e CONTRADDICEVA il requisito
+    //    ① di questo stesso task: `route.ts` rimanda `e.message` al browser, e
+    //    con esso uscivano nome del VINCOLO e della TABELLA.
+    //    Il dettaglio serve a chi ripara, non a chi scarica: va nel log.
+    console.error('generateDpa — registro non scritto:', erroreRiga.message)
+    throw new Error('DPA: non è stato possibile registrare il documento')
   }
 ```
+
+🔴 **CORRETTO il 03/08, dalla revisione del Task 5 — il blocco qui sopra NEGAVA il requisito ① di questo
+stesso task.** `provato:` il piano prescriveva `throw new Error(\`… ${erroreRiga.message}\`)` mentre il
+requisito ① (poche righe più su) chiede che il messaggio del database **non** esca. Il Task 6 sarebbe stato
+lanciato contro un blocco che contraddice la propria consegna, e nessuna prova l'avrebbe visto: il testo
+dell'errore lo sceglie il piano.
+⚠️ **Vale anche per la riga già viva** `src/lib/pdf/generate-dpa.ts:182`, che oggi fa esattamente questo:
+va cambiata **in questo task**, non lasciata lì.
 
 🔄 **Due correzioni del 03/08, dal panel del Task 1 — la prima è grave.**
 
