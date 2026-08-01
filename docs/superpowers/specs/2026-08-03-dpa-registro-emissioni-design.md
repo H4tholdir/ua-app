@@ -54,7 +54,8 @@ Migration **additiva** su `data_processing_agreements`. Le colonne esistenti non
 | `emesso_at` | `TIMESTAMPTZ` | Quando è uscito |
 
 **Colonne esistenti che questa ondata usa senza modificarle:** `template_versione` (finalmente valorizzata,
-con `dpa-v2`), `tipo_controparte` = `'dentista'`, `dentista_id` = id del cliente, `stato` = `'da_firmare'`
+col valore di `VERSIONE_MODELLO_DPA` — 🔄 **D133**: oggi `dpa-v2+8d98dbee`, **mai il letterale**),
+`tipo_controparte` = `'dentista'`, `dentista_id` = id del cliente, `stato` = `'da_firmare'`
 (valore già ammesso dal CHECK: emesso e in attesa di firma è la verità).
 
 🔴 **La versione del modello ha bisogno di una GUARDIA, o è una promessa che salta al primo che si distrae.**
@@ -64,6 +65,24 @@ dimenticati 211 volte). La rete: una prova che rende il modello con una fixture 
 del testo e la confronta con una costante **dichiarata accanto alla versione**. Chi cambia il testo vede la
 prova rossa e deve **alzare la versione e aggiornare l'impronta insieme**. Senza questa guardia il registro
 direbbe `dpa-v2` su un testo che è già `v3`, cioè **la stessa bugia da cui siamo partiti, in forma nuova**.
+
+> 🔄 **EMENDATO il 03/08/2026 — D133. La guardia descritta qui sopra NON basta, ed è stato provato.**
+> Rende **visibile** un cambio di testo, ma **non impedisce** di dimenticare il numero: chi chiude il rosso
+> incollando la nuova impronta ottiene un verde **senza aver toccato `v2`**. La frase «*deve alzare la
+> versione e aggiornare l'impronta insieme*» descriveva un obbligo che **nessun meccanismo imponeva** — la
+> classe di difetto che questo progetto continua a pagare: un documento che afferma più di ciò che il codice
+> fa.
+> 🛑 **La conseguenza, verificata a valle:** l'indice `dpa_emissione_viva_unica` confronta proprio
+> `template_versione`. A versione invariata e dati invariati **non riemetterebbe** — il dentista resterebbe
+> col contratto **vecchio** mentre il laboratorio crede di avergli mandato quello nuovo. **È il guasto di
+> D126 in forma nuova**, cioè esattamente ciò che questa sezione voleva impedire.
+> ✅ **La forma che regge:** la versione **porta dentro l'impronta**, `dpa-v2+8d98dbee` — revisione
+> leggibile per gli umani, **più le prime otto cifre dell'impronta del testo**. Cambia il testo → cambia
+> l'impronta → **cambia la versione da sola**. Dimenticare `v2` diventa **innocuo**.
+> `provato:` riscrivendo la costante come letterale, **2 asserzioni su 2** si accendono; cambiando una
+> parola nel template l'impronta passa da `8d98dbee…` a `85bdcde1…` e con lei la versione, **a `v2` fermo**.
+> 🔑 **Regola che ne discende:** il valore **non si scrive mai come letterale**, si importa
+> `VERSIONE_MODELLO_DPA`.
 
 🛑 **Colonne che questa ondata NON tocca, e il motivo:** `documento_url`, `firmato_da`, `firmato_at` restano
 **libere per il documento firmato** dell'ondata 2. Il PDF **emesso** va in `storage_path_pdf`, che è un campo

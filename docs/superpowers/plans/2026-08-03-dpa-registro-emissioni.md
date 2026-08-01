@@ -83,7 +83,12 @@ del database — **non si tenta**, v. Task 1 Step 6).
 
 | # | Assunzione | Comando | Esito reale |
 |---|---|---|---|
-| **P10** | `apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` **nudo** | lettura `supabase/schema.sql:70-82` | `EXECUTE format('CREATE TRIGGER trg_%I_updated_at BEFORE UPDATE ON %I …')`. Il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger che la funzione crea. Seconda chiamata → `42710` |
+| ~~**P10**~~ | ~~`apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` **nudo**~~ | ~~lettura `supabase/schema.sql:70-82`~~ | 🔴 **P10 ERA FALSA — ritirata il 03/08, v. P13.** Aveva letto **un file**: esattamente il metodo per cui, tre righe più sopra, P7 era appena stata declassata |
+| **P13** | 🔄 **La verità su `apply_updated_at_trigger`, letta dal CATALOGO VIVO** | `SELECT prosrc FROM pg_proc WHERE proname='apply_updated_at_trigger'` (Management API, `read_only:true`) | `BEGIN EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_updated_at ON %I; CREATE TRIGGER trg_%I_updated_at …') END;` → la funzione viva **fa già il `DROP … IF EXISTS`: è rieseguibile.** Una seconda chiamata **non** dà `42710` |
+| **P14** | La deriva fra la fotografia e il vivo **non è documentata da nessuna parte** | `grep -rln "FUNCTION apply_updated_at_trigger" supabase/migrations/ supabase/schema.sql` | solo `supabase/schema.sql` — **nessuna migration** ridefinisce la funzione. La forma viva è stata applicata **a mano** e mai riscritta in un file |
+| **P17** | 🔴 **Che cosa risponde DAVVERO l'archivio quando un file non c'è** — nessuno l'aveva guardato, e il Task 6 ci poggia sopra | `GET /storage/v1/object/documenti/<percorso-inesistente>` e `GET /storage/v1/object/<contenitore-inesistente>/x.pdf`, chiave di servizio | **File mancante:** `HTTP 400` · `{"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}`. **Contenitore mancante:** `HTTP 400` · `{"statusCode":"404","error":"Bucket not found",…,"code":"NoSuchBucket"}`. 🛑 **Due conseguenze:** ① un controllo su `errore.status === 404` — la forma naturale — **non sarebbe MAI stato vero**: porta chiusa permanente in produzione, con tutte le prove verdi; ② `statusCode === '404'` **da solo non basta**, perché lo dice **anche** il contenitore mancante (cioè una chiave di servizio ruotata male). 🔄 **E QUI LA PRIMA STESURA DI P17 CONCLUDEVA UNA COSA FALSA — errore del coordinatore, corretto il 03/08.** Diceva «*il campo che discrimina è `code`*». È vero **nel corpo HTTP** e **falso nel codice**: `@supabase/storage-js` fa `const statusCode = err?.statusCode || err?.code || status + ''` (`node_modules/@supabase/storage-js/src/lib/common/fetch.ts:78`), e siccome il corpo porta **sempre** `statusCode:"404"`, **`code` non viene mai usato**; `StorageApiError` espone solo `message`, `status`, `statusCode` (`node_modules/@supabase/storage-js/src/lib/common/errors.ts:57-72`) e **`code` non è una sua proprietà**. Chi leggesse questa riga domani scriverebbe `errore.code === 'NoSuchKey'`, che è **`undefined` sempre**. ✅ **All'oggetto ricevuto discrimina SOLO `message`** («*Object not found*» vs «*Bucket not found*») — una stringa **in inglese del servizio**: scelta **forzata**, non elegante, e da sorvegliare (se Supabase la riformulasse, la riemissione tornerebbe una porta chiusa permanente, in silenzio). 🔑 **LA LEZIONE, ed è la stessa del Task 1 in un altro strato:** ho letto il **corpo HTTP** con `curl` e ho concluso sull'**oggetto JavaScript**. Sono due strati diversi, e in mezzo c'è un client che butta via roba. La fonte di un fatto sull'ambiente è **lo strato in cui il codice lo legge**, non quello che si riesce a guardare più comodamente |
+| **P16** | 🔄 **PostgREST traduce davvero `.not('stato','in','(\"a\",\"b\")')` in un `NOT IN`** — l'unica assunzione che il Task 5 aveva lasciato aperta | `GET /rest/v1/lavori?...&stato=not.in.(...)` con `Prefer: count=exact`, contro `SELECT count(*) FILTER (…)` sul catalogo | REST: totale **295**, `in.` → **225**, `not.in.` → **70**. Catalogo: `totale 295 · dentro 225 · fuori 70`. **225 + 70 = 295**: la traduzione è esatta, non è una speranza sulla forma del client |
+| **P15** | Lo stato del catalogo che la migration assume | Management API, `read_only:true` | delle sette colonne ne esistono già **0** · trigger sulla tabella: **0** · righe in `data_processing_agreements`: **0** (senza nessuna assunzione su RLS — è ciò che P3 non poteva dire) · righe in `clienti`: **39**, quindi le sonde hanno da cui derivare laboratorio e controparte |
 | **P11** | Il precedente della DdC porta **DUE** indici, non uno | lettura `20260710090000_ddc_annullata_unique_parziale.sql` + `grep -n "anno_ddc, progressivo_ddc" supabase/schema.sql` | deduplicazione: `CREATE UNIQUE INDEX ddc_lavoro_attiva_unique … (laboratorio_id, lavoro_id) WHERE stato <> 'annullata'` — **le stesse colonne del guard** · backstop: `schema.sql:1273` `UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)` |
 | **P12** | La regola «due indici» è **già ratificata** nel progetto, per le fatture | lettura `docs/superpowers/specs/2026-07-09-ondata-4a-server-consegna-fiscale-design.md:46` | «*ogni doppia emissione futura è un 23505, non un doppio documento*» + «*Il backstop `UNIQUE (laboratorio_id, anno, progressivo)` **esiste già***» |
 
@@ -122,7 +127,9 @@ Non solo le colonne: **ogni** identificatore che il cambiamento tocca.
 `storage_path_pdf` · `pdf_sha256` · `payload_sha256` · `emesso_at`.
 
 **Colonne esistenti che il codice comincia a scrivere:** `laboratorio_id` · `tipo_controparte` (valore
-`'dentista'`) · `dentista_id` · `template_versione` (valore `'dpa-v2'`) · `stato` (valore `'da_firmare'`).
+`'dentista'`) · `dentista_id` · `template_versione` (valore: **`VERSIONE_MODELLO_DPA`, mai il letterale** —
+🔄 **D133**: oggi vale `dpa-v2+8d98dbee`, e la coda **cambia da sola** col testo) · `stato` (valore
+`'da_firmare'`).
 
 **Colonne esistenti che questa ondata NON tocca, con la destinazione:** `documento_url`, `firmato_da`,
 `firmato_at`, `data_scadenza` → **ondata 2** (firma). `sub_responsabile` → fuori perimetro (spec §10).
@@ -147,6 +154,15 @@ tranne `EmissioneDpa` che sta in `generate-dpa.ts`).
 un'allowlist** (P1), ma **il commento `supabase/schema.sql:128-129` elenca i tipi** e va aggiornato, o
 diventa un elenco che sembra completo e non lo è.
 
+🔄 **E il censimento aveva trovato UNO dei DUE elenchi** (03/08, esecutore del Task 1). In quello stesso file
+gli elenchi dei tipi progressivi sono **due**: l'altro sta nella **firma** di `genera_progressivo`
+(`p_tipo TEXT, -- 'lavoro', 'fattura', 'ddc', 'buono', 'sdi_invio'`) ed **è già incompleto oggi** — manca
+`'ordine'`, che nell'elenco a valle c'è. 🛑 **Fuori dal mandato del Task 1: riferito in roadmap, NON
+corretto** (R-E2). È esattamente il caso che questa riga descriveva in astratto, trovato mentre lo si
+descriveva.
+*(`provato:` `SELECT DISTINCT tipo FROM progressivi_anno` → `buono, ddc, fattura, lavoro, sdi_invio`:
+`'ordine'` non è mai stato usato — l'elenco a valle è ottimista nell'altro senso.)*
+
 ---
 
 ## Struttura dei file
@@ -154,7 +170,7 @@ diventa un elenco che sembra completo e non lo è.
 | File | Responsabilità |
 |---|---|
 | `supabase/migrations/20260803150000_dpa_registro_emissioni.sql` | 🆕 **da creare** — colonne, indice parziale, CHECK, trigger |
-| `src/lib/pdf/dpa-modello.ts` | 🆕 **da creare** — versione del modello, impronta del testo, dati sostanziali e loro impronta. Nessuna dipendenza da Supabase: si prova senza mock |
+| `src/lib/pdf/dpa-modello.ts` | 🆕 **da creare** — versione del modello, impronta del testo, dati sostanziali e loro impronta. Nessuna dipendenza da Supabase: si prova senza mock. ⚠️ **Ma dal Task 3 è transitivamente `server-only`** — importa `improntaPayload` da `generate-ddc`, che porta `import 'server-only'` alla riga 1. **Non è un difetto oggi** (tutti i consumatori previsti — Task 4, 5, 6, 7 e la pagina del Task 8 — girano sul server), ma **vincola**: nessun componente client potrà importare da qui. Se un domani servisse, si sposta `improntaPayload` in un modulo neutro |
 | `src/lib/pdf/generate-dpa.ts` | **Modificare** — da «genera un PDF» a «emette, o restituisce l'emissione esistente» |
 | `src/app/api/clienti/[id]/dpa/route.ts` | **Modificare** — consuma il nuovo ritorno, nome file dal numero |
 | `src/app/(app)/clienti/[id]/page.tsx` | **Modificare** — numero e data dell'ultima emissione; via la frase falsa sui dieci anni |
@@ -187,16 +203,37 @@ diventa un elenco che sembra completo e non lo è.
 P7 è un `grep` su un file, non una lettura del catalogo (v. registro delle prove). Il fatto vero è uno solo,
 e se il trigger esistesse già la migration aborterebbe alla **prima** esecuzione, non alla seconda:
 
+🔑 **E si legge davvero da qui** — la Management API esegue SQL in sola lettura:
+
+```bash
+TOKEN=$(grep '^SUPABASE_ACCESS_TOKEN=' .env.local | cut -d= -f2- | tr -d '"')
+curl -s -X POST "https://api.supabase.com/v1/projects/iagibumwjstnveqpjbwq/database/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"query":"SELECT …;","read_only":true}'
+```
+🛑 **`read_only:true` sempre.** Applicare è una decisione di Francesco, non una capacità mancante.
+
 ```sql
+-- ① il trigger                              -- ② le colonne che si sta per aggiungere
 SELECT tgname FROM pg_trigger
  WHERE tgrelid = 'public.data_processing_agreements'::regclass AND NOT tgisinternal;
--- e, già che si è lì, le colonne che si sta per aggiungere:
 SELECT column_name, data_type FROM information_schema.columns
  WHERE table_schema='public' AND table_name='data_processing_agreements';
+
+-- ③ 🔄 AGGIUNTE il 03/08: gli INDICI e i VINCOLI omonimi.
+SELECT indexname, indexdef FROM pg_indexes
+ WHERE schemaname='public' AND tablename='data_processing_agreements';
+SELECT conname, contype, pg_get_constraintdef(oid) FROM pg_constraint
+ WHERE conrelid='public.data_processing_agreements'::regclass;
 ```
 
-🛑 `ADD COLUMN IF NOT EXISTS` **non solleva** su una colonna che esiste già con un **tipo diverso**: la
-terrebbe com'è, in silenzio. Se una delle sette c'è già, **fermarsi e riferire**.
+🛑 **Tutti e tre i meccanismi della migration guardano IL NOME, non la definizione**, e nessuno solleva:
+`ADD COLUMN IF NOT EXISTS` terrebbe in silenzio una colonna di **tipo diverso** · `CREATE UNIQUE INDEX IF
+NOT EXISTS` terrebbe un indice **omonimo su altre colonne** (con una `NOTICE`, che l'editor del pannello può
+non mostrare) · le guardie `IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = …)` sono anch'esse
+**sul nome**. Se uno qualsiasi dei quattro esiste già, **fermarsi e riferire**.
+`provato:` il 03/08 sul catalogo vivo — colonne già presenti **0** · trigger **0** · nessun indice o vincolo
+omonimo (solo la chiave primaria e i cinque vincoli originari) · righe nella tabella **0** · clienti **39**.
 
 - [ ] **Step 1: scrivere la migration** — `non eseguito`, si verifica allo Step 5
 
@@ -255,10 +292,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
 --     (20260710090000_ddc_annullata_unique_parziale.sql) + il suo backstop
 --     UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc) a schema.sql:1273.
 --     Regola gia' ratificata per le fatture: spec 2026-07-09 ondata-4a, §4 M3.
+--     🔑 «VIVA» comprende lo STATO, non solo deleted_at (D132, 03/08/2026).
+--     Senza `stato NOT IN ('revocato','scaduto')` un DPA revocato o scaduto
+--     resterebbe nell'indice e farebbe da TAPPO: nessuna riemissione possibile
+--     a quel dentista con gli stessi dati, per sempre. Denylist di proposito:
+--     uno stato NUOVO resta NELL'indice, cioe' continua a deduplicare.
+--     ⚠️ INVARIANTE: questo predicato, il filtro del guard (Task 5) e quello
+--     della rilettura dopo il 23505 (Task 6) sono LA STESSA COSA.
 CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
   ON public.data_processing_agreements
      (laboratorio_id, dentista_id, payload_sha256, template_versione)
-  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL;
+  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL
+    AND stato NOT IN ('revocato','scaduto');
 
 -- ----------------------------------------------------------------- vincoli --
 -- ADD CONSTRAINT non ha IF NOT EXISTS: si guarda pg_constraint.
@@ -386,17 +431,37 @@ prima di provocarlo · ② **derivano** laboratorio e cliente dai dati veri, inv
 ③ **verificano QUALE vincolo ha rifiutato**, e lasciano una **tabella leggibile** — una prova che
 l'operatore non può incollare non è una prova (le `NOTICE` l'editor del pannello può non mostrarle).
 
-⚠️ **Confine invariato:** girano su **transazione annullata**, mai dentro una migration registrata.
+⚠️ **Confine invariato:** girano **fuori da ogni migration registrata**, e non lasciano righe.
+
+🔴 **CORRETTO il 03/08 dalla revisione — il difetto era proprio nella riga che consegna la prova.** La prima
+stesura finiva con `SELECT * FROM sonda_esito;` **seguito da `ROLLBACK;`**. Ma editor SQL e Management API
+restituiscono **solo l'ULTIMO risultato**: chi incolla avrebbe letto «*Success. No rows returned*»
+**esattamente dove il piano gli promette la tabella delle tre righe**.
+`provato:` `{"query":"SELECT 1 AS primo; SELECT 2 AS secondo;"}` → `[{"secondo":2}]`.
+🔑 **È lo stesso difetto che il piano si vanta di aver evitato**, un giro più in là: aveva visto il
+`ROLLBACK` che cancella la **migration**, non quello che cancella **la visualizzazione della prova**. E
+cade in pieno sulla riga che il piano stesso si era dato come regola: «*una prova che l'operatore non può
+incollare non è una prova*».
+
+🛑 **Perché togliere `BEGIN`/`ROLLBACK` non è pericoloso, e va scritto o qualcuno li rimette:** **nessuna**
+delle tre `INSERT` riesce mai — è il loro scopo. E se una riuscisse, il `RAISE EXCEPTION 'SONDA X FALLITA'`
+produce `P0001`, che **non** viene preso dai gestori `WHEN check_violation` / `WHEN unique_violation`:
+propaga, fa **abortire l'intero `DO`**, e la riga non sopravvive lo stesso. Il **RIQUADRO 5** lo verifica
+comunque, invece di darlo per buono.
 
 ```sql
 -- SONDE — Task 1. Si incolla nell'editor SQL DOPO aver applicato la migration.
 -- Non registrano nulla, non toccano il ledger delle migration.
 -- Si incolla nel referto la TABELLA FINALE: e' quella la prova.
-BEGIN;
-
+--
+-- 🛑 NIENTE BEGIN/ROLLBACK, e non e' una dimenticanza: l'ULTIMA istruzione deve
+--    essere la SELECT, o il suo risultato non viene mostrato (v. sopra).
+--    Per la stessa ragione la tabella temporanea NON porta ON COMMIT DROP:
+--    senza transazione esplicita verrebbe distrutta appena creata. Muore
+--    comunque con la sessione.
 CREATE TEMP TABLE sonda_esito (
   sonda text, esito text, sqlstate text, vincolo text, messaggio text
-) ON COMMIT DROP;
+);
 
 DO $sonde$
 DECLARE
@@ -492,13 +557,24 @@ BEGIN
 END
 $sonde$;
 
+-- 🔑 ULTIMA istruzione, e deve restarlo: e' cio' che viene mostrato.
 SELECT * FROM sonda_esito;
-
-ROLLBACK;
 ```
 
 **Atteso: tre righe, tutte `RIFIUTATA (atteso)` con `sqlstate` `23514`, `23505`, `23505`.**
 **Incollare la tabella vera nel referto.** Un `ALTER TABLE` riuscito prova la sintassi, non il comportamento.
+
+- [ ] **Step 4-bis: il RIQUADRO 5 — verificare che le sonde non abbiano lasciato niente**
+
+Sostituisce la rassicurazione che dava il `ROLLBACK`, e la sostituisce **con un fatto** invece che con un
+ragionamento. In sola lettura:
+
+```sql
+SELECT count(*) AS righe_rimaste FROM public.data_processing_agreements;
+```
+
+**Atteso: `0`.** Se non è `0`, una sonda ha lasciato una riga: si cancella quella riga **prima** di andare
+avanti, e si riferisce — perché significa che un vincolo non ha rifiutato ciò che doveva rifiutare.
 
 📎 Nota tecnica, perché non venga «semplificata» via: `RAISE EXCEPTION` senza `ERRCODE` produce `P0001`,
 **non** `23514` — è per questo che un «SONDA A FALLITA» non viene mangiato dal proprio gestore
@@ -522,10 +598,25 @@ l'applicazione (Step 7). Committarlo ora significherebbe committare i tipi vecch
 
 - [ ] **Step 6: APPLICARE la migration — è il punto in cui il lavoro aspetta Francesco**
 
-Il CI **non** applica le migration. Due strade, e si sceglie con Francesco:
-`npx supabase db push` (richiede la password del database — **non provato da questa macchina**, e **non si
-tenta**) oppure **incollare il file nell'editor SQL del pannello Supabase**. Subito dopo, **nello stesso
-posto**, si incollano le sonde degli Steps 3-4 e si riporta la tabella d'esito.
+Il CI **non** applica le migration. **Si sceglie con Francesco fra tre strade**, e poi si incollano le sonde
+**nello stesso posto**, riportando la tabella d'esito:
+① **incollare i quattro riquadri** nell'editor SQL del pannello Supabase (referto del Task 1, §5) ·
+② `npx supabase db push` · ③ la **Management API** con `read_only:false`.
+
+🔄 **CORRETTA il 03/08 una ragione sbagliata, ed è importante quanto la scelta.** Questo piano diceva che
+l'esecutore si ferma perché «*richiede la password del database*». **È falso:** `.env.local` contiene
+`SUPABASE_DB_URL` (con la password) e `SUPABASE_ACCESS_TOKEN`, e la Management API con `read_only:false`
+applicherebbe la migration. 🔑 **Il motivo vero per cui ci si ferma è che scrivere su un ambiente vero è una
+decisione di Francesco** — e un motivo sbagliato è un motivo che smette di funzionare: il prossimo esecutore
+che trova la password conclude che il divieto era una svista.
+
+⚠️ **Se si sceglie la strada ① o ③, il LEDGER delle migration resta indietro di una riga**, e va rimesso in
+pari — `npx supabase migration repair --status applied 20260803150000`. `provato:` oggi il ledger **è in
+pari** (92 versioni; l'unico file su disco non ancora registrato è proprio questo), quindi lo scarto che si
+aprirebbe sarebbe **il primo**.
+🔑 **E lo scarto è sopravvivibile per un motivo preciso, che è il vero incasso del lavoro fatto sopra:** la
+migration è **idempotente istruzione per istruzione**, quindi un `supabase db push` successivo la rigioca e
+**non fa nulla**. Senza quell'idempotenza, un ledger disallineato sarebbe un rilascio bloccato.
 
 - [ ] **Step 7: FASE 6b — rigenerare i tipi e verificare** (solo dopo lo Step 6)
 
@@ -549,7 +640,7 @@ che un panel si riverifica, non si cita.
 | # | Difetto della prima stesura | Gravità |
 |---|---|---|
 | **T1-01** | `ADD CONSTRAINT` senza guardia: la seconda esecuzione dà `42710` e aborta il file — proprio sulla strada che il piano prescrive (incollare a mano) | 🔴 bloccante |
-| **T1-02** | `apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` nudo. Il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger — è lo scambio che fa sembrare idempotente ciò che non lo è | 🔴 bloccante |
+| ~~**T1-02**~~ | 🔴 **FALSO, e smontato dall'esecutore del Task 1 leggendo il catalogo VIVO** (P13): `apply_updated_at_trigger` nel database vero fa `DROP TRIGGER IF EXISTS … ; CREATE TRIGGER …` — **è già rieseguibile**. Il panel aveva letto `supabase/schema.sql`, cioè **un file**, tre righe dopo aver declassato P7 **per quello stesso motivo**. 🔑 **La guardia `DO $trg$ … IF NOT EXISTS` resta lo stesso**, ma per una ragione diversa e vera: sotto la funzione **viva** una chiamata secca farebbe `DROP`+`CREATE`, aprendo una finestra in cui la tabella è **senza** trigger; sotto quella di `schema.sql` darebbe `42710`. Regge entrambe e non costa niente | ⚪️ **non era un difetto** |
 | **T1-03** | Lo Step 2 rispecchiava in `schema.sql` **solo le colonne**: la prova P7 avrebbe continuato a dare 0 e il prossimo lettore avrebbe aggiunto il trigger **due volte** | 🔴 bloccante |
 | **T1-04** | L'indice sul progressivo **non può scattare in una corsa** — `genera_progressivo` dà ai due concorrenti numeri **diversi**, apposta. Il recupero dal `23505` del Task 6 era irraggiungibile, e la corsa vera produceva **due emissioni complete e silenziose** per lo stesso dentista e lo stesso testo. 🔑 **E il piano dichiarava «stessa rete della DdC» essendo falso contro lo schema della DdC stessa**, che di indici ne ha due (P11), come la regola già ratificata per le fatture (P12) | 🔴 alto |
 | **T1-05** | Le sonde non si controllavano da sole: laboratorio scritto a mano, nessuna verifica che il vincolo esista, nessuna verifica di **quale** vincolo abbia rifiutato. A vincolo mancante avrebbero restituito `23503`, e l'operatore avrebbe incollato quello come prova | 🔴 alto |
@@ -568,11 +659,28 @@ comunque.
 dal solo codice d'errore e cadrà nel `throw` finale del Task 6. **È corretto così** — è un'anomalia vera, non
 una corsa — ma va commentato lì, o il prossimo lettore lo crederà un caso dimenticato.
 
-**Quattro cose restano non verificabili senza toccare il database**, e sono dichiarate, non stimate:
-① se il trigger esista già (lo Step 0 lo guarda) · ② se una delle sette colonne esista già **con un tipo
-diverso** — `ADD COLUMN IF NOT EXISTS` non solleverebbe (Step 0) · ③ quante righe abbia davvero la tabella
-(P3 ritirata; la conclusione non ne dipende) · ④ se l'editor del pannello avvolga lo script in una
-transazione unica — **reso irrilevante** dall'idempotenza per singola istruzione.
+🔄 **AGGIORNATO il 03/08 dall'esecutore del Task 1 — tre delle quattro «non verificabili» ERANO
+verificabili.** La Management API di Supabase esegue SQL con `read_only:true`, e il catalogo vivo si legge
+davvero: ① il trigger **non c'è** · ② **nessuna** delle sette colonne esiste già · ③ la tabella ha **0
+righe**, senza nessuna assunzione su RLS (P15). Resta **④, e NON è irrilevante come questo verbale aveva
+scritto:** le sonde finiscono con `ROLLBACK;`, e se editor e sonde finissero **nella stessa incollata** con
+una transazione unica, quel `ROLLBACK` **annullerebbe anche il DDL appena riuscito** — Francesco leggerebbe
+tre righe «RIFIUTATA (atteso)», cioè una prova perfetta, **su un database in cui la migration non c'è più.
+La prova proverebbe il contrario di ciò che dice.** 🔑 **L'idempotenza risolve la RIESECUZIONE, non questo.**
+Neutralizzato dividendo la consegna in **quattro incollate distinte**, con un cancello di verifica in sola
+lettura fra la migration e le sonde (referto del Task 1, §5).
+
+**Resta davvero non verificabile:** che la migration **si applichi**, perché non esiste un Postgres locale
+(nessun binario `postgres`; il demone Docker è spento) e sul database vero **non si scrive** — in
+particolare se il CHECK sul percorso venga accettato o rifiutato con «*functions in check constraint must be
+marked IMMUTABLE*». Indizio forte, non prova: `uuid_out` e `textin` sono entrambe `provolatile='i'`.
+
+🔑 **LA LEZIONE, e vale più della migration.** Lo stesso errore è stato commesso **due volte di fila, dalle
+due parti opposte**: il panel ha declassato **P7** perché interrogava un file invece del catalogo, e nella
+stessa tornata ha introdotto **P10** interrogando un file invece del catalogo. Una regola appena enunciata
+non protegge chi l'ha enunciata. 🛑 **Regola operativa:** per un oggetto di banca dati — funzione, trigger,
+vincolo, indice — la fonte è **`pg_proc` / `pg_trigger` / `pg_constraint` / `pg_indexes`**, mai
+`supabase/schema.sql`. E il modo di leggerli da qui **esiste**: Management API con `read_only:true`.
 
 ---
 
@@ -583,8 +691,24 @@ transazione unica — **reso irrilevante** dall'idempotenza per singola istruzio
 - 🆕 da creare: `tests/unit/dpa-modello.test.ts`
 
 **Interfacce:**
-- Produce: `VERSIONE_MODELLO_DPA: string` (valore `'dpa-v2'`) · `IMPRONTA_TESTO_DPA: string` (sha-256 del
-  testo reso con la fixture fissa).
+- Produce: `IMPRONTA_TESTO_DPA: string` (sha-256 del testo reso con la fixture fissa) ·
+  `VERSIONE_MODELLO_DPA: string` — 🔄 **D133: NON è `'dpa-v2'`, è COMPOSTA**: `dpa-v2+8d98dbee`, cioè
+  revisione leggibile **più le prime otto cifre dell'impronta**.
+
+> 🔄 **RISCRITTO il 03/08 dopo l'esecuzione — D133.** La prima stesura faceva `VERSIONE_MODELLO_DPA =
+> 'dpa-v2'` e affermava, in un commento del sorgente, che la prova «impone» di muovere versione e impronta
+> insieme. **Non era vero, e l'esecutore l'ha smontato:** la prova rende **visibile** un cambio di testo, ma
+> chi chiude il rosso incollando la nuova impronta ottiene un verde **senza toccare `v2`**.
+> 🛑 **E la conseguenza non è cosmetica:** il registro direbbe `v2` su un testo che `v2` non è più, e
+> l'indice `dpa_emissione_viva_unica` — che confronta proprio `template_versione` — vedrebbe **stessa
+> versione e stessi dati** e **non riemetterebbe**: il dentista resterebbe col contratto **vecchio** mentre
+> il laboratorio crede di avergli mandato quello nuovo. **È esattamente il guasto che D126 doveva chiudere.**
+> ✅ **Scelta di Francesco (D133):** l'impronta si attacca alla versione, così cambia **da sola**.
+> Dimenticare di alzare `v2` diventa **innocuo**. *(Lezione di D120: una promessa che dipende da un gesto
+> umano ripetuto è una promessa che salta.)*
+> 🔑 **Regola che ne discende, e vale per i Task 4, 5, 6 e 9:** il valore **non si scrive mai come
+> letterale**, si importa `VERSIONE_MODELLO_DPA`. Un test che asserisce `'dpa-v2'` diventerà rosso al primo
+> cambio di testo, per il motivo sbagliato.
 
 - [ ] **Step 1: scrivere la prova che fallisce**
 
@@ -618,8 +742,12 @@ const FIXTURE_FISSA = {
 }
 
 describe('la versione del modello DPA', () => {
-  it('è dichiarata e vale dpa-v2', () => {
-    expect(VERSIONE_MODELLO_DPA).toBe('dpa-v2')
+  it('è COMPOSTA — revisione leggibile + prime otto cifre dell\'impronta, non una stringa scritta a mano', () => {
+    expect(VERSIONE_MODELLO_DPA).toMatch(/^dpa-v\d+\+[0-9a-f]{8}$/)
+    // 🛑 Morde sulla mutazione vera: se qualcuno la riscrive come letterale
+    //    ('dpa-v2', o con una coda copiata e poi non aggiornata), la coda smette
+    //    di venire dall'impronta. provato: 2 asserzioni su 2 si accendono.
+    expect(VERSIONE_MODELLO_DPA.slice(-8)).toBe(IMPRONTA_TESTO_DPA.slice(0, 8))
   })
 
   it('🛑 il testo reso corrisponde all\'impronta dichiarata — se fallisce, ALZA la versione e aggiorna l\'impronta', async () => {
@@ -637,7 +765,9 @@ describe('la versione del modello DPA', () => {
 npx vitest run tests/unit/dpa-modello.test.ts
 ```
 
-Atteso: **FAIL** — «Failed to resolve import "@/lib/pdf/dpa-modello"».
+Atteso: **FAIL** perché il modulo non c'è. ⚠️ **Il messaggio esatto dipende dalla versione di vitest**
+(con la 4.1.6 è «*Cannot find package*», non «*Failed to resolve import*»): si guarda che sia **rosso per
+assenza del modulo**, non si confronta la frase.
 🛑 **R-P4: questo rosso NON prova nulla.** Si prosegue con l'abbozzo inerte dello Step 3 e si **CONTA**.
 
 - [ ] **Step 3: abbozzo inerte e conteggio delle asserzioni**
@@ -663,11 +793,13 @@ proposito). Le forme d'input vere — campi nulli, stringhe vuote — sono coper
 
 Si calcola l'impronta **una volta** con lo stesso codice della prova e la si incolla:
 
-```bash
-npx tsx -e "
-import('./scripts/tmp/impronta-testo-dpa.ts')
-" # oppure si legge il valore dal messaggio di fallimento della prova ('expected X to be Y')
-```
+🔄 **CORRETTO il 03/08:** il piano rimandava a uno script dentro `scripts/tmp/` **che nessuno ha mai
+scritto** — un comando che sembrava eseguibile e non lo era. Il modo che funziona davvero, provato: si
+scrive una prova **usa-e-getta** che rende il modello con la **stessa** fixture e **SCRIVE l'impronta su un
+file** (`writeFileSync`), la si esegue e la si cancella subito.
+🛑 **Non basta leggerla dal messaggio di fallimento:** vitest **tronca** il valore a 38 caratteri
+(`expected '9bed6991…' to be '8d98dbee…'`), e un'impronta troncata incollata nel sorgente è un guasto
+silenzioso.
 
 ```typescript
 // src/lib/pdf/dpa-modello.ts
@@ -675,7 +807,11 @@ import('./scripts/tmp/impronta-testo-dpa.ts')
  *  `DpaTemplate.tsx`, insieme a IMPRONTA_TESTO_DPA: le due cose si muovono
  *  sempre insieme, e `tests/unit/dpa-modello.test.ts` (🆕 da creare) è ciò che lo impone.
  *  v2 = riscrittura del 03/08/2026 (D126). */
-export const VERSIONE_MODELLO_DPA = 'dpa-v2'
+const REVISIONE_LEGGIBILE_DPA = 'v2'
+/** D133: porta dentro le prime otto cifre dell'impronta, così cambia DA SOLA
+ *  quando cambia il testo. Deterministica: si compone da due LETTERALI di questo
+ *  file, mai da un render a tempo di esecuzione. */
+export const VERSIONE_MODELLO_DPA = `dpa-${REVISIONE_LEGGIBILE_DPA}+${IMPRONTA_TESTO_DPA.slice(0, 8)}`
 
 /** sha-256 del testo reso con la fixture fissa della prova. NON è una firma del
  *  documento: è l'ancora che lega il testo alla versione dichiarata. */
@@ -743,10 +879,38 @@ describe('l\'impronta dei dati sostanziali', () => {
     expect(improntaDpa({ ...LAB, codice_itca: 'ITCA99999999' } as Laboratorio, CLI)).not.toBe(improntaDpa(LAB, CLI))
   })
 
-  it('porta esattamente i campi che il modello stampa: 10 del lab, 9 del cliente', () => {
+  // 🔄 RISCRITTA il 03/08 — il nome della prima stesura («i campi che il modello
+  //    STAMPA: 10 del lab, 9 del cliente») era FALSO, e l'esecutore si e' fermato
+  //    invece di adattare l'asserzione. `provato:` i campi resi in JSX da
+  //    DpaTemplate.tsx sono NOVE per il lab (manca `codice_fiscale`) e SETTE per
+  //    il cliente (mancano `cap` e `provincia`): 10 e 9 contano i campi che il
+  //    modello ACCETTA nel tipo, non quelli che rende.
+  //    🛑 I NUMERI restano 10 e 9: l'impronta deve essere un SOPRAINSIEME di cio'
+  //    che il documento stampa, perche' i due errori non costano uguale. Un campo
+  //    nell'impronta che il modello non stampa, se cambia, fa nascere
+  //    un'emissione in piu' con lo stesso testo: rumore. Un campo STAMPATO che
+  //    non e' nell'impronta, se cambia, non fa nascere niente — e il dentista
+  //    resta con un documento che porta un dato superato.
+  //    Si asserisce l'ELENCO, non il conteggio: due nomi scambiati passerebbero
+  //    una conta e non passano questo.
+  it('copre TUTTO cio\' che il modello puo\' stampare — soprainsieme, che e\' il lato sicuro', () => {
     const d = datiSostanzialiDpa(LAB, CLI)
-    expect(Object.keys(d.lab)).toHaveLength(10)
-    expect(Object.keys(d.cliente)).toHaveLength(9)
+    expect(Object.keys(d.lab).sort()).toEqual([
+      'cap', 'citta', 'codice_fiscale', 'codice_itca', 'indirizzo',
+      'nome', 'partita_iva', 'provincia', 'prrc_nome', 'ragione_sociale',
+    ])
+    expect(Object.keys(d.cliente).sort()).toEqual([
+      'cap', 'citta', 'codice_fiscale', 'cognome', 'indirizzo',
+      'nome', 'partita_iva', 'provincia', 'studio_nome',
+    ])
+    // Ogni campo che il template RENDE deve stare nell'impronta: se un domani il
+    // modello stampa un campo nuovo e nessuno lo aggiunge qui, si accende.
+    const RESI_DAL_TEMPLATE = {
+      lab: ['cap', 'citta', 'codice_itca', 'indirizzo', 'nome', 'partita_iva', 'provincia', 'prrc_nome', 'ragione_sociale'],
+      cliente: ['citta', 'codice_fiscale', 'cognome', 'indirizzo', 'nome', 'partita_iva', 'studio_nome'],
+    }
+    for (const campo of RESI_DAL_TEMPLATE.lab) expect(Object.keys(d.lab)).toContain(campo)
+    for (const campo of RESI_DAL_TEMPLATE.cliente) expect(Object.keys(d.cliente)).toContain(campo)
   })
 })
 ```
@@ -813,6 +977,39 @@ git commit -F /tmp/msg-task3.txt
 ---
 
 ## Task 4 — L'emissione nuova
+
+> ## 🚪 CANCELLO APERTO il 03/08/2026 — dopo Task 5, Task 6 e le loro revisioni
+> **Verdetto della revisione indipendente del Task 6: «SI APRE».** Le tre strade di guasto che tenevano
+> fermo il ramo sono chiuse e ognuna è protetta da una prova che il revisore **ha fatto fallire di persona**.
+> Trenta mutanti suoi, **diversi** da quelli dell'esecutore: **24 presi**, sei sfuggiti — nessuno dei quali
+> può perdere o corrompere un dato. **Nessun rilievo Critico.**
+> ⚠️ **Restano due cose che NON dipendono da questo lavoro** e vanno sapute: le prove **non pinnano il fuso
+> orario** (voce **P9**), e la rotta risponde **400** anche quando l'archivio non è raggiungibile, che è un
+> **5xx** — materia del **Task 7**, che quella rotta la tocca.
+>
+> 🟠 **E UNA DECISIONE RESTA APERTA, dichiarata e non chiusa** (rilievo 4 della revisione): il soft-delete
+> della riga orfana **precede ancora** progressivo, rendering, caricamento e `INSERT`. Se qualcosa fallisce
+> **dopo** l'archiviazione, il registro vivo resta **senza nessun DPA** per quel dentista; e se l'orfana era
+> `firmato`, `firmato_da`/`firmato_at` restano nella riga morta e ogni lettura successiva vede «**da
+> firmare**» dove esiste un accordo **firmato**. 🔑 **Il Task 6 ha ristretto l'INNESCO** — non più un guasto
+> passeggero, solo un file **davvero** assente — **non l'ESITO.** Non è una regressione: è una conseguenza
+> del disegno del Task 5, e va scritta come **decisione aperta dell'ondata**, non lasciata passare per
+> «chiusa». La sua sede naturale è l'**ondata 2**, che porta firma e revoca.
+>
+> ---
+>
+> 🛑🛑 **STORICO — perché il cancello era chiuso. IL RAMO NON SI PUBBLICAVA CON IL SOLO TASK 4.**
+> Dopo il Task 4 `generateDpa()` **emette sempre**, e il guard di riuso non c'è ancora — arriva al **Task 5**.
+> Quindi **al SECONDO scarico dello stesso contratto** le quattro colonne di `dpa_emissione_viva_unica` sono
+> identiche, l'`insert` viola l'indice unico e **l'utente vede un errore** — lasciando dietro **un progressivo
+> bruciato** e **un file orfano** nell'archivio. `provato:` `grep` su `src/lib/pdf/generate-dpa.ts` →
+> **nessun** guard di riuso (`maybeSingle`/`download` assenti); `generaProgressivo` alla riga 63, `upload`
+> alla 109, `insert` alla 117.
+> 🔑 **E l'ordine file-poi-riga protegge la TABELLA, non la SERIE dei numeri:** `generaProgressivo` ha già
+> committato quando l'archivio rifiuta — è una RPC propria, fuori da ogni transazione annullabile. La
+> promessa «nessuna riga senza file» è vera; **«nessun file senza riga» no.**
+> ➡️ **Il cancello si apre con i Task 5 (riuso) e 6 (fail-closed e corsa) insieme.**
+
 
 **File:**
 - Modificare: `src/lib/pdf/generate-dpa.ts`
@@ -892,7 +1089,7 @@ describe('emissione nuova', () => {
     expect(riga.dentista_id).toBe('cli-001')
     expect(riga.laboratorio_id).toBe('lab-test-001')
     expect(riga.stato).toBe('da_firmare')
-    expect(riga.template_versione).toBe('dpa-v2')
+    expect(riga.template_versione).toBe(VERSIONE_MODELLO_DPA)   // 🛑 D133: MAI il letterale
     expect(riga.progressivo_dpa).toBe(7)
     expect(String(riga.storage_path_pdf)).toMatch(/^lab-test-001\/dpa\/\d{4}\/DPA-\d{4}-0007\.pdf$/)
     expect(String(riga.pdf_sha256)).toHaveLength(64)
@@ -1016,6 +1213,47 @@ npx vitest run tests/unit/dpa-registro.test.ts tests/unit/generate-dpa.test.ts
 
 ## Task 5 — Il riuso: nessun numero bruciato
 
+> 🔴 **PRIMA DI TUTTO IL RESTO — il difetto che SFUGGE IN SILENZIO, dalla revisione del Task 4 (`I1`).**
+> **Nessuna prova lega `payload_sha256` alla sua PROVENIENZA**, ed è ciò che rende fragile tutto il guard
+> che questo task costruisce. `provato:` sostituendo `payload_sha256: improntaDpa(lab, cliente)` con
+> `createHash('sha256').update(buffer)` — cioè l'impronta **del PDF** invece che **dei dati** — **7 prove su
+> 7 restano verdi**, e passerebbero anche i cinque CHECK, che controllano solo la **forma**.
+> 🛑 **Ma un'impronta presa dal PDF cambia a OGNI emissione** (numero e data sono dentro il file): l'indice
+> `dpa_emissione_viva_unica` **non scatterebbe mai**. Nessun `23505`, nessun errore, nessun rumore — solo
+> **emissioni vive duplicate all'infinito, una per scarico, ognuna con un numero bruciato**. È il difetto
+> peggiore possibile per un registro: silenzioso.
+>
+> **Le due asserzioni che mancano** — e sono lo **specchio** del precedente in casa, non una copia. La DdC
+> pretende impronte **DIVERSE** fra due emissioni (`tests/unit/generate-ddc.test.ts:279-286`) perché il suo
+> payload contiene la data; il DPA deve pretendere **la STESSA** fra due chiamate a dati immutati — è
+> esattamente la premessa su cui poggia il guard di questo task:
+>
+> ```typescript
+> it('🛑 due emissioni a dati IMMUTATI portano LA STESSA impronta dei dati — è la premessa del guard', async () => {
+>   montaTabelle(null)
+>   await generateDpa('lab-test-001', 'cli-001')
+>   const prima = (mockInsert.mock.calls[0][0] as Record<string, unknown>).payload_sha256
+>   vi.clearAllMocks(); mockUpload.mockResolvedValue({ error: null }); mockProgressivo.mockResolvedValue(8)
+>   mockInsert.mockReturnValue(createChain({ data: { id: 'em-2' }, error: null }))
+>   montaTabelle(null)
+>   await generateDpa('lab-test-001', 'cli-001')
+>   expect((mockInsert.mock.calls[0][0] as Record<string, unknown>).payload_sha256).toBe(prima)
+> })
+>
+> it('🛑 l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
+>   montaTabelle(null)
+>   await generateDpa('lab-test-001', 'cli-001')
+>   const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
+>   // 🔑 Le due `toMatch` PRIMA del confronto, e non è pignoleria: senza,
+>   //    `expect(undefined).not.toBe(<hash>)` è VERDE sul difetto vivo.
+>   //    La casa ha già pagato questo errore — v. generate-ddc.test.ts:244-247.
+>   expect(riga.pdf_sha256).toMatch(/^[0-9a-f]{64}$/)
+>   expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+>   expect(riga.payload_sha256).not.toBe(riga.pdf_sha256)
+> })
+> ```
+
+
 **File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts` (🆕 creato al Task 4)
 
 **Interfacce:** consuma `EmissioneDpa` (Task 4). Nessun simbolo nuovo.
@@ -1027,7 +1265,7 @@ describe('riuso dell\'emissione', () => {
   const ESISTENTE = {
     id: 'em-vecchia', numero_dpa: 'DPA-2026-0003',
     storage_path_pdf: 'lab-test-001/dpa/2026/DPA-2026-0003.pdf',
-    payload_sha256: null as string | null, template_versione: 'dpa-v2',
+    payload_sha256: null as string | null, template_versione: VERSIONE_MODELLO_DPA,  // 🛑 D133: MAI il letterale
   }
 
   it('stessi dati e stessa versione: restituisce il PDF conservato, NESSUN numero nuovo', async () => {
@@ -1101,6 +1339,11 @@ describe('riuso dell\'emissione', () => {
     .eq('payload_sha256', impronta)
     .eq('template_versione', VERSIONE_MODELLO_DPA)
     .is('deleted_at', null)
+    // D132: «viva» comprende lo STATO. Lo stesso predicato dell'indice
+    // dpa_emissione_viva_unica — se cambia uno, cambiano tutti e tre (indice,
+    // guard, rilettura del Task 6). Senza questo filtro il guard restituirebbe
+    // come corrente un contratto REVOCATO che l'indice considera morto.
+    .not('stato', 'in', '("revocato","scaduto")')
     .order('emesso_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -1147,6 +1390,43 @@ qualcuno toglie l'`UPDATE` credendolo ridondante e riapre la porta chiusa.
 ---
 
 ## Task 6 — Fail-closed e corsa fra due richieste
+
+> 🔄 **TRE COSE ARRIVANO QUI dalla revisione del Task 4, e vanno chiuse in questo task.**
+>
+> **① `I2` — il messaggio del DATABASE esce verso il browser.** `provato:` `generate-dpa.ts:135` interpola
+> `erroreRiga.message` nell'`Error`, e la rotta lo rimanda: il browser riceve
+> `{"error":"DPA: registro non scritto — duplicate key value violates unique constraint
+> \"dpa_emissione_viva_unica\""}`, cioè **nome del vincolo e della tabella**.
+> ✅ **Quello dell'ARCHIVIO invece NON esce** ed è già giusto (`:111` lo manda in `console.error`, `:112`
+> solleva un testo fisso) — la prova «*il messaggio dell'archivio non esce*» già prevista qui **c'è**, ma
+> serve **la gemella sul messaggio del database**, che oggi manca.
+>
+> **①-bis `C2` — GLI ERRORI DI LETTURA SCARTATI SONO TRE, non due, e il terzo è il peggiore.**
+> Il Task 5 ne ha riferiti due (guard e soft-delete). La revisione ne ha trovato un **terzo**:
+> `generate-dpa.ts:81`, `const { data: file } = await svc.storage…download(…)` — **l'errore non è letto**,
+> quindi un guasto **passeggero** (503) vale «file sparito per sempre».
+> 🛑 **E la conseguenza è peggiore di quanto sembri**, perché il soft-delete **precede** il caricamento: su
+> un'indisponibilità vera il download va in 503 → la riga viene **archiviata** → poi fallisce **anche**
+> l'upload e si solleva → **il registro vivo resta SENZA nessun DPA per quel dentista**. E se la riga
+> archiviata era `firmato`, `firmato_da`/`firmato_at` restano nella riga morta: **si perde lo stato vivo**,
+> e da lì in poi ogni lettura vede un contratto «da firmare» dove esiste un accordo **firmato**.
+> 🔑 **Il codice non distingue `404` da `503`**, e l'unica prova che tocca quel ramo usa `'Object not
+> found'`: **il nome della prova descrive una condizione più stretta di quella che il codice implementa.**
+> ⚠️ **Calibrazione, perché non si prenda per una novità:** `generate-ddc.ts:97-103` scarta l'errore di
+> lettura allo stesso modo — **è un modo di casa**, e va corretto qui perché qui si chiama «fail-closed».
+>
+> **② `I3` — «il file prima della riga» è garantito dal CODICE, non protetto dalle PROVE.** `provato:`
+> togliendo il `throw` di `:112`, **7 prove su 7 restano verdi**: `toHaveBeenCalledBefore` prova solo il
+> cammino felice. La prova «*se l'archivio rifiuta, NESSUNA riga viene scritta*» già prevista qui è
+> **esattamente** ciò che chiude il buco: va scritta e va **provata rompendo il `throw`**.
+>
+> **③ Quattro asserzioni deboli, tutte misurate con mutanti sfuggiti:** il **contenitore** non è asserito
+> (mettendo `'pubblico'` invece di `'documenti'` le prove restano verdi — su un registro GDPR il contenitore
+> privato è la premessa) · **`upsert: false`** non è asserito (`true` sfugge: è la riga che impedisce di
+> sovrascrivere un documento conservato) · **`emesso_at`** è provato con `toBeTruthy()` (`'ieri mattina'`
+> sfugge) · **l'anno di Roma** oggi non morde, perché il 1° agosto Roma e UTC coincidono — morde solo il 31
+> dicembre, e con `vi.setSystemTime` morderebbe sempre.
+
 
 **File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts` (🆕 creato al Task 4)
 
@@ -1211,6 +1491,7 @@ già passare dal Task 4. **Contare e scrivere il numero.**
         .eq('payload_sha256', impronta)
         .eq('template_versione', VERSIONE_MODELLO_DPA)   // 🔑 le QUATTRO colonne
         .is('deleted_at', null)
+        .not('stato', 'in', '("revocato","scaduto")')    // 🔑 e lo stesso stato (D132)
         .order('emesso_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -1230,9 +1511,23 @@ già passare dal Task 4. **Contare e scrivere il numero.**
         }
       }
     }
-    throw new Error(`DPA: registro non scritto — ${erroreRiga.message}`)
+    // 🛑 NIENTE `erroreRiga.message` QUI DENTRO. La prima stesura di questo
+    //    blocco rilanciava il messaggio del database e CONTRADDICEVA il requisito
+    //    ① di questo stesso task: `route.ts` rimanda `e.message` al browser, e
+    //    con esso uscivano nome del VINCOLO e della TABELLA.
+    //    Il dettaglio serve a chi ripara, non a chi scarica: va nel log.
+    console.error('generateDpa — registro non scritto:', erroreRiga.message)
+    throw new Error('DPA: non è stato possibile registrare il documento')
   }
 ```
+
+🔴 **CORRETTO il 03/08, dalla revisione del Task 5 — il blocco qui sopra NEGAVA il requisito ① di questo
+stesso task.** `provato:` il piano prescriveva `throw new Error(\`… ${erroreRiga.message}\`)` mentre il
+requisito ① (poche righe più su) chiede che il messaggio del database **non** esca. Il Task 6 sarebbe stato
+lanciato contro un blocco che contraddice la propria consegna, e nessuna prova l'avrebbe visto: il testo
+dell'errore lo sceglie il piano.
+⚠️ **Vale anche per la riga già viva** `src/lib/pdf/generate-dpa.ts:182`, che oggi fa esattamente questo:
+va cambiata **in questo task**, non lasciata lì.
 
 🔄 **Due correzioni del 03/08, dal panel del Task 1 — la prima è grave.**
 
@@ -1240,8 +1535,11 @@ già passare dal Task 4. **Contare e scrivere il numero.**
 **tre** colonne dove il guard ne filtra quattro: mancava `template_versione`. Con l'indice a quattro
 colonne, chi perde la corsa poteva rileggere **l'emissione di una versione di modello diversa** e consegnare
 al dentista **il testo sbagliato** — precisamente il fallimento che questo registro esiste per impedire.
-🔑 **L'invariante, da tenere per tutta l'ondata:** *colonne dell'indice = filtro del guard = filtro della
-rilettura*, tutti e tre uguali. Se uno dei tre cambia, cambiano tutti e tre.
+🔑 **L'invariante, da tenere per tutta l'ondata:** *colonne **e predicato** dell'indice = filtro del guard =
+filtro della rilettura*, tutti e tre uguali. Se uno dei tre cambia, cambiano tutti e tre.
+🔄 **E il predicato è cresciuto con D132:** oltre a `deleted_at IS NULL` c'è `stato NOT IN
+('revocato','scaduto')`. Un guard che non lo filtrasse restituirebbe come **corrente** un contratto che
+l'indice considera **morto** — che è il difetto opposto e peggiore di quello che D132 chiude.
 
 **② Chi perde toglie il proprio file.** Il caricamento precede l'`INSERT` (ed è giusto così): il perdente ha
 già scritto un PDF su un percorso che nessuna riga nominerà mai.
@@ -1422,7 +1720,8 @@ quel cliente. Se ce ne fossero due, `dpa_emissione_viva_unica` non sta facendo i
 riaperto.
 
 E la lettura del registro dopo (a) (chiave di servizio): atteso **UNA sola riga**, con `numero_dpa`,
-`pdf_sha256` uguale all'impronta dei file scaricati, `template_versione = 'dpa-v2'`.
+`pdf_sha256` uguale all'impronta dei file scaricati, e `template_versione` **uguale al valore di
+`VERSIONE_MODELLO_DPA`** — oggi `dpa-v2+8d98dbee` (🔄 D133: **non** `dpa-v2` nudo).
 
 - [ ] **Step 5: BP-1** — aggiornare `memory/MEMORY.md`, `memory/SESSION_ACTIVE.md` e la riga 10 di
 `docs/roadmap/ROADMAP-UFFICIALE.md` (parte **(b)** → fatta la metà «registro»; resta la firma, ondata 2).

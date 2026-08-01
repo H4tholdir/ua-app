@@ -1,27 +1,31 @@
-# Sessione attiva — la frase falsa tolta, e il Task 1 del registro DPA riscritto dal panel
+# Sessione attiva — registro DPA: OTTO task su nove, cancello di pubblicazione APERTO
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-03-dpa-handoff.md` (la §0 va per prima) + il piano
-`docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md`, **Task 1**, sezione «Perché questo task è
-stato riscritto».
+🚪 **PUNTO DI RIPRESA:** il piano `docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md` — **Task 9**
+(FASE 7 + collaudo dal vivo). Ledger dettagliato: `.superpowers/sdd/progress.md`.
+🛑 **Il Task 9 RICHIEDE LA PUBBLICAZIONE:** due `curl` in **parallelo** contro la produzione sono l'unico
+modo di provare la corsa davvero — finora è provata **solo contro mock**. **Serve il via libera di Francesco.**
 
-✅ **Fatto oggi (salvato, NON pubblicato — Francesco ha scelto di pubblicare tutto insieme dopo):**
-① `src/app/(app)/clienti/[id]/page.tsx:276` — via la frase falsa sui dieci anni (D125/D126). Al suo posto la
-sola istruzione operativa: **niente promesse sulla conservazione** finché il registro non esiste davvero
-(quella entra al Task 8). ② **Task 1 riscritto dopo un panel di due advisor**: **sei difetti**, tre bloccanti.
+✅ **Fatti: Task 1-8**, ognuno con revisione indipendente e correzioni applicate.
+La **migration è APPLICATA al database vero**; il contratto ora viene **emesso** (conservato, numerato,
+registrato), **riusato** se nulla è cambiato, e regge i **guasti**. La rotta lo nomina col numero; la scheda
+mostra l'ultima emissione.
+📌 **FASE 7 verde:** `tsc` **0** · `vitest` **375 | 3** file e **4380 | 19** prove · `next build` **0** ·
+guardia documenti verde. **FASE 9** fatta (misure in `progress.md`).
 
-🔴 **Il difetto grosso (T1-04):** l'indice unico previsto era sul **progressivo**, ma `genera_progressivo`
-(`schema.sql:111-115`) dà a due richieste simultanee numeri **diversi** — quindi non collideva **mai**, il
-recupero dal `23505` del Task 6 era provato **solo contro un mock**, e la corsa vera produceva **due
-emissioni identiche in silenzio**. Il piano diceva «stessa rete della DdC» essendo **falso contro la DdC**,
-che di indici ne ha **DUE** (`ddc_lavoro_attiva_unique` + backstop `schema.sql:1273`); regola già ratificata
-per le fatture (spec ondata-4a §4 M3). Ora ci sono **due indici** + tre CHECK + tre sonde che si controllano
-da sole. Corretti a cascata **Task 5** (soft-delete dell'orfana), **Task 6** (`template_versione` nella
-rilettura, il perdente toglie il proprio file), **Task 9** (due `curl` in **parallelo**). Spec §6 emendata.
+🔑 **LA LEZIONE DELLA GIORNATA, in una riga:** *la fonte di un fatto è **lo strato in cui il codice lo
+legge**.* È stata sbagliata **tre volte**, sempre allo stesso modo: il panel ha letto `schema.sql` invece di
+`pg_proc` · io ho letto il **corpo HTTP** invece dell'**oggetto JavaScript** · io ho letto un vincolo
+**al rovescio**. Ogni volta la fonte c'era e diceva un'altra cosa.
 
-🚀 `main` = **`b7dfa2f2`** + il salvataggio del panel, albero pulito, **5 commit DA PUBBLICARE**
-(3 documenti di ieri + la frase falsa + le correzioni del panel). `tsc` **0**, guardia **verde**.
-🔜 **Prossimo:** eseguire il **Task 1** su ramo `dpa-registro` **nel repo principale** (🛑 mai un worktree),
-R-E1, esecutore fresco. Si ferma sul **commit della migration**: applicarla è il punto in cui il lavoro
-**aspetta Francesco**.
-📎 Verbale decisioni: **centotrentuno** in **quarantatré** tornate; la prossima è **D132**.
+🆕 **D132** l'indice esclude gli **stati morti** · **D133** la versione **porta dentro l'impronta** del
+testo, così cambia da sola. 🛑 **Mai il letterale `'dpa-v2'`**: si importa `VERSIONE_MODELLO_DPA`
+(vale `dpa-v2+8d98dbee`).
+
+🟠 **Una decisione resta APERTA, dichiarata:** il soft-delete della riga orfana **precede** la riemissione —
+un guasto in mezzo lascia il dentista **senza contratto vivo**. Ristretto l'innesco, non l'esito.
+Sede: **ondata 2** (roadmap **P10**).
+
+🚀 `main` = `e2ff2d67`; ramo **`dpa-registro`** avanti di **35 commit**, albero pulito.
+**37 commit DA PUBBLICARE in tutto** — Francesco ha scelto di pubblicare **tutto insieme a lavoro finito**.
+📎 Verbale: **centotrentatré** decisioni in **quarantacinque** tornate; la prossima è **D134**.
 ⚠️ L'orologio della macchina dice **1° agosto**; i documenti seguono la serie del **3 agosto**.

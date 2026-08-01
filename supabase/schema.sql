@@ -126,7 +126,9 @@ $$;
 -- ============================================================
 -- TABELLA SUPPORTO: contatore progressivi per anno
 -- Tipi gestiti: 'lavoro', 'fattura', 'ddc', 'buono', 'ordine',
---               'sdi_invio' (per ProgressivoInvio univoco SDI)
+--               'sdi_invio' (per ProgressivoInvio univoco SDI), 'dpa'
+-- NB: il tipo e' TEXT libero, senza CHECK: questo elenco e' documentazione,
+--     non un vincolo. Aggiungerne uno non richiede migration.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS progressivi_anno (
   laboratorio_id UUID NOT NULL,
@@ -2868,14 +2870,71 @@ CREATE TABLE data_processing_agreements (
   data_scadenza     DATE,
   note              TEXT,
 
+  -- Registro delle emissioni (ondata 1 — migration 20260803150000_dpa_registro_emissioni.sql).
+  -- I sette campi viaggiano tutti insieme o nessuno: v. CHECK dpa_emissione_coerente.
+  numero_dpa        TEXT,                              -- Es. "DPA-2026-0007"
+  anno_dpa          SMALLINT,
+  progressivo_dpa   INTEGER,                           -- da genera_progressivo(tipo='dpa')
+  storage_path_pdf  TEXT,                              -- percorso nel bucket PRIVATO documenti, mai un URL
+  pdf_sha256        TEXT,                              -- impronta del PDF emesso
+  payload_sha256    TEXT,                              -- impronta dei soli dati SOSTANZIALI (chiave del riuso)
+  emesso_at         TIMESTAMPTZ,
+
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at        TIMESTAMPTZ
+  deleted_at        TIMESTAMPTZ,
+
+  -- Una riga a meta' e' una riga che mente; e un'emissione senza controparte
+  -- non documenta nulla (dentista_id e' annullabile per i sub-responsabili).
+  CONSTRAINT dpa_emissione_coerente CHECK (
+    (numero_dpa IS NULL AND anno_dpa IS NULL AND progressivo_dpa IS NULL
+      AND storage_path_pdf IS NULL AND pdf_sha256 IS NULL
+      AND payload_sha256 IS NULL AND emesso_at IS NULL)
+    OR
+    (numero_dpa IS NOT NULL AND anno_dpa IS NOT NULL AND progressivo_dpa IS NOT NULL
+      AND storage_path_pdf IS NOT NULL AND pdf_sha256 IS NOT NULL
+      AND payload_sha256 IS NOT NULL AND emesso_at IS NOT NULL
+      AND dentista_id IS NOT NULL AND tipo_controparte = 'dentista')
+  ),
+
+  -- Le impronte sono sha-256 esadecimali MINUSCOLE: payload_sha256 e' la chiave
+  -- di confronto del riuso, una forma diversa lo romperebbe in silenzio.
+  CONSTRAINT dpa_impronte_esadecimali CHECK (
+    (pdf_sha256     IS NULL OR pdf_sha256     ~ '^[0-9a-f]{64}$') AND
+    (payload_sha256 IS NULL OR payload_sha256 ~ '^[0-9a-f]{64}$')
+  ),
+
+  -- Il percorso sta sotto la cartella del proprio laboratorio: unico isolamento
+  -- possibile su un percorso che il client di SERVIZIO (che la RLS la aggira)
+  -- passa a Storage. Stessa forma della DdC: `<laboratorio_id>/ddc/<anno>/…`.
+  CONSTRAINT dpa_percorso_nel_proprio_laboratorio CHECK (
+    storage_path_pdf IS NULL
+    OR storage_path_pdf LIKE laboratorio_id::text || '/%'
+  )
 );
+
+-- Backstop della numerazione: un numero per anno e per laboratorio.
+CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
+  ON data_processing_agreements (laboratorio_id, anno_dpa, progressivo_dpa)
+  WHERE progressivo_dpa IS NOT NULL;
+
+-- Chiave di DEDUPLICAZIONE: una sola emissione viva per (lab, dentista, dati,
+-- versione del modello). E' QUESTO l'indice che trasforma la corsa in un 23505:
+-- quello sul numero non puo' scattare, perche' genera_progressivo da' ai due
+-- concorrenti progressivi DIVERSI, apposta. Stesso schema della DdC
+-- (ddc_lavoro_attiva_unique + backstop UNIQUE su anno/progressivo).
+-- «VIVA» comprende lo STATO, non solo deleted_at (D132): un DPA revocato o
+-- scaduto farebbe da TAPPO alla riemissione a quel dentista, per sempre.
+-- Stessa forma del precedente DdC, che esclude 'annullata'.
+CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
+  ON data_processing_agreements (laboratorio_id, dentista_id, payload_sha256, template_versione)
+  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL
+    AND stato NOT IN ('revocato','scaduto');
 
 ALTER TABLE data_processing_agreements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "dpa_laboratorio" ON data_processing_agreements
   USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
+SELECT apply_updated_at_trigger('data_processing_agreements');
 
 
 -- FIX adversarial review #30: ricevute SDI non modellate per conservazione decennale.

@@ -35,6 +35,16 @@ type ClienteDettaglio = {
   note: string | null
 }
 
+/** Le due sole colonne del registro DPA che la scheda mostra.
+ *  Entrambe `null` per lo schema (`data_processing_agreements` ammette righe
+ *  senza emissione), quindi entrambe si controllano prima di stampare qualcosa:
+ *  il vincolo `dpa_emissione_coerente` le tiene già insieme in banca dati, ma
+ *  una riga a metà non deve poter arrivare al lettore come «Invalid Date». */
+type UltimaEmissioneDpa = {
+  numero_dpa: string | null
+  emesso_at: string | null
+}
+
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null
   return (
@@ -131,6 +141,63 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   const indirizzoCompleto = [c.indirizzo, c.cap, c.citta, c.provincia]
     .filter(Boolean)
     .join(', ') || null
+
+  // ── L'ultima emissione del DPA per questo studio ────────────────────────────
+  // 🛑 Il filtro `laboratorio_id` è ESPLICITO: il client di servizio aggira la
+  //    RLS, quindi qui l'isolamento fra laboratori lo scrive questa riga e
+  //    nessun altro (stessa regola di `generate-dpa.ts:116-120`).
+  // 🔑 `numero_dpa NOT NULL` non è una cintura di troppo: il vincolo
+  //    `dpa_emissione_coerente` ammette righe di registro SENZA emissione —
+  //    tutte e sette le colonne a NULL — e quelle non hanno niente da mostrare.
+  // 🔑 `deleted_at IS NULL` toglie le righe archiviate perché il loro PDF è
+  //    sparito dall'archivio (`generate-dpa.ts:180-193`). Mostrarle
+  //    smentirebbe la riga «ogni versione emessa resta conservata da UÀ».
+  // 🛑 QUESTO LETTORE NON ENTRA nell'invariante a tre di `generate-dpa.ts:329-341`
+  //    (guard di riuso · rilettura dopo 23505 · indice `dpa_emissione_viva_unica`),
+  //    e non è una dimenticanza. Quei tre chiedono «esiste un'emissione
+  //    RIUSABILE per QUESTI dati e QUESTA versione di modello?», e per questo
+  //    filtrano anche su `payload_sha256`, `template_versione` e sullo STATO.
+  //    Qui la domanda è un'altra — «qual è stata l'ULTIMA emissione per questo
+  //    studio?» — ed è una domanda di STORIA: resta vera anche per un contratto
+  //    poi revocato o scaduto, che UÀ conserva lo stesso. Allineare questo
+  //    filtro a quello del guard farebbe sparire dalla scheda un'emissione che
+  //    esiste davvero.
+  const { data: emissioneRaw, error: erroreRegistro } = await svc
+    .from('data_processing_agreements')
+    .select('numero_dpa, emesso_at')
+    .eq('laboratorio_id', context.laboratorioId)
+    .eq('dentista_id', c.id)
+    .not('numero_dpa', 'is', null)
+    .is('deleted_at', null)
+    .order('emesso_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // 🛑 Un guasto di LETTURA non è «non è mai stato emesso»: sono due fatti
+  //    diversi e vanno detti diversi (stessa distinzione di
+  //    `generate-dpa.ts:134-145`). Qui però NON si ferma la pagina — la scheda
+  //    del cliente serve anche senza questa riga, e toglierla tutta per un
+  //    dettaglio informativo sarebbe un danno più grande del difetto. Il fatto
+  //    resta nei log, dove lo legge chi ripara.
+  if (erroreRegistro) {
+    console.error('ClienteDettaglioPage — registro DPA non leggibile:', c.id, erroreRegistro.message)
+  }
+
+  const ultimaEmissione = emissioneRaw as UltimaEmissioneDpa | null
+
+  // 🛑 `timeZone: 'Europe/Rome'` NON è pignoleria — è il difetto già pagato in
+  //    questa stessa ondata su `DpaTemplate.tsx:95-108`. Questo è un componente
+  //    SERVER: la data la formatta la macchina, e in produzione la macchina gira
+  //    a UTC. Senza fuso dichiarato, un contratto emesso alle 00:30 di Roma si
+  //    mostra col giorno PRIMA — e a quel punto la scheda e il PDF, che il fuso
+  //    ce l'ha, si contraddicono a vicenda.
+  //    ⚠️ Invisibile a occhio in FASE 9: il collaudo gira da una macchina a Roma,
+  //    dove il codice sbagliato dà la stessa risposta di quello giusto.
+  const dataUltimaEmissione = ultimaEmissione?.emesso_at
+    ? new Date(ultimaEmissione.emesso_at).toLocaleDateString('it-IT', {
+        day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome',
+      })
+    : null
 
   const modButton = (
     <ClienteModificaButton
@@ -248,9 +315,18 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2)', marginBottom: '10px', lineHeight: 1.5 }}>
               Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.
             </p>
+            {/* 🛑 NIENTE attributo `download` qui, ed è una rimozione voluta.
+                Il nome del file lo decide la ROTTA, col suo `Content-Disposition`
+                (`api/clienti/[id]/dpa/route.ts`): misurato sui tre motori —
+                Chromium, Firefox e WebKit, cioè Safari, cioè l'iPhone — e tutti
+                e tre salvano `DPA-2026-0007.pdf`. Concorde con lo HTML Standard,
+                «getting the suggested filename»: il nome del `Content-Disposition`
+                si prende al passo 2, l'attributo `download` si guarda solo dopo,
+                ai passi 7-9. Quindi l'attributo era INERTE — ma prometteva un
+                nome (`DPA-<nome dello studio>.pdf`) che non esiste più da
+                nessuna parte, ed è una trappola per chi lo rilegge fra sei mesi. */}
             <a
               href={`/api/clienti/${c.id}/dpa`}
-              download={`DPA-${c.studio_nome ?? nomeCompleto}.pdf`}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -272,8 +348,21 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
               </svg>
               Scarica DPA PDF
             </a>
+            {ultimaEmissione?.numero_dpa && dataUltimaEmissione ? (
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t2)', marginTop: '6px' }}>
+                Ultima emissione: <strong>{ultimaEmissione.numero_dpa}</strong> — {dataUltimaEmissione}
+              </p>
+            ) : null}
+            {/* 🔑 La promessa sulla conservazione entra QUI e non prima: fino al
+                registro (D129/D130) `generateDpa()` rendeva un PDF al volo senza
+                conservare niente, e scriverla allora sarebbe stata una frase
+                falsa. Adesso ogni emissione lascia la sua riga e il suo file.
+                🛑 E si dice «resta conservata», MAI «per 10 anni»: i dieci anni
+                sono dell'Allegato XIII punto 4 MDR e riguardano la DICHIARAZIONE
+                DI CONFORMITÀ, non questo contratto (D125/D126). */}
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3)', marginTop: '6px' }}>
               Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio.
+              Ogni versione emessa resta conservata da UÀ.
             </p>
           </div>
         </SectionCard>
