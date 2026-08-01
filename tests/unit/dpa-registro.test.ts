@@ -336,6 +336,22 @@ describe('riuso dell\'emissione', () => {
     }
   )
 
+  // 🔑 L'ALTRA metà di D132, e senza di lei la denylist non è provata: le due
+  //    prove qui sopra dicono che `revocato` e `scaduto` NON valgono, nessuna
+  //    dice che tutto il resto SÌ. Un guard scritto al contrario —
+  //    `.eq('stato', 'da_firmare')`, cioè una allowlist — le passa tutte e
+  //    undici, e poi in produzione non vede il DPA `firmato`, riemette, e prende
+  //    23505: perché l'indice `firmato` lo considera vivo eccome.
+  //    Il predicato è una denylist DI PROPOSITO (piano, T1: «uno stato NUOVO
+  //    resta NELL'indice, cioè continua a deduplicare»).
+  it('🔑 uno stato vivo FUORI dalla denylist si RIUSA: «firmato» è corrente a tutti gli effetti', async () => {
+    montaTabelle({ ...CORRENTE, stato: 'firmato' })
+    const r = await generateDpa('lab-test-001', 'cli-001')
+    expect(r.riemessa).toBe(false)
+    expect(r.emissione_id).toBe('em-vecchia')
+    expect(mockProgressivo).not.toHaveBeenCalled()
+  })
+
   it('🛑 una riga già archiviata (deleted_at) non fa da corrente: RIEMETTE', async () => {
     montaTabelle({ ...CORRENTE, deleted_at: '2026-07-01T10:00:00.000Z' })
     const r = await generateDpa('lab-test-001', 'cli-001')
