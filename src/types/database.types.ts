@@ -786,51 +786,72 @@ export type Database = {
       }
       data_processing_agreements: {
         Row: {
+          anno_dpa: number | null
           created_at: string
           data_scadenza: string | null
           deleted_at: string | null
           dentista_id: string | null
           documento_url: string | null
+          emesso_at: string | null
           firmato_at: string | null
           firmato_da: string | null
           id: string
           laboratorio_id: string
           note: string | null
+          numero_dpa: string | null
+          payload_sha256: string | null
+          pdf_sha256: string | null
+          progressivo_dpa: number | null
           stato: string
+          storage_path_pdf: string | null
           sub_responsabile: string | null
           template_versione: string
           tipo_controparte: string
           updated_at: string
         }
         Insert: {
+          anno_dpa?: number | null
           created_at?: string
           data_scadenza?: string | null
           deleted_at?: string | null
           dentista_id?: string | null
           documento_url?: string | null
+          emesso_at?: string | null
           firmato_at?: string | null
           firmato_da?: string | null
           id?: string
           laboratorio_id: string
           note?: string | null
+          numero_dpa?: string | null
+          payload_sha256?: string | null
+          pdf_sha256?: string | null
+          progressivo_dpa?: number | null
           stato?: string
+          storage_path_pdf?: string | null
           sub_responsabile?: string | null
           template_versione?: string
           tipo_controparte: string
           updated_at?: string
         }
         Update: {
+          anno_dpa?: number | null
           created_at?: string
           data_scadenza?: string | null
           deleted_at?: string | null
           dentista_id?: string | null
           documento_url?: string | null
+          emesso_at?: string | null
           firmato_at?: string | null
           firmato_da?: string | null
           id?: string
           laboratorio_id?: string
           note?: string | null
+          numero_dpa?: string | null
+          payload_sha256?: string | null
+          pdf_sha256?: string | null
+          progressivo_dpa?: number | null
           stato?: string
+          storage_path_pdf?: string | null
           sub_responsabile?: string | null
           template_versione?: string
           tipo_controparte?: string
