@@ -1,5 +1,7 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** verifica dal vivo delle due impronte della DdC (34) — ✅ **CHIUSA LA §0 DELL'HANDOFF, quella che era «ciò che NON è stato verificato»: una Dichiarazione di Conformità NUOVA nasce davvero con le sue due impronte, PROVATO IN PRODUZIONE.** Referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`. Consegnato `TEST-DdC-001` su uachelab.com e poi **annullato** (giro completo e reversibile): `DDC-2026-0002` nasce con `payload_sha256` a 64 cifre e `template_version` = `ddc-v1`, mentre la `DDC-2026-0001` dello stesso lavoro — emessa **prima** di D102 — le ha entrambe `NULL`. 🛑 **Il lavoro indicato dall'handoff non era usabile** (stato `ricevuto`, nessun paziente): la prova è stata fatta su un altro, **scelto da Francesco**. 🔑 **Il guard di idempotenza del generatore era la trappola**: su un lavoro con una DdC attiva la consegna riesce senza scrivere niente, e si sarebbe letto un rosso falso. ➡️ **DUE VOCI NUOVE, dal documento guardato con l'occhio:** ① **gli accenti mancano nel PDF della dichiarazione** («CONFORMITA», «Conformita (PRRC)», «e' conforme») e **non è il carattere** — il §8 rende «è» correttamente; ② la numerazione dei paragrafi **salta il §2**. 📎 **D103:** per i collaudi dal vivo si accede al banco con le credenziali di `.env.local` (in `CLAUDE.md` §9, con la ricetta del link monouso). ✅ **CHIUSA ANCHE LA SECONDA COSA DELLA §0:** preparata la fixture `E2E-CAS-002` e rimessa com'era, il primo braccio della guardia navigazione-overlay **ha misurato ed è verde** — quattro bracci su quattro, due corse di fila. 🔴 **Ma per arrivarci la guardia è stata riparata: si rompeva in due punti, e nessuno dei due era un difetto dell'app** — la lettura non reggeva una traversal cross-document (12 rotture su 12 alla sonda, 0 col rimedio) e **un'eccezione di un braccio uccideva l'intera guardia**, scavalcando il suo disegno di uscite. 🔑 *Una rete mai eseguita non è una rete: è una promessa.*
+**Ultimo aggiornamento:** la DdC guardata USCENDO DALLA PRODUZIONE (35) — ✅ **CHIUSA LA §0 DELL'HANDOFF DEL 3 AGOSTO, l'ultima cosa che restava «non verificata»: una Dichiarazione di Conformità emessa da uachelab.com DOPO il rilascio degli accenti è stata scaricata, misurata e guardata.** Referto: `docs/roadmap/2026-08-03-ddc-produzione-referto.md`. Consegnato `TEST-DdC-001`, letto e **annullato in 26 secondi**; il lavoro è tornato `pronto`. **Otto criteri su otto verdi**: «DICHIARAZIONE DI CONFORMITÀ», «Responsabile della Conformità (PRRC)», «è conforme», **`§2 — DATA DI EMISSIONE`** presente (paragrafi `1 · 2 · 3 · 4 · 5 · 6 · 7 · 8`, nessun buco), metadati del file accentati. `testo_conformita_snapshot` porta `è`; sulla riga di ieri porta ancora `e'`. 🔑 **La rete di lettura è stata provata rompendola** — sul foglio vecchio dà **otto rossi su otto** — e un nono criterio è stato **buttato perché passava anche lì**. 🛟 Provata **prima di premere** anche la valvola dell'annullo. 🛑 **NON provato e dichiarato:** il **§6-bis** (norme armonizzate) non compare perché `norme_json` è vuoto per questo tipo — con lui resta non osservabile lo stacco §6-bis/§7. ➡️ **UNA VOCE NUOVA E GROSSA (v. sezione dedicata in coda): il BUONO DI CONSEGNA non si rigenera dopo un annullo** — `BUO-2026-0001` reso il 22/07 e allegato **tre volte**, contatore fermo a 1, e **il dialogo promette che il buono viene annullato** mentre non lo è. La tabella `buoni_consegna` esiste con lo stato `'annullato'` previsto e ha **zero righe**. ➡️ **E una correzione normativa:** il §5 della DdC cita **`Art. 2(1)(3)` MDR, che non esiste** — va **`Art. 2(3)`**.
+
+**Aggiornamento precedente:** verifica dal vivo delle due impronte della DdC (34) — ✅ **CHIUSA LA §0 DELL'HANDOFF, quella che era «ciò che NON è stato verificato»: una Dichiarazione di Conformità NUOVA nasce davvero con le sue due impronte, PROVATO IN PRODUZIONE.** Referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`. Consegnato `TEST-DdC-001` su uachelab.com e poi **annullato** (giro completo e reversibile): `DDC-2026-0002` nasce con `payload_sha256` a 64 cifre e `template_version` = `ddc-v1`, mentre la `DDC-2026-0001` dello stesso lavoro — emessa **prima** di D102 — le ha entrambe `NULL`. 🛑 **Il lavoro indicato dall'handoff non era usabile** (stato `ricevuto`, nessun paziente): la prova è stata fatta su un altro, **scelto da Francesco**. 🔑 **Il guard di idempotenza del generatore era la trappola**: su un lavoro con una DdC attiva la consegna riesce senza scrivere niente, e si sarebbe letto un rosso falso. ➡️ **DUE VOCI NUOVE, dal documento guardato con l'occhio:** ① **gli accenti mancano nel PDF della dichiarazione** («CONFORMITA», «Conformita (PRRC)», «e' conforme») e **non è il carattere** — il §8 rende «è» correttamente; ② la numerazione dei paragrafi **salta il §2**. 📎 **D103:** per i collaudi dal vivo si accede al banco con le credenziali di `.env.local` (in `CLAUDE.md` §9, con la ricetta del link monouso). ✅ **CHIUSA ANCHE LA SECONDA COSA DELLA §0:** preparata la fixture `E2E-CAS-002` e rimessa com'era, il primo braccio della guardia navigazione-overlay **ha misurato ed è verde** — quattro bracci su quattro, due corse di fila. 🔴 **Ma per arrivarci la guardia è stata riparata: si rompeva in due punti, e nessuno dei due era un difetto dell'app** — la lettura non reggeva una traversal cross-document (12 rotture su 12 alla sonda, 0 col rimedio) e **un'eccezione di un braccio uccideva l'intera guardia**, scavalcando il suo disegno di uscite. 🔑 *Una rete mai eseguita non è una rete: è una promessa.*
 
 **Aggiornamento precedente:** sessione dopo la chiusura dell'ondata (b) (33) — 🚪 **Handoff della sessione: `docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md`.** 📜 **CHIUSA LA TERZA VOCE APERTA DELL'HANDOFF («verificare se il colore compaia nella DdC»): la lacuna c'è ma è DIVERSA (D101 · D102), e le riparazioni sicure sono IN PRODUZIONE** (`main` = `30f6f3e7`). La norma **non nomina il colore**: l'Allegato XIII §1 chiede due cose distinte, «i dati che identificano il dispositivo» (**già coperto**) e «le caratteristiche indicate nella prescrizione» (**scoperto**). 🛑 **Ricerca rifatta sulle FONTI ITALIANE su richiesta di Francesco.** Fatte: le due impronte del documento (mai scritte prima), il PDF che smette di leggere dati vivi, e la fotografia dei denti spostata sulla dichiarazione (migration applicata). ➡️ **NUOVA VOCE, da progettare:** il dato **«prescritto»** non esiste in banca dati (materiale prescritto, ancoraggio; c'è il seme in `lavori_denti.provenienza`) — serve per due righe distinte sulla dichiarazione, «indicate nella prescrizione» e «come realizzato». ⚠️ **Tre questioni normative aperte, riferite e non toccate:** la dichiarazione non arriva al **paziente** (Art. 21(2)) · si scrive il **nome completo** dove basterebbe un codice · la **prescrizione digitale non ha firma né albo**. 💰 **E tre correzioni di cifra:** nessuna sanzione per DdC incompleta; il rischio reale è **in ispezione** (24.200-145.000 €); il «48.500 €» dell'ITCA va letto con la **riduzione di un terzo** per microimprese e l'**aggiornamento ISTAT biennale**. Le altre voci pronte restano: avviso su dente/colore mancanti · le tinte del manufatto (D42) · allegati e condivisione (D67).
 
@@ -769,6 +771,74 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 28/07/2026 | **Ondata (a): T9 chiuso + la sua coda** (`759fc183`, `63361649`). `POST /api/lavori` crea progressivo, lavoro e denti in **una transazione sola**; 19 test nuovi, **18 su 18 cadevano contro un abbozzo sempre-201** (forza misurata, non dedotta); 3478 verdi, `tsc`/`eslint`/`next build` puliti, DB alla baseline. Due difetti chiusi che il piano non prevedeva: `denti` non-array diventava **lista vuota** (201, zero denti, nessun errore) → ora **422**; e l'anno del numero di lavoro seguiva il fuso del processo invece di Roma, su una catena che alimenta DdC e fatturazione. 🔑 Il nono difetto stava **nella diagnosi, non nel codice**: la suite non fissa il fuso, e su questo Mac il test prescritto sarebbe passato **verde col difetto in casa**. Due residui senza casa → sezione «in coda» sopra. Nono task su nove con un difetto trovato. | Francesco + Claude |
 | 28/07/2026 | **Guardie agganciate + accesso con passkey riparato — IN PRODUZIONE** (main `24474b5c`, CI verde, deploy Vercel ok, `/login` 200). I 4 script di verifica del repo non erano eseguiti da nulla e **due non potevano nemmeno fallire**; ora `check-csrf.sh` (riscritta, 0,33 s) e `guardia-reduced-motion.mjs` (4,6 s) girano a ogni commit, le altre due restano manuali con il motivo scritto. Rimosse 104 righe su 149 di `.claude/settings.json` che dichiaravano scansioni di sicurezza inesistenti. Corretta la riga di `CLAUDE.md` §9 che dava una direttiva per protetta da un controllo mai eseguito. Chiusa la questione CSRF sulle route WebAuthn di accesso (esclusione con ragione) e **corretto il difetto attivo** che impediva l'accesso con l'impronta a chi digitava una maiuscola nell'email. I 5 difetti rimasti sono in coda a questa roadmap. | Francesco + Claude |
 
+
+---
+
+## 🔴 IL BUONO DI CONSEGNA NON SI RIGENERA DOPO UN ANNULLO (03/08/2026)
+
+**Trovato facendo il giro della §0 in produzione**, da un numero che non tornava. Riferito e **non
+corretto** (R-E2). Referto completo: `docs/roadmap/2026-08-03-ddc-produzione-referto.md` §6.
+
+**Il fatto, misurato:** `BUO-2026-0001` è stato reso il **22/07/2026** e alla consegna di **oggi** è
+stato riallegato **senza essere rigenerato** — stesso file, stessa data stampata, contatore fermo a
+**1**. 📏 **Confine della misura:** il riuso alla consegna del **31/07** è **ricostruito** (il contatore
+era già a 1 e non esiste altra strada), non osservato — `buono_pdf_url` non fu letto prima di premere
+quel giorno.
+
+**La causa, in due righe che non si parlano:**
+1. `src/lib/pdf/generate-buono.ts:18-20` esce subito se `lavori.buono_pdf_url` è già valorizzato.
+   L'intenzione dichiarata nel commento è l'**idempotenza sui ritenta** della stessa consegna (B13) —
+   non la sopravvivenza a un annullo.
+2. `annulla_consegna_atomica` (migration `20260710150000`) porta la DdC ad `annullata` ma **non tocca**
+   `buono_numero`, `buono_pdf_url`, `buono_storage_path` su `lavori`.
+
+🔑 **L'asimmetria è tutta qui:** la dichiarazione è annullata *da uno stato*, quindi rinasce; il buono è
+riconosciuto *dalla presenza di un URL*, che nessuno cancella.
+
+🛑 **E la schermata promette il contrario.** Il dialogo di conferma dice: «*Annullando, la Dichiarazione
+di Conformità **e il buono** vengono annullati*». Del buono non si annulla niente.
+
+**Perché conta su dati veri:** consegna sbagliata → annullo → riconsegna il giorno dopo. Al dentista
+arriva un **buono con la data del tentativo precedente**, accanto a una DdC corretta: due documenti
+della stessa busta che raccontano due giorni diversi.
+
+📌 **E c'è una tabella progettata e scavalcata:** `buoni_consegna` (`supabase/schema.sql:1301`) esiste,
+ha `stato TEXT CHECK (… 'annullato')` **già previsto**, e contiene **zero righe** su tutti i laboratori.
+Il flusso scrive tre colonne denormalizzate su `lavori`. **Stessa classe di `prrc_nomine` con
+`has_prrc_valido()`** — una tabella migrata che nessuno legge né scrive.
+
+⚠️ **Corregge due affermazioni del referto del 03/08 §7:** la consegna del 31/07 **non ha bruciato**
+nessun buono (ne ha riusato uno), e la DdC del 22/07 **nasceva** da una consegna completa — il suo buono
+esiste, ma sta su `lavori` e non è collegato alla dichiarazione, quindi cercarlo dalla parte della DdC
+non poteva trovarlo.
+
+**Da decidere (D108 o successiva):** se l'annullo debba azzerare le tre colonne (il buono rinasce con
+numero e data nuovi, come la DdC), e se il buono debba diventare una riga di `buoni_consegna` con la sua
+storia invece di tre colonne sul lavoro. 🛑 **Panel obbligatorio:** tocca un documento di accompagnamento
+e un progressivo.
+
+---
+
+## 🟠 LA DdC CITA UN ARTICOLO CHE NON ESISTE — `Art. 2(1)(3)` (03/08/2026)
+
+Il §5 del foglio stampa: «*Dispositivo su misura ai sensi dell'**Art. 2(1)(3)** MDR*».
+**Quell'articolo non esiste.** L'Articolo 2 del MDR ha un solo periodo introduttivo seguito da **71
+punti numerati**, non è diviso in paragrafi `(1)`, `(2)`: il «dispositivo su misura» è il punto **3**,
+quindi la citazione corretta è **`Art. 2(3)`**. Fonte:
+[MDR — Article 2, Definitions](https://www.medical-device-regulation.eu/2019/07/10/mdr-article-2-definitions/).
+⚠️ **Fonte SECONDARIA** (EUR-Lex CELEX `02017R0745-20260101` ha restituito un corpo vuoto): basta per
+**riferire**, **non** per correggere il foglio — prima si riconferma sul testo **italiano** di EUR-Lex.
+`Art. 20(1)`, citato nella stessa riga per l'esenzione dalla marcatura CE, è invece **corretto**.
+
+Sorgente: `src/components/features/pdf/DdcTemplate.tsx:461`. È una riga di **sola resa** — non entra in
+`testo_conformita_snapshot` né nell'impronta del payload — quindi la correzione varrebbe **solo in
+avanti** e non tocca nulla di conservato. 🛑 **Non corretta di passaggio** perché è un riferimento
+normativo su un documento a valore legale: stessa prassi degli accenti (D104), si cambia per decisione.
+
+📌 **Nello stesso giro, un refuso che vive nei DATI e non nel codice:** il §8 stampa «*conforme ai
+requisiti di sicurezza **dell** Allegato I*» — apostrofo mancante dentro
+`rischi_tipo_dispositivo.rischi_residui`. La correzione degli accenti ha sistemato i **sorgenti**: un
+refuso in banca dati non ha guardia, e ogni laboratorio scriverà il suo.
 
 ---
 
