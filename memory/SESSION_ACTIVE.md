@@ -1,4 +1,4 @@
-# Sessione attiva — D121: il passo del wizard aspetta il wizard
+# Sessione attiva — D121 · l'audit dei documenti · la rete nuova · D122
 
 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-tinte-manufatto-handoff.md`** — la sua §0 ③ è **CHIUSA da
 D121**; restano aperte ① (eseguire il piano con R-E1) e ② (il §6-bis della DdC mai percorso in produzione).
@@ -33,13 +33,12 @@ eseguita; **6** — una decisione che rimanda lavoro deve nominare la destinazio
 ✅ **AUD-2 CHIUSA — DS v3 rev. 3.5** (ramo `ds-v3-allineamento`): tutte e otto le divergenze avevano **già una
 decisione ratificata dietro**, il difetto era che il canale per emendare la spec (§13.1 p.3) **è stato usato
 una volta su nove**. Emendate §5.15 · §5.32 · §5.35 · §7.1 · §7.20 · §8.3.7 (🛑 **sostituita**, non tolta:
-§8.3 è lista chiusa). ⚠️ **Una domanda resta per Francesco:** il numero del lavoro nel **nome accessibile**
-della cassetta (`Cassetta.tsx:724-728`) — l'unica divergenza **senza** ratifica dietro.
+§8.3 è lista chiusa). ✅ **E la sola domanda che restava è decisa: D122** — il numero del lavoro **resta nel nome accessibile**
+della cassetta (`Cassetta.tsx:724-728`), la targa dipinta resta senza. **AUD-2 chiusa senza code.**
 
 ➡️ **Prossimo passo — lo decide Francesco fra:** ① la **voce 10** (il DPA: piccola, tocca un documento a
 valore legale) · ② **Task 1** del piano D42, ramo `tinte-manufatto` **nel repo principale** (🛑 mai un
-worktree), R-E1 · ③ il **round 2** dell'audit (le 120 decisioni non ancora provate) · ④ la **domanda sul nome
-accessibile** qui sopra.
+worktree), R-E1 · ③ il **round 2** dell'audit (le 120 decisioni non ancora provate).
 
-📎 Verbale: tornata **38**, `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centoventuno**
-decisioni. La prossima è **D122**.
+📎 Verbale: tornate **38** e **39**, `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centoventidue**
+decisioni (D121 · D122). La prossima è **D123**.

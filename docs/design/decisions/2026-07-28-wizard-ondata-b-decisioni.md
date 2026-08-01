@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentottesima tornata (D121, il passo del wizard aspetta il wizard)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla trentanovesima tornata (D122, il numero nella lettura vocale)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centoventuno decisioni in trentotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centoventidue decisioni in trentanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -849,3 +849,17 @@ moduli-motore del wizard, **agganciati a nulla**. L'handoff del 02/08 dice «ond
 distinguere; la ROADMAP dice ancora «in esecuzione, restano T12 e T13», che sono task **dell'album**.
 🔑 È la stessa classe di difetto della voce 57 e del ruolo `admin_sistema`: **un elenco che sembra completo e
 non lo è**. Le due righe sono state corrette con questa tornata.
+
+---
+
+### Trentanovesima tornata — D122: il numero del lavoro nella lettura vocale della cassetta
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D122** | 🔊 **Il numero del lavoro RESTA nel nome accessibile della cassetta** — la targa dipinta resta senza (invariata, D4 + verbale 24/07 §6), ma chi usa il lettore vocale lo sente | scelta di Francesco fra tre strade (resta nella lettura · esce anche da lì · si legge solo quando due cassette suonerebbero identiche), posta dall'audit del 03/08 come **l'unica divergenza DS↔codice senza una ratifica dietro** | ✅ **Ratifica ciò che il codice già faceva** (`src/components/ds/Cassetta.tsx:724-728`), che finora era **una lettura dell'implementatore** e non una decisione: «*il ratificato che lo vieta parla della TARGA*». 🔑 **La ragione che regge, ed è quella che l'audit chiedeva di rendere esplicita:** il divieto del 24/07 nasce dal **budget di due righe** della targa dipinta — un vincolo di impaginazione che **a una frase letta ad alta voce non si applica**. E il costo del contrario è concreto: senza il numero, **due cassette dello stesso dentista e dello stesso paziente sono indistinguibili** per chi non vede. 🛑 **Scartata la terza strada** («si legge solo quando serve»): sarebbe la più pulita da ascoltare, ma imporrebbe alla singola cassetta di sapere che cosa c'è nelle altre celle della parete — informazione che oggi non ha. ➡️ **Conseguenza documentale:** la nota «domanda APERTA» aggiunta a **DS v3 §7.20** dall'audit diventa una **ratifica**, e **AUD-2 si chiude senza code** |
+
+📌 **La forma di questa tornata è essa stessa un esito dell'audit:** la divergenza è stata trovata da un
+verificatore, **non sanata** dal verificatore (le altre sette avevano una decisione dietro e sono state
+allineate; questa no), e portata a Francesco come domanda. 🔑 È la regola R-E2 applicata a un documento
+invece che a un difetto di codice: **allineare la legge al codice senza una decisione è il modo in cui una
+deviazione diventa norma senza che nessuno l'abbia scelta.**
