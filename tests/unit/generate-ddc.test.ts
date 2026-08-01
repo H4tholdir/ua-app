@@ -312,6 +312,15 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
     expect(mockInsert.mock.calls[0][0]).not.toHaveProperty('norma_riferimento')
   })
+
+  it('il testo di conformità porta «è conforme», non «e\' conforme»', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    const riga = mockInsert.mock.calls[0][0]
+    expect(riga.testo_conformita).toContain('dispositivo è conforme')
+    expect(riga.testo_conformita).not.toContain("dispositivo e' conforme")
+    // le due colonne ricevono lo stesso letterale (generate-ddc.ts:160-161)
+    expect(riga.testo_conformita_snapshot).toBe(riga.testo_conformita)
+  })
 })
 
 describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () => {

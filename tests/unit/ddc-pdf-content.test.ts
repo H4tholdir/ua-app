@@ -66,7 +66,7 @@ const DDC_FIXTURE: DichiarazioneConformita = {
   norma_riferimento: null,
   // §7 Conformità
   testo_conformita_snapshot:
-    "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
+    "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
   // §8 PRRC
   prrc_nome: 'Filippo Opromolla',
   prrc_qualifica: 'Odontotecnico abilitato',

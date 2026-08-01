@@ -129,7 +129,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
 
   // MDR §8: dichiarazione esplicita di conformità (colonna NOT NULL senza default
   // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
-  const testoConformita = "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
+  const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
 
   const firmaSha256 = await hashFirmaDdc((lab.firma_ddc_url ?? null) as string | null)
 
