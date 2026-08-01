@@ -1,0 +1,21 @@
+-- D104 — il DEFAULT di `testo_conformita_snapshot` porta la stessa frase del
+-- generatore, e fino a oggi portava la stessa frase SENZA accento.
+--
+-- ═══ PERCHÉ ESISTE QUESTO FILE ═══════════════════════════════════════════════
+-- La frase vive in due posti: `src/lib/pdf/generate-ddc.ts` (che la scrive a ogni
+-- emissione) e il DEFAULT di questa colonna, messo da `002_fase2_schema.sql:188-189`.
+-- Oggi il default NON spara mai — il generatore valorizza sempre entrambe le
+-- colonne (`generate-ddc.ts:147-148`) — ma `supabase/seed.sql` inserisce righe
+-- senza lo snapshot, e quelle lo prendono. Correggendo solo il TypeScript
+-- resterebbero in casa DUE verità canoniche, e la seconda tornerebbe a valere il
+-- giorno in cui un writer futuro omettesse la colonna: una dichiarazione marcata
+-- con la forma nuova, e dentro il testo vecchio.
+--
+-- 🛑 La migration del 2026-05 NON si riscrive: è il registro di ciò che è
+--    successo. Si allinea qui.
+-- 🛑 Non si usa DROP DEFAULT, che pure sarebbe più pulito: la colonna è NOT NULL
+--    e il seme inserisce righe senza valorizzarla — toglierlo lo romperebbe.
+
+ALTER TABLE public.dichiarazioni_conformita
+  ALTER COLUMN testo_conformita_snapshot SET DEFAULT
+    'Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all''Allegato I e ai disposti dell''Allegato XIII del Reg. (UE) 2017/745.';
