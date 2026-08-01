@@ -1,15 +1,37 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 import { createChain, type MockChain, type ChainCall } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, CLIENTE_FIXTURE } from './helpers/pdf-fixtures'
 
-const { mockFrom, mockInsert, mockUpdate, mockUpload, mockDownload, mockProgressivo } = vi.hoisted(() => ({
-  mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpdate: vi.fn(), mockUpload: vi.fn(), mockDownload: vi.fn(), mockProgressivo: vi.fn(),
-}))
+const { mockFrom, mockInsert, mockUpdate, mockUpload, mockDownload, mockStorageFrom, mockProgressivo } = vi.hoisted(() => {
+  const mockUpload = vi.fn()
+  const mockDownload = vi.fn()
+  return {
+    mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpdate: vi.fn(), mockUpload, mockDownload, mockProgressivo: vi.fn(),
+    /** Il CONTENITORE dell'archivio, ASSERIBILE — e fail-closed su tutto il resto.
+     *
+     *  🔑 Prima ignorava il proprio argomento, e scrivere `.from('documenti-sbagliato')`
+     *  lasciava verdi tutte e tre le reti (prove, `tsc`, `eslint`): misurato dalla
+     *  revisione del Task 5, rilievo I1. In produzione quel refuso vuol dire che il PDF
+     *  conservato non si trova MAI, e ogni clic archivia la riga e brucia un numero.
+     *  Su un registro GDPR il contenitore privato è la premessa, non un dettaglio:
+     *  `documenti` è privato, e un contenitore diverso può non esserlo.
+     *
+     *  🛑 Contenitore sconosciuto = ECCEZIONE, mai «passa» — la stessa regola che
+     *  `applicaFiltri` applica agli operatori: un mock che accetta in silenzio ciò che
+     *  non sa leggere è il posto dove sopravvive il prossimo mutante. */
+    mockStorageFrom: vi.fn((contenitore: string) => {
+      if (contenitore !== 'documenti') {
+        throw new Error(`Mock DPA: contenitore inatteso «${contenitore}» — i DPA vivono nel contenitore privato «documenti»`)
+      }
+      return { upload: mockUpload, download: mockDownload }
+    }),
+  }
+})
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({
     from: mockFrom,
-    storage: { from: () => ({ upload: mockUpload, download: mockDownload }) },
+    storage: { from: mockStorageFrom },
   }),
 }))
 vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: mockProgressivo }))
@@ -69,6 +91,10 @@ function applicaFiltri(riga: Record<string, unknown> | null, calls: ChainCall[])
   }
   for (const c of calls) {
     // Non sono filtri: non restringono l'insieme, non hanno nulla da applicare.
+    // 🔑 `select` è escluso QUI perché non restringe le RIGHE — restringe le
+    //    COLONNE, e quello lo fa `proietta()` DOPO. È l'ordine del database:
+    //    il WHERE vede la riga intera, la proiezione arriva dopo. Per questo
+    //    un filtro su una colonna che la `select` non chiede resta legittimo.
     if (c.method === 'select' || c.method === 'order' || c.method === 'limit' || c.method === 'maybeSingle') continue
     if (c.method === 'eq') {
       const [col, val] = c.args as [string, unknown]
@@ -97,6 +123,41 @@ function applicaFiltri(riga: Record<string, unknown> | null, calls: ChainCall[])
   return riga
 }
 
+/** Rende SOLO le colonne che la `select` ha davvero chiesto.
+ *
+ *  🔑 Perché adesso e non «quando servirà»: senza questa proiezione il mock
+ *  restituisce la riga INTERA qualunque cosa la query chieda, e togliere
+ *  `storage_path_pdf` dalla `select` del guard lascia la suite VERDE — il PDF
+ *  conservato non verrebbe più trovato in produzione e nessuna prova lo
+ *  direbbe. Oggi quel mutante lo prende solo `tsc` (TS2339 sull'accesso a una
+ *  colonna non chiesta), cioè una rete che c'è ma è DIVERSA da quella che si
+ *  crede: `tsc` vede il typo, non la colonna dimenticata di proposito.
+ *  Misurato dalla revisione del Task 5, rilievo I2.
+ *
+ *  🔑 Perché conviene metterla qui e non nell'helper condiviso: il costo sono
+ *  dodici righe in un file solo, il beneficio lo ereditano il Task 6 e il
+ *  Task 7 — che rileggono la STESSA tabella con la STESSA select — mentre
+ *  toccare `createChain` cambierebbe il comportamento di 373 file di prova per
+ *  un guadagno che nessuno di loro ha chiesto.
+ *
+ *  🛑 Fail-closed su tutto ciò che non sa fare: una lettura senza `select`, una
+ *  select annidata (`cliente(nome)`) o una colonna che la fixture non ha sono
+ *  ECCEZIONI, non silenzi. */
+function proietta(riga: Record<string, unknown>, calls: ChainCall[]): Record<string, unknown> {
+  const select = calls.find((c) => c.method === 'select')
+  if (!select) throw new Error('Mock DPA: lettura senza select — il mock non sa quali colonne rendere')
+  const lista = String(select.args[0] ?? '')
+  if (lista.includes('(')) throw new Error(`Mock DPA: select annidata non gestita dal mock: ${lista}`)
+  const colonne = lista.split(',').map((s) => s.trim()).filter(Boolean)
+  if (colonne.includes('*')) return riga
+  const proiettata: Record<string, unknown> = {}
+  for (const col of colonne) {
+    if (!(col in riga)) throw new Error(`Mock DPA: select sulla colonna «${col}», assente dalla fixture della riga`)
+    proiettata[col] = riga[col]
+  }
+  return proiettata
+}
+
 function montaTabelle(emissioneEsistente: Record<string, unknown> | null) {
   for (const k of Object.keys(catene)) delete catene[k]
   cateneDpa.length = 0
@@ -117,7 +178,9 @@ function montaTabelle(emissioneEsistente: Record<string, unknown> | null) {
       c.update = mockUpdate
       c.maybeSingle = async () => {
         c.calls.push({ method: 'maybeSingle', args: [] })
-        return { data: applicaFiltri(emissioneEsistente, c.calls), error: null }
+        // Prima il WHERE sulla riga intera, POI la proiezione: l'ordine del database.
+        const trovata = applicaFiltri(emissioneEsistente, c.calls)
+        return { data: trovata === null ? null : proietta(trovata, c.calls), error: null }
       }
       cateneDpa.push(c)
       return c
@@ -230,6 +293,24 @@ describe('riuso dell\'emissione', () => {
   const CORRENTE = { ...ESISTENTE, payload_sha256: improntaDpa(LAB_FIXTURE, CLIENTE_FIXTURE) }
 
   let catenaAggiornamento: MockChain
+  /** Scatta quando la catena dell'UPDATE viene DAVVERO risolta — cioè spedita.
+   *
+   *  🔑 Perché una spia sulla RISOLUZIONE e non basta guardare gli argomenti:
+   *  in supabase-js la catena non è una richiesta già in volo, è un oggetto che
+   *  la richiesta HTTP la manda dentro il proprio `then()`
+   *  (`PostgrestBuilder`, node_modules/@supabase/postgrest-js). Senza `await`
+   *  davanti, l'UPDATE è COSTRUITO E MAI SPEDITO: gli argomenti sono tutti
+   *  giusti — `mockUpdate` è chiamato, i due `.eq()` ci sono, l'ordine rispetto
+   *  all'insert pure — e la chiave dell'indice resta OCCUPATA. Cioè esattamente
+   *  la porta chiusa permanente per cui quel blocco esiste.
+   *  🛑 Misurato: togliendo l'`await` da `generate-dpa.ts:101` la suite restava
+   *  VERDE (19/19), `tsc` 0, `eslint` 0 — nessuna delle tre reti lo vedeva
+   *  (revisione del Task 5, rilievo C1). Le prove vedevano il soft-delete
+   *  ASSENTE, non il soft-delete INERTE.
+   *  🔑 Il `then` originale resta in mezzo e la risoluzione va avanti: una spia
+   *  che non risolve farebbe pendere l'`await` per sempre, e il segnale sarebbe
+   *  un timeout invece di una prova rossa. */
+  let aggiornamentoSpedito: Mock<() => void>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -237,6 +318,12 @@ describe('riuso dell\'emissione', () => {
     mockProgressivo.mockResolvedValue(7)
     mockInsert.mockReturnValue(createChain({ data: { id: 'em-1' }, error: null }))
     catenaAggiornamento = createChain({ data: null, error: null })
+    aggiornamentoSpedito = vi.fn<() => void>()
+    const risolviDavvero = catenaAggiornamento.then as (r: (v: unknown) => void) => unknown
+    catenaAggiornamento.then = (resolve: (v: unknown) => void) => {
+      aggiornamentoSpedito()
+      return risolviDavvero(resolve)
+    }
     mockUpdate.mockReturnValue(catenaAggiornamento)
     // 🔑 Il default è «il file C'È». Il contrario (archivio vuoto) manderebbe
     //    OGNI prova di riemissione nel ramo dell'orfana, e le prove «RIEMETTE»
@@ -382,5 +469,38 @@ describe('riuso dell\'emissione', () => {
     // 🔑 PRIMA dell'insert, non dopo: liberare la chiave dopo averla già
     //    ricalpestata non serve a niente — l'insert avrebbe già preso 23505.
     expect(mockUpdate).toHaveBeenCalledBefore(mockInsert as never)
+  })
+
+  it('🛑 …e l\'UPDATE dev\'essere SPEDITO, non solo costruito: senza `await` la chiave resta occupata', async () => {
+    montaTabelle(CORRENTE)
+    mockDownload.mockResolvedValue({ data: null, error: { message: 'Object not found' } })
+
+    await generateDpa('lab-test-001', 'cli-001')
+
+    // 🔑 Le tre asserzioni qui sopra guardano gli ARGOMENTI dell'UPDATE; questa
+    //    guarda il suo ESITO. La differenza non è formale: la richiesta parte
+    //    dentro `then()`, quindi una catena costruita e mai attesa ha argomenti
+    //    perfetti e non arriva mai al database. La riga orfana continuerebbe a
+    //    occupare (laboratorio, dentista, impronta, versione), l'INSERT qui
+    //    sotto prenderebbe 23505, e ogni clic brucerebbe un progressivo prima
+    //    di fallire.
+    expect(aggiornamentoSpedito).toHaveBeenCalled()
+    // E spedito PRIMA dell'insert: la chiave dev'essere già libera quando si
+    // ricalpesta. `mockUpdate` prima di `mockInsert` non lo dice — dice solo
+    // che l'oggetto era stato costruito prima.
+    expect(aggiornamentoSpedito).toHaveBeenCalledBefore(mockInsert as never)
+  })
+
+  it('🛑 il PDF conservato si cerca nel contenitore PRIVATO «documenti»', async () => {
+    montaTabelle(CORRENTE)
+
+    await generateDpa('lab-test-001', 'cli-001')
+
+    // 🔑 Il contenitore non è un dettaglio di percorso: è ciò che rende privato
+    //    un contratto GDPR. E un contenitore sbagliato non dà errore di
+    //    compilazione — dà un download che non trova MAI nulla, quindi una
+    //    riga archiviata e un numero bruciato a ogni scarico.
+    expect(mockStorageFrom).toHaveBeenCalledWith('documenti')
+    expect(mockDownload).toHaveBeenCalledWith('lab-test-001/dpa/2026/DPA-2026-0003.pdf')
   })
 })
