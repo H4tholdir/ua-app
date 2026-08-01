@@ -112,9 +112,16 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
     // tornata silenziosa in entrambe le direzioni.
     expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
-    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: si accende su
-    //    qualunque occorrenza rimasta, comprese quelle che le asserzioni
-    //    puntuali non guardano.
+    // 🛑 Nessun refuso residuo nei punti che questa fixture RENDE: la rete si
+    //    accende su qualunque occorrenza rimasta lì, comprese quelle che le
+    //    asserzioni puntuali non guardano (provato per mutazione su due punti
+    //    diversi, §7 e etichetta della firma).
+    // ⚠️ Il limite, scritto perché nessuno legga più di quanto la prova misuri:
+    //    `pdfText` nasce da DDC_FIXTURE, che lascia a `null` norme_json,
+    //    rischi_residui_snapshot, firma_ddc_storage_path e le righe di
+    //    prescrizione — quindi §6-bis, §8 e quei blocchi NON sono renderizzati, e
+    //    un refuso che vivesse lì dentro questa rete non lo vedrebbe. Oggi non ce
+    //    n'è (verificato), ma la rete copre il foglio reso, non «il foglio».
     expect(pdfText).not.toContain('CONFORMITA')
     expect(pdfText).not.toContain('Conformita')
   })
