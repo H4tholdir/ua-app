@@ -34,12 +34,25 @@
  *  lo stato HTTP è un'affermazione su CHI ha sbagliato, e su questi quattro
  *  cammini era falsa.
  *
- *  📌 Nota di portata, misurata invece che supposta: attraverso **questa** rotta
- *  «Laboratorio non trovato» (`:100`) è di fatto irraggiungibile — il lab-guard
- *  ha già letto `lab.stato` dall'embed LEFT su `laboratori`
- *  (`lab-context.ts:24`), quindi se la richiesta è passata la riga esiste. Ci si
- *  arriva solo per una corsa fra le due letture. I cammini che cambiano davvero
- *  faccia all'utente sono TRE.
+ *  📌 Nota di portata — e va detta con la distinzione che questo file predica.
+ *  `provato:` `pg_constraint`, `contype = 'f'` su `public.utenti` (sola lettura)
+ *    → `utenti_laboratorio_id_fkey FOREIGN KEY (laboratorio_id) REFERENCES laboratori(id)`
+ *  `ragionato:` da lì — se `context.laboratorioId` non è nullo, quella chiave
+ *  esterna **garantisce** che la riga di `laboratori` esista (e non ammette
+ *  nemmeno di cancellarla mentre qualcuno la punta: nessun `ON DELETE`). Quindi
+ *  attraverso **questa** rotta «Laboratorio non trovato» (`:115`) non si
+ *  raggiunge, e i cammini che cambiano davvero faccia all'utente sono **TRE**.
+ *
+ *  🛑 NON lo garantisce il lab-guard, ed è la ragione sbagliata che era scritta
+ *  qui: `lab-guard.ts:50` esce con `null` per `admin_sistema` **prima** di
+ *  leggere `ctx.lab` (`:51`), quindi per quel ruolo il guard il laboratorio non
+ *  lo guarda affatto — un contesto `admin_sistema` con `laboratorioId`
+ *  valorizzato e `lab: null` passerebbe il guard intero. È la chiave esterna a
+ *  fermarlo, non il guard. 🔑 Ed è lo stesso difetto che questo lavoro è venuto
+ *  a chiudere: un commento che si dichiarava «misurato» per una cosa dedotta.
+ *  ⚠️ Lo stato si fissa comunque, perché quella garanzia è del CHIAMANTE e non
+ *  di questa funzione: `generateDpa` non è della sola rotta DPA, e domani può
+ *  essere chiamata da dove quella chiave esterna non dice niente.
  */
 export class ErroreDatiDpa extends Error {
   /** 404 = il dato a cui la richiesta punta non c'è.

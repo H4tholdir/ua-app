@@ -349,7 +349,8 @@ describe('GET /api/clienti/[id]/dpa', () => {
     //    e tutta la suite restava verde. B9 (`lab: null`) e B10 (`blacklist`)
     //    non possono prenderlo nemmeno in linea di principio: sono i due stati
     //    in cui lettura e scrittura si comportano IDENTICAMENTE
-    //    (`lab-guard.ts:49` e `:65`, entrambi senza `isRead`).
+    //    (`lab-guard.ts:51` per `lab: null` — il contesto c'è, quindi NON è la
+    //    :49 — e `:65` per `blacklist`; entrambi tornano senza guardare `isRead`).
     //    🔑 La regressione vera che questa riga difende: un laboratorio
     //    `sospeso` — abbonamento fermo, ma titolato a LEGGERE i propri
     //    documenti (`lab-guard.ts:61`) — non scaricherebbe più il proprio

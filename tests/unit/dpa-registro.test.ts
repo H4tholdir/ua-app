@@ -1220,8 +1220,12 @@ describe('fail-closed e corsa', () => {
 
     expect((e as Error).message).toBe('Laboratorio non trovato')
     // …e anche questo è un 404: il dato non c'è, non è UÀ a essere rotta.
-    // 📌 Attraverso la rotta del DPA ci si arriva solo per una corsa — il
-    //    lab-guard ha già letto la riga di `laboratori` (`lab-context.ts:24`).
+    // 📌 Attraverso la rotta del DPA questo cammino non si raggiunge, e la
+    //    ragione è la CHIAVE ESTERNA, non il lab-guard:
+    //    `provato:` `utenti_laboratorio_id_fkey FOREIGN KEY (laboratorio_id)
+    //    REFERENCES laboratori(id)` → `laboratorioId` non nullo ⇒ la riga esiste.
+    //    🛑 Il guard NON basterebbe: `lab-guard.ts:50` esce per `admin_sistema`
+    //    prima ancora di leggere `ctx.lab` (`:51`).
     //    Lo stato si fissa lo stesso: `generateDpa` non è di questa rotta sola.
     expect(e).toBeInstanceOf(ErroreDatiDpa)
     expect((e as ErroreDatiDpa).stato).toBe(404)
