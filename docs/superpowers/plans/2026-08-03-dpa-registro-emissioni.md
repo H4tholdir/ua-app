@@ -976,6 +976,19 @@ git commit -F /tmp/msg-task3.txt
 
 ## Task 4 — L'emissione nuova
 
+> 🛑🛑 **IL RAMO NON SI PUBBLICA CON IL SOLO TASK 4. Non è una raccomandazione: è un cancello.**
+> Dopo il Task 4 `generateDpa()` **emette sempre**, e il guard di riuso non c'è ancora — arriva al **Task 5**.
+> Quindi **al SECONDO scarico dello stesso contratto** le quattro colonne di `dpa_emissione_viva_unica` sono
+> identiche, l'`insert` viola l'indice unico e **l'utente vede un errore** — lasciando dietro **un progressivo
+> bruciato** e **un file orfano** nell'archivio. `provato:` `grep` su `src/lib/pdf/generate-dpa.ts` →
+> **nessun** guard di riuso (`maybeSingle`/`download` assenti); `generaProgressivo` alla riga 63, `upload`
+> alla 109, `insert` alla 117.
+> 🔑 **E l'ordine file-poi-riga protegge la TABELLA, non la SERIE dei numeri:** `generaProgressivo` ha già
+> committato quando l'archivio rifiuta — è una RPC propria, fuori da ogni transazione annullabile. La
+> promessa «nessuna riga senza file» è vera; **«nessun file senza riga» no.**
+> ➡️ **Il cancello si apre con i Task 5 (riuso) e 6 (fail-closed e corsa) insieme.**
+
+
 **File:**
 - Modificare: `src/lib/pdf/generate-dpa.ts`
 - 🆕 da creare: `tests/unit/dpa-registro.test.ts`

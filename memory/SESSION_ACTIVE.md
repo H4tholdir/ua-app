@@ -1,7 +1,12 @@
 # Sessione attiva — registro DPA: Task 1 (migration APPLICATA) e Task 2 fatti
 
-🚪 **PUNTO DI RIPRESA:** il piano `docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md` — **Task 3**
-(l'impronta dei soli dati sostanziali). Ledger: `.superpowers/sdd/progress.md`.
+🚪 **PUNTO DI RIPRESA:** il piano `docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md` — **Task 5**
+(il riuso: nessun numero bruciato). Ledger: `.superpowers/sdd/progress.md`.
+
+🛑🛑 **CANCELLO DI PUBBLICAZIONE — il ramo NON si pubblica finché non ci sono i Task 5 E 6.** Col solo
+Task 4 `generateDpa()` **emette sempre**: al **secondo scarico** dello stesso contratto l'`insert` viola
+l'indice unico, l'utente vede un errore, e restano dietro **un progressivo bruciato** e **un file orfano**.
+🔑 L'ordine file-poi-riga protegge la **tabella**, non la **serie dei numeri**.
 
 ✅ **Task 1 COMPLETO — la migration è APPLICATA al database vero**, con l'autorizzazione di Francesco.
 Cancello riletto dal catalogo: colonne **7/7** · indici `dpa_*` **2/2** · vincoli **3/3** · trigger **1/1** ·
