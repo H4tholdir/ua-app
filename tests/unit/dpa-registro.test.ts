@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished, type Mock } from 'vitest'
 import { createChain, type MockChain, type ChainCall } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, CLIENTE_FIXTURE } from './helpers/pdf-fixtures'
 
@@ -98,6 +98,21 @@ async function messaggioDiErrore(fn: () => Promise<unknown>): Promise<string> {
   return esito
 }
 
+/** Il LOG del server, raccolto e leggibile come un testo solo.
+ *
+ *  🔑 Perché il testo e non `expect(spia).toHaveBeenCalled()`: nei rami che
+ *  interessano `console.error` è chiamato ANCHE dal blocco che solleva
+ *  (`generate-dpa.ts:342`), quindi «è stato chiamato» resta VERDE anche
+ *  cancellando la riga di log che si vuole provare. Ciò che va asserito è il
+ *  DETTAGLIO — il pezzo che serve a chi ripara e che non deve uscire dal server.
+ *  🛑 La spia si rimette da sola a fine prova (`onTestFinished`): una spia
+ *  lasciata in piedi si porterebbe dietro le prove successive del file. */
+function spiaIlLog(): () => string {
+  const spia = vi.spyOn(console, 'error').mockImplementation(() => {})
+  onTestFinished(() => spia.mockRestore())
+  return () => spia.mock.calls.map((c) => c.map(String).join(' ')).join('\n')
+}
+
 /** Sentinella: «dalla seconda lettura in poi il registro contiene la stessa
  *  cosa della prima». Distinta da `null`, che invece vuol dire «vuoto». */
 const IDENTICA = Symbol('stessa riga della prima lettura')
@@ -126,6 +141,28 @@ const IDENTICA = Symbol('stessa riga della prima lettura')
  *  risposta HTTP (rete caduta) si ottiene uno `StorageUnknownError`, cioè un
  *  errore SENZA `status` né `statusCode`: v. `RETE_CADUTA` qui sotto. */
 const SPARITO_DAVVERO = { message: 'Object not found', status: 400, statusCode: '404' }
+/** Lo STESSO messaggio del file davvero sparito, ma SENZA lo `statusCode` '404'.
+ *
+ *  🔑 Perché serve: `fileDavveroAssente` è una CONGIUNZIONE, e finché ogni
+ *  fixture con `message: 'Object not found'` porta anche `statusCode: '404'`,
+ *  metà della congiunzione non è provata — togliendo `statusCode === '404'`
+ *  dall'allowlist le prove restavano tutte e 48 VERDI (misurato dalla revisione
+ *  del Task 6, rilievo R1). È la stessa classe di difetto già pagata su questo
+ *  ramo con `de70930d`: «la denylist di D132 non era provata — solo metà di essa
+ *  lo era».
+ *
+ *  ⚠️ `derivato:` NON misurato — l'archivio vero, interrogato il 03/08/2026,
+ *  manda `statusCode: '404'`, quindi questa forma col `curl` non si produce. La
+ *  fixture nasce dalla MAPPATURA di `@supabase/storage-js`
+ *  (`src/lib/common/fetch.ts:78`): `statusCode = err?.statusCode || err?.code ||
+ *  status + ''` — se un giorno il corpo non portasse `statusCode`, al suo posto
+ *  finirebbe `code`, cioè `NoSuchKey`.
+ *
+ *  🛑 E la risposta giusta a quella forma è NON ARCHIVIARE, anche se il
+ *  messaggio «suona» come un file mancante: l'allowlist riconosce ciò che ha
+ *  visto, tutto il resto è un DUBBIO. Il prezzo è un errore rumoroso; il prezzo
+ *  opposto è archiviare una riga `firmato` su un segnale mal letto. */
+const OGGETTO_ASSENTE_SENZA_404 = { message: 'Object not found', status: 400, statusCode: 'NoSuchKey' }
 const BUCKET_ASSENTE = { message: 'Bucket not found', status: 400, statusCode: '404' }
 const ARCHIVIO_GIU = { message: 'Service Unavailable', status: 503, statusCode: '503' }
 const RETE_CADUTA = { message: 'fetch failed' }   // StorageUnknownError: niente status
@@ -226,11 +263,17 @@ function proietta(riga: Record<string, unknown>, calls: ChainCall[]): Record<str
  *  @param erroreLettura      se valorizzato, ogni lettura del registro FALLISCE: serve a
  *                            provare che un guasto di lettura non venga scambiato per
  *                            «non c'è nessuna emissione».
+ *  @param letturaCheFallisce quale lettura colpisce `erroreLettura`: `null` = TUTTE (il
+ *                            comportamento storico), `2` = solo la RILETTURA dopo il
+ *                            23505. Serve al ramo in cui la rilettura fallisce, che
+ *                            altrimenti non è raggiungibile: un errore su TUTTE le
+ *                            letture ferma già il guard, e la rilettura non avviene.
  */
 function montaTabelle(
   emissioneEsistente: Record<string, unknown> | null,
   dopoLaCorsa: Record<string, unknown> | null | typeof IDENTICA = IDENTICA,
   erroreLettura: { message: string; code?: string } | null = null,
+  letturaCheFallisce: number | null = null,
 ) {
   for (const k of Object.keys(catene)) delete catene[k]
   cateneDpa.length = 0
@@ -254,8 +297,12 @@ function montaTabelle(
       c.update = mockUpdate
       c.maybeSingle = async () => {
         c.calls.push({ method: 'maybeSingle', args: [] })
-        if (erroreLettura) return { data: null, error: erroreLettura }
+        // 🔑 Il contatore sale PRIMA del guasto, altrimenti `letturaCheFallisce`
+        //    non saprebbe mai a che lettura siamo.
         letture += 1
+        if (erroreLettura && (letturaCheFallisce === null || letture === letturaCheFallisce)) {
+          return { data: null, error: erroreLettura }
+        }
         const candidata = letture === 1 || dopoLaCorsa === IDENTICA ? emissioneEsistente : dopoLaCorsa
         // Prima il WHERE sulla riga intera, POI la proiezione: l'ordine del database.
         const trovata = applicaFiltri(candidata, c.calls)
@@ -469,7 +516,7 @@ describe('riuso dell\'emissione', () => {
     expect(r.buffer.toString()).toContain('%PDF-vecchio')
   })
 
-  it('🔑 il filtro del guard è LO STESSO dell\'indice dpa_emissione_viva_unica — colonne E predicato', async () => {
+  it('🔑 il filtro del guard è LO STESSO dell\'indice dpa_emissione_viva_unica — colonne, predicato E ordinamento', async () => {
     montaTabelle(null)
     await generateDpa('lab-test-001', 'cli-001')
     const filtri = catenaGuard().calls
@@ -482,6 +529,14 @@ describe('riuso dell\'emissione', () => {
     // E il PREDICATO dell'indice, tutto intero (D132).
     expect(filtri).toContainEqual({ method: 'is', args: ['deleted_at', null] })
     expect(filtri).toContainEqual({ method: 'not', args: ['stato', 'in', '("revocato","scaduto")'] })
+    // 🔑 E l'ORDINAMENTO, che non è una settima CONDIZIONE: le sei dicono quali
+    //    righe entrano, questo dice QUALE si prende. Oggi
+    //    `dpa_emissione_viva_unica` ne ammette al più una viva, quindi non
+    //    morde; il giorno in cui l'indice cambiasse sarebbe l'unica riga a
+    //    decidere il vincitore, e dev'essere la PIÙ RECENTE. Senza questa
+    //    asserzione il mutante `ascending: true` restava VERDE su tutte e 48 le
+    //    prove (revisione del Task 6, rilievo R5).
+    expect(filtri).toContainEqual({ method: 'order', args: ['emesso_at', { ascending: false }] })
   })
 
   it('🛑 due scarichi in GIORNI diversi restituiscono la STESSA emissione (la data è fuori dall\'impronta)', async () => {
@@ -714,6 +769,38 @@ describe('fail-closed e corsa', () => {
     expect(msg).not.toMatch(/dpa_emissione_viva_unica|duplicate key|data_processing_agreements|23505/)
   })
 
+  it('🛑 ① il messaggio del database non esce nemmeno dalla SERIE DEI NUMERI — né INSERT, né tabella, né funzione', async () => {
+    // 🔑 È la fuga che restava aperta UNA RIGA SOPRA quelle già chiuse, ed è la
+    //    più larga di tutte: `generaProgressivo` interpola `error.message` nel
+    //    proprio `Error` (`src/lib/db/progressivi.ts:30-32`), la chiamata qui non
+    //    aveva `try`, e `route.ts:41-43` rimanda `e.message` al browser dentro un
+    //    JSON. Su un guasto vero il testo PUBBLICO conteneva l'INSERT per
+    //    intero, il nome di `public.progressivi_anno` e la firma della funzione.
+    //    Trovata dalla revisione del Task 6 (rilievo IMPORTANTE 1).
+    montaTabelle(null)
+    const log = spiaIlLog()
+    // Il testo nella forma VERA: quella che `progressivi.ts:31` costruisce
+    // interpolando il messaggio che PostgreSQL manda su una RPC rifiutata.
+    mockProgressivo.mockRejectedValue(new Error(
+      'generaProgressivo fallito (tipo=dpa): duplicate key value violates unique constraint "progressivi_anno_pkey" — INSERT INTO public.progressivi_anno (laboratorio_id, tipo, anno, ultimo) VALUES (…) · CONTEXT: PL/pgSQL function public.genera_progressivo(uuid,text,integer)'
+    ))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    // 🔑 La positiva PRIMA della negativa: `not.toMatch` da sola è verde su
+    //    qualunque messaggio, compreso il vuoto.
+    expect(msg).toBe('DPA: non è stato possibile assegnare il numero al documento')
+    expect(msg).not.toMatch(/progressivi_anno|INSERT INTO|genera_progressivo|duplicate key/)
+    // 🔑 Il dettaglio non si PERDE: si sposta dove deve stare. Chi ripara legge
+    //    i log, e senza queste due righe un `try/catch` che inghiotte tutto
+    //    passerebbe per una correzione.
+    expect(log()).toContain('progressivo non assegnato')
+    expect(log()).toContain('public.progressivi_anno')
+    // E a valle non si brucia niente: nessun PDF caricato, nessuna riga scritta.
+    expect(mockUpload).not.toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
   // ════════════════════ la corsa fra due richieste ════════════════════
 
   it('🛑 corsa: l\'insert dà 23505, si rilegge la riga vincitrice e si restituisce QUELLA', async () => {
@@ -736,7 +823,7 @@ describe('fail-closed e corsa', () => {
     expect(mockDownload).toHaveBeenCalledWith(VINCITRICE.storage_path_pdf)
   })
 
-  it('🔑 la RILETTURA porta le STESSE sei condizioni del guard e dell\'indice dpa_emissione_viva_unica', async () => {
+  it('🔑 la RILETTURA porta le STESSE sei condizioni del guard e dell\'indice dpa_emissione_viva_unica — e lo stesso ordinamento', async () => {
     montaTabelle(null, VINCITRICE)
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
@@ -754,6 +841,12 @@ describe('fail-closed e corsa', () => {
     expect(filtri).toContainEqual({ method: 'eq', args: ['template_versione', VERSIONE_MODELLO_DPA] })
     expect(filtri).toContainEqual({ method: 'is', args: ['deleted_at', null] })
     expect(filtri).toContainEqual({ method: 'not', args: ['stato', 'in', '("revocato","scaduto")'] })
+    // 🔑 E lo STESSO ordinamento del guard — l'invariante è «indice = guard =
+    //    rilettura», e due letture che ordinano al contrario sceglierebbero
+    //    righe diverse dallo stesso insieme il giorno in cui l'insieme avesse
+    //    più di una riga. Mutante `ascending: true`: 48 su 48 verdi prima di
+    //    questa riga (revisione del Task 6, rilievo R4).
+    expect(filtri).toContainEqual({ method: 'order', args: ['emesso_at', { ascending: false }] })
   })
 
   it('🛑 …e i filtri della rilettura MORDONO: una vincitrice di un\'ALTRA versione di modello non si consegna', async () => {
@@ -874,9 +967,87 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null, VINCITRICE)
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
     mockDownload.mockResolvedValue({ data: null, error: ARCHIVIO_GIU })
+    const log = spiaIlLog()
 
     const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    // 🔑 …e il PERCHÉ finisce nel log. Era il difetto che il Task 6 ha chiuso —
+    //    l'errore della vincitrice non ci finiva nemmeno — e senza queste righe
+    //    cancellare quel `console.error` lasciava tutte e 48 le prove verdi
+    //    (revisione del Task 6, rilievo R7). Chi ripara resterebbe con un «non è
+    //    stato possibile registrare» che non dice niente.
+    expect(log()).toContain('PDF della vincitrice non scaricabile')
+    expect(log()).toContain(VINCITRICE.storage_path_pdf)
+    expect(log()).toContain('Service Unavailable')
+  })
+
+  // ═══ ③ la rimozione del PDF orfano: l'unico guasto che NON deve sollevare ═══
+
+  it('🛑 se la RIMOZIONE del PDF orfano fallisce, non si solleva per quello: la vincitrice si consegna lo stesso', async () => {
+    // 🔑 La decisione è scritta in `generate-dpa.ts:280-282` («l'errore da
+    //    raccontare è un altro») e fino a qui NON era provata: `mockRemove` non
+    //    falliva in nessuna delle 48 prove (revisione del Task 6, rilievo 3).
+    //    Una decisione dichiarata e non provata è una decisione che il prossimo
+    //    che passa può ribaltare senza accorgersene.
+    montaTabelle(null, VINCITRICE)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+    mockDownload.mockResolvedValue({ data: new Blob([Buffer.from('%PDF-della-vincitrice')]), error: null })
+    mockRemove.mockResolvedValue({ data: null, error: { message: 'remove rifiutato: chiave sk_live_xyz' } })
+    const log = spiaIlLog()
+
+    const r = await generateDpa('lab-test-001', 'cli-001')
+
+    // Un PDF di troppo nell'archivio è meno grave di un errore sostituito da un
+    // altro errore — e chi ha chiesto il documento lo riceve comunque.
+    expect(r.emissione_id).toBe('em-vincitrice')
+    expect(r.numero_dpa).toBe('DPA-2026-0011')
+    expect(r.riemessa).toBe(false)
+    expect(r.buffer.toString()).toContain('%PDF-della-vincitrice')
+    // 🔑 Ma il guasto NON si perde: percorso e motivo finiscono nel log, o resta
+    //    un file coi dati dello studio che nessuno sa di dover togliere (GDPR).
+    expect(log()).toContain('PDF orfano non rimosso')
+    expect(log()).toContain(NOSTRO_PERCORSO)
+    expect(log()).toContain('remove rifiutato')
+  })
+
+  it("🛑 …e se la rimozione fallisce mentre si sta già sollevando, il messaggio dell'archivio non esce lo stesso", async () => {
+    // 🛑 IL CANALE DI FUGA misurato dalla revisione (rilievo R6): trasformando
+    //    quel `console.error` in un `throw new Error(erroreRimozione.message)`,
+    //    tutte e 48 le prove restavano VERDI — cioè il messaggio dell'archivio
+    //    poteva tornare a uscire verso il browser (`route.ts:41-43` rimanda
+    //    `e.message`) senza che nessuna delle tre reti se ne accorgesse.
+    montaTabelle(null, null)
+    mockInsert.mockReturnValue(createChain({
+      data: null,
+      error: { code: '23514', message: 'new row violates check constraint "dpa_impronte_esadecimali"' },
+    }))
+    mockRemove.mockResolvedValue({ data: null, error: { message: 'remove rifiutato: chiave sk_live_xyz' } })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(msg).not.toMatch(/sk_live_xyz|remove rifiutato/)
+  })
+
+  it('🔑 se la RILETTURA dopo il 23505 fallisce, il suo errore finisce nel LOG — e non nel messaggio', async () => {
+    // La rilettura è l'ULTIMA rete della corsa: se si guasta anche lei, chi
+    // ripara deve sapere PERCHÉ. Cancellando quel `console.error` restavano
+    // tutte e 48 le prove verdi (revisione del Task 6, rilievo R7).
+    // 🔑 Il quarto argomento è ciò che rende raggiungibile questo ramo: un
+    //    errore su TUTTE le letture fermerebbe già il guard, e la rilettura non
+    //    avverrebbe mai.
+    montaTabelle(null, VINCITRICE, { message: 'rilettura rifiutata: connessione col database interrotta', code: '08006' }, 2)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+    const log = spiaIlLog()
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(msg).not.toMatch(/rilettura rifiutata|08006/)
+    expect(log()).toContain('rilettura dopo 23505 fallita')
+    expect(log()).toContain('rilettura rifiutata: connessione col database interrotta')
+    // Senza vincitrice non si consegna niente: non c'è nessun documento da dare.
+    expect(mockDownload).not.toHaveBeenCalled()
   })
 
   // ═══════ ①-bis fail-closed: nel dubbio non si distrugge niente ═══════
@@ -893,6 +1064,13 @@ describe('fail-closed e corsa', () => {
     ['il CONTENITORE che non risponde — statusCode «404» come il file mancante', BUCKET_ASSENTE],
     ['la rete caduta, senza nessuna risposta HTTP', RETE_CADUTA],
     ['un esito che il client non sa spiegare: né file né errore', null],
+    // 🔑 L'ALTRA metà dell'allowlist, e senza di lei metà del `&&` non è provata:
+    //    finché ogni fixture con «Object not found» porta anche `statusCode:
+    //    '404'`, togliere `statusCode === '404'` lascia tutte e 48 le prove
+    //    VERDI (revisione del Task 6, rilievo R1 — stessa classe del difetto
+    //    D132 chiuso in `de70930d`). Qui il MESSAGGIO è quello del file sparito e
+    //    lo `statusCode` no: forma non riconosciuta = DUBBIO = non si distrugge.
+    ['un «Object not found» che NON porta lo statusCode «404»', OGGETTO_ASSENTE_SENZA_404],
   ])('🛑 %s NON è «file sparito»: si solleva e non si archivia NIENTE', async (_titolo, errore) => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: errore })

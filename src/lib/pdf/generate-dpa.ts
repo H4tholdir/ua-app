@@ -194,7 +194,27 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
   }
 
   const anno = annoRoma()
-  const progressivo = await generaProgressivo(svc, laboratorio_id, 'dpa', anno)
+  // 🛑 ① IL MESSAGGIO DEL DATABASE USCIVA DA QUI, una riga sopra tutte le altre
+  //    che questo file ha già chiuso. `generaProgressivo` interpola
+  //    `error.message` dentro il proprio `Error` (`src/lib/db/progressivi.ts:30-32`)
+  //    e `route.ts:41-43` rimanda `e.message` al browser dentro un JSON: senza
+  //    questo `try`, su un guasto vero il testo PUBBLICO conteneva l'INSERT per
+  //    intero, il nome di `public.progressivi_anno` e la firma della funzione.
+  //    Stessa regola di ogni altro guasto di questo file: il dettaglio nel LOG,
+  //    al chiamante un testo FISSO.
+  //    ⚠️ Il `try` avvolge SOLO questa chiamata. Allargarlo al rendering o al
+  //    caricamento vorrebbe dire raccontare come «numero non assegnato» un
+  //    guasto che non lo è — e questo file distingue i guasti apposta.
+  //    📌 `progressivi.ts` ha lo STESSO difetto per tutti gli altri documenti
+  //    (DdC, buono, fattura, invio SDI): è fuori dal mandato di questo task e va
+  //    RIFERITO, non corretto di nascosto (R-E2). V. referto Task 6, «Riserve».
+  let progressivo: number
+  try {
+    progressivo = await generaProgressivo(svc, laboratorio_id, 'dpa', anno)
+  } catch (e) {
+    console.error('generateDpa — progressivo non assegnato:', e instanceof Error ? e.message : String(e))
+    throw new Error('DPA: non è stato possibile assegnare il numero al documento')
+  }
   const numero_dpa = `DPA-${anno}-${String(progressivo).padStart(4, '0')}`
 
   const dpa = {
@@ -313,6 +333,12 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
       //    l'emissione di un'ALTRA versione di modello e consegnerebbe al
       //    dentista il testo sbagliato — il guasto che questo registro esiste
       //    per impedire.
+      //    🔑 Dell'invariante fa parte anche l'ORDINAMENTO, e non è un dettaglio
+      //    di stile: le sei condizioni dicono QUALI righe entrano, l'ordine dice
+      //    QUALE si prende. Oggi `dpa_emissione_viva_unica` ne ammette al più
+      //    UNA viva, quindi l'ordine non morde; il giorno in cui l'indice
+      //    cambiasse, sarebbe l'unica riga a decidere il vincitore — e deve
+      //    essere la PIÙ RECENTE, qui come nel guard.
       if (erroreRilettura) {
         console.error('generateDpa — rilettura dopo 23505 fallita:', erroreRilettura.message)
       }
