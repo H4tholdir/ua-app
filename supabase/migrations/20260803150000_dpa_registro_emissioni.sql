@@ -65,10 +65,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
 --     payload_sha256 NOT NULL implica, per dpa_emissione_coerente, il ramo
 --     dell'emissione completa, che pretende dentista_id NOT NULL. Senza quel
 --     CHECK i NULL sarebbero distinti fra loro e l'indice non deduplicherebbe.
+--     🔑 «VIVA» comprende lo STATO, non solo deleted_at (D132, 03/08/2026).
+--     Senza `stato NOT IN ('revocato','scaduto')` un DPA revocato o scaduto
+--     resterebbe nell'indice e farebbe da TAPPO: nessuna riemissione possibile
+--     a quel dentista con gli stessi dati sostanziali, per sempre — e il payload
+--     esclude apposta numero e data, quindi l'impronta resta la stessa in eterno.
+--     E' la stessa forma del precedente DdC, che esclude 'annullata'.
+--     Denylist e non allowlist di proposito: uno stato NUOVO resta NELL'indice,
+--     cioe' continua a deduplicare. Sbagliare da questa parte non apre buchi.
+--     ⚠️ INVARIANTE: questo predicato, il filtro del guard di riuso (Task 5) e
+--     il filtro della rilettura dopo il 23505 (Task 6) sono LA STESSA COSA.
+--     Se cambia uno, cambiano tutti e tre — o il guard restituisce come corrente
+--     un contratto che l'indice considera morto.
 CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
   ON public.data_processing_agreements
      (laboratorio_id, dentista_id, payload_sha256, template_versione)
-  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL;
+  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL
+    AND stato NOT IN ('revocato','scaduto');
 
 -- ----------------------------------------------------------------- vincoli --
 -- ADD CONSTRAINT non ha IF NOT EXISTS: si guarda pg_constraint.

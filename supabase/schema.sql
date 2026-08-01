@@ -2923,9 +2923,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
 -- quello sul numero non puo' scattare, perche' genera_progressivo da' ai due
 -- concorrenti progressivi DIVERSI, apposta. Stesso schema della DdC
 -- (ddc_lavoro_attiva_unique + backstop UNIQUE su anno/progressivo).
+-- «VIVA» comprende lo STATO, non solo deleted_at (D132): un DPA revocato o
+-- scaduto farebbe da TAPPO alla riemissione a quel dentista, per sempre.
+-- Stessa forma del precedente DdC, che esclude 'annullata'.
 CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
   ON data_processing_agreements (laboratorio_id, dentista_id, payload_sha256, template_versione)
-  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL;
+  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL
+    AND stato NOT IN ('revocato','scaduto');
 
 ALTER TABLE data_processing_agreements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "dpa_laboratorio" ON data_processing_agreements

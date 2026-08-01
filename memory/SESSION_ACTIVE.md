@@ -23,5 +23,9 @@ rilettura, il perdente toglie il proprio file), **Task 9** (due `curl` in **para
 🔜 **Prossimo:** eseguire il **Task 1** su ramo `dpa-registro` **nel repo principale** (🛑 mai un worktree),
 R-E1, esecutore fresco. Si ferma sul **commit della migration**: applicarla è il punto in cui il lavoro
 **aspetta Francesco**.
-📎 Verbale decisioni: **centotrentuno** in **quarantatré** tornate; la prossima è **D132**.
+📎 Verbale decisioni: **centotrentadue** in **quarantaquattro** tornate; la prossima è **D133**.
+🆕 **D132 (03/08):** l'indice anti-doppione del contratto **esclude gli stati morti** (`revocato`, `scaduto`),
+o un contratto revocato farebbe da **tappo** alla riemissione per sempre. Aggiornati **insieme** indice,
+guard del Task 5 e rilettura del Task 6: cambiarne uno solo dava il difetto **opposto** — consegnare a un
+dentista un contratto revocato come se fosse quello in corso.
 ⚠️ L'orologio della macchina dice **1° agosto**; i documenti seguono la serie del **3 agosto**.

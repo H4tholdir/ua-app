@@ -288,10 +288,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
 --     (20260710090000_ddc_annullata_unique_parziale.sql) + il suo backstop
 --     UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc) a schema.sql:1273.
 --     Regola gia' ratificata per le fatture: spec 2026-07-09 ondata-4a, §4 M3.
+--     🔑 «VIVA» comprende lo STATO, non solo deleted_at (D132, 03/08/2026).
+--     Senza `stato NOT IN ('revocato','scaduto')` un DPA revocato o scaduto
+--     resterebbe nell'indice e farebbe da TAPPO: nessuna riemissione possibile
+--     a quel dentista con gli stessi dati, per sempre. Denylist di proposito:
+--     uno stato NUOVO resta NELL'indice, cioe' continua a deduplicare.
+--     ⚠️ INVARIANTE: questo predicato, il filtro del guard (Task 5) e quello
+--     della rilettura dopo il 23505 (Task 6) sono LA STESSA COSA.
 CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
   ON public.data_processing_agreements
      (laboratorio_id, dentista_id, payload_sha256, template_versione)
-  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL;
+  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL
+    AND stato NOT IN ('revocato','scaduto');
 
 -- ----------------------------------------------------------------- vincoli --
 -- ADD CONSTRAINT non ha IF NOT EXISTS: si guarda pg_constraint.
@@ -1197,6 +1205,11 @@ describe('riuso dell\'emissione', () => {
     .eq('payload_sha256', impronta)
     .eq('template_versione', VERSIONE_MODELLO_DPA)
     .is('deleted_at', null)
+    // D132: «viva» comprende lo STATO. Lo stesso predicato dell'indice
+    // dpa_emissione_viva_unica — se cambia uno, cambiano tutti e tre (indice,
+    // guard, rilettura del Task 6). Senza questo filtro il guard restituirebbe
+    // come corrente un contratto REVOCATO che l'indice considera morto.
+    .not('stato', 'in', '("revocato","scaduto")')
     .order('emesso_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -1307,6 +1320,7 @@ già passare dal Task 4. **Contare e scrivere il numero.**
         .eq('payload_sha256', impronta)
         .eq('template_versione', VERSIONE_MODELLO_DPA)   // 🔑 le QUATTRO colonne
         .is('deleted_at', null)
+        .not('stato', 'in', '("revocato","scaduto")')    // 🔑 e lo stesso stato (D132)
         .order('emesso_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -1336,8 +1350,11 @@ già passare dal Task 4. **Contare e scrivere il numero.**
 **tre** colonne dove il guard ne filtra quattro: mancava `template_versione`. Con l'indice a quattro
 colonne, chi perde la corsa poteva rileggere **l'emissione di una versione di modello diversa** e consegnare
 al dentista **il testo sbagliato** — precisamente il fallimento che questo registro esiste per impedire.
-🔑 **L'invariante, da tenere per tutta l'ondata:** *colonne dell'indice = filtro del guard = filtro della
-rilettura*, tutti e tre uguali. Se uno dei tre cambia, cambiano tutti e tre.
+🔑 **L'invariante, da tenere per tutta l'ondata:** *colonne **e predicato** dell'indice = filtro del guard =
+filtro della rilettura*, tutti e tre uguali. Se uno dei tre cambia, cambiano tutti e tre.
+🔄 **E il predicato è cresciuto con D132:** oltre a `deleted_at IS NULL` c'è `stato NOT IN
+('revocato','scaduto')`. Un guard che non lo filtrasse restituirebbe come **corrente** un contratto che
+l'indice considera **morto** — che è il difetto opposto e peggiore di quello che D132 chiude.
 
 **② Chi perde toglie il proprio file.** Il caricamento precede l'`INSERT` (ed è giusto così): il perdente ha
 già scritto un PDF su un percorso che nessuna riga nominerà mai.
