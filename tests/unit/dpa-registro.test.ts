@@ -3,11 +3,14 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 import { createChain, type MockChain, type ChainCall } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, CLIENTE_FIXTURE } from './helpers/pdf-fixtures'
 
-const { mockFrom, mockInsert, mockUpdate, mockUpload, mockDownload, mockStorageFrom, mockProgressivo } = vi.hoisted(() => {
+const { mockFrom, mockInsert, mockUpdate, mockUpload, mockDownload, mockRemove, mockStorageFrom, mockProgressivo } = vi.hoisted(() => {
   const mockUpload = vi.fn()
   const mockDownload = vi.fn()
+  /** Il `remove` dell'archivio: lo usa SOLO chi perde la corsa, per togliere il
+   *  PDF che ha già caricato e che nessuna riga nominerà mai. */
+  const mockRemove = vi.fn()
   return {
-    mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpdate: vi.fn(), mockUpload, mockDownload, mockProgressivo: vi.fn(),
+    mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpdate: vi.fn(), mockUpload, mockDownload, mockRemove, mockProgressivo: vi.fn(),
     /** Il CONTENITORE dell'archivio, ASSERIBILE — e fail-closed su tutto il resto.
      *
      *  🔑 Prima ignorava il proprio argomento, e scrivere `.from('documenti-sbagliato')`
@@ -24,7 +27,7 @@ const { mockFrom, mockInsert, mockUpdate, mockUpload, mockDownload, mockStorageF
       if (contenitore !== 'documenti') {
         throw new Error(`Mock DPA: contenitore inatteso «${contenitore}» — i DPA vivono nel contenitore privato «documenti»`)
       }
-      return { upload: mockUpload, download: mockDownload }
+      return { upload: mockUpload, download: mockDownload, remove: mockRemove }
     }),
   }
 })
@@ -70,6 +73,62 @@ const catenaGuard = (): MockChain => {
   if (!c) throw new Error('Nessuna catena di LETTURA su data_processing_agreements')
   return c
 }
+/** La SECONDA lettura del registro: la rilettura dopo il 23505 (Task 6).
+ *  🔑 Serve distinta dalla prima perché l'invariante da provare è che porti gli
+ *  STESSI sei filtri del guard — e una prova che guardasse la catena del guard
+ *  sarebbe verde anche con una rilettura che non filtra niente. */
+const catenaRilettura = (): MockChain => {
+  const letture = cateneDpa.filter((x) => x.calls[0]?.method === 'select')
+  if (letture.length < 2) throw new Error(`Attese 2 LETTURE su data_processing_agreements, trovate ${letture.length}`)
+  return letture[1]
+}
+
+/** Il messaggio dell'errore sollevato, per poterlo confrontare ESATTAMENTE.
+ *
+ *  🔑 Perché non basta `rejects.not.toThrow(/segreto/)`: quella negativa è verde
+ *  per QUALUNQUE messaggio che non contenga quella stringa — compreso il
+ *  messaggio vuoto, e compreso un mutante che al posto di `erroreRiga.message`
+ *  facesse uscire `erroreRiga.code`. Una negativa senza la sua positiva non
+ *  misura niente: qui ogni «non esce» è appaiato a un «esce ESATTAMENTE questo». */
+async function messaggioDiErrore(fn: () => Promise<unknown>): Promise<string> {
+  const RIUSCITA = Symbol('la chiamata non ha sollevato')
+  let esito: string | symbol = RIUSCITA
+  try { await fn() } catch (e) { esito = e instanceof Error ? e.message : String(e) }
+  if (typeof esito === 'symbol') throw new Error('La chiamata doveva fallire e invece è riuscita')
+  return esito
+}
+
+/** Sentinella: «dalla seconda lettura in poi il registro contiene la stessa
+ *  cosa della prima». Distinta da `null`, che invece vuol dire «vuoto». */
+const IDENTICA = Symbol('stessa riga della prima lettura')
+
+/** ═══ Gli errori dell'ARCHIVIO, nella forma che l'archivio VERO produce ═══
+ *
+ *  🔑 Non sono inventati: sono la risposta misurata sul progetto vero il
+ *  03/08/2026, con la chiave di servizio.
+ *  `provato:` `curl -w "HTTP=%{http_code}" "$URL/storage/v1/object/documenti/<inesistente>"`
+ *    → `HTTP=400` · `{"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}`
+ *  `provato:` `curl … "$URL/storage/v1/object/<bucket-inesistente>/x.pdf"`
+ *    → `HTTP=400` · `{"statusCode":"404","error":"Bucket not found","message":"Bucket not found","code":"NoSuchBucket"}`
+ *  `provato:` la STESSA richiesta SENZA credenziali → identica alla precedente.
+ *
+ *  🛑 Da qui le due trappole che queste fixture esistono per tenere aperte:
+ *  ① `status` vale **400**, non 404 — un codice che cercasse `status === 404`
+ *     non archivierebbe MAI l'orfana, e la riemissione sarebbe una porta chiusa
+ *     permanente. Prima di questo Task la fixture portava il solo `message`, e
+ *     quella trappola non era né provata né provabile.
+ *  ② `statusCode` è la STRINGA `'404'` — e la dice anche il bucket mancante,
+ *     cioè una chiave di servizio ruotata male. Archiviare su quel segnale
+ *     vorrebbe dire archiviare OGNI riga del registro, comprese le `firmato`.
+ *
+ *  Mappatura in `@supabase/storage-js` (`src/lib/common/fetch.ts:75-83`):
+ *  `statusCode = err.statusCode || err.code || String(status)`, e senza nessuna
+ *  risposta HTTP (rete caduta) si ottiene uno `StorageUnknownError`, cioè un
+ *  errore SENZA `status` né `statusCode`: v. `RETE_CADUTA` qui sotto. */
+const SPARITO_DAVVERO = { message: 'Object not found', status: 400, statusCode: '404' }
+const BUCKET_ASSENTE = { message: 'Bucket not found', status: 400, statusCode: '404' }
+const ARCHIVIO_GIU = { message: 'Service Unavailable', status: 503, statusCode: '503' }
+const RETE_CADUTA = { message: 'fetch failed' }   // StorageUnknownError: niente status
 
 /** Applica DAVVERO i filtri della query alla riga candidata.
  *
@@ -158,9 +217,26 @@ function proietta(riga: Record<string, unknown>, calls: ChainCall[]): Record<str
   return proiettata
 }
 
-function montaTabelle(emissioneEsistente: Record<string, unknown> | null) {
+/** Monta le tabelle del mock.
+ *
+ *  @param emissioneEsistente la riga che il registro contiene alla PRIMA lettura
+ *  @param dopoLaCorsa        la riga che il registro contiene dalla SECONDA lettura in
+ *                            poi — cioè quella scritta dall'ALTRA richiesta mentre la
+ *                            nostra era per strada. `IDENTICA` = non è cambiato niente.
+ *  @param erroreLettura      se valorizzato, ogni lettura del registro FALLISCE: serve a
+ *                            provare che un guasto di lettura non venga scambiato per
+ *                            «non c'è nessuna emissione».
+ */
+function montaTabelle(
+  emissioneEsistente: Record<string, unknown> | null,
+  dopoLaCorsa: Record<string, unknown> | null | typeof IDENTICA = IDENTICA,
+  erroreLettura: { message: string; code?: string } | null = null,
+) {
   for (const k of Object.keys(catene)) delete catene[k]
   cateneDpa.length = 0
+  // 🔑 Il contatore vive QUI e non dentro la catena: ogni lettura riceve una
+  //    catena NUOVA, quindi un contatore per catena varrebbe sempre 1.
+  let letture = 0
   mockFrom.mockImplementation((tabella: string) => {
     if (tabella === 'laboratori') {
       return (catene.laboratori = createChain({ data: LAB_FIXTURE, error: null }))
@@ -178,8 +254,11 @@ function montaTabelle(emissioneEsistente: Record<string, unknown> | null) {
       c.update = mockUpdate
       c.maybeSingle = async () => {
         c.calls.push({ method: 'maybeSingle', args: [] })
+        if (erroreLettura) return { data: null, error: erroreLettura }
+        letture += 1
+        const candidata = letture === 1 || dopoLaCorsa === IDENTICA ? emissioneEsistente : dopoLaCorsa
         // Prima il WHERE sulla riga intera, POI la proiezione: l'ordine del database.
-        const trovata = applicaFiltri(emissioneEsistente, c.calls)
+        const trovata = applicaFiltri(candidata, c.calls)
         return { data: trovata === null ? null : proietta(trovata, c.calls), error: null }
       }
       cateneDpa.push(c)
@@ -196,6 +275,7 @@ describe('emissione nuova', () => {
     mockProgressivo.mockResolvedValue(7)
     mockInsert.mockReturnValue(createChain({ data: { id: 'em-1' }, error: null }))
   })
+  afterEach(() => { vi.useRealTimers() })
 
   it('quando non esiste nulla: carica il file, prende un progressivo, scrive la riga', async () => {
     montaTabelle(null)
@@ -224,7 +304,50 @@ describe('emissione nuova', () => {
     // vincolo lascia passare proprio la forma che il vincolo esiste per fermare.
     expect(String(riga.pdf_sha256)).toMatch(/^[0-9a-f]{64}$/)
     expect(String(riga.payload_sha256)).toMatch(/^[0-9a-f]{64}$/)
-    expect(riga.emesso_at).toBeTruthy()
+    // 🔑 Non `toBeTruthy()`: con quella, `emesso_at: 'ieri mattina'` è VERDE.
+    //    La colonna è un timestamp, e la forma ISO è ciò che la rende tale.
+    expect(String(riga.emesso_at)).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+  })
+
+  it('🛑 il caricamento non SOVRASCRIVE mai: `upsert: false`, nel contenitore privato', async () => {
+    montaTabelle(null)
+    await generateDpa('lab-test-001', 'cli-001')
+
+    // 🔑 È la riga che impedisce di sovrascrivere un documento CONSERVATO.
+    //    Con `upsert: true` un secondo giro sullo stesso numero rimpiazzerebbe
+    //    in silenzio il PDF a cui una riga di registro punta già, e l'impronta
+    //    `pdf_sha256` in banca dati certificherebbe un file che non esiste più.
+    //    Senza questa asserzione il mutante `upsert: true` resta VERDE.
+    expect(mockUpload.mock.calls[0][2]).toEqual({ contentType: 'application/pdf', upsert: false })
+    expect(mockStorageFrom).toHaveBeenCalledWith('documenti')
+  })
+
+  it("🛑 `emesso_at` è l'ISTANTE dell'emissione, non un testo qualsiasi", async () => {
+    // 🔑 Solo `Date` è finto: `setTimeout` resta vero, altrimenti il rendering
+    //    del PDF resterebbe appeso e il segnale sarebbe un timeout, non un rosso.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-03T14:25:36.123Z'))
+    montaTabelle(null)
+    await generateDpa('lab-test-001', 'cli-001')
+    const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
+    expect(riga.emesso_at).toBe('2026-08-03T14:25:36.123Z')
+  })
+
+  it("🛑 il 31 dicembre alle 23:30 UTC a Roma è già l'anno DOPO — e il numero lo segue", async () => {
+    // 🔑 Il 1° agosto Roma e UTC cadono nello stesso anno, quindi `ANNO_ROMA`
+    //    non morde: l'anno UTC passerebbe. Qui mordono entrambi, sempre.
+    //    È il guasto di capodanno che `src/lib/db/progressivi.ts:12-15`
+    //    documenta come già pagato una volta.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-12-31T23:30:00.000Z'))   // → 2027-01-01 00:30 a Roma
+    montaTabelle(null)
+    const r = await generateDpa('lab-test-001', 'cli-001')
+
+    expect(r.numero_dpa).toBe('DPA-2027-0007')
+    expect(mockProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'dpa', 2027)
+    const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
+    expect(riga.anno_dpa).toBe(2027)
+    expect(String(riga.storage_path_pdf)).toBe('lab-test-001/dpa/2027/DPA-2027-0007.pdf')
   })
 
   it("il progressivo è chiesto col tipo «dpa» e con l'anno di Roma", async () => {
@@ -448,7 +571,7 @@ describe('riuso dell\'emissione', () => {
 
   it('il PDF conservato non si trova più nell\'archivio: RIEMETTE invece di rispondere errore', async () => {
     montaTabelle(CORRENTE)
-    mockDownload.mockResolvedValue({ data: null, error: { message: 'Object not found' } })
+    mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
     const r = await generateDpa('lab-test-001', 'cli-001')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
@@ -456,7 +579,7 @@ describe('riuso dell\'emissione', () => {
 
   it('🛑 …e PRIMA di riemettere ARCHIVIA l\'orfana: senza, la riemissione è una porta chiusa permanente', async () => {
     montaTabelle(CORRENTE)
-    mockDownload.mockResolvedValue({ data: null, error: { message: 'Object not found' } })
+    mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
 
     await generateDpa('lab-test-001', 'cli-001')
 
@@ -473,7 +596,7 @@ describe('riuso dell\'emissione', () => {
 
   it('🛑 …e l\'UPDATE dev\'essere SPEDITO, non solo costruito: senza `await` la chiave resta occupata', async () => {
     montaTabelle(CORRENTE)
-    mockDownload.mockResolvedValue({ data: null, error: { message: 'Object not found' } })
+    mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
 
     await generateDpa('lab-test-001', 'cli-001')
 
@@ -502,5 +625,382 @@ describe('riuso dell\'emissione', () => {
     //    riga archiviata e un numero bruciato a ogni scarico.
     expect(mockStorageFrom).toHaveBeenCalledWith('documenti')
     expect(mockDownload).toHaveBeenCalledWith('lab-test-001/dpa/2026/DPA-2026-0003.pdf')
+  })
+})
+
+describe('fail-closed e corsa', () => {
+  /** La riga viva che il guard trova, col suo PDF conservato. */
+  const CORRENTE = {
+    id: 'em-vecchia',
+    laboratorio_id: 'lab-test-001',
+    dentista_id: 'cli-001',
+    numero_dpa: 'DPA-2026-0003',
+    storage_path_pdf: 'lab-test-001/dpa/2026/DPA-2026-0003.pdf',
+    payload_sha256: improntaDpa(LAB_FIXTURE, CLIENTE_FIXTURE),
+    template_versione: VERSIONE_MODELLO_DPA,
+    stato: 'da_firmare',
+    deleted_at: null as string | null,
+  }
+  /** La riga scritta dall'ALTRA richiesta mentre la nostra era per strada.
+   *  🔑 Il suo numero è DIVERSO dal nostro apposta: `genera_progressivo` dà ai
+   *  due concorrenti progressivi diversi, quindi la vincitrice ha un percorso
+   *  suo — ed è ciò che rende asseribile «il perdente toglie il PROPRIO file». */
+  const VINCITRICE = { ...CORRENTE, id: 'em-vincitrice', numero_dpa: 'DPA-2026-0011', storage_path_pdf: 'lab-test-001/dpa/2026/DPA-2026-0011.pdf' }
+
+  /** Il percorso su cui il PERDENTE (cioè noi) ha già caricato il proprio PDF. */
+  const NOSTRO_PERCORSO = `lab-test-001/dpa/${ANNO_ROMA}/DPA-${ANNO_ROMA}-0007.pdf`
+
+  const DUPLICATO_SULLA_CHIAVE_VIVA = {
+    code: '23505',
+    message: 'duplicate key value violates unique constraint "dpa_emissione_viva_unica"',
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUpload.mockResolvedValue({ error: null })
+    mockProgressivo.mockResolvedValue(7)
+    mockInsert.mockReturnValue(createChain({ data: { id: 'em-1' }, error: null }))
+    mockUpdate.mockReturnValue(createChain({ data: null, error: null }))
+    mockRemove.mockResolvedValue({ data: [], error: null })
+    mockDownload.mockResolvedValue({ data: new Blob([Buffer.from('%PDF-vecchio')]), error: null })
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  // ════════════════════ ② il FILE prima della RIGA ════════════════════
+
+  it("🛑 se l'archivio rifiuta il file, NESSUNA riga viene scritta", async () => {
+    montaTabelle(null)
+    mockUpload.mockResolvedValue({ error: { message: 'storage giù' } })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    // 🔑 QUESTA è la prova che protegge l'invariante «il file prima della riga».
+    //    `toHaveBeenCalledBefore` prova solo il cammino felice: togliendo il
+    //    `throw` dopo il caricamento fallito, quelle restavano tutte VERDI
+    //    (7 su 7, misurato dalla revisione del Task 4, rilievo I3) — e in
+    //    produzione il registro avrebbe una riga che nomina un file inesistente.
+    expect(msg).toBe('DPA: non è stato possibile conservare il documento')
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  // ════════════ ① nessun messaggio del sottosuolo esce dal server ════════════
+  //
+  // `src/app/api/clienti/[id]/dpa/route.ts:43-44` rimanda `e.message` al
+  // browser dentro un JSON. Tutto ciò che questa funzione mette in un `Error`
+  // è quindi TESTO PUBBLICO: nomi di vincoli, di tabelle e di colonne compresi.
+  // Il dettaglio serve a chi ripara, e chi ripara legge i log.
+
+  it("① il messaggio dell'ARCHIVIO non esce verso il browser", async () => {
+    montaTabelle(null)
+    mockUpload.mockResolvedValue({ error: { message: 'chiave segreta xyz nel bucket documenti' } })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: non è stato possibile conservare il documento')
+    expect(msg).not.toMatch(/chiave segreta/)
+  })
+
+  it('🛑 ① il messaggio del DATABASE non esce verso il browser — né il VINCOLO, né la TABELLA', async () => {
+    montaTabelle(null)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    // 🔑 La positiva PRIMA della negativa, e non è pignoleria: `not.toMatch` da
+    //    sola è verde su QUALUNQUE messaggio che non contenga quelle parole —
+    //    compreso il vuoto, e compreso un mutante che facesse uscire
+    //    `erroreRiga.code` invece di `erroreRiga.message`.
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(msg).not.toMatch(/dpa_emissione_viva_unica|duplicate key|data_processing_agreements|23505/)
+  })
+
+  // ════════════════════ la corsa fra due richieste ════════════════════
+
+  it('🛑 corsa: l\'insert dà 23505, si rilegge la riga vincitrice e si restituisce QUELLA', async () => {
+    // Alla prima lettura il registro è vuoto (il guard non trova niente e si
+    // riemette); alla seconda c'è la riga dell'altra richiesta.
+    montaTabelle(null, VINCITRICE)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+    mockDownload.mockResolvedValue({ data: new Blob([Buffer.from('%PDF-della-vincitrice')]), error: null })
+
+    const r = await generateDpa('lab-test-001', 'cli-001')
+
+    expect(r.emissione_id).toBe('em-vincitrice')
+    expect(r.numero_dpa).toBe('DPA-2026-0011')
+    // 🔑 `riemessa: false`: chi perde NON ha emesso niente. La riga di registro
+    //    è dell'altro, e il numero pure.
+    expect(r.riemessa).toBe(false)
+    // 🛑 E il PDF consegnato è quello della VINCITRICE, non il proprio: sono
+    //    due file diversi, e il secondo non è nominato da nessuna riga.
+    expect(r.buffer.toString()).toContain('%PDF-della-vincitrice')
+    expect(mockDownload).toHaveBeenCalledWith(VINCITRICE.storage_path_pdf)
+  })
+
+  it('🔑 la RILETTURA porta le STESSE sei condizioni del guard e dell\'indice dpa_emissione_viva_unica', async () => {
+    montaTabelle(null, VINCITRICE)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+
+    await generateDpa('lab-test-001', 'cli-001')
+    const filtri = catenaRilettura().calls
+
+    // 🛑 L'INVARIANTE dell'ondata: colonne E predicato dell'indice = filtro del
+    //    guard = filtro della rilettura. Tutti e tre uguali, o chi perde la
+    //    corsa rilegge la riga sbagliata e consegna al dentista il testo di
+    //    un'ALTRA versione del contratto — precisamente il guasto che questo
+    //    registro esiste per impedire.
+    expect(filtri).toContainEqual({ method: 'eq', args: ['laboratorio_id', 'lab-test-001'] })
+    expect(filtri).toContainEqual({ method: 'eq', args: ['dentista_id', 'cli-001'] })
+    expect(filtri).toContainEqual({ method: 'eq', args: ['payload_sha256', improntaDpa(LAB_FIXTURE, CLIENTE_FIXTURE)] })
+    expect(filtri).toContainEqual({ method: 'eq', args: ['template_versione', VERSIONE_MODELLO_DPA] })
+    expect(filtri).toContainEqual({ method: 'is', args: ['deleted_at', null] })
+    expect(filtri).toContainEqual({ method: 'not', args: ['stato', 'in', '("revocato","scaduto")'] })
+  })
+
+  it('🛑 …e i filtri della rilettura MORDONO: una vincitrice di un\'ALTRA versione di modello non si consegna', async () => {
+    // 🔑 Le sei asserzioni qui sopra dicono che i filtri sono STATI CHIAMATI;
+    //    questa dice che RESTRINGONO. Senza, un `.eq('template_versione', …)`
+    //    scritto su una costante sbagliata resterebbe verde.
+    montaTabelle(null, { ...VINCITRICE, template_versione: 'dpa-v1' })
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    // 🔑 Le due righe che rendono questa prova COMPORTAMENTALE e non un
+    //    controllo di testo: la rilettura dev'essere AVVENUTA (e `catenaRilettura`
+    //    esplode se non c'è) e non deve aver consegnato niente. Senza,
+    //    un codice PRIVO di recupero passerebbe — misurato sull'abbozzo inerte.
+    expect(catenaRilettura().calls).toContainEqual({ method: 'eq', args: ['template_versione', VERSIONE_MODELLO_DPA] })
+    expect(mockDownload).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['revocato'], ['scaduto'],
+  ])('🛑 …e una vincitrice %s non si consegna: l\'indice la considera morta (D132)', async (stato) => {
+    montaTabelle(null, { ...VINCITRICE, stato })
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(catenaRilettura().calls).toContainEqual({ method: 'not', args: ['stato', 'in', '("revocato","scaduto")'] })
+    expect(mockDownload).not.toHaveBeenCalled()
+  })
+
+  it('🛑 chi perde toglie il PROPRIO file, non quello della vincitrice', async () => {
+    montaTabelle(null, VINCITRICE)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+
+    await generateDpa('lab-test-001', 'cli-001')
+
+    // Il caricamento precede l'INSERT (ed è giusto così): il perdente ha già
+    // scritto un PDF su un percorso che nessuna riga nominerà MAI. Un file coi
+    // dati dello studio che nessuno può più raggiungere né cancellare è un
+    // problema di minimizzazione (GDPR), non di ordine.
+    expect(mockRemove).toHaveBeenCalledWith([NOSTRO_PERCORSO])
+    // 🛑 E MAI quello della vincitrice: toglierlo vorrebbe dire lasciare la
+    //    riga di registro dell'altro a puntare nel vuoto — cioè fabbricare
+    //    l'orfana che il guard poi archivierebbe.
+    expect(mockRemove).not.toHaveBeenCalledWith([VINCITRICE.storage_path_pdf])
+    expect(mockStorageFrom).toHaveBeenCalledWith('documenti')
+  })
+
+  it('🛑 un 23505 dal NUMERO è un\'anomalia vera: la rilettura non trova niente e si SOLLEVA', async () => {
+    // Dai due indici arriva lo STESSO codice, e da dentro il codice non sono
+    // distinguibili. `dpa_emissione_numero_unico` vuol dire NUMERO RIUSATO: la
+    // rilettura, che cerca sulla chiave di deduplicazione, non trova nessuna
+    // vincitrice — e allora si solleva. È il comportamento voluto, non un caso
+    // dimenticato: consegnare qualcosa qui vorrebbe dire consegnare a caso.
+    montaTabelle(null, null)
+    mockInsert.mockReturnValue(createChain({
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "dpa_emissione_numero_unico"' },
+    }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(msg).not.toMatch(/dpa_emissione_numero_unico|duplicate key/)
+    // 🔑 Il proprio PDF va tolto ANCHE su questa strada, non solo sul cammino
+    //    felice del recupero: la riga non è stata scritta né qui né là, quindi
+    //    il file è orfano in tutti e due i casi.
+    expect(mockRemove).toHaveBeenCalledWith([NOSTRO_PERCORSO])
+  })
+
+  it("🛑 un errore d'insert che NON è il 23505 non si ripara consegnando il documento di un altro", async () => {
+    // 🔑 Il recupero esiste per UNA cosa sola: la corsa sulla chiave di
+    //    deduplicazione. Allargarlo a qualunque errore vuol dire che un vincolo
+    //    violato — un CHECK, una policy — verrebbe COPERTO restituendo la riga
+    //    di qualcun altro, e chi guarda vedrebbe un'emissione riuscita dove il
+    //    database ha rifiutato di scrivere. Misurato: senza questa prova il
+    //    mutante `if (erroreRiga)` al posto di `if (erroreRiga?.code === …)`
+    //    resta VERDE.
+    montaTabelle(null, VINCITRICE)
+    mockInsert.mockReturnValue(createChain({
+      data: null,
+      error: { code: '23514', message: 'new row violates check constraint "dpa_impronte_esadecimali"' },
+    }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(msg).not.toMatch(/dpa_impronte_esadecimali|check constraint/)
+    // Nessun tentativo di consegnare il documento della vincitrice.
+    expect(mockDownload).not.toHaveBeenCalled()
+    // Il proprio PDF resta comunque da togliere: la riga non è stata scritta.
+    expect(mockRemove).toHaveBeenCalledWith([NOSTRO_PERCORSO])
+  })
+
+  it("🛑 un insert senza errore ma anche senza riga non si dà per riuscito", async () => {
+    montaTabelle(null)
+    mockInsert.mockReturnValue(createChain({ data: null, error: null }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(mockRemove).toHaveBeenCalledWith([NOSTRO_PERCORSO])
+  })
+
+  it("🛑 una vincitrice SENZA percorso non si consegna: non c'è niente da consegnare", async () => {
+    montaTabelle(null, { ...VINCITRICE, storage_path_pdf: null })
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+    expect(mockDownload).not.toHaveBeenCalled()
+  })
+
+  it("🛑 se il PDF della vincitrice non si scarica, si solleva — non si consegna il PROPRIO", async () => {
+    // 🔑 Il buffer che abbiamo in mano è il NOSTRO, e porta un altro numero:
+    //    consegnarlo sotto il numero della vincitrice vorrebbe dire un PDF che
+    //    non corrisponde né alla riga di registro né alla sua impronta.
+    montaTabelle(null, VINCITRICE)
+    mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
+    mockDownload.mockResolvedValue({ data: null, error: ARCHIVIO_GIU })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    expect(msg).toBe('DPA: non è stato possibile registrare il documento')
+  })
+
+  // ═══════ ①-bis fail-closed: nel dubbio non si distrugge niente ═══════
+  //
+  // Il soft-delete PRECEDE il caricamento del nuovo file. Su un'indisponibilità
+  // passeggera scambiata per «file sparito» la riga viene ARCHIVIATA, poi
+  // fallisce anche il caricamento e si solleva: il registro vivo resta SENZA
+  // nessun DPA per quel dentista. E se la riga archiviata era `firmato`,
+  // `firmato_da`/`firmato_at` restano nella riga morta — da lì in poi ogni
+  // lettura vede «da firmare» dove esiste un accordo FIRMATO.
+
+  it.each([
+    ['un archivio momentaneamente giù (503)', ARCHIVIO_GIU],
+    ['il CONTENITORE che non risponde — statusCode «404» come il file mancante', BUCKET_ASSENTE],
+    ['la rete caduta, senza nessuna risposta HTTP', RETE_CADUTA],
+    ['un esito che il client non sa spiegare: né file né errore', null],
+  ])('🛑 %s NON è «file sparito»: si solleva e non si archivia NIENTE', async (_titolo, errore) => {
+    montaTabelle(CORRENTE)
+    mockDownload.mockResolvedValue({ data: null, error: errore })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: archivio non raggiungibile, riprovare fra qualche istante')
+    // 🛑 Le quattro asserzioni che contano: nel dubbio non si tocca NIENTE.
+    expect(mockUpdate).not.toHaveBeenCalled()      // nessuna riga archiviata
+    expect(mockProgressivo).not.toHaveBeenCalled() // nessun numero bruciato
+    expect(mockUpload).not.toHaveBeenCalled()      // nessun PDF orfano
+    expect(mockInsert).not.toHaveBeenCalled()      // nessuna riga nuova
+  })
+
+  it("① …e il messaggio dell'archivio non esce nemmeno da questa strada", async () => {
+    montaTabelle(CORRENTE)
+    mockDownload.mockResolvedValue({ data: null, error: { message: 'token di servizio scaduto: sk_live_xyz', status: 503, statusCode: '503' } })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: archivio non raggiungibile, riprovare fra qualche istante')
+    expect(msg).not.toMatch(/sk_live_xyz/)
+  })
+
+  it('🔑 …mentre il file DAVVERO assente resta riconosciuto: si archivia e si riemette', async () => {
+    // 🔑 La gemella delle quattro qui sopra, e senza di lei quelle non provano
+    //    niente: un codice che si sollevasse SEMPRE le passerebbe tutte e
+    //    quattro. È la riga che tiene la porta APERTA quando dev'esserlo.
+    montaTabelle(CORRENTE)
+    mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
+
+    const r = await generateDpa('lab-test-001', 'cli-001')
+
+    expect(r.riemessa).toBe(true)
+    expect(mockUpdate).toHaveBeenCalledWith({ deleted_at: expect.any(String) })
+  })
+
+  // ════════ ①-bis gli errori di LETTURA non si scartano più ════════
+
+  it('🛑 un guasto di LETTURA del registro non è «nessuna emissione»: si solleva invece di riemettere', async () => {
+    // Scartare l'errore qui vuol dire leggere «non c'è niente» da una rete
+    // caduta: si brucia un progressivo, si carica un PDF orfano, e l'INSERT
+    // prende 23505 dalla riga viva che c'era e non si è vista.
+    montaTabelle(CORRENTE, IDENTICA, { message: 'connessione col database interrotta', code: '08006' })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(msg).toBe('DPA: non è stato possibile leggere il registro')
+    expect(msg).not.toMatch(/connessione col database|08006/)
+    expect(mockProgressivo).not.toHaveBeenCalled()
+    expect(mockUpload).not.toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it("🛑 se l'ARCHIVIAZIONE dell'orfana fallisce, non si va avanti: la chiave è ancora occupata", async () => {
+    montaTabelle(CORRENTE)
+    mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
+    mockUpdate.mockReturnValue(createChain({ data: null, error: { message: 'update rifiutato dalla policy', code: '42501' } }))
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    // Andare avanti a chiave occupata è la porta chiusa permanente: ogni clic
+    // brucerebbe un progressivo e lascerebbe un PDF orfano prima di fallire.
+    expect(msg).toBe("DPA: non è stato possibile archiviare l'emissione senza file")
+    expect(msg).not.toMatch(/policy|42501/)
+    expect(mockProgressivo).not.toHaveBeenCalled()
+    expect(mockUpload).not.toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it("🛑 un guasto di lettura su laboratorio/cliente non si racconta come «non trovato»", async () => {
+    montaTabelle(null)
+    const conFalla = mockFrom.getMockImplementation() as (t: string) => unknown
+    mockFrom.mockImplementation((tabella: string) => {
+      if (tabella === 'laboratori') return createChain({ data: null, error: { message: 'connessione persa', code: '08006' } })
+      return conFalla(tabella)
+    })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+
+    // 🔑 «Laboratorio non trovato» a chi ha solo perso la rete per due secondi
+    //    manda a cercare un dato che c'è. Il dato ASSENTE e il dato NON LETTO
+    //    sono due fatti diversi e vanno detti diversi.
+    expect(msg).toBe('DPA: non è stato possibile leggere i dati di laboratorio e cliente')
+    expect(msg).not.toMatch(/connessione persa|08006/)
+    expect(mockProgressivo).not.toHaveBeenCalled()
+  })
+
+  it("🔑 …ma il laboratorio DAVVERO assente continua a dirsi «non trovato»", async () => {
+    // 🛑 La fixture NON è `{ data: null, error: null }`: quella forma il client
+    //    reale non la produce MAI su `.single()`.
+    //    `provato:` `curl -H 'Accept: application/vnd.pgrst.object+json' …&id=eq.<inesistente>`
+    //      → `HTTP 406` · `{"code":"PGRST116","details":"The result contains 0 rows",…}`
+    //    Cioè: «riga assente» ARRIVA COME UN ERRORE. Un codice che si
+    //    sollevasse su qualunque errore di lettura risponderebbe «non è stato
+    //    possibile leggere» a un cliente semplicemente cancellato — e questa
+    //    prova, con la fixture sbagliata, non l'avrebbe visto.
+    montaTabelle(null)
+    const conFalla = mockFrom.getMockImplementation() as (t: string) => unknown
+    mockFrom.mockImplementation((tabella: string) => {
+      if (tabella === 'laboratori') return createChain({
+        data: null,
+        error: { code: 'PGRST116', message: 'Cannot coerce the result to a single JSON object' },
+      })
+      return conFalla(tabella)
+    })
+
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    expect(msg).toBe('Laboratorio non trovato')
   })
 })
