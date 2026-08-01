@@ -1,30 +1,31 @@
-# Sessione attiva — §0 chiusa in produzione, e si parte con D42 (le tinte del manufatto)
+# Sessione attiva — D42 aperta: spec delle tinte del manufatto RATIFICATA, si va ai mockup
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/ROADMAP-UFFICIALE.md`** — la testa dice lo stato, e la sezione
-«📄 I DOCUMENTI CHE ESCONO DAL LABORATORIO» tiene le undici voci aperte sulla DdC.
-Referto del giro in produzione: `docs/roadmap/2026-08-03-ddc-produzione-referto.md`.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/specs/2026-08-03-tinte-manufatto-design.md`** — la spec di D42,
+ratificata. Il suo §1 dice cosa NON è, il §2 il censimento coi riferimenti verificati, il §8 le domande
+aperte. Verbale: tornate **35** e **36** (D109-D118).
 
-✅ **CHIUSA la §0 dell'handoff del 3 agosto:** la DdC è stata emessa da uachelab.com, scaricata, misurata e
-**guardata**, poi annullata in 26 secondi. **Otto criteri su otto verdi** (accenti, `§2`, metadati del file);
-la rete è stata provata **rompendola** — sul foglio vecchio dà 8 rossi su 8. Salvato e pubblicato
-(`d37405ef`, CI e deploy verdi). 🛑 **NON provato:** il **§6-bis**, perché `norme_json` è vuoto per quel tipo.
+🎨 **D42 — che cosa si costruisce:** catalogo nuovo e separato `tinte_manufatto` per le tinte **non
+dentali** dei tre tipi che ne hanno una (placca con vite · apparecchio funzionale · paradenti), più **due
+colonne** su `lavori` con chiave esterna composita. Una tinta sola, catalogo chiuso uguale per tutti, due
+famiglie **col vincolo nel database**, facoltativa e saltabile, pallino solo dove è onesto.
 
-📎 **D108 — la prossima ondata è D42, LE TINTE DEL MANUFATTO**, e prima è stato appuntato tutto il resto:
-le voci normative sulla DdC vivevano **solo in un handoff** (documento che viene superato) e sono state
-trasferite nella roadmap, con ogni riferimento **riaperto e riverificato** (tre erano invecchiati).
-Verbale: **centotto** decisioni in trentaquattro tornate. La prossima è **D109**.
+➡️ **PROSSIMO PASSO: i MOCKUP (§0B), non il codice.** Più varianti mai una sola, 390/768/1280, chiaro e
+scuro, in `docs/design/mockups/`. **Domanda lasciata aperta apposta per il mockup:** con 17 tinte per
+famiglia, griglia di pastiglie col pallino o elenco raggruppato per colore? Si portano disegnate
+**tutte e due**. Poi il piano (R-P1 · R-P2 · R-P6), poi il ramo. **GRANDE, con migration.**
 
-🔴 **Le due voci nuove del giro:** il **buono di consegna non si rigenera dopo un annullo** (e il dialogo
-promette il contrario; `buoni_consegna` esiste con lo stato `'annullato'` previsto e ha **zero righe**) · la
-DdC cita **`Art. 2(1)(3)` MDR, che non esiste** (va `Art. 2(3)` — fonte secondaria, da riconfermare su
-EUR-Lex in italiano prima di correggere).
+🔴 **Due fatti misurati aprendo i file, che nessun documento diceva:** nel wizard **il passo del colore non
+esiste per nessun tipo** (finisce al paziente, dove il colore è testo libero) · la tendina della scheda
+offre **19 codici su 48**.
 
-🎨 **D42 — i vincoli che si porta dietro dal panel del 28/07, NON si riaprono:** niente esadecimale libero ·
-niente scale nuove dentro `colori_dentali` (cinque chiavi esterne, e l'id fine dei 38 tipi non è persistito) ·
-catalogo separato con voci che hanno un **NOME**. **GRANDE, con migration** → percorso BP-2 pieno.
+✅ **Chiuso prima, nella stessa sessione:** la §0 dell'handoff del 3 agosto — la DdC **guardata uscendo
+dalla produzione**, otto criteri su otto verdi, referto in `docs/roadmap/2026-08-03-ddc-produzione-referto.md`.
+🔴 **Due voci nuove da quel giro, in roadmap:** il **buono di consegna non si rigenera dopo un annullo** ·
+la DdC cita **`Art. 2(1)(3)` MDR, che non esiste**. Le undici voci aperte sulla DdC stanno ora nella
+roadmap, sezione «📄 I documenti che escono dal laboratorio».
 
-🚀 **Stato:** `main` allineato con origin. Nessuna riga di codice toccata finora in questa sessione.
+🚀 **Stato:** `main` allineato con origin. **Nessuna riga di codice toccata in tutta la sessione.**
 📌 **Riferimento misurato su `main`:** `tsc` **0** · `vitest` **370 | 3** file e **4275 | 19** prove ·
 `next build` ok.
-⚠️ L'orologio della macchina dice **1° agosto**; i documenti seguono la serie del **3 agosto**. La
-dichiarazione emessa porta stampato **01/08/2026**: sul documento finisce l'orologio della macchina.
+📎 Verbale a **centodiciotto** decisioni in **trentasei** tornate. La prossima è **D119**.
+⚠️ L'orologio della macchina dice **1° agosto**; i documenti seguono la serie del **3 agosto**.
