@@ -79,8 +79,22 @@ describe('GET /api/clienti/[id]/dpa', () => {
     // …e l'emissione è stata chiesta per QUESTO laboratorio e QUESTO cliente,
     // in quest'ordine (`generateDpa(laboratorio_id, cliente_id)`).
     expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)
-    // La rotta resta dentro `withServerTiming` (GET categoria A).
-    expect(res.headers.get('server-timing')).toContain('total;dur=')
+    // 🛑 L'INSIEME degli header, non solo i tre che interessano. Asserire tre
+    //    chiavi lascia entrare in silenzio la quarta: con `X-Emissione-Id` e
+    //    `X-Riemessa` aggiunti alla risposta questo file restava VERDE, e
+    //    `emissione_id` è un id INTERNO di registro — non ha niente da fare
+    //    addosso a un documento che esce di casa.
+    expect([...res.headers.keys()].sort()).toEqual([
+      'content-disposition',
+      'content-type',
+      'server-timing',
+    ])
+    // La rotta resta dentro `withServerTiming` (GET categoria A) — e le FASI
+    // ci sono davvero. 🛑 `toContain('total;dur=')` da solo non provava niente:
+    // `total` il wrapper lo aggiunge SEMPRE da sé (`server-timing.ts:25`),
+    // quindi restava verde anche togliendo `Object.assign(t, timings)` dalla
+    // rotta. `auth` e `db` vengono solo da lì.
+    expect(res.headers.get('server-timing')).toMatch(/^auth;dur=1, db;dur=2, total;dur=\d+$/)
   })
 
   // ═══ C2 · il nome viene dall'EMISSIONE, non dal fatto che sia nuova ═══
@@ -95,17 +109,25 @@ describe('GET /api/clienti/[id]/dpa', () => {
 
   // ═══ C3 · un guasto del servizio NON è una richiesta sbagliata ═══
   //
-  // 🛑 Rilievo aperto dalla revisione del Task 6, chiuso qui. Delle ~12 strade
-  //    d'errore che possono arrivare a questo `catch`, DIECI sono guasti del
-  //    servizio: registro non leggibile, archivio non raggiungibile, numero non
-  //    assegnato, documento non conservato, riga non registrata. Un 400 dice al
-  //    chiamante «hai sbagliato tu» proprio quando è il servizio a essere giù —
-  //    e nessuna sorveglianza tratta come errore un 4xx.
-  //    ⚠️ La rotta NON può distinguere i casi: le arriva un `Error` e basta.
-  //    Discriminare sul TESTO del messaggio legherebbe questa rotta alla prosa
-  //    di `generate-dpa.ts` senza nessun aggancio che il compilatore veda —
-  //    un legame che si rompe in silenzio. Quindi: 500 per tutto, e la
-  //    classificazione fine resta da fare all'origine (riferita nel referto).
+  // 🛑 Rilievo aperto dalla revisione del Task 6, chiuso qui. E il conto va
+  //    detto ESATTO: la riga che stava qui diceva «delle ~12 strade d'errore
+  //    DIECI sono guasti del servizio», e non tornava.
+  //    `provato:` `grep -n "throw new Error" src/lib/pdf/generate-dpa.ts`
+  //    → **UNDICI** `throw`, di cui **SETTE** guasti del servizio (:97 · :144 ·
+  //    :167 · :191 · :216 · :266 · :369) e **QUATTRO** che non lo sono
+  //    (:72 e :75 Partita IVA mancante · :100 «Laboratorio non trovato» ·
+  //    :101 «Cliente non trovato»).
+  //    ⚠️ Un numero gonfiato non è un dettaglio: serviva a far sembrare
+  //    trascurabile proprio la parte che il 500 racconta male.
+  //    🛑 RITIRATA anche la ragione «nessuna sorveglianza tratta come errore un
+  //    4xx»: in questo repo una sorveglianza NON C'È — `provato:`
+  //    `grep -rniE "sentry|captureException" src package.json` → nessuna riga,
+  //    e `vercel.json` è `{"regions":["dub1"]}`. Restano in piedi i fatti veri:
+  //    la rotta NON può distinguere i casi (le arriva un `Error` e basta), e
+  //    discriminare sul TESTO del messaggio la legherebbe alla prosa di
+  //    `generate-dpa.ts` senza nessun aggancio che il compilatore veda.
+  //    Quindi oggi: 500 per tutto, e la classificazione fine va fatta
+  //    ALL'ORIGINE, con un errore tipato.
   it('un guasto di `generateDpa` risponde 500, non 400 — è il servizio, non la richiesta', async () => {
     mockGenerateDpa.mockRejectedValue(new Error('DPA: archivio non raggiungibile, riprovare fra qualche istante'))
 
@@ -152,15 +174,26 @@ describe('GET /api/clienti/[id]/dpa', () => {
       expect(mockGenerateDpa.mock.calls.length).toBe(atteso === 200 ? 1 : 0)
     })
 
-    // 🛑 B7 · il QUINTO ruolo, e la ragione per cui non è nell'elenco qui sopra.
-    //    `admin_sistema` è nell'allowlist della rotta (`route.ts:21`) ma non ci
-    //    arriva MAI: ha `laboratorio_id` NULL per progetto
-    //    (`lab-context.ts:16`, `lab-guard.ts:50`) e la riga PRECEDENTE — il
-    //    controllo su `laboratorioId` — lo ferma prima. La prova fissa il
-    //    comportamento VERO (403) senza fabbricare un contesto che contraddice
-    //    lo schema. Che quella voce d'allowlist sia irraggiungibile è un
-    //    ritrovamento fuori mandato: riferito, non corretto (R-E2).
-    it('B7 · admin_sistema (laboratorioId NULL by design) → 403, e si ferma alla riga del lab', async () => {
+    // 🛑 B7 · il QUINTO ruolo — e la premessa che stava qui era letta AL ROVESCIO.
+    //
+    //    Diceva: «`admin_sistema` è nell'allowlist ma non ci arriva MAI, ha
+    //    `laboratorio_id` NULL **per progetto**» — e su quella premessa
+    //    dichiarava morta la terza voce di `route.ts:21`. Il vincolo vero dice
+    //    un'altra cosa:
+    //    `provato:` catalogo vivo, 03/08/2026, `pg_constraint` su `public.utenti`
+    //      utenti_lab_required_for_non_admin
+    //      CHECK (((ruolo = 'admin_sistema') OR (laboratorio_id IS NOT NULL)))
+    //    È un'IMPLICAZIONE, non un'equivalenza: il NULL è **permesso** a
+    //    `admin_sistema`, non **imposto**. Un `admin_sistema` CON laboratorio è
+    //    perfettamente legale per lo schema — e `lab-context.ts:53` gli
+    //    porterebbe `laboratorioId` valorizzato come a chiunque altro.
+    //    `provato:` `SELECT ruolo, count(*), count(laboratorio_id) … GROUP BY ruolo`
+    //      → `admin_sistema`: 1 riga, 0 col laboratorio. Oggi. Non «per progetto».
+    //
+    //    Le due prove qui sotto tengono i due mondi, e sono entrambe necessarie:
+    //    B7 fissa il caso di oggi (senza laboratorio → si ferma prima),
+    //    B7-bis fissa la VOCE D'ALLOWLIST (con laboratorio → passa).
+    it('B7 · admin_sistema SENZA laboratorio → 403: lo ferma il controllo del lab', async () => {
       mockContesto.mockResolvedValue({
         context: { ...CONTESTO, ruolo: 'admin_sistema', laboratorioId: null, lab: null },
         timings: TIMINGS,
@@ -169,8 +202,27 @@ describe('GET /api/clienti/[id]/dpa', () => {
       const res = await GET(richiesta(), parametri)
 
       expect(res.status).toBe(403)
-      expect(await res.json()).toEqual({ error: 'Lab non trovato' }) // riga 20, NON la 21
+      expect(await res.json()).toEqual({ error: 'Lab non trovato' })
       expect(mockGenerateDpa).not.toHaveBeenCalled()
+    })
+
+    // 🛑 B7-bis · LA TERZA VOCE DELL'ALLOWLIST, finalmente tenuta da qualcosa.
+    //    Mutante della revisione: tolto `'admin_sistema'` da `route.ts:21`,
+    //    l'INTERA suite (4392 prove) restava VERDE. B7 qui sopra si accreditava
+    //    di coprirlo e invece si ferma alla riga PRIMA, senza mai valutare il
+    //    ruolo. Questa prova ci arriva, perché il contesto ha il laboratorio.
+    //    🛑 Non ridiscute i permessi — chi può scaricare è una decisione già
+    //    presa: la FISSA, così che toglierla diventi rosso invece che silenzio.
+    it("B7-bis · admin_sistema CON laboratorio → 200: la terza voce dell'allowlist è viva", async () => {
+      mockContesto.mockResolvedValue({
+        context: { ...CONTESTO, ruolo: 'admin_sistema' }, // laboratorioId e lab restano quelli veri
+        timings: TIMINGS,
+      })
+
+      const res = await GET(richiesta(), parametri)
+
+      expect(res.status).toBe(200)
+      expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)
     })
 
     it('B2 · laboratorioId assente su un ruolo qualunque → 403 «Lab non trovato»', async () => {
@@ -182,6 +234,41 @@ describe('GET /api/clienti/[id]/dpa', () => {
       const res = await GET(richiesta(), parametri)
 
       expect(res.status).toBe(403)
+      expect(mockGenerateDpa).not.toHaveBeenCalled()
+    })
+
+    // 🟢 B13 · l'ORDINE dei due controlli — e una prova DIFENSIVA, dichiarata.
+    //
+    //    Il commento di B7 si accreditava di fissare l'ordine («riga 20, NON la
+    //    21»). Non lo fissava: col contesto di B7 il ruolo è `admin_sistema`,
+    //    che è NELL'allowlist — invertire i due controlli dà 403 «Lab non
+    //    trovato» in entrambi i versi, e il mutante sopravviveva.
+    //    Discriminare l'ordine richiede le due condizioni INSIEME: ruolo FUORI
+    //    dall'allowlist **e** laboratorio assente. Solo allora i due versi
+    //    dicono cose diverse: il lab prima → «Lab non trovato»; il ruolo prima
+    //    → «Non autorizzato — solo titolari».
+    //
+    //    🛑 E QUI VA DETTA LA COSA SCOMODA, invece di lasciarla implicita: quella
+    //    coppia è VIETATA DALLO SCHEMA. `utenti_lab_required_for_non_admin`
+    //    impone che `laboratorio_id IS NULL` valga solo per `admin_sistema`, che
+    //    però è nell'allowlist. Quindi **non esiste una riga legale di `utenti`
+    //    che distingua i due ordini**: in produzione, oggi, l'ordine non è
+    //    osservabile. La fixture qui sotto è deliberatamente FUORI SCHEMA.
+    //    Perché la prova resta utile lo stesso: è una rete fail-closed sul
+    //    giorno in cui il vincolo cambi, o in cui un contesto arrivi da una via
+    //    che non passa per quel CHECK. Fissa quale dei due fatti si rivela per
+    //    primo a chi non deve saperlo. Precedente in casa: B2 fa lo stesso con
+    //    `titolare` + `laboratorioId: null`.
+    it('B13 · ruolo fuori allowlist E laboratorio assente → parla il LAB (riga 20 prima della 21) — fixture difensiva, fuori schema', async () => {
+      mockContesto.mockResolvedValue({
+        context: { ...CONTESTO, ruolo: 'tecnico', laboratorioId: null, lab: null },
+        timings: TIMINGS,
+      })
+
+      const res = await GET(richiesta(), parametri)
+
+      expect(res.status).toBe(403)
+      expect(await res.json()).toEqual({ error: 'Lab non trovato' })
       expect(mockGenerateDpa).not.toHaveBeenCalled()
     })
 
@@ -208,6 +295,32 @@ describe('GET /api/clienti/[id]/dpa', () => {
       expect(res.status).toBe(403)
       expect(await res.json()).toMatchObject({ code: 'UA_LAB_NON_OPERATIVO' })
       expect(mockGenerateDpa).not.toHaveBeenCalled()
+    })
+
+    // 🛑 B12 · il METODO passato al guard — l'unica cosa che gli dice se questa
+    //    è una lettura o una scrittura, e fino a qui non la fissava NIENTE.
+    //    Mutante della revisione: `assertLabOperativo(context, 'GET')` → `'POST'`
+    //    e tutta la suite restava verde. B9 (`lab: null`) e B10 (`blacklist`)
+    //    non possono prenderlo nemmeno in linea di principio: sono i due stati
+    //    in cui lettura e scrittura si comportano IDENTICAMENTE
+    //    (`lab-guard.ts:49` e `:65`, entrambi senza `isRead`).
+    //    🔑 La regressione vera che questa riga difende: un laboratorio
+    //    `sospeso` — abbonamento fermo, ma titolato a LEGGERE i propri
+    //    documenti (`lab-guard.ts:61`) — non scaricherebbe più il proprio
+    //    contratto, e niente diventerebbe rosso.
+    //    ⚠️ Il ruolo resta `titolare`: con `admin_sistema` il guard esce al
+    //    bypass di `lab-guard.ts:50` e passerebbe sotto QUALUNQUE metodo — la
+    //    prova sarebbe verde per il motivo sbagliato.
+    it("B12 · laboratorio SOSPESO → 200: in lettura passa, e la rotta passa davvero 'GET'", async () => {
+      mockContesto.mockResolvedValue({
+        context: { ...CONTESTO, lab: { stato: 'sospeso', trial_ends_at: null, nome: 'Lab Uno' } },
+        timings: TIMINGS,
+      })
+
+      const res = await GET(richiesta(), parametri)
+
+      expect(res.status).toBe(200)
+      expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)
     })
 
     it('B10 · laboratorio in blacklist → 403 anche in LETTURA (stato terminale)', async () => {
