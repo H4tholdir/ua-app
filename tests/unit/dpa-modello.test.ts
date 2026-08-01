@@ -1,9 +1,15 @@
 // tests/unit/dpa-modello.test.ts
 // @vitest-environment node
-// 🔑 La guardia della versione. VERSIONE_MODELLO_DPA va alzata a ogni cambio del
-// testo — ma un gesto da ricordare a mano è un gesto che prima o poi non si fa
-// (D120: 211 scatti dei mockup mai salvati). Questa prova àncora l'impronta del
-// TESTO alla versione dichiarata: chi cambia una parola la vede rossa.
+// 🔑 La guardia della versione. Un gesto da ricordare a mano è un gesto che
+// prima o poi non si fa (D120: 211 scatti dei mockup mai salvati) — per questo
+// D133 attacca le prime otto cifre dell'impronta del TESTO alla versione che
+// finisce in banca dati: chi cambia una parola vede rossa la seconda prova, e
+// aggiornando l'impronta fa cambiare la versione DA SOLA.
+// 🛑 Queste prove hanno DUE bersagli distinti, e vanno tenuti distinti:
+//    ① che la versione sia COMPOSTA e non riscritta a mano (mutazione tipica:
+//      qualcuno rimette `export const VERSIONE_MODELLO_DPA = 'dpa-v2'`);
+//    ② che l'impronta dichiarata corrisponda al testo VERO che esce dal
+//      template.
 import { describe, it, expect } from 'vitest'
 import { createHash } from 'node:crypto'
 import { createElement } from 'react'
@@ -27,14 +33,24 @@ const FIXTURE_FISSA = {
 }
 
 describe('la versione del modello DPA', () => {
-  it('è dichiarata e vale dpa-v2', () => {
-    expect(VERSIONE_MODELLO_DPA).toBe('dpa-v2')
+  it('è COMPOSTA — revisione leggibile + prime otto cifre dell\'impronta, non una stringa scritta a mano', () => {
+    expect(VERSIONE_MODELLO_DPA).toMatch(/^dpa-v\d+\+[0-9a-f]{8}$/)
+    // 🛑 Questa asserzione morde sulla mutazione vera: se qualcuno riscrive la
+    //    costante come letterale ('dpa-v2', o 'dpa-v2+' con una coda copiata
+    //    e poi non aggiornata), la coda smette di venire dall'impronta.
+    expect(VERSIONE_MODELLO_DPA.slice(-8)).toBe(IMPRONTA_TESTO_DPA.slice(0, 8))
   })
 
-  it('🛑 il testo reso corrisponde all\'impronta dichiarata — se fallisce, ALZA la versione e aggiorna l\'impronta', async () => {
+  it('🛑 il testo reso corrisponde all\'impronta dichiarata — se fallisce, aggiorna l\'impronta (e alza `v2` se il cambio è sostanziale)', async () => {
     const buffer = await renderPdfDocument(createElement(DpaTemplate, { dpa: FIXTURE_FISSA }))
     const testo = (await new PDFParse({ data: buffer }).getText()).text.replace(/\s+/g, ' ').trim()
     const impronta = createHash('sha256').update(testo, 'utf8').digest('hex')
     expect(impronta).toBe(IMPRONTA_TESTO_DPA)
+
+    // 🔑 L'anello che chiude D133: la versione che finisce in banca dati porta
+    //    l'impronta del testo VERO, non di quello dichiarato. Se il testo cambia
+    //    e l'impronta non lo segue, questa riga si accende insieme a quella
+    //    sopra; se la versione viene sganciata dall'impronta, si accende da sola.
+    expect(VERSIONE_MODELLO_DPA).toBe(`dpa-v2+${impronta.slice(0, 8)}`)
   })
 })

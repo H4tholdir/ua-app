@@ -125,7 +125,9 @@ Non solo le colonne: **ogni** identificatore che il cambiamento tocca.
 `storage_path_pdf` · `pdf_sha256` · `payload_sha256` · `emesso_at`.
 
 **Colonne esistenti che il codice comincia a scrivere:** `laboratorio_id` · `tipo_controparte` (valore
-`'dentista'`) · `dentista_id` · `template_versione` (valore `'dpa-v2'`) · `stato` (valore `'da_firmare'`).
+`'dentista'`) · `dentista_id` · `template_versione` (valore: **`VERSIONE_MODELLO_DPA`, mai il letterale** —
+🔄 **D133**: oggi vale `dpa-v2+8d98dbee`, e la coda **cambia da sola** col testo) · `stato` (valore
+`'da_firmare'`).
 
 **Colonne esistenti che questa ondata NON tocca, con la destinazione:** `documento_url`, `firmato_da`,
 `firmato_at`, `data_scadenza` → **ondata 2** (firma). `sub_responsabile` → fuori perimetro (spec §10).
@@ -687,8 +689,24 @@ vincolo, indice — la fonte è **`pg_proc` / `pg_trigger` / `pg_constraint` / `
 - 🆕 da creare: `tests/unit/dpa-modello.test.ts`
 
 **Interfacce:**
-- Produce: `VERSIONE_MODELLO_DPA: string` (valore `'dpa-v2'`) · `IMPRONTA_TESTO_DPA: string` (sha-256 del
-  testo reso con la fixture fissa).
+- Produce: `IMPRONTA_TESTO_DPA: string` (sha-256 del testo reso con la fixture fissa) ·
+  `VERSIONE_MODELLO_DPA: string` — 🔄 **D133: NON è `'dpa-v2'`, è COMPOSTA**: `dpa-v2+8d98dbee`, cioè
+  revisione leggibile **più le prime otto cifre dell'impronta**.
+
+> 🔄 **RISCRITTO il 03/08 dopo l'esecuzione — D133.** La prima stesura faceva `VERSIONE_MODELLO_DPA =
+> 'dpa-v2'` e affermava, in un commento del sorgente, che la prova «impone» di muovere versione e impronta
+> insieme. **Non era vero, e l'esecutore l'ha smontato:** la prova rende **visibile** un cambio di testo, ma
+> chi chiude il rosso incollando la nuova impronta ottiene un verde **senza toccare `v2`**.
+> 🛑 **E la conseguenza non è cosmetica:** il registro direbbe `v2` su un testo che `v2` non è più, e
+> l'indice `dpa_emissione_viva_unica` — che confronta proprio `template_versione` — vedrebbe **stessa
+> versione e stessi dati** e **non riemetterebbe**: il dentista resterebbe col contratto **vecchio** mentre
+> il laboratorio crede di avergli mandato quello nuovo. **È esattamente il guasto che D126 doveva chiudere.**
+> ✅ **Scelta di Francesco (D133):** l'impronta si attacca alla versione, così cambia **da sola**.
+> Dimenticare di alzare `v2` diventa **innocuo**. *(Lezione di D120: una promessa che dipende da un gesto
+> umano ripetuto è una promessa che salta.)*
+> 🔑 **Regola che ne discende, e vale per i Task 4, 5, 6 e 9:** il valore **non si scrive mai come
+> letterale**, si importa `VERSIONE_MODELLO_DPA`. Un test che asserisce `'dpa-v2'` diventerà rosso al primo
+> cambio di testo, per il motivo sbagliato.
 
 - [ ] **Step 1: scrivere la prova che fallisce**
 
@@ -722,8 +740,12 @@ const FIXTURE_FISSA = {
 }
 
 describe('la versione del modello DPA', () => {
-  it('è dichiarata e vale dpa-v2', () => {
-    expect(VERSIONE_MODELLO_DPA).toBe('dpa-v2')
+  it('è COMPOSTA — revisione leggibile + prime otto cifre dell\'impronta, non una stringa scritta a mano', () => {
+    expect(VERSIONE_MODELLO_DPA).toMatch(/^dpa-v\d+\+[0-9a-f]{8}$/)
+    // 🛑 Morde sulla mutazione vera: se qualcuno la riscrive come letterale
+    //    ('dpa-v2', o con una coda copiata e poi non aggiornata), la coda smette
+    //    di venire dall'impronta. provato: 2 asserzioni su 2 si accendono.
+    expect(VERSIONE_MODELLO_DPA.slice(-8)).toBe(IMPRONTA_TESTO_DPA.slice(0, 8))
   })
 
   it('🛑 il testo reso corrisponde all\'impronta dichiarata — se fallisce, ALZA la versione e aggiorna l\'impronta', async () => {
@@ -779,7 +801,11 @@ import('./scripts/tmp/impronta-testo-dpa.ts')
  *  `DpaTemplate.tsx`, insieme a IMPRONTA_TESTO_DPA: le due cose si muovono
  *  sempre insieme, e `tests/unit/dpa-modello.test.ts` (🆕 da creare) è ciò che lo impone.
  *  v2 = riscrittura del 03/08/2026 (D126). */
-export const VERSIONE_MODELLO_DPA = 'dpa-v2'
+const REVISIONE_LEGGIBILE_DPA = 'v2'
+/** D133: porta dentro le prime otto cifre dell'impronta, così cambia DA SOLA
+ *  quando cambia il testo. Deterministica: si compone da due LETTERALI di questo
+ *  file, mai da un render a tempo di esecuzione. */
+export const VERSIONE_MODELLO_DPA = `dpa-${REVISIONE_LEGGIBILE_DPA}+${IMPRONTA_TESTO_DPA.slice(0, 8)}`
 
 /** sha-256 del testo reso con la fixture fissa della prova. NON è una firma del
  *  documento: è l'ancora che lega il testo alla versione dichiarata. */
@@ -996,7 +1022,7 @@ describe('emissione nuova', () => {
     expect(riga.dentista_id).toBe('cli-001')
     expect(riga.laboratorio_id).toBe('lab-test-001')
     expect(riga.stato).toBe('da_firmare')
-    expect(riga.template_versione).toBe('dpa-v2')
+    expect(riga.template_versione).toBe(VERSIONE_MODELLO_DPA)   // 🛑 D133: MAI il letterale
     expect(riga.progressivo_dpa).toBe(7)
     expect(String(riga.storage_path_pdf)).toMatch(/^lab-test-001\/dpa\/\d{4}\/DPA-\d{4}-0007\.pdf$/)
     expect(String(riga.pdf_sha256)).toHaveLength(64)
@@ -1131,7 +1157,7 @@ describe('riuso dell\'emissione', () => {
   const ESISTENTE = {
     id: 'em-vecchia', numero_dpa: 'DPA-2026-0003',
     storage_path_pdf: 'lab-test-001/dpa/2026/DPA-2026-0003.pdf',
-    payload_sha256: null as string | null, template_versione: 'dpa-v2',
+    payload_sha256: null as string | null, template_versione: VERSIONE_MODELLO_DPA,  // 🛑 D133: MAI il letterale
   }
 
   it('stessi dati e stessa versione: restituisce il PDF conservato, NESSUN numero nuovo', async () => {
@@ -1535,7 +1561,8 @@ quel cliente. Se ce ne fossero due, `dpa_emissione_viva_unica` non sta facendo i
 riaperto.
 
 E la lettura del registro dopo (a) (chiave di servizio): atteso **UNA sola riga**, con `numero_dpa`,
-`pdf_sha256` uguale all'impronta dei file scaricati, `template_versione = 'dpa-v2'`.
+`pdf_sha256` uguale all'impronta dei file scaricati, e `template_versione` **uguale al valore di
+`VERSIONE_MODELLO_DPA`** — oggi `dpa-v2+8d98dbee` (🔄 D133: **non** `dpa-v2` nudo).
 
 - [ ] **Step 5: BP-1** — aggiornare `memory/MEMORY.md`, `memory/SESSION_ACTIVE.md` e la riga 10 di
 `docs/roadmap/ROADMAP-UFFICIALE.md` (parte **(b)** → fatta la metà «registro»; resta la firma, ondata 2).
