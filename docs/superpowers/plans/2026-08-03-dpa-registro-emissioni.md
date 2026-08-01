@@ -978,7 +978,27 @@ git commit -F /tmp/msg-task3.txt
 
 ## Task 4 — L'emissione nuova
 
-> 🛑🛑 **IL RAMO NON SI PUBBLICA CON IL SOLO TASK 4. Non è una raccomandazione: è un cancello.**
+> ## 🚪 CANCELLO APERTO il 03/08/2026 — dopo Task 5, Task 6 e le loro revisioni
+> **Verdetto della revisione indipendente del Task 6: «SI APRE».** Le tre strade di guasto che tenevano
+> fermo il ramo sono chiuse e ognuna è protetta da una prova che il revisore **ha fatto fallire di persona**.
+> Trenta mutanti suoi, **diversi** da quelli dell'esecutore: **24 presi**, sei sfuggiti — nessuno dei quali
+> può perdere o corrompere un dato. **Nessun rilievo Critico.**
+> ⚠️ **Restano due cose che NON dipendono da questo lavoro** e vanno sapute: le prove **non pinnano il fuso
+> orario** (voce **P9**), e la rotta risponde **400** anche quando l'archivio non è raggiungibile, che è un
+> **5xx** — materia del **Task 7**, che quella rotta la tocca.
+>
+> 🟠 **E UNA DECISIONE RESTA APERTA, dichiarata e non chiusa** (rilievo 4 della revisione): il soft-delete
+> della riga orfana **precede ancora** progressivo, rendering, caricamento e `INSERT`. Se qualcosa fallisce
+> **dopo** l'archiviazione, il registro vivo resta **senza nessun DPA** per quel dentista; e se l'orfana era
+> `firmato`, `firmato_da`/`firmato_at` restano nella riga morta e ogni lettura successiva vede «**da
+> firmare**» dove esiste un accordo **firmato**. 🔑 **Il Task 6 ha ristretto l'INNESCO** — non più un guasto
+> passeggero, solo un file **davvero** assente — **non l'ESITO.** Non è una regressione: è una conseguenza
+> del disegno del Task 5, e va scritta come **decisione aperta dell'ondata**, non lasciata passare per
+> «chiusa». La sua sede naturale è l'**ondata 2**, che porta firma e revoca.
+>
+> ---
+>
+> 🛑🛑 **STORICO — perché il cancello era chiuso. IL RAMO NON SI PUBBLICAVA CON IL SOLO TASK 4.**
 > Dopo il Task 4 `generateDpa()` **emette sempre**, e il guard di riuso non c'è ancora — arriva al **Task 5**.
 > Quindi **al SECONDO scarico dello stesso contratto** le quattro colonne di `dpa_emissione_viva_unica` sono
 > identiche, l'`insert` viola l'indice unico e **l'utente vede un errore** — lasciando dietro **un progressivo
