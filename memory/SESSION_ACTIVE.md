@@ -16,9 +16,11 @@ sub-responsabili con UÀ dichiarata, cinque clausole Art. 28, Art. 7 nuovo sui r
 versione, numero progressivo: **con migration**) · le righe **12-20** di «I documenti che escono dal
 laboratorio», otto ritrovamenti del panel · **D42** (piano pronto, 9 task, R-E1) · il round 2 dell'audit.
 
-❓ **Una domanda per Francesco è ancora senza risposta:** il contenitore `documenti` su Storage è **pubblico
-o privato**? Serve il suo occhio sul pannello Supabase — il repo non può dirlo (riga 16).
+✅ **Chiusa la domanda sul contenitore `documenti`** (Francesco ha autorizzato l'accesso al database vero):
+è **privato** — `"public": false`, e l'indirizzo pubblico dà **400 «Bucket not found»**. **Nessuna
+esposizione.** Il difetto resta ma cambia natura: `getPublicUrl` scrive in banca dati un indirizzo che non
+funzionerà mai, dentro un campo chiamato `signed_url` che firmato non è (riga 16).
 
-🚀 `main` = **`e90a21a2`** + il lavoro di D125-D126, **non ancora pubblicato**.
+🚀 `main` = **`98a5b5a3`**, **pubblicato**; `uachelab.com` → **307 verso `/login`, che dà 200**.
 📎 Verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`: **centoventisei** decisioni in
 **quarantadue** tornate; la prossima è **D127**.
