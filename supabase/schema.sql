@@ -481,9 +481,15 @@ CREATE TABLE pazienti (
 -- tecnica All. II/III e dichiarazione di conformita' UE — sono riservati ai
 -- dispositivi «diversi dai dispositivi su misura» (Art. 10(4) e 10(6)) e per un
 -- laboratorio odontotecnico NON esistono.
---   Base corretta: Art. 10(5) + ALLEGATO XIII punto 4
---   → la dichiarazione si conserva almeno 10 anni dall'immissione sul mercato
---     dell'ultimo dispositivo, e almeno 15 per gli impiantabili.
+--   Base corretta (EMENDATA il 03/08/2026 — D125, testo consolidato letto):
+--   ALLEGATO XIII punto 4, DA SOLO — e riguarda LA DICHIARAZIONE del punto 1:
+--     «conservata per un periodo di almeno 10 anni dalla data di immissione sul
+--     mercato DEL DISPOSITIVO» (singolare), almeno 15 per gli impiantabili.
+--   ATTENZIONE: qui c'era scritto «dell'ULTIMO dispositivo» — e' la formula
+--   dell'Art. 10(8), cioe' della produzione in serie: per un su misura e' errata.
+--   L'Art. 10(5) NON e' la fonte del termine: rimanda all'Allegato XIII punto 2
+--   (tenere la documentazione a disposizione) e NON porta alcuna scadenza.
+--   Referto: docs/roadmap/2026-08-03-panel-dpa-referto.md §2
 -- Fonte: MDR consolidato 01/01/2026, CELEX 02017R0745-20260101 (EUR-Lex).
 -- L'effetto pratico non cambia (10 anni / 15 impiantabili): cambia la citazione.
 --

@@ -239,8 +239,9 @@ describe('POST /api/pazienti — Z2: normalizzazione del codice in scrittura', (
 
   it('🛑 la MAIUSCOLA non si tocca: `\'  pz-0042  \'` si scrive `\'pz-0042\'`, mai `\'PZ-0042\'`', async () => {
     // L'indice di T5 confronterà con `lower(btrim(...))`, ma il valore si
-    // CONSERVA come l'utente l'ha scritto: è un identificativo che finisce su
-    // documenti conservati per legge (Art. 10(5) + Allegato XIII p.4).
+    // CONSERVA come l'utente l'ha scritto: è un identificativo che finisce sulla
+    // dichiarazione dei su misura, conservata almeno 10 anni (15 per gli
+    // impiantabili) — Allegato XIII punto 4 MDR, da solo (emendato il 03/08, D125).
     const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', codice_paziente: '  pz-0042  ' }))
     expect(res.status).toBe(201)
     expect(insertMock.mock.calls[0][0].codice_paziente).toBe('pz-0042')

@@ -57,8 +57,10 @@ export async function PATCH(
   // rifacendo esattamente la divergenza che 🟠 ALTO 1 ha chiuso.
   //   🛑 La MAIUSCOLA non si tocca (v. `api/pazienti/route.ts` §Z2): l'indice
   //   di T5 confronta con `lower(btrim(...))`, ma il valore si conserva come
-  //   l'utente l'ha scritto — finisce su documenti conservati per legge
-  //   (Art. 10(5) + Allegato XIII p.4).
+  //   l'utente l'ha scritto — finisce sulla dichiarazione dei dispositivi su
+  //   misura, conservata per legge almeno 10 anni (15 per gli impiantabili):
+  //   Allegato XIII punto 4 MDR, DA SOLO. ⚠️ Qui si citava anche l'Art. 10(5),
+  //   che è un obbligo diverso e senza termine — emendato il 03/08/2026 (D125).
   //   🛑 La normalizzazione resta DENTRO il ramo `'codice_paziente' in body`:
   //   l'ASSENZA della chiave deve restare `undefined`, mai `null`. Collassare
   //   i due farebbe cancellare il codice a ogni salvataggio di una nota — in

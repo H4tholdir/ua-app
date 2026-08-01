@@ -497,7 +497,14 @@ I due oggetti che l'Art. 10(8) nomina — documentazione tecnica II/III e dichia
 **per un su misura non esistono**. Il termine viene dall'**Allegato XIII punto 4**: «La dichiarazione …
 è conservata per un periodo di almeno **10 anni** … Nel caso di dispositivi impiantabili, **almeno 15 anni**».
 
-➡️ **Base corretta: Art. 10(5) + Allegato XIII punto 4.**
+➡️ ~~**Base corretta: Art. 10(5) + Allegato XIII punto 4.**~~
+🔄 **EMENDATA il 03/08/2026 (D125) — e l'emenda viene da QUESTO STESSO VERBALE.** Questa riga di sintesi
+saldava due obblighi diversi; la lettura giusta era già scritta **trenta righe più sotto**, in «Cosa resta
+non verificato»: «*L'Art. 10(5) impone di tenerla a disposizione **senza indicare un termine**; l'Allegato
+XIII p.4 fissa 10/15 anni **solo per la dichiarazione***». **Il termine si cita `Allegato XIII punto 4`, da
+solo**; l'Art. 10(5) (→ punto 2) è un obbligo diverso e senza termine. 🔑 **Il difetto non è stato il panel:
+è stata la riga di sintesi che ha appiattito ciò che il panel aveva distinto** — e quella riga è l'unica
+che è stata copiata altrove. Referto: `docs/roadmap/2026-08-03-panel-dpa-referto.md` §2.
 🔑 **L'effetto pratico è NULLO** (10 anni, 15 per gli impiantabili, in entrambe le letture): cambia la
 **citazione**, non il comportamento. Ma è una citazione che finisce accanto a un vincolo di conservazione,
 e la regola di casa è che *un commento non si sbaglia, si scolla*.

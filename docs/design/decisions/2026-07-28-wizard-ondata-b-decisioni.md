@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla quarantunesima tornata (D124, si parte dal contratto ai dentisti)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla quarantaduesima tornata (D125-D126, la base normativa e il contratto vero)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centoventiquattro decisioni in quarantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centoventisei decisioni in quarantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -735,6 +735,9 @@ dispositivo conforme «**e ai disposti dell'Allegato XIII**», che è una **proc
 ⚠️ E una **contraddizione fra due panel da sciogliere**: la base normativa della conservazione decennale è
 «Art. 10(5) + Allegato XIII punto 4» (ratificata il 29/07) o **l'Allegato XIII punto 4 da solo**? Quella
 citazione vive in tre documenti. Non ratificata né scartata: **va verificata sul testo**.
+🟢 **SCIOLTA il 03/08/2026 con D125, sul testo consolidato: «l'Allegato XIII punto 4 DA SOLO».** Il punto 4
+fissa i 10/15 anni sulla **dichiarazione**; l'Art. 10(5) rimanda al **punto 2** e non ha termine. ⚠️ E i
+documenti non erano tre: il censimento ne ha trovati **quattordici**.
 
 ---
 
@@ -888,3 +891,17 @@ dentro un'ondata da pianificare.
 | # | Decisione | Testo/motivo di Francesco | Conseguenza |
 |---|---|---|---|
 | **D124** | 🥇 **La prima cosa è la riga 10 della roadmap — il contratto sul trattamento dei dati che i dentisti scaricano — e il panel normativo si ALLARGA alle due domande lasciate aperte da D123** | scelta di Francesco fra tre strade (riga 10 col panel largo · riga 10 col panel stretto al solo testo del contratto · Task 1 di D42) | ✅ **La ragione:** è l'unico difetto dell'audit arrivato a un documento **già uscito dal laboratorio**, e la sua materia — *per quanto tempo un dato resta* — è la stessa metà della domanda che D123 lascia aperta. **Un panel solo invece di due.** 🛑 **Il panel decide PRIMA che si tocchi il testo**, e nel suo mandato entrano anche: ① la **contraddizione fra due panel già registrata** — la base della conservazione è «Art. 10(5) + Allegato XIII punto 4» oppure il **solo** punto 4? (riga 8 della sezione «I documenti che escono dal laboratorio» di `docs/roadmap/ROADMAP-UFFICIALE.md`, *non ratificata né scartata*); ② un **vincolo di forma che il modello impone e che nessuno aveva detto**: il contratto è **per CLIENTE, non per lavoro** (`src/components/features/pdf/DpaTemplate.tsx:52-78` non porta **alcun** dato del dispositivo), quindi il testo corretto **non può essere condizionale** sugli impiantabili — deve enunciare la regola, non applicarla a un caso che il documento non conosce; ③ le **quattro** righe da correggere, non tre. ➡️ **D42 non decade, scala di un posto:** il piano resta pronto (`docs/superpowers/plans/2026-08-03-tinte-manufatto.md`, 9 task, da eseguire con R-E1) |
+
+---
+
+### Quarantaduesima tornata — D125-D126: la base normativa si emenda, e il contratto smette di dire cose non vere
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D125** | 📜 **La base ratificata il 29/07 — «Art. 10(5) + Allegato XIII punto 4» — si EMENDA: i due obblighi si citano SEPARATI.** Il termine di **10 anni (15 per gli impiantabili)** sta nell'**Allegato XIII punto 4, da solo**, e riguarda **la dichiarazione**; l'**Art. 10(5)** rimanda al **punto 2** ed è un obbligo **senza termine** | scelta di Francesco fra tre strade (emendare tutti i documenti · emendare tutto tranne le istruzioni permanenti · lasciare la ratifica com'è), posta dopo che **avevo letto io** il testo consolidato | ✅ **Prova di prima mano:** EUR-Lex, MDR consolidato al 01/01/2026, CELEX `02017R0745-20260101`, versione italiana, scaricata e letta — «*La dichiarazione di cui alla parte introduttiva del punto 1 è conservata per un periodo di almeno 10 anni dalla data di immissione sul mercato **del dispositivo***» (singolare: **non** «dell'ultimo», che è la formula dell'Art. 10(8), cioè della produzione in serie). 🔑 **Il difetto non è stato il panel del 29/07: la lettura giusta ERA GIÀ NEL SUO VERBALE**, sotto «cosa resta non verificato» («*l'Art. 10(5) impone di tenerla a disposizione senza indicare un termine*») — è la **riga di sintesi** ad averla appiattita, ed è la riga di sintesi che è stata copiata altrove. ⚠️ **E il censimento ha smentito il mio stesso conteggio: non «tre documenti» ma QUATTORDICI.** Emendati i **vivi** — `ua-app/CLAUDE.md` §9, `docs/roadmap/2026-07-29-ondata-b-panel-validazione.md`, la riga 8 di `docs/roadmap/ROADMAP-UFFICIALE.md` (che così si **chiude**), questo verbale, `supabase/schema.sql` e tre commenti fra codice e prove. 🛑 **Handoff e referti passati NON riscritti:** sono il verbale di ciò che si credeva allora. 📌 **Conseguenza pratica: nessuna norma MDR impone di conservare una FOTO clinica per dieci anni** |
+| **D126** | ✍️ **Il contratto ai dentisti si riscrive TUTTO adesso — testo, non impianto**: le quattro citazioni, la conservazione sull'oggetto giusto, **le tre affermazioni di sicurezza false**, la catena dei sub-responsabili con UÀ dichiarata e le clausole dell'Art. 28 mancanti. **Nessuna migration** | scelta di Francesco fra tre ampiezze (tutto il testo ora · testo + contratto dimostrabile con migration · solo citazioni e conservazione) | 🔴 **Le tre affermazioni false, misurate:** autenticazione a più fattori (`grep` su `src/` → **0** riscontri), pseudonimizzazione (il nome paziente è **in chiaro** in `supabase/schema.sql:891` e dentro l'indice full-text `:1011`), «log immutabile di **tutti gli accessi**» (registra le **modifiche**, e solo su `cicli_produzione` e `fasi_produzione`, `supabase/migrations/20260704120000_b3_cicli_fasi_audit.sql:7,11`). ⚠️ **Un contratto che dichiara misure inesistenti è più grave di una citazione sbagliata**, e non era nel mandato di partenza: l'ha trovato il panel perché gli è stato chiesto di cercarlo. 🛑 **Ciò che questa decisione NON copre, e resta aperto:** il contratto **non è dimostrabile** — numero stabile per cliente e per anno, PDF mai persistito, `template_versione` mai valorizzato: nessuno può sapere quale testo ha in mano un dentista. Quella è la parte **(b)** della riga 10 di `docs/roadmap/ROADMAP-UFFICIALE.md`, con migration, **non fatta oggi** |
+
+🔑 **Perché D125 sta scritta con la sua prova e non con un «lo dice il panel».** La formula emendata era
+**ratificata**, viveva nelle istruzioni permanenti di Francesco, ed è stata cambiata solo dopo aver letto
+**le parole del regolamento**. Un panel che cita una ratifica non è una fonte: è un'eco. Il panelista ② ha
+fatto esattamente questo, e non è servito a nulla se non a mostrare quanto è facile.

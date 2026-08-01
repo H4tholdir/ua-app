@@ -468,9 +468,24 @@ diventano documenti e si congelano, non prima.
   🛑 **Per i dispositivi SU MISURA la norma NON è l'Art. 10(8)**: i due oggetti che quell'articolo nomina
   (documentazione tecnica All. II/III e dichiarazione di conformità UE) sono riservati ai dispositivi
   «**diversi dai dispositivi su misura**» (Art. 10(4) e 10(6)) e per un laboratorio odontotecnico **non
-  esistono**. La base corretta è **Art. 10(5) + Allegato XIII punto 4** (10 anni, **15** per gli
-  impiantabili). L'effetto pratico non cambia: cambia la citazione — e questa citazione stava in tre
-  documenti del progetto, accanto a un vincolo di conservazione.
+  esistono**. ~~La base corretta è **Art. 10(5) + Allegato XIII punto 4**~~
+  🔄 **EMENDATA il 03/08/2026 (D125), leggendo il testo consolidato — quella formula saldava DUE obblighi
+  diversi.** I due si citano **separati**, perché sono separati:
+  - **Il termine di 10 anni (15 per gli impiantabili) sta nell'ALLEGATO XIII PUNTO 4, DA SOLO**, e riguarda
+    **la dichiarazione** del punto 1: «*La dichiarazione di cui alla parte introduttiva del punto 1 è
+    conservata per un periodo di almeno 10 anni dalla data di immissione sul mercato **del dispositivo***»
+    — singolare. ⚠️ **NON** «dell'ultimo dispositivo»: quella è la formula dell'Art. 10(8), cioè della
+    produzione in serie.
+  - **L'Art. 10(5) è un obbligo DIVERSO e SENZA TERMINE**: rimanda all'**Allegato XIII punto 2** (tenere la
+    documentazione *a disposizione* delle autorità). Allineare anche quella ai 10 anni è **prudenza, non un
+    obbligo citabile**.
+  - 🛑 **Nessuna norma MDR impone di conservare una FOTO clinica per dieci anni.**
+  🔑 **La lettura giusta era già scritta il 29/07** — nel verbale, sotto «cosa resta non verificato» — e non
+  è arrivata alla riga di sintesi né qui: è lo stesso modo in cui si perde una correzione già fatta.
+  Fonte, scaricata e letta: EUR-Lex, CELEX `02017R0745-20260101`, versione italiana. Referto:
+  `docs/roadmap/2026-08-03-panel-dpa-referto.md` §2.
+  ⚠️ **E la citazione non stava in «tre documenti», come questa riga diceva: il censimento del 03/08 ne ha
+  trovati QUATTORDICI** (documenti, commenti nel codice e una prova). L'elenco non lo decide chi scrive.
   🔑 **Il confine, e vale come modello per ogni campo futuro:** Art. 52(8) impone la dichiarazione **prima
   dell'immissione sul mercato**, e Art. 2(28) definisce l'immissione come la **prima messa a disposizione**
   — cioè **la consegna**. **La norma e la direttiva di Francesco cadono nello stesso istante**: la finestra

@@ -1,21 +1,24 @@
-# Sessione attiva — il panel del contratto ai dentisti (D124): la premessa è caduta
+# Sessione attiva — il contratto ai dentisti riscritto (D125-D126)
 
 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-panel-dpa-referto.md`** — il referto del panel, con l'Allegato
-XIII verbatim. Sotto, l'handoff da cui la sessione è partita: `docs/roadmap/2026-08-03-audit-e-rete-handoff.md`.
+XIII verbatim e gli otto ritrovamenti fuori mandato.
 
-🔴 **La premessa di D62, dell'audit, della riga 10 e dell'handoff è FALSA:** la cancellazione di una foto è
-rifiutata se il lavoro è consegnato, e i dieci anni decorrono **dalla consegna** — la finestra si chiude dove
-l'orologio comincia. 🔑 **Al suo posto, un difetto più grande:** il contratto **afferma tre misure di sicurezza
-che il prodotto non ha**, e non è **dimostrabile** (numero stabile per cliente/anno, nessuna persistenza,
-`template_versione` mai valorizzato).
+✅ **Fatto oggi:** **D123** (il documento segue il lavoro finché il lavoro è aperto) · **D124** (si parte dal
+contratto ai dentisti, panel allargato) · **D125** (emendata la base normativa ratificata: il termine di
+10/15 anni sta nell'**Allegato XIII punto 4 da solo** e riguarda la **dichiarazione**) · **D126** (riscritto
+**tutto** il testo del contratto: quattro citazioni, conservazione, **tre affermazioni di sicurezza false**,
+sub-responsabili con UÀ dichiarata, cinque clausole Art. 28, Art. 7 nuovo sui ruoli).
 
-📜 **Norma sciolta sul testo consolidato letto da me:** i 10/15 anni dell'Allegato XIII **punto 4** cadono sulla
-**dichiarazione**; l'Art. 10(5) rimanda al **punto 2**, che non ha termine.
+📌 **Misurato a mano:** `tsc` **0** · `vitest` **371 | 3** file e **4292 | 19** prove · `next build` **0** ·
+`tests/unit/dpa-pdf-content.test.ts` **17 su 17**, nate rosse **15 su 17**.
 
-⏳ **Aspetto tre decisioni di Francesco** (referto §5): ① emendare la base ratificata «Art. 10(5) + All. XIII
-punto 4» in `ua-app/CLAUDE.md` §9 e in due altri documenti · ② l'ampiezza della riscrittura del contratto
-(solo citazioni, oppure contratto vero e dimostrabile con migration) · ③ il contenitore `documenti` su Storage
-è pubblico o privato — serve il suo occhio sul pannello Supabase.
+🔴 **Cosa resta, in ordine:** la parte **(b)** della riga 10 — il contratto **dimostrabile** (persistenza,
+versione, numero progressivo: **con migration**) · le righe **12-20** di «I documenti che escono dal
+laboratorio», otto ritrovamenti del panel · **D42** (piano pronto, 9 task, R-E1) · il round 2 dell'audit.
 
-🚀 `main` = **`9fb59855`** + i documenti di oggi. ⛔ Nessuna riga di codice né di template toccata: il panel
-decide prima. Verbale: **centoventiquattro** decisioni in **quarantuno** tornate; la prossima è **D125**.
+❓ **Una domanda per Francesco è ancora senza risposta:** il contenitore `documenti` su Storage è **pubblico
+o privato**? Serve il suo occhio sul pannello Supabase — il repo non può dirlo (riga 16).
+
+🚀 `main` = **`e90a21a2`** + il lavoro di D125-D126, **non ancora pubblicato**.
+📎 Verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`: **centoventisei** decisioni in
+**quarantadue** tornate; la prossima è **D127**.

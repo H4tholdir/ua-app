@@ -310,9 +310,12 @@ export async function POST(req: Request) {
   // regola del nome qui sotto e la colonna a `:139`).
   //   🛑 La MAIUSCOLA non si tocca. L'indice unico previsto da T5 confronterà
   //   con `lower(btrim(...))`, ma il codice si CONSERVA come l'utente l'ha
-  //   scritto: è un identificativo che finisce su documenti conservati per
-  //   legge (Art. 10(5) + Allegato XIII p.4), e riscriverlo sarebbe alterare
-  //   un dato dell'utente per comodità nostra.
+  //   scritto: è un identificativo che finisce sulla dichiarazione dei
+  //   dispositivi su misura, conservata per legge almeno 10 anni (15 per gli
+  //   impiantabili) — Allegato XIII punto 4 MDR, da solo. ⚠️ Qui si citava
+  //   anche l'Art. 10(5): è un obbligo DIVERSO e senza termine (punto 2).
+  //   Emendato il 03/08/2026 — D125, testo consolidato letto.
+  //   Riscrivere quel dato sarebbe alterarlo per comodità nostra.
   //   ⚠️ `trim()` di JavaScript toglie PIÙ di `btrim()` di Postgres (tab,
   //   a-capo, spazi unicode). Divergenza voluta e dalla parte sicura, come in
   //   `dati-wizard.ts:50-53`: scrivendo il valore ripulito, due codici che
