@@ -11,6 +11,10 @@ sub-responsabili con UÀ dichiarata, cinque clausole Art. 28, Art. 7 nuovo sui r
 
 📌 **Misurato a mano:** `tsc` **0** · `vitest` **371 | 3** file e **4292 | 19** prove · `next build` **0** ·
 `tests/unit/dpa-pdf-content.test.ts` **17 su 17**, nate rosse **15 su 17**.
+🏁 **E PROVATO IN PRODUZIONE, non solo in prova:** contratto scaricato da `uachelab.com` per un cliente vero
+del banco (link monouso, D103) → **18 controlli su 18 verdi**. ⚠️ **Il primo scarico dava 17 divergenze su
+18: il rilascio non era ancora passato.** Ci sono voluti **~5 minuti** dal `push`. 🔑 «Pubblicato» e «in
+produzione» non sono la stessa cosa, e l'unico modo di saperlo è **andare a scaricare il documento**.
 
 🔴 **Cosa resta, in ordine:** la parte **(b)** della riga 10 — il contratto **dimostrabile** (persistenza,
 versione, numero progressivo: **con migration**) · le righe **12-20** di «I documenti che escono dal
