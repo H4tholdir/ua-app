@@ -962,11 +962,18 @@ dichiara**, invece di allargare il contesto a caso finché diventa verde.
 **File:** modificare `src/app/(app)/clienti/[id]/page.tsx` (🛑 **aprirlo per intero prima**: `letto: 1-40,
 240-280`)
 
-🔴 **Ritrovamento riferito, e sta esattamente sul blocco da toccare:** la riga sotto il tasto dice «*Stampa,
-firma in duplice copia e conserva una copia originale per **10 anni**.*» — **è falsa** dopo D126 (i dieci
-anni sono della **dichiarazione di conformità**, non del contratto) e contraddice D127-D128 (la firma sarà a
-distanza). Si sostituisce **in questo task**, perché lasciare una frase falsa accanto al registro nuovo
-sarebbe assurdo.
+✅ **GIÀ FATTO, FUORI DA QUESTO TASK — non cercarla, non c'è più.** La riga sotto il tasto diceva «*Stampa,
+firma in duplice copia e conserva una copia originale per **10 anni**.*» — **falsa** dopo D126 (i dieci anni
+sono della **dichiarazione di conformità**, non del contratto) e in contraddizione con D127-D128 (la firma
+sarà a distanza). **Tolta il 03/08/2026, prima dell'esecuzione del piano**, perché era viva davanti a un
+utente e non poteva aspettare nove task. Testo oggi in produzione:
+«*Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio.*»
+
+🛑 **E perché non dice ancora niente sulla conservazione:** la frase che questo piano aveva previsto —
+«*Ogni versione emessa resta conservata da UÀ*» — **sarebbe stata falsa il giorno in cui è stata scritta**:
+il registro non esiste finché non è finito il **Task 4**, e oggi `generateDpa()` rende un PDF al volo senza
+conservare niente. Sostituire una promessa falsa con una promessa falsa più nuova non è una correzione.
+La frase sulla conservazione entra **qui**, in questo task, quando il registro dietro c'è davvero.
 
 - [ ] **Step 1: lettura dell'ultima emissione** (componente server, client di servizio già in uso alla riga 3)
 
@@ -983,7 +990,9 @@ const { data: ultimaEmissione } = await svc
   .maybeSingle()
 ```
 
-- [ ] **Step 2: sostituire la frase e mostrare il numero** (stile **v2.3**, come il resto del blocco)
+- [ ] **Step 2: mostrare il numero, e SOLO ORA promettere la conservazione** (stile **v2.3**, come il resto
+del blocco). Il paragrafo da sostituire è quello **neutro** messo il 03/08 (v. sopra), non quello dei dieci
+anni: la riga dei dieci anni **non esiste più nel file**, e un esecutore che la cerchi si è perso.
 
 ```tsx
 {ultimaEmissione?.numero_dpa && (

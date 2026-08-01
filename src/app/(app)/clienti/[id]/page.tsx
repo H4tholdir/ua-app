@@ -273,7 +273,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
               Scarica DPA PDF
             </a>
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3)', marginTop: '6px' }}>
-              Stampa, firma in duplice copia e conserva una copia originale per 10 anni.
+              Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio.
             </p>
           </div>
         </SectionCard>
