@@ -1,8 +1,9 @@
 # Sessione attiva — la §0 chiusa per intero, e gli accenti FATTI sul ramo
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-03-accenti-documenti.md`** — il ramo
-`accenti-documenti` è pronto e **NON mergiato**: 12 salvataggi, `vitest` **370 | 3** file e **4274 | 19**
-prove · `tsc` 0 · `next build` ok. Spec: `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`** §5 — i **nove
+ritrovamenti** riferiti e non corretti, che sono le prossime voci. Il ramo `accenti-documenti` è **MERGIATO
+su `main`** (14 salvataggi + merge, autorizzato da Francesco): `vitest` **370 | 3** file e **4274 | 19**
+prove · `tsc` 0 · `next build` ok. Piano: `docs/superpowers/plans/2026-08-03-accenti-documenti.md`.
 
 ✅ **Fatto prima:** la §0 dell'handoff, **per intero** — le due impronte della DdC provate in produzione
 (consegna + annullo) e il primo braccio della guardia overlay, che ha richiesto di **riparare la guardia**.
