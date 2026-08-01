@@ -50,9 +50,11 @@ export const VERSIONE_MODELLO_DPA = `dpa-${REVISIONE_LEGGIBILE_DPA}+${IMPRONTA_T
  *  in JSX: `lab.codice_fiscale`, `cliente.cap` e `cliente.provincia` sono
  *  accettati dal tipo ma non compaiono in nessun `<Text>` del template
  *  (verificato riga per riga in `DpaTemplate.tsx` il 03/08/2026, Task 3).
- *  Segnalato a chi possiede il piano — v. referto Task 3 §2 — e NON corretto
- *  qui: cambiare l'insieme dei campi qui è una decisione sul confine di
- *  "sostanziale" che tocca anche i Task 4-9 che consumano questa impronta. */
+ *  Segnalato a chi possiede il piano — v. `docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md`,
+ *  Task 3 (e, se ancora presente, `.superpowers/sdd/task-3-report.md` §2, NON
+ *  tracciato da git) — e NON corretto qui: cambiare l'insieme dei campi qui è
+ *  una decisione sul confine di "sostanziale" che tocca anche i Task 4-9 che
+ *  consumano questa impronta. */
 export interface DatiSostanzialiDpa {
   lab: Pick<Laboratorio, 'ragione_sociale' | 'nome' | 'partita_iva' | 'codice_fiscale' | 'indirizzo' | 'cap' | 'citta' | 'provincia' | 'prrc_nome' | 'codice_itca'>
   cliente: Pick<Cliente, 'studio_nome' | 'nome' | 'cognome' | 'partita_iva' | 'codice_fiscale' | 'indirizzo' | 'cap' | 'citta' | 'provincia'>
