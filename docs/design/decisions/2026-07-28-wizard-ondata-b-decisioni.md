@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentanovesima tornata (D122, il numero nella lettura vocale)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla quarantunesima tornata (D124, si parte dal contratto ai dentisti)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centoventidue decisioni in trentanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centoventiquattro decisioni in quarantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -863,3 +863,28 @@ verificatore, **non sanata** dal verificatore (le altre sette avevano una decisi
 allineate; questa no), e portata a Francesco come domanda. 🔑 È la regola R-E2 applicata a un documento
 invece che a un difetto di codice: **allineare la legge al codice senza una decisione è il modo in cui una
 deviazione diventa norma senza che nessuno l'abbia scelta.**
+
+---
+
+### Quarantesima tornata — D123: il documento segue il lavoro finché il lavoro è aperto
+
+Non nasce da una domanda posta a Francesco: nasce da un **suo appunto** all'apertura della sessione. È una
+direttiva di prodotto e riguarda **tutti** i documenti che UÀ genera, non uno.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D123** | 📄 **Un documento segue il lavoro finché il lavoro è aperto, e si cristallizza SOLO alla chiusura.** La conformità non è un motivo per irrigidire il prodotto **prima** del momento in cui la legge lo chiede — e quel momento è uno solo, non «appena possibile» | «mentre un lavoro è dentro UÀ può ricevere sempre delle modifiche o delle rettifiche e la struttura finale di un documento deve mutare in base a queste, solo nel momento in cui un lavoro viene chiuso devono essere cristallizzate come è giusto che sia (tenere conto della possibile riapertura di un lavoro con le normali conseguenze e credo generazioni nuove di documenti, non so cosa dice la normativa a riguardo) […] noi con la nostra pwa forniamo un servizio al laboratorio e dobbiamo metterci sempre nella posizione di facilitare e aiutare il laboratorio» | ✅ **È il corollario documentale della direttiva del 27/07** («ogni campo del lavoro si corregge, fino alla consegna»): quella parla dei **campi**, questa dei **documenti che quei campi generano**. **Stato misurato aprendo i file il 03/08:** il **DPA segue già** — `src/lib/pdf/generate-dpa.ts` lo rigenera dal modello vivo e `src/app/api/clienti/[id]/dpa/route.ts` non persiste nulla (`grep` di `insert`/`upsert`: **zero** riscontri); la **DdC si congela all'emissione, ed è corretto** — l'emissione coincide con la consegna (Art. 52(8) + Art. 2(28), panel del 29/07); ⚠️ **ma una DdC emessa non ha una via per rifarsi**: `src/lib/pdf/generate-ddc.ts:98-107` restituisce quella esistente (`.neq('stato','annullata')`) **senza rigenerare**. 🛑 **Due domande restano APERTE, sono normative, e nessuna riga di codice si scrive prima di un panel:** ① **dove cade «chiuso»** — sul modello dati non esiste alcuno stato dopo `consegnato` (`supabase/schema.sql:917-920`, sei stati), quindi «chiuso» **non può che essere la consegna**, ma i campi del prezzo restano correggibili fino a `incluso_in_fattura`: la finestra è **già a due tempi** e va detto quale tempo vale per quale documento; ② **la riapertura** oggi vive **solo entro 10 minuti** (`src/lib/consegna/costanti.ts:7` · `src/app/api/lavori/[id]/annulla-consegna/route.ts`) e oltre quella finestra **non esiste** — che cosa imponga la norma a una riapertura vera (nuova DdC, sorte della vecchia, tracciabilità della revisione) **non è deciso e non si assume**. ➡️ **Destinazione:** la sezione «il documento segue il lavoro» di `docs/roadmap/ROADMAP-UFFICIALE.md`, aperta oggi sotto la direttiva del 27/07; il primo panel che tocca la stessa materia è quello della **voce 10** (per quanto tempo un dato resta) |
+
+🔑 **Perché questa riga è stata scritta PRIMA che Francesco scegliesse la prossima cosa da fare.** §0A-bis:
+una scelta riceve il suo numero **nello stesso turno**. E questa, in più, **contiene una precondizione**
+(«prima del codice, un panel») — che è esattamente la forma con cui **D62** è sfuggita per quattro giorni:
+una condizione scritta dentro un blocco che nessuno rileggeva. Sta qui **con la sua destinazione**, non
+dentro un'ondata da pianificare.
+
+---
+
+### Quarantunesima tornata — D124: si parte dal contratto che i dentisti hanno già in mano
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D124** | 🥇 **La prima cosa è la riga 10 della roadmap — il contratto sul trattamento dei dati che i dentisti scaricano — e il panel normativo si ALLARGA alle due domande lasciate aperte da D123** | scelta di Francesco fra tre strade (riga 10 col panel largo · riga 10 col panel stretto al solo testo del contratto · Task 1 di D42) | ✅ **La ragione:** è l'unico difetto dell'audit arrivato a un documento **già uscito dal laboratorio**, e la sua materia — *per quanto tempo un dato resta* — è la stessa metà della domanda che D123 lascia aperta. **Un panel solo invece di due.** 🛑 **Il panel decide PRIMA che si tocchi il testo**, e nel suo mandato entrano anche: ① la **contraddizione fra due panel già registrata** — la base della conservazione è «Art. 10(5) + Allegato XIII punto 4» oppure il **solo** punto 4? (riga 8 della sezione «I documenti che escono dal laboratorio» di `docs/roadmap/ROADMAP-UFFICIALE.md`, *non ratificata né scartata*); ② un **vincolo di forma che il modello impone e che nessuno aveva detto**: il contratto è **per CLIENTE, non per lavoro** (`src/components/features/pdf/DpaTemplate.tsx:52-78` non porta **alcun** dato del dispositivo), quindi il testo corretto **non può essere condizionale** sugli impiantabili — deve enunciare la regola, non applicarla a un caso che il documento non conosce; ③ le **quattro** righe da correggere, non tre. ➡️ **D42 non decade, scala di un posto:** il piano resta pronto (`docs/superpowers/plans/2026-08-03-tinte-manufatto.md`, 9 task, da eseguire con R-E1) |
