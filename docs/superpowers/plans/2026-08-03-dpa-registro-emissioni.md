@@ -83,7 +83,10 @@ del database — **non si tenta**, v. Task 1 Step 6).
 
 | # | Assunzione | Comando | Esito reale |
 |---|---|---|---|
-| **P10** | `apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` **nudo** | lettura `supabase/schema.sql:70-82` | `EXECUTE format('CREATE TRIGGER trg_%I_updated_at BEFORE UPDATE ON %I …')`. Il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger che la funzione crea. Seconda chiamata → `42710` |
+| ~~**P10**~~ | ~~`apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` **nudo**~~ | ~~lettura `supabase/schema.sql:70-82`~~ | 🔴 **P10 ERA FALSA — ritirata il 03/08, v. P13.** Aveva letto **un file**: esattamente il metodo per cui, tre righe più sopra, P7 era appena stata declassata |
+| **P13** | 🔄 **La verità su `apply_updated_at_trigger`, letta dal CATALOGO VIVO** | `SELECT prosrc FROM pg_proc WHERE proname='apply_updated_at_trigger'` (Management API, `read_only:true`) | `BEGIN EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_updated_at ON %I; CREATE TRIGGER trg_%I_updated_at …') END;` → la funzione viva **fa già il `DROP … IF EXISTS`: è rieseguibile.** Una seconda chiamata **non** dà `42710` |
+| **P14** | La deriva fra la fotografia e il vivo **non è documentata da nessuna parte** | `grep -rln "FUNCTION apply_updated_at_trigger" supabase/migrations/ supabase/schema.sql` | solo `supabase/schema.sql` — **nessuna migration** ridefinisce la funzione. La forma viva è stata applicata **a mano** e mai riscritta in un file |
+| **P15** | Lo stato del catalogo che la migration assume | Management API, `read_only:true` | delle sette colonne ne esistono già **0** · trigger sulla tabella: **0** · righe in `data_processing_agreements`: **0** (senza nessuna assunzione su RLS — è ciò che P3 non poteva dire) · righe in `clienti`: **39**, quindi le sonde hanno da cui derivare laboratorio e controparte |
 | **P11** | Il precedente della DdC porta **DUE** indici, non uno | lettura `20260710090000_ddc_annullata_unique_parziale.sql` + `grep -n "anno_ddc, progressivo_ddc" supabase/schema.sql` | deduplicazione: `CREATE UNIQUE INDEX ddc_lavoro_attiva_unique … (laboratorio_id, lavoro_id) WHERE stato <> 'annullata'` — **le stesse colonne del guard** · backstop: `schema.sql:1273` `UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)` |
 | **P12** | La regola «due indici» è **già ratificata** nel progetto, per le fatture | lettura `docs/superpowers/specs/2026-07-09-ondata-4a-server-consegna-fiscale-design.md:46` | «*ogni doppia emissione futura è un 23505, non un doppio documento*» + «*Il backstop `UNIQUE (laboratorio_id, anno, progressivo)` **esiste già***» |
 
@@ -147,6 +150,15 @@ tranne `EmissioneDpa` che sta in `generate-dpa.ts`).
 un'allowlist** (P1), ma **il commento `supabase/schema.sql:128-129` elenca i tipi** e va aggiornato, o
 diventa un elenco che sembra completo e non lo è.
 
+🔄 **E il censimento aveva trovato UNO dei DUE elenchi** (03/08, esecutore del Task 1). In quello stesso file
+gli elenchi dei tipi progressivi sono **due**: l'altro sta nella **firma** di `genera_progressivo`
+(`p_tipo TEXT, -- 'lavoro', 'fattura', 'ddc', 'buono', 'sdi_invio'`) ed **è già incompleto oggi** — manca
+`'ordine'`, che nell'elenco a valle c'è. 🛑 **Fuori dal mandato del Task 1: riferito in roadmap, NON
+corretto** (R-E2). È esattamente il caso che questa riga descriveva in astratto, trovato mentre lo si
+descriveva.
+*(`provato:` `SELECT DISTINCT tipo FROM progressivi_anno` → `buono, ddc, fattura, lavoro, sdi_invio`:
+`'ordine'` non è mai stato usato — l'elenco a valle è ottimista nell'altro senso.)*
+
 ---
 
 ## Struttura dei file
@@ -187,16 +199,37 @@ diventa un elenco che sembra completo e non lo è.
 P7 è un `grep` su un file, non una lettura del catalogo (v. registro delle prove). Il fatto vero è uno solo,
 e se il trigger esistesse già la migration aborterebbe alla **prima** esecuzione, non alla seconda:
 
+🔑 **E si legge davvero da qui** — la Management API esegue SQL in sola lettura:
+
+```bash
+TOKEN=$(grep '^SUPABASE_ACCESS_TOKEN=' .env.local | cut -d= -f2- | tr -d '"')
+curl -s -X POST "https://api.supabase.com/v1/projects/iagibumwjstnveqpjbwq/database/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"query":"SELECT …;","read_only":true}'
+```
+🛑 **`read_only:true` sempre.** Applicare è una decisione di Francesco, non una capacità mancante.
+
 ```sql
+-- ① il trigger                              -- ② le colonne che si sta per aggiungere
 SELECT tgname FROM pg_trigger
  WHERE tgrelid = 'public.data_processing_agreements'::regclass AND NOT tgisinternal;
--- e, già che si è lì, le colonne che si sta per aggiungere:
 SELECT column_name, data_type FROM information_schema.columns
  WHERE table_schema='public' AND table_name='data_processing_agreements';
+
+-- ③ 🔄 AGGIUNTE il 03/08: gli INDICI e i VINCOLI omonimi.
+SELECT indexname, indexdef FROM pg_indexes
+ WHERE schemaname='public' AND tablename='data_processing_agreements';
+SELECT conname, contype, pg_get_constraintdef(oid) FROM pg_constraint
+ WHERE conrelid='public.data_processing_agreements'::regclass;
 ```
 
-🛑 `ADD COLUMN IF NOT EXISTS` **non solleva** su una colonna che esiste già con un **tipo diverso**: la
-terrebbe com'è, in silenzio. Se una delle sette c'è già, **fermarsi e riferire**.
+🛑 **Tutti e tre i meccanismi della migration guardano IL NOME, non la definizione**, e nessuno solleva:
+`ADD COLUMN IF NOT EXISTS` terrebbe in silenzio una colonna di **tipo diverso** · `CREATE UNIQUE INDEX IF
+NOT EXISTS` terrebbe un indice **omonimo su altre colonne** (con una `NOTICE`, che l'editor del pannello può
+non mostrare) · le guardie `IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = …)` sono anch'esse
+**sul nome**. Se uno qualsiasi dei quattro esiste già, **fermarsi e riferire**.
+`provato:` il 03/08 sul catalogo vivo — colonne già presenti **0** · trigger **0** · nessun indice o vincolo
+omonimo (solo la chiave primaria e i cinque vincoli originari) · righe nella tabella **0** · clienti **39**.
 
 - [ ] **Step 1: scrivere la migration** — `non eseguito`, si verifica allo Step 5
 
@@ -522,10 +555,17 @@ l'applicazione (Step 7). Committarlo ora significherebbe committare i tipi vecch
 
 - [ ] **Step 6: APPLICARE la migration — è il punto in cui il lavoro aspetta Francesco**
 
-Il CI **non** applica le migration. Due strade, e si sceglie con Francesco:
-`npx supabase db push` (richiede la password del database — **non provato da questa macchina**, e **non si
-tenta**) oppure **incollare il file nell'editor SQL del pannello Supabase**. Subito dopo, **nello stesso
-posto**, si incollano le sonde degli Steps 3-4 e si riporta la tabella d'esito.
+Il CI **non** applica le migration. **Si sceglie con Francesco fra tre strade**, e poi si incollano le sonde
+**nello stesso posto**, riportando la tabella d'esito:
+① **incollare i quattro riquadri** nell'editor SQL del pannello Supabase (referto del Task 1, §5) ·
+② `npx supabase db push` · ③ la **Management API** con `read_only:false`.
+
+🔄 **CORRETTA il 03/08 una ragione sbagliata, ed è importante quanto la scelta.** Questo piano diceva che
+l'esecutore si ferma perché «*richiede la password del database*». **È falso:** `.env.local` contiene
+`SUPABASE_DB_URL` (con la password) e `SUPABASE_ACCESS_TOKEN`, e la Management API con `read_only:false`
+applicherebbe la migration. 🔑 **Il motivo vero per cui ci si ferma è che scrivere su un ambiente vero è una
+decisione di Francesco** — e un motivo sbagliato è un motivo che smette di funzionare: il prossimo esecutore
+che trova la password conclude che il divieto era una svista.
 
 - [ ] **Step 7: FASE 6b — rigenerare i tipi e verificare** (solo dopo lo Step 6)
 
@@ -549,7 +589,7 @@ che un panel si riverifica, non si cita.
 | # | Difetto della prima stesura | Gravità |
 |---|---|---|
 | **T1-01** | `ADD CONSTRAINT` senza guardia: la seconda esecuzione dà `42710` e aborta il file — proprio sulla strada che il piano prescrive (incollare a mano) | 🔴 bloccante |
-| **T1-02** | `apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` nudo. Il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger — è lo scambio che fa sembrare idempotente ciò che non lo è | 🔴 bloccante |
+| ~~**T1-02**~~ | 🔴 **FALSO, e smontato dall'esecutore del Task 1 leggendo il catalogo VIVO** (P13): `apply_updated_at_trigger` nel database vero fa `DROP TRIGGER IF EXISTS … ; CREATE TRIGGER …` — **è già rieseguibile**. Il panel aveva letto `supabase/schema.sql`, cioè **un file**, tre righe dopo aver declassato P7 **per quello stesso motivo**. 🔑 **La guardia `DO $trg$ … IF NOT EXISTS` resta lo stesso**, ma per una ragione diversa e vera: sotto la funzione **viva** una chiamata secca farebbe `DROP`+`CREATE`, aprendo una finestra in cui la tabella è **senza** trigger; sotto quella di `schema.sql` darebbe `42710`. Regge entrambe e non costa niente | ⚪️ **non era un difetto** |
 | **T1-03** | Lo Step 2 rispecchiava in `schema.sql` **solo le colonne**: la prova P7 avrebbe continuato a dare 0 e il prossimo lettore avrebbe aggiunto il trigger **due volte** | 🔴 bloccante |
 | **T1-04** | L'indice sul progressivo **non può scattare in una corsa** — `genera_progressivo` dà ai due concorrenti numeri **diversi**, apposta. Il recupero dal `23505` del Task 6 era irraggiungibile, e la corsa vera produceva **due emissioni complete e silenziose** per lo stesso dentista e lo stesso testo. 🔑 **E il piano dichiarava «stessa rete della DdC» essendo falso contro lo schema della DdC stessa**, che di indici ne ha due (P11), come la regola già ratificata per le fatture (P12) | 🔴 alto |
 | **T1-05** | Le sonde non si controllavano da sole: laboratorio scritto a mano, nessuna verifica che il vincolo esista, nessuna verifica di **quale** vincolo abbia rifiutato. A vincolo mancante avrebbero restituito `23503`, e l'operatore avrebbe incollato quello come prova | 🔴 alto |
@@ -568,11 +608,28 @@ comunque.
 dal solo codice d'errore e cadrà nel `throw` finale del Task 6. **È corretto così** — è un'anomalia vera, non
 una corsa — ma va commentato lì, o il prossimo lettore lo crederà un caso dimenticato.
 
-**Quattro cose restano non verificabili senza toccare il database**, e sono dichiarate, non stimate:
-① se il trigger esista già (lo Step 0 lo guarda) · ② se una delle sette colonne esista già **con un tipo
-diverso** — `ADD COLUMN IF NOT EXISTS` non solleverebbe (Step 0) · ③ quante righe abbia davvero la tabella
-(P3 ritirata; la conclusione non ne dipende) · ④ se l'editor del pannello avvolga lo script in una
-transazione unica — **reso irrilevante** dall'idempotenza per singola istruzione.
+🔄 **AGGIORNATO il 03/08 dall'esecutore del Task 1 — tre delle quattro «non verificabili» ERANO
+verificabili.** La Management API di Supabase esegue SQL con `read_only:true`, e il catalogo vivo si legge
+davvero: ① il trigger **non c'è** · ② **nessuna** delle sette colonne esiste già · ③ la tabella ha **0
+righe**, senza nessuna assunzione su RLS (P15). Resta **④, e NON è irrilevante come questo verbale aveva
+scritto:** le sonde finiscono con `ROLLBACK;`, e se editor e sonde finissero **nella stessa incollata** con
+una transazione unica, quel `ROLLBACK` **annullerebbe anche il DDL appena riuscito** — Francesco leggerebbe
+tre righe «RIFIUTATA (atteso)», cioè una prova perfetta, **su un database in cui la migration non c'è più.
+La prova proverebbe il contrario di ciò che dice.** 🔑 **L'idempotenza risolve la RIESECUZIONE, non questo.**
+Neutralizzato dividendo la consegna in **quattro incollate distinte**, con un cancello di verifica in sola
+lettura fra la migration e le sonde (referto del Task 1, §5).
+
+**Resta davvero non verificabile:** che la migration **si applichi**, perché non esiste un Postgres locale
+(nessun binario `postgres`; il demone Docker è spento) e sul database vero **non si scrive** — in
+particolare se il CHECK sul percorso venga accettato o rifiutato con «*functions in check constraint must be
+marked IMMUTABLE*». Indizio forte, non prova: `uuid_out` e `textin` sono entrambe `provolatile='i'`.
+
+🔑 **LA LEZIONE, e vale più della migration.** Lo stesso errore è stato commesso **due volte di fila, dalle
+due parti opposte**: il panel ha declassato **P7** perché interrogava un file invece del catalogo, e nella
+stessa tornata ha introdotto **P10** interrogando un file invece del catalogo. Una regola appena enunciata
+non protegge chi l'ha enunciata. 🛑 **Regola operativa:** per un oggetto di banca dati — funzione, trigger,
+vincolo, indice — la fonte è **`pg_proc` / `pg_trigger` / `pg_constraint` / `pg_indexes`**, mai
+`supabase/schema.sql`. E il modo di leggerli da qui **esiste**: Management API con `read_only:true`.
 
 ---
 
