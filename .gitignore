@@ -72,6 +72,13 @@ scripts/tmp/
 !public/**/*.svg
 !src/app/icon.png
 !src/app/apple-icon.png
+# Gli scatti dei mockup NON sono screenshot di debug: §0B li rende OBBLIGATORI e
+# li vuole nel repo («MAI in /tmp — i file /tmp vengono cancellati, le decisioni
+# si perdono»). Qui ce n'erano già 343 versionati, ognuno forzato a mano contro
+# la regola sopra: un gesto da ricordare a ogni ondata è un gesto che prima o
+# poi salta, e con lui l'anteprima su cui una scelta è stata fatta.
+!docs/design/mockups/screenshots/*.png
+!docs/design/screenshots/**/*.png
 # File di analisi non appartengono al repo
 *-analysis.*
 *-report.*
