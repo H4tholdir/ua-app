@@ -418,3 +418,42 @@ describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 
     expect(result.text).toContain('Sì — vedere documentazione allegata')
   }, 30_000)
 })
+
+describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova guardava', () => {
+  // 🔑 Perché questo blocco esiste, ed è la lezione che l'ha generato: la revisione
+  //    finale del ramo ha rimesso a mano il refuso in `title` e `subject`
+  //    (DdcTemplate.tsx:292,294) e la suite ha risposto **40/40 verdi**. Il motivo è
+  //    strutturale: `pdfText` nasce da `PDFParse.getText()`, che legge il CONTENUTO
+  //    della pagina, mentre quei due campi vivono nel dizionario `/Info` del file —
+  //    dove nessuna asserzione del progetto guardava. Sono i due punti che un lettore
+  //    PDF mostra nella barra della finestra di un documento conservato dieci anni.
+  // 🛑 I metadati sono scritti in UTF-16BE con BOM (provato: scripts/tmp/sonda-metadati.tsx),
+  //    quindi si cercano nei BYTE, non nel testo estratto: ogni carattere latino
+  //    diventa `\x00` + il carattere. È anche la prova che quella codifica regge
+  //    l'accento — il gate che il panel aveva posto prima di autorizzare la correzione.
+  const utf16be = (s: string) => [...s].map((c) => '\x00' + c).join('')
+
+  it('title e subject portano l\'accento, e sono in UTF-16BE', async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: DDC_FIXTURE,
+    })
+    const buffer = await renderPdfDocument(element)
+    const grezzo = buffer.toString('latin1')
+
+    // 🛑 Le stringhe INTERE, non il tronco comune ai due campi: col solo
+    //    «Dichiarazione di Conformità» il test resta verde anche guastando UNO dei
+    //    due, perché l'altro lo soddisfa. Misurato: la prima stesura di questa
+    //    prova non si accendeva sulla mutazione del `title`.
+    expect(grezzo).toContain(utf16be('Dichiarazione di Conformità DDC-2026-0001')) // title
+    expect(grezzo).toContain(utf16be('Dichiarazione di Conformità MDR 2017/745')) // subject
+    // 🔑 E il refuso si cerca in CODIFICA SEMPLICE, non in UTF-16BE — è il fatto
+    //    che rendeva cieca la prima stesura: lo strato PDF passa a UTF-16BE **solo**
+    //    quando la stringa ha un carattere non-ASCII. Senza accento quei campi
+    //    tornano a un byte per carattere, e una ricerca in UTF-16BE non li vede.
+    expect(grezzo).not.toContain('Dichiarazione di Conformita')
+    // il segnaposto di codifica: senza, un lettore mostrerebbe «ConformitÃ»
+    expect(grezzo).toContain('\xfe\xff')
+  }, 30_000)
+})
