@@ -19,8 +19,15 @@ prenotata dalla spec (b) §7, ~20 prove rotte).
 chiusa a metà** — in produzione solo l'album foto, le schermate del wizard non sono partite. Roadmap voce 1
 corretta.
 
-➡️ **Prossimo passo:** Task 1 del piano, ramo `tinte-manufatto` **nel repo principale** (🛑 mai un worktree),
-R-E1 — un task a un esecutore fresco, istruito a cercare dove il piano sbaglia.
+🔎 **Poi AUDIT DEI DOCUMENTI, round 1** (chiesto da Francesco): il difetto della (b) **non si ripete** — (a)
+14/14 · cassette 9/9 · parete/home 12/12 · accenti 10/10. **Sei cose aperte**, la più grave è la **nuova voce
+10**: il DPA promette «almeno 10 anni» mentre la cancellazione fisica è in produzione (era **D62**, decisa e
+mai eseguita). Altre in **AUD-1…AUD-5**. Referto: `docs/roadmap/2026-08-03-audit-documenti-referto.md`.
+
+➡️ **Prossimo passo — lo decide Francesco fra:** ① la **voce 10** (il DPA: piccola, tocca un documento a
+valore legale) · ② **Task 1** del piano D42, ramo `tinte-manufatto` **nel repo principale** (🛑 mai un
+worktree), R-E1 · ③ le **due regole nuove per la guardia** (referto §3) · ④ il **round 2** dell'audit
+(le 120 decisioni non ancora provate).
 
 📎 Verbale: tornata **38**, `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centoventuno**
 decisioni. La prossima è **D122**.

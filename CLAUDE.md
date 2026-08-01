@@ -367,8 +367,13 @@ chore(deps): add motion@12
 
 Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
 ⚠️ **Questa sezione invecchia in fretta: la fonte viva è `memory/MEMORY.md` (BP-0), non queste righe.**
-**In corso (28/07/2026):** ondata (a) del wizard «Nuovo lavoro» sul ramo `ondata-a-denti-colore`,
-8 task su 13, **mai mergiata** — punto di ripresa in `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`.
+~~**In corso (28/07/2026):** ondata (a) del wizard sul ramo `ondata-a-denti-colore`, 8 task su 13, **mai
+mergiata**.~~ 🔄 **CORRETTA dall'audit del 03/08/2026 — era FALSA:** l'ondata (a) è **in produzione dal
+28/07/2026** (merge `a3e52379`, 78 commit, 13 task su 13), e con lei le tre rotte che `memory/MEMORY.md`
+dava per «di ramo». Perimetro riverificato voce per voce: **14 su 14 costruite**.
+Referto: `docs/roadmap/2026-08-03-audit-documenti-referto.md` §1.
+🔑 **Perché la riga sbagliata è pericolosa più della sua assenza:** chi legge «mai mergiata» tocca un
+contratto **pubblicato** credendolo di prova.
 
 ### ⚠️ I dati nel DB sono di TEST, non di clienti reali (Francesco, 21/07/2026)
 
@@ -389,7 +394,7 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 
 **Pagine attive:** **55** `page.tsx` (contate il 28/07/2026 — il numero invecchia: `find src/app -name page.tsx | wc -l`), fra cui `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
-**Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. **Il fondo pagina è UNO SOLO dal 26/07/2026** (`#F4F0E7` chiaro / `#171411` scuro): i token v2.3 sono stati allineati a quelli v3 — v. `docs/design/decisions/2026-07-26-sfondo-unico.md`. Vive in tre posti che si muovono insieme: `globals.css` (`--bg`), `.login-root` (`--ua-bg`), `admin/admin.css` (`--adm-bg`). Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`, parete `/cassette`, `/tecnici` (le ultime due verificate sondando il DOM il 26/07/2026: montano `data-ds="v3"` — questa riga le dava per legacy). Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
+**Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. **Il fondo pagina è UNO SOLO dal 26/07/2026** (`#F4F0E7` chiaro / `#171411` scuro): i token v2.3 sono stati allineati a quelli v3 — v. `docs/design/decisions/2026-07-26-sfondo-unico.md`. Vive in ~~tre~~ **QUATTRO** posti che si muovono insieme: `globals.css` (`--bg`), `.login-root` (`--ua-bg`), `admin/admin.css` (`--adm-bg`) e **`public/manifest.json`** (🔄 **corretto dall'audit del 03/08/2026**: il quarto mancava qui, benché la correzione fosse **già scritta** in `docs/design/decisions/2026-07-26-sfondo-unico.md:150` — «*i tre posti dichiarati sopra erano tre di quattro*» — e mai propagata. ⚠️ La guardia che protegge davvero l'invariante ne enumera **cinque**, aggiungendo `offline.html`: fidarsi della guardia, non di questo elenco). Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`, parete `/cassette`, `/tecnici` (le ultime due verificate sondando il DOM il 26/07/2026: montano `data-ds="v3"` — questa riga le dava per legacy). Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
 
 ---
 
