@@ -1,38 +1,33 @@
-# Sessione attiva — ONDATA 1 DEL REGISTRO DPA: CHIUSA, IN PRODUZIONE, COLLAUDO PASSATO
+# Sessione attiva — registro DPA ondata 1: IN PRODUZIONE e collaudata, ma un cancello è saltato
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/ROADMAP-UFFICIALE.md` **riga 10** — resta la **parte (b) per intero:
-la FIRMA a distanza** (ondata 2, D127-D131). 🛑 **Prima serve il panel normativo su D128** (Art. 28(9) GDPR
-letto **alla fonte**, non a memoria). Ledger dell'ondata appena chiusa: `.superpowers/sdd/progress.md`.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-04-dpa-registro-chiusura-handoff.md`** — leggilo per intero.
 
-✅ **IN PRODUZIONE dal 02/08** (merge `35172e70`, **41 commit**). Il contratto GDPR ai dentisti ora viene
-**EMESSO**: conservato, numerato, registrato, con le sue due impronte — e **riusato** se nulla è cambiato.
+🔴 **La sua §0 va per prima, e sono sette cose. La più grave è mia:** ho **pubblicato saltando la FASE 9b**,
+il gate estetico L2, che le REGOLE ZERO dichiarano **obbligatorio prima di ogni merge con UI**.
+`provato:` il piano non l'ha **mai** prevista (`grep` → 1 hit, ed è un frammento di impronta) e
+`docs/design/screenshots/` **non ha nessuna cartella** di questa ondata. 🔑 **È il nono difetto di piano, e
+l'unico che nessun esecutore e nessun revisore ha visto** — perché la fase finale **non era di nessuno**.
+Poi: gli **scatti non sono su disco** · il **panel su D128** (Art. 28(9) alla fonte) non è stato fatto **e
+adesso blocca** · **due decisioni restano aperte** (il soft-delete che precede la riemissione, **P10**; i
+permessi di `admin_sistema`, **P12**) · restano **D42**, il **§6-bis**, **AUD-1/3/4/5** e il **round 2**
+(120 decisioni non verificate).
 
-🏆 **COLLAUDO DAL VIVO PASSATO, `provato: IN PRODUZIONE`:**
-- **sequenza** → stesso file, stesso `DPA-2026-0001`, byte identici: il riuso funziona, **nessun numero
-  bruciato**;
-- 🔑 **PARALLELO** su uno studio mai emesso → **UNA sola riga**, `DPA-2026-0002`, byte identici.
-  **Registro: 2 righe, 2 dentisti, contatore a 2.** È la prova che esisteva **solo contro mock**, ed è
-  esattamente il difetto che il panel aveva trovato: prima, quella corsa dava **due contratti identici con
-  due numeri bruciati, in silenzio**.
-- `template_versione` = **`dpa-v2+8d98dbee`**: D133 viva, e il **`+` sopravvive** a PostgREST.
+✅ **In produzione dal 04/08** (merge `35172e70`, **41 commit**), e **COLLAUDATA DAL VIVO**: due scarichi in
+**sequenza** → stesso `DPA-2026-0001`, byte identici (riuso, nessun numero bruciato); due richieste **IN
+PARALLELO** su uno studio mai emesso → **UNA sola riga**, `DPA-2026-0002`. Registro: 2 righe, 2 dentisti,
+contatore a 2. 🔑 È la prova che esisteva **solo contro mock** — prima, quella corsa dava **due contratti
+identici con due numeri bruciati, in silenzio**.
 
-📌 **FASE 7 su `main` dopo il merge:** `tsc` **0** · `vitest` **375 | 3** file e **4380 | 19** prove ·
-`next build` **0** · guardia verde.
+📌 **Riferimento misurato a chiusura:** `tsc` **0** · `vitest` **375 | 3** file e **4380 | 19** prove ·
+`next build` **0** · guardia verde. `main` = **`af81961b`**, albero pulito, **0 da pubblicare**.
 
-🔑 **LA LEZIONE DELLA GIORNATA:** *la fonte di un fatto è **lo strato in cui il codice lo legge**.*
-Sbagliata **quattro volte**: `schema.sql` invece di `pg_proc` · il **corpo HTTP** invece dell'**oggetto
-JavaScript** · un vincolo letto **al rovescio** · e l'**`etag`** invece di `gh run list` (quello che cambiava
-era la pagina di sfida anti-bot, accesa dal mio stesso sondaggio).
-⚠️ **Il rilascio sono DUE fasi, ~11 minuti** (controlli 8m34s + rilascio 2m20s), non «~5». E **il service
-worker serve pagine in cache anche in produzione**: dopo il rilascio va tolto e le cache svuotate.
+🔑 **LA LEZIONE:** *la fonte di un fatto è **lo strato in cui il codice lo legge**.* Sbagliata **quattro
+volte** in un giorno: `schema.sql` invece di `pg_proc` · il **corpo HTTP** invece dell'**oggetto JavaScript**
+· un vincolo letto **al rovescio** · l'**`etag`** invece di `gh run list`.
 
-🟠 **Una decisione resta APERTA, dichiarata** (roadmap **P10**): il soft-delete della riga orfana **precede**
-la riemissione — un guasto in mezzo lascia il dentista **senza contratto vivo**. Ristretto l'innesco, non
-l'esito. Sede: **ondata 2**.
-📋 **Sedici voci riferite in roadmap** (P1-P16) senza toccarle, fra cui: il fuso orario in **dieci** punti dei
-modelli PDF (**P9**), `progressivi.ts` che perde il messaggio del database per **tutti** i documenti (**P11**),
-i permessi di `admin_sistema` (**P12**), tre progetti Playwright che puntano a file inesistenti (**P15**), e
-il contrasto illeggibile in scuro sulla promessa di conservazione (**P16**).
+⚠️ **Trappole pagate oggi:** il rilascio sono **DUE fasi, ~11 minuti** (non «~5») · il **service worker serve
+pagine in cache anche in produzione** · **non sondare la produzione con `curl` in ciclo**, dopo ~40 richieste
+Vercel accende la sfida anti-bot e tutto dà **403**.
 
-🚀 `main` = `bcb1cf42`, albero pulito, **1 commit da pubblicare** (questo aggiornamento di roadmap).
 📎 Verbale: **centotrentatré** decisioni in **quarantacinque** tornate; la prossima è **D134**.
+⚠️ L'orologio della macchina dice **2 agosto**; i documenti seguono la serie del **4 agosto**.
