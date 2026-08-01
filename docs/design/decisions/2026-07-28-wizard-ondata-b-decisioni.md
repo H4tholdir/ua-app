@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentaquattresima tornata (la DdC guardata in produzione, e la scelta della prossima ondata)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla trentaseiesima tornata (D42, la forma del dato e le superfici)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centotto decisioni in trentaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centodiciotto decisioni in trentasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -755,3 +755,50 @@ conservato dieci anni) · 🛑 **niente scale nuove dentro `colori_dentali`** (c
 lì, e l'id fine dei 38 tipi **non è persistito**: una scala `sport` renderebbe scrivibile `('sport','rosso')`
 sulla riga-dente di una corona senza che alcun vincolo se ne accorga) · ➡️ **catalogo separato, voci con
 un NOME**.
+
+---
+
+### Trentacinquesima tornata — D42, le tinte del manufatto: le sei scelte di apertura (D109-D114)
+
+**Contesto.** Apertura dell'ondata D42. Le domande sono state fatte **una alla volta**, dopo aver aperto i
+file invece di fidarsi dei documenti: `colori_dentali` (48 codici, tre scale, catalogo pubblico senza RLS),
+le **cinque** chiavi esterne che vi puntano, il catalogo dei 38 tipi (`prevedeColore`: 26 `catalogo`,
+**3 `libero`**, 10 `nessuno`), e le due superfici dove il colore si tocca oggi.
+
+🔴 **Due fatti misurati che cambiano il perimetro, e che nessun documento diceva:**
+① nel wizard il **passo del colore non esiste per nessun tipo** — la procedura finisce al paziente e lì il
+colore è ancora **una casella di testo libero** (`PassoPaziente.tsx:41-42`, `colore: string`), il cui
+contenuto viene scartato se non è uno dei 48 codici; ② sulla scheda la tendina offre **19 codici su 48**
+(`TabClinica.tsx:8-14`), mancano le 29 voci di `vita_3d_master`.
+
+🔑 **E una correzione a un'affermazione portante del panel del 28/07** (lezione ⑥, riverificare):
+il panel dava per impossibile legare una tinta al tipo di lavoro perché «l'id fine dei 38 tipi non è
+persistito». Vero per l'id fine — **ma la divisione resina/sport cade esattamente sulla categoria GROSSA,
+che sul lavoro c'è**: i due tipi a resina sono gli unici `ortodonzia` con una tinta, il paradenti è l'unico
+`bite_splint` con una tinta. Quindi il pericolo che il panel temeva — scrivere `('sport','rosso')` sulla
+riga-dente di una corona — **si ferma nel database**, non solo a schermo. Misurato aprendo
+`src/lib/domain/tipi-lavoro.ts:70-77`.
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D109** | 🎨 **Una tinta sola per lavoro, scelta da un elenco** | scelta di Francesco fra quattro forme (un colore · colore+effetto · dipende dal tipo · due o più sempre) | Niente effetti, niente combinazioni, niente stratificazione interno/esterno del paradenti. ➡️ **Conseguenza sul modello:** il dato è **una coppia sulla riga del lavoro**, non una tabella di raccordo — e non serve prevedere la molteplicità «per dopo» (YAGNI) |
+| **D110** | 🌍 **Un catalogo solo per tutti i laboratori, CHIUSO** | scelta di Francesco fra chiuso / comune+aggiunte del lab / tutto del lab | Come `colori_dentali`: catalogo pubblico in sola lettura, **senza `laboratorio_id` e senza RLS**. ⚠️ **Prezzo dichiarato e accettato:** chi compra da un fornitore con una gamma diversa non trova la sua voce finché non si aggiunge con un rilascio. ✅ **In cambio il vincolo resta forte**: «esiste», non «esiste nel tuo elenco» |
+| **D111** | 👨‍👩‍👧 **Due famiglie — resina ortodontica e sport — con il vincolo NEL DATABASE** | scelta di Francesco fra due famiglie con vincolo / elenco piatto / famiglia solo a schermo | Scegliendo la placca si vedono solo le tinte di resina, col paradenti solo quelle sportive, **e l'abbinamento sbagliato è rifiutato dal database** grazie alla corrispondenza con la categoria grossa (v. sopra). ⚠️ **Il vincolo resta largo, dichiarato:** sa dire «questa tinta non c'entra con l'ortodonzia», **non** «la contenzione non ha colore» — quella resta una regola di schermo. ⚠️ E se un giorno un tipo con tinta nascesse sotto un'altra categoria grossa, la corrispondenza va rifatta: **è un accoppiamento, non una legge** |
+| **D112** | 📍 **Si sceglie sulla scheda del lavoro E in un passo dedicato del wizard, solo per i tre tipi** | scelta di Francesco fra scheda+passo / solo scheda / anche il colore dentale per dente | La scheda è **obbligata** dalla direttiva del 27/07 («ogni campo del lavoro si corregge, fino alla consegna»): un campo senza la sua via di correzione non è finito. Il passo nel wizard è una tavolozza semplice — **niente denti, niente zone del ceramista**. 🛑 **Fuori perimetro, esplicitamente:** il selettore del colore **dentale** per dente resta all'ondata (b), che è dove è nato |
+| **D113** | ⭕ **Facoltativa e saltabile** | scelta di Francesco fra facoltativa / obbligatoria / facoltativa con default | Il lavoro nasce anche senza tinta; dalla scheda si aggiunge quando si sa. 🛑 **Scartato il default automatico**, e con una ragione che il progetto ha già pagato: un valore messo dal sistema fa **affermare al documento una scelta che nessuno ha fatto** — è la stessa classe del «Sostanze / tessuti: No» oggi aperto. ⚠️ **Strada dichiarata NON percorribile oggi:** «facoltativa, ma avvisa alla consegna se manca» — l'avviso dovrebbe sapere che *quel tipo* prevede una tinta, e sul lavoro c'è solo la categoria grossa, che mescola la placca (tinta sì) con la contenzione (tinta no). Stessa dipendenza dura già in roadmap |
+| **D114** | 🔵 **Il pallino colorato c'è SOLO dove è onesto** | scelta di Francesco fra pallino selettivo / solo nome / pallino per tutte | Tinte piene e riconoscibili (rosa, blu, nero, oro) col pallino; **trasparente, glitter e perlato restano col solo nome**, perché un colore piatto lì mentirebbe. 🔑 È lo stesso principio già scritto nel catalogo dentale, dove la colonna del colore è **vuota di proposito**: «*una tinta inventata su un dispositivo medico non è un segnaposto innocuo*». ➡️ La colonna del colore nasce **nullable**, e il vuoto è un'informazione, non una mancanza |
+
+📌 **Confine richiamato, NON riaperto:** la tinta **non finisce sulla Dichiarazione di Conformità** in
+quest'ondata — lo ha stabilito **D101** (la norma non nomina il colore; la riga scoperta è il «prescritto»,
+voce 9 di roadmap). Se un giorno si vorrà, sarà una decisione con panel normativo.
+
+---
+
+### Trentaseiesima tornata — D42: la forma del dato e le superfici (D115-D118)
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D115** | 🗄️ **La tinta è una COPPIA sulla riga del lavoro** — catalogo nuovo `tinte_manufatto` + due colonne su `lavori` con chiave esterna composita | scelta di Francesco fra tre strade (coppia sulla riga · tabella di raccordo · allargare `colori_dentali`) | ✅ **È la forma già in casa** per il default di caso del colore dentale: chi la legge domani la riconosce. 🔑 **E soprattutto è l'unica delle tre in cui il vincolo di D111 è esprimibile come CHECK di riga**, perché `tipo_dispositivo` sta sulla stessa riga — con una tabella di raccordo servirebbe una funzione scritta a mano: più macchina per meno garanzia. 🛑 **La terza strada resta chiusa** (allargare `colori_dentali`): cinque chiavi esterne vi puntano, quattro sulla riga del singolo dente, e una scala `sport` renderebbe scrivibile `('sport','rosso')` sul dente di una corona |
+| **D116** | 📋 **Il contenuto dei due elenchi è preso così com'è stato proposto** | Francesco: «*la forma va bene, prendo il contenuto così*» | ⚠️ **Cambia lo STATUTO di quelle liste, e va scritto:** la lista **sport** ricalca una gamma reale ([dischi Erkoflex, Erkodent](https://glidewelldental.com/solutions/in-office-thermoforming/thermoforming-discs/erkoflex-thermoforming-discs)) ed è **fonte esterna**; la lista **resina** è **mia**, non di un fornitore — la pagina Dentaurum descrive le famiglie (classici, neon, glitter, bianco/nero, trasparente) ma **non un elenco di nomi**. Presa così, quella lista vale come **decisione esplicita di Francesco** (quarta prova dello statuto delle fonti), **non** come ricerca: chi la leggerà non deve poterla scambiare per una gamma commerciale accertata |
+| **D117** | 🔄 **Se il tipo di lavoro cambia e la tinta non è più compatibile, il server la TOGLIE e lo DICHIARA nella risposta** | scelta di Francesco fra togliere-e-dichiarare / rifiutare il salvataggio / avviso preventivo | Il salvataggio riesce sempre; la schermata dice «ho tolto la tinta, non c'entrava col nuovo tipo». 🔑 **Nasce da un fatto misurato, non da un'ipotesi:** `tipo_dispositivo` **è già** in `PATCHABLE_FIELDS` (`src/app/api/lavori/[id]/route.ts:179`), quindi senza questo trattamento il CHECK di D111 farebbe fallire una correzione legittima con un errore grezzo. 🛑 **Il confine:** togliere sì, in silenzio mai — una perdita non dichiarata è peggio del salvataggio fallito |
+| **D118** | 👁️ **Tre superfici, non due: passo del wizard · pagina di modifica · e la scheda in SOLA LETTURA** | proposta accolta da Francesco nell'approvazione della sezione | Il tecnico al banco apre il lavoro e legge «Tinta: Rosa» senza entrare in modifica. 🛑 **E vale §0B senza sconti:** prima del React vanno i **mockup HTML** con dati veri, **più varianti** (mai una sola), su 390/768/1280 e in chiaro e scuro. ⚠️ **Una domanda lasciata aperta APPOSTA per il mockup:** con 17 tinte sportive la tavolozza su 390 px diventa lunga — griglia di pastiglie col pallino, oppure elenco per gruppi di colore? Si porteranno **disegnate tutte e due**, non descritte |
