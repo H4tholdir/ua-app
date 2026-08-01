@@ -197,7 +197,19 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     // ma styles.sectionTitle ha textTransform: 'uppercase' (come per ogni altra
     // sezione, es. il §7 alla riga 138) — il titolo esce in maiuscolo nel PDF.
     expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
-    expect(pdfText).toContain('15/05/2026')     // data della fixture
+
+    // Rilievo di revisione: un semplice toContain('15/05/2026') non
+    // discrimina niente qui — la data compare comunque nel blocco firma
+    // (DdcTemplate.tsx:515-518), quindi svuotare il valore della sola sezione §2
+    // (formatData(ddc.data_emissione) → '—', titoletto intatto) lasciava questo
+    // test verde. La prova vera è il CONTEGGIO delle occorrenze nel foglio: la
+    // data deve comparire esattamente due volte — una nella sezione §2
+    // (DdcTemplate.tsx:381) e una sopra la firma (DdcTemplate.tsx:517). Così il
+    // test si accende in entrambe le direzioni: se la §2 perde il valore →
+    // 1 occorrenza (rosso); se la data tornasse anche in intestazione (disfacendo
+    // il passo dello Step 4 che l'ha tolta da lì) → 3 occorrenze (rosso).
+    const occorrenzeData = pdfText.split('15/05/2026').length - 1
+    expect(occorrenzeData).toBe(2)
   })
 
   // ── §3 Prescrittore ───────────────────────────────────────────────────────
