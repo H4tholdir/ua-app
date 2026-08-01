@@ -336,7 +336,6 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
         {ddc.numero_ddc ? (
           <Text style={styles.numeroDdc}>
             N. {ddc.numero_ddc}
-            {ddc.data_emissione ? `   |   Data: ${formatData(ddc.data_emissione)}` : ''}
           </Text>
         ) : null}
 
@@ -370,6 +369,17 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           <View style={styles.row}>
             <Text style={styles.label}>Luogo emissione:</Text>
             <Text style={styles.value}>{ddc.luogo_emissione || '—'}</Text>
+          </View>
+        </View>
+
+        {/* ── §2 DATA DI EMISSIONE ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>§2 — Data di emissione</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>Data:</Text>
+            <Text style={styles.valueBold}>
+              {ddc.data_emissione ? formatData(ddc.data_emissione) : '—'}
+            </Text>
           </View>
         </View>
 

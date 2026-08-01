@@ -189,6 +189,17 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).toContain('15/05/2026')
   })
 
+  it('il §2 — Data di emissione esiste e porta la data', () => {
+    // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
+    // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
+    // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
+    // ⚠️ Il brief del task proponeva questa stringa in maiuscole/minuscole miste,
+    // ma styles.sectionTitle ha textTransform: 'uppercase' (come per ogni altra
+    // sezione, es. il §7 alla riga 138) — il titolo esce in maiuscolo nel PDF.
+    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
+    expect(pdfText).toContain('15/05/2026')     // data della fixture
+  })
+
   // ── §3 Prescrittore ───────────────────────────────────────────────────────
 
   it('§3 stampa nome prescrittore', () => {
