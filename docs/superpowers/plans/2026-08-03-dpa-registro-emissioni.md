@@ -64,6 +64,29 @@ scrivere il piano. Tutto il codice dei task nasce `non eseguito`, **col comando 
 ⚠️ **Non provato, e dichiarato:** che `npx supabase db push` funzioni da questa macchina (richiede la password
 del database — **non si tenta**, v. Task 1 Step 6).
 
+### 🔄 Due prove RITIRATE dal panel del 03/08 — erano più deboli della conclusione che reggevano
+
+- **P3 è ritirata.** «`content-range: */0`» **non dichiara con quale chiave** è stata misurata. Con una chiave
+  `anon`/`authenticated` la policy `dpa_laboratorio` (`supabase/schema.sql:2877-2878`) filtra su
+  `current_lab_id() AND deleted_at IS NULL`: `*/0` sarebbe compatibile con una tabella **piena** di righe di
+  altri laboratori o cancellate logicamente. 🔑 **La conclusione del Task 1 non ne aveva bisogno:** le sette
+  colonne **nascono adesso e senza `DEFAULT`**, quindi ogni riga preesistente le ha tutte a `NULL` e soddisfa
+  il primo ramo del CHECK — l'`ADD CONSTRAINT` non può abortire su dati preesistenti, **qualunque** sia il
+  loro numero. Una prova debole e per caso giusta è una prova che verrà riusata quando è debole e sbagliata.
+- **P7 è DECLASSATA a indizio.** `grep -c "apply_updated_at_trigger('data_processing_agreements')"` interroga
+  un **file**, non il catalogo vivo — la sostituzione che **R-P3** vieta proprio per gli oggetti di banca
+  dati. `supabase/schema.sql` è una fotografia con 40+ migration di deriva potenziale alle spalle. Il fatto
+  vero si legge solo così, e il Task 1 lo fa **prima** di applicare:
+  `SELECT tgname FROM pg_trigger WHERE tgrelid = 'public.data_processing_agreements'::regclass AND NOT tgisinternal;`
+
+### ✅ Tre prove NUOVE, riverificate a mano dopo il panel (le fonti si rileggono, non si citano)
+
+| # | Assunzione | Comando | Esito reale |
+|---|---|---|---|
+| **P10** | `apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` **nudo** | lettura `supabase/schema.sql:70-82` | `EXECUTE format('CREATE TRIGGER trg_%I_updated_at BEFORE UPDATE ON %I …')`. Il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger che la funzione crea. Seconda chiamata → `42710` |
+| **P11** | Il precedente della DdC porta **DUE** indici, non uno | lettura `20260710090000_ddc_annullata_unique_parziale.sql` + `grep -n "anno_ddc, progressivo_ddc" supabase/schema.sql` | deduplicazione: `CREATE UNIQUE INDEX ddc_lavoro_attiva_unique … (laboratorio_id, lavoro_id) WHERE stato <> 'annullata'` — **le stesse colonne del guard** · backstop: `schema.sql:1273` `UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)` |
+| **P12** | La regola «due indici» è **già ratificata** nel progetto, per le fatture | lettura `docs/superpowers/specs/2026-07-09-ondata-4a-server-consegna-fiscale-design.md:46` | «*ogni doppia emissione futura è un 23505, non un doppio documento*» + «*Il backstop `UNIQUE (laboratorio_id, anno, progressivo)` **esiste già***» |
+
 ---
 
 ## Registro delle letture (R-P2)
@@ -104,8 +127,12 @@ Non solo le colonne: **ogni** identificatore che il cambiamento tocca.
 **Colonne esistenti che questa ondata NON tocca, con la destinazione:** `documento_url`, `firmato_da`,
 `firmato_at`, `data_scadenza` → **ondata 2** (firma). `sub_responsabile` → fuori perimetro (spec §10).
 
-**Vincoli nuovi:** indice `dpa_emissione_numero_unico` · CHECK `dpa_emissione_coerente` · trigger
-`updated_at` via `apply_updated_at_trigger('data_processing_agreements')`.
+**Vincoli nuovi** (🔄 **rivisti dal panel del 03/08** — v. Task 1): indice `dpa_emissione_numero_unico`
+(backstop della numerazione) · indice **`dpa_emissione_viva_unica`** 🆕 (chiave di deduplicazione: è QUESTO
+che trasforma la corsa in un `23505`) · CHECK `dpa_emissione_coerente` (irrobustito: un'emissione implica
+`dentista_id`) · CHECK **`dpa_impronte_esadecimali`** 🆕 · CHECK
+**`dpa_percorso_nel_proprio_laboratorio`** 🆕 · trigger `updated_at` via
+`apply_updated_at_trigger('data_processing_agreements')`.
 
 **Simboli esportati nuovi:** `VERSIONE_MODELLO_DPA` · `IMPRONTA_TESTO_DPA` · `datiSostanzialiDpa()` ·
 `improntaDpa()` · tipo `DatiSostanzialiDpa` · tipo `EmissioneDpa` (tutti in `src/lib/pdf/dpa-modello.ts`, 🆕 da creare,
@@ -137,22 +164,63 @@ diventa un elenco che sembra completo e non lo è.
 
 ---
 
-## Task 1 — La migration, e i due vincoli provati col rifiuto
+## Task 1 — La migration, e i vincoli provati col rifiuto
+
+> 🔄 **RISCRITTO il 03/08/2026 dopo un panel di due advisor con mandato di confutare.** La prima stesura
+> aveva **sei difetti**, tre dei quali bloccanti. Il verbale sta in §«Perché questo task è stato riscritto»,
+> in fondo al task. **Chi esegue legga quella sezione**: dice quali trappole erano già state disinnescate,
+> e serve a non rimetterle.
 
 **File:**
 - 🆕 da creare: `supabase/migrations/20260803150000_dpa_registro_emissioni.sql`
-- Modificare: `supabase/schema.sql:128-129` (commento dei tipi) e la sezione della tabella (rispecchia la migration)
+- Modificare: `supabase/schema.sql` — il commento dei tipi progressivi (`:128-129`) **e** la sezione della
+  tabella (`:2850-2879`), che deve rispecchiare la migration **per intero**: colonne, **entrambi** gli
+  indici, **tutti e tre** i CHECK, **e la riga del trigger**.
 
 **Interfacce:**
-- Produce: le sette colonne, l'indice `dpa_emissione_numero_unico`, il CHECK `dpa_emissione_coerente`.
+- Produce: le sette colonne · gli indici `dpa_emissione_numero_unico` e **`dpa_emissione_viva_unica`** ·
+  i CHECK `dpa_emissione_coerente`, `dpa_impronte_esadecimali`, `dpa_percorso_nel_proprio_laboratorio` ·
+  il trigger `updated_at`.
+
+- [ ] **Step 0: leggere il catalogo VIVO prima di scrivere** — `non eseguito`
+
+P7 è un `grep` su un file, non una lettura del catalogo (v. registro delle prove). Il fatto vero è uno solo,
+e se il trigger esistesse già la migration aborterebbe alla **prima** esecuzione, non alla seconda:
+
+```sql
+SELECT tgname FROM pg_trigger
+ WHERE tgrelid = 'public.data_processing_agreements'::regclass AND NOT tgisinternal;
+-- e, già che si è lì, le colonne che si sta per aggiungere:
+SELECT column_name, data_type FROM information_schema.columns
+ WHERE table_schema='public' AND table_name='data_processing_agreements';
+```
+
+🛑 `ADD COLUMN IF NOT EXISTS` **non solleva** su una colonna che esiste già con un **tipo diverso**: la
+terrebbe com'è, in silenzio. Se una delle sette c'è già, **fermarsi e riferire**.
 
 - [ ] **Step 1: scrivere la migration** — `non eseguito`, si verifica allo Step 5
 
+🔑 **Ogni istruzione è idempotente PER CONTO SUO.** Non si sa — e non serve sapere — se l'editor SQL del
+pannello avvolga lo script incollato in una transazione unica: se ogni istruzione regge la riesecuzione, una
+seconda passata **converge comunque sia finita la prima**. È l'unica forma che regge sia `supabase db push`
+sia l'incollata a mano, ripetuta.
+
+🛑 **Nessun `BEGIN;`/`COMMIT;` nel file** — regola di casa già scritta cinque volte
+(`20260727120000_lavori_denti.sql:3`: «*il runner Supabase avvolge già la migration*»). Un `COMMIT` interno
+spezzerebbe l'atomicità fra la migration e la sua riga di ledger.
+
 ```sql
+-- supabase/migrations/20260803150000_dpa_registro_emissioni.sql
 -- Registro delle emissioni del DPA (ondata 1 — D129/D130).
 -- Additiva: nessuna colonna esistente viene modificata.
 -- documento_url / firmato_da / firmato_at restano LIBERE per l'ondata 2 (firma).
-ALTER TABLE data_processing_agreements
+--
+-- NON aggiungere BEGIN;/COMMIT; — il runner Supabase avvolge gia' la migration
+-- (stessa nota di 20260727120000_lavori_denti.sql:3). L'idempotenza qui e' per
+-- SINGOLA istruzione: il file sopravvive a una seconda esecuzione anche se la
+-- prima si e' fermata a meta'.
+
+ALTER TABLE public.data_processing_agreements
   ADD COLUMN IF NOT EXISTS numero_dpa       TEXT,
   ADD COLUMN IF NOT EXISTS anno_dpa         SMALLINT,
   ADD COLUMN IF NOT EXISTS progressivo_dpa  INTEGER,
@@ -161,32 +229,138 @@ ALTER TABLE data_processing_agreements
   ADD COLUMN IF NOT EXISTS payload_sha256   TEXT,
   ADD COLUMN IF NOT EXISTS emesso_at        TIMESTAMPTZ;
 
-COMMENT ON COLUMN data_processing_agreements.storage_path_pdf IS
+COMMENT ON COLUMN public.data_processing_agreements.storage_path_pdf IS
   'Percorso del PDF EMESSO nel contenitore privato documenti. Mai un URL: il contenitore e'' privato, getPublicUrl produrrebbe un indirizzo morto.';
-COMMENT ON COLUMN data_processing_agreements.payload_sha256 IS
+COMMENT ON COLUMN public.data_processing_agreements.payload_sha256 IS
   'Impronta dei soli dati SOSTANZIALI (lab + cliente). Numero e data di emissione sono ESCLUSI: entrandoci, l''impronta cambierebbe ogni giorno.';
 
--- Due emissioni non possono avere lo stesso numero nello stesso anno.
--- PARZIALE: la tabella deve poter ospitare righe senza numero (sub-responsabili).
+-- ------------------------------------------------------------------ indici --
+-- (1) BACKSTOP DELLA NUMERAZIONE: due emissioni non possono portare lo stesso
+--     numero nello stesso anno. PARZIALE: la tabella deve poter ospitare righe
+--     senza numero (sub-responsabili).
 CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
-  ON data_processing_agreements (laboratorio_id, anno_dpa, progressivo_dpa)
+  ON public.data_processing_agreements (laboratorio_id, anno_dpa, progressivo_dpa)
   WHERE progressivo_dpa IS NOT NULL;
 
--- I campi dell'emissione viaggiano tutti insieme o nessuno: una riga a meta' e' una riga che mente.
-ALTER TABLE data_processing_agreements
-  ADD CONSTRAINT dpa_emissione_coerente CHECK (
-    (numero_dpa IS NULL AND anno_dpa IS NULL AND progressivo_dpa IS NULL
-      AND storage_path_pdf IS NULL AND pdf_sha256 IS NULL AND payload_sha256 IS NULL AND emesso_at IS NULL)
-    OR
-    (numero_dpa IS NOT NULL AND anno_dpa IS NOT NULL AND progressivo_dpa IS NOT NULL
-      AND storage_path_pdf IS NOT NULL AND pdf_sha256 IS NOT NULL AND payload_sha256 IS NOT NULL AND emesso_at IS NOT NULL)
-  );
+-- (2) CHIAVE DI DEDUPLICAZIONE: una sola emissione VIVA per
+--     (laboratorio, dentista, dati, versione del modello).
+--     🔑 E' QUESTO l'indice su cui poggia il recupero dal 23505 del Task 6.
+--     Quello sopra NON puo' scattare in una corsa: genera_progressivo
+--     (schema.sql:111-115) da' ai due concorrenti due numeri DIVERSI, apposta.
+--     Senza questo indice la corsa non da' errore: da' due emissioni complete
+--     per lo stesso dentista e lo stesso testo, in silenzio.
+--     Le colonne sono LE STESSE QUATTRO su cui interroga il guard di riuso
+--     (Task 5) e su cui deve interrogare la rilettura dopo il 23505 (Task 6).
+--     Precedente identico in casa: ddc_lavoro_attiva_unique
+--     (20260710090000_ddc_annullata_unique_parziale.sql) + il suo backstop
+--     UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc) a schema.sql:1273.
+--     Regola gia' ratificata per le fatture: spec 2026-07-09 ondata-4a, §4 M3.
+CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
+  ON public.data_processing_agreements
+     (laboratorio_id, dentista_id, payload_sha256, template_versione)
+  WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL;
 
--- P7: la tabella non aveva il trigger, quindi updated_at non si sarebbe mai aggiornato.
-SELECT apply_updated_at_trigger('data_processing_agreements');
+-- ----------------------------------------------------------------- vincoli --
+-- ADD CONSTRAINT non ha IF NOT EXISTS: si guarda pg_constraint.
+-- Forma gia' in casa: supabase/migrations/001_commercial_infra.sql:30-48.
+-- 🛑 NON si usa DROP CONSTRAINT IF EXISTS + ADD: rivaliderebbe l'intera tabella
+--    a ogni riesecuzione, con lock esclusivo e una finestra senza vincolo.
+DO $migr$
+BEGIN
+  -- I campi dell'emissione viaggiano tutti insieme o nessuno: una riga a meta'
+  -- e' una riga che mente. E un'emissione SENZA CONTROPARTE e' una riga che
+  -- mente allo stesso modo: dentista_id e' annullabile per i sub-responsabili,
+  -- ma un'emissione senza dentista non documenta nulla.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.data_processing_agreements'::regclass
+       AND conname  = 'dpa_emissione_coerente'
+  ) THEN
+    ALTER TABLE public.data_processing_agreements
+      ADD CONSTRAINT dpa_emissione_coerente CHECK (
+        (numero_dpa IS NULL AND anno_dpa IS NULL AND progressivo_dpa IS NULL
+          AND storage_path_pdf IS NULL AND pdf_sha256 IS NULL
+          AND payload_sha256 IS NULL AND emesso_at IS NULL)
+        OR
+        (numero_dpa IS NOT NULL AND anno_dpa IS NOT NULL AND progressivo_dpa IS NOT NULL
+          AND storage_path_pdf IS NOT NULL AND pdf_sha256 IS NOT NULL
+          AND payload_sha256 IS NOT NULL AND emesso_at IS NOT NULL
+          AND dentista_id IS NOT NULL AND tipo_controparte = 'dentista')
+      );
+  END IF;
+
+  -- Le impronte sono sha-256 esadecimali MINUSCOLE, 64 caratteri.
+  -- 🔑 payload_sha256 NON e' un dato descrittivo: e' la CHIAVE DI CONFRONTO del
+  -- guard di riuso. Una forma diversa (base64, maiuscolo, prefisso, troncamento)
+  -- non solleverebbe niente: il guard smetterebbe di trovare la riga e OGNI
+  -- scarico brucerebbe un numero nuovo. Guasto silenzioso su un registro legale.
+  -- Vincolo SEPARATO e con nome proprio: se un giorno l'algoritmo cambia si
+  -- toglie questa riga sola, senza riscrivere il vincolo di coerenza.
+  -- Solo [0-9a-f]: ammettere A-F renderebbe il vincolo cieco proprio al caso in
+  -- cui qualcuno cambia il modo di produrre l'impronta.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.data_processing_agreements'::regclass
+       AND conname  = 'dpa_impronte_esadecimali'
+  ) THEN
+    ALTER TABLE public.data_processing_agreements
+      ADD CONSTRAINT dpa_impronte_esadecimali CHECK (
+        (pdf_sha256     IS NULL OR pdf_sha256     ~ '^[0-9a-f]{64}$') AND
+        (payload_sha256 IS NULL OR payload_sha256 ~ '^[0-9a-f]{64}$')
+      );
+  END IF;
+
+  -- Il percorso del PDF sta SOTTO la cartella del proprio laboratorio.
+  -- E' l'unico isolamento fra laboratori che la banca dati possa offrire su un
+  -- percorso che poi il client di SERVIZIO (che la RLS la aggira) passa a
+  -- Storage. L'UUID reso a testo non contiene ne' % ne' _ : nessun jolly LIKE.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.data_processing_agreements'::regclass
+       AND conname  = 'dpa_percorso_nel_proprio_laboratorio'
+  ) THEN
+    ALTER TABLE public.data_processing_agreements
+      ADD CONSTRAINT dpa_percorso_nel_proprio_laboratorio CHECK (
+        storage_path_pdf IS NULL
+        OR storage_path_pdf LIKE laboratorio_id::text || '/%'
+      );
+  END IF;
+END
+$migr$;
+
+-- ----------------------------------------------------------------- trigger --
+-- La tabella non aveva il trigger, quindi updated_at non si sarebbe mai
+-- aggiornato da solo. Ma apply_updated_at_trigger fa un CREATE TRIGGER *NUDO*
+-- (schema.sql:70-82): il CREATE OR REPLACE sta sulla FUNZIONE, non sul trigger
+-- che la funzione crea. Chiamarla due volte da' 42710. Si guarda prima.
+DO $trg$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+     WHERE tgrelid = 'public.data_processing_agreements'::regclass
+       AND tgname  = 'trg_data_processing_agreements_updated_at'
+       AND NOT tgisinternal
+  ) THEN
+    PERFORM public.apply_updated_at_trigger('data_processing_agreements');
+  END IF;
+END
+$trg$;
 ```
 
-- [ ] **Step 2: allineare `supabase/schema.sql`** — le stesse colonne nel `CREATE TABLE` (righe 2850-2874) e il commento dei tipi progressivi
+- [ ] **Step 2: allineare `supabase/schema.sql` — TUTTO, non solo le colonne**
+
+🛑 **La prima stesura rispecchiava solo le colonne e il commento, ed era una trappola.** Lasciando fuori la
+riga del trigger, il `grep` della prova P7 avrebbe continuato a dare **0** anche a lavoro finito — e il
+prossimo lettore, usando lo stesso metodo che questo piano gli insegna, avrebbe concluso che il trigger manca
+e lo avrebbe aggiunto **una seconda volta**. Un piano che lascia in eredità il proprio metodo di prova come
+trappola è peggio di un piano che non prova niente.
+
+Vanno rispecchiati nel `CREATE TABLE` e attorno (righe 2850-2879): **le sette colonne** · **entrambi gli
+indici** · **tutti e tre i CHECK** · **la riga `SELECT apply_updated_at_trigger('data_processing_agreements');`**.
+`provato:` dopo lo Step 2, `grep -c "apply_updated_at_trigger('data_processing_agreements')" supabase/schema.sql`
+deve dare **1** (dava 0). **Incollare l'esito.**
+
+E il commento dei tipi progressivi:
 
 ```sql
 -- supabase/schema.sql:128-129 — da:
@@ -199,46 +373,161 @@ SELECT apply_updated_at_trigger('data_processing_agreements');
 --       non un vincolo. Aggiungerne uno non richiede migration.
 ```
 
-- [ ] **Step 3: provare il CHECK con una riga che DEVE essere rifiutata** — su **transazione annullata**, mai una migration registrata
+- [ ] **Steps 3-4: le sonde — TRE, e si controllano da sole**
+
+🛑 **Perché le sonde della prima stesura erano una trappola.** Scrivevano a mano il laboratorio
+`971061a1-…`, che è **documentazione, non catalogo**. Se quell'UUID non esistesse — o, molto peggio, **se il
+vincolo non fosse stato applicato** — l'`INSERT` arriverebbe fino alla chiave esterna e restituirebbe
+`23503`. L'operatore, a cui il piano ha detto «*atteso: errore*», vede un errore rosso e spunta la casella.
+**La sonda che doveva provare che il vincolo funziona avrebbe appena provato che non esiste.**
+
+Le sonde riscritte hanno tre proprietà, e sono tutte e tre necessarie: ① **affermano che il vincolo esiste**
+prima di provocarlo · ② **derivano** laboratorio e cliente dai dati veri, invece di scriverli a mano ·
+③ **verificano QUALE vincolo ha rifiutato**, e lasciano una **tabella leggibile** — una prova che
+l'operatore non può incollare non è una prova (le `NOTICE` l'editor del pannello può non mostrarle).
+
+⚠️ **Confine invariato:** girano su **transazione annullata**, mai dentro una migration registrata.
 
 ```sql
+-- SONDE — Task 1. Si incolla nell'editor SQL DOPO aver applicato la migration.
+-- Non registrano nulla, non toccano il ledger delle migration.
+-- Si incolla nel referto la TABELLA FINALE: e' quella la prova.
 BEGIN;
--- riga a metà: ha il numero ma non il percorso → il CHECK deve rifiutarla
-INSERT INTO data_processing_agreements
-  (laboratorio_id, tipo_controparte, dentista_id, numero_dpa, anno_dpa, progressivo_dpa)
-VALUES
-  ('971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c', 'dentista', NULL, 'DPA-2026-0001', 2026, 1);
+
+CREATE TEMP TABLE sonda_esito (
+  sonda text, esito text, sqlstate text, vincolo text, messaggio text
+) ON COMMIT DROP;
+
+DO $sonde$
+DECLARE
+  v_lab uuid; v_cli uuid;
+  v_st text; v_msg text; v_vinc text;
+BEGIN
+  ---------------------------------------------------------------- premesse --
+  -- (a) i vincoli devono ESISTERE, o le sonde non provano niente.
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                  WHERE conrelid='public.data_processing_agreements'::regclass
+                    AND conname='dpa_emissione_coerente' AND contype='c') THEN
+    RAISE EXCEPTION 'SONDA NON VALIDA: il CHECK dpa_emissione_coerente NON esiste — la migration non e'' stata applicata, o e'' abortita';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                  WHERE n.nspname='public' AND c.relkind='i'
+                    AND c.relname='dpa_emissione_numero_unico') THEN
+    RAISE EXCEPTION 'SONDA NON VALIDA: l''indice dpa_emissione_numero_unico NON esiste';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                  WHERE n.nspname='public' AND c.relkind='i'
+                    AND c.relname='dpa_emissione_viva_unica') THEN
+    RAISE EXCEPTION 'SONDA NON VALIDA: l''indice dpa_emissione_viva_unica NON esiste';
+  END IF;
+
+  -- (b) laboratorio e cliente si DERIVANO, e si derivano INSIEME: prendendoli
+  --     dalla stessa riga di clienti sono coerenti per costruzione.
+  SELECT c.laboratorio_id, c.id INTO v_lab, v_cli
+    FROM public.clienti c ORDER BY c.laboratorio_id, c.id LIMIT 1;
+  IF v_lab IS NULL THEN
+    RAISE EXCEPTION 'SONDA NON VALIDA: nessuna riga in clienti — niente da cui derivare laboratorio e controparte';
+  END IF;
+
+  -------------------------------------- SONDA A — CHECK dpa_emissione_coerente --
+  BEGIN
+    -- riga a meta': ha il numero, non ha il percorso ne' le impronte.
+    INSERT INTO public.data_processing_agreements
+      (laboratorio_id, tipo_controparte, dentista_id, numero_dpa, anno_dpa, progressivo_dpa)
+    VALUES (v_lab, 'dentista', v_cli, 'DPA-2026-9001', 2026, 9001);
+    RAISE EXCEPTION 'SONDA A FALLITA: la riga a meta'' e'' stata ACCETTATA';
+  EXCEPTION WHEN check_violation THEN
+    GET STACKED DIAGNOSTICS v_st=RETURNED_SQLSTATE, v_msg=MESSAGE_TEXT, v_vinc=CONSTRAINT_NAME;
+    IF v_vinc IS DISTINCT FROM 'dpa_emissione_coerente' THEN
+      RAISE EXCEPTION 'SONDA A: rifiutata dal vincolo SBAGLIATO (%) — %', v_vinc, v_msg;
+    END IF;
+    INSERT INTO sonda_esito VALUES ('A — CHECK dpa_emissione_coerente','RIFIUTATA (atteso)',v_st,v_vinc,v_msg);
+  END;
+
+  --------------------------------- SONDA B — indice dpa_emissione_numero_unico --
+  -- Stesso (anno, progressivo), impronte DIVERSE: cosi' l'unico indice che puo'
+  -- scattare e' quello del numero. Percorsi e impronte rispettano gli altri due
+  -- CHECK, o la sonda fallirebbe sul vincolo sbagliato.
+  BEGIN
+    INSERT INTO public.data_processing_agreements
+      (laboratorio_id, tipo_controparte, dentista_id, template_versione,
+       numero_dpa, anno_dpa, progressivo_dpa, storage_path_pdf, pdf_sha256, payload_sha256, emesso_at)
+    VALUES
+      (v_lab,'dentista',v_cli,'dpa-v2','DPA-2026-9001',2026,9001,
+       v_lab::text||'/dpa/2026/A.pdf', repeat('a',64), repeat('b',64), now()),
+      (v_lab,'dentista',v_cli,'dpa-v2','DPA-2026-9001',2026,9001,
+       v_lab::text||'/dpa/2026/B.pdf', repeat('c',64), repeat('d',64), now());
+    RAISE EXCEPTION 'SONDA B FALLITA: il numero duplicato e'' stato ACCETTATO';
+  EXCEPTION WHEN unique_violation THEN
+    GET STACKED DIAGNOSTICS v_st=RETURNED_SQLSTATE, v_msg=MESSAGE_TEXT, v_vinc=CONSTRAINT_NAME;
+    IF v_msg NOT LIKE '%dpa_emissione_numero_unico%' THEN
+      RAISE EXCEPTION 'SONDA B: rifiutata dall''indice SBAGLIATO — %', v_msg;
+    END IF;
+    INSERT INTO sonda_esito VALUES ('B — indice dpa_emissione_numero_unico','RIFIUTATA (atteso)',v_st,v_vinc,v_msg);
+  END;
+
+  ------------------------ SONDA C — indice dpa_emissione_viva_unica (LA CORSA) --
+  -- 🔑 E' LA SONDA CHE IL PIANO NON AVEVA, e riproduce la corsa VERA: stessi
+  -- dati, stessa versione del modello, PROGRESSIVI DIVERSI — perche' e' esatta-
+  -- mente quello che genera_progressivo consegna a due richieste simultanee.
+  -- Con il solo indice sul numero questa INSERT passerebbe, e sarebbero due
+  -- emissioni per lo stesso dentista e lo stesso testo.
+  BEGIN
+    INSERT INTO public.data_processing_agreements
+      (laboratorio_id, tipo_controparte, dentista_id, template_versione,
+       numero_dpa, anno_dpa, progressivo_dpa, storage_path_pdf, pdf_sha256, payload_sha256, emesso_at)
+    VALUES
+      (v_lab,'dentista',v_cli,'dpa-v2','DPA-2026-9007',2026,9007,
+       v_lab::text||'/dpa/2026/C7.pdf', repeat('e',64), repeat('f',64), now()),
+      (v_lab,'dentista',v_cli,'dpa-v2','DPA-2026-9008',2026,9008,
+       v_lab::text||'/dpa/2026/C8.pdf', repeat('0',64), repeat('f',64), now());
+    RAISE EXCEPTION 'SONDA C FALLITA: DUE emissioni per lo stesso dentista e lo stesso testo sono state ACCETTATE — la corsa non e'' coperta';
+  EXCEPTION WHEN unique_violation THEN
+    GET STACKED DIAGNOSTICS v_st=RETURNED_SQLSTATE, v_msg=MESSAGE_TEXT, v_vinc=CONSTRAINT_NAME;
+    IF v_msg NOT LIKE '%dpa_emissione_viva_unica%' THEN
+      RAISE EXCEPTION 'SONDA C: rifiutata dall''indice SBAGLIATO — %', v_msg;
+    END IF;
+    INSERT INTO sonda_esito VALUES ('C — indice dpa_emissione_viva_unica (corsa)','RIFIUTATA (atteso)',v_st,v_vinc,v_msg);
+  END;
+END
+$sonde$;
+
+SELECT * FROM sonda_esito;
+
 ROLLBACK;
 ```
 
-Atteso: **errore** `new row for relation "data_processing_agreements" violates check constraint
-"dpa_emissione_coerente"`. **Incollare l'errore vero nel referto.** Un `ALTER TABLE` riuscito prova la
-sintassi, non il comportamento.
+**Atteso: tre righe, tutte `RIFIUTATA (atteso)` con `sqlstate` `23514`, `23505`, `23505`.**
+**Incollare la tabella vera nel referto.** Un `ALTER TABLE` riuscito prova la sintassi, non il comportamento.
 
-- [ ] **Step 4: provare l'indice unico con un duplicato che DEVE essere rifiutato**
+📎 Nota tecnica, perché non venga «semplificata» via: `RAISE EXCEPTION` senza `ERRCODE` produce `P0001`,
+**non** `23514` — è per questo che un «SONDA A FALLITA» non viene mangiato dal proprio gestore
+`WHEN check_violation` e propaga rumoroso. E su B e C l'asserzione è sul **testo** del messaggio, non su
+`CONSTRAINT_NAME`: per un **indice** unico (che non è un `constraint`) la valorizzazione di quel campo
+dipende da `errtableconstraint`, e non si vuole una sonda che fallisce per una propria sovra-asserzione.
 
-```sql
-BEGIN;
-INSERT INTO data_processing_agreements
-  (laboratorio_id, tipo_controparte, numero_dpa, anno_dpa, progressivo_dpa,
-   storage_path_pdf, pdf_sha256, payload_sha256, emesso_at)
-VALUES
-  ('971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c','dentista','DPA-2026-0001',2026,1,'x/1.pdf','a','b',now()),
-  ('971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c','dentista','DPA-2026-0001',2026,1,'x/2.pdf','c','d',now());
-ROLLBACK;
+- [ ] **Step 5: salvare — E FERMARSI QUI**
+
+🛑 **Questo è il confine del task, e l'esecutore lo rispetta.** Steps 0, 1, 2 e 5 si fanno da qui; gli
+Steps 3, 4, 6 e 7 **richiedono la migration già applicata**, e applicarla non è nelle mani dell'esecutore.
+
+```bash
+git add supabase/migrations/20260803150000_dpa_registro_emissioni.sql supabase/schema.sql
+git commit -F <file-messaggio-FUORI-dal-repo>
 ```
 
-Atteso: **errore** `duplicate key value violates unique constraint "dpa_emissione_numero_unico"`.
-**Incollare l'errore vero.**
+🛑 **`src/types/database.types.ts` NON entra in questo salvataggio**: si rigenera dal database **dopo**
+l'applicazione (Step 7). Committarlo ora significherebbe committare i tipi vecchi fingendo che siano nuovi.
+🛑 **Mai `git add -A`.**
 
-- [ ] **Step 5: applicare la migration**
+- [ ] **Step 6: APPLICARE la migration — è il punto in cui il lavoro aspetta Francesco**
 
-🛑 **L'esecutore NON la applica da solo.** Il CI **non** applica le migration. Due strade, e si sceglie con
-Francesco: `npx supabase db push` (richiede la password del database — **non provato da questa macchina**,
-v. Registro delle prove) oppure incollare il file nell'editor SQL del pannello Supabase. **Le sonde degli
-Step 3-4 girano nello stesso posto, dopo.**
+Il CI **non** applica le migration. Due strade, e si sceglie con Francesco:
+`npx supabase db push` (richiede la password del database — **non provato da questa macchina**, e **non si
+tenta**) oppure **incollare il file nell'editor SQL del pannello Supabase**. Subito dopo, **nello stesso
+posto**, si incollano le sonde degli Steps 3-4 e si riporta la tabella d'esito.
 
-- [ ] **Step 6: FASE 6b — rigenerare i tipi e verificare**
+- [ ] **Step 7: FASE 6b — rigenerare i tipi e verificare** (solo dopo lo Step 6)
 
 ```bash
 npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
@@ -246,13 +535,44 @@ npx tsc --noEmit
 ```
 
 Atteso: uscita **0**. Se il file finisce con un messaggio della CLI, va tolto a mano (§9 di `ua-app/CLAUDE.md`).
+Poi si salva `src/types/database.types.ts` con un commit suo.
 
-- [ ] **Step 7: salvare**
+---
 
-```bash
-git add supabase/migrations/20260803150000_dpa_registro_emissioni.sql supabase/schema.sql src/types/database.types.ts
-git commit -F /tmp/msg-task1.txt
-```
+### Perché questo task è stato riscritto — il verbale del panel del 03/08/2026
+
+Due advisor con **mandato di confutare**, prospettive diverse (architettura della concorrenza · tenuta del
+dato e isolamento), sono arrivati **indipendentemente** alle stesse conclusioni. Le tre affermazioni portanti
+sono state **rilette a mano** dopo il panel (prove **P10 · P11 · P12** nel registro): la regola advisor dice
+che un panel si riverifica, non si cita.
+
+| # | Difetto della prima stesura | Gravità |
+|---|---|---|
+| **T1-01** | `ADD CONSTRAINT` senza guardia: la seconda esecuzione dà `42710` e aborta il file — proprio sulla strada che il piano prescrive (incollare a mano) | 🔴 bloccante |
+| **T1-02** | `apply_updated_at_trigger` **non è rieseguibile**: fa un `CREATE TRIGGER` nudo. Il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger — è lo scambio che fa sembrare idempotente ciò che non lo è | 🔴 bloccante |
+| **T1-03** | Lo Step 2 rispecchiava in `schema.sql` **solo le colonne**: la prova P7 avrebbe continuato a dare 0 e il prossimo lettore avrebbe aggiunto il trigger **due volte** | 🔴 bloccante |
+| **T1-04** | L'indice sul progressivo **non può scattare in una corsa** — `genera_progressivo` dà ai due concorrenti numeri **diversi**, apposta. Il recupero dal `23505` del Task 6 era irraggiungibile, e la corsa vera produceva **due emissioni complete e silenziose** per lo stesso dentista e lo stesso testo. 🔑 **E il piano dichiarava «stessa rete della DdC» essendo falso contro lo schema della DdC stessa**, che di indici ne ha due (P11), come la regola già ratificata per le fatture (P12) | 🔴 alto |
+| **T1-05** | Le sonde non si controllavano da sole: laboratorio scritto a mano, nessuna verifica che il vincolo esista, nessuna verifica di **quale** vincolo abbia rifiutato. A vincolo mancante avrebbero restituito `23503`, e l'operatore avrebbe incollato quello come prova | 🔴 alto |
+| **T1-06** | Nessun vincolo di forma su impronte che sono **chiavi di confronto**: una forma diversa rompe il riuso **in silenzio** e brucia un numero a ogni scarico | 🟠 alto |
+| **T1-07** | Nessun vincolo legava `storage_path_pdf` al proprio laboratorio, su un percorso che il client di **servizio** (che la RLS la aggira) passa a Storage | 🟠 medio |
+
+**Accettato consapevolmente, non risolto — e va detto o costa mezza giornata d'indagine alla prima
+ispezione:** il **buco nella numerazione resta**. Chi perde la corsa ha già consumato il suo progressivo, e
+`genera_progressivo` incrementa in una RPC propria, fuori da qualsiasi transazione annullabile: il registro
+avrà 7 e poi 9. I numeri restano **unici e crescenti**, che è ciò che conta per un registro non fiscale.
+⚠️ Per la stessa ragione il **titolo del Task 5 («nessun numero bruciato») è vero solo a metà**: il
+progressivo si prende **prima** del caricamento su Storage, quindi un rifiuto dell'archivio lo consuma
+comunque.
+
+**Il ramo `23505` che arriva dall'indice del NUMERO** (non da quello di deduplicazione) non è distinguibile
+dal solo codice d'errore e cadrà nel `throw` finale del Task 6. **È corretto così** — è un'anomalia vera, non
+una corsa — ma va commentato lì, o il prossimo lettore lo crederà un caso dimenticato.
+
+**Quattro cose restano non verificabili senza toccare il database**, e sono dichiarate, non stimate:
+① se il trigger esista già (lo Step 0 lo guarda) · ② se una delle sette colonne esista già **con un tipo
+diverso** — `ADD COLUMN IF NOT EXISTS` non solleverebbe (Step 0) · ③ quante righe abbia davvero la tabella
+(P3 ritirata; la conclusione non ne dipende) · ④ se l'editor del pannello avvolga lo script in una
+transazione unica — **reso irrilevante** dall'idempotenza per singola istruzione.
 
 ---
 
@@ -796,9 +1116,30 @@ describe('riuso dell\'emissione', () => {
       }
     }
     // File sparito dall'archivio: meglio un numero nuovo che una porta chiusa.
-    console.error('generateDpa — PDF conservato non trovato, riemetto:', esistente.storage_path_pdf)
+    // 🛑 MA PRIMA VA LIBERATA LA CHIAVE — v. nota qui sotto: senza questo
+    //    UPDATE, con dpa_emissione_viva_unica in casa, la riemissione e' una
+    //    porta chiusa PERMANENTE.
+    await svc
+      .from('data_processing_agreements')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', esistente.id)
+      .eq('laboratorio_id', laboratorio_id)   // il client di servizio aggira la RLS
+    console.error('generateDpa — PDF conservato non trovato, riga archiviata e riemetto:', esistente.storage_path_pdf)
   }
 ```
+
+🔄 **Corretto il 03/08 dal panel del Task 1, e senza questa correzione il ramo si autodistrugge.** Con il
+nuovo indice `dpa_emissione_viva_unica`, riemettere significa inserire una **seconda** riga viva con **stessa**
+impronta e **stessa** versione: rifiutata → `23505` → la rilettura del Task 6 ritrova **la stessa riga
+orfana** → lo scarico fallisce di nuovo → si cade sul `throw`. E **ogni clic, prima di fallire, brucia un
+progressivo e carica un PDF orfano in più**, perché il caricamento precede l'`INSERT`. Il soft-delete
+esplicito libera la chiave (il predicato dell'indice è `WHERE deleted_at IS NULL`) e **lascia comunque
+traccia**: una riga il cui file non esiste più è un'emissione che non documenta niente, e archiviarla è un
+atto che deve risultare, non un effetto collaterale.
+
+⚠️ **Serve una prova in più rispetto a quelle già elencate:** dopo il ramo «file sparito», l'`update` è
+stato chiamato con l'`id` dell'orfana **e** col filtro `laboratorio_id`. Senza quell'asserzione, un domani
+qualcuno toglie l'`UPDATE` credendolo ridondante e riapre la porta chiusa.
 
 - [ ] **Step 4: verde** — `npx vitest run tests/unit/dpa-registro.test.ts`
 - [ ] **Step 5: salvare**
@@ -854,7 +1195,13 @@ già passare dal Task 4. **Contare e scrivere il numero.**
 ```typescript
   if (erroreRiga) {
     // Rete di sicurezza per la corsa: due richieste hanno superato entrambe il
-    // guard. L'indice unico le separa; chi perde rilegge la riga dell'altro.
+    // guard. A separarle e' `dpa_emissione_viva_unica` — l'indice sulla chiave
+    // di deduplicazione, NON quello sul numero: genera_progressivo ha gia' dato
+    // ai due concorrenti progressivi diversi, apposta (schema.sql:111-115).
+    // ⚠️ Un 23505 puo' arrivare anche da dpa_emissione_numero_unico, e da qui
+    //    i due casi NON sono distinguibili: quello e' un'anomalia vera (un
+    //    numero riusato) e la rilettura qui sotto non lo trovera' -> throw.
+    //    E' il comportamento voluto, non un caso dimenticato.
     if ((erroreRiga as { code?: string }).code === '23505') {
       const { data: vincitrice } = await svc
         .from('data_processing_agreements')
@@ -862,23 +1209,46 @@ già passare dal Task 4. **Contare e scrivere il numero.**
         .eq('laboratorio_id', laboratorio_id)
         .eq('dentista_id', cliente_id)
         .eq('payload_sha256', impronta)
+        .eq('template_versione', VERSIONE_MODELLO_DPA)   // 🔑 le QUATTRO colonne
         .is('deleted_at', null)
         .order('emesso_at', { ascending: false })
         .limit(1)
         .maybeSingle()
       if (vincitrice?.storage_path_pdf) {
         const { data: file } = await svc.storage.from('documenti').download(vincitrice.storage_path_pdf)
-        if (file) return {
-          buffer: Buffer.from(await file.arrayBuffer()),
-          numero_dpa: vincitrice.numero_dpa as string,
-          emissione_id: vincitrice.id as string,
-          riemessa: false,
+        if (file) {
+          // Chi perde ha gia' caricato il PROPRIO file, su un percorso diverso:
+          // resta li' senza nessuna riga che lo nomini. Un PDF non referenziato
+          // coi dati dello studio e' un problema di minimizzazione, non d'ordine.
+          await svc.storage.from('documenti').remove([storage_path_pdf])
+          return {
+            buffer: Buffer.from(await file.arrayBuffer()),
+            numero_dpa: vincitrice.numero_dpa as string,
+            emissione_id: vincitrice.id as string,
+            riemessa: false,
+          }
         }
       }
     }
     throw new Error(`DPA: registro non scritto — ${erroreRiga.message}`)
   }
 ```
+
+🔄 **Due correzioni del 03/08, dal panel del Task 1 — la prima è grave.**
+
+**① Il filtro della rilettura DEVE essere identico a quello del guard.** La prima stesura ne filtrava
+**tre** colonne dove il guard ne filtra quattro: mancava `template_versione`. Con l'indice a quattro
+colonne, chi perde la corsa poteva rileggere **l'emissione di una versione di modello diversa** e consegnare
+al dentista **il testo sbagliato** — precisamente il fallimento che questo registro esiste per impedire.
+🔑 **L'invariante, da tenere per tutta l'ondata:** *colonne dell'indice = filtro del guard = filtro della
+rilettura*, tutti e tre uguali. Se uno dei tre cambia, cambiano tutti e tre.
+
+**② Chi perde toglie il proprio file.** Il caricamento precede l'`INSERT` (ed è giusto così): il perdente ha
+già scritto un PDF su un percorso che nessuna riga nominerà mai.
+
+⚠️ **Due prove in più rispetto a quelle già elencate:** che la rilettura porti **anche**
+`template_versione`, e che il perdente chiami `remove` **col proprio** percorso — non con quello della
+vincitrice.
 
 - [ ] **Step 4: verde** · **Step 5: salvare**
 
@@ -1031,14 +1401,28 @@ produzione» non sono la stessa cosa.
 
 ```bash
 npx tsx scripts/tmp/link-accesso.ts
-# poi, con il cookie di sessione:
+
+# (a) DUE SCARICHI IN SEQUENZA — prova il riuso (D130)
 curl -b ck.txt -o uno.pdf https://uachelab.com/api/clienti/<id>/dpa
 curl -b ck.txt -o due.pdf https://uachelab.com/api/clienti/<id>/dpa
 shasum -a 256 uno.pdf due.pdf   # atteso: IDENTICHE
+
+# (b) 🔑 DUE SCARICHI IN PARALLELO — prova la CORSA, che in sequenza non si vede.
+#     Su un cliente DIVERSO, mai emesso prima: e' l'unico modo di far arrivare
+#     due richieste dentro la stessa finestra fra guard e INSERT.
+curl -b ck.txt -o par1.pdf https://uachelab.com/api/clienti/<id2>/dpa &
+curl -b ck.txt -o par2.pdf https://uachelab.com/api/clienti/<id2>/dpa &
+wait
+shasum -a 256 par1.pdf par2.pdf   # atteso: IDENTICHE
 ```
 
-E la lettura del registro (chiave di servizio): atteso **UNA sola riga**, con `numero_dpa`, `pdf_sha256`
-uguale all'impronta dei file scaricati, `template_versione = 'dpa-v2'`.
+🛑 **Senza il punto (b) la corsa resta provata solo contro un mock**, e un mock non è un fatto: è ciò che
+avevamo scritto noi. Lettura del registro dopo (b), con la chiave di servizio: atteso **UNA SOLA riga** per
+quel cliente. Se ce ne fossero due, `dpa_emissione_viva_unica` non sta facendo il suo lavoro e il Task 1 va
+riaperto.
+
+E la lettura del registro dopo (a) (chiave di servizio): atteso **UNA sola riga**, con `numero_dpa`,
+`pdf_sha256` uguale all'impronta dei file scaricati, `template_versione = 'dpa-v2'`.
 
 - [ ] **Step 5: BP-1** — aggiornare `memory/MEMORY.md`, `memory/SESSION_ACTIVE.md` e la riga 10 di
 `docs/roadmap/ROADMAP-UFFICIALE.md` (parte **(b)** → fatta la metà «registro»; resta la firma, ondata 2).

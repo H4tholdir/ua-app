@@ -77,7 +77,7 @@ Semantica stati: `saltata` = decisione legittima di non emettere (non_fatturare,
 
 **M8 — Sorveglianza:** funzione SQL pura `outbox_sorveglianza()` + job pg_cron ogni 10 min (§10) — zero dipendenza da pg_net/Vercel: deve funzionare proprio quando il canale HTTP è rotto.
 
-**M9 — Pulizia (P2-9):** drop overload orfano `consegna_lavoro_lock(p_lavoro_id uuid)` a 1 argomento. Nel codice: rimozione `src/lib/consegna/pec-idempotency.ts` (dead code mai importato).
+**M9 — Pulizia (P2-9):** drop overload orfano `consegna_lavoro_lock(p_lavoro_id uuid)` a 1 argomento. Nel codice: `src/lib/consegna/pec-idempotency.ts` **rimosso — non esiste più** (era dead code mai importato).
 
 ## 5. Flusso consegna — modifiche a `orchestraConsegna`
 

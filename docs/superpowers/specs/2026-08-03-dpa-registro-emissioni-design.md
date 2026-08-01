@@ -132,6 +132,41 @@ con `getSignedUrl` (`src/lib/storage/signed-url.ts`).
 controllo e chiedere un progressivo. L'indice unico li separa: chi perde riceve l'errore di duplicato,
 **rilegge** l'emissione dell'altro e restituisce quella. Stessa rete di sicurezza della DdC.
 
+> 🔄 **EMENDATO il 03/08/2026, dopo un panel di due advisor con mandato di confutare.** Il capoverso qui
+> sopra **era falso**, e falso proprio nella frase che si appoggiava alla DdC.
+>
+> **Quale indice.** Non quello sul numero. `genera_progressivo` è un `INSERT … ON CONFLICT DO UPDATE …
+> RETURNING` (`supabase/schema.sql:111-115`): due richieste simultanee ricevono progressivi **diversi**,
+> apposta. Su un indice `(laboratorio_id, anno, progressivo)` non collidono mai — quindi **nessun errore di
+> duplicato**, e la corsa produce **due emissioni complete e distinte per lo stesso dentista e lo stesso
+> testo**, in silenzio. Su un registro il cui unico scopo è dire *quale testo ha in mano ogni dentista*,
+> è il difetto peggiore possibile.
+>
+> **E la DdC non era il precedente che credevamo: ne ha DUE, di indici.** Uno sulla **chiave di
+> deduplicazione** — `ddc_lavoro_attiva_unique (laboratorio_id, lavoro_id) WHERE stato <> 'annullata'`,
+> cioè **le stesse colonne su cui interroga il guard** — e uno di **backstop sulla numerazione**,
+> `UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)` (`supabase/schema.sql:1273`). Il piano ne aveva
+> copiato **solo il secondo** e il ramo di recupero del primo. La regola era già scritta in chiaro anche
+> per le fatture, in una spec ratificata: «*ogni doppia emissione futura è un 23505, non un doppio
+> documento*» + «*Il backstop `UNIQUE (laboratorio_id, anno, progressivo)` esiste già*»
+> (`docs/superpowers/specs/2026-07-09-ondata-4a-server-consegna-fiscale-design.md:46`).
+>
+> **La forma giusta, quindi:** **due** indici. Backstop `dpa_emissione_numero_unico` sul numero, **più**
+> `dpa_emissione_viva_unica (laboratorio_id, dentista_id, payload_sha256, template_versione) WHERE
+> deleted_at IS NULL AND payload_sha256 IS NOT NULL` sulla chiave di deduplicazione. È quest'ultimo che
+> trasforma la corsa in un errore di duplicato recuperabile.
+> 🔑 **L'invariante che ne discende, e vale per tutta l'ondata:** *colonne dell'indice = filtro del guard di
+> riuso = filtro della rilettura dopo il duplicato*. Tutti e tre uguali, sempre.
+>
+> **Che cosa NON è coperto, e va detto:** il **buco nella numerazione resta** (chi perde ha già consumato il
+> suo progressivo, e il contatore vive in una RPC propria fuori da ogni transazione annullabile: il registro
+> avrà 7 e poi 9 — i numeri restano unici e crescenti, che è ciò che conta per un registro non fiscale);
+> non c'è **atomicità** fra il file e la riga, perché sono due chiamate distinte; e la corsa vera si prova
+> solo con **due richieste in parallelo** contro la produzione, non con un mock.
+>
+> Dettaglio e verbale del panel: piano `2026-08-03-dpa-registro-emissioni.md`, Task 1, §«Perché questo task
+> è stato riscritto».
+
 ## 7. Che cosa si vede
 
 Nella scheda del cliente, **sotto il tasto «Scarica DPA»**: numero e data dell'ultima emissione — «*DPA-2026-0007

@@ -882,6 +882,23 @@ testa a questa roadmap, dove D101 la rimanda, ed è GRANDE con migration.
 
 ---
 
+## 🔎 USCITI DAL PANEL SUL TASK 1 DEL REGISTRO DPA (03/08/2026) — quattro voci, tutte FUORI dal perimetro
+
+Due advisor con mandato di **confutare** hanno letto il Task 1 del piano
+`2026-08-03-dpa-registro-emissioni.md` prima che una riga fosse scritta. I difetti **del piano** sono stati
+corretti nel piano (verbale nel Task 1, §«Perché questo task è stato riscritto»). Queste quattro voci invece
+stanno **fuori** da quel perimetro: riferite, **non corrette** (R-E2).
+✅ **Tutte e quattro riverificate a mano il 03/08** — nessuna è ripetuta sulla parola del panel.
+
+| # | cosa | dove, verificato il 03/08 |
+|---|---|---|
+| 🟠 **P1** | **`apply_updated_at_trigger` non è rieseguibile, e la usano quasi quaranta punti.** Il suo corpo fa un `CREATE TRIGGER` **nudo**: il `CREATE OR REPLACE` sta sulla **funzione**, non sul trigger che la funzione crea. Ogni migration futura che la richiami eredita lo stesso difetto — la seconda esecuzione dà `42710` e aborta il file. `provato:` **29** chiamate in `schema.sql` + **10** nelle migration = **39 punti**. La correzione è una riga (`CREATE OR REPLACE TRIGGER`, disponibile da PG 14), ma tocca tutti e 39: **non si fa di sfuggita** | `supabase/schema.sql:70-82` · `grep -c` su `schema.sql` → 29 · `002_fase2_schema.sql` (6) · `20260514_mdr_qualita.sql` (2) · `005_v1_foundation.sql` (1) · `20260704190000_security_hardening_search_path.sql` (1) |
+| 🟠 **P2** | **Cancellare un laboratorio lascia i suoi PDF nell'archivio.** `admin_delete_laboratorio` cancella **fisicamente** le righe di `data_processing_agreements` (e di tutto il resto) ma **nessuna riga di quella funzione tocca lo Storage**: `provato:` la parola `storage` compare **0 volte** nel corpo. Oggi è quasi inerte perché i DPA non hanno ancora un file; **dal Task 4 in poi no** — restano documenti contrattuali orfani, coi dati degli studi dentistici, in un contenitore che nessuna riga nomina più. Voce **GDPR** propria (cancellazione), non un problema d'ordine | `supabase/migrations/20260727120200_lavori_colore_caso.sql:155` (e tre migration gemelle: `20260517000001:59`, `20260721090100:176`, `20260702030000:67`) |
+| 🟡 **P3** | **Un commento che dichiara un lucchetto che il codice ha tolto.** L'intestazione di `genera_progressivo` dice «*Usa advisory lock per evitare duplicati in caso di concorrenza*»; il corpo, **quattordici righe più sotto**, dice per iscritto il contrario: «*Nessun advisory lock necessario: la PK (lab, tipo, anno) serializza da sola*». 🔑 È la stessa classe di difetto che questo progetto continua a pagare — **un'intestazione che sopravvive alla propria implementazione** — e sta sulla funzione da cui dipende la numerazione di **ogni** documento del laboratorio | `supabase/schema.sql:91` contro `:104-109` |
+| 🟡 **P4** | **`dentista_id` non porta il proprio laboratorio nella chiave esterna.** `dentista_id UUID REFERENCES clienti(id)`, senza `laboratorio_id`: fra un DPA del laboratorio A e un cliente del laboratorio B c'è **solo** il filtro applicativo `.eq('laboratorio_id')` di `generate-dpa.ts:23` — e il client di **servizio** la RLS la aggira. Il progetto ha già il modello opposto **con la motivazione scritta**: `lavori_id_lab_uk UNIQUE (id, laboratorio_id)`, «*senza questo… una riga potrebbe portare il laboratorio B su un lavoro di A*». ⚠️ **Costo dichiarato:** due relazioni verso `clienti` fanno rifiutare a PostgREST gli embedding ambigui (`PGRST201`) — **da verificare prima di farlo**. Oggi la tabella ha zero lettori e zero scrittori e costa quasi niente; **dopo l'ondata 2 costerà** | `supabase/schema.sql:2856` · precedente: `20260727120000_lavori_denti.sql:8` |
+
+---
+
 ## 🔴 IL BUONO DI CONSEGNA NON SI RIGENERA DOPO UN ANNULLO (03/08/2026)
 
 **Trovato facendo il giro della §0 in produzione**, da un numero che non tornava. Riferito e **non
