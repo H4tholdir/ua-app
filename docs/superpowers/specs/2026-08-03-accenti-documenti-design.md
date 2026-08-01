@@ -1,6 +1,6 @@
 # Spec — gli accenti nei documenti generati, e il §2 che manca
 
-**Stato:** da ratificare · **Decide:** Francesco Formicola · **Nasce da:** voce 8 di `ROADMAP-UFFICIALE.md`,
+**Stato:** ✅ **RATIFICATA ED ESEGUITA** — in produzione dal 03/08/2026 (merge `00517d2c`, CI verde, deploy `success`). Piano: `docs/superpowers/plans/2026-08-03-accenti-documenti.md` · **Decide:** Francesco Formicola · **Nasce da:** voce 8 di `ROADMAP-UFFICIALE.md`,
 aperta il 03/08/2026 guardando il PDF emesso durante la verifica delle due impronte
 (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §5).
 **Panel:** tre advisor con mandato di confutare (normativo · architettura del dato · prodotto e rischio).
