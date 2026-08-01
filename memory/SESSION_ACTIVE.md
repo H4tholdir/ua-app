@@ -13,10 +13,13 @@ che ha retto. **Esito ✅ 7 · ⚠️ 2 · ❌ 2**, nessuno corretto di sfuggita
 scritta accanto** (segnarli ❌ farebbe violare la migrazione per-route), gli altri nove a peso pieno,
 **contrasto compreso**.
 
-🔴 **DECISIONE APERTA, in attesa di Francesco — sarà D134: P16.** Le righe illeggibili in scuro sono
-**DUE**, non una, e il difetto è del **listino dei testi scuri di tutta la parte legacy** (143 usi in
-143 file). **(A)** allineare i token a quelli v3 già corretti — *vuole il suo panel* · **(B) esclusa
-dalle misure** · **(C)** deferire. Dettaglio: referto §2.
+✍️ **D134 — P16 SI DEFERISCE** all'ondata di migrazione a v3 della route `clienti/[id]`. Francesco ha
+scelto fra tre col gate in mano: **(A)** allineare i token a v3 · **(B) esclusa dalle misure** ·
+**(C) deferire** ← scelta. 🔑 **Il prezzo è scritto:** restano illeggibili in scuro **un impegno verso
+lo studio dentistico** e **il numero che rende dimostrabile l'emissione**. ✅ Ragionevole perché
+l'ondata di migrazione porta i valori v3 **per costruzione**. ⚠️ Nodo per quell'ondata: `#928778` sta a
+**4,06 sull'elevato `#2C2A27`**. 📌 Se la migrazione slitta, si riapre (A) — col suo panel.
+**Verbale: 134 decisioni in 46 tornate; la prossima è D135.**
 
 🆕 **Aperte:** **P17** (lo scarico che fallisce mostra `{"error":"…"}`, zero elementi interattivi) ·
 **P18** (idratazione disallineata su `PortaleLinkButtons`, fa divergere il link mandato al dentista).
@@ -24,5 +27,5 @@ dalle misure** · **(C)** deferire. Dettaglio: referto §2.
 ⏭️ **PROSSIMO: il panel normativo su D128** — Art. 28(9) GDPR letto **alla fonte** (EUR-Lex, testo
 consolidato, versione italiana), **poi** il panel. È il cancello d'ingresso dell'ondata 2.
 
-📌 `main` = `7d6ee54c` a inizio gate, albero pulito. Verbale: **133** decisioni, la prossima è **D134**.
+📌 `main` = `7d6ee54c` a inizio gate; il gate è salvato in `b9111b3e` (**non pubblicato**, attende via libera).
 ⚠️ L'orologio della macchina dice 2 agosto; i documenti seguono la serie del **4 agosto**.
