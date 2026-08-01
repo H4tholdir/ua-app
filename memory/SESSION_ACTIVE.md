@@ -1,30 +1,28 @@
-# Sessione attiva — il contratto ai dentisti riscritto (D125-D126)
+# Sessione attiva — il contratto ai dentisti: premessa caduta, documento riscritto, piano non eseguito
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-panel-dpa-referto.md`** — il referto del panel, con l'Allegato
-XIII verbatim e gli otto ritrovamenti fuori mandato.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-dpa-handoff.md`** — leggilo per intero.
+📄 Sotto di lui: il referto del panel `docs/roadmap/2026-08-03-panel-dpa-referto.md`, la spec
+`docs/superpowers/specs/2026-08-03-dpa-registro-emissioni-design.md` e il piano
+`docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md` (9 task, da eseguire con R-E1).
 
-✅ **Fatto oggi:** **D123** (il documento segue il lavoro finché il lavoro è aperto) · **D124** (si parte dal
-contratto ai dentisti, panel allargato) · **D125** (emendata la base normativa ratificata: il termine di
-10/15 anni sta nell'**Allegato XIII punto 4 da solo** e riguarda la **dichiarazione**) · **D126** (riscritto
-**tutto** il testo del contratto: quattro citazioni, conservazione, **tre affermazioni di sicurezza false**,
-sub-responsabili con UÀ dichiarata, cinque clausole Art. 28, Art. 7 nuovo sui ruoli).
+🔴 **La sua §0 va per prima, e sono sei cose.** ① **Del piano scritto oggi non esiste una riga di codice**:
+il registro e la migration **non esistono** (`grep` → 0). Il Task 1 si **ferma** sulla migration da applicare:
+il CI non le applica, e `supabase db push` da questa macchina è **non verificato**. ② **Una frase FALSA è viva
+in produzione**: `src/app/(app)/clienti/[id]/page.tsx:276` promette la conservazione decennale del contratto —
+falsa dopo D126. ③ Il **panel su D128** (Art. 28(9) letto alla fonte) non è stato fatto: blocca l'ondata 2, non
+la 1. ④ Le citazioni emendate da D125 restano in **cinque documenti**, per scelta — ma **uno è una SPEC**, non
+un handoff. ⑤ Restano **D42**, **§6-bis**, **AUD-1/3/4/5** e il **round 2** (120 decisioni non provate).
+⑥ Non verificabili da qui: migrazioni sul database vero e collaudi nel browser.
 
-📌 **Misurato a mano:** `tsc` **0** · `vitest` **371 | 3** file e **4292 | 19** prove · `next build` **0** ·
-`tests/unit/dpa-pdf-content.test.ts` **17 su 17**, nate rosse **15 su 17**.
-🏁 **E PROVATO IN PRODUZIONE, non solo in prova:** contratto scaricato da `uachelab.com` per un cliente vero
-del banco (link monouso, D103) → **18 controlli su 18 verdi**. ⚠️ **Il primo scarico dava 17 divergenze su
-18: il rilascio non era ancora passato.** Ci sono voluti **~5 minuti** dal `push`. 🔑 «Pubblicato» e «in
-produzione» non sono la stessa cosa, e l'unico modo di saperlo è **andare a scaricare il documento**.
+✅ **Chiuso oggi:** la **premessa è caduta** (la foto non si cancella dopo la consegna: `route.ts:200-205`) ·
+**D126** il testo del contratto riscritto e **provato in produzione, 18 su 18** · **D125** emendata una
+ratifica sul testo consolidato letto · il contenitore `documenti` è **privato** (nessuna esposizione) ·
+**D127-D131** con spec e piano.
 
-🔴 **Cosa resta, in ordine:** la parte **(b)** della riga 10 — il contratto **dimostrabile** (persistenza,
-versione, numero progressivo: **con migration**) · le righe **12-20** di «I documenti che escono dal
-laboratorio», otto ritrovamenti del panel · **D42** (piano pronto, 9 task, R-E1) · il round 2 dell'audit.
+📌 **Riferimento misurato a chiusura:** `tsc` **0** · `vitest` **371 | 3** file e **4292 | 19** prove ·
+`next build` **0** · `uachelab.com` → **307 verso `/login`, che dà 200**.
 
-✅ **Chiusa la domanda sul contenitore `documenti`** (Francesco ha autorizzato l'accesso al database vero):
-è **privato** — `"public": false`, e l'indirizzo pubblico dà **400 «Bucket not found»**. **Nessuna
-esposizione.** Il difetto resta ma cambia natura: `getPublicUrl` scrive in banca dati un indirizzo che non
-funzionerà mai, dentro un campo chiamato `signed_url` che firmato non è (riga 16).
-
-🚀 `main` = **`98a5b5a3`**, **pubblicato**; `uachelab.com` → **307 verso `/login`, che dà 200**.
-📎 Verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`: **centoventisei** decisioni in
-**quarantadue** tornate; la prossima è **D127**.
+🚀 `main` = **`665b26e8`**, albero pulito, **2 commit da pubblicare** (spec e piano, soli documenti).
+📎 Verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`: **centotrentuno** decisioni in
+**quarantatré** tornate; la prossima è **D132**.
+⚠️ L'orologio della macchina dice **1° agosto**; i documenti seguono la serie del **3 agosto**.

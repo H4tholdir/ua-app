@@ -108,7 +108,7 @@ Non solo le colonne: **ogni** identificatore che il cambiamento tocca.
 `updated_at` via `apply_updated_at_trigger('data_processing_agreements')`.
 
 **Simboli esportati nuovi:** `VERSIONE_MODELLO_DPA` · `IMPRONTA_TESTO_DPA` · `datiSostanzialiDpa()` ·
-`improntaDpa()` · tipo `DatiSostanzialiDpa` · tipo `EmissioneDpa` (tutti in `src/lib/pdf/dpa-modello.ts`,
+`improntaDpa()` · tipo `DatiSostanzialiDpa` · tipo `EmissioneDpa` (tutti in `src/lib/pdf/dpa-modello.ts`, 🆕 da creare,
 tranne `EmissioneDpa` che sta in `generate-dpa.ts`).
 
 **Simbolo esportato che CAMBIA FIRMA — e chi lo consuma:** `generateDpa()` passa da
@@ -126,21 +126,21 @@ diventa un elenco che sembra completo e non lo è.
 
 | File | Responsabilità |
 |---|---|
-| `supabase/migrations/20260803150000_dpa_registro_emissioni.sql` | **Creare** — colonne, indice parziale, CHECK, trigger |
-| `src/lib/pdf/dpa-modello.ts` | **Creare** — versione del modello, impronta del testo, dati sostanziali e loro impronta. Nessuna dipendenza da Supabase: si prova senza mock |
+| `supabase/migrations/20260803150000_dpa_registro_emissioni.sql` | 🆕 **da creare** — colonne, indice parziale, CHECK, trigger |
+| `src/lib/pdf/dpa-modello.ts` | 🆕 **da creare** — versione del modello, impronta del testo, dati sostanziali e loro impronta. Nessuna dipendenza da Supabase: si prova senza mock |
 | `src/lib/pdf/generate-dpa.ts` | **Modificare** — da «genera un PDF» a «emette, o restituisce l'emissione esistente» |
 | `src/app/api/clienti/[id]/dpa/route.ts` | **Modificare** — consuma il nuovo ritorno, nome file dal numero |
 | `src/app/(app)/clienti/[id]/page.tsx` | **Modificare** — numero e data dell'ultima emissione; via la frase falsa sui dieci anni |
-| `tests/unit/dpa-modello.test.ts` | **Creare** |
+| `tests/unit/dpa-modello.test.ts` | 🆕 **da creare** |
 | `tests/unit/generate-dpa.test.ts` | **Modificare** — il ritorno cambia |
-| `tests/unit/dpa-registro.test.ts` | **Creare** — emissione, riuso, fail-closed, corsa |
+| `tests/unit/dpa-registro.test.ts` | 🆕 **da creare** — emissione, riuso, fail-closed, corsa |
 
 ---
 
 ## Task 1 — La migration, e i due vincoli provati col rifiuto
 
 **File:**
-- Creare: `supabase/migrations/20260803150000_dpa_registro_emissioni.sql`
+- 🆕 da creare: `supabase/migrations/20260803150000_dpa_registro_emissioni.sql`
 - Modificare: `supabase/schema.sql:128-129` (commento dei tipi) e la sezione della tabella (rispecchia la migration)
 
 **Interfacce:**
@@ -259,8 +259,8 @@ git commit -F /tmp/msg-task1.txt
 ## Task 2 — La versione del modello, e la guardia che impedisce di dimenticarla
 
 **File:**
-- Creare: `src/lib/pdf/dpa-modello.ts`
-- Creare: `tests/unit/dpa-modello.test.ts`
+- 🆕 da creare: `src/lib/pdf/dpa-modello.ts`
+- 🆕 da creare: `tests/unit/dpa-modello.test.ts`
 
 **Interfacce:**
 - Produce: `VERSIONE_MODELLO_DPA: string` (valore `'dpa-v2'`) · `IMPRONTA_TESTO_DPA: string` (sha-256 del
@@ -353,7 +353,7 @@ import('./scripts/tmp/impronta-testo-dpa.ts')
 // src/lib/pdf/dpa-modello.ts
 /** Versione della FORMA del documento. Si alza a OGNI cambio del testo di
  *  `DpaTemplate.tsx`, insieme a IMPRONTA_TESTO_DPA: le due cose si muovono
- *  sempre insieme, e `tests/unit/dpa-modello.test.ts` è ciò che lo impone.
+ *  sempre insieme, e `tests/unit/dpa-modello.test.ts` (🆕 da creare) è ciò che lo impone.
  *  v2 = riscrittura del 03/08/2026 (D126). */
 export const VERSIONE_MODELLO_DPA = 'dpa-v2'
 
@@ -389,8 +389,8 @@ git commit -F /tmp/msg-task2.txt
 ## Task 3 — L'impronta dei soli dati sostanziali
 
 **File:**
-- Modificare: `src/lib/pdf/dpa-modello.ts`
-- Modificare: `tests/unit/dpa-modello.test.ts`
+- Modificare (🆕 creato al Task 2): `src/lib/pdf/dpa-modello.ts`
+- Modificare (🆕 creato al Task 2): `tests/unit/dpa-modello.test.ts`
 
 **Interfacce:**
 - Consuma: `improntaPayload(payload: unknown): string` da `@/lib/pdf/generate-ddc` (P2).
@@ -496,7 +496,7 @@ git commit -F /tmp/msg-task3.txt
 
 **File:**
 - Modificare: `src/lib/pdf/generate-dpa.ts`
-- Creare: `tests/unit/dpa-registro.test.ts`
+- 🆕 da creare: `tests/unit/dpa-registro.test.ts`
 - Modificare: `tests/unit/generate-dpa.test.ts` (il ritorno cambia)
 - Leggere prima di toccare: `tests/unit/helpers/pdf-fixtures.ts` (**NON letto**, v. registro delle letture)
 
@@ -696,7 +696,7 @@ npx vitest run tests/unit/dpa-registro.test.ts tests/unit/generate-dpa.test.ts
 
 ## Task 5 — Il riuso: nessun numero bruciato
 
-**File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts`
+**File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts` (🆕 creato al Task 4)
 
 **Interfacce:** consuma `EmissioneDpa` (Task 4). Nessun simbolo nuovo.
 
@@ -807,7 +807,7 @@ describe('riuso dell\'emissione', () => {
 
 ## Task 6 — Fail-closed e corsa fra due richieste
 
-**File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts`
+**File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts` (🆕 creato al Task 4)
 
 - [ ] **Step 1: prove che falliscono**
 
@@ -894,7 +894,7 @@ delle letture dice `letto: 1-35`, il resto **NON letto**)
 **Censimento già fatto, non da rifare:** `ls tests/unit | grep -iE "clienti|dpa"` → `ClientiSearchList.test.tsx`,
 `clienti-patch-allowlist.test.ts`, `clienti-patch-portale.test.ts`, `clienti-route.test.ts`,
 `dpa-pdf-content.test.ts`, `generate-dpa.test.ts`. **Nessuno copre questa rotta** → la prova nasce in un file
-nuovo, `tests/unit/dpa-route.test.ts`.
+nuovo, 🆕 `tests/unit/dpa-route.test.ts`.
 
 - [ ] **Step 1: prova che fallisce**
 
