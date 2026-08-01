@@ -16,7 +16,8 @@ import { createElement } from 'react'
 import { PDFParse } from 'pdf-parse'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
-import { VERSIONE_MODELLO_DPA, IMPRONTA_TESTO_DPA } from '@/lib/pdf/dpa-modello'
+import { VERSIONE_MODELLO_DPA, IMPRONTA_TESTO_DPA, datiSostanzialiDpa, improntaDpa } from '@/lib/pdf/dpa-modello'
+import type { Laboratorio, Cliente } from '@/types/domain'
 
 const FIXTURE_FISSA = {
   lab: {
@@ -63,4 +64,39 @@ describe('la versione del modello DPA', () => {
     //    sopra; se la versione viene sganciata dall'impronta, si accende da sola.
     expect(VERSIONE_MODELLO_DPA).toBe(`dpa-v2+${impronta.slice(0, 8)}`)
   })
+})
+
+// Task 3 — l'impronta dei SOLI dati sostanziali (lab + cliente), MAI numero e
+// data di emissione: se entrassero, l'impronta cambierebbe ogni giorno e
+// nascerebbe un'emissione a ogni scarico in un giorno diverso.
+const LAB = { ...FIXTURE_FISSA.lab, id: 'lab-1' } as unknown as Laboratorio
+const CLI = { ...FIXTURE_FISSA.cliente, id: 'cli-1' } as unknown as Cliente
+
+describe('l\'impronta dei dati sostanziali', () => {
+  it('🛑 NON cambia se cambia la data (è il difetto che avrebbe fatto nascere un\'emissione al giorno)', () => {
+    const a = improntaDpa(LAB, CLI)
+    const b = improntaDpa(LAB, CLI) // stesso input, momento diverso
+    expect(a).toBe(b)
+    expect(JSON.stringify(datiSostanzialiDpa(LAB, CLI))).not.toContain('data_emissione')
+    expect(JSON.stringify(datiSostanzialiDpa(LAB, CLI))).not.toContain('numero_dpa')
+  })
+
+  it('cambia se cambia un dato del CLIENTE', () => {
+    expect(improntaDpa(LAB, { ...CLI, studio_nome: 'Altro Studio' } as Cliente)).not.toBe(improntaDpa(LAB, CLI))
+  })
+
+  it('cambia se cambia un dato del LABORATORIO', () => {
+    expect(improntaDpa({ ...LAB, codice_itca: 'ITCA99999999' } as Laboratorio, CLI)).not.toBe(improntaDpa(LAB, CLI))
+  })
+
+  // 🛑 NON portata la quarta prova del brief ("porta esattamente i campi che il
+  //    modello stampa: 10 del lab, 9 del cliente") — vedi referto Task 3 §2.
+  //    Verificato riga per riga in DpaTemplate.tsx che `lab.codice_fiscale`,
+  //    `cliente.cap` e `cliente.provincia` sono accettati dal tipo `DpaData` ma
+  //    MAI resi in JSX: i numeri 10/9 contano i campi che il template ACCETTA,
+  //    non quelli che STAMPA (che sono 9 e 7). Un'asserzione verde col nome
+  //    "porta esattamente i campi che il modello stampa" sarebbe falsa nel nome
+  //    anche se la conta tornasse contro l'implementazione prescritta — non la
+  //    scrivo, e non correggo l'implementazione (R-E1/non è una decisione mia):
+  //    riferita a chi possiede il piano.
 })

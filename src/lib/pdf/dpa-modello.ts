@@ -1,5 +1,8 @@
 // src/lib/pdf/dpa-modello.ts
 
+import { improntaPayload } from '@/lib/pdf/generate-ddc'
+import type { Laboratorio, Cliente } from '@/types/domain'
+
 /** sha-256 del testo reso con la fixture fissa di `tests/unit/dpa-modello.test.ts`.
  *  NON è una firma del documento: è l'impronta della FORMA del testo, e serve a
  *  distinguere due modelli diversi. Si aggiorna quando la prova diventa rossa,
@@ -35,3 +38,41 @@ const REVISIONE_LEGGIBILE_DPA = 'v2'
  *  render fatto a tempo di esecuzione. Due macchine producono lo stesso valore.
  */
 export const VERSIONE_MODELLO_DPA = `dpa-${REVISIONE_LEGGIBILE_DPA}+${IMPRONTA_TESTO_DPA.slice(0, 8)}`
+
+/** I soli dati che il modello STAMPA. Numero e data di emissione sono
+ *  deliberatamente FUORI: sono attributi dell'emissione, non del contenuto —
+ *  se entrassero, l'impronta cambierebbe ogni giorno e nascerebbe
+ *  un'emissione a ogni scarico in un giorno diverso (spec §5).
+ *
+ *  ⚠️ Il Pick qui sotto riprende la forma del tipo `DpaData` accettato da
+ *  `DpaTemplate.tsx` (10 campi lab, 9 cliente), prescritto testualmente dal
+ *  brief del Task 3. **Non torna** contro ciò che il template STAMPA davvero
+ *  in JSX: `lab.codice_fiscale`, `cliente.cap` e `cliente.provincia` sono
+ *  accettati dal tipo ma non compaiono in nessun `<Text>` del template
+ *  (verificato riga per riga in `DpaTemplate.tsx` il 03/08/2026, Task 3).
+ *  Segnalato a chi possiede il piano — v. referto Task 3 §2 — e NON corretto
+ *  qui: cambiare l'insieme dei campi qui è una decisione sul confine di
+ *  "sostanziale" che tocca anche i Task 4-9 che consumano questa impronta. */
+export interface DatiSostanzialiDpa {
+  lab: Pick<Laboratorio, 'ragione_sociale' | 'nome' | 'partita_iva' | 'codice_fiscale' | 'indirizzo' | 'cap' | 'citta' | 'provincia' | 'prrc_nome' | 'codice_itca'>
+  cliente: Pick<Cliente, 'studio_nome' | 'nome' | 'cognome' | 'partita_iva' | 'codice_fiscale' | 'indirizzo' | 'cap' | 'citta' | 'provincia'>
+}
+
+export function datiSostanzialiDpa(lab: Laboratorio, cliente: Cliente): DatiSostanzialiDpa {
+  return {
+    lab: {
+      ragione_sociale: lab.ragione_sociale, nome: lab.nome, partita_iva: lab.partita_iva,
+      codice_fiscale: lab.codice_fiscale, indirizzo: lab.indirizzo, cap: lab.cap,
+      citta: lab.citta, provincia: lab.provincia, prrc_nome: lab.prrc_nome, codice_itca: lab.codice_itca,
+    },
+    cliente: {
+      studio_nome: cliente.studio_nome, nome: cliente.nome, cognome: cliente.cognome,
+      partita_iva: cliente.partita_iva, codice_fiscale: cliente.codice_fiscale,
+      indirizzo: cliente.indirizzo, cap: cliente.cap, citta: cliente.citta, provincia: cliente.provincia,
+    },
+  }
+}
+
+export function improntaDpa(lab: Laboratorio, cliente: Cliente): string {
+  return improntaPayload(datiSostanzialiDpa(lab, cliente))
+}
