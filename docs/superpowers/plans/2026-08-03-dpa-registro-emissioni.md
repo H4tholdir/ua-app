@@ -1191,6 +1191,47 @@ npx vitest run tests/unit/dpa-registro.test.ts tests/unit/generate-dpa.test.ts
 
 ## Task 5 — Il riuso: nessun numero bruciato
 
+> 🔴 **PRIMA DI TUTTO IL RESTO — il difetto che SFUGGE IN SILENZIO, dalla revisione del Task 4 (`I1`).**
+> **Nessuna prova lega `payload_sha256` alla sua PROVENIENZA**, ed è ciò che rende fragile tutto il guard
+> che questo task costruisce. `provato:` sostituendo `payload_sha256: improntaDpa(lab, cliente)` con
+> `createHash('sha256').update(buffer)` — cioè l'impronta **del PDF** invece che **dei dati** — **7 prove su
+> 7 restano verdi**, e passerebbero anche i cinque CHECK, che controllano solo la **forma**.
+> 🛑 **Ma un'impronta presa dal PDF cambia a OGNI emissione** (numero e data sono dentro il file): l'indice
+> `dpa_emissione_viva_unica` **non scatterebbe mai**. Nessun `23505`, nessun errore, nessun rumore — solo
+> **emissioni vive duplicate all'infinito, una per scarico, ognuna con un numero bruciato**. È il difetto
+> peggiore possibile per un registro: silenzioso.
+>
+> **Le due asserzioni che mancano** — e sono lo **specchio** del precedente in casa, non una copia. La DdC
+> pretende impronte **DIVERSE** fra due emissioni (`tests/unit/generate-ddc.test.ts:279-286`) perché il suo
+> payload contiene la data; il DPA deve pretendere **la STESSA** fra due chiamate a dati immutati — è
+> esattamente la premessa su cui poggia il guard di questo task:
+>
+> ```typescript
+> it('🛑 due emissioni a dati IMMUTATI portano LA STESSA impronta dei dati — è la premessa del guard', async () => {
+>   montaTabelle(null)
+>   await generateDpa('lab-test-001', 'cli-001')
+>   const prima = (mockInsert.mock.calls[0][0] as Record<string, unknown>).payload_sha256
+>   vi.clearAllMocks(); mockUpload.mockResolvedValue({ error: null }); mockProgressivo.mockResolvedValue(8)
+>   mockInsert.mockReturnValue(createChain({ data: { id: 'em-2' }, error: null }))
+>   montaTabelle(null)
+>   await generateDpa('lab-test-001', 'cli-001')
+>   expect((mockInsert.mock.calls[0][0] as Record<string, unknown>).payload_sha256).toBe(prima)
+> })
+>
+> it('🛑 l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
+>   montaTabelle(null)
+>   await generateDpa('lab-test-001', 'cli-001')
+>   const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
+>   // 🔑 Le due `toMatch` PRIMA del confronto, e non è pignoleria: senza,
+>   //    `expect(undefined).not.toBe(<hash>)` è VERDE sul difetto vivo.
+>   //    La casa ha già pagato questo errore — v. generate-ddc.test.ts:244-247.
+>   expect(riga.pdf_sha256).toMatch(/^[0-9a-f]{64}$/)
+>   expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+>   expect(riga.payload_sha256).not.toBe(riga.pdf_sha256)
+> })
+> ```
+
+
 **File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts` (🆕 creato al Task 4)
 
 **Interfacce:** consuma `EmissioneDpa` (Task 4). Nessun simbolo nuovo.
@@ -1327,6 +1368,29 @@ qualcuno toglie l'`UPDATE` credendolo ridondante e riapre la porta chiusa.
 ---
 
 ## Task 6 — Fail-closed e corsa fra due richieste
+
+> 🔄 **TRE COSE ARRIVANO QUI dalla revisione del Task 4, e vanno chiuse in questo task.**
+>
+> **① `I2` — il messaggio del DATABASE esce verso il browser.** `provato:` `generate-dpa.ts:135` interpola
+> `erroreRiga.message` nell'`Error`, e la rotta lo rimanda: il browser riceve
+> `{"error":"DPA: registro non scritto — duplicate key value violates unique constraint
+> \"dpa_emissione_viva_unica\""}`, cioè **nome del vincolo e della tabella**.
+> ✅ **Quello dell'ARCHIVIO invece NON esce** ed è già giusto (`:111` lo manda in `console.error`, `:112`
+> solleva un testo fisso) — la prova «*il messaggio dell'archivio non esce*» già prevista qui **c'è**, ma
+> serve **la gemella sul messaggio del database**, che oggi manca.
+>
+> **② `I3` — «il file prima della riga» è garantito dal CODICE, non protetto dalle PROVE.** `provato:`
+> togliendo il `throw` di `:112`, **7 prove su 7 restano verdi**: `toHaveBeenCalledBefore` prova solo il
+> cammino felice. La prova «*se l'archivio rifiuta, NESSUNA riga viene scritta*» già prevista qui è
+> **esattamente** ciò che chiude il buco: va scritta e va **provata rompendo il `throw`**.
+>
+> **③ Quattro asserzioni deboli, tutte misurate con mutanti sfuggiti:** il **contenitore** non è asserito
+> (mettendo `'pubblico'` invece di `'documenti'` le prove restano verdi — su un registro GDPR il contenitore
+> privato è la premessa) · **`upsert: false`** non è asserito (`true` sfugge: è la riga che impedisce di
+> sovrascrivere un documento conservato) · **`emesso_at`** è provato con `toBeTruthy()` (`'ieri mattina'`
+> sfugge) · **l'anno di Roma** oggi non morde, perché il 1° agosto Roma e UTC coincidono — morde solo il 31
+> dicembre, e con `vi.setSystemTime` morderebbe sempre.
+
 
 **File:** modificare `src/lib/pdf/generate-dpa.ts` · modificare `tests/unit/dpa-registro.test.ts` (🆕 creato al Task 4)
 
