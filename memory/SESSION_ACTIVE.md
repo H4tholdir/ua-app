@@ -1,20 +1,21 @@
-# Sessione attiva — ripresa dopo l'audit: D123, e la scelta della prossima voce
+# Sessione attiva — il panel del contratto ai dentisti (D124): la premessa è caduta
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-audit-e-rete-handoff.md`** — letto per intero in apertura.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-panel-dpa-referto.md`** — il referto del panel, con l'Allegato
+XIII verbatim. Sotto, l'handoff da cui la sessione è partita: `docs/roadmap/2026-08-03-audit-e-rete-handoff.md`.
 
-📄 **D123 registrata all'apertura (§0A-bis):** «*il documento segue il lavoro finché il lavoro è aperto; alla
-chiusura si cristallizza*» — corollario documentale della direttiva del 27/07 sui campi. **Due domande
-aperte, normative:** dove cade «chiuso» (sul modello dati **non esiste alcuno stato dopo `consegnato`**) e
-che cosa impone la norma a una **riapertura** vera (oggi esiste solo entro **10 minuti**). 🛑 Nessuna riga di
-codice prima di un panel. Destinazione: la sezione «il documento segue il lavoro» di
-`docs/roadmap/ROADMAP-UFFICIALE.md`.
+🔴 **La premessa di D62, dell'audit, della riga 10 e dell'handoff è FALSA:** la cancellazione di una foto è
+rifiutata se il lavoro è consegnato, e i dieci anni decorrono **dalla consegna** — la finestra si chiude dove
+l'orologio comincia. 🔑 **Al suo posto, un difetto più grande:** il contratto **afferma tre misure di sicurezza
+che il prodotto non ha**, e non è **dimostrabile** (numero stabile per cliente/anno, nessuna persistenza,
+`template_versione` mai valorizzato).
 
-🔎 **Ritrovamento dello stesso turno (R-E2, riferito e NON corretto):** le righe del DPA da correggere sono
-**QUATTRO, non tre** — `src/components/features/pdf/DpaTemplate.tsx:147` cita l'**Art. 10(4)**, che come il
-10(8) è l'articolo dei dispositivi «diversi dai su misura». Allarga la **voce 10**, che resta PICCOLA.
+📜 **Norma sciolta sul testo consolidato letto da me:** i 10/15 anni dell'Allegato XIII **punto 4** cadono sulla
+**dichiarazione**; l'Art. 10(5) rimanda al **punto 2**, che non ha termine.
 
-⏳ **In attesa della scelta di Francesco:** **voce 10** (il DPA che i dentisti hanno già in mano) oppure
-**Task 1 di D42** sul ramo `tinte-manufatto` nel repo principale (🛑 mai un worktree).
+⏳ **Aspetto tre decisioni di Francesco** (referto §5): ① emendare la base ratificata «Art. 10(5) + All. XIII
+punto 4» in `ua-app/CLAUDE.md` §9 e in due altri documenti · ② l'ampiezza della riscrittura del contratto
+(solo citazioni, oppure contratto vero e dimostrabile con migration) · ③ il contenitore `documenti` su Storage
+è pubblico o privato — serve il suo occhio sul pannello Supabase.
 
-🚀 `main` = **`572be53b`** + i documenti di oggi. Verbale: **centoventitré** decisioni in **quaranta**
-tornate; la prossima è **D124**. ⚠️ L'orologio dice 1° agosto; i documenti seguono il **3 agosto**.
+🚀 `main` = **`9fb59855`** + i documenti di oggi. ⛔ Nessuna riga di codice né di template toccata: il panel
+decide prima. Verbale: **centoventiquattro** decisioni in **quarantuno** tornate; la prossima è **D125**.
