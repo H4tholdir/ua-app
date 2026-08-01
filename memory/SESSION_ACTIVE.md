@@ -30,10 +30,16 @@ eseguita; **6** — una decisione che rimanda lavoro deve nominare la destinazio
 (1 riscontro su 10 voci · 6 su 121 decisioni) e **provati rompendo, uno per controllo**. FASE 7: `tsc` 0 ·
 `vitest` **370 | 3** e **4275 | 19** · `next build` 0.
 
+✅ **AUD-2 CHIUSA — DS v3 rev. 3.5** (ramo `ds-v3-allineamento`): tutte e otto le divergenze avevano **già una
+decisione ratificata dietro**, il difetto era che il canale per emendare la spec (§13.1 p.3) **è stato usato
+una volta su nove**. Emendate §5.15 · §5.32 · §5.35 · §7.1 · §7.20 · §8.3.7 (🛑 **sostituita**, non tolta:
+§8.3 è lista chiusa). ⚠️ **Una domanda resta per Francesco:** il numero del lavoro nel **nome accessibile**
+della cassetta (`Cassetta.tsx:724-728`) — l'unica divergenza **senza** ratifica dietro.
+
 ➡️ **Prossimo passo — lo decide Francesco fra:** ① la **voce 10** (il DPA: piccola, tocca un documento a
 valore legale) · ② **Task 1** del piano D42, ramo `tinte-manufatto` **nel repo principale** (🛑 mai un
-worktree), R-E1 · ③ il **round 2** dell'audit (le 120 decisioni non ancora provate) · ④ **AUD-2**, le cinque
-righe del design system che contraddicono il codice.
+worktree), R-E1 · ③ il **round 2** dell'audit (le 120 decisioni non ancora provate) · ④ la **domanda sul nome
+accessibile** qui sopra.
 
 📎 Verbale: tornata **38**, `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centoventuno**
 decisioni. La prossima è **D122**.
