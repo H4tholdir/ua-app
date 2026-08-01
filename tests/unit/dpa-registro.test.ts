@@ -41,6 +41,7 @@ vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: mockProgressivo }))
 
 import { generateDpa } from '@/lib/pdf/generate-dpa'
 import { improntaDpa, VERSIONE_MODELLO_DPA } from '@/lib/pdf/dpa-modello'
+import { ErroreDatiDpa } from '@/lib/pdf/errori-dpa'
 
 /** L'anno civile di Roma calcolato QUI, senza passare da `annoRoma()`.
  *  🔑 Se lo calcolassi con la stessa funzione che usa l'implementazione, la prova
@@ -90,6 +91,17 @@ const catenaRilettura = (): MockChain => {
  *  messaggio vuoto, e compreso un mutante che al posto di `erroreRiga.message`
  *  facesse uscire `erroreRiga.code`. Una negativa senza la sua positiva non
  *  misura niente: qui ogni «non esce» è appaiato a un «esce ESATTAMENTE questo». */
+/** L'ERRORE intero, non solo il suo messaggio: serve dove conta anche lo STATO
+ *  HTTP che l'errore porta con sé (`ErroreDatiDpa.stato`). Un controllo sul solo
+ *  testo resterebbe verde con lo stato sbagliato, o senza stato affatto. */
+async function erroreSollevato(fn: () => Promise<unknown>): Promise<unknown> {
+  const RIUSCITA = Symbol('la chiamata non ha sollevato')
+  let esito: unknown = RIUSCITA
+  try { await fn() } catch (e) { esito = e }
+  if (esito === RIUSCITA) throw new Error('La chiamata doveva fallire e invece è riuscita')
+  return esito
+}
+
 async function messaggioDiErrore(fn: () => Promise<unknown>): Promise<string> {
   const RIUSCITA = Symbol('la chiamata non ha sollevato')
   let esito: string | symbol = RIUSCITA
@@ -1159,6 +1171,32 @@ describe('fail-closed e corsa', () => {
     expect(mockProgressivo).not.toHaveBeenCalled()
   })
 
+  // 🛑 «Cliente non trovato» è il cammino di questa famiglia che si vede DAVVERO
+  //    in produzione, e fino a oggi non lo copriva nessuna prova.
+  //    `generate-dpa.ts:84` filtra il cliente anche per `laboratorio_id`: un
+  //    collegamento vecchio, un cliente cancellato o l'id di un ALTRO
+  //    laboratorio cadono tutti qui. Non è un guasto di UÀ → 404, non 500.
+  it('🛑 il cliente assente si dice «non trovato», e porta un 404 — non è colpa del servizio', async () => {
+    montaTabelle(null)
+    const conFalla = mockFrom.getMockImplementation() as (t: string) => unknown
+    mockFrom.mockImplementation((tabella: string) => {
+      if (tabella === 'clienti') return createChain({
+        data: null,
+        // stessa forma vera di `.single()` su zero righe: PGRST116, non `error: null`
+        error: { code: 'PGRST116', message: 'Cannot coerce the result to a single JSON object' },
+      })
+      return conFalla(tabella)
+    })
+
+    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect(e).toBeInstanceOf(ErroreDatiDpa)
+    expect((e as ErroreDatiDpa).message).toBe('Cliente non trovato')
+    expect((e as ErroreDatiDpa).stato).toBe(404)
+    // e non si è bruciato nessun numero per un cliente che non c'è
+    expect(mockProgressivo).not.toHaveBeenCalled()
+  })
+
   it("🔑 …ma il laboratorio DAVVERO assente continua a dirsi «non trovato»", async () => {
     // 🛑 La fixture NON è `{ data: null, error: null }`: quella forma il client
     //    reale non la produce MAI su `.single()`.
@@ -1178,7 +1216,14 @@ describe('fail-closed e corsa', () => {
       return conFalla(tabella)
     })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
-    expect(msg).toBe('Laboratorio non trovato')
+    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001'))
+
+    expect((e as Error).message).toBe('Laboratorio non trovato')
+    // …e anche questo è un 404: il dato non c'è, non è UÀ a essere rotta.
+    // 📌 Attraverso la rotta del DPA ci si arriva solo per una corsa — il
+    //    lab-guard ha già letto la riga di `laboratori` (`lab-context.ts:24`).
+    //    Lo stato si fissa lo stesso: `generateDpa` non è di questa rotta sola.
+    expect(e).toBeInstanceOf(ErroreDatiDpa)
+    expect((e as ErroreDatiDpa).stato).toBe(404)
   })
 })

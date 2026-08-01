@@ -27,6 +27,11 @@ vi.mock('@/lib/supabase/lab-context', () => ({ getLabContextWithTimings: mockCon
 vi.mock('@/lib/pdf/generate-dpa', () => ({ generateDpa: mockGenerateDpa }))
 
 import { GET } from '@/app/api/clienti/[id]/dpa/route'
+// 🔑 NON simulato, ed è il punto: la rotta fa `instanceof` su QUESTA classe.
+//    Vive in un modulo suo (`errori-dpa.ts`) e non dentro `generate-dpa.ts`
+//    proprio perché quello qui sopra è simulato per intero — un `instanceof`
+//    contro un modulo finto non proverebbe niente.
+import { ErroreDatiDpa } from '@/lib/pdf/errori-dpa'
 
 const LAB_ID = 'lab-test-001'
 const CLIENTE_ID = 'cli-001'
@@ -112,22 +117,21 @@ describe('GET /api/clienti/[id]/dpa', () => {
   // 🛑 Rilievo aperto dalla revisione del Task 6, chiuso qui. E il conto va
   //    detto ESATTO: la riga che stava qui diceva «delle ~12 strade d'errore
   //    DIECI sono guasti del servizio», e non tornava.
-  //    `provato:` `grep -n "throw new Error" src/lib/pdf/generate-dpa.ts`
-  //    → **UNDICI** `throw`, di cui **SETTE** guasti del servizio (:97 · :144 ·
-  //    :167 · :191 · :216 · :266 · :369) e **QUATTRO** che non lo sono
-  //    (:72 e :75 Partita IVA mancante · :100 «Laboratorio non trovato» ·
-  //    :101 «Cliente non trovato»).
+  //    `provato:` `grep -n "throw new" src/lib/pdf/generate-dpa.ts`
+  //    → **UNDICI** `throw`, di cui **SETTE** guasti del servizio (:106 · :159 ·
+  //    :182 · :206 · :231 · :281 · :384) e **QUATTRO** che non lo sono
+  //    (:81 e :84 Partita IVA mancante · :115 «Laboratorio non trovato» ·
+  //    :116 «Cliente non trovato»).
   //    ⚠️ Un numero gonfiato non è un dettaglio: serviva a far sembrare
-  //    trascurabile proprio la parte che il 500 racconta male.
+  //    trascurabile proprio la parte che il 500 raccontava male.
   //    🛑 RITIRATA anche la ragione «nessuna sorveglianza tratta come errore un
   //    4xx»: in questo repo una sorveglianza NON C'È — `provato:`
   //    `grep -rniE "sentry|captureException" src package.json` → nessuna riga,
-  //    e `vercel.json` è `{"regions":["dub1"]}`. Restano in piedi i fatti veri:
-  //    la rotta NON può distinguere i casi (le arriva un `Error` e basta), e
-  //    discriminare sul TESTO del messaggio la legherebbe alla prosa di
-  //    `generate-dpa.ts` senza nessun aggancio che il compilatore veda.
-  //    Quindi oggi: 500 per tutto, e la classificazione fine va fatta
-  //    ALL'ORIGINE, con un errore tipato.
+  //    e `vercel.json` è `{"regions":["dub1"]}`.
+  //    ✅ I quattro cammini sono stati classificati ALL'ORIGINE (`errori-dpa.ts`,
+  //    03/08/2026): 404 e 422 li rende ora la rotta, e le prove C5-C7 qui sotto
+  //    li tengono. QUESTA prova difende ciò che resta: i SETTE guasti veri, per
+  //    cui il 500 è la parola giusta.
   it('un guasto di `generateDpa` risponde 500, non 400 — è il servizio, non la richiesta', async () => {
     mockGenerateDpa.mockRejectedValue(new Error('DPA: archivio non raggiungibile, riprovare fra qualche istante'))
 
@@ -137,6 +141,48 @@ describe('GET /api/clienti/[id]/dpa', () => {
     expect(await res.json()).toEqual({
       error: 'DPA: archivio non raggiungibile, riprovare fra qualche istante',
     })
+  })
+
+  // ═══ C5-C7 · i cammini che NON sono colpa del servizio ═══
+  //
+  // 🔑 Il seguito di C3: dei sette guasti veri il 500 dice la verità, dei
+  //    quattro restanti no. Lo stato lo porta l'errore stesso
+  //    (`ErroreDatiDpa.stato`), deciso all'ORIGINE — la rotta non indovina
+  //    niente dal testo del messaggio.
+  it('C5 · «Cliente non trovato» → 404: un collegamento vecchio non è un guasto di UÀ', async () => {
+    mockGenerateDpa.mockRejectedValue(new ErroreDatiDpa('Cliente non trovato', 404))
+
+    const res = await GET(richiesta(), parametri)
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Cliente non trovato' })
+  })
+
+  it('C6 · Partita IVA mancante → 422: la richiesta è buona, il documento non si può fare', async () => {
+    mockGenerateDpa.mockRejectedValue(
+      new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422)
+    )
+
+    const res = await GET(richiesta(), parametri)
+
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual({
+      error: 'DPA: cliente privo di Partita IVA e Codice Fiscale',
+    })
+  })
+
+  // 🛑 C7 · la NEGATIVA che tiene insieme le due precedenti: la rotta legge
+  //    `e.stato`, non ne ha uno cucito addosso. C5 e C6 da sole sarebbero verdi
+  //    anche con un `return 404` fisso (C6 no, ma il paio va detto esplicito) —
+  //    qui si prova che uno stato TERZO, mai scritto nella rotta, arriva intero.
+  it('C7 · la rotta rende lo stato che l\'errore porta, non uno cucito addosso', async () => {
+    const finto = new ErroreDatiDpa('Laboratorio non trovato', 404)
+    Object.defineProperty(finto, 'stato', { value: 418 })
+    mockGenerateDpa.mockRejectedValue(finto)
+
+    const res = await GET(richiesta(), parametri)
+
+    expect(res.status).toBe(418)
   })
 
   // ═══ C4 · rifiuto con un non-`Error`: il ripiego regge ═══

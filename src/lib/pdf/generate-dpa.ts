@@ -8,6 +8,11 @@ import type { Laboratorio, Cliente } from '@/types/domain'
 import { annoRoma } from '@/lib/utils/data-roma'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { improntaDpa, VERSIONE_MODELLO_DPA } from '@/lib/pdf/dpa-modello'
+// 🔑 I QUATTRO cammini che non sono guasti del servizio portano il loro stato
+//    HTTP con sé. Gli altri SETTE restano `Error` nudi e la rotta li rende 500.
+//    La ragione per cui lo stato sta qui e non in una mappa dentro la rotta è
+//    scritta per intero in `errori-dpa.ts`.
+import { ErroreDatiDpa } from '@/lib/pdf/errori-dpa'
 
 /** Il risultato di un'EMISSIONE — non di una generazione.
  *
@@ -68,11 +73,15 @@ function fileDavveroAssente(errore: { message?: string; statusCode?: string } | 
 }
 
 function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
+  // 422, non 500: i dati ci sono ma non bastano per emettere. È l'unico
+  // messaggio di questo file su cui l'utente può DAVVERO agire (va a completare
+  // l'anagrafica), e dirgli «errore interno» lo manderebbe a cercare un guasto
+  // che non c'è.
   if (!lab.partita_iva && !lab.codice_fiscale) {
-    throw new Error('DPA: laboratorio privo di Partita IVA e Codice Fiscale')
+    throw new ErroreDatiDpa('DPA: laboratorio privo di Partita IVA e Codice Fiscale', 422)
   }
   if (!cliente.partita_iva && !cliente.codice_fiscale) {
-    throw new Error('DPA: cliente privo di Partita IVA e Codice Fiscale')
+    throw new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422)
   }
 }
 
@@ -97,8 +106,14 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
     throw new Error('DPA: non è stato possibile leggere i dati di laboratorio e cliente')
   }
 
-  if (!labRaw) throw new Error('Laboratorio non trovato')
-  if (!clienteRaw) throw new Error('Cliente non trovato')
+  // 404, non 500. 🔑 Vale soprattutto per il CLIENTE: la query qui sopra filtra
+  //    anche per `laboratorio_id`, quindi un collegamento vecchio, un cliente
+  //    cancellato o l'id di un ALTRO laboratorio finiscono tutti qui. Nessuno
+  //    dei tre è un guasto di UÀ, e nessuno dei tre merita un 500.
+  //    📌 Il 404 non distingue «non esiste» da «non è tuo», ed è voluto: non
+  //    dice a nessuno se l'id che ha provato appartenga a qualcun altro.
+  if (!labRaw) throw new ErroreDatiDpa('Laboratorio non trovato', 404)
+  if (!clienteRaw) throw new ErroreDatiDpa('Cliente non trovato', 404)
 
   // Cast puntuale sul risultato: lo schema reale tipizza alcune colonne enum
   // (es. laboratori.piano, clienti.listino_numero) come stringa/numero generico
