@@ -157,7 +157,18 @@ sola cosa che regge nel tempo è un controllo che gira da solo.
 voci fantasma, punto di ripresa). **Non può accorgersi che un documento e il codice si contraddicono** — ed è
 lì che è passato il difetto di oggi.
 
-**Le due regole nuove proposte, entrambe meccanizzabili:**
+> ✅ **SCELTE DA FRANCESCO E IN VIGORE dal 03/08/2026** — sono i **controlli 5 e 6** di
+> `scripts/guardia-coerenza-documenti.mjs`, agganciati al pre-commit come gli altri quattro.
+> **Tarati prima di scriverli** (la nota in testa a quel file dice che *una guardia che grida al lupo viene
+> spenta*): il 5 accende su **1 voce su 10**, il 6 su **6 decisioni su 121** — e ogni riscontro del primo
+> giro era un difetto vero, non un falso allarme.
+> 🔑 **Provati rompendo, uno per controllo, e rimessi:** ① tolta la parola «eseguita» dalla spec degli
+> accenti → rosso sulla voce 8; ② tolta la destinazione a **D62** → rosso su D62. Entrambi verdi dopo il
+> ripristino. **FASE 7:** `tsc` **0** · `vitest` **370 | 3** file e **4275 | 19** prove · `next build`
+> uscita **0** — ⚠️ dichiarato: nessuno dei tre tocca uno script `.mjs`, quindi la prova vera sono i due
+> rosso-poi-verde qui sopra.
+
+**Le due regole nuove, entrambe meccanizzabili:**
 
 1. **Una voce dichiarata ✅/🚀 porta il suo commit di merge, e ogni voce del suo perimetro porta una prova
    citabile (`file:riga`) o una riga di rinvio esplicita.** Senza, la guardia si accende. È il controllo che

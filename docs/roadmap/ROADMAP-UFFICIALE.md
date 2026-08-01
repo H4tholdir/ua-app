@@ -968,11 +968,17 @@ lavorare — ed è successo nell'unica ondata in cui il perimetro è **cresciuto
 | **AUD-4** | 🟠 **D36 — un riconoscimento costruito, pubblicato e collegato a nulla.** Il rinvio era «a T7+T15», ma **«T15» non compare in nessun elenco di cose da fare** (roadmap · memoria · backlog → zero righe fuori da un changelog). Intanto `trovaOccupanteCodice` è mergiato e ha **un solo importatore: il suo test**. Resta codice morto accanto a un avviso che chiede all'operatore di indovinare un codice libero | referto §2.5 |
 | **AUD-5** | 🟠 **Il portale pubblico: un colore cotto a mano e una decisione mai presa.** La spec «un tema solo» §3.1(b) chiedeva di decidere in tappa 3 **oppure di dichiarare di non seguire il tema**: non è stato fatto né l'uno né l'altro. `src/app/portale/[token]/layout.tsx:15` porta `'#F8F9FA'` scritto a mano, e la ricerca su roadmap, memoria e verbali dà **una sola riga**, in un handoff del 26/07. È un rinvio senza destinazione | referto §2.6 |
 
-### 🛡️ La rete proposta — perché un referto invecchia come tutti gli altri documenti
+### 🛡️ La rete — ✅ **IN VIGORE dal 03/08/2026** (scelta da Francesco subito dopo l'audit)
 
-`scripts/guardia-coerenza-documenti.mjs` controlla la coerenza **fra documenti**. **Non può accorgersi che un
-documento e il CODICE si contraddicono** — ed è lì che è passato il difetto dell'ondata (b). Due regole nuove,
-entrambe meccanizzabili, **da decidere con Francesco**:
+`scripts/guardia-coerenza-documenti.mjs` controllava la coerenza **fra documenti**, e **non poteva accorgersi
+che un documento e il CODICE si contraddicono** — è lì che è passato il difetto dell'ondata (b). Da oggi ha
+**sei controlli invece di quattro**, agganciati al pre-commit. 🔑 **Tarati PRIMA di scriverli**, perché quel
+file porta scritta la lezione «*una guardia che grida al lupo viene spenta*»: il **5** accende su **1 voce su
+10**, il **6** su **6 decisioni su 121**, e ogni riscontro del primo giro era un difetto vero.
+🔑 **Provati rompendo, uno per controllo, e rimessi:** tolta la parola «eseguita» dalla spec degli accenti →
+**rosso** sulla voce 8; tolta la destinazione a **D62** → **rosso** su D62; verdi dopo il ripristino.
+**FASE 7:** `tsc` 0 · `vitest` **370 | 3** file e **4275 | 19** prove · `next build` uscita 0 (⚠️ dichiarato:
+nessuno dei tre tocca uno script `.mjs` — la prova vera sono i due rosso-poi-verde).
 
 1. **Una voce dichiarata ✅/🚀 porta il suo commit di merge, e ogni voce del suo perimetro porta una prova
    citabile (`file:riga`) o una riga di rinvio esplicita.** È il controllo che avrebbe fermato l'ondata (b):

@@ -1,6 +1,16 @@
 # Spec — Il ripensamento del wizard «Nuovo lavoro»
 
 **Data:** 27 luglio 2026 · **Stato:** ✅ **RATIFICATA da Francesco (27/07/2026, sera)** · **Percorso:** GRANDE con migration (BP-2)
+**Stato di ESECUZIONE — 🔄 riga aggiunta dall'audit del 03/08/2026, ondata per ondata, verificata nel codice:**
+**(a) ESEGUITA e IN PRODUZIONE** dal 28/07 (merge `a3e52379`) — perimetro riprovato voce per voce: **14 su 14**.
+🔴 **(b) PARZIALE:** è andato in produzione **l'album delle foto sulla scheda** (aggiunto al perimetro il 30/07
+con D60) — **le SCHERMATE del wizard non sono state costruite**: passo paziente rifatto, ricerca del paziente,
+passi denti · colore · foto · cassetta, briciole, bozza `v:2`, nome e cognome separati. Dell'impalcatura
+esistono i due moduli-motore (`src/lib/wizard/passi.ts`, `src/lib/wizard/sequenza-passi.ts`) **agganciati a
+nulla**. **(c) da pianificare.**
+🔑 **Perché questa riga esiste:** fino al 03/08 la spec diceva solo «RATIFICATA», e la roadmap dava la voce
+per ✅ — nessuno dei due documenti era falso da solo, e insieme facevano credere costruito un perimetro che non
+c'era. Referto: `docs/roadmap/2026-08-03-audit-documenti-referto.md`.
 **Esecuzione:** in **tre ondate** — v. §12. **La foto della prescrizione resta fuori dalla transazione, ma il fallimento diventa visibile** — v. §4.
 **Verbale del brainstorming (fonte di ogni decisione):** `docs/design/decisions/2026-07-27-wizard-nuovo-lavoro-brainstorming.md`
 **Mockup:** `docs/design/mockups/2026-07-27-{denti-colore-wizard,arcata-ovale,denti-illustrazioni-vere}.html`

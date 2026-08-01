@@ -24,10 +24,16 @@ corretta.
 10**: il DPA promette «almeno 10 anni» mentre la cancellazione fisica è in produzione (era **D62**, decisa e
 mai eseguita). Altre in **AUD-1…AUD-5**. Referto: `docs/roadmap/2026-08-03-audit-documenti-referto.md`.
 
+🛡️ **E LA RETE È IN VIGORE** (ramo `guardia-audit`): `scripts/guardia-coerenza-documenti.mjs` ha **sei
+controlli invece di quattro**. **5** — una voce di roadmap ✅/🚀 non può citare una spec che non si dichiara
+eseguita; **6** — una decisione che rimanda lavoro deve nominare la destinazione. Tarati prima di scriverli
+(1 riscontro su 10 voci · 6 su 121 decisioni) e **provati rompendo, uno per controllo**. FASE 7: `tsc` 0 ·
+`vitest` **370 | 3** e **4275 | 19** · `next build` 0.
+
 ➡️ **Prossimo passo — lo decide Francesco fra:** ① la **voce 10** (il DPA: piccola, tocca un documento a
 valore legale) · ② **Task 1** del piano D42, ramo `tinte-manufatto` **nel repo principale** (🛑 mai un
-worktree), R-E1 · ③ le **due regole nuove per la guardia** (referto §3) · ④ il **round 2** dell'audit
-(le 120 decisioni non ancora provate).
+worktree), R-E1 · ③ il **round 2** dell'audit (le 120 decisioni non ancora provate) · ④ **AUD-2**, le cinque
+righe del design system che contraddicono il codice.
 
 📎 Verbale: tornata **38**, `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centoventuno**
 decisioni. La prossima è **D122**.

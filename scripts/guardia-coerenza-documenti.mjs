@@ -14,12 +14,37 @@
 //    non si contraddicano e non puntino nel vuoto. La verità la garantisce solo
 //    la regola «il numero si dà subito» (CLAUDE.md).
 //
-// I QUATTRO CONTROLLI (tutti locali, niente rete, niente app accesa):
+// I SEI CONTROLLI (tutti locali, niente rete, niente app accesa):
 //   1. il conteggio DICHIARATO delle decisioni = quello REALE, e i numeri non
 //      hanno buchi;
 //   2. ogni file citato nei documenti vivi ESISTE;
 //   3. ogni «voce N» richiamata nella memoria esiste come voce;
-//   4. il punto di ripresa citato in SESSION_ACTIVE esiste.
+//   4. il punto di ripresa citato in SESSION_ACTIVE esiste;
+//   5. 🆕 una voce di roadmap dichiarata ✅/🚀 non può citare una spec che NON
+//      si dichiara eseguita (03/08/2026);
+//   6. 🆕 una decisione che RIMANDA lavoro deve nominare la sua DESTINAZIONE
+//      (03/08/2026).
+//
+// ── PERCHÉ 5 E 6 SONO STATI AGGIUNTI (audit del 03/08/2026) ─────────────────
+// 🔑 Il difetto che li ha generati era INVISIBILE ai primi quattro, e non per
+//    una svista: i quattro controllano che i documenti siano d'accordo FRA LORO,
+//    e quel giorno lo erano — handoff, roadmap e memoria dicevano tutti «ondata
+//    (b) in produzione», mentre il perimetro dichiarato di quell'ondata (nove
+//    cose: passo paziente rifatto, ricerca paziente, passi denti/colore/foto/
+//    cassetta, briciole, bozza `v:2`, nome e cognome separati) NON era stato
+//    costruito. A romperlo è stata una domanda di Francesco che confrontava il
+//    progetto con il CODICE, non un documento con un altro.
+// 🛑 Nessuno script può leggere un perimetro in prosa e cercarlo nel codice. Ma
+//    può pretendere che il documento che dichiara l'esecuzione — la SPEC — lo
+//    dica, invece di lasciarlo dedurre a un ✅ messo altrove: è il controllo 5.
+// 🔑 E il secondo buco dello stesso audit: tre decisioni dicevano «voce propria»
+//    e la voce non era MAI stata aperta (D5, D98), più una che rimandava a un
+//    «T15» che non compare in nessun elenco (D36). Una decisione di SPOSTARE
+//    lavoro, se la destinazione non esiste, ha lo stesso effetto di una che lo
+//    CANCELLA — ed è il controllo 6.
+// ⚠️ TARATI PRIMA DI SCRIVERLI, perché una guardia che grida al lupo viene
+//    spenta (v. la nota alla riga ~45): il 5 accende su **1 voce su 10**, il 6 su
+//    **6 decisioni su 121**. Ogni riscontro del primo giro era un difetto vero.
 //
 // Uso:  node scripts/guardia-coerenza-documenti.mjs            (tutto)
 //       node scripts/guardia-coerenza-documenti.mjs --staged   (+ avviso BP-1)
@@ -294,7 +319,72 @@ function controllaPuntoDiRipresa() {
   }
 }
 
-// ═══ CONTROLLO 5 (solo --staged) — BP-1: si tocca una decisione senza la memoria? ═══
+// ═══ CONTROLLO 5 — una voce «fatta» non può poggiare su una spec che non lo dice ═══
+// 🛑 ECCEZIONE MIRATA, e resta mirata: la ROADMAP è un ARCHIVIO e si legge solo
+//    in testa (`ARCHIVI_SOLO_TESTA`). Qui si apre una finestra su UNA sezione
+//    sola — «### 🔜 Le prossime voci» — perché è l'unico posto dove il progetto
+//    dichiara «questo è fatto». **Non allargare la finestra dell'archivio**: il
+//    primo giro di questa guardia leggeva tutto e produceva 99 segnalazioni,
+//    quasi tutte legittime-ma-storiche (v. nota in testa al file).
+const PAROLE_DI_ESECUZIONE = /ESEGUIT|IN PRODUZIONE|ATTUAT|PARZIALE/i
+function controllaVociChiuse() {
+  const percorso = 'docs/roadmap/ROADMAP-UFFICIALE.md'
+  const file = join(RADICE, percorso)
+  if (!existsSync(file)) return
+  const righe = readFileSync(file, 'utf8').split('\n')
+  const inizio = righe.findIndex((r) => r.startsWith('### 🔜 Le prossime voci'))
+  if (inizio === -1) {
+    avvisi.push(`${percorso}: non trovo la sezione «### 🔜 Le prossime voci», quindi il controllo 5 NON è stato eseguito. Se la sezione è stata rinominata, va aggiornata qui: una rete che non trova il suo bersaglio tace, e il silenzio si legge come «tutto a posto».`)
+    return
+  }
+  for (let i = inizio + 1; i < righe.length; i++) {
+    const riga = righe[i]
+    if (!/^\|\s*\*\*\d+\*\*\s*\|/.test(riga)) continue
+    // Il marchio di «chiusa» vale solo se sta all'INIZIO della cella: una voce
+    // aperta può benissimo raccontare che un suo pezzo è ✅, e non per questo
+    // è chiusa.
+    const chiusa = /^\|\s*\*\*\d+\*\*\s*\|\s*[^|]{0,80}(✅|🚀)/.test(riga)
+    if (!chiusa) continue
+    const numero = riga.match(/^\|\s*\*\*(\d+)\*\*/)[1]
+    for (const m of riga.matchAll(/`(docs\/superpowers\/specs\/[^`\n]+\.md)`/g)) {
+      const spec = m[1]
+      if (!existsSync(join(RADICE, spec))) continue // già coperto dal controllo 2
+      const testaSpec = readFileSync(join(RADICE, spec), 'utf8').split('\n').slice(0, 14).join('\n')
+      if (!PAROLE_DI_ESECUZIONE.test(testaSpec)) {
+        errori.push(`${percorso}: la voce ${numero} si dichiara FATTA (✅/🚀) ma la spec che cita — \`${spec}\` — non dice di essere stata ESEGUITA (in testa non compare «eseguita», «in produzione», «attuata» né «parziale»). È il difetto del 03/08: due documenti nessuno dei quali è falso da solo, e insieme fanno credere costruito un perimetro che non c'è. Se l'esecuzione è parziale, si scrive PARZIALE e si elenca ciò che è rimasto fuori.`)
+      }
+    }
+  }
+}
+
+// ═══ CONTROLLO 6 — una decisione che RIMANDA deve dire DOVE ═══
+// 🔑 «Voce propria» senza una voce che esista è una cancellazione travestita da
+//    rinvio: il lavoro non lo fa nessuno, e nessuno se ne accorge perché la
+//    decisione È stata scritta. Regola §0A-bis: «una decisione che cancella o
+//    rimanda del lavoro si scrive PER PRIMA».
+// ⚠️ AMBITO DICHIARATO: solo i verbali che la CATENA raggiunge da
+//    `SESSION_ACTIVE` (2 salti) — cioè quelli vivi. I verbali storici non
+//    vengono guardati apposta: farebbero accendere di rosso il pre-commit su
+//    righe vecchie e corrette per il loro tempo, ed è così che una guardia si fa
+//    spegnere.
+const FORMULE_DI_RINVIO = /voce propria|ondata propria|rimandat|rinviat|alla sua ondata|fuori dall'ondata/i
+// Una DESTINAZIONE vera: un documento del repo, «voce N», o una sigla di voce
+// («AUD-3», «TRGM-1»). 🛑 Deliberatamente NON basta un «D<numero>»: la riga
+// comincia col numero della decisione stessa, quindi accettarlo renderebbe il
+// controllo sempre verde — provato in taratura, 0 riscontri su 121 invece di 6.
+const DESTINAZIONE = /`(docs|src|scripts|supabase|tests|memory)\/[^`\n]+`|\bvoce \d+|\b[A-Z]{2,4}-\d+/
+function controllaRinviiDecisioni(percorso, testo) {
+  if (!percorso.startsWith('docs/design/decisions/')) return
+  for (const riga of testo.split('\n')) {
+    const m = riga.match(/^\|\s*\*\*(D\d+)\*\*/)
+    if (!m) continue
+    if (!FORMULE_DI_RINVIO.test(riga)) continue
+    if (DESTINAZIONE.test(riga)) continue
+    errori.push(`${percorso}: ${m[1]} rimanda del lavoro ma NON nomina una destinazione che esista (un documento, una «voce N», una sigla di voce). Una decisione di SPOSTARE lavoro senza destinazione ha lo stesso effetto di una che lo CANCELLA — v. D5 e D98, trovate così dall'audit del 03/08.`)
+  }
+}
+
+// ═══ CONTROLLO 7 (solo --staged) — BP-1: si tocca una decisione senza la memoria? ═══
 // AVVISO, non errore: a volte è legittimo (una correzione di battitura). Ma va
 // detto, perché è esattamente il buco 3 del ripasso del 28/07.
 function avvisoBp1() {
@@ -318,6 +408,7 @@ for (const percorso of documentiVivi) {
   const testo = readFileSync(join(RADICE, percorso), 'utf8')
   controllaConteggioDecisioni(percorso, testo)
   controllaFileCitati(percorso, testo)
+  controllaRinviiDecisioni(percorso, testo)
 }
 // Gli archivi: SOLO la testa, cioè l'aggiornamento corrente.
 for (const a of ARCHIVI_SOLO_TESTA) {
@@ -328,6 +419,7 @@ for (const a of ARCHIVI_SOLO_TESTA) {
 }
 controllaVociMemoria()
 controllaPuntoDiRipresa()
+controllaVociChiuse()
 if (process.argv.includes('--staged')) avvisoBp1()
 
 console.log(`=== Guardia coerenza documenti — ${documentiVivi.length} documenti vivi controllati ===`)
