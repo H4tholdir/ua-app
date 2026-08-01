@@ -1,10 +1,30 @@
 import 'server-only'
 import { createElement } from 'react'
+import { createHash } from 'node:crypto'
 import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
 import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import type { Laboratorio, Cliente } from '@/types/domain'
 import { annoRoma } from '@/lib/utils/data-roma'
+import { generaProgressivo } from '@/lib/db/progressivi'
+import { improntaDpa, VERSIONE_MODELLO_DPA } from '@/lib/pdf/dpa-modello'
+
+/** Il risultato di un'EMISSIONE — non di una generazione.
+ *
+ *  🔑 La differenza è il punto dell'ondata: prima di D129/D130 `generateDpa()`
+ *  rendeva un PDF al volo e UÀ non sapeva quale testo avesse in mano ogni
+ *  studio. Ora ogni scarico lascia una riga in `data_processing_agreements`,
+ *  con un numero progressivo vero e il file conservato nel contenitore privato.
+ *
+ *  `riemessa` dice se il documento è nato ADESSO. Nel Task 4 è sempre `true`
+ *  (non c'è ancora nulla da riusare); il guard di riuso del Task 5 è ciò che le
+ *  darà anche il valore `false`. */
+export interface EmissioneDpa {
+  buffer: Buffer
+  numero_dpa: string      // es. "DPA-2026-0007"
+  emissione_id: string    // uuid della riga di registro
+  riemessa: boolean       // true = generata ora, false = restituita dall'archivio
+}
 
 function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
   if (!lab.partita_iva && !lab.codice_fiscale) {
@@ -15,7 +35,7 @@ function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
   }
 }
 
-export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<Buffer> {
+export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<EmissioneDpa> {
   const svc = getTypedServiceClient()
 
   const [{ data: labRaw }, { data: clienteRaw }] = await Promise.all([
@@ -35,7 +55,13 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
 
   validateDpaData(lab, cliente)
 
-  const numero_dpa = `DPA-${annoRoma()}-${cliente_id.slice(0, 8).toUpperCase()}`
+  const impronta = improntaDpa(lab, cliente)
+
+  // Task 5 inserisce qui il guard di riuso.
+
+  const anno = annoRoma()
+  const progressivo = await generaProgressivo(svc, laboratorio_id, 'dpa', anno)
+  const numero_dpa = `DPA-${anno}-${String(progressivo).padStart(4, '0')}`
 
   const dpa = {
     lab: {
@@ -65,5 +91,48 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
     data_emissione: new Date().toISOString(),
   }
 
-  return renderPdfDocument(createElement(DpaTemplate, { dpa }))
+  const buffer = await renderPdfDocument(createElement(DpaTemplate, { dpa }))
+
+  // Il FILE prima della RIGA: se il caricamento fallisce, nessuna traccia resta
+  // in banca dati. Stessa regola di D61 (immagini/[imgId]/route.ts:207-219).
+  //
+  // ⚠️ La promessa vale per `data_processing_agreements`, NON per la serie dei
+  // numeri: `generaProgressivo` ha già incrementato `progressivi_anno` con una
+  // RPC committata, e nessun errore qui sotto la annulla. Se l'archivio rifiuta,
+  // quel numero è BRUCIATO e la serie mostra un buco. L'ordine è però FORZATO,
+  // non distratto: `storage_path_pdf` contiene `numero_dpa`, quindi il numero
+  // deve esistere prima del caricamento — invertire richiederebbe caricare su un
+  // percorso provvisorio e poi spostarlo, che è fuori da questo task.
+  const storage_path_pdf = `${laboratorio_id}/dpa/${anno}/${numero_dpa}.pdf`
+  const { error: erroreFile } = await svc.storage
+    .from('documenti')
+    .upload(storage_path_pdf, buffer, { contentType: 'application/pdf', upsert: false })
+  if (erroreFile) {
+    console.error('generateDpa — caricamento del PDF fallito:', erroreFile.message)
+    throw new Error('DPA: non è stato possibile conservare il documento')
+  }
+
+  const { data: riga, error: erroreRiga } = await svc
+    .from('data_processing_agreements')
+    .insert({
+      laboratorio_id,
+      tipo_controparte: 'dentista',
+      dentista_id: cliente_id,
+      stato: 'da_firmare',
+      // 🛑 D133: la costante, MAI il letterale — porta dentro l'impronta del
+      // testo, quindi cambia da sola quando cambia il contratto.
+      template_versione: VERSIONE_MODELLO_DPA,
+      numero_dpa,
+      anno_dpa: anno,
+      progressivo_dpa: progressivo,
+      storage_path_pdf,
+      pdf_sha256: createHash('sha256').update(buffer).digest('hex'),
+      payload_sha256: impronta,
+      emesso_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  if (erroreRiga || !riga) throw new Error(`DPA: registro non scritto — ${erroreRiga?.message ?? 'nessuna riga'}`)
+
+  return { buffer, numero_dpa, emissione_id: riga.id, riemessa: true }
 }

@@ -3,11 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, CLIENTE_FIXTURE } from './helpers/pdf-fixtures'
 
-const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
+const { mockFrom, mockInsert, mockUpload, mockProgressivo } = vi.hoisted(() => ({
+  mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpload: vi.fn(), mockProgressivo: vi.fn(),
+}))
 
 vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+  getServiceClient: () => ({
+    from: mockFrom,
+    storage: { from: () => ({ upload: mockUpload }) },
+  }),
 }))
+vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: mockProgressivo }))
 
 import { generateDpa } from '../../src/lib/pdf/generate-dpa'
 
@@ -15,6 +21,11 @@ function mockTables(lab: typeof LAB_FIXTURE, cliente: typeof CLIENTE_FIXTURE) {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'laboratori') return createChain({ data: lab, error: null })
     if (table === 'clienti') return createChain({ data: cliente, error: null })
+    if (table === 'data_processing_agreements') {
+      const c = createChain({ data: null, error: null })
+      c.insert = mockInsert
+      return c
+    }
     throw new Error(`Tabella inattesa nel mock: ${table}`)
   })
 }
@@ -22,12 +33,15 @@ function mockTables(lab: typeof LAB_FIXTURE, cliente: typeof CLIENTE_FIXTURE) {
 describe('generateDpa', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUpload.mockResolvedValue({ error: null })
+    mockProgressivo.mockResolvedValue(7)
+    mockInsert.mockReturnValue(createChain({ data: { id: 'em-1' }, error: null }))
   })
 
   it('genera una DPA con dati fiscali completi', async () => {
     mockTables(LAB_FIXTURE, CLIENTE_FIXTURE)
-    const buffer = await generateDpa('lab-test-001', 'cli-001')
-    expect(buffer.length).toBeGreaterThan(0)
+    const r = await generateDpa('lab-test-001', 'cli-001')
+    expect(r.buffer.length).toBeGreaterThan(0)
   })
 
   it('rifiuta se il laboratorio non ha né Partita IVA né Codice Fiscale', async () => {

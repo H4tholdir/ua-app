@@ -26,7 +26,10 @@ export async function GET(
     const labId: string = context.laboratorioId
 
     try {
-      const buffer = await generateDpa(labId, clienteId)
+      // `generateDpa` non rende più un Buffer nudo: rende un'EMISSIONE (Task 4).
+      // Qui si prende il solo file, per lasciare la rotta identica a prima —
+      // numero, id di registro e `riemessa` sono materia del Task 7.
+      const { buffer } = await generateDpa(labId, clienteId)
       const filename = `DPA-${clienteId.slice(0, 8).toUpperCase()}.pdf`
 
       return new NextResponse(new Uint8Array(buffer), {
