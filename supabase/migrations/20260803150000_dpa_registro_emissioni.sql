@@ -9,7 +9,11 @@
 -- prima si e' fermata a meta'.
 --
 -- Stato del catalogo VIVO letto il 03/08/2026 PRIMA di scrivere questo file
--- (Management API Supabase, read_only:true — v. .superpowers/sdd/task-1-report.md §1):
+-- (Management API Supabase, read_only:true). Le stesse query, in forma copiabile,
+-- stanno nel piano — Task 1, Step 0 — che e' in git e sopravvive a questo file:
+--   docs/superpowers/plans/2026-08-03-dpa-registro-emissioni.md
+-- (il referto dell'esecutore sta in .superpowers/, che git IGNORA: un file
+--  permanente non puo' avere come unica fonte un percorso che sparisce):
 --   · le sette colonne qui sotto NON esistevano (42703 su tutte e sette);
 --   · nessun trigger non interno sulla tabella (pg_trigger → 0 righe);
 --   · nessun indice oltre alla chiave primaria, nessun CHECK oltre ai due
@@ -55,7 +59,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
 --     (Task 5) e su cui deve interrogare la rilettura dopo il 23505 (Task 6).
 --     Precedente identico in casa: ddc_lavoro_attiva_unique
 --     (20260710090000_ddc_annullata_unique_parziale.sql) + il suo backstop
---     UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc) a schema.sql:1273.
+--     UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc) a schema.sql:1275.
 --     Regola gia' ratificata per le fatture: spec 2026-07-09 ondata-4a, §4 M3.
 --     NB: dentro il predicato di questo indice dentista_id non e' mai NULL —
 --     payload_sha256 NOT NULL implica, per dpa_emissione_coerente, il ramo
@@ -125,8 +129,11 @@ BEGIN
   --   `${lavoro.laboratorio_id}/ddc/${anno}/${numero}.pdf`
   --   (src/lib/pdf/generate-ddc.ts:181) — cioe' UUID del laboratorio, poi '/'.
   -- Il cast uuid->text e' una CoerceViaIO fra uuid_out e textin, entrambe
-  -- IMMUTABLE nel catalogo: e' cio' che rende l'espressione ammissibile in un
-  -- CHECK ("functions in check constraint must be marked IMMUTABLE").
+  -- IMMUTABLE nel catalogo (provato: pg_cast non ha riga uuid->text, e
+  -- uuid_out/textin/textcat/textlike sono tutte provolatile='i'): l'intera
+  -- espressione e' immutabile, quindi ammissibile in un CHECK.
+  -- NB: il messaggio d'errore esatto che Postgres userebbe se non lo fosse NON
+  -- e' stato verificato — la conclusione regge, la citazione a memoria no.
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
      WHERE conrelid = 'public.data_processing_agreements'::regclass

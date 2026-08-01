@@ -419,17 +419,37 @@ prima di provocarlo · ② **derivano** laboratorio e cliente dai dati veri, inv
 ③ **verificano QUALE vincolo ha rifiutato**, e lasciano una **tabella leggibile** — una prova che
 l'operatore non può incollare non è una prova (le `NOTICE` l'editor del pannello può non mostrarle).
 
-⚠️ **Confine invariato:** girano su **transazione annullata**, mai dentro una migration registrata.
+⚠️ **Confine invariato:** girano **fuori da ogni migration registrata**, e non lasciano righe.
+
+🔴 **CORRETTO il 03/08 dalla revisione — il difetto era proprio nella riga che consegna la prova.** La prima
+stesura finiva con `SELECT * FROM sonda_esito;` **seguito da `ROLLBACK;`**. Ma editor SQL e Management API
+restituiscono **solo l'ULTIMO risultato**: chi incolla avrebbe letto «*Success. No rows returned*»
+**esattamente dove il piano gli promette la tabella delle tre righe**.
+`provato:` `{"query":"SELECT 1 AS primo; SELECT 2 AS secondo;"}` → `[{"secondo":2}]`.
+🔑 **È lo stesso difetto che il piano si vanta di aver evitato**, un giro più in là: aveva visto il
+`ROLLBACK` che cancella la **migration**, non quello che cancella **la visualizzazione della prova**. E
+cade in pieno sulla riga che il piano stesso si era dato come regola: «*una prova che l'operatore non può
+incollare non è una prova*».
+
+🛑 **Perché togliere `BEGIN`/`ROLLBACK` non è pericoloso, e va scritto o qualcuno li rimette:** **nessuna**
+delle tre `INSERT` riesce mai — è il loro scopo. E se una riuscisse, il `RAISE EXCEPTION 'SONDA X FALLITA'`
+produce `P0001`, che **non** viene preso dai gestori `WHEN check_violation` / `WHEN unique_violation`:
+propaga, fa **abortire l'intero `DO`**, e la riga non sopravvive lo stesso. Il **RIQUADRO 5** lo verifica
+comunque, invece di darlo per buono.
 
 ```sql
 -- SONDE — Task 1. Si incolla nell'editor SQL DOPO aver applicato la migration.
 -- Non registrano nulla, non toccano il ledger delle migration.
 -- Si incolla nel referto la TABELLA FINALE: e' quella la prova.
-BEGIN;
-
+--
+-- 🛑 NIENTE BEGIN/ROLLBACK, e non e' una dimenticanza: l'ULTIMA istruzione deve
+--    essere la SELECT, o il suo risultato non viene mostrato (v. sopra).
+--    Per la stessa ragione la tabella temporanea NON porta ON COMMIT DROP:
+--    senza transazione esplicita verrebbe distrutta appena creata. Muore
+--    comunque con la sessione.
 CREATE TEMP TABLE sonda_esito (
   sonda text, esito text, sqlstate text, vincolo text, messaggio text
-) ON COMMIT DROP;
+);
 
 DO $sonde$
 DECLARE
@@ -525,13 +545,24 @@ BEGIN
 END
 $sonde$;
 
+-- 🔑 ULTIMA istruzione, e deve restarlo: e' cio' che viene mostrato.
 SELECT * FROM sonda_esito;
-
-ROLLBACK;
 ```
 
 **Atteso: tre righe, tutte `RIFIUTATA (atteso)` con `sqlstate` `23514`, `23505`, `23505`.**
 **Incollare la tabella vera nel referto.** Un `ALTER TABLE` riuscito prova la sintassi, non il comportamento.
+
+- [ ] **Step 4-bis: il RIQUADRO 5 — verificare che le sonde non abbiano lasciato niente**
+
+Sostituisce la rassicurazione che dava il `ROLLBACK`, e la sostituisce **con un fatto** invece che con un
+ragionamento. In sola lettura:
+
+```sql
+SELECT count(*) AS righe_rimaste FROM public.data_processing_agreements;
+```
+
+**Atteso: `0`.** Se non è `0`, una sonda ha lasciato una riga: si cancella quella riga **prima** di andare
+avanti, e si riferisce — perché significa che un vincolo non ha rifiutato ciò che doveva rifiutare.
 
 📎 Nota tecnica, perché non venga «semplificata» via: `RAISE EXCEPTION` senza `ERRCODE` produce `P0001`,
 **non** `23514` — è per questo che un «SONDA A FALLITA» non viene mangiato dal proprio gestore
@@ -566,6 +597,14 @@ l'esecutore si ferma perché «*richiede la password del database*». **È falso
 applicherebbe la migration. 🔑 **Il motivo vero per cui ci si ferma è che scrivere su un ambiente vero è una
 decisione di Francesco** — e un motivo sbagliato è un motivo che smette di funzionare: il prossimo esecutore
 che trova la password conclude che il divieto era una svista.
+
+⚠️ **Se si sceglie la strada ① o ③, il LEDGER delle migration resta indietro di una riga**, e va rimesso in
+pari — `npx supabase migration repair --status applied 20260803150000`. `provato:` oggi il ledger **è in
+pari** (92 versioni; l'unico file su disco non ancora registrato è proprio questo), quindi lo scarto che si
+aprirebbe sarebbe **il primo**.
+🔑 **E lo scarto è sopravvivibile per un motivo preciso, che è il vero incasso del lavoro fatto sopra:** la
+migration è **idempotente istruzione per istruzione**, quindi un `supabase db push` successivo la rigioca e
+**non fa nulla**. Senza quell'idempotenza, un ledger disallineato sarebbe un rilascio bloccato.
 
 - [ ] **Step 7: FASE 6b — rigenerare i tipi e verificare** (solo dopo lo Step 6)
 
