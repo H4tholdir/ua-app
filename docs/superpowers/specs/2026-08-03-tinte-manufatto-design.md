@@ -1,7 +1,8 @@
 # Spec — D42, le tinte del manufatto
 
-**Stato:** ratificata da Francesco in sessione (D42 · **D109-D118**)
-**Verbale:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, tornate **35** e **36**
+**Stato:** ratificata da Francesco in sessione (D42 · **D109-D118**) · 🔄 **§5 emendata da D121 (03/08/2026):
+il passo del wizard esce da questa ondata, restano due superfici**
+**Verbale:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, tornate **35**, **36** e **38**
 **Dimensione:** **GRANDE, con migration** → percorso BP-2 pieno (`ua-app/CLAUDE.md` §0C)
 **Precede:** i mockup (§0B) → il piano (`writing-plans`, con R-P1 · R-P2 · R-P6) → il ramo
 
@@ -178,16 +179,35 @@ fallito — è la classe di difetto che questo progetto ha già chiamato per nom
 
 ## 5. Le tre superfici — **D118**
 
+> 🔄 **EMENDATA il 03/08/2026 da D121 — per RINVIO, non per revoca.** Le superfici restano tre, ma **il
+> passo del wizard esce da questa ondata**: nasce dentro l'ondata che costruisce le schermate del wizard,
+> accanto a denti · colore · foto · cassetta. **D42 si chiude con due superfici** — pagina di modifica e
+> scheda.
+> 🔑 **Il fatto che l'ha imposto:** D112 e D118 davano per esistente un'impalcatura di passi a cui
+> agganciarsi. Non esiste — `provato:` `WizardNuovoLavoro.tsx:50-59` → `passo: 1 | 2 | 3`, un numero; i
+> moduli `src/lib/wizard/passi.ts` e `src/lib/wizard/sequenza-passi.ts` **li usano solo i loro test**. E la
+> spec dell'ondata (b) §4 elimina il blocco «Se vuoi, aggiungi» del passo paziente, dove elemento e colore
+> **diventano passi propri**: qualunque scorciatoia dentro quel blocco arrederebbe una stanza già
+> condannata. Verbale: tornata **38**.
+
 | superficie | che cosa fa | sistema grafico |
 |---|---|---|
-| **Passo del wizard** | Compare **solo** per i tre tipi. Tavolozza semplice: niente denti, niente zone del ceramista. **Saltabile** (D113) | v3 |
+| **Passo del wizard** 🔄 **RINVIATO (D121)** | Compare **solo** per i tre tipi. Tavolozza semplice: niente denti, niente zone del ceramista. **Saltabile** (D113). **Non in questa ondata** | v3 |
 | **Pagina di modifica** `/lavori/[id]/modifica` | Dove si **corregge**. Senza questa il campo non è finito (direttiva del 27/07) | La pagina si dichiara già `data-ds="v3"`: le parti nuove si scrivono con i componenti di `src/components/ds/`, **non** copiando lo stile dei moduli legacy accanto |
 | **Scheda del lavoro** `/lavori/[id]` | Si **legge** e basta: al banco si apre il lavoro e si vede «Tinta: Rosa» | v3 |
 
 🔑 **Il passo del wizard è il primo passo vero oltre i tre esistenti**, quindi porta con sé l'impalcatura —
-entrata, ritorno, salto. Quell'impalcatura **servirà anche ai 26 tipi con colore dentale**, che sono
+entrata, ritorno, salto. Quell'impalcatura **servirà anche ai ~~26~~ 25 tipi con colore dentale**
+(🔄 **numero corretto da D121**: `provato:` conteggio su `tipi-lavoro.ts` escludendo la riga 11, che è la
+definizione del tipo e non un tipo di lavoro — **25** `'catalogo'` + **3** `'libero'` + **10** `'nessuno'`
+= **38**), che sono
 l'eredità aperta dell'ondata (b): non si costruisce per loro, ma si costruisce in modo che **regga anche
 il loro caso** invece di dover essere rifatta.
+🔄 **E proprio per questo D121 lo ha rinviato:** quell'impalcatura non è la coda di D42, è il corpo di
+un'altra ondata — pallini a numero variabile (`ProgressDots.tsx:43` è cablato a tre), bozza a versione
+nuova con un'etichetta **diversa da `v:2`, già prenotata** dalla spec dell'ondata (b) §7, testi della
+ripresa riscritti (`RipresaSheet.tsx:59-75`) e il punto in cui nasce il lavoro spostato. Costruirla per un
+passo solo la farebbe pagare due volte.
 
 ### 5.1 🛑 §0B senza sconti — i mockup prima del React
 
@@ -217,7 +237,7 @@ comportamento.
 | il `NULL` resta ammesso (D113) | lavoro senza tinta di **qualunque** tipo → accettato. Senza questo, il vincolo potrebbe essere troppo stretto e nessuno se ne accorgerebbe |
 | il cambio di tipo (D117) | PATCH che cambia il tipo su un lavoro con tinta → salvataggio **riuscito**, tinta a `NULL`, **e il campo che lo dichiara presente nella risposta**. Le tre asserzioni sono tre |
 | il rifacimento | rifacimento di un paradenti con tinta → il nuovo lavoro **ha** la stessa tinta |
-| il passo del wizard | compare per i **tre** tipi e **non** compare per gli altri 35. L'asserzione negativa vale quanto quella positiva |
+| il passo del wizard 🔄 **RINVIATO (D121)** | compare per i **tre** tipi e **non** compare per gli altri 35. L'asserzione negativa vale quanto quella positiva. **Si scrive nell'ondata delle schermate del wizard, non qui** |
 | la correzione arriva in fondo | dopo la PATCH si **rilegge dalla banca dati**: che la risposta dica «ok» non prova che il dato ci sia (è esattamente il difetto dell'allowlist silenziosa) |
 | l'errore che torna al client | **non** il messaggio grezzo del database. C'è una voce aperta su 76 punti che lo fanno: non se ne aggiunge un settantasettesimo |
 

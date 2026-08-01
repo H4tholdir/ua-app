@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentasettesima tornata (D42, la tavolozza scelta sul mockup)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla trentottesima tornata (D121, il passo del wizard aspetta il wizard)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centoventi decisioni in trentasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centoventuno decisioni in trentotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -814,3 +814,38 @@ voce 9 di roadmap). Se un giorno si vorrà, sarà una decisione con panel normat
 
 📌 **Con D119 la spec non cambia:** la §5.1 lasciava la domanda aperta **apposta** per il mockup, e ora ha
 la sua risposta. Il piano parte da qui.
+
+---
+
+### Trentottesima tornata — D121: il passo del wizard aspetta il wizard
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D121** | 🧭 **La tinta NON entra nel wizard adesso. D42 chiude con DUE superfici — scheda e pagina di modifica — e il passo della tinta nasce dentro l'ondata che costruisce le schermate del wizard**, accanto a denti, colore, foto e cassetta, dove il progetto lo colloca già | scelta di Francesco fra tre strade (aspettare il wizard vero · aprire subito l'ondata delle schermate · anticipare il solo passo tinta con la macchina agganciata a metà), **dopo che Francesco ha respinto una quarta strada che stavo per raccomandare** — la tinta come riga dentro il passo paziente — con l'obiezione che l'ha demolita: «*stiamo ragionando sul comportamento della pwa di com'è adesso non di come l'abbiamo progettata*» | 🔑 **L'obiezione era esatta, ed è verificata sul documento:** la spec ratificata dell'ondata (b) §4 dice «**il blocco "Se vuoi, aggiungi" sparisce: elemento e colore diventano passi propri, la foto diventa il passo di D8**». Le tre righe facoltative di oggi (`PassoPaziente.tsx:80-108`) sono **già condannate dal progetto**: costruirci dentro la tavolozza sarebbe stato arredare una stanza in lista di demolizione. **⚠️ Emenda D112 e D118 per RINVIO, non per revoca:** le tre superfici restano tre, ma la terza arriva con la sua ondata. **📌 D112 era stata presa su un presupposto che non reggeva** — che nel wizard esistesse un'impalcatura di passi a cui agganciarsi: il fatto contrario (`provato:` `WizardNuovoLavoro.tsx:50-59` → `passo: 1 \| 2 \| 3`, un numero; l'impalcatura `wizard/passi.ts` + `wizard/sequenza-passi.ts` **la usano solo i suoi test**) è stato misurato **dopo**, scrivendo il piano. 🛑 **La terza strada è stata smontata da un panel 3× con mandato di confutare**, e le sue affermazioni portanti sono state riverificate a mano: agganciare «solo un po'» la macchina costa comunque i pallini rifatti (`ProgressDots.tsx:43` è cablato a tre, con `aria-label` «Passo N di 3»), la bozza a versione nuova — e **l'etichetta `v:2` è GIÀ PRENOTATA** dalla spec §7 per un altro contenuto, quindi due bozze diverse si scambierebbero per la stessa —, i testi della ripresa riscritti (`RipresaSheet.tsx:59-75`), **circa venti prove rotte**, e il punto in cui nasce il lavoro traslocato **due volte**. ✅ **Costo accettato di D121:** finché quell'ondata non arriva, chi crea un paradenti mette la tinta **dalla scheda**, subito dopo — che è comunque la superficie che la direttiva del 27/07 rende obbligatoria |
+
+🔴 **Due fatti che nessun documento diceva, emersi in questa tornata e da trattare a parte** (R-E2, riferiti
+non corretti). 📄 **Gli altri sette ritrovamenti — minori uno per uno, ma che sparirebbero col contesto della
+sessione — stanno raccolti in un posto solo:** `docs/roadmap/2026-08-03-d121-ritrovamenti.md` (fra questi:
+una prova verde che **codifica** la violazione della direttiva «indietro», una contraddizione viva fra il
+contratto dei passi e la spec che dice di seguirlo, e due prove che dopo un cambiamento previsto
+resterebbero verdi smettendo di controllare).
+
+**① Il wizard oggi INVITA l'errore che D42 vuole togliere.** La riga «Colore — es. A2» (`PassoPaziente.tsx:91-98`)
+compare **per tutti e 38 i tipi**, perché quella schermata non riceve il tipo (`provato:` `PassoPaziente.tsx:38-47`,
+nessuna prop `tipo`). Chi crea un paradenti e scrive «rosa» manda quel valore come `colore_codice`
+(`crea-lavoro.ts:323`); il server lo confronta col catalogo dei **colori dentali** (48 codici), non lo trova, lo
+**scarta** (`src/lib/api/colore-caso.ts:25`) e il lavoro nasce senza — con un avviso in coda
+(`crea-lavoro.ts:386`). Lo stesso invito sbagliato vale, al contrario, per i **10 tipi che un colore non lo
+prevedono affatto** (`provato:` conteggio su `tipi-lavoro.ts`, escludendo la riga 11 che è la definizione
+del tipo: **25** `'catalogo'` + **3** `'libero'` + **10** `'nessuno'` = **38**).
+➡️ **La sua sede naturale è l'ondata delle schermate**, che quel blocco lo elimina: se però quell'ondata tarda,
+si toglie prima con un intervento piccolo.
+
+**② L'ondata (b) è stata dichiarata chiusa avendo costruito una parte del suo perimetro.** Dentro c'erano
+(spec §2) il wizard adattivo sui 38 tipi, il passo paziente rifatto, la ricerca del paziente, i passi denti ·
+colore · foto · cassetta, le briciole, la bozza `v:2`, nome e cognome separati. In produzione è andato
+**l'album delle foto sulla scheda** — che al perimetro era stato *aggiunto* il 30/07 (D60) — più i due
+moduli-motore del wizard, **agganciati a nulla**. L'handoff del 02/08 dice «ondata (b) in produzione» senza
+distinguere; la ROADMAP dice ancora «in esecuzione, restano T12 e T13», che sono task **dell'album**.
+🔑 È la stessa classe di difetto della voce 57 e del ruolo `admin_sistema`: **un elenco che sembra completo e
+non lo è**. Le due righe sono state corrette con questa tornata.

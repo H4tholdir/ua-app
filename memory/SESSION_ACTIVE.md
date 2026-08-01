@@ -1,28 +1,26 @@
-# Sessione attiva — la DdC è stata guardata in produzione, e D42 è arrivata fino al piano
+# Sessione attiva — D121: il passo del wizard aspetta il wizard
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-tinte-manufatto-handoff.md`** — leggilo per intero.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-tinte-manufatto-handoff.md`** — la sua §0 ③ è **CHIUSA da
+D121**; restano aperte ① (eseguire il piano con R-E1) e ② (il §6-bis della DdC mai percorso in produzione).
 
-🔴 **La sua §0 va per prima, e sono tre cose.** ① **Il piano di D42 l'ho scritto io e l'ho riletto io:
-nessun altro l'ha guardato** — e l'ultima volta un piano riletto dal suo autore portava 8 difetti su 8 task,
-tre dei quali dentro il piano stesso. Si esegue con **R-E1**, un task a un esecutore fresco, con l'istruzione
-di cercare dove il piano sbaglia. ② **Il §6-bis della DdC non è stato percorso in produzione** (`norme_json`
-vuoto per quel tipo): costa un giro a parte con una riga di prova da rimettere. ③ **La domanda sul passo del
-wizard è senza risposta e blocca la parte 2** — sarà **D121**.
+🧭 **Decisa D121, zero righe di codice.** Il passo della tinta **esce da D42**: l'ondata chiude con **due
+superfici** (pagina di modifica + scheda in sola lettura); il passo nasce nell'ondata delle schermate del
+wizard, accanto a denti · colore · foto · cassetta. **D112 e D118 emendate per RINVIO.** Il piano
+`docs/superpowers/plans/2026-08-03-tinte-manufatto.md` non è più «parte 1»: è **D42 per intero**, 9 task.
 
-🚀 **Stato:** `main` = **`b7926c3f`**, allineato con origin, albero pulito, uachelab.com `200`.
-**Nessuna riga di codice toccata in tutta la sessione.**
-📌 **Riferimento misurato a chiusura:** `tsc` **0** · `vitest` **370 | 3** file e **4275 | 19** prove ·
-`next build` uscita **0**.
+🔑 **L'ha prodotta un'obiezione di Francesco** («*stiamo ragionando su com'è adesso, non su come l'abbiamo
+progettata*»): la spec dell'ondata (b) §4 dice che il blocco «Se vuoi, aggiungi» del passo paziente
+**sparisce**. Un panel 3× ha smontato la strada «anticipa il solo passo» (dots cablati a tre, `v:2` già
+prenotata dalla spec (b) §7, ~20 prove rotte).
 
-✅ **Chiuso:** la **§0 dell'handoff precedente** — DdC emessa da uachelab.com, scaricata, **guardata** e
-annullata in 26 secondi, **otto criteri su otto verdi** (referto `2026-08-03-ddc-produzione-referto.md`) ·
-le **undici voci aperte sulla DdC** trasferite in roadmap con i riferimenti riverificati · **D42** portata da
-zero a **piano scritto** (spec ratificata, mockup scelti, 9 task coi tre registri).
+🔴 **Due fatti nuovi:** ① la riga «Colore — es. A2» compare per tutti e **38** i tipi (25 col colore dentale
++ 3 con tinta + 10 senza) e per un paradenti il valore digitato viene **scartato dal server**
+(`PassoPaziente.tsx:91-98` · `crea-lavoro.ts:386`); ② **l'ondata (b) è
+chiusa a metà** — in produzione solo l'album foto, le schermate del wizard non sono partite. Roadmap voce 1
+corretta.
 
-🔴 **Aperto e pesante:** **il buono di consegna non si rigenera dopo un annullo** e il dialogo promette il
-contrario · la DdC cita **`Art. 2(1)(3)` MDR, che non esiste** · il **luogo di fabbricazione** non è mai
-stampato benché obbligatorio.
+➡️ **Prossimo passo:** Task 1 del piano, ramo `tinte-manufatto` **nel repo principale** (🛑 mai un worktree),
+R-E1 — un task a un esecutore fresco, istruito a cercare dove il piano sbaglia.
 
-📎 Verbale: **centoventi** decisioni in trentasette tornate (**D108-D120** oggi). La prossima è **D121**.
-⚠️ L'orologio della macchina dice **1° agosto**; i documenti seguono la serie del **3 agosto**. La
-dichiarazione emessa porta stampato **01/08/2026**: sul documento finisce l'orologio della macchina.
+📎 Verbale: tornata **38**, `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **centoventuno**
+decisioni. La prossima è **D122**.

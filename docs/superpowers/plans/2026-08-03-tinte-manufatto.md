@@ -1,4 +1,5 @@
-# D42 — Le tinte del manufatto · Piano di attuazione, PARTE 1
+# D42 — Le tinte del manufatto · Piano di attuazione
+### ~~PARTE 1~~ → **l'ondata per intero** (D121, 03/08/2026: il passo del wizard esce e va alla sua ondata)
 
 > **Per chi esegue:** SOTTO-SKILL RICHIESTA — `superpowers:subagent-driven-development` (consigliata) o
 > `superpowers:executing-plans`, **un task alla volta a un esecutore fresco (R-E1)**, con revisione
@@ -22,9 +23,19 @@ griglia di pastiglie, righe ad altezza fissa 60 (D119).
 
 ---
 
-## 🛑 PERCHÉ QUESTO PIANO È LA «PARTE 1», E LA PARTE 2 NON SI PUÒ ANCORA SCRIVERE
+## 🛑 PERCHÉ IL PASSO DEL WIZARD NON STA QUI — ✅ **DECISO da D121, 03/08/2026**
 
-La spec (D112 · D118) chiede **tre** superfici: il passo del wizard, la pagina di modifica, la scheda in
+> 🔄 **Questa sezione poneva una domanda. D121 le ha dato risposta: il passo del wizard NON si costruisce
+> in questa ondata**, né agganciando l'impalcatura né bullonando un quarto passo numerato. Nasce dentro
+> l'ondata che costruisce le schermate del wizard, accanto a denti · colore · foto · cassetta.
+> **Quindi questo piano è D42 per intero, non «la parte 1»**, e non esiste una parte 2 da scrivere dopo.
+> Verbale: tornata **38** · spec §5, emendata per rinvio.
+> 🔑 **Il fatto che ha chiuso la domanda** (obiezione di Francesco, verificata sul documento): la spec
+> ratificata dell'ondata (b) §4 dice «*il blocco "Se vuoi, aggiungi" sparisce: elemento e colore diventano
+> passi propri, la foto diventa il passo di D8*». Le tre righe facoltative di oggi sono **già condannate
+> dal progetto**: qualunque scorciatoia costruita dentro di loro andrebbe demolita con loro.
+
+La spec (D112 · D118) chiedeva **tre** superfici: il passo del wizard, la pagina di modifica, la scheda in
 sola lettura. **Le ultime due stanno qui. Il passo del wizard no**, e non per pigrizia:
 
 `provato:` `grep -rn "sequenzaPassi\|SEQUENZA_CANONICA\|NomePasso\|passoSuccessivo\|passoPrecedente" src/ | grep -v "src/lib/wizard/"` → **nessun riscontro.**
@@ -38,11 +49,16 @@ la usano solo i suoi test. Il wizard vero è ancora a **tre passi numerati** e s
 **Quindi aggiungere «il passo della tinta» non è aggiungere un passo:** o si aggancia l'impalcatura
 adattiva alla shell — che è il lavoro rimasto aperto dell'ondata (b), tocca la bozza salvata a 24 ore e va
 in `v: 2` — oppure si bulloni un quarto passo numerato al modello vecchio, che poi andrà disfatto.
-**È una decisione, e spetta a Francesco.** Sta come domanda aperta in coda a questo piano (§Domande).
+~~**È una decisione, e spetta a Francesco.**~~ ✅ **Presa: D121 — nessuna delle due, il passo va alla sua
+ondata.** ⚠️ E il `v: 2` di quella riga sopra **è un'etichetta già prenotata**: la spec dell'ondata (b) §7
+la assegna a un altro contenuto (`cognome`, `nome`, `pazienteIdScelto`, `denti`, `colori`). Chi costruirà
+quel passo ne usi un'altra, o due bozze diverse si scambieranno per la stessa —
+`persistenza.ts:69` è l'unica guardia di forma e guarda **solo** il numero di versione.
 
-✅ **Questa parte 1 è software funzionante da sola:** dopo l'ultimo task una tinta si registra, si vede, si
-corregge, sopravvive a un rifacimento e non può essere sbagliata. Il wizard la aggiungerà alla creazione;
-oggi la si mette dalla scheda, che è il posto che la direttiva del 27/07 rende comunque obbligatorio.
+✅ **Questo piano è software funzionante da sé:** dopo l'ultimo task una tinta si registra, si vede, si
+corregge, sopravvive a un rifacimento e non può essere sbagliata. Il wizard la aggiungerà alla creazione
+quando arriverà la sua ondata; oggi la si mette dalla scheda, che è il posto che la direttiva del 27/07
+rende comunque obbligatorio.
 
 ---
 
@@ -1035,9 +1051,16 @@ l'avviso compaia e la tinta sia sparita**. 390 · 768 · 1280, chiaro e scuro.
 
 ## Domande aperte — dichiarate, non nascoste
 
-1. 🔴 **Il passo del wizard (parte 2): si aggancia l'impalcatura adattiva o si bullona un quarto passo
-   numerato?** Il primo è il lavoro rimasto aperto dell'ondata (b), tocca la bozza salvata a 24 ore e la
-   porta a `v: 2`; il secondo va disfatto dopo. **Decisione di Francesco, prima di scrivere la parte 2.**
+1. ✅ **CHIUSA da D121 (03/08/2026) — «il passo del wizard aspetta il wizard».** ~~Il passo del wizard
+   (parte 2): si aggancia l'impalcatura adattiva o si bullona un quarto passo numerato?~~ **Nessuna delle
+   due: la parte 2 non si scrive.** Il passo della tinta nasce dentro l'ondata che costruisce le schermate
+   del wizard, accanto a denti · colore · foto · cassetta. **Questo piano è D42 per intero**, non più «la
+   parte 1». Verbale: tornata **38**; spec §5, emendata.
+   🔑 **Perché:** la spec dell'ondata (b) §4 elimina il blocco «Se vuoi, aggiungi» del passo paziente
+   (elemento e colore **diventano passi propri**), quindi ogni scorciatoia dentro quel blocco arreda una
+   stanza condannata; e agganciare la macchina «solo un po'» costa comunque pallini a numero variabile,
+   bozza a versione nuova — con un'etichetta **diversa da `v:2`, già prenotata** dalla spec (b) §7 —,
+   testi della ripresa riscritti e il punto in cui nasce il lavoro spostato **due volte**.
 2. 🟡 **La scheda: riga muta o riga che porta alla modifica?** `RigaLavoroDenti` usa già il secondo
    pattern. Il Task 7 la fa **muta** come dice la spec; se in collaudo risulta frustrante, è un
    emendamento di una riga.
