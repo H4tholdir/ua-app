@@ -39,7 +39,7 @@ codifica giusta. Il gate non blocca più niente.
 | 5 | `DdcTemplate.tsx:486` | `§7 — Dichiarazione di Conformita` | `…Conformità` |
 | 6 | `DdcTemplate.tsx:514` | `Responsabile della Conformita (PRRC)` | `…Conformità (PRRC)` |
 | 7 | `src/components/features/pdf/NominaPrrcTemplate.tsx:341` | `Responsabilita ai sensi dell'Art. 15(1)` | `Responsabilità…` |
-| 8 | `src/lib/pdf/generate-ddc.ts:119` | frase congelata: `…dispositivo e' conforme…` | `…dispositivo è conforme…` |
+| 8 | `src/lib/pdf/generate-ddc.ts:132` | frase congelata: `…dispositivo e' conforme…` | `…dispositivo è conforme…` |
 | 9 | `supabase/migrations/002_fase2_schema.sql:188-189` | **DEFAULT della colonna** `testo_conformita_snapshot`: seconda copia della frase con `e'` | allineato da una **migration nuova** |
 | 10 | `DdcTemplate.tsx` (§1 a `:345`) | la numerazione salta: `§1 → §3` | compare **`§2 — Data di emissione`** |
 
@@ -136,7 +136,7 @@ entra qui: ognuna è una voce propria.
 
 | | ritrovamento | dove |
 |---|---|---|
-| ① | La frase del §7 dice il dispositivo conforme «**e ai disposti dell'Allegato XIII**»: quello è una **procedura che il fabbricante segue** (Art. 52(8)), non un requisito a cui un dispositivo è conforme. Il trattino 7 chiede la conformità ai soli RGSP dell'Allegato I. ⚠️ `supabase/seed.sql:198` porta una versione **migliore e già accentata** («…dichiara **sotto la propria responsabilità**…», senza la clausola): la stringa in uso è una **regressione**, non una scelta | `generate-ddc.ts:119` |
+| ① | La frase del §7 dice il dispositivo conforme «**e ai disposti dell'Allegato XIII**»: quello è una **procedura che il fabbricante segue** (Art. 52(8)), non un requisito a cui un dispositivo è conforme. Il trattino 7 chiede la conformità ai soli RGSP dell'Allegato I. ⚠️ `supabase/seed.sql:198` porta una versione **migliore e già accentata** («…dichiara **sotto la propria responsabilità**…», senza la clausola): la stringa in uso è una **regressione**, non una scelta | `generate-ddc.ts:132` |
 | ② | **Il luogo di fabbricazione non è mai stampato**, ed è il **trattino 1**, obbligatorio: la colonna esiste (`schema.sql:1242`, default `'Italia'`) e non arriva sul foglio | `DdcTemplate.tsx` §1 |
 | ③ | Il foglio **afferma «Sostanze / tessuti: No»** con un valore **codificato a mano** (`contiene_sostanze_o_tessuti: false`), mai raccolto né verificato. Il trattino 8 è condizionale: l'indicazione serve **solo se vero**. Una negazione affermata è surplus volontario, e su materiali di origine animale (Reg. UE 722/2012) è un falso negativo | `generate-ddc.ts:144` |
 | ④ | **L'identificazione del paziente può svanire**: la catena termina in `?? ''`, la colonna è `NOT NULL` quindi `''` passa, e il template rende `—`. Un foglio che dichiara «esclusivamente per il paziente indicato» **senza indicare il paziente** viola il trattino 4 | `generate-ddc.ts:137` · `DdcTemplate.tsx:265-268` |

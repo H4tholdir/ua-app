@@ -69,7 +69,7 @@ L'elenco **non** è deciso dall'autore: viene dal censimento sotto.
 | `§7 — Dichiarazione di Conformita` | `:486` | Task 2 |
 | `Responsabile della Conformita (PRRC)` | `:514` | Task 2 |
 | `Responsabilita ai sensi dell'Art. 15(1)…` | `NominaPrrcTemplate.tsx:341` | Task 5 |
-| `testoConformita` (`…e' conforme…`) | `generate-ddc.ts:119` | Task 3 |
+| `testoConformita` (`…e' conforme…`) | `generate-ddc.ts:132` | Task 3 |
 | DEFAULT di `testo_conformita_snapshot` | `002_fase2_schema.sql:188-189` | Task 6 (migration nuova) |
 | `VERSIONE_TEMPLATE_DDC` | `generate-ddc.ts:41` | Task 1 — **resta `'ddc-v1'`**, cambia il commento |
 | commento `-- Es. "ddc-v1.2.0"` | `supabase/schema.sql:1249` | Task 1 |
@@ -194,7 +194,12 @@ In `tests/unit/ddc-pdf-content.test.ts`, sostituisci il test a riga 109-112 con:
     // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
     // tornata silenziosa in entrambe le direzioni.
     expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
-    expect(pdfText).not.toContain('DICHIARAZIONE DI CONFORMITA ')
+    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: «CONFORMITA» senza
+    //    accento non è sottostringa di «CONFORMITÀ» (À ≠ A), quindi questa riga
+    //    si accende su qualunque occorrenza rimasta — comprese quelle che le
+    //    asserzioni puntuali non guardano.
+    expect(pdfText).not.toContain('CONFORMITA')
+    expect(pdfText).not.toContain('Conformita')
   })
 
   it('l\'etichetta della firma porta l\'accento', () => {
@@ -202,7 +207,12 @@ In `tests/unit/ddc-pdf-content.test.ts`, sostituisci il test a riga 109-112 con:
   })
 
   it('il titolo del §7 porta l\'accento', () => {
-    expect(pdfText).toContain('§7 — Dichiarazione di Conformità')
+    // ⚠️ CORRETTO IN CORSA (difetto del piano, trovato dall'esecutore del Task 2):
+    //    `styles.sectionTitle` (DdcTemplate.tsx:86) ha `textTransform:'uppercase'`,
+    //    quindi il foglio stampa il §7 in MAIUSCOLO. L'etichetta della firma no
+    //    (`firmaLabel` non ha uppercase): le due asserzioni hanno forme diverse
+    //    perché i due stili sono diversi, non per distrazione.
+    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
   })
 ```
 
@@ -286,7 +296,7 @@ Messaggio: `fix(ddc): gli accenti nel documento — e il test smette di fissare 
 ## Task 3 — La frase congelata: solo i segni, il resto byte per byte
 
 **Files:**
-- Modify: `src/lib/pdf/generate-ddc.ts:119`
+- Modify: `src/lib/pdf/generate-ddc.ts:132`
 - Modify: `tests/unit/ddc-pdf-content.test.ts:68-69` (fixture)
 
 **Interfaces:** nessuna. `testoConformita` resta una costante locale di `generateDdC`.
@@ -315,7 +325,7 @@ Atteso: **rosso**, con il testo attuale (`e' conforme`) nel messaggio.
 
 - [ ] **Step 3: cambia UN SOLO carattere**
 
-In `src/lib/pdf/generate-ddc.ts:119`:
+In `src/lib/pdf/generate-ddc.ts:132`:
 
 ```ts
   const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
@@ -376,7 +386,11 @@ Messaggio: `fix(ddc): «è conforme» nella frase congelata — un solo caratter
     // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
     // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
     // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
-    expect(pdfText).toContain('§2 — Data di emissione')
+    // ⚠️ MAIUSCOLO, come ogni titolo di sezione: `styles.sectionTitle` ha
+    //    `textTransform:'uppercase'`. È il TERZO punto del piano caduto sullo
+    //    stesso scoglio (dopo il §7): quando il piano cita un titolo di sezione,
+    //    la forma attesa nel testo estratto è sempre quella maiuscola.
+    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
     expect(pdfText).toContain('15/05/2026')     // data della fixture
   })
 ```

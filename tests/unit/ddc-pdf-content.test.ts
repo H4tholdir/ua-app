@@ -66,7 +66,7 @@ const DDC_FIXTURE: DichiarazioneConformita = {
   norma_riferimento: null,
   // §7 Conformità
   testo_conformita_snapshot:
-    "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
+    "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
   // §8 PRRC
   prrc_nome: 'Filippo Opromolla',
   prrc_qualifica: 'Odontotecnico abilitato',
@@ -106,9 +106,36 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(buffer.length).toBeGreaterThan(1024)
   })
 
-  it('titolo contiene "dichiarazione di conformita" (case-insensitive)', () => {
-    // textTransform: 'uppercase' — react-pdf rende le lettere maiuscole nel PDF
-    expect(pdfText.toLowerCase()).toContain('dichiarazione di conformita')
+  it('il titolo porta l\'accento: «DICHIARAZIONE DI CONFORMITÀ»', () => {
+    // textTransform:'uppercase' — react-pdf rende le maiuscole nel PDF, À compresa
+    // (provato: scripts/tmp/sonda-accenti.tsx). Questo test PRETENDE l'accento:
+    // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
+    // tornata silenziosa in entrambe le direzioni.
+    expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
+    // 🛑 Nessun refuso residuo nei punti che questa fixture RENDE: la rete si
+    //    accende su qualunque occorrenza rimasta lì, comprese quelle che le
+    //    asserzioni puntuali non guardano (provato per mutazione su due punti
+    //    diversi, §7 e etichetta della firma).
+    // ⚠️ Il limite, scritto perché nessuno legga più di quanto la prova misuri:
+    //    `pdfText` nasce da DDC_FIXTURE, che lascia a `null` norme_json,
+    //    rischi_residui_snapshot, firma_ddc_storage_path e le righe di
+    //    prescrizione — quindi §6-bis, §8 e quei blocchi NON sono renderizzati, e
+    //    un refuso che vivesse lì dentro questa rete non lo vedrebbe. Oggi non ce
+    //    n'è (verificato), ma la rete copre il foglio reso, non «il foglio».
+    expect(pdfText).not.toContain('CONFORMITA')
+    expect(pdfText).not.toContain('Conformita')
+  })
+
+  it('l\'etichetta della firma porta l\'accento', () => {
+    // styles.firmaLabel NON ha textTransform: 'uppercase' (a differenza di
+    // styles.sectionTitle) — qui la forma attesa resta mista.
+    expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
+  })
+
+  it('il titolo del §7 porta l\'accento', () => {
+    // styles.sectionTitle ha textTransform: 'uppercase' (DdcTemplate.tsx:86) —
+    // il §7, come ogni titolo di sezione, esce in maiuscolo nel PDF.
+    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
   })
 
   // ── §1 Fabbricante ────────────────────────────────────────────────────────
@@ -160,6 +187,29 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
 
   it('§2 stampa data di emissione formattata (dd/mm/yyyy)', () => {
     expect(pdfText).toContain('15/05/2026')
+  })
+
+  it('il §2 — Data di emissione esiste e porta la data', () => {
+    // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
+    // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
+    // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
+    // ⚠️ Il brief del task proponeva questa stringa in maiuscole/minuscole miste,
+    // ma styles.sectionTitle ha textTransform: 'uppercase' (come per ogni altra
+    // sezione, es. il §7 alla riga 138) — il titolo esce in maiuscolo nel PDF.
+    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
+
+    // Rilievo di revisione: un semplice toContain('15/05/2026') non
+    // discrimina niente qui — la data compare comunque nel blocco firma
+    // (DdcTemplate.tsx:515-518), quindi svuotare il valore della sola sezione §2
+    // (formatData(ddc.data_emissione) → '—', titoletto intatto) lasciava questo
+    // test verde. La prova vera è il CONTEGGIO delle occorrenze nel foglio: la
+    // data deve comparire esattamente due volte — una nella sezione §2
+    // (DdcTemplate.tsx:381) e una sopra la firma (DdcTemplate.tsx:517). Così il
+    // test si accende in entrambe le direzioni: se la §2 perde il valore →
+    // 1 occorrenza (rosso); se la data tornasse anche in intestazione (disfacendo
+    // il passo dello Step 4 che l'ha tolta da lì) → 3 occorrenze (rosso).
+    const occorrenzeData = pdfText.split('15/05/2026').length - 1
+    expect(occorrenzeData).toBe(2)
   })
 
   // ── §3 Prescrittore ───────────────────────────────────────────────────────
@@ -352,4 +402,58 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
       expect(result.text.toLowerCase()).not.toContain('denti coinvolti')
     })
   })
+})
+
+describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 03/08/2026)', () => {
+  it('rende «Sì» con l\'accento quando il dispositivo contiene sostanze o tessuti', async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: { ...DDC_FIXTURE, contiene_sostanze_o_tessuti: true, sostanze_tessuti_dettaglio: null },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    expect(result.text).toContain('Sì — vedere documentazione allegata')
+  }, 30_000)
+})
+
+describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova guardava', () => {
+  // 🔑 Perché questo blocco esiste, ed è la lezione che l'ha generato: la revisione
+  //    finale del ramo ha rimesso a mano il refuso in `title` e `subject`
+  //    (DdcTemplate.tsx:292,294) e la suite ha risposto **40/40 verdi**. Il motivo è
+  //    strutturale: `pdfText` nasce da `PDFParse.getText()`, che legge il CONTENUTO
+  //    della pagina, mentre quei due campi vivono nel dizionario `/Info` del file —
+  //    dove nessuna asserzione del progetto guardava. Sono i due punti che un lettore
+  //    PDF mostra nella barra della finestra di un documento conservato dieci anni.
+  // 🛑 I metadati sono scritti in UTF-16BE con BOM (provato: scripts/tmp/sonda-metadati.tsx),
+  //    quindi si cercano nei BYTE, non nel testo estratto: ogni carattere latino
+  //    diventa `\x00` + il carattere. È anche la prova che quella codifica regge
+  //    l'accento — il gate che il panel aveva posto prima di autorizzare la correzione.
+  const utf16be = (s: string) => [...s].map((c) => '\x00' + c).join('')
+
+  it('title e subject portano l\'accento, e sono in UTF-16BE', async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: DDC_FIXTURE,
+    })
+    const buffer = await renderPdfDocument(element)
+    const grezzo = buffer.toString('latin1')
+
+    // 🛑 Le stringhe INTERE, non il tronco comune ai due campi: col solo
+    //    «Dichiarazione di Conformità» il test resta verde anche guastando UNO dei
+    //    due, perché l'altro lo soddisfa. Misurato: la prima stesura di questa
+    //    prova non si accendeva sulla mutazione del `title`.
+    expect(grezzo).toContain(utf16be('Dichiarazione di Conformità DDC-2026-0001')) // title
+    expect(grezzo).toContain(utf16be('Dichiarazione di Conformità MDR 2017/745')) // subject
+    // 🔑 E il refuso si cerca in CODIFICA SEMPLICE, non in UTF-16BE — è il fatto
+    //    che rendeva cieca la prima stesura: lo strato PDF passa a UTF-16BE **solo**
+    //    quando la stringa ha un carattere non-ASCII. Senza accento quei campi
+    //    tornano a un byte per carattere, e una ricerca in UTF-16BE non li vede.
+    expect(grezzo).not.toContain('Dichiarazione di Conformita')
+    // il segnaposto di codifica: senza, un lettore mostrerebbe «ConformitÃ»
+    expect(grezzo).toContain('\xfe\xff')
+  }, 30_000)
 })

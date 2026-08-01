@@ -186,16 +186,37 @@ describe('generateDdC', () => {
 
 describe('D102 ① — le due firme del documento, che non erano MAI state scritte', () => {
   // 🛑 IL FATTO: `template_version` e `payload_sha256` esistono in
-  //    `supabase/schema.sql` dal primo giorno e NESSUNO le ha mai valorizzate —
-  //    ogni DdC mai emessa le ha `NULL`. Sono le due colonne che, fra dieci anni
-  //    (quindici per gli impiantabili), dicono «questo PDF è quello di allora e
-  //    nasce da QUESTI dati». Una colonna dichiarata come prova e mai scritta è
-  //    la stessa classe di difetto della guardia dichiarata come rete e mai
-  //    agganciata (CLAUDE.md §9, 28/07).
+  //    `supabase/schema.sql` dal primo giorno e per anni NESSUNO le ha
+  //    valorizzate. ⚠️ Non è più vero per OGNI riga in archivio: verificato
+  //    con una query di sola lettura sul DB live (non solo riletto dal
+  //    referto), su 4 dichiarazioni presenti in `dichiarazioni_conformita`
+  //    una sola porta `template_version = 'ddc-v1'` (e `payload_sha256`
+  //    valorizzato) — è la DdC emessa e subito annullata durante il collaudo
+  //    dal vivo del 03/08/2026, le altre tre (tutte antecedenti) restano
+  //    NULL (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
+  //    CLAUDE.md §9 «Collaudo dal vivo»). Sono le due colonne che, fra dieci
+  //    anni (quindici per gli impiantabili), dicono «questo PDF è quello di
+  //    allora e nasce da QUESTI dati». Una colonna dichiarata come prova e
+  //    mai scritta è la stessa classe di difetto della guardia dichiarata
+  //    come rete e mai agganciata (CLAUDE.md §9, 28/07).
   // 🔑 `pdf_sha256` c'era già e NON basta: è l'impronta del FILE. Prova che il
   //    byte non è stato toccato, non da quali dati sia nato. Le due domande sono
   //    diverse e servono due impronte.
   beforeEach(() => {
+    // Questo describe è FRATELLO di `describe('generateDdC', …)` sopra, non
+    // figlio: il `beforeEach` di quel blocco (che fa `vi.clearAllMocks()` +
+    // rimette le resolved value di default) non gira per i test qui dentro.
+    // Senza pulizia esplicita, `mockInsert.mock.calls[0]` in corsa piena è
+    // una riga residua di un test eseguito prima (misurato: 2-3 chiamate
+    // accumulate al momento dell'asserzione) — e in isolamento (`vitest -t`)
+    // mancano anche le resolved value di upload/insert/getPublicUrl/progressivo,
+    // mai impostate da nessun beforeEach: `generateDdC` esplode con TypeError
+    // su `generate-ddc.ts:184` (destructuring di un mock non risolto).
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
     mockTables(LAB_FIXTURE)
   })
 
@@ -204,6 +225,16 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     const riga = mockInsert.mock.calls[0][0]
     expect(riga.template_version).toBeTruthy()
     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('template_version resta `ddc-v1` — il salto è riservato a un cambiamento di SOSTANZA (D105)', async () => {
+    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:202`) chiede solo
+    // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
+    // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
+    // costante gli dice quando è lecito farlo.
+    await generateDdC(LAVORO_FIXTURE)
+    const riga = mockInsert.mock.calls[0][0]
+    expect(riga.template_version).toBe('ddc-v1')
   })
 
   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
@@ -280,6 +311,15 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
   it('`norma_riferimento` resta comunque FUORI dalle colonne dell\'insert (non esiste in tabella)', async () => {
     await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
     expect(mockInsert.mock.calls[0][0]).not.toHaveProperty('norma_riferimento')
+  })
+
+  it('il testo di conformità porta «è conforme», non «e\' conforme»', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    const riga = mockInsert.mock.calls[0][0]
+    expect(riga.testo_conformita).toContain('dispositivo è conforme')
+    expect(riga.testo_conformita).not.toContain("dispositivo e' conforme")
+    // le due colonne ricevono lo stesso letterale (generate-ddc.ts:160-161)
+    expect(riga.testo_conformita_snapshot).toBe(riga.testo_conformita)
   })
 })
 

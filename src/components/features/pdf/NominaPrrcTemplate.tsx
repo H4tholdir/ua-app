@@ -338,7 +338,7 @@ export function NominaPrrcTemplate({ lab, nominaPrrc }: NominaPrrcTemplateProps)
 
         {/* ── RESPONSABILITA ART. 15(1) ── */}
         <Text style={styles.sectionTitle}>
-          Responsabilita ai sensi dell&apos;Art. 15(1) MDR 2017/745
+          Responsabilità ai sensi dell&apos;Art. 15(1) MDR 2017/745
         </Text>
 
         {RESPONSABILITA_ART15.map((item) => (
