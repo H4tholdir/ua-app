@@ -29,6 +29,16 @@ const FIXTURE_FISSA = {
     codice_fiscale: null, indirizzo: 'Via Due 2', cap: '84121', citta: 'Salerno', provincia: 'SA',
   },
   numero_dpa: 'DPA-0000-FISSO',
+  // ⚠️ Mezzanotte UTC del 1° gennaio è l'istante PIÙ esposto a un cambio di fuso,
+  //    e per un po' questa prova è stata rossa fuori dall'Europa: `TZ=America/New_York`
+  //    rendeva «31 dicembre 2025» invece di «1 gennaio 2026» — testo diverso,
+  //    impronta diversa, senza che il template fosse cambiato.
+  //    🔑 Si è tenuta la data com'era e si è corretta la CAUSA: `DpaTemplate.tsx`
+  //    ora dichiara `timeZone: 'Europe/Rome'`. Nessun istante rende lo stesso
+  //    giorno in tutti i fusi — l'arco è di 26 ore — quindi spostare l'ora non
+  //    era una soluzione, era una speranza.
+  //    `provato:` verde in Europe/Rome · America/New_York · Pacific/Kiritimati
+  //    (UTC+14) · Pacific/Midway (UTC-11) · UTC.
   data_emissione: '2026-01-01T00:00:00.000Z',
 }
 

@@ -92,7 +92,20 @@ export function DpaTemplate({ dpa }: Props) {
   const { lab, cliente } = dpa
   const labNome = lab.ragione_sociale ?? lab.nome
   const clienteNome = cliente.studio_nome ?? `${cliente.nome} ${cliente.cognome}`.trim()
-  const data = new Date(dpa.data_emissione).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+  // 🛑 `timeZone: 'Europe/Rome'` NON è pignoleria: senza, la data stampata è
+  //    quella del fuso della MACCHINA. In produzione il server gira a UTC, e un
+  //    contratto emesso alle 00:30 di Roma stamperebbe il giorno PRIMA — mentre
+  //    il suo numero porta l'anno civile italiano, che passa già da annoRoma()
+  //    (`src/lib/utils/data-roma.ts`, fix date-fiscali del 20/07/2026).
+  //    `provato:` 2026-03-10T23:30:00Z → «10 marzo 2026» a UTC, «11 marzo 2026»
+  //    a Roma. E in prova, senza fuso dichiarato, l'impronta del testo cambia
+  //    da macchina a macchina.
+  //    ⚠️ Lo stesso difetto vive in altri DIECI punti, in sette modelli PDF
+  //    (DdC compresa): roadmap, voce P9. Qui è corretto perché è il documento di
+  //    questa ondata — gli altri NON si toccano di sfuggita (R-E2).
+  const data = new Date(dpa.data_emissione).toLocaleDateString('it-IT', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome',
+  })
 
   return (
     <Document title={`DPA-${dpa.numero_dpa}`} author={labNome}>

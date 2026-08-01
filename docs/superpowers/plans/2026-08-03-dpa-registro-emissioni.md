@@ -763,7 +763,9 @@ describe('la versione del modello DPA', () => {
 npx vitest run tests/unit/dpa-modello.test.ts
 ```
 
-Atteso: **FAIL** — «Failed to resolve import "@/lib/pdf/dpa-modello"».
+Atteso: **FAIL** perché il modulo non c'è. ⚠️ **Il messaggio esatto dipende dalla versione di vitest**
+(con la 4.1.6 è «*Cannot find package*», non «*Failed to resolve import*»): si guarda che sia **rosso per
+assenza del modulo**, non si confronta la frase.
 🛑 **R-P4: questo rosso NON prova nulla.** Si prosegue con l'abbozzo inerte dello Step 3 e si **CONTA**.
 
 - [ ] **Step 3: abbozzo inerte e conteggio delle asserzioni**
@@ -789,11 +791,13 @@ proposito). Le forme d'input vere — campi nulli, stringhe vuote — sono coper
 
 Si calcola l'impronta **una volta** con lo stesso codice della prova e la si incolla:
 
-```bash
-npx tsx -e "
-import('./scripts/tmp/impronta-testo-dpa.ts')
-" # oppure si legge il valore dal messaggio di fallimento della prova ('expected X to be Y')
-```
+🔄 **CORRETTO il 03/08:** il piano rimandava a uno script dentro `scripts/tmp/` **che nessuno ha mai
+scritto** — un comando che sembrava eseguibile e non lo era. Il modo che funziona davvero, provato: si
+scrive una prova **usa-e-getta** che rende il modello con la **stessa** fixture e **SCRIVE l'impronta su un
+file** (`writeFileSync`), la si esegue e la si cancella subito.
+🛑 **Non basta leggerla dal messaggio di fallimento:** vitest **tronca** il valore a 38 caratteri
+(`expected '9bed6991…' to be '8d98dbee…'`), e un'impronta troncata incollata nel sorgente è un guasto
+silenzioso.
 
 ```typescript
 // src/lib/pdf/dpa-modello.ts
