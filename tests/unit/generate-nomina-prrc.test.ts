@@ -47,7 +47,11 @@ describe('generateNominaPrrc', () => {
     // il titolo, come ogni titolo di sezione in questo template, esce in maiuscolo
     // nel PDF: verificato leggendo lo stile prima di scrivere l'asserzione (vedi
     // anche DdcTemplate/ddc-pdf-content.test.ts, stesso comportamento provato lì).
-    expect(result.text).toContain('RESPONSABILITÀ AI SENSI')
+    // Il titolo INTERO, non il solo inizio: costa uguale e chiude in una riga
+    // tre cose invece di una — l'accento, il numero d'articolo, e il fatto che
+    // l'apostrofo di `dell&apos;Art.` sia sopravvissuto alla resa (che è la sola
+    // prova di quell'apostrofo in tutto il progetto).
+    expect(result.text).toContain("RESPONSABILITÀ AI SENSI DELL'ART. 15(1) MDR 2017/745")
     // Stem nudo, non solo la frase intera — stessa rete di ddc-pdf-content.test.ts
     // (righe 125-126): si accende su qualunque residuo non accentato nel foglio
     // reso, non solo su quello che l'asserzione positiva già copre.
