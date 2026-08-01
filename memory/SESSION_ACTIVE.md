@@ -1,33 +1,28 @@
-# Sessione attiva — registro DPA ondata 1: IN PRODUZIONE e collaudata, ma un cancello è saltato
+# Sessione attiva — il cancello saltato, percorso a valle
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-04-dpa-registro-chiusura-handoff.md`** — leggilo per intero.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-04-dpa-registro-chiusura-handoff.md`** — resta il documento
+maestro. La sua voce 🔴 1 è **chiusa** da questa sessione (v. sotto); la 🔴 2 è la prossima cosa.
 
-🔴 **La sua §0 va per prima, e sono sette cose. La più grave è mia:** ho **pubblicato saltando la FASE 9b**,
-il gate estetico L2, che le REGOLE ZERO dichiarano **obbligatorio prima di ogni merge con UI**.
-`provato:` il piano non l'ha **mai** prevista (`grep` → 1 hit, ed è un frammento di impronta) e
-`docs/design/screenshots/` **non ha nessuna cartella** di questa ondata. 🔑 **È il nono difetto di piano, e
-l'unico che nessun esecutore e nessun revisore ha visto** — perché la fase finale **non era di nessuno**.
-Poi: gli **scatti non sono su disco** · il **panel su D128** (Art. 28(9) alla fonte) non è stato fatto **e
-adesso blocca** · **due decisioni restano aperte** (il soft-delete che precede la riemissione, **P10**; i
-permessi di `admin_sistema`, **P12**) · restano **D42**, il **§6-bis**, **AUD-1/3/4/5** e il **round 2**
-(120 decisioni non verificate).
+✅ **FATTO: il GATE ESTETICO L2 (FASE 9b) sulla superficie DPA**, la voce 🔴 1 dell'handoff del 4 agosto.
+Referto: `docs/design/audit-ui-ux/LIVELLO-2-2026-08-04-dpa-scheda-cliente-ESITI.md` · scatti e misure:
+`docs/design/screenshots/2026-08-04-dpa-scheda-cliente/` (**45 file**). 12 sezioni × 2 stati ×
+390·768·1280 × chiaro·scuro. 🛑 Il referto dichiara in testa di essere un **RIMEDIO**, non un cancello
+che ha retto. **Esito ✅ 7 · ⚠️ 2 · ❌ 2**, nessuno corretto di sfuggita (R-E2).
 
-✅ **In produzione dal 04/08** (merge `35172e70`, **41 commit**), e **COLLAUDATA DAL VIVO**: due scarichi in
-**sequenza** → stesso `DPA-2026-0001`, byte identici (riuso, nessun numero bruciato); due richieste **IN
-PARALLELO** su uno studio mai emesso → **UNA sola riga**, `DPA-2026-0002`. Registro: 2 righe, 2 dentisti,
-contatore a 2. 🔑 È la prova che esisteva **solo contro mock** — prima, quella corsa dava **due contratti
-identici con due numeri bruciati, in silenzio**.
+🔑 **Il modello che mancava:** checklist v3 su pagina legacy v2.3 → tre criteri **N/A con la ragione
+scritta accanto** (segnarli ❌ farebbe violare la migrazione per-route), gli altri nove a peso pieno,
+**contrasto compreso**.
 
-📌 **Riferimento misurato a chiusura:** `tsc` **0** · `vitest` **375 | 3** file e **4380 | 19** prove ·
-`next build` **0** · guardia verde. `main` = **`af81961b`**, albero pulito, **0 da pubblicare**.
+🔴 **DECISIONE APERTA, in attesa di Francesco — sarà D134: P16.** Le righe illeggibili in scuro sono
+**DUE**, non una, e il difetto è del **listino dei testi scuri di tutta la parte legacy** (143 usi in
+143 file). **(A)** allineare i token a quelli v3 già corretti — *vuole il suo panel* · **(B) esclusa
+dalle misure** · **(C)** deferire. Dettaglio: referto §2.
 
-🔑 **LA LEZIONE:** *la fonte di un fatto è **lo strato in cui il codice lo legge**.* Sbagliata **quattro
-volte** in un giorno: `schema.sql` invece di `pg_proc` · il **corpo HTTP** invece dell'**oggetto JavaScript**
-· un vincolo letto **al rovescio** · l'**`etag`** invece di `gh run list`.
+🆕 **Aperte:** **P17** (lo scarico che fallisce mostra `{"error":"…"}`, zero elementi interattivi) ·
+**P18** (idratazione disallineata su `PortaleLinkButtons`, fa divergere il link mandato al dentista).
 
-⚠️ **Trappole pagate oggi:** il rilascio sono **DUE fasi, ~11 minuti** (non «~5») · il **service worker serve
-pagine in cache anche in produzione** · **non sondare la produzione con `curl` in ciclo**, dopo ~40 richieste
-Vercel accende la sfida anti-bot e tutto dà **403**.
+⏭️ **PROSSIMO: il panel normativo su D128** — Art. 28(9) GDPR letto **alla fonte** (EUR-Lex, testo
+consolidato, versione italiana), **poi** il panel. È il cancello d'ingresso dell'ondata 2.
 
-📎 Verbale: **centotrentatré** decisioni in **quarantacinque** tornate; la prossima è **D134**.
-⚠️ L'orologio della macchina dice **2 agosto**; i documenti seguono la serie del **4 agosto**.
+📌 `main` = `7d6ee54c` a inizio gate, albero pulito. Verbale: **133** decisioni, la prossima è **D134**.
+⚠️ L'orologio della macchina dice 2 agosto; i documenti seguono la serie del **4 agosto**.

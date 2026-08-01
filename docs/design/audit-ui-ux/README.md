@@ -39,6 +39,7 @@ L'audit atomico e capillare dell'**intera** PWA: ogni pagina, ogni elemento, ogn
 |------|-----------|---------------|
 | [`LIVELLO-1-scheda-v3.md`](./LIVELLO-1-scheda-v3.md) | Task immediata: micro-pass estetico della scheda v3 | Prossima sessione (contesto pulito) |
 | [`CHECKLIST-DS-V3-UI-UX.md`](./CHECKLIST-DS-V3-UI-UX.md) | Checklist atomica riutilizzabile (conformità DS v3) | Livello 1, 2 e 3 |
+| [`LIVELLO-2-2026-08-04-dpa-scheda-cliente-ESITI.md`](./LIVELLO-2-2026-08-04-dpa-scheda-cliente-ESITI.md) | **Primo gate L2 eseguito** — superficie DPA della scheda cliente. 🔴 **È un RIMEDIO: la superficie era già stata unita e pubblicata senza il gate.** Contiene il modello di come si applica una checklist v3 a una **pagina legacy v2.3** (§0: tre criteri N/A **con la loro ragione**, gli altri nove a peso pieno) | Modello per ogni gate L2 successivo, e ogni volta che un'ondata tocca una route non ancora migrata |
 | [`LIVELLO-3-audit-capillare-finale.md`](./LIVELLO-3-audit-capillare-finale.md) | Framework dell'audit capillare finale | Quando v3 è ovunque |
 
 ---
