@@ -97,11 +97,15 @@ p.dida{margin:4px 0 14px; font-size:13.5px; color:var(--muted); line-height:1.4}
 }
 
 /* ══ VARIANTE A — griglia di pastiglie ══════════════════════════════════ */
-.grigliaA{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+/* 🔴 RIGHE A ALTEZZA FISSA. Trovato guardando lo scatto, non prevedendolo:
+   «Glitter multicolore» va a capo e con `min-height` quella sola pastiglia
+   diventava più alta, sfasando la riga. Con `grid-auto-rows` la griglia resta
+   pari e il nome lungo si dispone su due righe DENTRO la stessa altezza. */
+.grigliaA{display:grid; grid-template-columns:1fr 1fr; gap:8px; grid-auto-rows:60px}
 .w768 .grigliaA, .w1280 .grigliaA{grid-template-columns:1fr 1fr 1fr}
 .pillA{
   display:flex; align-items:center; gap:9px;
-  min-height:54px; padding:0 12px;
+  height:100%; padding:0 12px;
   border:none; border-radius:18px;
   background:var(--bg-deep); color:var(--ink);
   font-family:inherit; font-size:14.5px; font-weight:700; text-align:left;
@@ -167,10 +171,10 @@ p.dida{margin:4px 0 14px; font-size:13.5px; color:var(--muted); line-height:1.4}
 
 .avviso{
   display:flex; gap:10px; align-items:flex-start;
-  width:100%; max-width:480px; margin:0 auto;
-  padding:14px 16px; border-radius:18px;
-  background:#F8F0E1; color:#1D1913; font-size:14.5px; line-height:1.45; font-weight:600;
+  width:100%; min-height:56px; padding:14px 16px; border-radius:18px;
+  background:#F8F0E1; color:#1D1913; font-size:15px; line-height:1.4; font-weight:600;
 }
+.avviso .ico{font-size:17px; line-height:1.35; flex:none}
 .notte .avviso{background:rgba(232,161,61,.14); color:#F2EEE7}
 .avviso b{font-weight:800}
 
@@ -193,11 +197,19 @@ p.dida{margin:4px 0 14px; font-size:13.5px; color:var(--muted); line-height:1.4}
 </p>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
-<h2 class="sez">① Variante A — griglia di pastiglie</h2>
+<h2 class="sez">① Variante A — griglia di pastiglie &nbsp;✅ <span style="color:#D90012">SCELTA DA FRANCESCO (D119)</span></h2>
 <p class="sez-nota">
-  Due colonne, come il foglio delle categorie della foto già approvato il 2 agosto. Si vede più roba senza
-  scorrere; il nome sta su una riga sola anche per «Arancione» e «Blu scuro». <b>Il prezzo:</b> le tinte
-  arrivano tutte insieme, senza un ordine che aiuti l'occhio — chi cerca «il verde» scorre finché non lo vede.
+  Due colonne, come il foglio delle categorie della foto già approvato il 2 agosto. <b>Ci stanno tutte e
+  diciassette in una schermata sola:</b> niente da scorrere, si sceglie a colpo d'occhio. <b>Il prezzo,
+  dichiarato:</b> le tinte arrivano tutte insieme, senza un ordine che guidi — chi cerca «il verde» lo cerca
+  con gli occhi.
+</p>
+<p class="sez-nota">
+  🔴 <b>Un difetto trovato guardando lo scatto, e corretto qui:</b> nella famiglia della resina «Glitter
+  multicolore» va a capo, e con le pastiglie ad altezza libera quella sola diventava più alta, sfasando la
+  riga. Le righe della griglia sono ora ad <b>altezza fissa (60)</b>: il nome lungo si dispone su due righe
+  dentro la stessa altezza, e la griglia resta pari. È il motivo per cui i mockup si guardano con i dati veri
+  invece di descriverli.
 </p>
 
 <div class="fila">
@@ -277,11 +289,13 @@ p.dida{margin:4px 0 14px; font-size:13.5px; color:var(--muted); line-height:1.4}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
-<h2 class="sez">② Variante B — elenco raggruppato per famiglia di colore</h2>
+<h2 class="sez">② Variante B — elenco raggruppato per famiglia di colore &nbsp;<span style="color:var(--pagina-muted)">— non scelta, si conserva</span></h2>
 <p class="sez-nota">
   Una riga per tinta, a tutta larghezza, con le voci raccolte in gruppi. <b>Il vantaggio:</b> chi cerca «un
   verde» va dritto al gruppo dei verdi invece di scorrere tutto, e il nome si legge intero senza compressione.
-  <b>Il prezzo:</b> si scorre di più, e i titoletti dei gruppi rubano spazio.
+  <b>Il prezzo, ed è quello che l'ha fatta scartare:</b> ne mostra <b>dodici su diciassette</b> — si scorre — e
+  i titoletti dei gruppi rubano spazio. <b>Resta qui</b> perché una strada scartata con la sua ragione vale
+  più di una strada dimenticata: se un domani le tinte diventassero quaranta, la scelta si riapre da qui.
 </p>
 
 <div class="fila">
@@ -615,27 +629,42 @@ p.dida{margin:4px 0 14px; font-size:13.5px; color:var(--muted); line-height:1.4}
 <div class="fila" style="margin-top:26px">
 
   <div class="caso">
-    <div class="targa">Modifica · il campo · chiaro</div>
-    <div class="tel piatta" style="padding:24px 20px">
+    <div class="targa">Modifica · prima · chiaro <em>— com'è normalmente</em></div>
+    <div class="tel piatta" style="padding:22px 20px">
       <div class="campoMod">
+        <label>Tipo di lavoro</label>
+        <button class="selettore">Paradenti sport<span class="chev">›</span></button>
+      </div>
+      <div class="campoMod" style="margin-top:18px">
         <label>Tinta</label>
         <button class="selettore"><span class="pal" style="background:#D90012"></span>Rosso<span class="chev">›</span></button>
-        <p class="notaCampo">Si tocca e si apre la stessa tavolozza del wizard. Per toglierla si sceglie «Nessuna tinta» in cima all'elenco.</p>
       </div>
     </div>
+    <p class="legenda">
+      Si tocca e si apre <b>la stessa tavolozza del wizard</b>: una forma sola, imparata una volta.
+      Per togliere la tinta si sceglie «Nessuna tinta», che sta in cima all'elenco.
+    </p>
   </div>
 
   <div class="caso">
-    <div class="targa">Modifica · l'avviso di D117 · chiaro</div>
-    <div class="tel piatta" style="padding:24px 20px">
-      <div class="avviso">
-        <span style="font-size:18px; line-height:1.2">⚠️</span>
-        <span>Hai cambiato il tipo in <b>Corona in zirconia</b>: la tinta <b>Rosso</b> è stata tolta, perché su una protesi fissa non si usa.</span>
+    <div class="targa">Modifica · dopo il cambio di tipo · chiaro <em>— D117</em></div>
+    <div class="tel piatta" style="padding:22px 20px">
+      <div class="campoMod">
+        <label>Tipo di lavoro</label>
+        <button class="selettore">Corona in zirconia<span class="chev">›</span></button>
       </div>
-      <p class="legenda" style="margin-top:14px">
-        Il salvataggio <b>riesce</b>: la tinta viene tolta e l'avviso lo dichiara. Togliere sì, in silenzio mai.
-      </p>
+      <div class="campoMod" style="margin-top:18px">
+        <label>Tinta</label>
+        <div class="avviso">
+          <span class="ico">⚠️</span>
+          <span>La tinta <b>Rosso</b> è stata tolta: su una <b>protesi fissa</b> non si usa.</span>
+        </div>
+      </div>
     </div>
+    <p class="legenda">
+      Il salvataggio <b>riesce</b>. Al posto del campo compare il motivo, dove il campo stava:
+      <b>togliere sì, in silenzio mai.</b>
+    </p>
   </div>
 
 </div>
