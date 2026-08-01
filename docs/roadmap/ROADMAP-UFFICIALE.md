@@ -774,6 +774,43 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 
 ---
 
+## 📄 I DOCUMENTI CHE ESCONO DAL LABORATORIO — il censimento aperto (03/08/2026)
+
+🔑 **Perché questa sezione esiste.** Queste voci vivevano **solo dentro un handoff**
+(`2026-08-03-accenti-documenti-handoff.md` §3), cioè in un documento che la sessione successiva
+**supera**. Trasferite qui su richiesta di Francesco («*appuntiamo tutto quello che resta da fare per
+continuarlo nel giusto momento*») perché la roadmap è la fonte di verità su cosa fare, e un handoff no.
+**Tutti i riferimenti sotto sono stati riverificati aprendo i file il 03/08** — tre erano invecchiati di
+qualche riga dopo il rilascio degli accenti.
+
+🛑 **Nessuna è stata corretta:** R-E2, un difetto fuori dal proprio mandato si riferisce.
+🔑 **E hanno una radice comune che conviene guardare tutta insieme**, non voce per voce: il documento
+**afferma** cose che nessuno ha raccolto, e **tre tabelle/colonne progettate apposta non sono lette da
+nessuno**. Ordinate per gravità.
+
+| # | cosa | dove, verificato il 03/08 |
+|---|---|---|
+| 🟠 **1** | **Il luogo di fabbricazione non è MAI stampato**, ed è il **trattino 1 dell'Allegato XIII: obbligatorio**. La colonna esiste con un valore di comodo — `luogo_fabbricazione TEXT NOT NULL DEFAULT 'Italia'` — e **nessuno la legge**: `grep` su tutto `src/` dà **solo** le tre righe del file dei tipi generato. Sul foglio compare «Luogo emissione», che è un'altra cosa | `supabase/schema.sql:1242` · `src/types/database.types.ts:890,949,1008` (**unici** riscontri) |
+| 🟠 **2** | **Il foglio afferma «Sostanze / tessuti: No» su un valore codificato a mano**, mai raccolto né verificato. Il trattino 8 dell'Allegato XIII è **condizionale**: l'indicazione serve **solo se vero**. Una negazione affermata su materiali di origine animale è un falso negativo su un documento a valore legale | `src/lib/pdf/generate-ddc.ts:157` (`contiene_sostanze_o_tessuti: false`) |
+| 🟠 **3** | **La nomina del PRRC non si conserva e si riscrive la data a ogni scaricamento** — `data_nomina: new Date()...` al momento del rendering: **due copie firmate dello stesso atto portano date diverse**. E la tabella `prrc_nomine` con la funzione `has_prrc_valido()` **esiste in banca dati e nessuno la legge**: `grep` su `src/` (escluso il file dei tipi) dà **zero** riscontri | `src/lib/pdf/generate-nomina-prrc.ts:18` · tabella e funzione mai chiamate |
+| 🔴 **4** | **Il buono di consegna non si rigenera dopo un annullo** — sezione dedicata qui sotto | v. sezione seguente |
+| 🟠 **5** | **La DdC cita `Art. 2(1)(3)` MDR, che non esiste** — sezione dedicata qui sotto | v. sezione seguente |
+| 🟡 **6** | **`payload_sha256` non è ricalcolabile**, misurato: `data_emissione` non sopravvive al giro di andata e ritorno (scritta `…983Z`, riletta `…983+00:00`) e `norma_riferimento` entra nell'impronta **senza essere una colonna della riga**. Verificatori esistenti: **zero** — l'impronta oggi si può solo confrontare con sé stessa | spec `2026-08-03-accenti-documenti-design.md` §5 ⑦ |
+| 🟡 **7** | **L'identificazione del paziente può ridursi a un trattino** su un foglio che dichiara «esclusivamente per il paziente indicato»: la catena di ripieghi finisce in `?? ''` | `src/lib/pdf/generate-ddc.ts:150` |
+| 🟡 **8** | **Contraddizione fra due panel, da sciogliere:** la base della conservazione decennale è «Art. 10(5) + Allegato XIII punto 4» (ratificata il 29/07) oppure **l'Allegato XIII punto 4 da solo**? Quella citazione vive in **tre documenti** del progetto. **Non ratificata né scartata** | spec `2026-08-03-accenti-documenti-design.md` §5 ⑧ |
+| 🟡 **9** | **Il §6-bis e il §7 sono attaccati** quando ci sono norme armonizzate: manca lo stacco che hanno tutte le altre sezioni. Preesistente, **invisibile alla suite** (la fixture non popola mai `norme_json`) e **non osservabile nemmeno in produzione** — il giro del 03/08 non l'ha esercitato perché `rischi_tipo_dispositivo.norme_json` è vuoto per quel tipo di dispositivo. Per vederlo serve una riga di prova da preparare e rimettere | `src/components/features/pdf/DdcTemplate.tsx:482-493` |
+| 🟡 **10** | **Un refuso che vive nei DATI, non nel codice:** il §8 stampa «*conforme ai requisiti di sicurezza **dell** Allegato I*» — apostrofo mancante dentro `rischi_tipo_dispositivo.rischi_residui`. La correzione degli accenti ha sistemato i **sorgenti**: un refuso in banca dati non ha guardia, e ogni laboratorio scriverà il suo | dato del laboratorio `971061a1`, tipo `protesi_fissa` |
+| 🟢 **11** | **Minori dalla revisione finale del ramo accenti:** la rete `not.toContain` è cieca a un refuso tutto minuscolo · lo stesso difetto dei blocchi fratelli esiste in altri due punti di `generate-ddc.test.ts` (lì mascherato da `toHaveBeenCalledWith`) · **«Non Conformita Recenti»** senza accento in una schermata viva · un test di D104 vive nel blocco «D102» · il refuso nei **commenti** di `NominaPrrcTemplate.tsx:232,339` | `src/app/(app)/qualita/page.tsx:83` (verificato) · ledger `.superpowers/sdd/progress.md` |
+
+⚠️ **Un commento NON corretto, di proposito:** la migration `20260803120000` cita `generate-ddc.ts:147-148`
+mentre le righe vere sono altre. **Il file è già applicato al database:** non lo si riscrive per un
+commento — il rischio di disallineare il ledger delle migration supera il beneficio.
+
+📌 **La voce «il PRESCRITTO non esiste in banca dati» non sta qui:** è la **voce 9** della tabella in
+testa a questa roadmap, dove D101 la rimanda, ed è GRANDE con migration.
+
+---
+
 ## 🔴 IL BUONO DI CONSEGNA NON SI RIGENERA DOPO UN ANNULLO (03/08/2026)
 
 **Trovato facendo il giro della §0 in produzione**, da un numero che non tornava. Riferito e **non

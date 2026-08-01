@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla trentatreesima tornata (gli accenti nei documenti generati)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla trentaquattresima tornata (la DdC guardata in produzione, e la scelta della prossima ondata)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosette decisioni in trentatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centotto decisioni in trentaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -735,3 +735,23 @@ dispositivo conforme «**e ai disposti dell'Allegato XIII**», che è una **proc
 ⚠️ E una **contraddizione fra due panel da sciogliere**: la base normativa della conservazione decennale è
 «Art. 10(5) + Allegato XIII punto 4» (ratificata il 29/07) o **l'Allegato XIII punto 4 da solo**? Quella
 citazione vive in tre documenti. Non ratificata né scartata: **va verificata sul testo**.
+
+---
+
+### Trentaquattresima tornata — chiusa la §0 in produzione, e si sceglie la prossima ondata (D108)
+
+**Contesto.** Chiusa la §0 dell'handoff del 3 agosto: la Dichiarazione di Conformità è stata guardata
+**uscendo dalla produzione** (referto: `docs/roadmap/2026-08-03-ddc-produzione-referto.md`). Il giro ha
+prodotto **due voci nuove** — il buono di consegna che non si rigenera dopo un annullo, e la citazione
+`Art. 2(1)(3)` che non esiste — e ha lasciato sul tavolo le voci normative già aperte.
+
+| n. | La decisione | Come è stata presa | Ragioni e conseguenze |
+|---|---|---|---|
+| **D108** | 🎨 **La prossima ondata è D42 — LE TINTE DEL MANUFATTO.** E **tutto ciò che resta va appuntato prima**, per poterlo riprendere al momento giusto | scelta di Francesco fra quattro strade proposte (le voci sui documenti che escono · il «prescritto» di voce 9 · le tinte D42 · gli allegati D67): «*procediamo con D42, ovviamente appuntiamo tutto quello che resta da fare per continuarlo nel giusto momento*» | ✅ **Coerente con D42 stessa**, che era già ratificata «dopo l'ondata (b)», cioè adesso. 🔑 **La seconda metà della decisione non è una cortesia, è la regola §0A-bis applicata:** le voci normative sulla DdC vivevano **solo dentro un handoff**, cioè in un documento che la sessione dopo supera — sono state trasferite nella roadmap (sezione «I documenti che escono dal laboratorio»), con **ogni riferimento riaperto e riverificato**: tre erano invecchiati di qualche riga dopo il rilascio degli accenti. ⚠️ **Conseguenza dichiarata:** le cinque voci sui documenti — fra cui il **luogo di fabbricazione mai stampato**, che è obbligatorio — restano aperte mentre si lavora sulle tinte. Non sono state dimenticate: sono state **rimandate con una casa** |
+
+**Vincoli che D42 si porta dietro dal panel del 28/07 (D40 · D42) — non si riaprono:**
+🛑 **niente esadecimale libero** (un colore senza nome non si cerca e diventa illeggibile su un documento
+conservato dieci anni) · 🛑 **niente scale nuove dentro `colori_dentali`** (cinque chiavi esterne puntano
+lì, e l'id fine dei 38 tipi **non è persistito**: una scala `sport` renderebbe scrivibile `('sport','rosso')`
+sulla riga-dente di una corona senza che alcun vincolo se ne accorga) · ➡️ **catalogo separato, voci con
+un NOME**.
