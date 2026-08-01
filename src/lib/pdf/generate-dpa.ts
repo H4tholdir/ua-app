@@ -57,7 +57,54 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
 
   const impronta = improntaDpa(lab, cliente)
 
-  // Task 5 inserisce qui il guard di riuso.
+  // Guard di riuso (D130). Il confronto è su DUE cose insieme: impronta dei dati
+  // E versione del modello — il testo può cambiare a dati identici (D126, 03/08).
+  // 🛑 Il filtro laboratorio_id è esplicito: il client di servizio aggira la RLS.
+  const { data: esistente } = await svc
+    .from('data_processing_agreements')
+    .select('id, numero_dpa, storage_path_pdf, payload_sha256, template_versione')
+    .eq('laboratorio_id', laboratorio_id)
+    .eq('dentista_id', cliente_id)
+    .eq('payload_sha256', impronta)
+    .eq('template_versione', VERSIONE_MODELLO_DPA)
+    .is('deleted_at', null)
+    // D132: «viva» comprende lo STATO. Lo stesso predicato dell'indice
+    // dpa_emissione_viva_unica — se cambia uno, cambiano tutti e tre (indice,
+    // guard, rilettura del Task 6). Senza questo filtro il guard restituirebbe
+    // come corrente un contratto REVOCATO che l'indice considera morto.
+    .not('stato', 'in', '("revocato","scaduto")')
+    .order('emesso_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (esistente?.storage_path_pdf) {
+    const { data: file } = await svc.storage.from('documenti').download(esistente.storage_path_pdf)
+    if (file) {
+      return {
+        buffer: Buffer.from(await file.arrayBuffer()),
+        numero_dpa: esistente.numero_dpa as string,
+        emissione_id: esistente.id as string,
+        riemessa: false,
+      }
+    }
+    // File sparito dall'archivio: meglio un numero nuovo che una porta chiusa.
+    // 🛑 MA PRIMA VA LIBERATA LA CHIAVE — senza questo UPDATE, con
+    //    dpa_emissione_viva_unica in casa, la riemissione è una porta chiusa
+    //    PERMANENTE: la riga orfana occupa la chiave (laboratorio, dentista,
+    //    impronta, versione), l'INSERT qui sotto prende 23505, la rilettura del
+    //    Task 6 ritrova la STESSA orfana e si ricade sul throw — e ogni clic,
+    //    prima di fallire, brucia un progressivo e carica un PDF orfano in più,
+    //    perché il caricamento precede l'INSERT.
+    //    Il soft-delete lascia comunque TRACCIA: una riga il cui file non esiste
+    //    più è un'emissione che non documenta niente, e archiviarla è un atto
+    //    che deve risultare, non un effetto collaterale.
+    await svc
+      .from('data_processing_agreements')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', esistente.id)
+      .eq('laboratorio_id', laboratorio_id)   // il client di servizio aggira la RLS
+    console.error('generateDpa — PDF conservato non trovato, riga archiviata e riemetto:', esistente.storage_path_pdf)
+  }
 
   const anno = annoRoma()
   const progressivo = await generaProgressivo(svc, laboratorio_id, 'dpa', anno)
