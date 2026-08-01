@@ -14,7 +14,18 @@ schermata sola; l'elenco raggruppato ne mostrava dodici su diciassette e resta n
 ragione. Mockup + 13 scatti in `docs/design/mockups/`. Due difetti trovati guardando e corretti: il nome
 lungo che sfasava la riga, e il blocco dell'avviso mal formattato.
 
-➡️ **PROSSIMO PASSO: il PIANO** (R-P1 · R-P2 · R-P6), poi il ramo. **GRANDE, con migration.**
+✅ **PIANO SCRITTO — parte 1:** `docs/superpowers/plans/2026-08-03-tinte-manufatto.md`, **9 task** coi tre
+registri (prove, letture, censimento). Ogni vincolo si prova con **valori che DEVONO essere rifiutati**,
+più due controlli positivi.
+
+🔴 **Il passo del wizard è FUORI e diventa la PARTE 2, e serve una decisione prima di scriverla:**
+misurando è emerso che l'impalcatura dei passi adattivi (`NomePasso`, `SEQUENZA_CANONICA`, `sequenzaPassi`)
+**non è agganciata a nessuna schermata** — la usano solo le sue prove — e il wizard vero è ancora a **tre
+passi numerati** che si fermano al paziente. O si aggancia l'impalcatura (lavoro aperto dell'ondata (b),
+tocca la bozza salvata a 24 ore → `v: 2`), o si bullona un quarto passo numerato che poi va disfatto.
+
+➡️ **PROSSIMO PASSO: eseguire il piano** — un task alla volta a un esecutore fresco (R-E1), ramo
+`tinte-manufatto` **nel repo principale** (🛑 mai un worktree). **GRANDE, con migration.**
 
 🔴 **Due fatti misurati aprendo i file, che nessun documento diceva:** nel wizard **il passo del colore non
 esiste per nessun tipo** (finisce al paziente, dove il colore è testo libero) · la tendina della scheda

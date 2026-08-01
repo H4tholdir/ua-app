@@ -113,9 +113,9 @@ L'elenco **non l'ha deciso l'autore del piano**: è l'esito del censimento R-P6 
 ### Nomi NUOVI nel codice
 | identificatore | dove |
 |---|---|
-| `FamigliaTinta` (tipo), `FAMIGLIE_TINTA`, `macroDiFamiglia`, `famigliaDiMacro` — più `PER_MACRO`, che resta **privato** (non esportato) | `src/lib/domain/tinta.ts` (Task 3) |
-| `TintaManufatto` (tipo riga di catalogo) | `src/lib/domain/tinta.ts` (Task 3) |
-| `Tinta`, `NESSUNA_TINTA`, `risolviTinta` | `src/lib/api/tinta.ts` (Task 4) |
+| `FamigliaTinta` (tipo), `FAMIGLIE_TINTA`, `macroDiFamiglia`, `famigliaDiMacro` — più `PER_MACRO`, che resta **privato** (non esportato) | `src/lib/domain/tinta.ts` (Task 3) 🆕 da creare |
+| `TintaManufatto` (tipo riga di catalogo) | `src/lib/domain/tinta.ts` (Task 3) 🆕 da creare |
+| `Tinta`, `NESSUNA_TINTA`, `risolviTinta` | `src/lib/api/tinta.ts` (Task 4) 🆕 da creare |
 | `tinta_rimossa` | campo **opzionale** della risposta PATCH (Task 5) |
 | `TavolozzaTinte` | componente (Task 8) |
 | `RigaTinta` — **NON serve**: `RigaDato.valore` accetta già un `ReactNode` (`CardInfo.tsx:29`) | Task 7 |
@@ -160,13 +160,13 @@ piano** e che cosa nasce da provare.
 ## Struttura dei file
 
 **Creati**
-- `supabase/migrations/20260803140000_tinte_manufatto.sql` — catalogo + contenuto
-- `supabase/migrations/20260803140100_lavori_tinta.sql` — le due colonne e i tre vincoli
-- `supabase/migrations/20260803140200_rifacimento_clona_tinta.sql` — la RPC estesa
-- `src/lib/domain/tinta.ts` — famiglie, corrispondenza con le macro. **Nessun accesso al database.**
-- `src/lib/api/tinta.ts` — `risolviTinta`, la normalizzazione **server-side**
-- `src/components/features/lavori/TavolozzaTinte.tsx` — la griglia (variante A)
-- `tests/unit/tinta-dominio.test.ts` · `tests/unit/tinta-risolvi.test.ts` · `tests/unit/tinte-patch.test.ts` · `tests/unit/TavolozzaTinte.test.tsx`
+- `supabase/migrations/20260803140000_tinte_manufatto.sql` — catalogo + contenuto 🆕 *(da creare)*
+- `supabase/migrations/20260803140100_lavori_tinta.sql` — le due colonne e i tre vincoli 🆕 *(da creare)*
+- `supabase/migrations/20260803140200_rifacimento_clona_tinta.sql` — la RPC estesa 🆕 *(da creare)*
+- `src/lib/domain/tinta.ts` — famiglie, corrispondenza con le macro. **Nessun accesso al database.** 🆕 *(da creare)*
+- `src/lib/api/tinta.ts` — `risolviTinta`, la normalizzazione **server-side** 🆕 *(da creare)*
+- `src/components/features/lavori/TavolozzaTinte.tsx` — la griglia (variante A) 🆕 *(da creare)*
+- `tests/unit/tinta-dominio.test.ts` · `tests/unit/tinta-risolvi.test.ts` · `tests/unit/tinte-patch.test.ts` · `tests/unit/TavolozzaTinte.test.tsx` 🆕 *(da creare)*
 
 **Modificati**
 - `src/app/api/lavori/[id]/route.ts` — allowlist, normalizzazione, D117
@@ -184,7 +184,7 @@ divisione già in casa fra `domain/colore-dente.ts` e `api/colore-caso.ts`.
 # Task 1 — Il catalogo `tinte_manufatto`
 
 **File**
-- Crea: `supabase/migrations/20260803140000_tinte_manufatto.sql`
+- Crea: `supabase/migrations/20260803140000_tinte_manufatto.sql` 🆕 *(da creare)*
 
 **Interfacce**
 - Produce: la tabella `tinte_manufatto (famiglia, codice, nome, ordine, hex)` con 34 righe (17+17).
@@ -348,7 +348,7 @@ git commit -F <messaggio-fuori-dal-repo>
 # Task 2 — Le due colonne su `lavori` e i tre vincoli
 
 **File**
-- Crea: `supabase/migrations/20260803140100_lavori_tinta.sql`
+- Crea: `supabase/migrations/20260803140100_lavori_tinta.sql` 🆕 *(da creare)*
 
 **Interfacce**
 - Consuma: `tinte_manufatto (famiglia, codice)` dal Task 1.
@@ -488,8 +488,8 @@ Atteso: **0 errori**. `tinta_famiglia`/`tinta_codice` compaiono su `lavori` nel 
 # Task 3 — Il dominio: famiglie e corrispondenza
 
 **File**
-- Crea: `src/lib/domain/tinta.ts`
-- Test: `tests/unit/tinta-dominio.test.ts`
+- Crea: `src/lib/domain/tinta.ts` 🆕 *(da creare)*
+- Test: `tests/unit/tinta-dominio.test.ts` 🆕 *(da creare)*
 
 **Interfacce**
 - Produce: `FamigliaTinta`, `FAMIGLIE_TINTA`, `TintaManufatto`, `famigliaDiMacro(macro)`, `macroDiFamiglia(famiglia)`.
@@ -567,7 +567,7 @@ proseguire.
 // (migration 20260803140100). Due copie della stessa regola sono la classe di
 // difetto che questo progetto combatte: qui c'è perché il client deve sapere
 // quali tinte mostrare, LÀ c'è perché il client si aggira. La rete che le tiene
-// allineate è `tests/unit/tinta-dominio.test.ts`.
+// allineate è `tests/unit/tinta-dominio.test.ts`. 🆕 *(da creare)*
 //
 // ⚠️ È un ACCOPPIAMENTO, non una legge: se un tipo con tinta nascesse sotto
 // un'altra macro, si cambiano ENTRAMBE. La prova «ogni tipo libero ha una
@@ -615,8 +615,8 @@ Run: `npx vitest run tests/unit/tinta-dominio.test.ts` → **PASS**, tutte.
 # Task 4 — `risolviTinta`: la normalizzazione server-side
 
 **File**
-- Crea: `src/lib/api/tinta.ts`
-- Test: `tests/unit/tinta-risolvi.test.ts`
+- Crea: `src/lib/api/tinta.ts` 🆕 *(da creare)*
+- Test: `tests/unit/tinta-risolvi.test.ts` 🆕 *(da creare)*
 
 **Interfacce**
 - Consuma: `FamigliaTinta`, `famigliaDiMacro` (Task 3); la tabella `tinte_manufatto` (Task 1).
@@ -788,7 +788,7 @@ export async function risolviTinta(
 
 **File**
 - Modifica: `src/app/api/lavori/[id]/route.ts` — allowlist a `:178-213`, blocco nuovo dopo quello del colore di caso a `:402-407`
-- Test: `tests/unit/tinte-patch.test.ts`
+- Test: `tests/unit/tinte-patch.test.ts` 🆕 *(da creare)*
 
 **Interfacce**
 - Consuma: `risolviTinta` (Task 4), `famigliaDiMacro` (Task 3).
@@ -886,7 +886,7 @@ Additivo: nessun client esistente se ne accorge.
 # Task 6 — Il rifacimento si porta dietro la tinta
 
 **File**
-- Crea: `supabase/migrations/20260803140200_rifacimento_clona_tinta.sql`
+- Crea: `supabase/migrations/20260803140200_rifacimento_clona_tinta.sql` 🆕 *(da creare)*
 
 - [ ] **Passo 1 — Leggere la funzione viva, non il file**
 
@@ -971,7 +971,7 @@ funziona anche senza pallino.
 # Task 8 — Il campo sulla pagina di modifica, e la tavolozza
 
 **File**
-- Crea: `src/components/features/lavori/TavolozzaTinte.tsx` + `tests/unit/TavolozzaTinte.test.tsx`
+- Crea: `src/components/features/lavori/TavolozzaTinte.tsx` + `tests/unit/TavolozzaTinte.test.tsx` 🆕 *(da creare)*
 - Modifica: `src/components/features/lavori/form/TabClinica.tsx`
 - **Da aprire per primo:** `src/hooks/useLavoroForm.ts` — **NON letto** da questo piano
 
