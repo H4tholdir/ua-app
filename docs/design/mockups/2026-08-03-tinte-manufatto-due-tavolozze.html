@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>D42 — le tinte del manufatto: due forme della tavolozza</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Mockup — D42 «Le tinte del manufatto» (spec 2026-08-03-tinte-manufatto-design).
+   LA DOMANDA APERTA (spec §5.1): con 17 tinte per famiglia, la tavolozza su
+   390 px come si dispone? Griglia di pastiglie (A) o elenco raggruppato (B)?
+
+   Geometria copiata dai componenti v3 già in casa:
+     pannello  width:100% · max-width:480 · padding 12/20/20 · raggio 28 in alto
+     manico    36 × 4 · raggio pill · var(--line)     (Sheet v3)
+     titolo    19px / 800 / tracking -0.02em          didascalia 13.5px / var(--muted)
+     griglia   gap 8 (spazio.s) · pastiglia raggio 18 (raggio.riga) · testo 700
+     riga      raggio 18 · min-height 48 · var(--bg-deep) su var(--elv)
+   Token colore: src/design-system/v3/tokens.ts (luce/notte) e src/app/ds-v3.css.
+
+   🔵 D114 — IL PALLINO C'È SOLO DOVE È ONESTO. Trasparente e i tre Glitter NON
+   hanno pallino: `hex` è NULL in catalogo e la voce resta col solo nome. Non è
+   una dimenticanza del mockup: è la decisione, resa visibile.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --scrim:rgba(29,25,19,.35);
+  --pagina:#E7E1D4; --pagina-ink:#1D1913; --pagina-muted:#6E6457; --pagina-line:#D8D0BE;
+  --anello:rgba(29,25,19,.18);
+}
+.notte{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44;
+  --pagina:#0F0D0A; --pagina-ink:#F2EEE7; --pagina-muted:#A69B8C; --pagina-line:#2A2520;
+  --anello:rgba(242,238,231,.22);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; padding:32px 28px 72px;
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+  background:var(--pagina); color:var(--pagina-ink);
+}
+h1{font-size:26px; font-weight:800; letter-spacing:-.02em; margin:0 0 6px}
+.sotto{font-size:14.5px; color:var(--pagina-muted); margin:0 0 8px; max-width:82ch; line-height:1.55}
+h2.sez{font-size:19px; font-weight:800; letter-spacing:-.02em; margin:40px 0 4px; padding-top:22px; border-top:1px solid var(--pagina-line)}
+.sez-nota{font-size:13.5px; color:var(--pagina-muted); margin:0 0 18px; max-width:82ch; line-height:1.55}
+.fila{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start}
+.caso{display:flex; flex-direction:column; gap:10px}
+.targa{font-size:13.5px; font-weight:800; letter-spacing:-.01em}
+.targa em{font-style:normal; font-weight:600; color:var(--pagina-muted)}
+
+/* la cornice: NON fa parte del disegno, serve a dare la larghezza vera */
+.tel{
+  width:390px; height:720px; position:relative; overflow:hidden;
+  border-radius:26px; background:var(--bg);
+  border:1px solid var(--pagina-line);
+  display:flex; align-items:flex-end;
+}
+.tel.w768{width:768px; height:620px}
+.tel.w1280{width:1280px; height:560px}
+.tel.alta{height:820px}
+/* cornice «piatta»: contenuto impilato dall'alto, non un foglio ancorato in basso */
+.tel.piatta{display:block; overflow:visible; height:auto; min-height:260px}
+
+/* ── il pannello del passo (Sheet v3) ── */
+.pannello{
+  position:relative; width:100%; max-width:480px; margin:0 auto;
+  border-radius:28px 28px 0 0; background:var(--elv);
+  padding:12px 20px 20px; max-height:100%; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.w768 .pannello, .w1280 .pannello{max-width:560px}
+.manico{width:36px; height:4px; border-radius:999px; background:var(--line); margin:0 auto 12px; flex:none}
+h3.titolo{margin:0; font-size:19px; font-weight:800; letter-spacing:-.02em; color:var(--ink)}
+p.dida{margin:4px 0 14px; font-size:13.5px; color:var(--muted); line-height:1.4}
+.corpo{overflow:auto; flex:1; margin:0 -4px; padding:0 4px}
+.piede{flex:none; padding-top:14px; display:flex; gap:10px; align-items:center}
+
+/* ── il pallino ── */
+.pal{
+  width:22px; height:22px; border-radius:999px; flex:none;
+  box-shadow:inset 0 0 0 1px var(--anello);
+}
+.pal.grande{width:26px; height:26px}
+/* Nessun pallino → la voce si allinea al testo delle altre, con un vuoto
+   dichiarato della stessa larghezza: la colonna resta, il colore no. */
+.pal.assente{background:none; box-shadow:none}
+.pal.assente::after{
+  content:'—'; display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; color:var(--faint); font-size:13px; font-weight:700;
+}
+
+/* ══ VARIANTE A — griglia di pastiglie ══════════════════════════════════ */
+.grigliaA{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.w768 .grigliaA, .w1280 .grigliaA{grid-template-columns:1fr 1fr 1fr}
+.pillA{
+  display:flex; align-items:center; gap:9px;
+  min-height:54px; padding:0 12px;
+  border:none; border-radius:18px;
+  background:var(--bg-deep); color:var(--ink);
+  font-family:inherit; font-size:14.5px; font-weight:700; text-align:left;
+  cursor:pointer; line-height:1.15;
+}
+.pillA.sel{box-shadow:inset 0 0 0 2px var(--red); background:var(--elv)}
+
+/* ══ VARIANTE B — elenco raggruppato ════════════════════════════════════ */
+.gruppo{margin-bottom:14px}
+.gruppo:last-child{margin-bottom:0}
+.gruppo h4{
+  margin:0 0 6px; font-size:12.5px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+}
+.rigaB{
+  display:flex; align-items:center; gap:11px; width:100%;
+  min-height:48px; padding:0 12px; margin-bottom:4px;
+  border:none; border-radius:18px;
+  background:var(--bg-deep); color:var(--ink);
+  font-family:inherit; font-size:15.5px; font-weight:700; text-align:left;
+  cursor:pointer;
+}
+.rigaB:last-child{margin-bottom:0}
+.rigaB.sel{box-shadow:inset 0 0 0 2px var(--red); background:var(--elv)}
+.rigaB .spunta{margin-left:auto; color:var(--red); font-weight:800; font-size:16px}
+
+/* ── tasti del piede ── */
+.tastoPrimario{
+  flex:1; min-height:54px; border:none; border-radius:20px;
+  background:linear-gradient(180deg, #F2263A, #D90012 55%, #B00010);
+  box-shadow:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  color:#fff; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer;
+}
+.tastoSalta{
+  min-height:54px; padding:0 18px; border:none; border-radius:20px;
+  background:transparent; box-shadow:inset 0 0 0 1.5px var(--line);
+  color:var(--muted); font-family:inherit; font-size:16px; font-weight:700; cursor:pointer;
+}
+
+/* ── la scheda in sola lettura, e il campo di modifica ── */
+.cardScheda{
+  width:100%; max-width:480px; margin:0 auto; border-radius:24px;
+  background:var(--card); padding:6px 18px;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+}
+.notte .cardScheda{box-shadow:none; background:var(--card)}
+.rigaScheda{display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--line)}
+.rigaScheda:last-child{border-bottom:none}
+.rigaScheda .et{font-size:12.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); flex:none; width:96px}
+.rigaScheda .val{margin-left:auto; display:flex; align-items:center; gap:9px; font-size:17px; font-weight:700; color:var(--ink)}
+.rigaScheda .val.vuoto{color:var(--faint); font-weight:600}
+
+.campoMod{width:100%; max-width:480px; margin:0 auto}
+.campoMod label{display:block; font-size:12.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-bottom:8px}
+.selettore{
+  display:flex; align-items:center; gap:11px; width:100%;
+  min-height:56px; padding:0 16px; border-radius:18px;
+  background:var(--bg-deep); color:var(--ink);
+  font-size:17px; font-weight:700; border:none; font-family:inherit; cursor:pointer;
+}
+.selettore .chev{margin-left:auto; color:var(--faint); font-weight:800}
+.notaCampo{margin:8px 0 0; font-size:13px; color:var(--muted); line-height:1.45}
+
+.avviso{
+  display:flex; gap:10px; align-items:flex-start;
+  width:100%; max-width:480px; margin:0 auto;
+  padding:14px 16px; border-radius:18px;
+  background:#F8F0E1; color:#1D1913; font-size:14.5px; line-height:1.45; font-weight:600;
+}
+.notte .avviso{background:rgba(232,161,61,.14); color:#F2EEE7}
+.avviso b{font-weight:800}
+
+.legenda{font-size:13px; color:var(--pagina-muted); margin:10px 0 0; max-width:60ch; line-height:1.5}
+</style>
+</head>
+<body>
+
+<h1>D42 — le tinte del manufatto: due forme della tavolozza</h1>
+<p class="sotto">
+  La spec lascia aperta <b>una sola domanda</b>, e si decide qui: con <b>17 tinte per famiglia</b>, come si
+  dispone la tavolozza su un telefono da 390 punti? Le due strade sono disegnate <b>tutte e due</b>, con i
+  dati veri del catalogo, in chiaro e in scuro, su tre formati.
+</p>
+<p class="sotto">
+  🔵 <b>Il pallino c'è solo dove è onesto (D114).</b> «Trasparente» e i tre «Glitter» <b>non hanno pallino</b>:
+  in catalogo il loro colore è vuoto di proposito, perché un cerchietto pieno lì direbbe una cosa falsa. Al
+  suo posto c'è un trattino, che occupa lo stesso spazio e dichiara l'assenza. <b>Non è una dimenticanza del
+  mockup: è la decisione, resa visibile.</b>
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 class="sez">① Variante A — griglia di pastiglie</h2>
+<p class="sez-nota">
+  Due colonne, come il foglio delle categorie della foto già approvato il 2 agosto. Si vede più roba senza
+  scorrere; il nome sta su una riga sola anche per «Arancione» e «Blu scuro». <b>Il prezzo:</b> le tinte
+  arrivano tutte insieme, senza un ordine che aiuti l'occhio — chi cerca «il verde» scorre finché non lo vede.
+</p>
+
+<div class="fila">
+
+  <div class="caso">
+    <div class="targa">A · sport · 390 · chiaro <em>— paradenti, 17 tinte</em></div>
+    <div class="tel alta">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Paradenti sport · Marco Esposito</p>
+        <div class="corpo">
+          <div class="grigliaA">
+            <button class="pillA"><span class="pal assente"></span>Trasparente</button>
+            <button class="pillA"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="pillA"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="pillA"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="pillA"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="pillA"><span class="pal" style="background:#10306B"></span>Blu scuro</button>
+            <button class="pillA sel"><span class="pal" style="background:#D90012"></span>Rosso</button>
+            <button class="pillA"><span class="pal" style="background:#8C0A18"></span>Rosso scuro</button>
+            <button class="pillA"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="pillA"><span class="pal" style="background:#0C4A24"></span>Verde scuro</button>
+            <button class="pillA"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="pillA"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+            <button class="pillA"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="pillA"><span class="pal" style="background:#B98BE8"></span>Lilla</button>
+            <button class="pillA"><span class="pal" style="background:#6B1028"></span>Bordeaux</button>
+            <button class="pillA"><span class="pal" style="background:#C9A227"></span>Oro</button>
+            <button class="pillA"><span class="pal" style="background:#B8BCC0"></span>Argento</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso notte">
+    <div class="targa" style="color:var(--pagina-ink)">A · sport · 390 · scuro</div>
+    <div class="tel alta">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Paradenti sport · Marco Esposito</p>
+        <div class="corpo">
+          <div class="grigliaA">
+            <button class="pillA"><span class="pal assente"></span>Trasparente</button>
+            <button class="pillA"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="pillA"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="pillA"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="pillA"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="pillA"><span class="pal" style="background:#10306B"></span>Blu scuro</button>
+            <button class="pillA sel"><span class="pal" style="background:#D90012"></span>Rosso</button>
+            <button class="pillA"><span class="pal" style="background:#8C0A18"></span>Rosso scuro</button>
+            <button class="pillA"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="pillA"><span class="pal" style="background:#0C4A24"></span>Verde scuro</button>
+            <button class="pillA"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="pillA"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+            <button class="pillA"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="pillA"><span class="pal" style="background:#B98BE8"></span>Lilla</button>
+            <button class="pillA"><span class="pal" style="background:#6B1028"></span>Bordeaux</button>
+            <button class="pillA"><span class="pal" style="background:#C9A227"></span>Oro</button>
+            <button class="pillA"><span class="pal" style="background:#B8BCC0"></span>Argento</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 class="sez">② Variante B — elenco raggruppato per famiglia di colore</h2>
+<p class="sez-nota">
+  Una riga per tinta, a tutta larghezza, con le voci raccolte in gruppi. <b>Il vantaggio:</b> chi cerca «un
+  verde» va dritto al gruppo dei verdi invece di scorrere tutto, e il nome si legge intero senza compressione.
+  <b>Il prezzo:</b> si scorre di più, e i titoletti dei gruppi rubano spazio.
+</p>
+
+<div class="fila">
+
+  <div class="caso">
+    <div class="targa">B · sport · 390 · chiaro <em>— stesse 17 tinte, sei gruppi</em></div>
+    <div class="tel alta">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Paradenti sport · Marco Esposito</p>
+        <div class="corpo">
+          <div class="gruppo">
+            <h4>Neutri</h4>
+            <button class="rigaB"><span class="pal assente"></span>Trasparente</button>
+            <button class="rigaB"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="rigaB"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="rigaB"><span class="pal" style="background:#B8BCC0"></span>Argento</button>
+            <button class="rigaB"><span class="pal" style="background:#C9A227"></span>Oro</button>
+          </div>
+          <div class="gruppo">
+            <h4>Blu</h4>
+            <button class="rigaB"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="rigaB"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="rigaB"><span class="pal" style="background:#10306B"></span>Blu scuro</button>
+          </div>
+          <div class="gruppo">
+            <h4>Rosso e rosa</h4>
+            <button class="rigaB sel"><span class="pal" style="background:#D90012"></span>Rosso<span class="spunta">✓</span></button>
+            <button class="rigaB"><span class="pal" style="background:#8C0A18"></span>Rosso scuro</button>
+            <button class="rigaB"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="rigaB"><span class="pal" style="background:#6B1028"></span>Bordeaux</button>
+          </div>
+          <div class="gruppo">
+            <h4>Verde</h4>
+            <button class="rigaB"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="rigaB"><span class="pal" style="background:#0C4A24"></span>Verde scuro</button>
+          </div>
+          <div class="gruppo">
+            <h4>Caldi</h4>
+            <button class="rigaB"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="rigaB"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+          </div>
+          <div class="gruppo">
+            <h4>Viola</h4>
+            <button class="rigaB"><span class="pal" style="background:#B98BE8"></span>Lilla</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso notte">
+    <div class="targa" style="color:var(--pagina-ink)">B · sport · 390 · scuro</div>
+    <div class="tel alta">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Paradenti sport · Marco Esposito</p>
+        <div class="corpo">
+          <div class="gruppo">
+            <h4>Neutri</h4>
+            <button class="rigaB"><span class="pal assente"></span>Trasparente</button>
+            <button class="rigaB"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="rigaB"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="rigaB"><span class="pal" style="background:#B8BCC0"></span>Argento</button>
+            <button class="rigaB"><span class="pal" style="background:#C9A227"></span>Oro</button>
+          </div>
+          <div class="gruppo">
+            <h4>Blu</h4>
+            <button class="rigaB"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="rigaB"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="rigaB"><span class="pal" style="background:#10306B"></span>Blu scuro</button>
+          </div>
+          <div class="gruppo">
+            <h4>Rosso e rosa</h4>
+            <button class="rigaB sel"><span class="pal" style="background:#D90012"></span>Rosso<span class="spunta">✓</span></button>
+            <button class="rigaB"><span class="pal" style="background:#8C0A18"></span>Rosso scuro</button>
+            <button class="rigaB"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="rigaB"><span class="pal" style="background:#6B1028"></span>Bordeaux</button>
+          </div>
+          <div class="gruppo">
+            <h4>Verde</h4>
+            <button class="rigaB"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="rigaB"><span class="pal" style="background:#0C4A24"></span>Verde scuro</button>
+          </div>
+          <div class="gruppo">
+            <h4>Caldi</h4>
+            <button class="rigaB"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="rigaB"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+          </div>
+          <div class="gruppo">
+            <h4>Viola</h4>
+            <button class="rigaB"><span class="pal" style="background:#B98BE8"></span>Lilla</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 class="sez">③ L'altra famiglia — la resina ortodontica, con i glitter</h2>
+<p class="sez-nota">
+  Stessa tavolozza, altra famiglia. Qui il pallino manca <b>quattro volte</b>: Trasparente e i tre Glitter.
+  È il caso che mette alla prova D114 — se il trattino regge qui, regge ovunque.
+</p>
+
+<div class="fila">
+
+  <div class="caso">
+    <div class="targa">A · resina · 390 · chiaro <em>— placca con vite</em></div>
+    <div class="tel alta">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Placca con vite · Sofia Marino</p>
+        <div class="corpo">
+          <div class="grigliaA">
+            <button class="pillA"><span class="pal assente"></span>Trasparente</button>
+            <button class="pillA sel"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="pillA"><span class="pal" style="background:#D90012"></span>Rosso</button>
+            <button class="pillA"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="pillA"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="pillA"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="pillA"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="pillA"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+            <button class="pillA"><span class="pal" style="background:#7C3F9C"></span>Viola</button>
+            <button class="pillA"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="pillA"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="pillA"><span class="pal assente"></span>Glitter argento</button>
+            <button class="pillA"><span class="pal assente"></span>Glitter oro</button>
+            <button class="pillA"><span class="pal assente"></span>Glitter multicolore</button>
+            <button class="pillA"><span class="pal" style="background:#6EF23A"></span>Neon verde</button>
+            <button class="pillA"><span class="pal" style="background:#FF3FA4"></span>Neon rosa</button>
+            <button class="pillA"><span class="pal" style="background:#FF7A1A"></span>Neon arancione</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso notte">
+    <div class="targa" style="color:var(--pagina-ink)">B · resina · 390 · scuro <em>— cinque gruppi</em></div>
+    <div class="tel alta">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Placca con vite · Sofia Marino</p>
+        <div class="corpo">
+          <div class="gruppo">
+            <h4>Neutri</h4>
+            <button class="rigaB"><span class="pal assente"></span>Trasparente</button>
+            <button class="rigaB"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="rigaB"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+          </div>
+          <div class="gruppo">
+            <h4>Caldi</h4>
+            <button class="rigaB sel"><span class="pal" style="background:#E8548C"></span>Rosa<span class="spunta">✓</span></button>
+            <button class="rigaB"><span class="pal" style="background:#D90012"></span>Rosso</button>
+            <button class="rigaB"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="rigaB"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+          </div>
+          <div class="gruppo">
+            <h4>Freddi</h4>
+            <button class="rigaB"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="rigaB"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="rigaB"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="rigaB"><span class="pal" style="background:#7C3F9C"></span>Viola</button>
+          </div>
+          <div class="gruppo">
+            <h4>Glitter</h4>
+            <button class="rigaB"><span class="pal assente"></span>Glitter argento</button>
+            <button class="rigaB"><span class="pal assente"></span>Glitter oro</button>
+            <button class="rigaB"><span class="pal assente"></span>Glitter multicolore</button>
+          </div>
+          <div class="gruppo">
+            <h4>Neon</h4>
+            <button class="rigaB"><span class="pal" style="background:#6EF23A"></span>Neon verde</button>
+            <button class="rigaB"><span class="pal" style="background:#FF3FA4"></span>Neon rosa</button>
+            <button class="rigaB"><span class="pal" style="background:#FF7A1A"></span>Neon arancione</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 class="sez">④ Tablet e computer — 768 e 1280</h2>
+<p class="sez-nota">
+  Sui formati larghi il pannello non si allarga oltre 560: una tavolozza larga 1200 px costringe l'occhio a
+  viaggiare. La griglia passa a <b>tre colonne</b>, l'elenco resta a una — è la sua natura.
+</p>
+
+<div class="fila">
+  <div class="caso">
+    <div class="targa">A · 768 · chiaro <em>— tre colonne</em></div>
+    <div class="tel w768">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Paradenti sport · Marco Esposito</p>
+        <div class="corpo">
+          <div class="grigliaA">
+            <button class="pillA"><span class="pal assente"></span>Trasparente</button>
+            <button class="pillA"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="pillA"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="pillA"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="pillA"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="pillA"><span class="pal" style="background:#10306B"></span>Blu scuro</button>
+            <button class="pillA sel"><span class="pal" style="background:#D90012"></span>Rosso</button>
+            <button class="pillA"><span class="pal" style="background:#8C0A18"></span>Rosso scuro</button>
+            <button class="pillA"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="pillA"><span class="pal" style="background:#0C4A24"></span>Verde scuro</button>
+            <button class="pillA"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="pillA"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+            <button class="pillA"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="pillA"><span class="pal" style="background:#B98BE8"></span>Lilla</button>
+            <button class="pillA"><span class="pal" style="background:#6B1028"></span>Bordeaux</button>
+            <button class="pillA"><span class="pal" style="background:#C9A227"></span>Oro</button>
+            <button class="pillA"><span class="pal" style="background:#B8BCC0"></span>Argento</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fila" style="margin-top:26px">
+  <div class="caso notte">
+    <div class="targa" style="color:var(--pagina-ink)">A · 1280 · scuro <em>— il pannello non si allarga oltre 560</em></div>
+    <div class="tel w1280">
+      <div class="pannello">
+        <div class="manico"></div>
+        <h3 class="titolo">Di che colore?</h3>
+        <p class="dida">Paradenti sport · Marco Esposito</p>
+        <div class="corpo">
+          <div class="grigliaA">
+            <button class="pillA"><span class="pal assente"></span>Trasparente</button>
+            <button class="pillA"><span class="pal" style="background:#FFFFFF"></span>Bianco</button>
+            <button class="pillA"><span class="pal" style="background:#1A1A1A"></span>Nero</button>
+            <button class="pillA"><span class="pal" style="background:#1D5FBF"></span>Blu</button>
+            <button class="pillA"><span class="pal" style="background:#57A8E8"></span>Azzurro</button>
+            <button class="pillA"><span class="pal" style="background:#10306B"></span>Blu scuro</button>
+            <button class="pillA sel"><span class="pal" style="background:#D90012"></span>Rosso</button>
+            <button class="pillA"><span class="pal" style="background:#8C0A18"></span>Rosso scuro</button>
+            <button class="pillA"><span class="pal" style="background:#1B7F3B"></span>Verde</button>
+            <button class="pillA"><span class="pal" style="background:#0C4A24"></span>Verde scuro</button>
+            <button class="pillA"><span class="pal" style="background:#F2C200"></span>Giallo</button>
+            <button class="pillA"><span class="pal" style="background:#F07B10"></span>Arancione</button>
+            <button class="pillA"><span class="pal" style="background:#E8548C"></span>Rosa</button>
+            <button class="pillA"><span class="pal" style="background:#B98BE8"></span>Lilla</button>
+            <button class="pillA"><span class="pal" style="background:#6B1028"></span>Bordeaux</button>
+            <button class="pillA"><span class="pal" style="background:#C9A227"></span>Oro</button>
+            <button class="pillA"><span class="pal" style="background:#B8BCC0"></span>Argento</button>
+          </div>
+        </div>
+        <div class="piede">
+          <button class="tastoSalta">Salta</button>
+          <button class="tastoPrimario">Continua</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 class="sez">⑤ Le altre due superfici — non c'è niente da scegliere, si guardano</h2>
+<p class="sez-nota">
+  <b>La scheda</b> mostra la tinta in sola lettura: il tecnico apre il lavoro al banco e la vede senza entrare
+  in modifica (D118). <b>La pagina di modifica</b> è dove si corregge, ed è ciò che rende il campo finito
+  secondo la direttiva del 27 luglio. Sotto, anche il caso in cui la tinta manca — perché è stato saltato
+  (D113) — e l'avviso di D117.
+</p>
+
+<div class="fila">
+
+  <div class="caso">
+    <div class="targa">Scheda · sola lettura · chiaro</div>
+    <div class="tel piatta" style="padding:20px 12px">
+      <div class="cardScheda">
+        <div class="rigaScheda"><span class="et">Dentista</span><span class="val">Dental Center</span></div>
+        <div class="rigaScheda"><span class="et">Paziente</span><span class="val">M.E.</span></div>
+        <div class="rigaScheda"><span class="et">Lavoro</span><span class="val">Paradenti sport</span></div>
+        <div class="rigaScheda"><span class="et">Tinta</span><span class="val"><span class="pal grande" style="background:#D90012"></span>Rosso</span></div>
+        <div class="rigaScheda"><span class="et">Consegna</span><span class="val">12 ago</span></div>
+      </div>
+    </div>
+    <p class="legenda">Con una tinta senza pallino la riga dice solo «Glitter oro»: nessun cerchietto, nessun vuoto strano.</p>
+  </div>
+
+  <div class="caso notte">
+    <div class="targa" style="color:var(--pagina-ink)">Scheda · tinta NON indicata · scuro</div>
+    <div class="tel piatta" style="padding:20px 12px">
+      <div class="cardScheda">
+        <div class="rigaScheda"><span class="et">Dentista</span><span class="val">Dental Center</span></div>
+        <div class="rigaScheda"><span class="et">Paziente</span><span class="val">S.M.</span></div>
+        <div class="rigaScheda"><span class="et">Lavoro</span><span class="val">Placca con vite</span></div>
+        <div class="rigaScheda"><span class="et">Tinta</span><span class="val vuoto">non indicata</span></div>
+        <div class="rigaScheda"><span class="et">Consegna</span><span class="val">18 ago</span></div>
+      </div>
+    </div>
+    <p class="legenda">Saltare è previsto (D113): la riga dice «non indicata», non finge un valore e non sparisce.</p>
+  </div>
+
+</div>
+
+<div class="fila" style="margin-top:26px">
+
+  <div class="caso">
+    <div class="targa">Modifica · il campo · chiaro</div>
+    <div class="tel piatta" style="padding:24px 20px">
+      <div class="campoMod">
+        <label>Tinta</label>
+        <button class="selettore"><span class="pal" style="background:#D90012"></span>Rosso<span class="chev">›</span></button>
+        <p class="notaCampo">Si tocca e si apre la stessa tavolozza del wizard. Per toglierla si sceglie «Nessuna tinta» in cima all'elenco.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="caso">
+    <div class="targa">Modifica · l'avviso di D117 · chiaro</div>
+    <div class="tel piatta" style="padding:24px 20px">
+      <div class="avviso">
+        <span style="font-size:18px; line-height:1.2">⚠️</span>
+        <span>Hai cambiato il tipo in <b>Corona in zirconia</b>: la tinta <b>Rosso</b> è stata tolta, perché su una protesi fissa non si usa.</span>
+      </div>
+      <p class="legenda" style="margin-top:14px">
+        Il salvataggio <b>riesce</b>: la tinta viene tolta e l'avviso lo dichiara. Togliere sì, in silenzio mai.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
