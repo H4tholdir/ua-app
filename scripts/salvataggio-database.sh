@@ -130,12 +130,35 @@ fi
 
 # ⑥ I FILE VERI — contratti in PDF e foto cliniche. Non stanno nel database.
 echo "  ⑥ archivio dei file…"
-node "${QUI}/scripts/salvataggio-archivio.mjs" "${CARTELLA}/archivio"
+# 🛑 P23 (02/08/2026) — L'ESITO DI QUESTA RIGA VA GUARDATO, e prima non lo era.
+#    Questo file NON ha `set -e`: fino a oggi, se lo scarico dei file falliva, la
+#    riga sotto proseguiva e stampava «✅ salvataggio completo». L'involucro
+#    (`salvataggio-programmato.sh`) l'esito di QUESTO script lo controlla eccome —
+#    ma qui dentro il fallimento veniva inghiottito prima di arrivargli, quindi
+#    l'allarme sulla Scrivania non sarebbe MAI scattato per un archivio incompleto.
+#    🔑 Senza questa riga la correzione dentro `salvataggio-archivio.mjs` è inerte:
+#    lo script esce con errore e non se ne accorge nessuno.
+if node "${QUI}/scripts/salvataggio-archivio.mjs" "${CARTELLA}/archivio"; then
+  ESITO_ARCHIVIO=0
+else
+  ESITO_ARCHIVIO=$?
+fi
 
 # 🛑 I file li può leggere SOLO il proprietario: dal primo laboratorio vero
 #    qui dentro ci sono nomi di pazienti, anamnesi e password cifrate.
+# ⚠️ Questo va fatto ANCHE quando l'archivio è incompleto, e per questo sta PRIMA
+#    dell'uscita in errore: i file già scaricati sono comunque dati di pazienti.
+#    Uscire subito dopo il fallimento li avrebbe lasciati leggibili a chiunque —
+#    cioè avrebbe trasformato una copia incompleta in una copia esposta.
 chmod -R go-rwx "${CARTELLA}"
 find "${CARTELLA}" -type f -exec chmod 600 {} +
+
+if [ "${ESITO_ARCHIVIO}" -ne 0 ]; then
+  echo "🛑 ARCHIVIO INCOMPLETO — mancano dei file." >&2
+  echo "   La copia del DATABASE c'è, è completa ed è protetta: ${CARTELLA}" >&2
+  echo "   Ciò che manca sono FILE dell'archivio (contratti, foto): v. sopra." >&2
+  exit 1
+fi
 
 echo "✅ salvataggio completo in ${CARTELLA}"
 du -sh "${CARTELLA}"

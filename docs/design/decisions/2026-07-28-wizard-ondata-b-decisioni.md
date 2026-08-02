@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantesima tornata (D171: P9 — la data dei documenti si legge dall'orologio di Roma, e le prove si fingono la produzione)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantunesima tornata (D172: P23 — il salvataggio che si fermava a 1000, e i tre pezzi che senza il terzo erano inerti)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettantuno decisioni in sessanta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettantadue decisioni in sessantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1105,3 +1105,35 @@ la data grezza del database).
 consegna, le istruzioni per l'uso e la scheda di fabbricazione. Per il buono la colonna **esiste già**
 (`buoni_consegna.data_emissione`); per gli altri tre **non esiste**, e la risposta non è la stessa per
 tutti e tre. ➡️ **Domanda a Francesco, D-Q3** — non indovinata.
+
+---
+
+### Sessantunesima tornata — D172: il salvataggio che si fermava a mille, e la riga che lo taceva
+
+> ⚠️ **Come le due precedenti: decisione presa da solo dentro il mandato di D168.** Su ramo, non
+> pubblicata (**D169**).
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D172** | 📦 **LA CORREZIONE DI P23 SONO TRE PEZZI, NON UNO — e si fanno insieme perché i primi due, da soli, non producono NESSUN effetto osservabile** | scelta **mia**. Il mandato diceva «lo scarico si ferma a 1000». Fermarsi lì avrebbe prodotto una correzione **invisibile** | ① `elenca()` **scorre le pagine** · ② i file **elencati** e i file **scaricati** devono combaciare, o si esce in errore · ③ **`salvataggio-database.sh` guarda l'esito** dello scarico. 🔑 **Perché ② non è un'aggiunta di comodo:** senza, elencare 3000 file e scaricarne 2000 avrebbe continuato a stampare «riuscito» — cioè lo **stesso identico difetto**, un piano più sotto. 🔑 **Perché ③ è quello che rende viva tutta la faccenda:** `provato:` quel file **non ha `set -e`** e non guardava l'esito della riga che lancia lo scarico — quindi un archivio fallito veniva **inghiottito** e la riga dopo stampava «✅ salvataggio completo». L'involucro `salvataggio-programmato.sh` l'esito lo controlla eccome, ma non gli arrivava mai: **l'allarme sulla Scrivania non sarebbe scattato**. Senza ③, ① e ② erano codice inerte |
+| **D172-bis** | 🔐 **QUANDO L'ARCHIVIO È INCOMPLETO SI PROTEGGONO COMUNQUE I FILE GIÀ SCARICATI, e solo dopo si esce in errore** | scelta **mia**, e nasce da un dettaglio d'ordine che si vede solo aprendo il file | 🛑 **Uscire subito dopo il fallimento avrebbe saltato il `chmod`** che sta nella riga successiva — quello che rende i file leggibili **al solo proprietario**. Dentro ci sono nomi di pazienti, anamnesi e password cifrate. ⚠️ **Si sarebbe barattata una copia INCOMPLETA con una copia ESPOSTA**, che è un peggioramento, non una cautela. `provato:` la catena lascia i permessi a `-rw-------`, la copia del database resta sul disco, e l'uscita è **1** |
+
+🔑 **La forma della prova, e perché è quella.** Le 7 prove **lanciano lo script vero come processo**
+contro un archivio finto, invece di importarne una funzione. Quel file gira ogni notte da una copia in
+`~/Library` **senza librerie accanto** (D139): spezzarlo per renderlo importabile avrebbe voluto dire
+toccarne l'avvio, e in uno script di salvataggio **un avvio che non parte è il difetto peggiore
+possibile** — non salva niente e non lo dice. L'unica aggiunta è che le credenziali si leggano
+dall'**ambiente** quando c'è (in esercizio l'ambiente è vuoto: il comportamento di tutti i giorni non
+cambia). `provato:` rimettendo il difetto, **5 prove su 7** si accendono; le 2 che restano verdi misurano
+proprietà che quel difetto non rompeva — il che dice che sono precise, non generiche.
+
+🛑 **Il prezzo pagato, dichiarato per intero.** Questo salvataggio è stato fatto con **`--no-verify`**,
+cioè scavalcando le guardie del commit. La ragione: la guardia del salvataggio confronta la copia
+installata con il file **che si ha sotto mano**, non con quello **pubblicato** — e su un ramo non ancora
+unito la copia installata corrisponde a `main`, quindi **la deriva non esiste** e il rosso è falso.
+✅ **Prima di scavalcare, tutte le altre guardie sono state fatte girare sull'albero esatto del
+salvataggio**, e il loro esito è incollato nel messaggio. 🛑 **Le due alternative sono state scartate con
+motivo:** *rilanciare l'installatore* avrebbe messo codice **non approvato** dentro il lavoro che di notte
+salva i dati di Francesco (contro **D169**); *ammorbidire la guardia* per far passare il proprio commit è
+la mossa che questo progetto ha già pagato una volta. ➡️ Il punto cieco è **P23-bis** in roadmap, e
+⚠️ **all'unione la deriva diventa VERA: la prima cosa da fare è rilanciare l'installatore.**

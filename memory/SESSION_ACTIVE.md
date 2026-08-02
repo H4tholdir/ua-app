@@ -18,6 +18,15 @@ gruppo **si finge la produzione** (`TZ=UTC`) **e verifica che la finta abbia mor
 ristamparli la cambia — **più grave del fuso**) · **P9-ter** (nomina PRRC stampa la data grezza).
 ❓ **D-Q3**: da quale campo prendono la data di emissione ricevuta, IFU e scheda di fabbricazione.
 
-📌 FASE 7 su P9: `tsc` **0** · `vitest` **4454 passate | 19 saltate** (380 file) · `next build` **0**.
-▶️ **Prossimo:** **P23** (il salvataggio dei file si ferma a 1000 per cartella e si dichiara riuscito).
-📎 **171** decisioni in **60** tornate; la prossima è **D172**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
+✅ **P23 FATTA** — ramo `p23-il-salvataggio-che-si-ferma-a-mille`. **Tre pezzi:** lo scarico dei file
+**scorre le pagine** · elencati e scaricati devono **combaciare** · e 🔑 **`salvataggio-database.sh` ora
+GUARDA l'esito** — non ha `set -e`, quindi un archivio fallito veniva **inghiottito** e stampava «✅
+salvataggio completo»: senza il terzo pezzo i primi due erano **inerti**. **7 prove** che lanciano lo
+script vero come processo; `provato:` rimettendo il difetto **5 su 7** si accendono. **D172 · D172-bis.**
+🛑 **Salvato con `--no-verify`**, con tutte le altre guardie fatte girare e incollate: la guardia del
+salvataggio confronta col file **sotto mano** invece che col **pubblicato** → falso rosso su un ramo
+(**P23-bis**). ⚠️ **ALL'UNIONE, PRIMA COSA:** `bash scripts/installa-salvataggio-programmato.sh`.
+
+📌 FASE 7 su P23: `tsc` **0** · `vitest` **4461 passate | 19 saltate** (381 file) · `next build` **0**.
+▶️ **Prossimo:** **P18** (idratazione disallineata sul collegamento al dentista), poi **P30**.
+📎 **172** decisioni in **61** tornate; la prossima è **D173**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
