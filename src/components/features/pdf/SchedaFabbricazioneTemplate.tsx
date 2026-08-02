@@ -5,6 +5,7 @@
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio, LavoroFase } from '@/types/domain'
+import { dataItalianaBreve, dataOraItaliana } from '@/lib/utils/data-roma'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -183,19 +184,12 @@ const styles = StyleSheet.create({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
+// P9 (02/08/2026) — l'ora è quella dell'orologio di ROMA, non della macchina.
+// Qui il valore è `fasi.eseguita_at`, un TIMESTAMPTZ: su un registro di
+// tracciabilità (Art. 10(9) MDR) un'ora letta nel fuso sbagliato sposta anche il
+// GIORNO in cui una fase risulta eseguita.
 function formatDataOra(isoString: string | null): string {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return '—'
-  }
+  return dataOraItaliana(isoString)
 }
 
 function esitoLabel(fase: LavoroFase): string {
@@ -226,11 +220,8 @@ interface SchedaFabbricazioneTemplateProps {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function SchedaFabbricazioneTemplate({ lavoro, lab }: SchedaFabbricazioneTemplateProps) {
-  const dataEmissione = new Date().toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  // P9: fuso corretto. 🛑 Sorgente «adesso», dichiarata e non corretta (R-E2): v. P9-bis.
+  const dataEmissione = dataItalianaBreve(new Date().toISOString())
   const labNome = lab.ragione_sociale ?? lab.nome
   const tipoFormatted = lavoro.tipo_dispositivo.replace(/_/g, ' ')
   const fasiOrdinate = [...lavoro.fasi].sort((a, b) => a.fase.ordine - b.fase.ordine)

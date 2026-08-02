@@ -72,6 +72,74 @@ export function mesiFaISO(iso: string, mesi: number): string {
   return `${bersaglio.getFullYear()}-${mm}-${dd}`
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// P9 — LE DATE CHE FINISCONO STAMPATE SU UN DOCUMENTO (02/08/2026)
+//
+// Undici punti nei modelli PDF rendevano una data con `toLocaleDateString('it-IT',
+// …)` senza dichiarare il fuso, cioè nel fuso della MACCHINA che genera il file —
+// e in produzione quella macchina gira a UTC.
+//   `provato:` 2026-03-10T23:30:00Z (le 00:30 dell'11 marzo a Roma)
+//              a UTC → «10/03/2026» · a Roma → «11/03/2026»
+//
+// 🔑 E la metà del lavoro era già fatta, il che rendeva il difetto PEGGIORE: il
+//    NUMERO del documento passa da `annoRoma()` dal 20/07/2026, la data stampata
+//    no. Fra le 00:00 e le 02:00 un documento portava un numero della serie di un
+//    giorno e stampava la data del giorno prima.
+//
+// 🔑 PERCHÉ SONO FUNZIONI CONDIVISE E NON UN'OPZIONE AGGIUNTA IN UNDICI PUNTI.
+//    Undici copie della stessa opzione sono undici occasioni di dimenticarla la
+//    prossima volta — ed è esattamente così che P9 è nata: il fuso era stato
+//    dichiarato in UN punto (`DpaTemplate`) e in nessuno degli altri dieci.
+//
+// ⚠️ VALGONO SIA PER GLI ISTANTI SIA PER LE DATE CIVILI, e non per caso: Roma è
+//    SEMPRE avanti a UTC (+1 o +2, mai negativa), quindi `new Date('2026-03-10')`
+//    — che è mezzanotte UTC — letta a Roma resta il 10 (sono le 01:00). Se il
+//    fuso di riferimento fosse a ovest di Greenwich questa uniformità cadrebbe.
+//
+// 🛑 NON usarle per un'ora che deve restare un istante assoluto (un registro di
+//    accessi, una traccia tecnica): lì il fuso di lettura è una scelta di chi
+//    legge, non del documento.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FMT_DATA_BREVE = new Intl.DateTimeFormat('it-IT', {
+  timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric',
+})
+const FMT_DATA_ORA = new Intl.DateTimeFormat('it-IT', {
+  timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit',
+})
+const FMT_DATA_ESTESA = new Intl.DateTimeFormat('it-IT', {
+  timeZone: 'Europe/Rome', day: 'numeric', month: 'long', year: 'numeric',
+})
+
+/** Il trattino che i modelli PDF già usavano per «non c'è». */
+const ASSENTE = '—'
+
+function formattaARoma(fmt: Intl.DateTimeFormat, iso: string | null | undefined): string {
+  if (!iso) return ASSENTE
+  const d = new Date(iso)
+  // ⚠️ Il controllo è QUI e non in un `catch`, perché un `catch` non basterebbe:
+  // `provato:` `new Date('pippo').toLocaleDateString('it-IT', …)` NON lancia —
+  // restituisce la stringa «Invalid Date», che i modelli stampavano sul PDF.
+  if (Number.isNaN(d.getTime())) return ASSENTE
+  return fmt.format(d)
+}
+
+/** Data da documento, gg/mm/aaaa, nel giorno civile italiano. */
+export function dataItalianaBreve(iso: string | null | undefined): string {
+  return formattaARoma(FMT_DATA_BREVE, iso)
+}
+
+/** Data e ora dell'orologio di Roma, gg/mm/aaaa, hh:mm. */
+export function dataOraItaliana(iso: string | null | undefined): string {
+  return formattaARoma(FMT_DATA_ORA, iso)
+}
+
+/** Formato lungo da contratto: «11 marzo 2026». */
+export function dataItalianaEstesa(iso: string | null | undefined): string {
+  return formattaARoma(FMT_DATA_ESTESA, iso)
+}
+
 export const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
 export const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 

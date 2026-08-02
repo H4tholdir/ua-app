@@ -5,6 +5,7 @@
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 // ─── Props aggiuntiva v2 ────────────────────────────────────────────────────
 export interface EtichettaTemplateProps {
@@ -101,18 +102,11 @@ const styles = StyleSheet.create({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-function formatDataBreve(isoString: string | null | undefined): string {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  } catch {
-    return isoString
-  }
-}
+// P9 (02/08/2026) — giorno civile italiano, non fuso della macchina. Qui il valore
+// è `data_consegna_effettiva ?? data_consegna_prevista`, cioè un TIMESTAMPTZ oppure
+// una DATE a seconda del caso (`supabase/schema.sql:935,939`): la funzione condivisa
+// regge entrambi, perché Roma è sempre avanti a UTC.
+const formatDataBreve = dataItalianaBreve
 
 /**
  * Il paziente sull'etichetta. Allineata verbatim alla funzione `codiceGDPR`

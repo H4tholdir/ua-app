@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla cinquantanovesima tornata (D170: P15 — i tre progetti fantasma si rimuovono e nasce la guardia che impedisce il terzo caso)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantesima tornata (D171: P9 — la data dei documenti si legge dall'orologio di Roma, e le prove si fingono la produzione)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettanta decisioni in cinquantanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettantuno decisioni in sessanta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1077,3 +1077,31 @@ proprio computer. ➡️ **È una decisione di Francesco** (serve una banca dati
 automatica e minuti che si pagano), non un difetto di codice: sta fra le domande della notte come **D-Q1**,
 con le tre opzioni e il loro prezzo. 🔑 **Quindi la rete oggi è ONESTA, non ATTIVA** — sono due cose
 diverse, e prometterne una per l'altra sarebbe la stessa forma di P15.
+
+---
+
+### Sessantesima tornata — D171: la data dei documenti, e una prova che si fingeva verde
+
+> ⚠️ **Come la tornata precedente: decisione presa da solo dentro il mandato di D168**, mentre Francesco
+> dorme. È su ramo, non pubblicata (**D169**), e si ribalta con un `git checkout`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D171** | 🕐 **LA DATA CHE FINISCE STAMPATA SU UN DOCUMENTO SI LEGGE DALL'OROLOGIO DI ROMA — e lo si ottiene con TRE FUNZIONI CONDIVISE, non aggiungendo un'opzione in dodici punti** | scelta **mia**, di notte, fra due strade: ① aggiungere `timeZone: 'Europe/Rome'` a ognuno dei dodici punti · ② tre funzioni in `data-roma.ts` e i dodici punti che le usano. **Scelta la ②** | 🔑 **Perché non la ①, ed è il cuore della faccenda:** dodici copie della stessa opzione sono **dodici occasioni di dimenticarla la prossima volta** — ed è **esattamente così che P9 è nata**. Il fuso *era* dichiarato, in **un** punto solo (`DpaTemplate`, corretto il 03/08 perché era il documento di quell'ondata) e in **nessuno** degli altri undici. Ripetere la stessa forma avrebbe riparato oggi e riaperto domani. 📌 **Anche il punto già corretto è passato alla funzione condivisa**: lasciare l'unica copia scritta a mano avrebbe lasciato in piedi il modello da imitare. ⚠️ **I punti erano DODICI e la roadmap ne elencava undici** — il dodicesimo (`BuonoTemplate`, la data in testata) non l'aveva visto nessuno: **lezione ② del 02/08**, «il conto di un difetto non lo fa chi l'ha trovato», applicata alla riga che descriveva il difetto |
+| **D171-bis** | 🧪 **LE PROVE SUL DOCUMENTO SI FINGONO LA PRODUZIONE (`TZ=UTC`), E PORTANO UNA PROVA CHE LA FINTA HA MORSO** | non è una decisione separata: è la condizione senza la quale le altre due prove **erano verdi a difetto intatto** | 🔑 **Il fatto che l'ha imposta, ed è successo scrivendola.** Alla prima stesura le due prove sul PDF della DdC **passavano**, e sembravano una conferma. Non lo erano: `provato:` questa macchina è **`Europe/Rome`**, quindi leggeva già le date «da Roma» per conto suo — mentre la produzione gira a **UTC**. ⚠️ **Una prova che passa perché la macchina è quella giusta non prova niente**, e in più *sembra* una prova: è la forma esatta della lezione ③ del 02/08 («prima di credere a una misura, si guarda che cosa ha misurato»). ✅ **La cura ha due pezzi:** il gruppo imposta `process.env.TZ='UTC'` (`provato:` efficace a giro avviato, 11/03 → 10/03) **e** una terza prova verifica che senza fuso dichiarato la macchina legga davvero «10/03/2026». 🔑 **Senza quel terzo controllo la finta sarebbe silenziosa**: se un domani smettesse di funzionare, le due prove tornerebbero verdi **per la ragione sbagliata**, e nessuno lo saprebbe |
+
+🔑 **Tre cose trovate strada facendo, e tenute perché cambiano il modo di leggere il difetto:**
+**①** `data_consegna_effettiva` è un **istante** (TIMESTAMPTZ) e `data_consegna_prevista` una **data civile**
+(DATE) — e la **stessa chiamata** riceve l'uno o l'altro. La correzione uniforme regge perché **Roma è
+sempre avanti a UTC** (+1 o +2, mai negativa): è sicura **per costruzione**, non per fortuna, e se il fuso
+di riferimento fosse a ovest di Greenwich cadrebbe. **②** Il `catch` di quelle funzioni era **codice
+morto**: `provato:` `toLocaleDateString` su una data illeggibile **non lancia** — restituisce la stringa
+«Invalid Date», che finiva **stampata sul documento**. Ora esce un trattino. **③** Due difetti nuovi,
+**riferiti e non corretti** (R-E2): **P9-bis** (quattro documenti prendono la data di emissione da
+«adesso», quindi ristamparli la cambia — **più grave del fuso**) e **P9-ter** (la nomina del PRRC stampa
+la data grezza del database).
+
+🛑 **Che cosa NON è stato deciso:** da quale campo debbano prendere la data di emissione la ricevuta di
+consegna, le istruzioni per l'uso e la scheda di fabbricazione. Per il buono la colonna **esiste già**
+(`buoni_consegna.data_emissione`); per gli altri tre **non esiste**, e la risposta non è la stessa per
+tutti e tre. ➡️ **Domanda a Francesco, D-Q3** — non indovinata.
