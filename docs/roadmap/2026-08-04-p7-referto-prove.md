@@ -7,9 +7,11 @@
 `scripts/tmp/p7-t4-followup.mjs`, `scripts/tmp/p7-t4-followup-c.mjs`, nati da un ritrovamento fuori
 mandato durante T4, v. §6)
 
-**Esito in una riga: 4 prove su 5 PROVATE, 1 (T3) eseguita ma NON soddisfatta sul dato vivo — e
-durante T4 trovato un difetto REALE, indipendente da questo piano, che blocca
-`admin_delete_laboratorio()` per ogni laboratorio con almeno una DdC/DPA emessa a un dentista.**
+**Esito in una riga: 4 prove su 5 PROVATE, 1 (T3) eseguita ma non chiudibile oggi sul dato vivo — e
+durante T4 trovato un difetto REALE, indipendente da questo piano, che OGGI blocca
+`admin_delete_laboratorio()` sul laboratorio Filippo (misurato: l'unico con righe DPA che referenziano
+ancora un cliente) e che, per costruzione del vincolo `dpa_emissione_coerente`, colpirà per lo stesso
+motivo ogni futuro laboratorio che emetta una DdC/DPA a un dentista.**
 
 ---
 
@@ -142,12 +144,24 @@ un'emissione (stessi vincoli CHECK di `generateDpa`: `dpa_emissione_coerente`,
   "riga_numero_dpa":"DPA-2026-TEST-T2T3"}]
 ```
 
-**`audit_prima`→`audit_dopo`: 0→1, esattamente +1.** `operation='INSERT'` ✅. `new_data` contiene la
-riga intera (verificato: `new_data->>'id'` combacia con l'id della riga appena inserita) ✅.
+**`audit_prima`→`audit_dopo`: 0→1, esattamente +1.** `operation='INSERT'` ✅.
+
+**Rafforzamento fatto dopo un giro dell'advisor** (il controllo iniziale, `new_data->>'id' = id`,
+prova che punta alla riga giusta ma non che la contenga **per intero**): stessa transazione annullata,
+stessa forma di riga, letto `jsonb_object_keys(new_data)` e `new_data->>'emesso_da'`:
+
+```
+[{"n_chiavi":23,"new_data_emesso_da":"eb161af4-0232-4e8e-b0e2-3283d551e2fd",
+  "new_data_id":"574466c9-638e-4604-9afb-9068023ddbc2"}]
+```
+
+**23 chiavi — combacia col numero di colonne di `data_processing_agreements`** (verificato in
+ricognizione: `information_schema.columns` ne conta 23) — e `new_data->>'emesso_da'` è esattamente
+l'utente passato. `new_data` **contiene la riga intera**, non solo un puntatore. ✅
 
 ---
 
-## T3 dal vivo — il «chi» c'è — ⚠️ ESEGUITA, MA NON SODDISFATTA sul dato vivo (difetto #6 del piano)
+## T3 dal vivo — il «chi» c'è — ⚠️ ESEGUITA, non chiudibile oggi sul dato vivo (motivo sotto)
 
 Query **letterale** del brief, in **sola lettura**, nessuna scrittura:
 
@@ -169,11 +183,14 @@ codice — nessuna emissione reale è mai passata dalla rotta `/api/clienti/[id]
 §4): anche se qualcuno avesse premuto il tasto oggi su un cliente con una DPA già valida, la riga NON
 si sarebbe aggiornata.
 
-🔑 **Questo è un difetto del piano (#6, oltre ai 5 già trovati dai due esecutori precedenti):** il
-brief assume che T3 sia soddisfacibile con una lettura pura sul dato che il Task 2 ha già prodotto,
-ma il Task 2 stesso (referto, §4) dice esplicitamente che il ramo di riuso non scrive `emesso_da` e
-che nessuna emissione nuova è mai stata generata. Chi ha scritto il brief avrebbe dovuto sapere (o
-verificare) che T3, così com'è, richiede un evento che non è ancora accaduto.
+🔑 **T3 non è chiudibile oggi, e il motivo non è un errore di esecuzione**: il brief è stato scritto
+prima che il Task 2 girasse, e il Task 2 stesso (referto, §4) dichiara che il ramo di riuso non
+scrive `emesso_da` e che nessuna emissione nuova è mai stata generata da quando la colonna esiste. Non
+la classifico come un difetto del piano nello stesso senso dei 5 già trovati dai due esecutori
+precedenti (quelli erano verificabili al momento in cui il piano è stato scritto — un numero di
+riga, un grep che non può dare 0, un conteggio di asserzioni; questo dipende da un evento che accade
+DOPO, nel mondo, non da un errore nel testo del brief). Resta però un fatto che chiude la prova con un
+esito diverso da quello scritto, e va portato a Francesco per quello che è.
 
 **Non l'ho forzata a mano:** produrre una riga vera con `emesso_da` valorizzato richiede o (a) una
 emissione REALE attraverso l'app (un click vero su un cliente senza DPA valida, che lascerebbe una
@@ -270,7 +287,7 @@ protegge la FK `emesso_da`, quando nient'altro a monte lo impedisce?») — v. �
 | **T1(a)** controllo positivo (regola vecchia) | ✅ PROVATO | 2 righe toccate (≥1 atteso) |
 | **T1(b)** il rifiuto (regola attuale) | ✅ PROVATO | 2 righe lette, 0 toccate — il rifiuto è «0 righe», non un'eccezione |
 | **T2** la traccia esiste | ✅ PROVATO | `audit_log` 0→1, `operation='INSERT'`, `new_data` con la riga intera |
-| **T3** il «chi» dal vivo | ⚠️ ESEGUITA, NON soddisfatta | 0 righe sul dato vivo — nessuna emissione reale è mai avvenuta da quando esiste `emesso_da`; **difetto #6 del piano** (v. sopra); proxy di comportamento fatto ma dichiarato non equivalente |
+| **T3** il «chi» dal vivo | ⚠️ ESEGUITA, non chiudibile oggi | 0 righe sul dato vivo — nessuna emissione reale è mai avvenuta da quando esiste `emesso_da`; motivo dichiarato (v. sopra); proxy di comportamento fatto ma dichiarato non equivalente |
 | **T4** cancellazione con `emesso_da` riempito | ⚠️ BLOCCATA (bug reale, fuori mandato) — claim isolata ✅ CONFERMATA | `admin_delete_laboratorio` fallisce PRIMA di arrivare alla sezione DPA/utenti, per una FK diversa (`dentista_id→clienti`); isolando il bug (Follow-up C), l'ordine DPA-prima-di-utenti tiene |
 | **T5** la chiave esterna morde | ✅ PROVATO | 23503 esatto, messaggio incollato, nessun residuo |
 
@@ -283,15 +300,29 @@ verificata isolatamente.**
 
 ## 6. Difetti trovati FUORI mandato (R-E2) — riferiti, NON corretti
 
-### F1 🔴 — `admin_delete_laboratorio()` non riesce a cancellare NESSUN laboratorio che abbia emesso almeno una DdC/DPA a un dentista
+### F1 🔴 — `admin_delete_laboratorio()` fallisce oggi su ogni laboratorio con una riga DPA che referenzia ancora un cliente
 
 **Trovato eseguendo T4, non cercato apposta.** La funzione cancella `clienti` (riga 37 del corpo)
 **prima** di cancellare `data_processing_agreements` (riga ~155). Ma
 `data_processing_agreements.dentista_id → clienti(id)` è una FK **NO ACTION** (nuda, come quella su
-`emesso_da`). Ogni DPA **emessa per davvero** (cioè con `numero_dpa` valorizzato) ha, per il vincolo
-`dpa_emissione_coerente`, **anche `dentista_id` obbligatoriamente valorizzato** — quindi **ogni**
-laboratorio che abbia emesso almeno una DdC/DPA verso un dentista farà fallire
-`admin_delete_laboratorio()` con un 500 (23503), indipendentemente da `emesso_da`.
+`emesso_da`): se una riga DPA con `dentista_id` non nullo sopravvive fino a quel punto, il `DELETE
+FROM clienti` fallisce.
+
+**Misurato, non ipotizzato — quanti laboratori sono colpiti OGGI (sola lettura):**
+
+```sql
+SELECT laboratorio_id, count(*) FROM public.data_processing_agreements
+ WHERE dentista_id IS NOT NULL AND deleted_at IS NULL GROUP BY laboratorio_id;
+```
+```
+[{"laboratorio_id":"971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c","count":2}]
+```
+
+**Un solo laboratorio oggi (Filippo, 2 righe).** L'estensione a "ogni laboratorio futuro" è
+un'**inferenza dal vincolo**, dichiarata come tale, non una misura: il CHECK `dpa_emissione_coerente`
+impone che ogni DPA **emessa per davvero** (`numero_dpa` valorizzato) abbia anche `dentista_id`
+obbligatoriamente valorizzato — quindi, per costruzione, **ogni futuro laboratorio che emetta almeno
+una DdC/DPA verso un dentista** erediterà lo stesso blocco, indipendentemente da `emesso_da`.
 
 **Verificato che NON è un effetto di questo piano** (Follow-up A, `scripts/tmp/p7-t4-followup.mjs`):
 lo stesso errore, **identico**, si riproduce chiamando `admin_delete_laboratorio('971061a1-...')` **senza
@@ -345,7 +376,7 @@ veri entrambi, su piani diversi.
 
 ### F3 🟢 — nessun altro ritrovamento fuori mandato
 
-Nessun altro difetto di piano o di codice trovato oltre F1/F2 e il difetto #6 di T3 (già in §T3, in
+Nessun altro difetto di piano o di codice trovato oltre F1/F2 e l'esito di T3 (già in §T3, in
 mandato perché riguarda direttamente la prova assegnata).
 
 ---
@@ -390,9 +421,11 @@ T5 e i due follow-up di F1/F2.
 ## 9. Cosa resta aperto (per Francesco)
 
 1. **F1 è un bug reale in produzione**, non solo un problema di questo piano: `admin_delete_laboratorio()`
-   non funziona su nessun laboratorio con almeno una DdC/DPA emessa a un dentista. Da decidere: quando
-   e come riordinare la funzione (probabile candidato: spostare `DELETE FROM data_processing_agreements`
-   prima del blocco `clienti`, o azzerare `dentista_id` con `SET NULL` a monte).
+   fallisce **oggi, misurato**, sul laboratorio Filippo (l'unico con righe DPA che referenziano ancora
+   un cliente), e per costruzione del vincolo `dpa_emissione_coerente` colpirà lo stesso modo ogni
+   futuro laboratorio che emetta una DdC/DPA a un dentista. Da decidere: quando e come riordinare la
+   funzione (probabile candidato: spostare `DELETE FROM data_processing_agreements` prima del blocco
+   `clienti`, o azzerare `dentista_id` con `SET NULL` a monte).
 2. **T3 non ha ancora una riga vera da mostrare.** Per chiuderla per davvero serve o una emissione reale
    (permanente, fuori dalla mia autorizzazione per questo task) o attendere che accada nel flusso
    normale dell'app.
