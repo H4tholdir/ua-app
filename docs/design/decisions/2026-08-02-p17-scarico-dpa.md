@@ -105,7 +105,7 @@ sola scheda.
 | # | quando | tasto | cosa dice |
 |---|---|---|---|
 | ① | tutto a posto | attivo | — |
-| ② | manca P.IVA/CF **del cliente** | inerte | «Manca un dato dello studio» → **Aggiungi il dato** (la modifica è già su questa scheda) |
+| ② | manca P.IVA/CF **del cliente** | inerte | ~~«Manca un dato dello studio» → **Aggiungi il dato**~~ 🔄 **CORRETTO il 02/08 (D165): NIENTE TASTO** — il testo indica il «Modifica» già presente in cima alla stessa schermata |
 | ③ | manca P.IVA/CF **del laboratorio** | inerte | «Mancano i dati del tuo laboratorio» → **Completa i dati del laboratorio** |
 | ④ | mentre prepara | occupato | «Preparo il documento…» |
 | ⑤ | guasto del servizio (7 cammini) | attivo | «Non è stato possibile preparare il documento — non dipende dai tuoi dati» → **Riprova** |
@@ -117,6 +117,17 @@ sola scheda.
 ⚠️ **Il 404 «Cliente non trovato»** (collegamento vecchio, cliente cancellato, id di un altro laboratorio)
 ricade nel percorso vivo con il suo messaggio: la scheda però è stata caricata, quindi il caso si vede solo se
 il cliente sparisce fra il caricamento e la pressione.
+
+🔄 **CORREZIONE DEL 02/08/2026 — un tasto approvato che in produzione sarebbe stato MORTO (D165).**
+Lo stato ② prevedeva un tasto «**Aggiungi il dato**», e sembrava gratuito perché «*la modifica è già su questa
+scheda*». **Lo è, ma non è raggiungibile:** `provato:` il pannello vive dentro `ClienteModificaButton` con uno
+`useState` proprio e **non ha indirizzo**; `find src/app -name page.tsx -path "*modifica*"` → **solo
+`lavori/[id]/modifica`**, per i clienti **non esiste**. Da un componente fratello quel pannello **non si apre**.
+🔑 **Nessuno poteva vederlo guardando il mockup** — un tasto disegnato sembra sempre un tasto che funziona. È
+saltato fuori solo quando qualcuno ha provato a **collegarlo**.
+➡️ **Nel frattempo il blocco ② resta SENZA tasto**, e il testo indica il «Modifica» in cima alla stessa
+schermata (a due dita di distanza). ➡️ **La pagina di modifica del dentista si costruisce** — voce **P30**,
+fuori dal perimetro di P17. 🛑 **Non è un ripiego nascosto:** il debito ha un numero e una destinazione.
 
 ---
 
