@@ -96,7 +96,55 @@ grep -rn "clienti/.*\/dpa\|/dpa'" src/ --include="*.tsx" --include="*.ts" | grep
 Se ce ne sono altre, il campo aggiunto al corpo JSON va verificato anche lì (è un'aggiunta, quindi
 retro-compatibile, ma l'elenco dei chiamanti non lo decide chi scrive).
 
-- [ ] **Passo 4 — scrivere gli esiti nel referto del task**, con gli output incollati. Nessun commit.
+- [x] **Passo 4 — scrivere gli esiti nel referto del task**, con gli output incollati. Nessun commit.
+
+### ✅ ESITO DEL TASK 0 — eseguito il 02/08/2026. Le quattro assunzioni, una per una
+
+**A1 — `Content-Disposition` è leggibile da `fetch` di pari origine: ✅ VERO, sui TRE motori.**
+`provato:` sonda usa-e-getta (un server minimo che serve **sia** la pagina **sia** il file, quindi stessa
+origine — la condizione dell'app vera):
+
+```
+chromium · firefox · webkit → stato 200
+  content-disposition: "attachment; filename=\"DPA-2026-0007.pdf\""
+  chiavi leggibili: connection · content-disposition · content-type · date · keep-alive · transfer-encoding
+```
+
+🔑 **La controprova sta nell'elenco completo delle chiavi:** su una risposta di **altra** origine il browser
+lascerebbe passare solo la manciata «sicura» (e `content-disposition` **non** è fra quelle). Qui si vedono
+tutte → **non c'è nessun filtro**, ed è la ragione per cui vale.
+➡️ **Il Task 3 resta come scritto.** Nessun `Access-Control-Expose-Headers` da aggiungere.
+⚠️ **WebKit compreso di proposito:** è Safari, cioè l'iPhone, cioè il dispositivo su cui questa PWA si usa.
+
+**A3 — il predicato è `&&`: ✅ VERO.**
+```ts
+  if (!lab.partita_iva && !lab.codice_fiscale) {
+    throw new ErroreDatiDpa('DPA: laboratorio privo di Partita IVA e Codice Fiscale', 422)
+  }
+  if (!cliente.partita_iva && !cliente.codice_fiscale) {
+```
+➡️ **Ne basta UNO dei due.** Il caso di prova «cliente con solo il Codice Fiscale → tasto ATTIVO» (Task 3)
+è quello che smaschera un `||` scritto per distrazione, e va tenuto.
+
+**Chi altro chiama la rotta: `provato:` 3 occorrenze fuori dalla rotta, ma UNA sola è una chiamata**
+(`page.tsx:329`). Le altre due sono un **commento** (`page.tsx:320`) e — 🆕 **questa il piano non l'aveva** —
+una **allowlist**: `src/lib/supabase/lab-context-allowlist.ts:8`.
+➡️ **L'allowlist NON si tocca** (la rotta non cambia categoria: continua a usare il contesto dai claim), **ma
+dice una cosa che il Task 4 deve sapere:**
+
+> 🛑 **Il ruolo che la pagina legge viene dai CLAIM del token, non da una lettura fresca del database.**
+> Quindi **nascondere il tasto (D158) è cortesia visiva, NON un controllo di sicurezza**: la protezione vera
+> resta quella della rotta (`puoEmettereDpa`, che gira sul server a ogni richiesta). ⚠️ Un lettore futuro
+> potrebbe scambiare il gate della pagina per una protezione e togliere quello della rotta: **non lo è, e i
+> due non si sostituiscono**. ✅ Pagina e rotta usano comunque la **stessa** fonte (`getLabContext`), quindi
+> questo lavoro **non introduce** divergenze nuove.
+
+**A2 (la lettura in più non rallenta) e A4 (il corpo può non essere JSON):** restano **da provare nei loro
+task** — A2 con il `Promise.all` del Task 4, A4 col caso di prova dedicato del Task 3. Sono dichiarate lì.
+
+**In più, verificato perché ogni task ci si appoggia:** `@testing-library/jest-dom` **è configurato**
+(`tests/setup.ts:2`, `vitest.config.ts` → `setupFiles`), quindi `toBeInTheDocument` e `toHaveAttribute`
+funzionano. `provato:` senza questo controllo ogni esecutore si sarebbe fermato al primo test.
 
 ---
 
