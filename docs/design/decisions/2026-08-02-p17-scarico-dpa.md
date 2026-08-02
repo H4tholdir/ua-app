@@ -51,8 +51,19 @@ sono riuscito a leggere*, e mostrare il vuoto quando la lettura fallisce è un d
 ### ① Prevenire dove si può, raccontare dove non si può (**D159**)
 
 **La scoperta che l'ha resa possibile: la scheda sa già, prima che si prema, se il documento fallirà.**
-`page.tsx:126` legge `partita_iva, codice_fiscale` del cliente, e il contesto porta il laboratorio — cioè
-**esattamente** i due dati che `generate-dpa.ts:81` e `:84` controllano.
+`provato:` `page.tsx:126` legge `partita_iva, codice_fiscale` **del cliente** — cioè **esattamente** i due dati
+che `validateDpaData` controlla (`generate-dpa.ts:76-84`), col predicato `!partita_iva && !codice_fiscale`:
+**ne basta uno**, e il messaggio del mockup dice infatti «*la Partita IVA **o** il Codice Fiscale*».
+
+🔄 **CORRETTA il 02/08/2026, ed era un'assunzione mia mai verificata.** La prima stesura di questa riga diceva
+«*e il contesto porta il laboratorio*». **È FALSO.** `provato:` `src/lib/supabase/lab-context.ts:19` →
+`lab: { stato: string; trial_ends_at: string | null; nome: string } | null` — **niente `partita_iva`, niente
+`codice_fiscale`**.
+➡️ **Conseguenza vera, e va nel piano:** la prevenzione del **caso ③** (dati fiscali del laboratorio) richiede
+una **lettura in più** nella pagina; non esce gratis dal contesto. Senza quella lettura lo stato ③ del mockup
+**non si accenderebbe mai**, e il caso ricadrebbe nel percorso vivo come un 422 generico.
+🔑 **È la forma esatta di P28 e della lezione ⑤ del 02/08:** provato su un'entità (`clienti`), **assunto**
+sull'altra (`laboratori`). La prova su un caso non è una prova sul comportamento.
 
 - **Mossa ①** — manca un dato → il tasto nasce **inerte**, col motivo scritto e la via per rimediare. Il
   titolare **non prova nemmeno**.
@@ -150,3 +161,46 @@ nuovo non lo è** — per questo tutto ciò che P17 **aggiunge** sta su `--t1`.
   nessuna scelta su un sistema che non esiste.
 - **Non cambia chi può emettere.** Il controllo di autorizzazione della rotta resta identico: cambia solo che
   la scheda smette di offrire un tasto a chi quel controllo respingerà.
+
+---
+
+## 6. 🛑 Le due cose che il passaggio a «tasto vivo» rischia di rompere
+
+Nessuna delle due è visibile nel disegno: si vedono solo aprendo il codice, e vanno nel piano **marcate**.
+
+### ① Il NOME DEL FILE si perde — e disferebbe un lavoro già pagato
+
+Un collegamento normale lascia decidere il nome al server (`Content-Disposition`). Una richiesta via `fetch`
+**no**: il file arriva come dato grezzo e, se nessuno rilegge quell'intestazione in JavaScript, il browser
+salva un nome inventato.
+
+🔑 **Non è un dettaglio, è un difetto già trovato e già riparato.** `route.ts:34-48` racconta perché: il nome
+vecchio (`DPA-CLI-001.pdf`) dava a **due emissioni dello stesso dentista, a un anno di distanza e con due testi
+diversi, lo STESSO nome**. Il Task 8 (`c1a1145d`) ha tolto l'attributo `download` proprio perché fosse
+l'intestazione a decidere da sola — **misurato sui tre motori**, Chromium, Firefox e WebKit (cioè Safari, cioè
+l'iPhone).
+
+⚠️ **E il precedente in casa NON risolve: conferma il rischio.** `provato:`
+`grep -rni 'content-disposition' src/` → **14** occorrenze, **tutte lato server**, **nessuna** lato client.
+L'unico scarico via `fetch` esistente — `PacchettoConsegnaSheet.tsx:203` — **si fabbrica il nome a mano**
+(`:264`) invece di leggerlo. 🔑 **Cercare il precedente è servito a smontare l'idea, non a confermarla**
+(lezione ④ del 02/08).
+➡️ **Requisito del piano, con la sua prova:** leggere `Content-Disposition` dalla risposta e usarlo per il nome
+del file; `provato:` da verificare con una sonda che l'intestazione sia **leggibile** su richiesta di pari
+origine (attesa: sì, il filtro CORS non si applica — ma è un'assunzione sull'ambiente e va provata, R-P1).
+🔄 **E se non lo fosse:** la rotta dovrà esporla con `Access-Control-Expose-Headers`.
+
+### ② Distinguere i due 422 dal TESTO del messaggio è l'anti-pattern che questo codice combatte per iscritto
+
+I casi ② e ③ sono **entrambi 422** ed **entrambi** `ErroreDatiDpa`: dal corpo della risposta, oggi, si
+distinguono **solo dalla frase italiana**. Un componente che confronta prose per scegliere **quale dei due
+tasti di rimedio** mostrare è esattamente la mappa che `errori-dpa.ts` dichiara di aver evitato — «*una mappa
+dal TESTO del messaggio … che si romperebbe in silenzio alla prima riscrittura di un messaggio*» — solo
+spostata di un piano più su.
+
+➡️ **Requisito del piano:** `ErroreDatiDpa` porta un **codice leggibile a macchina** accanto allo `stato`,
+la rotta lo mette nel corpo JSON, e il tipo è **un'unione chiusa**, così il compilatore obbliga ogni `throw`
+a scegliere da che parte sta. 🔑 **È lo stesso meccanismo di `emesso_da` in P7:** il rumore lo fa `tsc`, non
+la memoria di chi scrive.
+⚠️ **Vanno enumerati anche i cammini PRIMA del `try`** (401 sessione scaduta · 403 ruolo · 403 laboratorio non
+operativo): un 401 **non deve** finire nello stato ⑤ con un «Riprova» che non può funzionare.
