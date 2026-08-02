@@ -38,7 +38,20 @@ tracciata**, con le condizioni C1-C11 del referto. **(b)** **Si accetta l'ORDINE
 TESTO, poi la firma** — le quattro si fanno in un colpo solo, perché ognuna da sola sposterebbe la
 versione, e oggi costano **zero** (0 dentisti hanno accettato).
 
-🔴 **TERZA DOMANDA CHIUSA, e apre un lavoro vero → P19.** Francesco: «*no, oggi non firma niente*».
+✍️ **D136 — C1 CAMBIA NATURA: non è più «riscrivere la frase», è COSTRUIRE L'ANELLO.** Francesco ha
+chiesto «*non possiamo fare la stessa cosa con UÀ?*» e ratificato: **UÀ si dà Condizioni di Servizio col
+contratto sui dati incorporato, accettate all'abbonamento** — il meccanismo dei suoi fornitori.
+🔑 **Non è che «non serve firmare»: la firma è quella delle condizioni.** UÀ può farlo solo perché oggi
+**non ha condizioni**. Tre pezzi: ① **testo** nuovo **coi ruoli rovesciati** (laboratorio = **titolare**,
+UÀ = **responsabile**) — ⚠️ dati sanitari, **serve un occhio legale** · ② **il momento in cui si
+accetta**, che non esiste · ③ **la traccia**, ✅ **già esistente** (macchina dell'ondata 1; `provato:` il
+vincolo prevede già `'sub_responsabile'`, righe **zero**). ⏱️ **ADESSO perché** `provato:` **3 laboratori,
+tutti di prova**: nessuno da rincorrere.
+🛑 **PANEL IN CORSO**, 3 advisor a mandato disgiunto: **forma** del click-wrap (artt. **1341-1342 c.c.**,
+clausole che vogliono approvazione specifica) · **contenuto** e ciò che UÀ **NON deve promettere**
+(monito: **D126**) · **dove si attacca** nel prodotto (onboarding, Stripe, cambio di versione).
+
+🔴 **LA VOCE È P19.** Francesco: «*no, oggi non firma niente*».
 **UÀ non ha un contratto sulla protezione dei dati con i laboratori che la usano**, e il documento che
 quei laboratori consegnano ai dentisti dice che ce l'ha (`DpaTemplate.tsx:210`). Stessa classe di
 difetto di **D126** — ma il buco è **di UÀ come servizio**, non del laboratorio di Francesco: ogni
