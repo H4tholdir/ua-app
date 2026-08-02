@@ -258,6 +258,36 @@ dimenticata proprio quello, e Francesco ha dovuto chiederlo.
 
 ---
 
+## 0F. La data si legge dall'OROLOGIO, mai dal documento precedente (ratificata 02/08/2026 — D155)
+
+🛑 **Prima di dare un nome a un documento, si esegue `date`.** La data non si deduce **mai** dall'handoff
+precedente, né dalla riga «Ultimo aggiornamento», né dalla serie dei file già presenti.
+
+**Il fatto che l'ha generata, misurato il 02/08/2026.** I documenti di questo progetto erano datati
+**due giorni avanti** rispetto a quando venivano scritti, e nessuno lo sapeva: la stranezza era stata
+tramandata come «*l'orologio del Mac dice 2 agosto, i documenti seguono il 4 agosto*», cioè trattata come
+un orologio da aggirare invece che come un errore da chiudere.
+`provato:` `date` → `Sun Aug 2 18:19 CEST 2026`, e **tre server indipendenti** (Google · GitHub ·
+Supabase) rispondono tutti `Sun, 02 Aug 2026 16:19 GMT`; `sntp time.apple.com` → scarto **+0,09 s**.
+**L'orologio del Mac era giusto. Erano i documenti a essere sbagliati.**
+`provato:` `git log --diff-filter=A` su ~40 file: i `2026-08-03-*` sono nati l'**1 agosto**, i
+`2026-08-04-*` il **2 agosto**. Deriva **costante di +2 giorni**.
+
+🔑 **Il meccanismo, e per questo la regola è formulata così:** ogni sessione leggeva la data del documento
+precedente e andava avanti di uno. Un errore fatto una volta si è **auto-propagato**, e sarebbe cresciuto
+di un giorno a ogni sessione — perché nessun passaggio lo confrontava con un orologio.
+
+⚠️ **Perché non è cosmesi:** le date nei documenti dicono **quando una cosa è stata verificata**
+(«*fonte EUR-Lex letta il 03/08*», «*`npm audit` riverificato oggi*»). Su un progetto con obblighi di
+legge, una data di verifica sbagliata di due giorni è una cosa che non si tiene.
+
+📌 **L'archivio NON è stato rinominato** (D155: rinominare ~40 file e le centinaia di citazioni interne è
+lavoro lungo e delicato, e non è FASE 1). **Tabella di conversione per chi legge il passato:**
+un documento chiamato **`2026-08-03-*` è stato scritto l'1 agosto**; **`2026-08-04-*` il 2 agosto**.
+La deriva si ferma qui: **dal documento successivo in poi, il nome porta la data vera**.
+
+---
+
 ## 0B. Workflow UI — Obbligatorio per ogni nuova pagina/feature
 
 Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezioni:

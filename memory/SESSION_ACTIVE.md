@@ -29,11 +29,20 @@ Lo scarto era il danno vero — il codice pubblicato chiamava `generateDpa` con 
 ogni emissione da `uachelab.com` scriveva `emesso_da` **NULL**: le stesse righe mute che **P26** documenta
 sulla DdC.
 
-⚠️ **CORREZIONE DI FRANCESCO, e vale oltre P7:** la revisione finale aveva scritto «*gira in produzione
+📅 **D155 — LA DERIVA DELLE DATE È CHIUSA (regola in `CLAUDE.md` §0F).** `provato:` `date` → **2 agosto
+18:19 CEST**, e **tre server indipendenti** (Google · GitHub · Supabase) dicono lo stesso istante; `sntp`
+→ **+0,09 s**. **L'orologio era giusto: erano i DOCUMENTI a essere sbagliati.** `provato:` `git log
+--diff-filter=A` su ~40 file → i `2026-08-03-*` scritti l'**1 agosto**, i `2026-08-04-*` il **2 agosto**:
+deriva **costante di +2 giorni**, che sarebbe cresciuta di **un giorno a ogni sessione**.
+🔑 **La regola: prima di dare un nome a un documento si esegue `date`** — mai dedurla dall'handoff
+precedente. 📌 **L'archivio NON è stato rinominato** (~40 file + centinaia di citazioni): resta la tabella
+di conversione in §0F. **Dal prossimo documento in poi, la data è vera.**
+
+⚠️ **La correzione che ha innescato tutto, e vale oltre P7:** la revisione finale aveva scritto «*gira in produzione
 **dal 04/08**, senza incidenti*», e chi riferiva l'ha ripetuto. `provato:` `date` → **2 agosto 17:50**;
 il commit della migration → **02/08 15:22**. Sono **due ore e mezza**, non giorni — e in un intervallo in
 cui **nessun laboratorio vero ha usato l'app**: non è robustezza, è assenza di occasioni di rompersi.
 🔑 **In questo progetto la serie dei documenti corre AVANTI all'orologio: una data di documento usata per
 misurare quanto tempo è passato sbaglia sempre nella direzione che rassicura.** Scritto nel referto §Nota.
 
-📎 **154** decisioni in **54** tornate; la prossima è **D155**.
+📎 **155** decisioni in **55** tornate; la prossima è **D156**.
