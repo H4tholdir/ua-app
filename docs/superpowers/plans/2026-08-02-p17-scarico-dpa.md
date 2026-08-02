@@ -439,6 +439,49 @@ export function BloccoAvviso(props: {
 > ⚠️ **Segue il modo di casa** (`TracciabilitaMaterialiBanner.tsx`), **con una correzione**: quel precedente usa
 > `--t2` per il corpo, che in modo scuro fallisce. Qui **tutto su `--t1`** (vincolo globale 2).
 
+### 🔄 ESEGUITO il 02/08/2026 — tre correzioni al codice del Passo 4, e tre cose riferite e NON toccate
+
+**Corrette qui sotto (il blocco del Passo 4 è già aggiornato: si copia quello, non la versione vecchia):**
+
+1. 🛑 **`var(--amber, #F59E0B)` → `var(--c-amber, #F59E0B)`: quel nome NON porta quel colore.**
+   `misurato:` `src/app/globals.css:91` → `--amber: #FD7E14` (arancio, warning MDR); `#F59E0B` è
+   `--c-amber` (`globals.css:97`). L'equivoco nasce da `src/design-system/tokens.ts:39`, dove la voce si
+   chiama `amber` e vale `#F59E0B`: **il nome del token TypeScript e quello della variabile CSS sono due nomi
+   diversi per due colori diversi.** `provato:` il pixel della striscia nello scatto **approvato**
+   (`docs/design/mockups/screenshots/2026-08-02-p17-mobile-light-variante-b.png`) → **`(245, 158, 11)`**.
+   Col nome del piano la striscia sarebbe nata di un colore mai approvato. ✅ `--c-amber` non è ridefinito
+   in `.dark`: vale in entrambi i modi, come nel mockup.
+2. 🛑 **`color: colore.bordo` sul contenitore → `color: 'var(--t1, #1C1916)'`: tingeva l'ICONA.**
+   L'icona disegna con `currentColor`. Nel mockup approvato `.blocco` **non dichiara nessun `color`**:
+   `provato:` il pixel dell'icona nello scatto approvato → **`(28, 25, 22)` = `#1C1916` = `--t1`**, non ambra.
+   `misurato:` l'ambra sul fondo del blocco in modo **chiaro** dà **1,80:1** (col nome del piano) e **1,50:1**
+   (col colore del mockup), contro i **12,26:1** di `--t1` — e il documento di design chiede a un segno
+   grafico di reggere **3:1** (§4). ⚠️ La riga «*il colore sta nell'icona e nella striscia*» del §4 descrive la
+   **variante A**, dove il segno è `#7A5500` in chiaro **proprio perché** l'ambra piena lì non tiene: la
+   variante approvata è la **B**, e la B l'icona non la tinge.
+   📌 Il `color` si **dichiara** invece di ereditarlo: il `body` dell'app sta su `text-foreground` (oklch),
+   non su `--t1`, quindi l'ereditarietà del mockup qui non si riprodurrebbe da sola.
+3. 📌 **`<a href>` nudo → `next/link`.** In una PWA installata l'ancora nuda **ricarica l'intero documento**.
+   `provato:` in `src/components` non esiste **un solo** `<a href="/…">` interno (0 occorrenze) e **16** file
+   usano `next/link`, fra cui `features/clienti/ClientiSearchList.tsx` — la stessa area di questa scheda.
+   `provato:` `next/link` rende un `link` col suo `href` anche sotto prova in jsdom, **senza alcun finto**
+   (`tests/unit/CicliProduzioneList.test.tsx:26`). Le prove non cambiano: `getByRole('link')` passa comunque.
+
+**Riferite e NON toccate (R-E2 — decide Francesco al gate FASE 9b del Task 5):**
+
+- ⚠️ **Il tasto dell'azione è alto `34px`, il vincolo globale 5 dice `≥ 44px`.** Il piano contraddice sé
+  stesso, ma **il mockup approvato dice 34** (`.blocco .azione`) e distingue apposta il tasto principale
+  (44) dall'azione secondaria (34). Non è una violazione WCAG (2.5.8 AA chiede 24×24), è una regola di casa
+  più stretta: **la scelta è di chi ha approvato il disegno**, non dell'esecutore.
+- ⚠️ **Il bordo dell'azione è `--t3`.** È un **bordo**, non un testo: il vincolo globale 2 non è toccato e P16
+  non si riapre. `misurato:` come confine di un elemento premibile dà **4,49:1** in chiaro e **1,72:1** in
+  **scuro**, sotto il 3:1 di WCAG 1.4.11. È il disegno approvato.
+- ⚠️ **Il fondo del `guasto` in modo scuro.** Il mockup ha un fondo **diverso** in scuro
+  (`rgba(232,0,26,.14)`, cioè il rosso scuro con più tinta); un unico stile in linea non può renderne due.
+  Resta il valore chiaro `rgba(217,0,18,.10)` in entrambi i modi — **vuoto dichiarato**: `misurato:` il
+  composto in scuro è `53,29,23` invece di `63,28,24`. `color-mix` non lo chiude (darebbe `55,29,24`) e
+  aggiungerebbe un costrutto che il mockup non usa.
+
 - [ ] **Passo 1 — Il test che fallisce**
 
 🆕 `tests/unit/BloccoAvviso.test.tsx`:
@@ -518,6 +561,17 @@ Rieseguire e **contare**. **Atteso: 5 su 7** (passano «senza azione niente di p
 token, che un `<div/>` vuoto soddisfa per caso — ed è esattamente il motivo per cui si conta). **Scrivere il
 numero vero.**
 
+🔄 **MISURATO il 02/08/2026: `Tests 5 failed | 2 passed (7)` — la previsione REGGE**, ed è la prima volta in
+questo piano (Task 1: previsti 10 su 13, osservati **8 su 12**; Task 3: previsti 13 su 16, corretti in corsa).
+🔑 **Perché qui ha retto:** il piano ha contato ciò che l'abbozzo **fa**, non ciò che **serve a fare** — ha
+nominato una per una le due prove a forma di **assenza** che un `<div/>` vuoto soddisfa. Le due sono proprio
+quelle: «senza azione niente di premibile» e il controllo sui token. 5 ≥ 5 → si prosegue.
+📌 **E il controllo sui token ha davvero i denti:** `provato:` scrivendo l'`innerHTML` reso su file, jsdom
+**conserva** le `var()` in linea (`color: var(--t1, #1C1916)`), quindi un testo scritto su `--t2` verrebbe
+preso. ⚠️ Ma quella prova rende il blocco **senza azione**: il `--t3` del bordo dell'azione non entra mai
+nella stringa. Il nome della prova promette più del suo raggio — **non allargarla**, perché il `--t3` del
+bordo è disegno approvato e la prova comincerebbe a chiedere di cambiarlo.
+
 - [ ] **Passo 4 — L'implementazione**
 
 🆕 `src/components/feedback/BloccoAvviso.tsx`:
@@ -539,6 +593,7 @@ numero vero.**
 //    corpo: qui si segue il suo impianto, NON quel colore.
 
 import type { ReactElement } from 'react'
+import Link from 'next/link'   // 🔄 correzione 3 — mai un'ancora nuda su una rotta interna
 
 export type TipoAvviso = 'attesa' | 'guasto'
 
@@ -554,9 +609,11 @@ interface Props {
   azione?: Azione
 }
 
-const COLORE: Record<TipoAvviso, { bordo: string; fondo: string }> = {
-  attesa: { bordo: 'var(--amber, #F59E0B)', fondo: 'rgba(245, 158, 11, 0.14)' },
-  guasto: { bordo: 'var(--primary, #D90012)', fondo: 'rgba(217, 0, 18, 0.10)' },
+// 🔄 correzione 1 — `--c-amber` è il nome che porta #F59E0B; `--amber` vale #FD7E14.
+//    Si chiama `striscia` e non `bordo` perché è l'UNICO posto dove sta il colore.
+const COLORE: Record<TipoAvviso, { striscia: string; fondo: string }> = {
+  attesa: { striscia: 'var(--c-amber, #F59E0B)', fondo: 'rgba(245, 158, 11, 0.14)' },
+  guasto: { striscia: 'var(--primary, #D90012)', fondo: 'rgba(217, 0, 18, 0.10)' },
 }
 
 function Icona({ tipo }: { tipo: TipoAvviso }) {
@@ -604,9 +661,11 @@ export function BloccoAvviso({ tipo, titolo, testo, azione }: Props): ReactEleme
         borderRadius: '10px',
         padding: '10px 12px',
         margin: '10px 0 0',
-        borderLeft: `3px solid ${colore.bordo}`,
+        borderLeft: `3px solid ${colore.striscia}`,
         background: colore.fondo,
-        color: colore.bordo,
+        // 🔄 correzione 2 — MAI `colore.striscia` qui: tingerebbe l'icona (currentColor),
+        //    che nel mockup approvato è `--t1`. Misure e prova nel blocco 🔄 sopra.
+        color: 'var(--t1, #1C1916)',
       }}
     >
       <Icona tipo={tipo} />
@@ -616,7 +675,7 @@ export function BloccoAvviso({ tipo, titolo, testo, azione }: Props): ReactEleme
         {azione && (
           <div>
             {'href' in azione ? (
-              <a href={azione.href} style={stileAzione}>{azione.etichetta}</a>
+              <Link href={azione.href} style={stileAzione}>{azione.etichetta}</Link>
             ) : (
               <button type="button" onClick={azione.onClick} style={stileAzione}>{azione.etichetta}</button>
             )}
@@ -633,7 +692,13 @@ export function BloccoAvviso({ tipo, titolo, testo, azione }: Props): ReactEleme
 ```bash
 npx vitest run tests/unit/BloccoAvviso.test.tsx
 ```
-**Atteso:** 7 passate.
+**Atteso:** 7 passate. 🔄 **OSSERVATO il 02/08/2026: `Tests 7 passed (7)`.** E, siccome il corpo JSON non
+c'entra ma il raggio del cambiamento è comunque più largo del file nuovo, si è girata **tutta** la FASE 7:
+`npx tsc --noEmit` → **0** · `npx vitest run` → **4401 passate, 19 saltate, 380 file** · `npx next build` →
+**uscita 0**. ⚠️ `next build` **non prova nulla su questo file**: nessuna pagina lo importa ancora (lo faranno
+i Task 3 e 4), quindi non entra nel grafo. Chi copre davvero il file è `tsc` — `provato:` mettendoci dentro
+un valore che DEVE essere rifiutato (`const _prova: number = 'non un numero'`) si accende
+`error TS2322` su `src/components/feedback/BloccoAvviso.tsx`, e tolto quello si torna a 0.
 
 - [ ] **Passo 6 — Salvare**
 
