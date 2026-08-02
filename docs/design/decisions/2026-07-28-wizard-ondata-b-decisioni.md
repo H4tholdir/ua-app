@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantunesima tornata (D172: P23 — il salvataggio che si fermava a 1000, e i tre pezzi che senza il terzo erano inerti)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantaduesima tornata (D173: P18 — il collegamento al dentista smette di dipendere da dove naviga il laboratorio)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettantadue decisioni in sessantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettantatré decisioni in sessantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1137,3 +1137,25 @@ motivo:** *rilanciare l'installatore* avrebbe messo codice **non approvato** den
 salva i dati di Francesco (contro **D169**); *ammorbidire la guardia* per far passare il proprio commit è
 la mossa che questo progetto ha già pagato una volta. ➡️ Il punto cieco è **P23-bis** in roadmap, e
 ⚠️ **all'unione la deriva diventa VERA: la prima cosa da fare è rilanciare l'installatore.**
+
+---
+
+### Sessantaduesima tornata — D173: il collegamento che il dentista riceve
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** Su ramo, non pubblicata (**D169**).
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D173** | 🔗 **L'INDIRIZZO CHE IL LABORATORIO MANDA AL DENTISTA NON SI PRENDE PIÙ DALLA FINESTRA DEL BROWSER, MA DALLA VARIABILE D'AMBIENTE — come già facevano gli altri sette punti dell'app** | scelta **mia**, e non è stata una scelta libera: il precedente in casa è **unanime** (7 punti su 8 usavano già `NEXT_PUBLIC_APP_URL`), quindi la vera domanda era perché **questo** facesse diversamente | 🔑 **P18 era catalogata come «disallineamento di idratazione», e il censimento ha trovato che era MENO e PIÙ di così.** Meno: in produzione le due origini coincidono e l'idratazione non morde. **Più:** questo è l'indirizzo che il laboratorio **copia e manda allo studio**, e preso dalla finestra portava con sé l'origine da cui il laboratorio stava navigando — un indirizzo di rete locale, un'anteprima di rilascio, un dominio di prova. **Il dentista riceveva un link che dal suo studio non esiste.** 🔑 **E la scoperta che chiude la faccenda:** uno dei sette punti «già a posto» costruisce **esattamente questo stesso link** (`whatsapp-template.ts:22`) — quindi lo stesso collegamento, **mandato per WhatsApp o copiato col bottone, poteva essere diverso**. Non era un difetto di rendering: erano **due indirizzi per la stessa cosa** |
+
+🔑 **La forma della prova, e perché non guarda l'avvertimento di React.** In ambiente di prova `window`
+esiste **sempre**, quindi il ramo «sono sul server» non verrebbe percorso mai e una prova costruita
+sull'avvertimento sarebbe **verde per finta** — lo stesso inganno di **D171-bis**, due tornate fa, dove le
+prove passavano perché la macchina era a Roma. Quindi le cinque prove guardano il **comportamento**: si
+fingono un laboratorio che naviga da `192.168.1.5:3000` o da un'anteprima, e pretendono che il link **non
+cambi**. `provato:` sul codice di prima sono **5 su 5 rosse**.
+
+🛑 **Vuoto dichiarato, e vale la pena scriverlo perché ieri è costato:** la riparazione **non è stata
+guardata nel browser**. Nessuno ha riaperto la scheda del cliente per vedere sparire l'avvertimento di
+idratazione. Le prove coprono il comportamento, **non l'occhio** — e la lezione ① del 02/08 dice
+esattamente che le due cose non si sostituiscono.

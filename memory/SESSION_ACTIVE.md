@@ -27,6 +27,14 @@ script vero come processo; `provato:` rimettendo il difetto **5 su 7** si accend
 salvataggio confronta col file **sotto mano** invece che col **pubblicato** → falso rosso su un ramo
 (**P23-bis**). ⚠️ **ALL'UNIONE, PRIMA COSA:** `bash scripts/installa-salvataggio-programmato.sh`.
 
-📌 FASE 7 su P23: `tsc` **0** · `vitest` **4461 passate | 19 saltate** (381 file) · `next build` **0**.
-▶️ **Prossimo:** **P18** (idratazione disallineata sul collegamento al dentista), poi **P30**.
-📎 **172** decisioni in **61** tornate; la prossima è **D173**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
+✅ **P18 FATTA** — ramo `p18-il-collegamento-che-diverge`. Una riga: l'indirizzo del link al dentista
+viene da `NEXT_PUBLIC_APP_URL`, **come già negli altri sette punti**. 🔑 **Non era solo idratazione:** uno
+di quei sette fa **lo stesso link** (`whatsapp-template.ts:22`), quindi WhatsApp e bottone potevano dare
+**due indirizzi diversi**; e preso dalla finestra il dentista riceveva un indirizzo che dal suo studio non
+esiste. **5 prove** che si fingono un tablet sulla rete del banco; `provato:` prima erano **5 su 5 rosse**.
+**D173.** 🛑 **Vuoto: NON guardata nel browser.**
+
+📌 FASE 7 su P18: `tsc` **0** · `vitest` **4466 passate | 19 saltate** (382 file) · `next build` **0**.
+▶️ **Prossimo:** **P30** — mockup della pagina di modifica del dentista, 🛑 **fino alla SOGLIA**: nessuna
+riga di React, la firma di Francesco sta in mezzo.
+📎 **173** decisioni in **62** tornate; la prossima è **D174**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
