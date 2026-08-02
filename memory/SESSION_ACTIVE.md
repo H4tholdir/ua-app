@@ -80,9 +80,23 @@ cancella** (`provato:` 15 righe orfane di 5 laboratori morti; **82 su 82** cance
 **il nome del paziente**) · **P22** UÀ entra nei dati di un cliente **con l'identità del cliente**, senza
 traccia.
 
-🔴 **DA DECIDERE (referto §7):** ① si sposta il momento al primo accesso? ② si accetta il secondo
-passaggio con codice usa-e-getta? ③ **L1 copie di sicurezza · L2 cancellazione vera · L3 tracciare gli
-accessi di UÀ** vanno **prima** della prima accettazione? 🛑 **L1 va comunque e subito.**
+✍️ **D137 — Francesco: «*sì a tutte e tre, procedi*».** **(a)** il **momento** si sposta al **primo
+accesso**, dentro `accept_invite_atomic` · **(b)** **si fa il secondo passaggio** con codice usa-e-getta
+per le clausole che proteggono UÀ (Cass. 20945/2026) · **(c)** **L1 · L2 · L3 PRIMA della prima
+accettazione**.
+
+🛑 **L1 — LE COPIE DI SICUREZZA: LA FA FRANCESCO, NON CLAUDE.** È un **acquisto** e un **cambio di
+impostazioni d'account**: Claude non compra e non cambia impostazioni. ✅ Confermato alla fonte: il **piano
+gratuito Supabase non ha copie ripristinabili**; le **giornaliere** partono dal piano **Pro** (ultimi **7
+giorni**), *Dashboard → Database › Backups › Scheduled*. Quindi **`backups:[]` non è un guasto: è il
+piano**. ⏳ **Rete provvisoria a costo zero, se serve tempo:** esportazione periodica su disco — è ciò
+che **Supabase stessa consiglia** a chi sta sul gratuito.
+
+⏭️ **PROSSIMO PASSO, quando si riprende:** la **spec** dell'ondata P19 (FASE 2 brainstorming → FASE 3
+validazione → FASE 4 piano). Perimetro già deciso dai due panel: il **testo** (con un occhio legale) · il
+**momento** al primo accesso · il **secondo passaggio** con codice usa-e-getta · la **tabella nuova** in
+sola aggiunta · e **L1-L2-L3 prima di tutto**. ⚠️ **Dominio critico** (auth + migration + RLS): percorso
+**GRANDE** obbligatorio, `ua-app/CLAUDE.md` §0C.
 
 🔴 **LA VOCE È P19.** Francesco: «*no, oggi non firma niente*».
 **UÀ non ha un contratto sulla protezione dei dati con i laboratori che la usano**, e il documento che
