@@ -207,10 +207,11 @@ CREATE TRIGGER _audit_data_processing_agreements
 - [ ] **Step 4: verificare che il file sia coerente con sé stesso**
 
 ```bash
-grep -c "BEGIN;\|COMMIT;" supabase/migrations/20260804120000_p7_dpa_cancello_traccia_emesso_da.sql
+grep -v '^--' supabase/migrations/20260804120000_p7_dpa_cancello_traccia_emesso_da.sql | grep -c "BEGIN;\|COMMIT;"
 ```
 
 Atteso: **0**.
+🔄 **CORRETTO dopo il Task 1, e il difetto era del piano:** qui c'era `grep -c "BEGIN;\|COMMIT;" <file>` senza escludere i commenti — e l'intestazione **obbligatoria** dello Step 2 contiene proprio le parole `BEGIN;`/`COMMIT;` dentro un commento. Il criterio dava **1** ed era **impossibile da soddisfare**, chiunque lo eseguisse. Trovato **due volte in modo indipendente** (esecutore e revisore del Task 1). 🔑 **Un controllo che non può mai passare insegna a ignorare i controlli.**
 
 - [ ] **Step 5: APPLICARE la migration — Management API, `read_only:false` (D151)**
 
@@ -316,9 +317,18 @@ In `tests/unit/dpa-registro.test.ts`, in coda al blocco che asserisce sul payloa
 npx tsc --noEmit 2>&1 | grep -c "TS2554"
 ```
 
-Atteso: **54** errori «Expected 3 arguments, but got 2» — 50 da `dpa-registro.test.ts`, 3 da `generate-dpa.test.ts`, 1 dalla rotta.
-🛑 **Se il numero non è 54, il censimento di questo piano è sbagliato: fermarsi e riferire.**
-⚠️ **La 55ª chiamata NON compare qui e non è un errore del conteggio:** in `dpa-route.test.ts` `generateDpa` è sostituita da una finta, quindi `tsc` non la vede. Quel file si rompe **a prove**, allo Step 6.
+🔄 **CORRETTO dopo l'esecuzione del Task 2 — questo passo era SBAGLIATO, e l'errore era di ordine.** Diceva: «atteso **54** errori *Expected 3 arguments, but got 2*». **Non a questo punto.** Prima di allargare la firma, la funzione ne prende ancora **due**, quindi gli unici errori sono i **2** dei test nuovi (*Expected 2 arguments, but got 3*). I **54** arrivano **subito dopo** l'abbozzo inerte, cioè quando la firma passa a tre parametri obbligatori. 🔑 **Un piano che chiede il numero giusto nel momento sbagliato manda l'esecutore a cercare un difetto che non c'è.**
+
+**Il conteggio corretto, in due tempi:**
+
+```bash
+npx tsc --noEmit 2>&1 | grep -c "TS2554"
+```
+
+- **Ora, prima di toccare la firma:** atteso **2** (i due test nuovi che passano tre argomenti a una funzione che ne prende due).
+- **Subito dopo l'abbozzo inerte** (terzo parametro accettato e **ignorato**, Step 3): atteso **54** — 50 da `dpa-registro.test.ts`, 3 da `generate-dpa.test.ts`, 1 dalla rotta.
+🛑 **Se il secondo numero non è 54, il censimento di questo piano è sbagliato: fermarsi e riferire.**
+⚠️ **La 55ª chiamata NON compare in nessuno dei due conteggi:** in `dpa-route.test.ts` `generateDpa` è sostituita da una finta, quindi `tsc` non la vede mai. Quel file si rompe **a prove**, allo Step 6.
 
 ```bash
 npx vitest run tests/unit/dpa-registro.test.ts -t "T3a"
@@ -326,7 +336,8 @@ npx vitest run tests/unit/dpa-registro.test.ts -t "T3a"
 
 Atteso: **FAIL** — `expected undefined to be 'utente-007'`.
 
-🔑 **Il rosso da «argomento in più» non prova che la prova provi qualcosa.** Dopo il primo rosso: si mette un **abbozzo inerte** (terzo parametro accettato e **ignorato**), si rilancia, e si **CONTA quante asserzioni si accendono**. Si scrive il numero: **N su M**. Attese accese: `riga.emesso_da` di T3a. Attese **verdi anche con l'abbozzo**: tutta T3b (è il comportamento già esistente) — 🔑 **ed è giusto così: T3b è una prova di NON-REGRESSIONE, esiste per restare verde e diventare rossa solo se qualcuno tocca il ramo di riuso.** Va scritto nel referto, o sembrerà una prova debole.
+🔑 **Il rosso da «argomento in più» non prova che la prova provi qualcosa.** Dopo il primo rosso: si mette un **abbozzo inerte** (terzo parametro accettato e **ignorato**), si rilancia, e si **CONTA quante asserzioni si accendono**. Si scrive il numero: **N su M**.
+✅ **Misurato eseguendo: 1 su 5.** Si accende `riga.emesso_da` di T3a; **1** non viene mai raggiunta (il test si ferma prima); **3** restano verdi ed è **T3b**. 🔑 **Quelle tre verdi non sono una debolezza, sono il progetto:** T3b è una prova di **NON-REGRESSIONE** — esiste per restare verde e diventare rossa solo se qualcuno tocca il ramo di riuso. Va scritto nel referto, o sembrerà una prova che non misura niente.
 
 **Forme d'input da enumerare** (R-P4), sul terzo parametro: id valido ✅ (T3a) · stringa vuota ⚠️ **non coperta, perché**: `tsc` non la distingue da un id e la chiave esterna la rifiuterebbe solo a runtime — si copre col Task 3 T5 · `undefined` esplicito ✅ (lo blocca `tsc`) · id di un utente di **altro laboratorio** ⚠️ **non coperta, perché**: il chiamante è la rotta, che passa `context.userId` — un utente di un altro laboratorio non arriva mai lì · id inesistente ✅ (Task 3 T5, la chiave esterna deve mordere).
 
@@ -376,7 +387,9 @@ npx tsc --noEmit 2>&1 | grep -c "TS2554"
 `provato:` la forma esatta cercata dalla `sed` esiste **53 volte** (`grep -c` → `dpa-registro.test.ts` **50**, `generate-dpa.test.ts` **3**). La **54ª** è la rotta, già sistemata allo Step 4.
 Atteso dopo la `sed`: **0**.
 
-🛑 **Ma `dpa-route.test.ts` è ancora ROSSO, e non lo dice `tsc`.** La riga **85** asserisce `expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)`: la rotta ora ne passa **tre**, quindi la prova fallisce **a esecuzione**. Va portata a:
+🛑 **Ma `dpa-route.test.ts` è ancora ROSSO, e non lo dice `tsc`.**
+🔄 **CORRETTO dopo l'esecuzione: le asserzioni da sistemare sono TRE, non una** — righe **86**, **271**, **370**, tutte **misurate rosse** prima della correzione. Il piano ne indicava **una sola**, e citava la riga **85**, che è il **commento** sopra: l'asserzione vera è la **86**. 🔑 **Un piano che dice "una" quando sono tre non fa sbagliare chi legge il rosso — fa sbagliare chi NON lo legge**, e conclude di aver finito perché la prima è verde.
+Ognuna delle tre asserisce `expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)`: la rotta ora ne passa **tre**, quindi falliscono **a esecuzione**. Vanno portate a:
 
 ```typescript
     // …e l'emissione è stata chiesta per QUESTO laboratorio, QUESTO cliente e
