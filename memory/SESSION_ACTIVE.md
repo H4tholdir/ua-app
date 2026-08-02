@@ -1,7 +1,14 @@
-# Sessione attiva — P7: la FASE 1 è iniziata
+# Sessione attiva — P7: la FASE 1 è iniziata, spec e PIANO pronti
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/specs/2026-08-04-p7-registro-dpa-cancello-traccia-design.md`** — spec
-**APPROVATA in sessione**, in attesa della **rilettura di Francesco**. Poi FASE 4 (piano), poi codice.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-04-p7-registro-dpa-cancello-traccia.md`** — piano
+**scritto e auto-rivisto**, 4 task. Spec: `docs/superpowers/specs/2026-08-04-p7-registro-dpa-cancello-traccia-design.md`.
+⏩ **D149: la spec è passata al piano SENZA rilettura a freddo** — offerta e **saltata per scelta** («*procedi con
+il piano*»). 🔑 Diverso da **P19-a**, dove la rilettura era stata **chiesta e la risposta non era arrivata**.
+🔎 **Il piano porta i tre registri (R-P1 · R-P2 · R-P6)** e ha già trovato **due difetti di sé stesso**: gli errori
+di compilazione attesi sono **54, non 55** (in `dpa-route.test.ts` la funzione è **finta**: si rompe a prove, non a
+compilazione) · e il contesto finto di quel file **porta già** `userId: 'user-1'`, quindi nessun mock da toccare.
+⏭️ **Prossimo passo: esecuzione**, un task alla volta a esecutore fresco (R-E1). 🛑 **Il Task 1 Step 6 si FERMA e
+aspetta Francesco:** applicare una migration su un ambiente vero è una sua decisione, non una mancanza di password.
 
 🔨 **La FASE 1 non è più ferma.** Francesco ha scelto **P7** (**D146**) fra tre partenze presentate col **costo
 reale ricalcolato**: l'handoff chiamava P17 «la più breve», **è la più lunga** (pagina in produzione → §0B +
