@@ -68,8 +68,8 @@ pagina dell'app **anche prima di qualunque clic**. **Non è di P17 e non è un d
 
 | | esito |
 |---|---|
-| 🔑 **Il NOME del file che arriva** | **`DPA-2026-0001.pdf`** — `provato:` `download.suggestedFilename()`, file salvato su disco. 🛑 **Il ripiego `contratto-dpa.pdf` NON compare**: `nomeDaHeader` legge davvero `Content-Disposition`, e la riparazione del 01/08 (due emissioni con lo stesso nome) **non è stata disfatta** |
-| **Nessun numero bruciato** | `provato:` registro letto in sola lettura **prima e dopo**: **tre righe prima, tre righe dopo**, `DPA-2026-0001 · 0002 · 0003`, stessi `emesso_at`. Il guard di riuso ha restituito il PDF esistente — impronta e versione del modello combaciano (`dpa-v2+8d98dbee`, e `dpa-modello.ts` non è più cambiato dal 01/08) |
+| 🔑 **Il NOME del file che arriva — SUI TRE MOTORI** | **`DPA-2026-0001.pdf`** su **Chromium · Firefox · WebKit** (cioè Safari, cioè l'iPhone), `provato:` `download.suggestedFilename()` + file salvato su disco, **13.291 byte** e PDF **integro** (`%PDF-` in testa, `%%EOF` in coda) in tutti e tre. 🛑 **Il ripiego `contratto-dpa.pdf` NON compare da nessuna parte.** 🔑 **Tre motori e non uno, ed è il punto:** la riparazione che questo scarico non deve disfare (Task 8 del 01/08, `c1a1145d`) era stata **misurata sui tre motori** proprio perché il nome di un file scaricato si comporta **diversamente per motore** — e P17 non eredita quel meccanismo, lo **sostituisce** (`fetch` → `blob:` → ancora sintetica → `click()` → `revokeObjectURL` alla riga dopo). ⚠️ Quella revoca immediata è il punto in cui WebKit storicamente tronca lo scarico o ignora l'attributo `download` su un `blob:`: **provato, non succede** |
+| **Nessun numero bruciato** | `provato:` registro letto in sola lettura **prima e dopo i quattro scarichi**: **tre righe prima, tre righe dopo**, `DPA-2026-0001 · 0002 · 0003`. Il guard di riuso ha restituito il PDF esistente — impronta e versione del modello combaciano (`dpa-v2+8d98dbee`, e `dpa-modello.ts` non è più cambiato dal 01/08) |
 | **Il tasto torna a riposo** | dopo lo scarico: etichetta «Scarica DPA PDF», `aria-disabled` assente, **nessun blocco d'avviso** |
 | **② il tasto inerte è davvero inerte** | `aria-disabled="true"`, e **premendolo lo stesso NON parte nessuna richiesta** (`provato:` ascoltatore sulle richieste → `false`) |
 | **② il blocco non ha tasti** | `provato:` **0** comandi dentro l'avviso — **D165 rispettata**: il tasto «Aggiungi il dato» del mockup, che sarebbe stato morto, non c'è |
@@ -191,6 +191,11 @@ comportamento esatto varia fra i lettori, e questo resta un vuoto dichiarato.
   servito in locale, sulla **stessa banca dati** (`iagibumwjstnveqpjbwq`). L'unica differenza è l'host.
 - **Non ha misurato su un dispositivo vero**, solo su emulazione di viewport. I bersagli tappabili sono in
   pixel CSS, che è ciò che la regola chiede.
+- **Il GATE VISIVO ha girato su un motore solo (Chromium)** — non i tre. ⚠️ **Il collaudo dello SCARICO
+  invece è sui tre** (§1), ed è lì che il precedente di casa li chiedeva, perché è il nome del file a
+  dipendere dal motore. Colori, geometrie e contrasti sono calcolati dagli stessi valori CSS su tutti e
+  tre; ciò che un secondo motore potrebbe cambiare è la **resa dei caratteri**, e quella non è stata
+  guardata.
 - **Non ha usato un lettore di schermo vero.** Le voci di §11 sono misurate sul DOM e sulla specifica ARIA:
   `aria-disabled`, nome accessibile, `aria-hidden`, `:focus-visible`, `aria-atomic`. Il **comportamento**
   di VoiceOver e NVDA su un `role="alert"` non è stato osservato.

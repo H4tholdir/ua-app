@@ -2,7 +2,7 @@
 
 > 🔄 **SUPERATO NELLA §0, il 02/08/2026 in serata — si legge PRIMA del resto.**
 > **Il Task 5 è stato ESEGUITO:** collaudo dal vivo (documento **scaricato davvero**, nome
-> **`DPA-2026-0001.pdf`**, **nessun numero bruciato**) e **FASE 9b percorsa** — 8 stati × 390·768·1280 ×
+> **`DPA-2026-0001.pdf`** **sui tre motori**, **nessun numero bruciato**) e **FASE 9b percorsa** — 8 stati × 390·768·1280 ×
 > chiaro·scuro, scatti e misure in `docs/design/screenshots/2026-08-02-p17/`, referto in
 > `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`.
 > ✅ **Le QUATTRO cose di §0 ② sono state raccolte tutte e quattro:** il bordo `--t3` **corretto**

@@ -7,8 +7,8 @@ del gate, che dice che cosa è stato guardato e che cosa resta deferito.
 ⚠️ **L'handoff `docs/roadmap/2026-08-02-sera-p17-codice-completo-handoff.md` è SUPERATO nella sua §0**
 (dice che il gate non è stato fatto): porta in testa la riga che lo corregge.
 
-✅ **Collaudo dal vivo:** scaricato **davvero**, e il nome che arriva è **`DPA-2026-0001.pdf`** — il ripiego
-`contratto-dpa.pdf` NON compare. `provato:` **nessun numero bruciato** (registro prima e dopo: 3 → 3).
+✅ **Collaudo dal vivo:** scaricato **davvero**, e il nome che arriva è **`DPA-2026-0001.pdf`** **sui tre motori**
+(Chromium · Firefox · **WebKit**, cioè l'iPhone), PDF integro — il ripiego `contratto-dpa.pdf` NON compare. `provato:` **nessun numero bruciato** (registro prima e dopo: 3 → 3).
 Tasto inerte davvero inerte · blocco ② senza tasti (D165) · un **tecnico** vero non vede il tasto e vede
 il resto (D158 · D160).
 

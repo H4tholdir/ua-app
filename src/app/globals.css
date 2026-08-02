@@ -107,7 +107,15 @@
      valore che il design system v3 ha già scelto per lo stesso difetto
      (`v3/tokens.ts` → `faint`, «rev. 3.1 — era #6E6457 (WCAG fail)»):
      misurato 4,61 · 3,53 · 4,45. 🛑 È un bordo, non un testo: non usarlo come
-     colore di testo, e non confonderlo con P16 (che è sui testi, deferita da D134). */
+     colore di testo, e non confonderlo con P16 (che è sui testi, deferita da D134).
+     ⚠️ **Il ripiego scritto nei componenti (`var(--brd-cmd, #6B5C51)`) è il valore
+     CHIARO**, quindi in un ambito che non definisce questa variabile un fondo scuro
+     tornerebbe a 2,24:1 — il difetto appena chiuso, di nuovo e in silenzio. Chi monta
+     `BloccoAvviso` fuori da `:root`/`.dark` (per esempio dentro `.login-root` o in un
+     foglio con token propri come `admin.css`) **deve portarsi `--brd-cmd`**. Oggi non
+     morde — `misurato:` `admin.css` non ridefinisce `--t3` (0 occorrenze) — ma D162
+     dichiara quel componente costruito per essere EREDITATO, quindi il giorno che si
+     sposta questa riga è l'unica cosa che lo avverte. */
   --brd-cmd: #6B5C51;
   --c-amber-ink: #92400E;  /* amber INK per testo/valori — 5.35:1 su --sfc, 6.23:1 su --bg (ri-misurato 26/07 dopo il fondo unico: il 5.01 scritto prima era sul vecchio #DDD8D3); MAI usare --c-amber come colore testo */
   --c-orange-ink: #9A3412; /* orange INK per testo/alert — 5.52:1 su --sfc, 6.42:1 su --bg (ri-misurato 26/07); MAI usare --c-orange come colore testo */
