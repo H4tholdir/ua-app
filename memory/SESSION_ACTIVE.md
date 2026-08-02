@@ -14,8 +14,10 @@ fallimento **rumoroso** (notifica + Scrivania + guardia al commit) · `scripts/g
 **ferma il commit** se la copia diverge (accesa 4 volte su 4).
 
 ⚠️ **P20 NON è chiusa:** parte solo se il Mac è acceso e Francesco ha fatto l'accesso. Il piano a
-pagamento resta **un acquisto di Francesco**. 🔴 Restano aperte anche le **due azioni sue**: guardare il
-piano Vercel e il piano Supabase nel pannello.
+pagamento resta **un acquisto di Francesco**. 🛑 **NON VERIFICATO:** cosa fa macOS se alle 03:00 il Mac
+dorme — un giorno saltato si conta **saltato**. ➡️ **Riferito, non corretto (R-E2): P23**, il
+salvataggio dei file si ferma a **1000 per cartella** senza dirlo. 🔴 Restano aperte anche le **due
+azioni sue**: guardare il piano Vercel e il piano Supabase nel pannello.
 
 📌 `tsc` **0** · `vitest` **375 | 3** file e **4380 | 19** prove · guardie **verdi**.
 📎 Verbale: **centotrentanove** decisioni in **cinquantuno** tornate; la prossima è **D140**.

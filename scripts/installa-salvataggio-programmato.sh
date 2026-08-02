@@ -6,7 +6,12 @@
 #   ① installa una COPIA AUTONOMA del salvataggio in
 #      ~/Library/Application Support/UA-salvataggio/
 #   ② registra presso macOS un lavoro che ogni giorno alle 03:00 la lancia.
-#      Se a quell'ora il Mac è spento o dorme, macOS recupera al risveglio.
+#      `provato:` l'orario è registrato davvero — `launchctl print` mostra
+#      `com.apple.launchd.calendarinterval` con Hour 3 / Minute 0 e
+#      `watching = 1`, quindi non serve un avvio a mano.
+#      🛑 **NON VERIFICATO:** che cosa succede se alle 03:00 il Mac è spento o
+#      dorme. Finché non lo si prova con un ciclo di sonno vero, **un giorno
+#      saltato si conta come saltato**.
 #
 #  🔑 PERCHÉ UNA COPIA, invece di lanciare gli script dov'è il progetto
 #  `provato:` il 04/08/2026 con una sonda lanciata da `launchd`: dentro
@@ -94,7 +99,8 @@ cat > "${PLIST}" <<PLISTFINE
     <string>${CASA}/scripts/salvataggio-programmato.sh</string>
   </array>
 
-  <!-- ogni giorno alle ${ORA}:0${MINUTO}; se il Mac dorme, macOS recupera al risveglio -->
+  <!-- ogni giorno alle ${ORA}:0${MINUTO}. Che cosa faccia macOS se a quell'ora
+       il Mac è spento o dorme: NON VERIFICATO — v. intestazione dello script -->
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key><integer>${ORA}</integer>

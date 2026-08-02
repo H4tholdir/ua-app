@@ -16,6 +16,17 @@
  *  ✅ PROVATO EQUIVALENTE all'originale il 04/08/2026 confrontando le IMPRONTE
  *  (`shasum`) di tutti i file scaricati, non solo il loro numero: contare i file
  *  non vede un PDF scaricato male, un'impronta sì.
+ *  ⚠️ LA PROVA VALE FIN DOVE È STATA FATTA: 31 file, la cartella più piena ne
+ *  aveva 20. Non dice nulla sopra i 1000.
+ *
+ *  🛑 DIFETTO NOTO, EREDITATO DALLA VERSIONE PRECEDENTE E NON CORRETTO QUI
+ *  `elenca()` chiede `limit: 1000, offset: 0` e non scorre le pagine: in una
+ *  cartella con più di 1000 oggetti gli altri NON vengono elencati, il conteggio
+ *  finale resta > 0, e il salvataggio si dichiara RIUSCITO. 🔑 È la stessa forma
+ *  del guaio del 04/08 — una copia che sembra completa e non lo è — e le foto
+ *  cliniche i 1000 li raggiungono. ➡️ Riferito come voce di roadmap **P23**
+ *  invece di essere corretto qui: sta fuori dal mandato di D139 e la correzione
+ *  vuole la sua prova (R-E2).
  *
  *  Uso:  node scripts/salvataggio-archivio.mjs <cartella di destinazione>
  *        (le credenziali si leggono da .env.local nella cartella superiore)

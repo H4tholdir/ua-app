@@ -23,11 +23,16 @@
 #  Per questo qui dentro ogni fallimento è RUMOROSO: notifica di sistema + un
 #  file di allarme sulla Scrivania che resta finché il salvataggio non riesce.
 #
-#  ⚠️ CHE COSA QUESTO NON COMPRA. Un lavoro `launchd` di utente parte solo se il
-#  Mac è acceso e Francesco ha fatto l'accesso. Se il Mac resta spento, non parte
-#  (launchd lo recupera al primo risveglio utile, ma un giorno saltato è saltato).
-#  Toglie la dipendenza dalla MEMORIA di qualcuno; NON garantisce una copia al
-#  giorno. Quella la dà solo il piano a pagamento di Supabase — D137 (c) · P20.
+#  ⚠️ CHE COSA QUESTO NON COMPRA. `provato:` un lavoro `launchd` di utente parte
+#  solo se il Mac è acceso e Francesco ha fatto l'accesso; e `provato:` l'orario
+#  è registrato davvero (`launchctl print` → `calendarinterval`, Hour 3 Minute 0,
+#  `watching = 1`), non solo il programma.
+#  🛑 **NON VERIFICATO:** che cosa faccia macOS se alle 03:00 il Mac è spento o
+#  dorme — si legge in giro che il lavoro venga recuperato al risveglio, ma qui
+#  NON è stato provato (servirebbe un ciclo di sonno vero a cavallo delle 03:00),
+#  e finché non lo è **si conta un giorno saltato come saltato**.
+#  🔑 Quindi: toglie la dipendenza dalla MEMORIA di qualcuno; NON garantisce una
+#  copia al giorno. Quella la dà solo il piano a pagamento — D137 (c) · P20.
 #
 #  USO A MANO:  bash scripts/salvataggio-programmato.sh
 #  INSTALLA:    bash scripts/installa-salvataggio-programmato.sh
