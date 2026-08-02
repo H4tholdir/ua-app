@@ -149,18 +149,29 @@ describe('GET /api/clienti/[id]/dpa', () => {
   //    quattro restanti no. Lo stato lo porta l'errore stesso
   //    (`ErroreDatiDpa.stato`), deciso all'ORIGINE — la rotta non indovina
   //    niente dal testo del messaggio.
+  //
+  // 🆕 02/08/2026 (P17, Task 1): accanto allo stato viaggia ora anche il
+  //    CODICE. Le due prove qui sotto lo fissano nel corpo, e non è un
+  //    dettaglio di forma: i due 422 (`LAB_DATI_FISCALI` e
+  //    `CLIENTE_DATI_FISCALI`) mandano l'utente in DUE POSTI DIVERSI a
+  //    rimediare, e il browser deve poterli distinguere SENZA diramare sul
+  //    testo italiano del messaggio — che è esattamente la mappa fragile che
+  //    `errori-dpa.ts` dichiara di aver evitato un piano più giù.
+  //    🛑 Il `toEqual` è ESATTO di proposito (non `toMatchObject`): se un
+  //    giorno il codice smettesse di essere messo nel corpo, queste due
+  //    diventano rosse. Con `toMatchObject` la perdita passerebbe in silenzio.
   it('C5 · «Cliente non trovato» → 404: un collegamento vecchio non è un guasto di UÀ', async () => {
-    mockGenerateDpa.mockRejectedValue(new ErroreDatiDpa('Cliente non trovato', 404))
+    mockGenerateDpa.mockRejectedValue(new ErroreDatiDpa('Cliente non trovato', 404, 'CLIENTE_ASSENTE'))
 
     const res = await GET(richiesta(), parametri)
 
     expect(res.status).toBe(404)
-    expect(await res.json()).toEqual({ error: 'Cliente non trovato' })
+    expect(await res.json()).toEqual({ error: 'Cliente non trovato', codice: 'CLIENTE_ASSENTE' })
   })
 
   it('C6 · Partita IVA mancante → 422: la richiesta è buona, il documento non si può fare', async () => {
     mockGenerateDpa.mockRejectedValue(
-      new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422)
+      new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422, 'CLIENTE_DATI_FISCALI')
     )
 
     const res = await GET(richiesta(), parametri)
@@ -168,6 +179,7 @@ describe('GET /api/clienti/[id]/dpa', () => {
     expect(res.status).toBe(422)
     expect(await res.json()).toEqual({
       error: 'DPA: cliente privo di Partita IVA e Codice Fiscale',
+      codice: 'CLIENTE_DATI_FISCALI',
     })
   })
 
@@ -176,7 +188,7 @@ describe('GET /api/clienti/[id]/dpa', () => {
   //    anche con un `return 404` fisso (C6 no, ma il paio va detto esplicito) —
   //    qui si prova che uno stato TERZO, mai scritto nella rotta, arriva intero.
   it('C7 · la rotta rende lo stato che l\'errore porta, non uno cucito addosso', async () => {
-    const finto = new ErroreDatiDpa('Laboratorio non trovato', 404)
+    const finto = new ErroreDatiDpa('Laboratorio non trovato', 404, 'LAB_ASSENTE')
     Object.defineProperty(finto, 'stato', { value: 418 })
     mockGenerateDpa.mockRejectedValue(finto)
 

@@ -78,10 +78,10 @@ function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
   // l'anagrafica), e dirgli «errore interno» lo manderebbe a cercare un guasto
   // che non c'è.
   if (!lab.partita_iva && !lab.codice_fiscale) {
-    throw new ErroreDatiDpa('DPA: laboratorio privo di Partita IVA e Codice Fiscale', 422)
+    throw new ErroreDatiDpa('DPA: laboratorio privo di Partita IVA e Codice Fiscale', 422, 'LAB_DATI_FISCALI')
   }
   if (!cliente.partita_iva && !cliente.codice_fiscale) {
-    throw new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422)
+    throw new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422, 'CLIENTE_DATI_FISCALI')
   }
 }
 
@@ -121,8 +121,8 @@ export async function generateDpa(
   //    dei tre è un guasto di UÀ, e nessuno dei tre merita un 500.
   //    📌 Il 404 non distingue «non esiste» da «non è tuo», ed è voluto: non
   //    dice a nessuno se l'id che ha provato appartenga a qualcun altro.
-  if (!labRaw) throw new ErroreDatiDpa('Laboratorio non trovato', 404)
-  if (!clienteRaw) throw new ErroreDatiDpa('Cliente non trovato', 404)
+  if (!labRaw) throw new ErroreDatiDpa('Laboratorio non trovato', 404, 'LAB_ASSENTE')
+  if (!clienteRaw) throw new ErroreDatiDpa('Cliente non trovato', 404, 'CLIENTE_ASSENTE')
 
   // Cast puntuale sul risultato: lo schema reale tipizza alcune colonne enum
   // (es. laboratori.piano, clienti.listino_numero) come stringa/numero generico

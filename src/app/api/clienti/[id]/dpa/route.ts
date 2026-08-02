@@ -5,6 +5,7 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { generateDpa } from '@/lib/pdf/generate-dpa'
 import { ErroreDatiDpa } from '@/lib/pdf/errori-dpa'
+import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
 
 // GET /api/clienti/[id]/dpa
 // Genera e scarica il DPA GDPR Art. 28 per il cliente specificato
@@ -19,7 +20,7 @@ export async function GET(
     Object.assign(t, timings)
     if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     if (!context.laboratorioId) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
-    if (!['titolare', 'admin_rete', 'admin_sistema'].includes(context.ruolo ?? '')) {
+    if (!puoEmettereDpa(context.ruolo)) {
       return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
     }
     const guard = assertLabOperativo(context, 'GET')
@@ -35,12 +36,20 @@ export async function GET(
       //    (`DPA-CLI-001.pdf`): due scarichi dello stesso dentista, a un anno di
       //    distanza e con due testi diversi, arrivavano con lo STESSO nome —
       //    e nessuno dei due nomi diceva quale emissione fosse.
-      // 🔑 Questo header decide il nome da SOLO: l'`<a>` della scheda cliente è
-      //    nudo. L'attributo `download`, che ne proponeva un altro, è stato
-      //    tolto il 03/08/2026 (Task 8, `c1a1145d`).
-      //    `MISURATO il 03/08/2026` col markup di OGGI, sonda usa-e-getta sui
-      //    tre motori — WebKit compreso perché è Safari, quindi l'iPhone:
-      //      chromium · firefox · webkit → salvano tutti `DPA-2026-0007.pdf`.
+      // 🔑 Questo header resta l'UNICA fonte del nome, ma da P17 (02/08/2026)
+      //    non è più il browser a leggerlo da solo: la scheda cliente non ha più
+      //    un `<a href>`, ha `ScaricaDpaButton`, che chiama con `fetch` e
+      //    rilegge questa intestazione in JavaScript (`nomeDaHeader`). Con
+      //    `fetch` il file arriva grezzo su un indirizzo `blob:`, che di
+      //    intestazioni non ne ha nessuna: senza quella rilettura il nome se lo
+      //    inventerebbe il browser.
+      //    📌 STORIA — `MISURATO il 03/08/2026` col markup di ALLORA (`<a>` senza
+      //    `download`, tolto dal Task 8 `c1a1145d`), sonda usa-e-getta sui tre
+      //    motori, WebKit compreso perché è Safari, quindi l'iPhone:
+      //      chromium · firefox · webkit → salvavano tutti `DPA-2026-0007.pdf`.
+      //    Quella misura provava che l'intestazione basta da sola su una
+      //    NAVIGAZIONE. Oggi il cammino è un altro, e a coprirlo è
+      //    `tests/unit/ScaricaDpaButton.test.tsx`.
       //    📌 STORIA, non regola viva: la nota sulla PRECEDENZA che stava qui
       //    (HTML Standard, «getting the suggested filename» — il
       //    `Content-Disposition` si prende al passo 2, il `download` si guarda
@@ -67,7 +76,10 @@ export async function GET(
       //    03/08/2026 rispondevano 500, cioè «è rotta UÀ», per una richiesta
       //    che puntava a un dato che non c'è.
       if (e instanceof ErroreDatiDpa) {
-        return NextResponse.json({ error: e.message }, { status: e.stato })
+        // 📌 `codice` è un'AGGIUNTA: chi legge solo `error` continua a funzionare.
+        //    Serve al browser per sapere DOVE mandare a rimediare, senza diramare
+        //    sul testo italiano del messaggio.
+        return NextResponse.json({ error: e.message, codice: e.codice }, { status: e.stato })
       }
       // 🛑 Tutto il resto è 500, NON 400 — e il conto si dice ESATTO, non «la grande maggioranza».
       //    `provato:` `grep -n "throw new" src/lib/pdf/generate-dpa.ts`
@@ -88,24 +100,25 @@ export async function GET(
       //    quando la conclusione a cui arriva è giusta. Quella buona è che lo
       //    stato HTTP è un'affermazione su CHI ha sbagliato: su questi sette
       //    ha sbagliato UÀ, e il 500 lo dice giusto.
-      // 📌 `e.message` resta: qui arrivano solo testi FISSI e curati
-      //    (`generate-dpa.ts` li ha chiusi tutti a monte), e questo corpo JSON è
-      //    davvero l'unico canale verso chi scarica — nessun codice client
-      //    dirama sullo stato, il tasto è un `<a href>` e basta.
-      //    `MISURATO il 03/08/2026`, sonda usa-e-getta sui tre motori, con gli
-      //    header VERI di QUESTO ramo (500 · `application/json` · NIENTE
-      //    `Content-Disposition`) e il markup di OGGI, `<a>` senza `download`:
-      //      chromium · firefox · webkit → NAVIGANO e MOSTRANO il corpo JSON.
-      //    🛑 QUESTA RIGA VA LETTA CON LA SUA DATA. Fino al 03/08/2026 l'`<a>`
-      //    portava `download`, e con quell'attributo il corpo non lo vedeva
-      //    NESSUNO: stessa sonda, stessi tre motori → chromium e webkit
-      //    salvano il JSON su disco come finto PDF, firefox fa un clic morto.
-      //    La riga che stava qui prima diceva già «mostra il corpo», ma è stata
-      //    scritta PRIMA che l'attributo sparisse: descriveva un mondo che
-      //    ancora non c'era, e si dichiarava misurata. È diventata vera dopo,
-      //    per merito di un altro task — non era vera quando l'hanno scritta.
-      //    Toglierlo costerebbe l'unico messaggio utile («Partita IVA
-      //    mancante») senza chiudere nessuna fuga vera.
+      // 📌 `e.message` resta, ma da OGGI per una ragione diversa: qui arrivano
+      //    solo testi FISSI e curati (`generate-dpa.ts` li ha chiusi tutti a
+      //    monte), e chi scarica non li legge più. Il campo è per CHI RIPARA —
+      //    i log del server e il pannello di rete del browser.
+      //    🔄 RISCRITTA il 02/08/2026 dal Task 4 di P17, perché quella di prima
+      //    era diventata falsa in due modi mentre si dichiarava `MISURATO`.
+      //    Diceva: «questo corpo JSON è davvero l'unico canale verso chi
+      //    scarica — nessun codice client dirama sullo stato, il tasto è un
+      //    `<a href>` e basta». Da P17:
+      //      ① il tasto NON è più un `<a href>` ma `ScaricaDpaButton`, che
+      //         chiama con `fetch` e resta sulla scheda: il corpo non finisce
+      //         più a schermo su nessun motore;
+      //      ② il codice client DIRAMA eccome — è tutto il senso di `esitoDa` —
+      //         ma dirama su `status` e su `codice`, MAI su `error`: le frasi
+      //         che l'utente legge sono scritte lì, in italiano curato.
+      //    🔑 È esattamente il modo di sbagliare che questo file racconta di
+      //    aver già pagato due volte: una riga scritta prima del mondo che
+      //    descrive, e marchiata come misurata. La misura del 03/08 era vera
+      //    quel giorno — vale come STORIA, non come regola viva.
       const msg = e instanceof Error ? e.message : 'Errore generazione DPA'
       return NextResponse.json({ error: msg }, { status: 500 })
     }

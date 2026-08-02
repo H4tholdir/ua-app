@@ -6,6 +6,9 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { PortaleLinkButtons } from '@/components/features/clienti/PortaleLinkButtons'
 import { PortaleFatturazioneCard } from '@/components/features/clienti/PortaleFatturazioneCard'
 import { ClienteModificaButton } from '@/components/features/clienti/ClienteModificaButton'
+import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
+import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica'
+import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -162,16 +165,34 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   //    poi revocato o scaduto, che UÀ conserva lo stesso. Allineare questo
   //    filtro a quello del guard farebbe sparire dalla scheda un'emissione che
   //    esiste davvero.
-  const { data: emissioneRaw, error: erroreRegistro } = await svc
-    .from('data_processing_agreements')
-    .select('numero_dpa, emesso_at')
-    .eq('laboratorio_id', context.laboratorioId)
-    .eq('dentista_id', c.id)
-    .not('numero_dpa', 'is', null)
-    .is('deleted_at', null)
-    .order('emesso_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const [
+    { data: emissioneRaw, error: erroreRegistro },
+    { data: labFiscale, error: erroreLabFiscale },
+  ] = await Promise.all([
+    svc
+      .from('data_processing_agreements')
+      .select('numero_dpa, emesso_at')
+      .eq('laboratorio_id', context.laboratorioId)
+      .eq('dentista_id', c.id)
+      .not('numero_dpa', 'is', null)
+      .is('deleted_at', null)
+      .order('emesso_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // 🔑 I dati fiscali del LABORATORIO non stanno nel contesto: `lab-context.ts:19`
+    //    porta solo `stato`, `trial_ends_at` e `nome`. Senza questa lettura la
+    //    scheda non può sapere in anticipo che l'emissione fallirà, e il titolare
+    //    di un laboratorio senza Partita IVA lo scoprirebbe premendo — su OGNI
+    //    dentista, uno per uno.
+    // 🛑 In PARALLELO, mai in fila: questa pagina si apre a ogni scheda dentista,
+    //    e due andate e ritorni in sequenza si SOMMANO. Nessun `await` dentro
+    //    l'array: le due partono entrambe prima che l'una risponda.
+    svc
+      .from('laboratori')
+      .select('partita_iva, codice_fiscale')
+      .eq('id', context.laboratorioId)
+      .maybeSingle(),
+  ])
 
   // 🛑 Un guasto di LETTURA non è «non è mai stato emesso»: sono due fatti
   //    diversi e vanno detti diversi (stessa distinzione di
@@ -181,6 +202,15 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   //    resta nei log, dove lo legge chi ripara.
   if (erroreRegistro) {
     console.error('ClienteDettaglioPage — registro DPA non leggibile:', c.id, erroreRegistro.message)
+  }
+  // 🛑 STESSA distinzione, e qui pesa ancora di più: «non sono riuscito a
+  //    leggere» NON è «il dato non c'è». Se questo guasto si trasformasse in
+  //    «Mancano i dati del tuo laboratorio», il titolare andrebbe in
+  //    /impostazioni a cercare una Partita IVA che è già scritta lì. Sotto, la
+  //    prevenzione si arrende: il tasto resta vivo e decide la rotta, che il
+  //    controllo lo rifà comunque (D159 — la prevenzione non sostituisce il 422).
+  if (erroreLabFiscale) {
+    console.error('ClienteDettaglioPage — dati fiscali del laboratorio non leggibili:', context.laboratorioId, erroreLabFiscale.message)
   }
 
   const ultimaEmissione = emissioneRaw as UltimaEmissioneDpa | null
@@ -198,6 +228,31 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
         day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome',
       })
     : null
+
+  // ── Prevenire lo scarico che fallirebbe (D159) ──────────────────────────────
+  // 🛑 `&&` e non `||`, IDENTICO a `validateDpaData` (`generate-dpa.ts:80,83`):
+  //    ne basta UNO dei due perché l'emissione proceda, ed è per questo che il
+  //    messaggio dice «la Partita IVA **o** il Codice Fiscale». Con `||` il tasto
+  //    si spegnerebbe su dentisti che emetterebbero benissimo — un difetto che a
+  //    occhio non si vede, perché il caso più comune (ha entrambi, o ha solo la
+  //    Partita IVA) resta identico con tutti e due gli operatori.
+  // ⚠️ `!erroreLabFiscale`: senza, un guasto di lettura diventerebbe un'accusa.
+  const mancaLab = !erroreLabFiscale && !labFiscale?.partita_iva && !labFiscale?.codice_fiscale
+  const mancaCliente = !c.partita_iva && !c.codice_fiscale
+  // Il laboratorio VINCE sul cliente: lì si rimedia una volta per tutti gli
+  // studi, qui solo per questo.
+  const mancanzaDpa: 'laboratorio' | 'cliente' | null = mancaLab ? 'laboratorio' : mancaCliente ? 'cliente' : null
+
+  // D158: chi non può emettere non vede il tasto — non lo vede SPENTO, non lo
+  // vede affatto. Fino al 02/08/2026 questa pagina non guardava il ruolo, unica
+  // fra le undici che lo guardano: un tecnico vedeva un tasto rosso che per lui
+  // non si sarebbe acceso MAI, e premendolo riceveva un 403 in JSON a schermo.
+  // 🛑 QUESTO È CORTESIA VISIVA, NON UN CONTROLLO DI SICUREZZA. La protezione
+  //    vera è quella della rotta (`puoEmettereDpa` in `api/clienti/[id]/dpa`),
+  //    che gira sul server a ogni richiesta. I due NON si sostituiscono: chi un
+  //    giorno leggesse questa riga come «il permesso è già controllato» e
+  //    togliesse quella della rotta aprirebbe l'emissione a chiunque.
+  const puoEmettere = puoEmettereDpa(context.ruolo)
 
   const modButton = (
     <ClienteModificaButton
@@ -315,44 +370,56 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2)', marginBottom: '10px', lineHeight: 1.5 }}>
               Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.
             </p>
-            {/* 🛑 NIENTE attributo `download` qui, ed è una rimozione voluta.
-                Il nome del file lo decide la ROTTA, col suo `Content-Disposition`
-                (`api/clienti/[id]/dpa/route.ts`): misurato sui tre motori —
-                Chromium, Firefox e WebKit, cioè Safari, cioè l'iPhone — e tutti
-                e tre salvano `DPA-2026-0007.pdf`. Concorde con lo HTML Standard,
-                «getting the suggested filename»: il nome del `Content-Disposition`
-                si prende al passo 2, l'attributo `download` si guarda solo dopo,
-                ai passi 7-9. Quindi l'attributo era INERTE — ma prometteva un
-                nome (`DPA-<nome dello studio>.pdf`) che non esiste più da
-                nessuna parte, ed è una trappola per chi lo rilegge fra sei mesi. */}
-            <a
-              href={`/api/clienti/${c.id}/dpa`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                height: '44px',
-                padding: '0 18px',
-                borderRadius: '10px',
-                background: 'var(--primary, #D90012)',
-                color: '#fff',
-                fontFamily: 'DM Sans, sans-serif',
-                fontWeight: 700,
-                fontSize: '14px',
-                textDecoration: 'none',
-                boxShadow: 'var(--sh-red)',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Scarica DPA PDF
-            </a>
-            {ultimaEmissione?.numero_dpa && dataUltimaEmissione ? (
+            {/* 🛑 Qui NON c'è più una `<a href>`, ed è il cuore di P17: premere
+                un collegamento era una NAVIGAZIONE, quindi un errore della rotta
+                finiva a schermo come `{"error":"…"}` — titolo vuoto, zero
+                elementi premibili, e in una PWA installata nemmeno un «indietro».
+                📌 Il NOME DEL FILE resta una cosa del server, come prima: lo
+                decide il `Content-Disposition` della rotta, e adesso è
+                `ScaricaDpaButton` a rileggerlo (`nomeDaHeader`) — con `fetch` il
+                file arriva grezzo su un indirizzo `blob:`, che di intestazioni
+                non ne ha nessuna. La spiegazione per intero, col difetto già
+                pagato che protegge (due emissioni dello stesso dentista, a un
+                anno di distanza, con lo STESSO nome), vive lì e in una copia
+                sola: non rimetterla qui.
+                D158/D160: chi non può emettere non vede il tasto, ma vede tutto
+                il resto — chi sta al banco deve poter rispondere allo studio al
+                telefono («sì, risulta emesso il 12 marzo») senza riemetterlo. */}
+            {puoEmettere && <ScaricaDpaButton clienteId={c.id} mancanza={mancanzaDpa} />}
+
+            {/* 🛑 TRE casi, non due. Prima, se il registro non si leggeva, la riga
+                spariva — identica a «mai emesso». Sono fatti OPPOSTI: uno dice
+                «ho letto e non c'è», l'altro «non sono riuscito a leggere», e
+                confonderli può far riemettere un contratto che esiste già. */}
+            {erroreRegistro ? (
+              /* 🔄 Il tasto «Ricarica» APPROVATO in D161 arriva qui il 02/08/2026:
+                 il Task 4 aveva reso il blocco SENZA azione, e l'aveva riferito.
+                 🔑 Il motivo del ritardo, e il motivo per cui adesso c'è un
+                 componente in mezzo: questa pagina gira sul SERVER, e una
+                 funzione (`onClick`) non attraversa il confine RSC. Il ponte
+                 client sta in `BloccoAvvisoRicarica` — qui non cambia nient'altro
+                 (stesso blocco, stesso tipo, stesse parole).
+                 📌 Fuori da `puoEmettere` DI PROPOSITO: chi non emette vede tutto
+                 il resto (D160), e rileggere un registro è innocuo per chiunque —
+                 chi sta al banco deve poter riprovare senza chiamare il titolare. */
+              <BloccoAvvisoRicarica
+                tipo="attesa"
+                titolo="Non riesco a leggere il registro"
+                testo="Il contratto potrebbe essere già stato emesso: questa riga non fa fede."
+              />
+            ) : ultimaEmissione?.numero_dpa && dataUltimaEmissione ? (
               <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t2)', marginTop: '6px' }}>
                 Ultima emissione: <strong>{ultimaEmissione.numero_dpa}</strong> — {dataUltimaEmissione}
               </p>
-            ) : null}
+            ) : (
+              /* 🛑 `--t1` e non `--t2`: questa riga NON c'era, e un testo NUOVO non
+                 deve nascere col difetto che si è scelto di rimandare. `--t2` dà
+                 4,45:1 sul fondo card scuro, sotto il minimo di 4,5 (P16, deferita
+                 da D134 — la riga «Ultima emissione» qui sopra ci resta apposta). */
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t1, #1C1916)', marginTop: '6px' }}>
+                Non ancora emesso per questo studio.
+              </p>
+            )}
             {/* 🔑 La promessa sulla conservazione entra QUI e non prima: fino al
                 registro (D129/D130) `generateDpa()` rendeva un PDF al volo senza
                 conservare niente, e scriverla allora sarebbe stata una frase

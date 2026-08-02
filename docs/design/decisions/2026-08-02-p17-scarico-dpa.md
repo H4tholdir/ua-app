@@ -1,0 +1,232 @@
+# Decisione di design — P17, lo scarico del contratto che non va a buon fine
+
+**Data:** 2 agosto 2026 (`provato:` `date` → `Sun Aug 2 18:34 CEST 2026`, regola §0F) ·
+**Decide:** Francesco Formicola · **Stato:** approvata sui mockup
+**Superficie:** il riquadro «Privacy — GDPR» della scheda dentista — `src/app/(app)/clienti/[id]/page.tsx`
+**Design system:** **v2.3** — questa route non è fra quelle migrate a v3 (`ua-app/CLAUDE.md` §8), e i due sistemi non si mischiano mai nella stessa pagina (DS v3 §14).
+**Mockup:** `docs/design/mockups/2026-08-02-p17-scarico-dpa.html` · **12 scatti** in `docs/design/mockups/screenshots/` (390 · 768 · 1280 × chiaro · scuro × variante A · B)
+**Decisioni di verbale:** **D157** (si riparte da P17) · **D158** · **D159** · **D160** · **D161** · **D162** —
+`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
+
+---
+
+## 1. Il difetto, e quanto è grande davvero
+
+Il tasto «Scarica DPA PDF» è un collegamento nudo (`<a href>`): premerlo è una **navigazione**, non una
+richiesta di cui qualcuno controlla l'esito. Se la rotta risponde male, il browser mostra quello che ha
+ricevuto — cioè `{"error":"Cliente non trovato"}` a schermo, **titolo vuoto, zero elementi premibili**. In una
+PWA installata il tasto «indietro» del browser può non esserci affatto.
+
+**Il censimento, fatto aprendo i file e non fidandosi della voce di roadmap** (R-P2):
+
+`provato:` `grep -n "throw new" src/lib/pdf/generate-dpa.ts` → **11** righe.
+
+| | cammini | esito | chi ha sbagliato |
+|---|---|---|---|
+| Dati fiscali incompleti | `:81` laboratorio · `:84` cliente | **422** | nessuno — manca un dato |
+| «Non trovato» | `:124` laboratorio · `:125` cliente | **404** | la richiesta punta a un dato che non c'è |
+| Guasti del servizio | `:115` `:168` `:191` `:215` `:240` `:290` `:394` | **500** | **UÀ** |
+
+⚠️ **`:124` («Laboratorio non trovato») non è raggiungibile da questa rotta**, e la ragione è già scritta e
+provata in `src/lib/pdf/errori-dpa.ts`: la chiave esterna `utenti_laboratorio_id_fkey` garantisce che, se
+`context.laboratorioId` non è nullo, quella riga esista. **I cammini che cambiano faccia all'utente sono
+quindi TRE**, più la famiglia dei guasti.
+
+🆕 **E uno che la voce di roadmap non aveva** (trovato aprendo i file, → **D158**): la scheda **non guarda il
+ruolo**. `provato:` `grep -n "ruolo" src/app/(app)/clienti/[id]/page.tsx` → **0** righe, mentre **10** altre
+pagine sotto `src/app/(app)/` lo guardano. La rotta invece ammette solo `titolare · admin_rete ·
+admin_sistema` (`route.ts:22`). **Quindi oggi un `tecnico` o un `front_desk` vede un tasto rosso che per lui
+non funzionerà mai**, e premendolo riceve la stessa pagina di codice.
+
+**Il secondo pezzo, sulla stessa scheda:** se il registro delle emissioni non si legge, `page.tsx:182-184`
+scrive nel log e **non rende la riga** — cioè uno studio **mai emesso** e un **guasto di lettura** si vedono
+**identici**. È il caso da manuale: «vuoto» significa *ho letto e non c'è niente*, «errore» significa *non
+sono riuscito a leggere*, e mostrare il vuoto quando la lettura fallisce è un difetto, non una semplificazione.
+🔑 **Il danno concreto:** un titolare può riemettere un contratto che esiste già.
+
+---
+
+## 2. Le decisioni prese, e perché
+
+### ① Prevenire dove si può, raccontare dove non si può (**D159**)
+
+**La scoperta che l'ha resa possibile: la scheda sa già, prima che si prema, se il documento fallirà.**
+`provato:` `page.tsx:126` legge `partita_iva, codice_fiscale` **del cliente** — cioè **esattamente** i due dati
+che `validateDpaData` controlla (`generate-dpa.ts:76-84`), col predicato `!partita_iva && !codice_fiscale`:
+**ne basta uno**, e il messaggio del mockup dice infatti «*la Partita IVA **o** il Codice Fiscale*».
+
+🔄 **CORRETTA il 02/08/2026, ed era un'assunzione mia mai verificata.** La prima stesura di questa riga diceva
+«*e il contesto porta il laboratorio*». **È FALSO.** `provato:` `src/lib/supabase/lab-context.ts:19` →
+`lab: { stato: string; trial_ends_at: string | null; nome: string } | null` — **niente `partita_iva`, niente
+`codice_fiscale`**.
+➡️ **Conseguenza vera, e va nel piano:** la prevenzione del **caso ③** (dati fiscali del laboratorio) richiede
+una **lettura in più** nella pagina; non esce gratis dal contesto. Senza quella lettura lo stato ③ del mockup
+**non si accenderebbe mai**, e il caso ricadrebbe nel percorso vivo come un 422 generico.
+🔑 **È la forma esatta di P28 e della lezione ⑤ del 02/08:** provato su un'entità (`clienti`), **assunto**
+sull'altra (`laboratori`). La prova su un caso non è una prova sul comportamento.
+
+- **Mossa ①** — manca un dato → il tasto nasce **inerte**, col motivo scritto e la via per rimediare. Il
+  titolare **non prova nemmeno**.
+- **Mossa ②** — guasto del servizio → il tasto diventa **vivo**: si resta sulla scheda, compare il messaggio,
+  c'è un **Riprova**.
+
+🛑 **La ① non rende inutile la ②.** I dati possono cambiare fra il caricamento della pagina e la pressione:
+il **422 resta gestito** anche nel percorso vivo. Una prevenzione che togliesse il caso d'errore sarebbe una
+prevenzione che si fida di una fotografia.
+
+### ② Il tasto sparisce a chi non può usarlo, il riquadro resta (**D158** · **D160**)
+
+Chi non è titolare **non vede il tasto**, ma vede tutto il resto: il testo che spiega cos'è il contratto, la
+riga «Ultima emissione» e la promessa di conservazione.
+🔑 **La ragione è di lavoro:** chi sta al banco deve poter rispondere allo studio al telefono — «*sì, risulta
+emesso il 12 marzo*» — **senza poterlo riemettere**. Informazione e potere di agire sono cose separate.
+🛑 **Scartato «tasto visibile ma spento»:** mostrerebbe a ogni tecnico, a ogni apertura di scheda, un tasto che
+per lui non si accenderà **mai**. Diverso dai casi «manca la Partita IVA», dove lo spento è **temporaneo e
+risolvibile da chi guarda**. ⚠️ **Quindi in questa superficie «spento» vuol dire una cosa sola: manca un dato,
+e puoi rimediare tu.**
+
+### ③ Variante **B — a blocco** (**D161**)
+
+Ciò che non va è un riquadro con striscia colorata, titolo in grassetto e **un tasto vero**.
+🔑 **Ha deciso l'uso, non il gusto: l'app si tocca in piedi al banco**, e un bersaglio grande da premere col
+pollice vale più di un link sottolineato. ⚠️ Costa altezza **solo quando c'è qualcosa che non va**.
+
+### ④ Costruita per essere ereditata (**D162**)
+
+Messaggi e stati vivono in un **pezzo separato e riusabile**, non cuciti dentro la scheda dentista — così
+l'ondata della firma a distanza, che rimetterà mano a questi stessi stati, **ci aggiunge** invece di
+ricominciare. 🛑 **Non significa progettare la firma adesso:** significa non incollare questi stati a questa
+sola scheda.
+
+---
+
+## 3. Gli otto stati approvati
+
+| # | quando | tasto | cosa dice |
+|---|---|---|---|
+| ① | tutto a posto | attivo | — |
+| ② | manca P.IVA/CF **del cliente** | inerte | ~~«Manca un dato dello studio» → **Aggiungi il dato**~~ 🔄 **CORRETTO il 02/08 (D165): NIENTE TASTO** — il testo indica il «Modifica» già presente in cima alla stessa schermata |
+| ③ | manca P.IVA/CF **del laboratorio** | inerte | «Mancano i dati del tuo laboratorio» → **Completa i dati del laboratorio** |
+| ④ | mentre prepara | occupato | «Preparo il documento…» |
+| ⑤ | guasto del servizio (7 cammini) | attivo | «Non è stato possibile preparare il documento — non dipende dai tuoi dati» → **Riprova** |
+| ⑥ | non sei il titolare | **assente** | il riquadro resta, senza tasto |
+| ⑦a | registro letto, emissione c'è | — | «Ultima emissione: DPA-… — 12 marzo 2026» |
+| ⑦b | registro letto, **niente** | — | «Non ancora emesso per questo studio.» |
+| ⑦c | registro **non leggibile** | — | «Non riesco a leggere il registro» → **Ricarica** |
+
+⚠️ **Il 404 «Cliente non trovato»** (collegamento vecchio, cliente cancellato, id di un altro laboratorio)
+ricade nel percorso vivo con il suo messaggio: la scheda però è stata caricata, quindi il caso si vede solo se
+il cliente sparisce fra il caricamento e la pressione.
+
+🔄 **CORREZIONE DEL 02/08/2026 — un tasto approvato che in produzione sarebbe stato MORTO (D165).**
+Lo stato ② prevedeva un tasto «**Aggiungi il dato**», e sembrava gratuito perché «*la modifica è già su questa
+scheda*». **Lo è, ma non è raggiungibile:** `provato:` il pannello vive dentro `ClienteModificaButton` con uno
+`useState` proprio e **non ha indirizzo**; `find src/app -name page.tsx -path "*modifica*"` → **solo
+`lavori/[id]/modifica`**, per i clienti **non esiste**. Da un componente fratello quel pannello **non si apre**.
+🔑 **Nessuno poteva vederlo guardando il mockup** — un tasto disegnato sembra sempre un tasto che funziona. È
+saltato fuori solo quando qualcuno ha provato a **collegarlo**.
+➡️ **Nel frattempo il blocco ② resta SENZA tasto**, e il testo indica il «Modifica» in cima alla stessa
+schermata (a due dita di distanza). ➡️ **La pagina di modifica del dentista si costruisce** — voce **P30**,
+fuori dal perimetro di P17. 🛑 **Non è un ripiego nascosto:** il debito ha un numero e una destinazione.
+
+---
+
+## 4. Accessibilità — le due misure che hanno cambiato il disegno
+
+**① Il tasto inerte NON usa l'attributo `disabled`.** Quell'attributo toglie l'elemento dalla navigazione da
+tastiera e chi usa un lettore di schermo non sa nemmeno che esiste — proprio nel caso in cui il messaggio
+accanto spiega come rimediare. Si usa **`aria-disabled`**, che lascia l'elemento raggiungibile e annunciato.
+Fonti lette il 02/08/2026: [CSS-Tricks](https://css-tricks.com/making-disabled-buttons-more-inclusive/) ·
+[Kitty Giraudel](https://kittygiraudel.com/2024/03/29/on-disabled-and-aria-disabled-attributes/).
+
+**② Il colore non è mai l'unica fonte di stato, e sui testi nuovi si usa `--t1`.**
+`misurato` sul fondo vero della card (`sfc`, chiaro `#E4DFD9` · scuro `#232018`):
+
+| colore | su card chiara | su card scura | verdetto |
+|---|---|---|---|
+| `--t1` | ~13:1 | **14,06:1** | ✅ ovunque |
+| `--t2` `#8A8580` | 7,9:1 | **4,45:1** | ❌ scuro (P16) |
+| `--t3` `#5A5652` | 4,85:1 | **2,24:1** | ❌ scuro (P16) |
+| rosso `#D90012` come **testo** | **4,01:1** | — | ❌ sotto 4,5 |
+| ambra `#F59E0B` come **testo** | ~2,1:1 | — | ❌ sotto 4,5 |
+
+➡️ **Quindi il colore sta nella STRISCIA e nel FONDO del blocco**, e **testo e icona stanno su `--t1`**.
+
+🔄 **PRECISATA il 02/08/2026 — rilievo dell'esecutore del Task 2 (R-E2), e la prima stesura induceva in
+errore.** Diceva «*il colore sta nell'**icona** e nella striscia*»: vero per la **variante A** (scartata), dove
+il segno `▲` è `#7A5500` — un ambra **scurito apposta**, proprio perché quello pieno non tiene. Nella
+**variante B, che è quella approvata (D161)**, l'icona è su `--t1` come il testo. `misurato:` l'ambra sul fondo
+del blocco dà **1,80:1**, `--t1` dà **12,26:1**, e il minimo per un segno grafico è **3:1**: l'icona è proprio
+il segno che deve reggere quando il colore non si distingue. ✅ **Verificato sullo scatto approvato**
+campionando il pixel dell'icona → `(28, 25, 22)` = `--t1`.
+🔑 **Perché la correzione sta qui e non solo nel codice:** il commento nel file protegge il file; una riga
+sbagliata in un documento di decisione manda la sessione successiva a «riparare» ciò che è giusto.
+
+⚠️ **E il nome del colore è una trappola, censita:** `var(--amber)` in questo progetto vale **`#FD7E14`**
+(`globals.css:91`, warning MDR), **non** `#F59E0B` — che si chiama **`--c-amber`** (`:97`). L'equivoco nasce da
+`src/design-system/tokens.ts:39`, dove la voce si chiama `amber` e porta il **secondo** valore. Il blocco usa
+**`--c-amber`**. 📌 `globals.css:101` avverte per iscritto: «*MAI usare `--c-amber` come colore testo*» —
+coerente con la scelta di tenere ogni testo su `--t1`.
+
+🛑 **P16 NON si riapre qui, ed è già deciso.** Le righe «Ultima emissione…» (`--t2`) e «Stampa e firma…»
+(`--t3`) restano illeggibili in modo scuro: è **P16**, misurata il 04/08 e **deferita da D134** all'ondata di
+migrazione a v3 di questa route, perché **nessun colore di testo v2.3 scuro passa su questa card** tranne
+quello dei titoli. 🔑 **Deferire un difetto esistente è una scelta; nascere con lo stesso difetto su testo
+nuovo non lo è** — per questo tutto ciò che P17 **aggiunge** sta su `--t1`.
+
+---
+
+## 5. Che cosa questo lavoro NON fa
+
+- **Non tocca `generate-dpa.ts`.** Gli stati HTTP sono già giusti e già provati (D133 e il lavoro del 01/08):
+  P17 è un difetto di **come si presenta** l'esito, non di come si decide.
+- **Non riapre P16** (deferita, **D134**), **né P13** (le rotte PDF sorelle che non concordano sullo stato
+  d'errore: stessa famiglia, **altre rotte**), **né P11** (il messaggio del database che arriva all'utente).
+- **Non introduce una sorveglianza degli errori.** `provato:` in questo repo non ce n'è
+  (`grep -rniE "sentry|captureException" src package.json` → nessuna riga): dirlo serve a non appoggiare
+  nessuna scelta su un sistema che non esiste.
+- **Non cambia chi può emettere.** Il controllo di autorizzazione della rotta resta identico: cambia solo che
+  la scheda smette di offrire un tasto a chi quel controllo respingerà.
+
+---
+
+## 6. 🛑 Le due cose che il passaggio a «tasto vivo» rischia di rompere
+
+Nessuna delle due è visibile nel disegno: si vedono solo aprendo il codice, e vanno nel piano **marcate**.
+
+### ① Il NOME DEL FILE si perde — e disferebbe un lavoro già pagato
+
+Un collegamento normale lascia decidere il nome al server (`Content-Disposition`). Una richiesta via `fetch`
+**no**: il file arriva come dato grezzo e, se nessuno rilegge quell'intestazione in JavaScript, il browser
+salva un nome inventato.
+
+🔑 **Non è un dettaglio, è un difetto già trovato e già riparato.** `route.ts:34-48` racconta perché: il nome
+vecchio (`DPA-CLI-001.pdf`) dava a **due emissioni dello stesso dentista, a un anno di distanza e con due testi
+diversi, lo STESSO nome**. Il Task 8 (`c1a1145d`) ha tolto l'attributo `download` proprio perché fosse
+l'intestazione a decidere da sola — **misurato sui tre motori**, Chromium, Firefox e WebKit (cioè Safari, cioè
+l'iPhone).
+
+⚠️ **E il precedente in casa NON risolve: conferma il rischio.** `provato:`
+`grep -rni 'content-disposition' src/` → **14** occorrenze, **tutte lato server**, **nessuna** lato client.
+L'unico scarico via `fetch` esistente — `PacchettoConsegnaSheet.tsx:203` — **si fabbrica il nome a mano**
+(`:264`) invece di leggerlo. 🔑 **Cercare il precedente è servito a smontare l'idea, non a confermarla**
+(lezione ④ del 02/08).
+➡️ **Requisito del piano, con la sua prova:** leggere `Content-Disposition` dalla risposta e usarlo per il nome
+del file; `provato:` da verificare con una sonda che l'intestazione sia **leggibile** su richiesta di pari
+origine (attesa: sì, il filtro CORS non si applica — ma è un'assunzione sull'ambiente e va provata, R-P1).
+🔄 **E se non lo fosse:** la rotta dovrà esporla con `Access-Control-Expose-Headers`.
+
+### ② Distinguere i due 422 dal TESTO del messaggio è l'anti-pattern che questo codice combatte per iscritto
+
+I casi ② e ③ sono **entrambi 422** ed **entrambi** `ErroreDatiDpa`: dal corpo della risposta, oggi, si
+distinguono **solo dalla frase italiana**. Un componente che confronta prose per scegliere **quale dei due
+tasti di rimedio** mostrare è esattamente la mappa che `errori-dpa.ts` dichiara di aver evitato — «*una mappa
+dal TESTO del messaggio … che si romperebbe in silenzio alla prima riscrittura di un messaggio*» — solo
+spostata di un piano più su.
+
+➡️ **Requisito del piano:** `ErroreDatiDpa` porta un **codice leggibile a macchina** accanto allo `stato`,
+la rotta lo mette nel corpo JSON, e il tipo è **un'unione chiusa**, così il compilatore obbliga ogni `throw`
+a scegliere da che parte sta. 🔑 **È lo stesso meccanismo di `emesso_da` in P7:** il rumore lo fa `tsc`, non
+la memoria di chi scrive.
+⚠️ **Vanno enumerati anche i cammini PRIMA del `try`** (401 sessione scaduta · 403 ruolo · 403 laboratorio non
+operativo): un 401 **non deve** finire nello stato ⑤ con un «Riprova» che non può funzionare.

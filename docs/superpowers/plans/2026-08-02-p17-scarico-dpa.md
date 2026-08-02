@@ -1,0 +1,1597 @@
+# P17 — Lo scarico del contratto che non va a buon fine · Piano di esecuzione
+
+> **Per chi esegue:** un task alla volta, a esecutore fresco (**R-E1**), con revisione fra l'uno e l'altro.
+> Nel brief di ogni task va l'istruzione esplicita di **cercare attivamente dove questo piano sbaglia**.
+> Un difetto trovato **fuori** dal proprio mandato si **riferisce**, non si corregge di nascosto (**R-E2**).
+
+**Obiettivo:** quando lo scarico del contratto DPA non può riuscire, il titolare lo scopre **prima** di premere
+o lo legge **sulla sua pagina** — mai su una schermata di codice.
+
+**Architettura:** tre pezzi con confini dichiarati — un **codice d'errore** leggibile a macchina che nasce
+nell'emettitore e arriva al browser · un **blocco d'avviso** di presentazione pura (v2.3, riusabile, non sa
+di DPA) · un **tasto vivo** che governa il proprio esito. La pagina resta un componente server e guadagna
+due cose: legge il **ruolo** e legge i **dati fiscali del laboratorio**.
+
+**Stack:** Next.js 16 (App Router) · React · TypeScript · vitest + @testing-library/react · **DS v2.3**
+(`src/design-system/tokens.ts`) — questa route **non** è migrata a v3.
+
+**Nasce da:** `docs/superpowers/specs/2026-08-02-p17-scarico-dpa-design.md` (spec, passata al piano senza
+rilettura per **D163**) · `docs/design/decisions/2026-08-02-p17-scarico-dpa.md` (design, **D157-D162**)
+
+---
+
+## Vincoli globali — valgono per OGNI task
+
+1. 🛑 **DS v2.3, mai v3.** Niente `src/components/ds/*`, niente `src/design-system/v3/*`, niente
+   `data-ds="v3"`. I colori si importano da `src/design-system/tokens.ts` o si usano le variabili CSS
+   (`var(--t1)`, `var(--primary)`…): **mai un valore inventato**.
+2. 🛑 **Ogni testo NUOVO sta su `--t1`.** `misurato`: `--t2` dà **4,45:1** e `--t3` **2,24:1** sul fondo card
+   scuro `#232018`, sotto il minimo di 4,5. È **P16**, **deferita da D134** e **non si riapre** — ma un testo
+   nuovo non deve nascere col suo difetto.
+3. 🛑 **Il colore non è mai l'unica fonte di stato**: ogni blocco porta la sua **icona** e il suo **testo**.
+4. 🛑 **Niente attributo `disabled`** su un tasto che si può riattivare: si usa **`aria-disabled="true"`**,
+   perché `disabled` toglie l'elemento dalla navigazione da tastiera e dai lettori di schermo.
+5. **Bersagli ≥ 44px** di altezza. **Tre viewport**: 390 · 768 · 1280, **chiaro e scuro**.
+6. 🛑 **Mai un git worktree.** Si lavora sul ramo `p17-scarico-che-fallisce`, già creato.
+7. **Salvataggio:** mai `git add -A`; `git commit -F <file>` col messaggio **fuori dal repo**.
+8. **Il numero dei test invecchia:** ci si fida dell'**output**, non di un numero scritto qui.
+
+---
+
+## Struttura dei file
+
+| file | responsabilità |
+|---|---|
+| 🆕 `src/lib/pdf/permessi-dpa.ts` | **l'unico** elenco dei ruoli che possono emettere. Oggi vive solo dentro la rotta: la pagina ne ha bisogno, e due copie divergono |
+| `src/lib/pdf/errori-dpa.ts` | la classe d'errore guadagna un **codice** leggibile a macchina, unione chiusa |
+| `src/lib/pdf/generate-dpa.ts` | **solo** i 4 `throw` che ora devono passare il codice. Nessun'altra riga |
+| `src/app/api/clienti/[id]/dpa/route.ts` | mette il codice nel corpo JSON; usa l'elenco condiviso dei ruoli |
+| 🆕 `src/components/feedback/BloccoAvviso.tsx` | presentazione pura v2.3: tipo, titolo, testo, azione facoltativa. **Non sa di DPA** — è il pezzo che l'ondata della firma erediterà (**D162**) |
+| 🆕 `src/components/features/clienti/ScaricaDpaButton.tsx` | il tasto vivo: stati, richiesta, **nome del file**, mappatura codice → messaggio |
+| `src/app/(app)/clienti/[id]/page.tsx` | legge ruolo e dati fiscali del laboratorio, monta il tasto, rende i **tre** casi dell'ultima emissione |
+| 🆕 `tests/unit/BloccoAvviso.test.tsx` · 🆕 `tests/unit/ScaricaDpaButton.test.tsx` · 🆕 `tests/unit/errori-dpa-codice.test.ts` | le prove |
+
+---
+
+## Task 0 — Provare le assunzioni PRIMA di costruirci sopra
+
+> 🔑 **Perché è un task e non un preambolo:** la spec dichiara **quattro** assunzioni **NON provate**. Se **A1**
+> è falsa, il Task 3 cambia forma. Provarle dopo significa scoprirlo a lavoro fatto.
+> 🛑 **Le sonde sono usa e getta e NON si committano.**
+
+**File:** nessuno modificato. Sonde in `scripts/tmp/` (già ignorato da git).
+
+- [ ] **Passo 1 — A1: `Content-Disposition` è leggibile da `fetch` di pari origine?**
+
+Serve l'app accesa e una sessione vera (le credenziali sono in `.env.local`, **D103**: non si chiede il
+permesso, e si usa il link d'accesso monouso — mai digitare una password in un campo).
+
+Con l'app in esecuzione, nella console del browser sulla scheda di un dentista:
+
+```js
+const r = await fetch(location.pathname.replace('/clienti/', '/api/clienti/') + '/dpa')
+console.log(r.status, JSON.stringify(r.headers.get('content-disposition')))
+```
+
+**Atteso:** `200 "attachment; filename=\"DPA-2026-….pdf\""` — **incollare l'output vero nel referto.**
+**Se è `null`:** A1 è falsa → la rotta deve aggiungere
+`'Access-Control-Expose-Headers': 'Content-Disposition'`, e il Task 1 se ne fa carico. **Fermarsi e riferire.**
+
+- [ ] **Passo 2 — A3: il predicato è `&&`, non `||`**
+
+```bash
+sed -n '76,85p' src/lib/pdf/generate-dpa.ts
+```
+
+**Atteso:** `if (!lab.partita_iva && !lab.codice_fiscale)` — cioè **basta uno dei due** perché l'emissione
+proceda. **Incollare le righe.** Questo valore governa il caso di prova più importante del Task 3.
+
+- [ ] **Passo 3 — chi altro chiama questa rotta?**
+
+```bash
+grep -rn "clienti/.*\/dpa\|/dpa'" src/ --include="*.tsx" --include="*.ts" | grep -v "api/clienti"
+```
+
+**Atteso:** solo `src/app/(app)/clienti/[id]/page.tsx:329`. **Incollare il numero di occorrenze.**
+Se ce ne sono altre, il campo aggiunto al corpo JSON va verificato anche lì (è un'aggiunta, quindi
+retro-compatibile, ma l'elenco dei chiamanti non lo decide chi scrive).
+
+- [x] **Passo 4 — scrivere gli esiti nel referto del task**, con gli output incollati. Nessun commit.
+
+### ✅ ESITO DEL TASK 0 — eseguito il 02/08/2026. Le quattro assunzioni, una per una
+
+**A1 — `Content-Disposition` è leggibile da `fetch` di pari origine: ✅ VERO, sui TRE motori.**
+`provato:` sonda usa-e-getta (un server minimo che serve **sia** la pagina **sia** il file, quindi stessa
+origine — la condizione dell'app vera):
+
+```
+chromium · firefox · webkit → stato 200
+  content-disposition: "attachment; filename=\"DPA-2026-0007.pdf\""
+  chiavi leggibili: connection · content-disposition · content-type · date · keep-alive · transfer-encoding
+```
+
+🔑 **La controprova sta nell'elenco completo delle chiavi:** su una risposta di **altra** origine il browser
+lascerebbe passare solo la manciata «sicura» (e `content-disposition` **non** è fra quelle). Qui si vedono
+tutte → **non c'è nessun filtro**, ed è la ragione per cui vale.
+➡️ **Il Task 3 resta come scritto.** Nessun `Access-Control-Expose-Headers` da aggiungere.
+⚠️ **WebKit compreso di proposito:** è Safari, cioè l'iPhone, cioè il dispositivo su cui questa PWA si usa.
+
+**A3 — il predicato è `&&`: ✅ VERO.**
+```ts
+  if (!lab.partita_iva && !lab.codice_fiscale) {
+    throw new ErroreDatiDpa('DPA: laboratorio privo di Partita IVA e Codice Fiscale', 422)
+  }
+  if (!cliente.partita_iva && !cliente.codice_fiscale) {
+```
+➡️ **Ne basta UNO dei due.** Il caso di prova «cliente con solo il Codice Fiscale → tasto ATTIVO» (Task 3)
+è quello che smaschera un `||` scritto per distrazione, e va tenuto.
+
+**Chi altro chiama la rotta: `provato:` 3 occorrenze fuori dalla rotta, ma UNA sola è una chiamata**
+(`page.tsx:329`). Le altre due sono un **commento** (`page.tsx:320`) e — 🆕 **questa il piano non l'aveva** —
+una **allowlist**: `src/lib/supabase/lab-context-allowlist.ts:8`.
+➡️ **L'allowlist NON si tocca** (la rotta non cambia categoria: continua a usare il contesto dai claim), **ma
+dice una cosa che il Task 4 deve sapere:**
+
+> 🛑 **Nascondere il tasto (D158) è cortesia visiva, NON un controllo di sicurezza**: la protezione vera resta
+> quella della rotta (`puoEmettereDpa`, che gira sul server a ogni richiesta). ⚠️ Un lettore futuro potrebbe
+> scambiare il gate della pagina per una protezione e togliere quello della rotta: **non lo è, e i due non si
+> sostituiscono** — chiunque può chiamare la rotta direttamente, senza passare da nessuna pagina.
+>
+> 🔄 **CORRETTA il 02/08/2026 — rilievo dell'esecutore del Task 4, e l'errore era mio.** La prima stesura di
+> questo riquadro spiegava la conclusione con un meccanismo **sbagliato**: «*il ruolo viene dai CLAIM del
+> token*». **Falso.** `provato:` `lab-context.ts:34-45` → `fetchUtenteRow` legge la tabella `utenti` col client
+> di servizio a ogni richiesta, e `toContext` (`:48-58`) prende `ruolo: row.ruolo` **da quella riga**. Dal
+> token viene l'**identità** (`userId`), non il ruolo. L'allowlist `lab-context-allowlist.ts` distingue
+> `getLabContext` da `getFreshLabContext` per **altro** (la memoria di richiesta), non per «claim contro
+> database».
+> 🔑 **La conclusione non cambia — e questo è precisamente il punto:** era **giusta per la ragione sbagliata**.
+> Un ragionamento del genere regge finché nessuno lo verifica, e crolla nel momento peggiore, cioè quando
+> qualcuno ci costruisce sopra.
+
+**A2 (la lettura in più non rallenta) e A4 (il corpo può non essere JSON):** restano **da provare nei loro
+task** — A2 con il `Promise.all` del Task 4, A4 col caso di prova dedicato del Task 3. Sono dichiarate lì.
+
+**In più, verificato perché ogni task ci si appoggia:** `@testing-library/jest-dom` **è configurato**
+(`tests/setup.ts:2`, `vitest.config.ts` → `setupFiles`), quindi `toBeInTheDocument` e `toHaveAttribute`
+funzionano. `provato:` senza questo controllo ogni esecutore si sarebbe fermato al primo test.
+
+---
+
+## Task 1 — Il codice d'errore, dall'emettitore al browser
+
+**File:**
+- 🆕 Crea: `src/lib/pdf/permessi-dpa.ts`
+- Modifica: `src/lib/pdf/errori-dpa.ts` (la classe, in fondo al file)
+- Modifica: `src/lib/pdf/generate-dpa.ts:81,84,124,125` (i 4 `throw`)
+- Modifica: `src/app/api/clienti/[id]/dpa/route.ts:22,69-71`
+- 🆕 Test: `tests/unit/errori-dpa-codice.test.ts`
+- 🔄 **Modifica: `tests/unit/dpa-route.test.ts:153,158,163,169,179`** — **mancava dal piano, aggiunto il
+  02/08/2026 dall'esecutore del Task 1.** Non è opzionale e non è di un altro task: `tsconfig.json` include
+  `**/*.ts` con solo `node_modules` escluso, quindi **`tests/` è tipizzato**, e quel file costruisce
+  `ErroreDatiDpa` in **tre** punti. Senza toccarlo il Passo 8 non può dare 0 e il **commit è bloccato**
+  (`.husky/pre-commit` gira `npx tsc --noEmit` come secondo comando, con `sh -e`).
+
+**Interfacce prodotte** (i task dopo si appoggiano a questi nomi esatti):
+```ts
+export type CodiceDatiDpa = 'LAB_DATI_FISCALI' | 'CLIENTE_DATI_FISCALI' | 'LAB_ASSENTE' | 'CLIENTE_ASSENTE'
+export class ErroreDatiDpa extends Error { readonly stato: 404 | 422; readonly codice: CodiceDatiDpa }
+export const RUOLI_EMISSIONE_DPA: readonly string[]   // da permessi-dpa.ts
+export function puoEmettereDpa(ruolo: string | null | undefined): boolean
+```
+Il corpo d'errore della rotta diventa `{ error: string, codice?: CodiceDatiDpa }`.
+
+- [ ] **Passo 1 — Scrivere il test che fallisce**
+
+🆕 `tests/unit/errori-dpa-codice.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { ErroreDatiDpa } from '../../src/lib/pdf/errori-dpa'
+import { RUOLI_EMISSIONE_DPA, puoEmettereDpa } from '../../src/lib/pdf/permessi-dpa'
+
+describe('ErroreDatiDpa — il codice viaggia con l\'errore', () => {
+  it('porta il codice accanto allo stato', () => {
+    const e = new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422, 'CLIENTE_DATI_FISCALI')
+    expect(e.stato).toBe(422)
+    expect(e.codice).toBe('CLIENTE_DATI_FISCALI')
+  })
+
+  it('resta un Error vero (instanceof regge oltre il transpile)', () => {
+    const e = new ErroreDatiDpa('x', 404, 'CLIENTE_ASSENTE')
+    expect(e).toBeInstanceOf(Error)
+    expect(e).toBeInstanceOf(ErroreDatiDpa)
+    expect(e.name).toBe('ErroreDatiDpa')
+  })
+})
+
+describe('permessi-dpa — l\'elenco dei ruoli sta in UN posto solo', () => {
+  it('ammette i tre ruoli della rotta, e nessun altro', () => {
+    expect([...RUOLI_EMISSIONE_DPA].sort()).toEqual(['admin_rete', 'admin_sistema', 'titolare'])
+  })
+
+  // 🛑 Il vincolo si prova con un valore che DEVE essere rifiutato (R-P1).
+  it.each(['tecnico', 'front_desk', 'admin', '', null, undefined])(
+    'rifiuta %s', (ruolo) => {
+      expect(puoEmettereDpa(ruolo as string | null | undefined)).toBe(false)
+    },
+  )
+
+  it.each(['titolare', 'admin_rete', 'admin_sistema'])('ammette %s', (ruolo) => {
+    expect(puoEmettereDpa(ruolo)).toBe(true)
+  })
+})
+```
+
+- [ ] **Passo 2 — Eseguirlo e verificare che fallisca**
+
+```bash
+npx vitest run tests/unit/errori-dpa-codice.test.ts
+```
+**Atteso:** FALLISCE su `Failed to resolve import ".../permessi-dpa"`.
+🛑 **Il rosso da «modulo non trovato» non prova che il test provi qualcosa** (**R-P4**): si va al passo 3.
+
+- [ ] **Passo 3 — Abbozzo INERTE e conteggio delle asserzioni**
+
+🆕 Creare `src/lib/pdf/permessi-dpa.ts` con un abbozzo che **non fa il lavoro**:
+
+```ts
+export const RUOLI_EMISSIONE_DPA = [] as const
+export function puoEmettereDpa(_ruolo: string | null | undefined): boolean {
+  return true   // INERTE — di proposito sbagliato
+}
+```
+
+Rieseguire e **CONTARE quante asserzioni si accendono**. **Scrivere il numero vero nel referto.** Se se ne
+accendono meno di 7, i test sono più deboli di quanto sembrano: **fermarsi e riferire.**
+
+🔄 **MISURATO il 02/08/2026 dall'esecutore — il numero che il piano prevedeva era sbagliato due volte.**
+Il piano diceva «**10 su 13**», ma la sua stessa prosa ne enumerava 7 che falliscono e 6 che passano: il
+titolo non tornava nemmeno col corpo che aveva sotto. L'osservazione vera:
+
+```
+Tests  8 failed | 4 passed (12)
+```
+
+**Il totale è 12, non 13** (2 di `ErroreDatiDpa` + 1 elenco + 6 rifiuti + 3 `ammette`). **E se ne accendono
+8, non 7**, perché il piano si sbagliava sull'ordine dei propri passi: a questo punto `errori-dpa.ts` è
+**ancora la classe a DUE parametri** — è il Passo 4 a cambiarla — quindi il terzo argomento viene ignorato,
+`e.codice` resta `undefined` e **fallisce anche «porta il codice accanto allo stato»**. Il piano dava per
+passanti tutte le prove di `ErroreDatiDpa` («che questo abbozzo non tocca»): vero per l'abbozzo, falso per
+il momento in cui lo si misura. 8 ≥ 7 → **si prosegue.**
+
+- [ ] **Passo 4 — L'implementazione vera**
+
+🆕 `src/lib/pdf/permessi-dpa.ts`:
+
+```ts
+import 'server-only'
+
+/** 🔑 Chi può EMETTERE un DPA — l'unico elenco, e per questo sta qui.
+ *  Fino al 02/08/2026 viveva solo dentro `api/clienti/[id]/dpa/route.ts:22`,
+ *  e la scheda cliente non lo conosceva affatto: mostrava il tasto a tutti
+ *  (P17/D158). Due copie di un elenco di permessi divergono — è già successo
+ *  in questo progetto con `admin_sistema`, che mancava da un elenco «completo»
+ *  pur essendo usato 15 volte.
+ *  🛑 I ruoli del sistema sono CINQUE (`titolare`, `tecnico`, `front_desk`,
+ *  `admin_rete`, `admin_sistema`): qui ne stanno TRE, e `admin` nudo NON
+ *  esiste in banca dati. La fonte autoritativa è il CHECK su `public.utenti.ruolo`. */
+export const RUOLI_EMISSIONE_DPA = ['titolare', 'admin_rete', 'admin_sistema'] as const
+
+export function puoEmettereDpa(ruolo: string | null | undefined): boolean {
+  return ruolo != null && (RUOLI_EMISSIONE_DPA as readonly string[]).includes(ruolo)
+}
+```
+
+In `src/lib/pdf/errori-dpa.ts`, sostituire **solo** la classe in fondo (il commento sopra resta):
+
+```ts
+/** I quattro cammini che NON sono guasti del servizio, nominati.
+ *  🛑 Unione CHIUSA di proposito: il compilatore obbliga ogni `throw` a
+ *  scegliere da che parte sta. È lo stesso meccanismo di `emesso_da` in P7 —
+ *  il rumore lo fa `tsc`, non la memoria di chi scrive.
+ *  🔑 Serve perché i due 422 (`LAB_DATI_FISCALI` e `CLIENTE_DATI_FISCALI`)
+ *  portano l'utente in DUE POSTI DIVERSI a rimediare, e distinguerli dal
+ *  TESTO del messaggio sarebbe la mappa fragile che questo file dichiara
+ *  poco sopra di aver evitato — solo spostata di un piano più su. */
+export type CodiceDatiDpa =
+  | 'LAB_DATI_FISCALI'
+  | 'CLIENTE_DATI_FISCALI'
+  | 'LAB_ASSENTE'
+  | 'CLIENTE_ASSENTE'
+
+export class ErroreDatiDpa extends Error {
+  /** 404 = il dato a cui la richiesta punta non c'è.
+   *  422 = il dato c'è ma non basta per emettere. */
+  readonly stato: 404 | 422
+  /** 🛑 OBBLIGATORIO: senza, il browser non sa dove mandare a rimediare. */
+  readonly codice: CodiceDatiDpa
+
+  constructor(message: string, stato: 404 | 422, codice: CodiceDatiDpa) {
+    super(message)
+    this.name = 'ErroreDatiDpa'
+    this.stato = stato
+    this.codice = codice
+  }
+}
+```
+
+- [ ] **Passo 5 — Contare gli errori di compilazione, e SOLO ADESSO**
+
+```bash
+npx tsc --noEmit 2>&1 | grep -c "error TS"
+```
+⚠️ **Il numero conta SOLO dopo aver messo il terzo parametro obbligatorio.** Prima è **0**, e chi si aspetta
+il numero pieno troppo presto va a caccia di un difetto che non c'è.
+
+🔄 **MISURATO il 02/08/2026: sono SETTE, non quattro.** Il piano ne prevedeva 4 perché aveva censito i
+`throw` e non i **costruttori**: `new ErroreDatiDpa` si scrive anche nelle **prove**, e `tsconfig.json`
+(`include: ["**/*.ts"]`, esclude solo `node_modules`) le tipizza tutte.
+
+```
+src/lib/pdf/generate-dpa.ts(81,11): error TS2554: Expected 3 arguments, but got 2.
+src/lib/pdf/generate-dpa.ts(84,11): error TS2554: Expected 3 arguments, but got 2.
+src/lib/pdf/generate-dpa.ts(124,22): error TS2554: Expected 3 arguments, but got 2.
+src/lib/pdf/generate-dpa.ts(125,26): error TS2554: Expected 3 arguments, but got 2.
+tests/unit/dpa-route.test.ts(153,39): error TS2554: Expected 3 arguments, but got 2.
+tests/unit/dpa-route.test.ts(163,7): error TS2554: Expected 3 arguments, but got 2.
+tests/unit/dpa-route.test.ts(179,19): error TS2554: Expected 3 arguments, but got 2.
+```
+
+🔑 **È il difetto che R-P6 esiste per prendere:** il censimento si fa su **ogni identificatore**, non solo
+sui `throw` che si sta andando a cambiare. Il comando giusto è `grep -rn "new ErroreDatiDpa"` su **tutto** il
+repo, prove comprese — non su `src/`.
+
+- [ ] **Passo 6 — Passare il codice ai quattro `throw`**
+
+In `src/lib/pdf/generate-dpa.ts`, **solo** queste quattro righe:
+
+```ts
+// :81
+throw new ErroreDatiDpa('DPA: laboratorio privo di Partita IVA e Codice Fiscale', 422, 'LAB_DATI_FISCALI')
+// :84
+throw new ErroreDatiDpa('DPA: cliente privo di Partita IVA e Codice Fiscale', 422, 'CLIENTE_DATI_FISCALI')
+// :124
+if (!labRaw) throw new ErroreDatiDpa('Laboratorio non trovato', 404, 'LAB_ASSENTE')
+// :125
+if (!clienteRaw) throw new ErroreDatiDpa('Cliente non trovato', 404, 'CLIENTE_ASSENTE')
+```
+
+- [ ] **Passo 7 — La rotta espone il codice e usa l'elenco condiviso**
+
+In `src/app/api/clienti/[id]/dpa/route.ts`, riga 22 — sostituire l'elenco letterale:
+
+```ts
+import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
+// …
+if (!puoEmettereDpa(context.ruolo)) {
+  return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
+}
+```
+
+E righe 69-71 — il corpo guadagna il codice:
+
+```ts
+if (e instanceof ErroreDatiDpa) {
+  // 📌 `codice` è un'AGGIUNTA: chi legge solo `error` continua a funzionare.
+  //    Serve al browser per sapere DOVE mandare a rimediare, senza diramare
+  //    sul testo italiano del messaggio.
+  return NextResponse.json({ error: e.message, codice: e.codice }, { status: e.stato })
+}
+```
+
+- [ ] 🆕 **Passo 7-bis — La prova che c'era già: `tests/unit/dpa-route.test.ts`**
+
+> **Passo MANCANTE dal piano, aggiunto il 02/08/2026 dall'esecutore del Task 1.** Senza, il Passo 8 non
+> può dare 0 e il commit resta bloccato dal `tsc` del pre-commit.
+
+Due cose diverse, e vanno fatte **tutte e due**:
+
+**① I tre costruttori** (`:153` `:163` `:179`) prendono il terzo argomento — `'CLIENTE_ASSENTE'`,
+`'CLIENTE_DATI_FISCALI'`, `'LAB_ASSENTE'` rispettivamente. È ciò che chiude i 3 errori di `tsc`.
+
+**② Le due asserzioni sul CORPO** (`:158` C5 e `:169` C6) devono includere il codice: il corpo che la rotta
+rende ora è `{ error, codice }`, e quelle due usano `toEqual`, che è **esatto**.
+
+`provato:` censimento completo delle asserzioni sul corpo di quel file —
+`grep -n "res.json()\|toEqual\|toMatchObject" tests/unit/dpa-route.test.ts` → **10 righe**, classificate per
+ramo HTTP: `:83` `:92` (200) · `:141` `:195` (500) · `:251` `:317` `:342` `:382` (403 del lab-guard) non
+toccano `ErroreDatiDpa` e **restano com'erano**; **solo `:158` e `:169`** passano dal ramo che guadagna il
+codice. C7 (`:179`) costruisce l'errore ma asserisce **solo lo stato**: gli serve il terzo argomento, non una
+nuova aspettativa.
+🛑 **Si resta su `toEqual`, NON si passa a `toMatchObject`**: se un giorno il codice smettesse di finire nel
+corpo, `toMatchObject` lascerebbe passare la perdita in silenzio. Il senso di questo lavoro è che quella
+perdita faccia rumore.
+
+- [ ] **Passo 8 — Verde e verifica**
+
+🛑 **La verifica del piano era più stretta del raggio del cambiamento.** Il corpo JSON della rotta è cambiato,
+e **nel pre-commit non gira nessun test** (`lint-staged` → `tsc` → `check-ds-compliance` → `check-csrf` →
+`reduced-motion` → `coerenza-documenti` → `salvataggio-installato`: vitest non c'è). Un'asserzione rotta
+passerebbe il commit e scoppierebbe nel Task 4 o 5. Quindi si gira **tutto l'insieme DPA**, non il solo file
+nuovo:
+
+```bash
+npx vitest run tests/unit/errori-dpa-codice.test.ts tests/unit/dpa-route.test.ts tests/unit/generate-dpa.test.ts tests/unit/dpa-registro.test.ts
+npx tsc --noEmit
+```
+**Atteso:** `tsc` **0 errori** · l'insieme DPA tutto verde · il file nuovo **12 passate** (🔄 non 13: il piano
+aveva contato male — 2 + 1 + 6 + 3 = 12).
+
+- [ ] **Passo 9 — Salvare**
+
+```bash
+git add src/lib/pdf/permessi-dpa.ts src/lib/pdf/errori-dpa.ts src/lib/pdf/generate-dpa.ts src/app/api/clienti/[id]/dpa/route.ts tests/unit/errori-dpa-codice.test.ts tests/unit/dpa-route.test.ts
+git commit -F <messaggio fuori dal repo>
+```
+
+---
+
+## Task 2 — Il blocco d'avviso (presentazione pura, v2.3, riusabile)
+
+**File:**
+- 🆕 Crea: `src/components/feedback/BloccoAvviso.tsx`
+- 🆕 Test: `tests/unit/BloccoAvviso.test.tsx`
+
+**Interfacce consumate:** nessuna. **Interfacce prodotte:**
+```tsx
+export type TipoAvviso = 'attesa' | 'guasto'
+export function BloccoAvviso(props: {
+  tipo: TipoAvviso
+  titolo: string
+  testo: string
+  azione?: { etichetta: string; href: string } | { etichetta: string; onClick: () => void }
+}): React.ReactElement
+```
+
+> 🔑 **Perché non sa di DPA (D162):** è il pezzo che l'ondata della firma a distanza erediterà. Se conoscesse
+> il contratto, quell'ondata lo riscriverebbe.
+> ⚠️ **Segue il modo di casa** (`TracciabilitaMaterialiBanner.tsx`), **con una correzione**: quel precedente usa
+> `--t2` per il corpo, che in modo scuro fallisce. Qui **tutto su `--t1`** (vincolo globale 2).
+
+### 🔄 ESEGUITO il 02/08/2026 — tre correzioni al codice del Passo 4, e tre cose riferite e NON toccate
+
+**Corrette qui sotto (il blocco del Passo 4 è già aggiornato: si copia quello, non la versione vecchia):**
+
+1. 🛑 **`var(--amber, #F59E0B)` → `var(--c-amber, #F59E0B)`: quel nome NON porta quel colore.**
+   `misurato:` `src/app/globals.css:91` → `--amber: #FD7E14` (arancio, warning MDR); `#F59E0B` è
+   `--c-amber` (`globals.css:97`). L'equivoco nasce da `src/design-system/tokens.ts:39`, dove la voce si
+   chiama `amber` e vale `#F59E0B`: **il nome del token TypeScript e quello della variabile CSS sono due nomi
+   diversi per due colori diversi.** `provato:` il pixel della striscia nello scatto **approvato**
+   (`docs/design/mockups/screenshots/2026-08-02-p17-mobile-light-variante-b.png`) → **`(245, 158, 11)`**.
+   Col nome del piano la striscia sarebbe nata di un colore mai approvato. ✅ `--c-amber` non è ridefinito
+   in `.dark`: vale in entrambi i modi, come nel mockup.
+2. 🛑 **`color: colore.bordo` sul contenitore → `color: 'var(--t1, #1C1916)'`: tingeva l'ICONA.**
+   L'icona disegna con `currentColor`. Nel mockup approvato `.blocco` **non dichiara nessun `color`**:
+   `provato:` il pixel dell'icona nello scatto approvato → **`(28, 25, 22)` = `#1C1916` = `--t1`**, non ambra.
+   `misurato:` l'ambra sul fondo del blocco in modo **chiaro** dà **1,80:1** (col nome del piano) e **1,50:1**
+   (col colore del mockup), contro i **12,26:1** di `--t1` — e il documento di design chiede a un segno
+   grafico di reggere **3:1** (§4). ⚠️ La riga «*il colore sta nell'icona e nella striscia*» del §4 descrive la
+   **variante A**, dove il segno è `#7A5500` in chiaro **proprio perché** l'ambra piena lì non tiene: la
+   variante approvata è la **B**, e la B l'icona non la tinge.
+   📌 Il `color` si **dichiara** invece di ereditarlo: il `body` dell'app sta su `text-foreground` (oklch),
+   non su `--t1`, quindi l'ereditarietà del mockup qui non si riprodurrebbe da sola.
+3. 📌 **`<a href>` nudo → `next/link`.** In una PWA installata l'ancora nuda **ricarica l'intero documento**.
+   `provato:` in `src/components` non esiste **un solo** `<a href="/…">` interno (0 occorrenze) e **16** file
+   usano `next/link`, fra cui `features/clienti/ClientiSearchList.tsx` — la stessa area di questa scheda.
+   `provato:` `next/link` rende un `link` col suo `href` anche sotto prova in jsdom, **senza alcun finto**
+   (`tests/unit/CicliProduzioneList.test.tsx:26`). Le prove non cambiano: `getByRole('link')` passa comunque.
+
+**Riferite e NON toccate (R-E2 — decide Francesco al gate FASE 9b del Task 5):**
+
+- ⚠️ **Il tasto dell'azione è alto `34px`, il vincolo globale 5 dice `≥ 44px`.** Il piano contraddice sé
+  stesso, ma **il mockup approvato dice 34** (`.blocco .azione`) e distingue apposta il tasto principale
+  (44) dall'azione secondaria (34). Non è una violazione WCAG (2.5.8 AA chiede 24×24), è una regola di casa
+  più stretta: **la scelta è di chi ha approvato il disegno**, non dell'esecutore.
+- ⚠️ **Il bordo dell'azione è `--t3`.** È un **bordo**, non un testo: il vincolo globale 2 non è toccato e P16
+  non si riapre. `misurato:` come confine di un elemento premibile dà **4,49:1** in chiaro e **1,72:1** in
+  **scuro**, sotto il 3:1 di WCAG 1.4.11. È il disegno approvato.
+- ⚠️ **Il fondo del `guasto` in modo scuro.** Il mockup ha un fondo **diverso** in scuro
+  (`rgba(232,0,26,.14)`, cioè il rosso scuro con più tinta); un unico stile in linea non può renderne due.
+  Resta il valore chiaro `rgba(217,0,18,.10)` in entrambi i modi — **vuoto dichiarato**: `misurato:` il
+  composto in scuro è `53,29,23` invece di `63,28,24`. `color-mix` non lo chiude (darebbe `55,29,24`) e
+  aggiungerebbe un costrutto che il mockup non usa.
+
+- [ ] **Passo 1 — Il test che fallisce**
+
+🆕 `tests/unit/BloccoAvviso.test.tsx`:
+
+```tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { BloccoAvviso } from '../../src/components/feedback/BloccoAvviso'
+
+describe('BloccoAvviso — il blocco che dice cosa non va e cosa fare', () => {
+  it('annuncia il contenuto alle tecnologie assistive', () => {
+    render(<BloccoAvviso tipo="attesa" titolo="Manca un dato" testo="Serve la Partita IVA." />)
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+  })
+
+  it('rende titolo e testo', () => {
+    render(<BloccoAvviso tipo="attesa" titolo="Manca un dato" testo="Serve la Partita IVA." />)
+    expect(screen.getByText('Manca un dato')).toBeInTheDocument()
+    expect(screen.getByText('Serve la Partita IVA.')).toBeInTheDocument()
+  })
+
+  it('senza azione non rende nessun elemento premibile', () => {
+    render(<BloccoAvviso tipo="guasto" titolo="Rotto" testo="Riprova più tardi." />)
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('con azione a collegamento rende un link col suo indirizzo', () => {
+    render(
+      <BloccoAvviso tipo="attesa" titolo="T" testo="X"
+        azione={{ etichetta: 'Completa i dati', href: '/impostazioni' }} />,
+    )
+    expect(screen.getByRole('link', { name: 'Completa i dati' })).toHaveAttribute('href', '/impostazioni')
+  })
+
+  it('con azione a pressione chiama la funzione', () => {
+    const premuto = vi.fn()
+    render(<BloccoAvviso tipo="guasto" titolo="T" testo="X" azione={{ etichetta: 'Riprova', onClick: premuto }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Riprova' }))
+    expect(premuto).toHaveBeenCalledTimes(1)
+  })
+
+  // 🛑 Il colore non è mai l'unica fonte di stato: ogni tipo porta la sua icona.
+  it('ogni tipo porta un\'icona propria, non solo un colore', () => {
+    const { container: attesa } = render(<BloccoAvviso tipo="attesa" titolo="T" testo="X" />)
+    const { container: guasto } = render(<BloccoAvviso tipo="guasto" titolo="T" testo="X" />)
+    expect(attesa.querySelector('svg')).not.toBeNull()
+    expect(guasto.querySelector('svg')).not.toBeNull()
+    expect(attesa.querySelector('svg')?.innerHTML).not.toBe(guasto.querySelector('svg')?.innerHTML)
+  })
+
+  // 🛑 Nessun testo nuovo su --t2/--t3: fallirebbero WCAG in modo scuro (P16).
+  it('non usa --t2 né --t3 per il testo', () => {
+    const { container } = render(<BloccoAvviso tipo="attesa" titolo="T" testo="X" />)
+    expect(container.innerHTML).not.toContain('var(--t2')
+    expect(container.innerHTML).not.toContain('var(--t3')
+  })
+})
+```
+
+- [ ] **Passo 2 — Rosso**
+
+```bash
+npx vitest run tests/unit/BloccoAvviso.test.tsx
+```
+**Atteso:** FALLISCE su import non risolto.
+
+- [ ] **Passo 3 — Abbozzo inerte e conteggio**
+
+```tsx
+export type TipoAvviso = 'attesa' | 'guasto'
+export function BloccoAvviso(_props: { tipo: TipoAvviso; titolo: string; testo: string; azione?: unknown }) {
+  return <div />   // INERTE
+}
+```
+Rieseguire e **contare**. **Atteso: 5 su 7** (passano «senza azione niente di premibile» e il controllo sui
+token, che un `<div/>` vuoto soddisfa per caso — ed è esattamente il motivo per cui si conta). **Scrivere il
+numero vero.**
+
+🔄 **MISURATO il 02/08/2026: `Tests 5 failed | 2 passed (7)` — la previsione REGGE**, ed è la prima volta in
+questo piano (Task 1: previsti 10 su 13, osservati **8 su 12**; Task 3: previsti 13 su 16, corretti in corsa).
+🔑 **Perché qui ha retto:** il piano ha contato ciò che l'abbozzo **fa**, non ciò che **serve a fare** — ha
+nominato una per una le due prove a forma di **assenza** che un `<div/>` vuoto soddisfa. Le due sono proprio
+quelle: «senza azione niente di premibile» e il controllo sui token. 5 ≥ 5 → si prosegue.
+📌 **E il controllo sui token ha davvero i denti:** `provato:` scrivendo l'`innerHTML` reso su file, jsdom
+**conserva** le `var()` in linea (`color: var(--t1, #1C1916)`), quindi un testo scritto su `--t2` verrebbe
+preso. ⚠️ Ma quella prova rende il blocco **senza azione**: il `--t3` del bordo dell'azione non entra mai
+nella stringa. Il nome della prova promette più del suo raggio — **non allargarla**, perché il `--t3` del
+bordo è disegno approvato e la prova comincerebbe a chiedere di cambiarlo.
+
+- [ ] **Passo 4 — L'implementazione**
+
+🆕 `src/components/feedback/BloccoAvviso.tsx`:
+
+```tsx
+'use client'
+
+// UÀ — BloccoAvviso (DS v2.3)
+// Il blocco che dice CHE COSA non va e CHE COSA si può fare. Presentazione
+// pura: non sa di DPA, di contratti né di documenti — è ciò che lo rende
+// ereditabile dall'ondata della firma a distanza (D162).
+//
+// 🛑 v2.3 e non v3: le superfici che lo usano oggi non sono migrate, e i due
+//    sistemi non si mischiano MAI nella stessa pagina (DS v3 §14).
+// 🛑 Ogni testo su `--t1`: `--t2` (4,45:1) e `--t3` (2,24:1) falliscono WCAG
+//    sul fondo card scuro. È P16, deferita da D134 — ma un testo NUOVO non
+//    deve nascere col difetto che si è scelto di rimandare.
+// ⚠️ Il precedente di casa (`TracciabilitaMaterialiBanner`) usa `--t2` per il
+//    corpo: qui si segue il suo impianto, NON quel colore.
+
+import type { ReactElement } from 'react'
+import Link from 'next/link'   // 🔄 correzione 3 — mai un'ancora nuda su una rotta interna
+
+export type TipoAvviso = 'attesa' | 'guasto'
+
+type Azione =
+  | { etichetta: string; href: string }
+  | { etichetta: string; onClick: () => void }
+
+interface Props {
+  /** `attesa` = manca un dato, l'utente può rimediare · `guasto` = si è rotto qualcosa di nostro */
+  tipo: TipoAvviso
+  titolo: string
+  testo: string
+  azione?: Azione
+}
+
+// 🔄 correzione 1 — `--c-amber` è il nome che porta #F59E0B; `--amber` vale #FD7E14.
+//    Si chiama `striscia` e non `bordo` perché è l'UNICO posto dove sta il colore.
+const COLORE: Record<TipoAvviso, { striscia: string; fondo: string }> = {
+  attesa: { striscia: 'var(--c-amber, #F59E0B)', fondo: 'rgba(245, 158, 11, 0.14)' },
+  guasto: { striscia: 'var(--primary, #D90012)', fondo: 'rgba(217, 0, 18, 0.10)' },
+}
+
+function Icona({ tipo }: { tipo: TipoAvviso }) {
+  // Due disegni DIVERSI, non lo stesso in due colori: il colore non deve mai
+  // essere l'unica fonte di stato (chi non lo distingue vede comunque la forma).
+  return tipo === 'attesa' ? (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none', marginTop: '1px' }}>
+      <path d="M8 1.5L15 14H1L8 1.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M8 6.2v3.4M8 11.6v.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none', marginTop: '1px' }}>
+      <circle cx="8" cy="8" r="6.3" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+const stileAzione = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: '34px',
+  marginTop: '8px',
+  padding: '0 12px',
+  borderRadius: '8px',
+  border: '1px solid var(--t3, #6B5C51)',
+  background: 'transparent',
+  color: 'var(--t1, #1C1916)',
+  fontFamily: 'DM Sans, sans-serif',
+  fontSize: '12.5px',
+  fontWeight: 700,
+  cursor: 'pointer',
+  textDecoration: 'none',
+} as const
+
+export function BloccoAvviso({ tipo, titolo, testo, azione }: Props): ReactElement {
+  const colore = COLORE[tipo]
+  return (
+    <div
+      role="alert"
+      style={{
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'flex-start',
+        borderRadius: '10px',
+        padding: '10px 12px',
+        margin: '10px 0 0',
+        borderLeft: `3px solid ${colore.striscia}`,
+        background: colore.fondo,
+        // 🔄 correzione 2 — MAI `colore.striscia` qui: tingerebbe l'icona (currentColor),
+        //    che nel mockup approvato è `--t1`. Misure e prova nel blocco 🔄 sopra.
+        color: 'var(--t1, #1C1916)',
+      }}
+    >
+      <Icona tipo={tipo} />
+      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12.5px', lineHeight: 1.5, color: 'var(--t1, #1C1916)' }}>
+        <strong style={{ display: 'block', fontWeight: 700, marginBottom: '2px' }}>{titolo}</strong>
+        {testo}
+        {azione && (
+          <div>
+            {'href' in azione ? (
+              <Link href={azione.href} style={stileAzione}>{azione.etichetta}</Link>
+            ) : (
+              <button type="button" onClick={azione.onClick} style={stileAzione}>{azione.etichetta}</button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+- [ ] **Passo 5 — Verde**
+
+```bash
+npx vitest run tests/unit/BloccoAvviso.test.tsx
+```
+**Atteso:** 7 passate. 🔄 **OSSERVATO il 02/08/2026: `Tests 7 passed (7)`.** E, siccome il corpo JSON non
+c'entra ma il raggio del cambiamento è comunque più largo del file nuovo, si è girata **tutta** la FASE 7:
+`npx tsc --noEmit` → **0** · `npx vitest run` → **4401 passate, 19 saltate, 380 file** · `npx next build` →
+**uscita 0**. ⚠️ `next build` **non prova nulla su questo file**: nessuna pagina lo importa ancora (lo faranno
+i Task 3 e 4), quindi non entra nel grafo. Chi copre davvero il file è `tsc` — `provato:` mettendoci dentro
+un valore che DEVE essere rifiutato (`const _prova: number = 'non un numero'`) si accende
+`error TS2322` su `src/components/feedback/BloccoAvviso.tsx`, e tolto quello si torna a 0.
+
+- [ ] **Passo 6 — Salvare**
+
+---
+
+## Task 3 — Il tasto vivo
+
+**File:**
+- 🆕 Crea: `src/components/features/clienti/ScaricaDpaButton.tsx`
+- 🆕 Test: `tests/unit/ScaricaDpaButton.test.tsx`
+
+**Interfacce consumate:** `BloccoAvviso` (Task 2) · `CodiceDatiDpa` (Task 1).
+**Interfacce prodotte:**
+```tsx
+export function ScaricaDpaButton(props: {
+  clienteId: string
+  /** `null` = i dati fiscali ci sono. Altrimenti: di chi mancano. */
+  mancanza: 'laboratorio' | 'cliente' | null
+}): React.ReactElement
+```
+
+> 🛑 **IL NOME DEL FILE È UN REQUISITO, non un dettaglio.** Passando a `fetch`, il browser smette di onorare
+> `Content-Disposition`: senza rileggerlo in JavaScript il file si salva con un nome inventato.
+> **Disferebbe il Task 8 del 01/08 (`c1a1145d`)**, dove due emissioni dello stesso dentista, a un anno di
+> distanza e con testi diversi, arrivavano con lo **stesso nome**.
+> ⚠️ **Il precedente in casa NON aiuta:** `PacchettoConsegnaSheet.tsx:264` **si fabbrica il nome a mano**.
+> `provato:` 14 occorrenze di `content-disposition` in `src/`, **nessuna** lato client.
+
+### 🔄 ESEGUITO il 02/08/2026 — due correzioni, e una cosa riferita e NON toccata
+
+**Corrette qui sotto (i blocchi dei Passi 1 e 3 sono già aggiornati: si copiano quelli):**
+
+1. 🛑 **La prova ⑮ («mentre prepara») si chiudeva con lo scarico ANCORA IN VOLO, e la perdita finiva
+   dentro un'altra prova.** Il piano faceva `sblocca(rispostaOk())` come **ultima riga**: la funzione
+   riprende dopo che il test è finito, cioè dopo che `afterEach` ha già eseguito
+   `vi.unstubAllGlobals()` — e a quel punto preme un'**ancora vera** su `blob:finto`.
+   `provato:` girando la versione del piano, jsdom stampa **fuori da ogni test**:
+   ```
+   Not implemented: navigation to another Document
+    Test Files  1 passed (1)
+         Tests  16 passed (16)
+   ```
+   Con la correzione (una spia sul `click` + l'attesa che il tasto torni a dire «Scarica DPA PDF»
+   prima di uscire) quella riga **sparisce**, e le 16 restano verdi.
+   🔑 **Perché conta più di un avviso in console:** un guasto che nasce dopo la fine del test non si
+   presenta dove nasce — si presenta **a caso, nel test che sta passando in quel momento**. È la forma
+   esatta del difetto intermittente già pagato in questo progetto (diagnosi citata in `tests/setup.ts`).
+2. 📌 **`import type { CodiceDatiDpa }` spostato in testa al file.** Nel piano stava a metà, dopo
+   `nomeDaHeader`. Funziona (gli import sono issati) e **non** è un errore di lint
+   (`provato:` `eslint.config.mjs` = `next/core-web-vitals` + `next/typescript`, nessun `import/first`;
+   `npx eslint --max-warnings=0` sui due file nuovi → pulito), ma nasconde una dipendenza a chi apre il
+   file. Correzione di forma, non un difetto.
+
+**Riferita e NON toccata (R-E2 — decide Francesco):**
+
+- 🛑 **Lo stato ② approvato ha un'azione, e questo codice non la rende.** La tabella §3 del documento di
+  decisione dice «*② manca P.IVA/CF del cliente → **Aggiungi il dato** (la modifica è già su questa
+  scheda)*», e il mockup approvato la disegna (`2026-08-02-p17-scarico-dpa.html`, blocco `variante-b`
+  del caso ②: `<a class="azione" href="#">Aggiungi il dato</a>`). Nel piano `esitoDa` rende
+  `CLIENTE_DATI_FISCALI` con `riprova: false` **e** `vaiAImpostazioni: false`, cioè **`azione:
+  undefined`**: l'azione approvata non c'è.
+  ⚠️ **Perché non è stata aggiunta qui, invece di metterci un segnaposto:** su questa scheda la modifica
+  è un pannello che vive dentro `ClienteModificaButton` con un `useState` **suo**
+  (`src/components/features/clienti/ClienteModificaButton.tsx:11`), montato nell'intestazione della
+  pagina — **non ha né una rotta né un indirizzo**, e da un componente fratello non si apre. L'`href="#"`
+  del mockup è linguaggio da mockup: in produzione è un tasto morto, cioè il segnaposto che «Built Right
+  First Time» vieta.
+  ➡️ **Due strade, e la scelta non è dell'esecutore:** sollevare lo stato del pannello nella pagina
+  (`page.tsx`, cioè il **Task 4**), oppure una destinazione decisa da Francesco. Il buco è **dichiarato
+  nel codice**, al ramo `clienteFiscali` di `esitoDa`, perché chi passa di lì lo veda.
+  📌 Le prove del Task 3 **non** vanno allargate a coprirlo: chiederebbero un comportamento non ancora
+  deciso.
+
+- [ ] **Passo 1 — Il test che fallisce**
+
+🆕 `tests/unit/ScaricaDpaButton.test.tsx`:
+
+```tsx
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { ScaricaDpaButton } from '../../src/components/features/clienti/ScaricaDpaButton'
+
+function rispostaOk(nomeFile = 'DPA-2026-0007.pdf') {
+  return {
+    ok: true,
+    status: 200,
+    headers: new Headers({ 'content-disposition': `attachment; filename="${nomeFile}"` }),
+    blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+  } as unknown as Response
+}
+function rispostaErrore(status: number, corpo: unknown) {
+  return {
+    ok: false,
+    status,
+    headers: new Headers({ 'content-type': 'application/json' }),
+    json: async () => corpo,
+  } as unknown as Response
+}
+
+describe('ScaricaDpaButton', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+    // jsdom non implementa createObjectURL
+    vi.stubGlobal('URL', Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:finto'),
+      revokeObjectURL: vi.fn(),
+    }))
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  // ── prevenzione ───────────────────────────────────────────────────────────
+  it('con i dati completi il tasto è premibile', () => {
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    expect(screen.getByRole('button', { name: /Scarica DPA PDF/i })).not.toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('se mancano i dati del CLIENTE il tasto è inerte e dice dove rimediare', () => {
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza="cliente" />)
+    expect(screen.getByRole('button', { name: /Scarica DPA PDF/i })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent(/studio/i)
+  })
+
+  it('se mancano i dati del LABORATORIO l\'azione porta alle impostazioni', () => {
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza="laboratorio" />)
+    expect(screen.getByRole('link', { name: /Completa i dati/i })).toHaveAttribute('href', '/impostazioni')
+  })
+
+  // 🛑 `disabled` toglierebbe il tasto dalla navigazione da tastiera: vietato.
+  it('il tasto inerte NON usa l\'attributo disabled', () => {
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza="cliente" />)
+    expect(screen.getByRole('button', { name: /Scarica DPA PDF/i })).not.toBeDisabled()
+  })
+
+  it('premere un tasto inerte non chiama la rotta', () => {
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza="cliente" />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  // ── il nome del file ──────────────────────────────────────────────────────
+  it('IL NOME DEL FILE viene dal Content-Disposition, non inventato', async () => {
+    vi.mocked(fetch).mockResolvedValue(rispostaOk('DPA-2026-0042.pdf'))
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    await waitFor(() => expect(click).toHaveBeenCalled())
+    const ancora = click.mock.instances[0] as HTMLAnchorElement
+    expect(ancora.download).toBe('DPA-2026-0042.pdf')
+    click.mockRestore()
+  })
+
+  it('se il Content-Disposition manca usa un nome di ripiego, non uno inventato dal browser', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true, status: 200, headers: new Headers({}),
+      blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+    } as unknown as Response)
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    await waitFor(() => expect(click).toHaveBeenCalled())
+    expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe('contratto-dpa.pdf')
+    click.mockRestore()
+  })
+
+  // ── gli esiti ─────────────────────────────────────────────────────────────
+  it('sul 500 mostra il guasto CON un riprova', async () => {
+    vi.mocked(fetch).mockResolvedValue(rispostaErrore(500, { error: 'DPA: archivio non raggiungibile' }))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/non è stato possibile/i)
+    expect(screen.getByRole('button', { name: /Riprova/i })).toBeInTheDocument()
+  })
+
+  // 🛑 Un «Riprova» che non può funzionare insegna a ignorare i tasti.
+  it('sul 401 NON offre un riprova', async () => {
+    vi.mocked(fetch).mockResolvedValue(rispostaErrore(401, { error: 'Non autorizzato' }))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/sessione/i)
+    expect(screen.queryByRole('button', { name: /Riprova/i })).toBeNull()
+  })
+
+  it('sul 403 NON offre un riprova', async () => {
+    vi.mocked(fetch).mockResolvedValue(rispostaErrore(403, { error: 'Non autorizzato — solo titolari' }))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Riprova/i })).toBeNull()
+  })
+
+  // 🔑 I due 422 si distinguono dal CODICE, mai dal testo italiano.
+  it('il 422 del laboratorio manda alle impostazioni', async () => {
+    vi.mocked(fetch).mockResolvedValue(rispostaErrore(422, { error: 'x', codice: 'LAB_DATI_FISCALI' }))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('link', { name: /Completa i dati/i })).toHaveAttribute('href', '/impostazioni')
+  })
+
+  it('il 422 del cliente NON manda alle impostazioni', async () => {
+    vi.mocked(fetch).mockResolvedValue(rispostaErrore(422, { error: 'x', codice: 'CLIENTE_DATI_FISCALI' }))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/studio/i)
+    expect(screen.queryByRole('link', { name: /Completa i dati/i })).toBeNull()
+  })
+
+  // A4: il corpo può NON essere JSON (pagina d'errore della piattaforma, 502 del bordo).
+  it('se il corpo non è JSON non si rompe', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false, status: 502, headers: new Headers({ 'content-type': 'text/html' }),
+      json: async () => { throw new SyntaxError('Unexpected token <') },
+    } as unknown as Response)
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/non è stato possibile/i)
+  })
+
+  it('se la rete cade non si rompe', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/connessione|non è stato possibile/i)
+  })
+
+  it('mentre prepara il tasto è inerte e lo dice', async () => {
+    let sblocca: (r: Response) => void = () => {}
+    vi.mocked(fetch).mockReturnValue(new Promise<Response>((res) => { sblocca = res }))
+    // 🔄 CORRETTO il 02/08/2026 dall'esecutore del Task 3 — il piano non aveva
+    //    né questa spia né l'attesa in fondo, e la prova SI CHIUDEVA con lo
+    //    scarico ancora in volo (dettaglio e output nel blocco 🔄 sopra).
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
+    expect(await screen.findByText(/Preparo il documento/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Preparo il documento/i })).toHaveAttribute('aria-disabled', 'true')
+    sblocca(rispostaOk())
+    // 🛑 Si ASPETTA che il giro si chiuda mentre i finti sono ancora al loro
+    //    posto: il tasto torna a dire «Scarica DPA PDF» solo nel `finally`.
+    await waitFor(() => expect(screen.getByRole('button', { name: /Scarica DPA PDF/i })).toBeInTheDocument())
+    click.mockRestore()
+  })
+
+  it('due pressioni rapide chiamano la rotta UNA volta sola', async () => {
+    vi.mocked(fetch).mockReturnValue(new Promise<Response>(() => {}))
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
+    const tasto = screen.getByRole('button', { name: /Scarica DPA PDF/i })
+    fireEvent.click(tasto)
+    fireEvent.click(tasto)
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+  })
+})
+```
+
+- [ ] **Passo 2 — Rosso, poi abbozzo inerte e conteggio**
+
+```bash
+npx vitest run tests/unit/ScaricaDpaButton.test.tsx
+```
+Poi l'abbozzo:
+```tsx
+export function ScaricaDpaButton(_props: { clienteId: string; mancanza: 'laboratorio' | 'cliente' | null }) {
+  return <button type="button">Scarica DPA PDF</button>   // INERTE
+}
+```
+**Contare le asserzioni che si accendono. Atteso: 13 su 16** — passano per caso **tre** prove, non due:
+«tasto premibile coi dati completi» · «non usa `disabled`» · **«premere un tasto inerte non chiama la rotta»**,
+perché l'abbozzo non ha nessun `onClick` e quindi `fetch` non parte mai. **Scrivere il numero VERO osservato.**
+
+🔄 **CORRETTO il 02/08/2026, e la correzione viene dall'esecutore del Task 1** (R-E2: trovato fuori dal suo
+mandato e **riferito**, non corretto di nascosto). 🔑 **La previsione sbagliata nasceva da un errore di
+ragionamento che vale la pena nominare, perché è ripetibile:** il piano contava su ciò che l'abbozzo *serve a
+fare* invece che su ciò che *fa*. Un abbozzo inerte **supera** ogni prova che chiede un'**assenza** — e le
+prove che chiedono un'assenza sono le più facili da scrivere e le più deboli.
+⚠️ **Stesso difetto trovato anche nel Task 1** (previsti «10 su 13», osservati **8 su 12**): due volte su due.
+
+🔄 **MISURATO il 02/08/2026 dall'esecutore del Task 3: la previsione corretta REGGE.**
+
+```
+Tests  13 failed | 3 passed (16)
+```
+
+Le **tre** che passano sono **esattamente** le tre nominate: «con i dati completi il tasto è premibile» ·
+«il tasto inerte NON usa l'attributo `disabled`» · «premere un tasto inerte non chiama la rotta».
+🔑 **E regge per la stessa ragione per cui ha retto nel Task 2:** la previsione corretta conta ciò che
+l'abbozzo **fa**, non ciò che **serve a fare**, e nomina una per una le prove a forma di **assenza** che un
+tasto senza `onClick` soddisfa per caso. 13 ≥ 7 → **si prosegue.**
+📌 **Il giro è lento e non è un blocco:** 13 prove su 16 finiscono in un `waitFor`/`findBy` che scade,
+~1 s l'una — circa 13 s in tutto. Con l'implementazione vera il file torna a **0,9 s**.
+
+- [ ] **Passo 3 — L'implementazione**
+
+🆕 `src/components/features/clienti/ScaricaDpaButton.tsx`:
+
+```tsx
+'use client'
+
+// UÀ — ScaricaDpaButton (P17, DS v2.3)
+// Il tasto che scarica il contratto DPA, e che sa raccontare perché non ci
+// riesce. Prima era un `<a href>` nudo: premerlo era una NAVIGAZIONE, quindi
+// un errore della rotta finiva a schermo come `{"error":"…"}` — titolo vuoto,
+// zero elementi premibili, e in una PWA installata nemmeno un «indietro».
+
+import { useCallback, useState } from 'react'
+import { BloccoAvviso } from '@/components/feedback/BloccoAvviso'
+import { hapticLight } from '@/lib/feedback/haptic'
+
+/** 🔄 CORRETTO il 02/08/2026 — rilievo dell'esecutore del Task 1 (R-E2).
+ *  La prima stesura confrontava `codice: unknown` con stringhe scritte a mano:
+ *  l'unione chiusa costruita nel Task 1 NON avrebbe protetto niente qui, e un
+ *  refuso in `'LAB_DATI_FISCAL'` sarebbe compilato pulito, restituendo per
+ *  sempre il messaggio di guasto generico. Ora i valori passano da una mappa
+ *  verificata contro il tipo: il refuso non compila.
+ *  ✅ `import type` è sicuro da un componente client: viene cancellato in
+ *  compilazione, e `provato:` `errori-dpa.ts` non ha nemmeno `server-only`
+ *  (`grep -c "server-only"` → 0).
+ *  📌 Sta in testa e non a metà file (dov'era nel piano): un import in mezzo al
+ *  codice funziona ma nasconde una dipendenza a chi apre il file. */
+import type { CodiceDatiDpa } from '@/lib/pdf/errori-dpa'
+
+const NOME_DI_RIPIEGO = 'contratto-dpa.pdf'
+
+interface Props {
+  clienteId: string
+  /** `null` = i dati fiscali ci sono. Altrimenti di chi mancano — lo sa la
+   *  pagina, che li ha già letti entrambi: così il titolare non prova nemmeno. */
+  mancanza: 'laboratorio' | 'cliente' | null
+}
+
+type Esito = { titolo: string; testo: string; riprova: boolean; vaiAImpostazioni: boolean }
+
+/** 🛑 Il nome del file viene SEMPRE dal server, mai costruito qui.
+ *  `generate-dpa.ts` lo ricava dal numero progressivo, che è il nome VERO del
+ *  documento — quello scritto nel registro e stampato dentro il PDF. Un nome
+ *  costruito dal browser tornerebbe al difetto già pagato: due emissioni dello
+ *  stesso dentista, a un anno di distanza, con lo stesso nome. */
+function nomeDaHeader(intestazione: string | null): string {
+  if (!intestazione) return NOME_DI_RIPIEGO
+  // `filename="X"` oppure `filename=X`; RFC 5987 (`filename*=`) qui non serve —
+  // i nostri nomi sono ASCII (DPA-AAAA-NNNN.pdf) — ma se arrivasse si ricade
+  // sul ripiego invece di produrre spazzatura.
+  const conApici = /filename="([^"]+)"/i.exec(intestazione)
+  if (conApici?.[1]) return conApici[1]
+  const nudo = /filename=([^;]+)/i.exec(intestazione)
+  return nudo?.[1]?.trim() || NOME_DI_RIPIEGO
+}
+
+const CODICE = {
+  labFiscali: 'LAB_DATI_FISCALI',
+  clienteFiscali: 'CLIENTE_DATI_FISCALI',
+  clienteAssente: 'CLIENTE_ASSENTE',
+} as const satisfies Record<string, CodiceDatiDpa>
+
+/** Dal codice/stato al messaggio. 🔑 MAI dal testo del messaggio: sarebbe la
+ *  mappa fragile che `errori-dpa.ts` dichiara di aver evitato, un piano più su.
+ *  ⚠️ Il parametro resta `unknown` DI PROPOSITO — arriva dalla rete, quindi non
+ *  è verificato: è il CONFRONTO a essere tipizzato, non l'ingresso. */
+function esitoDa(stato: number, codice: unknown): Esito {
+  if (stato === 401) {
+    return { titolo: 'Sessione scaduta', testo: 'Rientra e riprova: la tua sessione non è più valida.', riprova: false, vaiAImpostazioni: false }
+  }
+  if (stato === 403) {
+    return { titolo: 'Non puoi emettere questo documento', testo: 'Il contratto lo emette il titolare del laboratorio.', riprova: false, vaiAImpostazioni: false }
+  }
+  if (codice === CODICE.labFiscali) {
+    return { titolo: 'Mancano i dati del tuo laboratorio', testo: 'Senza Partita IVA il contratto non si può emettere per nessuno studio.', riprova: false, vaiAImpostazioni: true }
+  }
+  if (codice === CODICE.clienteFiscali) {
+    // 🛑 BUCO DICHIARATO — riferito il 02/08/2026 dall'esecutore del Task 3,
+    //    NON tappato con un segnaposto. Lo stato ② approvato porta un'azione,
+    //    «Aggiungi il dato», e qui quell'azione NON c'è. Ragioni e due strade
+    //    possibili nel blocco 🔄 in testa a questo task. Decide Francesco.
+    return { titolo: 'Manca un dato dello studio', testo: 'Per emettere il contratto serve la Partita IVA o il Codice Fiscale del dentista.', riprova: false, vaiAImpostazioni: false }
+  }
+  if (codice === CODICE.clienteAssente) {
+    return { titolo: 'Questo studio non risulta più', testo: 'Potrebbe essere stato cancellato. Torna all\'elenco dei dentisti.', riprova: false, vaiAImpostazioni: false }
+  }
+  return { titolo: 'Non è stato possibile preparare il documento', testo: 'Non dipende dai tuoi dati. Se succede di nuovo, segnalacelo.', riprova: true, vaiAImpostazioni: false }
+}
+
+const MANCANZA: Record<'laboratorio' | 'cliente', Esito> = {
+  laboratorio: esitoDa(422, CODICE.labFiscali),
+  cliente: esitoDa(422, CODICE.clienteFiscali),
+}
+
+const stileTasto = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  height: '44px',
+  padding: '0 18px',
+  borderRadius: '10px',
+  fontFamily: 'DM Sans, sans-serif',
+  fontWeight: 700,
+  fontSize: '14px',
+  border: 0,
+} as const
+
+export function ScaricaDpaButton({ clienteId, mancanza }: Props) {
+  const [inCorso, setInCorso] = useState(false)
+  const [esito, setEsito] = useState<Esito | null>(null)
+
+  const scarica = useCallback(async () => {
+    // Due pressioni rapide devono chiamare la rotta UNA volta: ogni emissione
+    // lascia una riga nel registro.
+    if (inCorso || mancanza) return
+    hapticLight()
+    setInCorso(true)
+    setEsito(null)
+    try {
+      const risposta = await fetch(`/api/clienti/${clienteId}/dpa`)
+      if (!risposta.ok) {
+        // A4: il corpo può NON essere JSON (pagina d'errore della piattaforma).
+        let codice: unknown = null
+        try {
+          codice = (await risposta.json())?.codice ?? null
+        } catch {
+          codice = null
+        }
+        setEsito(esitoDa(risposta.status, codice))
+        return
+      }
+      const blob = await risposta.blob()
+      const nome = nomeDaHeader(risposta.headers.get('content-disposition'))
+      const url = URL.createObjectURL(blob)
+      const ancora = document.createElement('a')
+      ancora.href = url
+      ancora.download = nome
+      document.body.appendChild(ancora)
+      ancora.click()
+      ancora.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setEsito({ titolo: 'Non è stato possibile preparare il documento', testo: 'Controlla la connessione e riprova.', riprova: true, vaiAImpostazioni: false })
+    } finally {
+      setInCorso(false)
+    }
+  }, [clienteId, inCorso, mancanza])
+
+  const inerte = Boolean(mancanza) || inCorso
+  const mostrato = mancanza ? MANCANZA[mancanza] : esito
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={scarica}
+        // 🛑 `aria-disabled`, NON `disabled`: quest'ultimo toglierebbe il tasto
+        //    dalla navigazione da tastiera e dai lettori di schermo, proprio
+        //    quando accanto c'è il messaggio che spiega come rimediare.
+        aria-disabled={inerte || undefined}
+        style={{
+          ...stileTasto,
+          background: inCorso ? 'var(--t3, #6B5C51)' : mancanza ? 'transparent' : 'var(--primary, #D90012)',
+          color: mancanza ? 'var(--t1, #1C1916)' : '#fff',
+          border: mancanza ? '1px solid var(--t3, #6B5C51)' : 0,
+          boxShadow: inerte ? 'none' : 'var(--sh-red)',
+          cursor: inCorso ? 'progress' : mancanza ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {inCorso ? (
+          <>
+            {/* 📌 Il segno è FERMO, e non è una dimenticanza: il mockup
+                approvato non ha nessuna animazione (`provato:` `grep -n
+                "keyframes\|animation"` sul mockup → nessuna riga). Non
+                «ripararlo» aggiungendo una rotazione: costerebbe anche un
+                passaggio dalla guardia `reduced-motion`. */}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" strokeOpacity=".35" />
+              <path d="M14 8a6 6 0 00-6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            Preparo il documento…
+          </>
+        ) : (
+          <>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Scarica DPA PDF
+          </>
+        )}
+      </button>
+
+      {mostrato && (
+        <BloccoAvviso
+          tipo={mostrato.riprova ? 'guasto' : 'attesa'}
+          titolo={mostrato.titolo}
+          testo={mostrato.testo}
+          azione={
+            mostrato.vaiAImpostazioni
+              ? { etichetta: 'Completa i dati del laboratorio', href: '/impostazioni' }
+              : mostrato.riprova
+                ? { etichetta: 'Riprova', onClick: () => void scarica() }
+                : undefined
+          }
+        />
+      )}
+    </>
+  )
+}
+```
+
+- [ ] **Passo 4 — Verde**
+
+```bash
+npx vitest run tests/unit/ScaricaDpaButton.test.tsx
+npx tsc --noEmit
+```
+**Atteso:** 16 passate · `tsc` 0.
+
+🔄 **OSSERVATO il 02/08/2026: `Tests 16 passed (16)` · `npx tsc --noEmit` → uscita 0.** E, come nel Task 2,
+si è girata **tutta la FASE 7**: `npx vitest run` → **4417 passate, 19 saltate, 381 file** ·
+`npx next build` → **uscita 0**, `✓ Compiled successfully in 7.3s`.
+
+⚠️ **`next build` non prova NIENTE su questo file:** nessuna pagina lo importa ancora — lo farà il Task 4 —
+quindi non entra nel grafo. Chi lo copre davvero è `tsc`, esattamente come nel Task 2.
+
+🔑 **La prova del NOME DEL FILE ha i denti, e si è verificato rompendola apposta** (R-P1: un vincolo si prova
+con un valore che DEVE essere rifiutato). Due sonde sull'implementazione vera, poi rimessa a posto:
+
+| sonda | che cosa si è rotto | esito |
+|---|---|---|
+| **A** | `ancora.download = nome` → `ancora.download = NOME_DI_RIPIEGO` (il nome smette di venire dall'intestazione) | `Tests 1 failed \| 15 passed` — `AssertionError: expected 'contratto-dpa.pdf' to be 'DPA-2026-0042.pdf'` |
+| **B** | la riga `ancora.download = …` **tolta** (il `fetch` scritto in fretta) | `Tests 2 failed \| 14 passed` — `expected '' to be 'DPA-2026-0042.pdf'` e `expected '' to be 'contratto-dpa.pdf'` |
+
+📌 **E il meccanismo su cui la prova poggia è stato verificato nella libreria, non assunto:**
+`click.mock.instances[0]` è davvero l'ancora — `provato:` `@vitest/spy` (4.1.6) fa
+`const context = new.target ? undefined : this` e poi `registerInstance(context, …)`, quindi su una chiamata
+normale `instances[0] === this`. Se non lo fosse, la prova sarebbe morta con un `TypeError` invece che con
+un'asserzione — cioè un rosso che non dice niente.
+
+- [ ] **Passo 5 — Salvare**
+
+---
+
+## Task 4 — La pagina: ruolo, dati del laboratorio, le tre righe
+
+**File:**
+- Modifica: `src/app/(app)/clienti/[id]/page.tsx` (import · `:165-186` · `:312-368`)
+- 🔄 **Modifica: `tests/unit/cliente-dpa-ultima-emissione.test.ts`** — **mancava dal piano, aggiunto il
+  02/08/2026 dall'esecutore del Task 4.** È l'**unica prova che RENDE questa pagina**, e il suo finto di
+  `from()` **lancia** su ogni tabella che non conosce: la lettura di `laboratori` la faceva esplodere per
+  intero. Stessa forma del difetto già pagato al Task 1 con `tests/unit/dpa-route.test.ts` — **due volte su
+  due, il file mancante è una PROVA** (R-P2/R-P6: il censimento non si ferma a `src/`).
+- 🔄 **Modifica: `tests/unit/ScaricaDpaButton.test.tsx`** — una prova nuova che blocca **D165**.
+- 🔄 **Modifica: `src/components/features/clienti/ScaricaDpaButton.tsx`** — **solo** il ramo
+  `CLIENTE_DATI_FISCALI`, per **D165** (v. sotto).
+- 🔄 **Modifica: `src/app/api/clienti/[id]/dpa/route.ts`** (`:39-44` e `:95-98`) — le due righe marchiate
+  `MISURATO` che questo task rende false. Il piano le assegnava al Task 4 **nella prosa** (Task 5, Passo 5)
+  e le **dimenticava nell'elenco dei file**: l'elenco non lo decide chi scrive.
+
+**Interfacce consumate:** `ScaricaDpaButton` (Task 3) · `BloccoAvviso` (Task 2) · `puoEmettereDpa` (Task 1).
+
+### 🔄 ESEGUITO il 02/08/2026 — sei correzioni al piano, e tre cose riferite e NON toccate
+
+**Corrette qui sotto (i blocchi dei Passi 1-3 sono già aggiornati: si copiano quelli):**
+
+1. 🛑 **Un guasto di lettura dei dati del laboratorio diventava un'ACCUSA.** Il piano scriveva
+   `const mancaLab = !labFiscale?.partita_iva && !labFiscale?.codice_fiscale` **scartando `error`**: se la
+   lettura fallisce, `labFiscale` è `null`, `mancaLab` diventa vero, e il titolare legge «*Mancano i dati
+   del tuo laboratorio*» con un collegamento a `/impostazioni` — **dove la Partita IVA è scritta**. 🔑 **È
+   il difetto stesso che P17 ripara sul registro, reintrodotto DIECI RIGHE PIÙ SOTTO**: «ho letto e non
+   c'è» e «non sono riuscito a leggere» sono fatti opposti (documento di design §1). ➡️ La prevenzione si
+   **arrende** sull'errore (il tasto resta vivo, decide la rotta — D159: «la ① non rende inutile la ②») e il
+   guasto va nei **log**, come per il registro (`page.tsx:182-184`). `provato:` sonda C sotto.
+2. 🛑 **«Non ancora emesso per questo studio.» nasceva su `--t2`, cioè col difetto P16 addosso.** È una riga
+   **NUOVA** (prima quel ramo rendeva `null`), quindi il vincolo globale 2 la vuole su `--t1` — e il
+   documento di design §4 lo dice per esteso: «*tutto ciò che P17 aggiunge sta su `--t1`*». ✅ La riga
+   «Ultima emissione» resta su `--t2`: **quella c'era già**, ed è P16 deferita (D134). I due rami sono
+   alternativi, quindi nessun lettore vede mai i due colori insieme.
+3. 🛑 **La riga di chiusura condizionata al ruolo era un'INVENZIONE del piano, e portava testo nuovo su
+   `--t3`.** Il piano rendeva «*Il contratto lo emette il titolare…*» a chi non emette. **Nessuna decisione
+   la chiede:** D160/§2② dice che il non-titolare «*vede tutto il resto*», e la riga ⑥ della tabella §3 dice
+   solo «*il riquadro resta, senza tasto*». ➡️ La riga resta **una sola e identica**, come era.
+4. 🛑 **La spiegazione del NOME DEL FILE non va persa** (era già riferita dall'esecutore del Task 3, e il
+   blocco del Passo 3 la cancellava e basta): riscritta **corta, come rimando**, perché il meccanismo vive
+   ora in `nomeDaHeader` e due copie della stessa spiegazione sono il modo in cui questo repo si ritrova
+   commenti scaduti.
+5. 📌 **D165 nel tasto.** Il ramo `CLIENTE_DATI_FISCALI` di `ScaricaDpaButton` portava ancora il commento
+   «*BUCO DICHIARATO … decide Francesco*»: **è deciso**. Niente tasto, e il testo manda al «Modifica» in
+   cima alla stessa schermata. `provato:` il pannello modifica **contiene davvero** i due campi
+   (`ClienteEditSheet.tsx:392,401`) — mandarci qualcuno non è un rimando a vuoto; e `ScaricaDpaButton` è
+   montato **solo** in `clienti/[id]/page.tsx` (`grep` → 1 occorrenza fuori dalle prove), quindi «*in alto in
+   questa schermata*» è vero in tutti e due i cammini (prevenzione e 422 vivo).
+6. 📌 **Le due righe `MISURATO` di `route.ts`.** Riscritte come **storia**, non come regola viva. 🔑 **E la
+   riga era falsa in un modo in più di quello riferito:** diceva «*nessun codice client dirama sullo
+   stato*» — adesso dirama, ma **su `status` e `codice`, mai su `error`**. Quindi il campo `error` non
+   arriva più a **nessun utente**: resta, ed è per **chi ripara** (log, pannello di rete).
+
+**Riferite e NON toccate (R-E2):**
+
+- 🛑 **Lo stato ⑦c approvato ha un'azione, «Ricarica», e questo codice non la rende** — già riferito
+  dall'esecutore del Task 3, e **qui c'è il fatto nuovo che cambia la forma della scelta:** da questa
+  pagina **non si può fare con un `onClick`**. È un componente server, e una funzione non attraversa il
+  confine RSC (non è serializzabile): servirebbe **un componente client nuovo** che chiami
+  `router.refresh()`, oppure un `href`. Né il mockup né D165 lo sapevano. ➡️ Resta al gate del Task 5.
+  📌 D165 ha **barrato ② e lasciato ⑦c intatto** nella tabella §3: è genuinamente **non deciso**, non
+  approvato in silenzio.
+- ⚠️ **L'esito del Task 0 dice «*il ruolo che la pagina legge viene dai CLAIM del token, non da una lettura
+  fresca del database*»: è impreciso.** `provato:` `lab-context.ts:34-46` → `getLabContext` fa una `select`
+  su `utenti` col client di servizio a ogni richiesta; **dai claim locali viene solo l'identità** (`sub`),
+  non il ruolo. ✅ **La conclusione non cambia** (il gate della pagina è cortesia visiva, quello della rotta
+  è la protezione, e i due non si sostituiscono), quindi il commento nel codice **dichiara la conclusione
+  senza ripetere il meccanismo sbagliato**. 🔑 Ma una premessa falsa in un documento manda la sessione dopo
+  a «riparare» la cosa giusta.
+- 📌 **L'autorevisione del piano dice «*in questo repo non ci sono prove di componenti server*»: è FALSO**, e
+  ha un costo — è la frase che ha fatto uscire il Task 4 **senza nessun passo di prova**.
+  `tests/unit/cliente-dpa-ultima-emissione.test.ts` **rende questo stesso componente server** e girava già
+  prima di P17. Il caso ⑦c non solo si può provare: **è provato**, insieme a tutto il resto.
+
+- [ ] **Passo 1 — La lettura in più, in PARALLELO**
+
+🛑 `getLabContext()` **non** porta i dati fiscali: `provato:` `lab-context.ts:19` →
+`lab: { stato, trial_ends_at, nome } | null`. Serve leggerli, e **mai in fila** con l'altra query (A2).
+
+Sostituire il blocco `:165-174` con:
+
+```ts
+  // 🔄 `error: erroreLabFiscale` NON si scarta (correzione 1 del Task 4).
+  const [
+    { data: emissioneRaw, error: erroreRegistro },
+    { data: labFiscale, error: erroreLabFiscale },
+  ] = await Promise.all([
+    svc
+      .from('data_processing_agreements')
+      .select('numero_dpa, emesso_at')
+      .eq('laboratorio_id', context.laboratorioId)
+      .eq('dentista_id', c.id)
+      .not('numero_dpa', 'is', null)
+      .is('deleted_at', null)
+      .order('emesso_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // 🔑 I dati fiscali del laboratorio NON stanno nel contesto (lab-context.ts:19
+    //    porta solo stato, trial_ends_at e nome): senza questa lettura la scheda
+    //    non può sapere in anticipo che l'emissione fallirà, e il titolare di un
+    //    laboratorio senza Partita IVA lo scoprirebbe premendo — su OGNI dentista.
+    svc
+      .from('laboratori')
+      .select('partita_iva, codice_fiscale')
+      .eq('id', context.laboratorioId)
+      .maybeSingle(),
+  ])
+```
+
+- [ ] **Passo 2 — Il predicato di prevenzione, identico a quello dell'emettitore**
+
+Dopo il blocco della data (`:196-200`), aggiungere:
+
+```ts
+  // 🛑 `&&` e non `||`, IDENTICO a validateDpaData (generate-dpa.ts:80,83):
+  //    ne basta UNO dei due perché l'emissione proceda. Con `||` il tasto si
+  //    spegnerebbe su clienti che emetterebbero benissimo.
+  // 🔄 CORREZIONE 1 del Task 4 — `!erroreLabFiscale` in testa: senza, un guasto
+  //    di LETTURA diventa l'accusa «ti manca la Partita IVA», e manda il
+  //    titolare in /impostazioni a cercare un dato che c'è già.
+  const mancaLab = !erroreLabFiscale && !labFiscale?.partita_iva && !labFiscale?.codice_fiscale
+  const mancaCliente = !c.partita_iva && !c.codice_fiscale
+  const mancanzaDpa: 'laboratorio' | 'cliente' | null = mancaLab ? 'laboratorio' : mancaCliente ? 'cliente' : null
+
+  // D158: chi non può emettere non vede il tasto — non lo vede SPENTO, non lo
+  // vede affatto. Fino al 02/08/2026 questa pagina non guardava il ruolo, unica
+  // fra le undici che lo guardano: un tecnico vedeva un tasto che per lui non
+  // si sarebbe acceso MAI, e premendolo riceveva un 403 in JSON a schermo.
+  const puoEmettere = puoEmettereDpa(context.ruolo)
+```
+
+Import da aggiungere in testa:
+```ts
+import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
+import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
+import { BloccoAvviso } from '@/components/feedback/BloccoAvviso'
+```
+
+- [ ] **Passo 3 — Il riquadro: tasto condizionato e TRE righe invece di due**
+
+Sostituire il corpo del riquadro «Privacy — GDPR» (`:313-368`):
+
+```tsx
+        <SectionCard title="Privacy — GDPR">
+          <div style={{ padding: '12px 0' }}>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2)', marginBottom: '10px', lineHeight: 1.5 }}>
+              Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.
+            </p>
+
+            {/* D160: a chi non può emettere resta TUTTO tranne il tasto. Chi sta
+                al banco deve poter rispondere allo studio al telefono («sì,
+                risulta emesso il 12 marzo») senza poterlo riemettere. */}
+            {puoEmettere && <ScaricaDpaButton clienteId={c.id} mancanza={mancanzaDpa} />}
+
+            {/* 🛑 TRE casi, non due. Prima, se il registro non si leggeva, la riga
+                spariva — identica a «mai emesso». Sono fatti opposti: uno dice
+                «ho letto e non c'è», l'altro «non sono riuscito a leggere», e
+                confonderli può far riemettere un contratto che esiste già. */}
+            {erroreRegistro ? (
+              <BloccoAvviso
+                tipo="attesa"
+                titolo="Non riesco a leggere il registro"
+                testo="Il contratto potrebbe essere già stato emesso: questa riga non fa fede."
+              />
+            ) : ultimaEmissione?.numero_dpa && dataUltimaEmissione ? (
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t2)', marginTop: '6px' }}>
+                Ultima emissione: <strong>{ultimaEmissione.numero_dpa}</strong> — {dataUltimaEmissione}
+              </p>
+            ) : (
+              // 🔄 CORREZIONE 2 del Task 4 — `--t1`, non `--t2`: questa riga NON
+              //    c'era, e un testo NUOVO non nasce col difetto deferito (P16).
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t1, #1C1916)', marginTop: '6px' }}>
+                Non ancora emesso per questo studio.
+              </p>
+            )}
+
+            {/* 🔄 CORREZIONE 3 del Task 4 — la riga di chiusura resta UNA E
+                IDENTICA, come era. Il ramo condizionato al ruolo che stava qui
+                era un'invenzione del piano (nessuna decisione lo chiede: D160 e
+                la riga ⑥ della tabella §3 dicono solo «il riquadro resta, senza
+                tasto») e per giunta portava testo NUOVO su `--t3`. */}
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3)', marginTop: '6px' }}>
+              Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio.
+              Ogni versione emessa resta conservata da UÀ.
+            </p>
+          </div>
+        </SectionCard>
+```
+
+⚠️ **`--t2`/`--t3` restano SOLO sulle righe che c'erano già** (P16, deferita da D134): non si aggiunge testo
+nuovo su quei token, e non si «corregge» qui ciò che è stato deferito.
+🛑 **E il commento «NIENTE attributo `download`» (`:318-328`) NON si cancella e basta:** si riscrive **corto,
+come rimando** a `nomeDaHeader`, dove il meccanismo vive adesso (correzione 4).
+
+- [ ] 🆕 **Passo 3-bis — LE PROVE (passo MANCANTE dal piano, aggiunto il 02/08/2026)**
+
+> Il piano andava dal codice alla verifica **senza un solo passo di prova**, e la ragione è scritta
+> nell'autorevisione: «*in questo repo non ci sono prove di componenti server*». **È falso**, e
+> `tests/unit/cliente-dpa-ultima-emissione.test.ts` lo era già prima di P17.
+
+Prima si scrivono le prove, poi si tocca la pagina (R-P4). 🔄 **MISURATO: `Tests 16 failed | 8 passed (24)`**
+— rosso vero, non «modulo non trovato». ⚠️ **Le 8 che passano sul codice vecchio sono quasi tutte prove a
+forma di ASSENZA** (`tecnico NON vede il tasto` passa perché il tasto non esiste ancora per nessuno): è la
+stessa debolezza già nominata ai Task 1 e 3, e per questo il conto si scrive.
+
+Il finto `from()` di quel file **lancia** su ogni tabella che non conosce (`Mock scheda cliente: tabella
+inattesa «laboratori»`): va insegnata la tabella nuova, o il file esplode per intero.
+
+🔑 **Le prove che valgono davvero, e il valore che DEVE essere rifiutato (R-P1):**
+un cliente (o un laboratorio) con **UNO SOLO** dei due dati fiscali → il tasto è **ATTIVO**. È il caso che
+smaschera un `||`, e il caso comune («ha entrambi») resta verde con tutti e due gli operatori.
+**Tre sonde sull'implementazione VERA, poi rimessa a posto:**
+
+| sonda | che cosa si è rotto | esito |
+|---|---|---|
+| **A** | `mancaCliente` da `&&` a `\|\|` | `Tests 6 failed \| 18 passed` — `expected 'cliente' to be null` |
+| **B** | `mancaLab` da `&&` a `\|\|` | `Tests 7 failed \| 17 passed` — `expected 'laboratorio' to be null` · `expected 'laboratorio' to be 'cliente'` |
+| **C** | tolta la guardia `!erroreLabFiscale` (**cioè il codice del piano**) | `Tests 1 failed \| 23 passed` — `expected 'laboratorio' to be null` |
+
+**A2 — la lettura in più NON rallenta: ✅ VERO, e adesso è MISURATA** (era «da provare nel suo task»).
+`provato:` sonda usa-e-getta contro il database vero, 12 giri, mediane:
+
+```
+solo registro (il PRIMA)  : 78,2 ms
+in fila                   : 161,5 ms   → costo aggiunto  83,3 ms
+in parallelo (Promise.all):  83,2 ms   → costo aggiunto   4,9 ms
+```
+
+➡️ **In fila la pagina sarebbe RADDOPPIATA.** In parallelo costa **~5 ms**, cioè il rumore.
+📌 E la parallelità ha anche una prova che non ha bisogno del database: nel file di prova la lettura del
+registro risolve solo dopo un giro di macro-task, e `laboratori` risulta **già chiesta** prima che il
+registro risponda — se fossero in fila, arriverebbe dopo.
+
+- [ ] **Passo 4 — Verifica**
+
+```bash
+npx tsc --noEmit && npx vitest run && npx next build
+```
+**Atteso:** 0 · tutte verdi · uscita 0. ⚠️ `tsc` **non** valida la firma degli handler di rotta: i tre comandi
+sono tre, e nessuno sostituisce l'altro.
+
+🔄 **OSSERVATO il 02/08/2026:**
+
+```
+npx tsc --noEmit   → uscita 0, nessun errore
+npx vitest run     → Test Files 378 passed | 3 skipped (381)
+                     Tests 4434 passed | 19 skipped (4453)
+npx next build     → uscita 0 · ✓ Compiled successfully in 7.6s
+                     ƒ /clienti/[id]  (dinamica, come prima)
+```
+
+🔑 **E qui `next build` conta DAVVERO, per la prima volta in questo piano:** ai Task 2 e 3 non provava nulla
+perché nessuna pagina importava i file nuovi. Adesso `/clienti/[id]` li importa tutti e tre, quindi il
+confine server/client (un componente server che monta due componenti `'use client'`) è finalmente
+attraversato in compilazione.
+📌 **Il rumore `Not implemented: navigation to another Document` c'è ancora, ed è 1 riga:** preesistente e
+già censito dall'esecutore del Task 3, non è di P17.
+
+- [ ] **Passo 5 — Salvare**
+
+---
+
+## Task 5 — Collaudo dal vivo, FASE 9b e chiusura
+
+**File:** nessuno modificato — referti in `docs/design/audit-ui-ux/` e `docs/design/screenshots/`.
+
+- [ ] **Passo 1 — Collaudo dal vivo (D103)**
+
+Accesso col link monouso (mai digitare una password):
+```bash
+npx tsx scripts/tmp/link-accesso.ts <email> /clienti/<id>
+```
+Percorrere: ① dati completi → scarica, **e verificare il NOME del file salvato** (deve essere
+`DPA-AAAA-NNNN.pdf`) · ② cliente senza dati fiscali → tasto inerte · ③ i tre casi della riga.
+
+- [ ] **Passo 2 — FASE 9b: gate estetico L2**
+
+Micro-audit della **sola** superficie contro `docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md`, ai tre
+viewport × chiaro/scuro, con scatti **prima/dopo** in `docs/design/screenshots/2026-08-02-p17/`.
+🛑 **Obbligatorio prima di unire** — è una pagina in produzione, e questo cancello è già stato saltato una
+volta su questa stessa superficie (04/08).
+
+- [ ] **Passo 3 — FASE 7 per intero, output incollato**
+
+```bash
+npx tsc --noEmit ; npx vitest run ; npx next build
+```
+
+- [ ] **Passo 4 — BP-1**
+
+Aggiornare `memory/MEMORY.md` e `docs/roadmap/ROADMAP-UFFICIALE.md`: **P17 si dichiara chiusa SOLO se tutte
+le prove sono verdi**, altrimenti si scrive «eseguita in parte» **col motivo**, come per P7.
+
+- [ ] **Passo 5 — I ritrovamenti fuori mandato (R-E2), in UNA sezione dell'handoff**
+
+Già noto e da riferire, **non** da correggere qui:
+- **`PacchettoConsegnaSheet.tsx:264`** si fabbrica i nomi dei file a mano invece di leggere l'intestazione:
+  possono divergere dai nomi che le rotte dichiarano.
+- **I numeri di riga nei commenti** di `errori-dpa.ts` e `route.ts` (`:106`, `:159`, `:182`…) **non
+  corrispondono più** alle righe vere (`:115`, `:168`, `:191`…): il file è cresciuto e i riferimenti no.
+
+🆕 **Aggiunti il 02/08/2026 dall'esecutore del Task 3 (R-E2 — trovati fuori dal suo mandato, riferiti e
+NON toccati):**
+
+- 🛑 **`src/app/api/clienti/[id]/dpa/route.ts:97-98` diventa FALSO nel momento in cui i Task 3 e 4
+  arrivano**, ed è un commento che si dichiara `MISURATO`. Dice: «*questo corpo JSON è davvero l'unico
+  canale verso chi scarica — **nessun codice client dirama sullo stato, il tasto è un `<a href>` e
+  basta***». Da qui in avanti il tasto **non** è più un `<a href>` e il codice client **dirama** eccome
+  (è tutto il senso di `esitoDa`). 🔑 **È esattamente il modo di sbagliare che quel file racconta di aver
+  già pagato due volte** — una riga scritta prima del mondo che descrive, marchiata come misurata.
+  ➡️ **Il Task 4 la aggiorni insieme al resto** (o si scriva perché no): non è una svista di stile, è una
+  riga che il prossimo lettore userà per decidere.
+- 📌 **`src/app/(app)/clienti/[id]/page.tsx:318-328`** — il blocco «*NIENTE attributo `download` qui*»
+  spiega un meccanismo (`Content-Disposition` letto dal browser su una navigazione) che con il tasto vivo
+  **non è più quello**: adesso l'intestazione la rilegge `nomeDaHeader` in JavaScript. Il Task 4 riscrive
+  già quel riquadro (`:313-368`), quindi **basta non perdere la spiegazione**: va riscritta, non
+  cancellata, perché il difetto che documenta (due emissioni, stesso nome) è ancora quello.
+- ⚠️ **Il bordo `--t3`, seconda occorrenza — stessa radice del rilievo del Task 2, NON un ritrovamento
+  nuovo.** Il Task 2 l'aveva misurato sul tasto dell'azione del blocco; qui ricompare sul **tasto
+  principale quando è inerte** (`border: '1px solid var(--t3)'`, dal mockup `.tasto[aria-disabled="true"]`):
+  **4,49:1 in chiaro, 1,72:1 in scuro**, sotto il 3:1 che WCAG 1.4.11 chiede al confine di un comando.
+  ✅ **Il testo del tasto è su `--t1`**, quindi il vincolo globale 2 è rispettato e P16 non si riapre. È il
+  disegno approvato: **va al gate FASE 9b insieme all'altro**, come una cosa sola.
+- 📌 **Rumore preesistente nella suite, e NON è di P17.** `npx vitest run` stampa una riga
+  `Not implemented: navigation to another Document` **fuori da ogni test**. `provato:` togliendo i due
+  file nuovi del Task 3 e rigirando l'intera suite, quella riga **c'è ancora** (1 occorrenza). Qualche
+  altra prova preme un'ancora vera. Non trovato il colpevole — non è il mandato di questo task, ma è
+  esattamente la forma di perdita che il Task 3 ha appena chiuso da sé.
+- ⚠️ **Anche lo stato ⑦c del Task 4 perde la sua azione approvata.** La tabella §3 del documento di
+  decisione dice «*⑦c registro non leggibile → **Ricarica***», e il blocco del Passo 3 del Task 4 rende
+  un `BloccoAvviso` **senza `azione`**. Stessa famiglia del buco dichiarato nel Task 3 sullo stato ②:
+  vanno guardati insieme, non uno per volta.
+
+---
+
+## Autorevisione del piano
+
+**Copertura della spec:** §5 ① → Task 3 · §5 ② → Task 1 · §5 ③ → Task 2 · le tre righe → Task 4 · §4
+assunzioni → Task 0 · §6 forme d'input → tutte in Task 1-3 · §7 FASE 3 → nessuna migration, quindi niente
+FASE 6b · FASE 9b → Task 5.
+**Segnaposto:** nessuno — ogni passo porta il codice o il comando vero.
+**Coerenza dei nomi:** `ScaricaDpaButton`, `BloccoAvviso`, `puoEmettereDpa`, `RUOLI_EMISSIONE_DPA`,
+`CodiceDatiDpa`, `mancanza`, `esitoDa`, `nomeDaHeader` — usati identici in tutti i task.
+~~**Buco noto e dichiarato:** il caso ⑦c (registro illeggibile) **non ha un test unitario** — è un componente
+server, e in questo repo non ci sono prove di componenti server. Si verifica **a mano** nel Task 5, passo 1.~~
+🔄 **RITIRATA il 02/08/2026 dall'esecutore del Task 4: era FALSA, e non era gratis.**
+`tests/unit/cliente-dpa-ultima-emissione.test.ts` **rende questo stesso componente server**, girava già prima
+di P17, e provava **già** il ramo del registro illeggibile. 🔑 **Il costo:** creduta vera, quella frase ha
+fatto uscire il Task 4 **senza nessun passo di prova** e ha tenuto quel file fuori dall'elenco dei file —
+cioè lo stesso difetto di censimento del Task 1, con lo stesso identificatore mancante: **una prova**.
+⚠️ Una frase che dichiara un buco è **una scusa per non guardare**: si verifica come qualunque altra
+affermazione (`grep -rln "app/(app)" tests/` bastava).

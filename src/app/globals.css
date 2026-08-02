@@ -98,6 +98,25 @@
   --c-orange: #F97316;
   --c-red:    #EF4444;
   --c-purple: #8B5CF6;
+  /* Bordo di un COMANDO — stesso mestiere dei token «ink», applicato al confine
+     invece che al testo. WCAG 1.4.11 chiede 3:1 al bordo che identifica un
+     elemento premibile, e `--t3` lo manca in SCURO: misurato al gate FASE 9b del
+     02/08/2026 su tre fondi — card 2,24 · blocco ambra 1,71 · blocco rosso 2,16.
+     In CHIARO `--t3` passa (4,84 · 4,49 · 4,10), quindi qui vale esattamente
+     `--t3` e l'aspetto approvato sui mockup NON cambia. In scuro si prende il
+     valore che il design system v3 ha già scelto per lo stesso difetto
+     (`v3/tokens.ts` → `faint`, «rev. 3.1 — era #6E6457 (WCAG fail)»):
+     misurato 4,61 · 3,53 · 4,45. 🛑 È un bordo, non un testo: non usarlo come
+     colore di testo, e non confonderlo con P16 (che è sui testi, deferita da D134).
+     ⚠️ **Il ripiego scritto nei componenti (`var(--brd-cmd, #6B5C51)`) è il valore
+     CHIARO**, quindi in un ambito che non definisce questa variabile un fondo scuro
+     tornerebbe a 2,24:1 — il difetto appena chiuso, di nuovo e in silenzio. Chi monta
+     `BloccoAvviso` fuori da `:root`/`.dark` (per esempio dentro `.login-root` o in un
+     foglio con token propri come `admin.css`) **deve portarsi `--brd-cmd`**. Oggi non
+     morde — `misurato:` `admin.css` non ridefinisce `--t3` (0 occorrenze) — ma D162
+     dichiara quel componente costruito per essere EREDITATO, quindi il giorno che si
+     sposta questa riga è l'unica cosa che lo avverte. */
+  --brd-cmd: #6B5C51;
   --c-amber-ink: #92400E;  /* amber INK per testo/valori — 5.35:1 su --sfc, 6.23:1 su --bg (ri-misurato 26/07 dopo il fondo unico: il 5.01 scritto prima era sul vecchio #DDD8D3); MAI usare --c-amber come colore testo */
   --c-orange-ink: #9A3412; /* orange INK per testo/alert — 5.52:1 su --sfc, 6.42:1 su --bg (ri-misurato 26/07); MAI usare --c-orange come colore testo */
   --red-ink: #B00010;      /* rosso testo AA — alert saldo negativo: 5.56:1 su --sfc, 6.47:1 su --bg (ri-misurato 26/07) */
@@ -170,6 +189,7 @@
   --t1:      #F0EDE8;
   --t2:      #8A8580;
   --t3:      #5A5652;
+  --brd-cmd: #928778;      /* bordo comando — v. la nota in :root. `--t3` scuro dà 1,71-2,24:1, sotto il 3:1 di WCAG 1.4.11 */
   --primary: #E8001A;
   --c-amber-ink: #F59E0B;  /* dark: ink = amber pieno (6.07:1 su tinta ambra dark) */
   --c-orange-ink: #F97316; /* dark: ink = orange pieno (contrasto AA su --sfc dark) */
