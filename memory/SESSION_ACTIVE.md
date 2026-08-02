@@ -38,11 +38,19 @@ tracciata**, con le condizioni C1-C11 del referto. **(b)** **Si accetta l'ORDINE
 TESTO, poi la firma** — le quattro si fanno in un colpo solo, perché ognuna da sola sposterebbe la
 versione, e oggi costano **zero** (0 dentisti hanno accettato).
 
-🔴 **RESTA APERTA la terza domanda, e BLOCCA l'inizio dell'ondata 2: ESISTE il contratto
-laboratorio↔UÀ?** Il DPA che i dentisti scaricano lo **afferma** (`DpaTemplate.tsx:210`, «*per
-contratto*»); il prodotto **non ne conserva traccia**. Da qui dipende se **C1** è una riga di testo da
-riscrivere o un documento da produrre — e C1 è dentro il pacchetto (b). Francesco ha chiesto di
-**rispiegare la domanda**: fatto in chat, attende risposta.
+🔴 **TERZA DOMANDA CHIUSA, e apre un lavoro vero → P19.** Francesco: «*no, oggi non firma niente*».
+**UÀ non ha un contratto sulla protezione dei dati con i laboratori che la usano**, e il documento che
+quei laboratori consegnano ai dentisti dice che ce l'ha (`DpaTemplate.tsx:210`). Stessa classe di
+difetto di **D126** — ma il buco è **di UÀ come servizio**, non del laboratorio di Francesco: ogni
+laboratorio abbonato affida a UÀ **dati sanitari**, quindi ciascuno ha bisogno del **proprio** accordo.
+**C1 è un documento da produrre**, e blocca l'inizio dell'ondata 2.
+
+✅ **Catena a valle A POSTO**, verificata alla fonte su richiesta di Francesco: i DPA di **Supabase**
+(v1, 01/08/2026), **Vercel** (31/03/2026) e **Resend** (31/12/2025) si perfezionano **automaticamente**
+con l'accettazione delle condizioni — nessuna casella da spuntare. 🛑 Non verificabile dalle API (la
+Management API di Supabase non ha endpoint legali: **404**): la prova sta nel testo dei documenti.
+⚠️ **Due code:** quale **piano Vercel** è in uso · l'organizzazione Supabase è sul piano **`free`**, e
+l'Art. 32(1)(b)(c) nomina **disponibilità e resilienza** — osservazione, non ritrovamento del panel.
 
 📌 **PUBBLICATO** su autorizzazione di Francesco: `7d6ee54c` → **`7c4a36cb`**, quattro salvataggi (gate
 estetico L2 · D134 · referto del panel su D128 · tre correzioni di rigore). **Nessuna riga di codice

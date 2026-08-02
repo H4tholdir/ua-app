@@ -148,10 +148,37 @@ L'Art. 28(3) impone che il contratto stipuli «**gli obblighi e i diritti del ti
 
 ---
 
+## 4-bis. 🔄 Le due domande di §5 CHIUSE il 04/08/2026 — una male, una bene
+
+### 🔴 ① Il contratto laboratorio↔UÀ **NON ESISTE** — risposta di Francesco
+
+> **«No, oggi non firma niente.»**
+
+Quindi la frase di `DpaTemplate.tsx:210` — «*il Responsabile impone a ciascuno di essi, **per contratto**, obblighi equivalenti*» — **promette al dentista una cosa che non c'è**, ed è **la stessa classe di difetto per cui è esistita D126** tre giorni fa. **C1 non è una riga da riscrivere: è un documento da produrre.**
+
+🔑 **E il difetto è più grande del laboratorio di Francesco.** UÀ è un servizio **multi-inquilino**: ogni laboratorio che si abbona è un cliente che affida a UÀ dati sanitari di pazienti. **Ciascuno di quei laboratori ha bisogno di un proprio accordo con UÀ** — e senza, il DPA che *quel* laboratorio consegna ai *suoi* dentisti dirà la stessa cosa non vera. → **voce di roadmap propria: P19.**
+
+### ✅ ② I tre fornitori sono coperti **automaticamente** — verificato da me alla fonte
+
+Francesco ha chiesto di controllare io. **Non è verificabile dalle API** (`provato:` la Management API di Supabase espone organizzazione, progetti e membri, ma **nessun endpoint sui documenti legali** — `/documents` e `/legal-documents` rispondono **404**; il gettone Vercel in `.env.local` è un `VERCEL_OIDC_TOKEN` di progetto, non una chiave d'account; la chiave Resend serve a mandare email). **Quindi sono andato ai documenti stessi**, e la risposta è nel loro testo:
+
+| fornitore | versione letta | come si perfeziona | esito |
+|---|---|---|---|
+| **Supabase** | DPA v1, **1 agosto 2026** | «*This DPA **supplements and forms part of** the Supabase Terms of Service*» + §12.2 «*acceptance of the Agreement shall have the same effect as signing the SCCs*» | ✅ **automatico** con l'accettazione delle condizioni |
+| **Vercel** | agg. **17/03/2026**, in vigore **31/03/2026** | «*This Addendum shall become legally binding **upon Customer entering into the Agreement***» | ✅ **automatico** — ⚠️ **con una riserva: v. sotto** |
+| **Resend** | agg. **31/12/2025** | «*…as of the effective date of the applicable customer's acceptance of the Terms of Service … to which this DPA is **attached and incorporated***» | ✅ **automatico** |
+
+🔑 **Non c'era nessuna casella da spuntare:** in tutti e tre i casi l'accordo si perfeziona **aprendo l'account**. **Questo anello della catena è a posto.**
+
+⚠️ **Due riserve, dichiarate:**
+- **Vercel** — la lettura del documento riporta l'applicazione automatica riferita ai clienti **Enterprise e Pro**. **Se il piano in uso sia uno di quelli non è stato verificato**: va guardato nel pannello di Vercel.
+- **Supabase** — `provato:` sulla Management API, l'organizzazione (`H4tholdir`) è sul piano **`free`**. Il DPA si applica **lo stesso**, perché è parte delle condizioni e non del piano. 🛑 **Ma resta una domanda che questo panel NON ha esaminato e che va posta altrove:** un piano gratuito non ha né livello di servizio garantito né assistenza, e i progetti gratuiti **si sospendono per inattività** — e l'**Art. 32(1)(b) e (c)** GDPR nomina espressamente **disponibilità e resilienza** dei sistemi e la **capacità di ripristinare** l'accesso ai dati. **Non è un ritrovamento del panel: è un'osservazione, non verificata, da portare dove si decide l'infrastruttura.**
+
+---
+
 ## 5. Che cosa resta **NON VERIFICATO**
 
-1. 🔴 **Se il contratto laboratorio↔UÀ esista fuori dal prodotto.** Non verificabile dal codice: **domanda per Francesco**.
-2. 🔴 **Se UÀ abbia sottoscritto gli accordi con Supabase, Vercel e Resend.** Tutti e tre li pubblicano in forma standard; se siano stati accettati è un fatto d'azienda, non di codice. **Domanda per Francesco.**
+*(le prime due voci sono state chiuse il 04/08: v. §4-bis)*
 3. 🟠 **Se il DPA sia forma scritta «a pena di nullità» o solo «per la prova».** Nessuna fonte primaria lo dice. ⚠️ **Esiste un ramo sfavorevole non escludibile:** se un DPA rientrasse fra gli «altri atti specialmente indicati dalla legge» (art. 1350 n. 13 c.c.), il CAD art. 21 co. 2-bis imporrebbe **almeno la firma avanzata a pena di nullità**. Nessuna fonte letta lo afferma né lo esclude. **Si scrive «non verificato» e si va avanti** — ma la condizione **C8** chiude anche questo ramo, ed è una ragione in più per non saltarla.
 4. 🟠 **Nessuna sentenza italiana** letta alla fonte sull'accettazione tracciata sotto il secondo periodo dell'art. 20 co. 1-bis. Nessun provvedimento del Garante che valuti la **forma** di un DPA accettato elettronicamente (quelli letti riguardano la sua **assenza**).
 5. 🟠 **La scrittura falsificante sul registro non è stata ESEGUITA.** La conclusione del §3 ① è **derivata** da tre letture del catalogo vivo, non dimostrata: si legge in sola lettura e non si scrive su un ambiente vero senza una decisione di Francesco.
