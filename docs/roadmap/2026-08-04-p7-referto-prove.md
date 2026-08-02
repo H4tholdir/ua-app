@@ -538,3 +538,29 @@ autorizzato — non ripulita, non annullata.
 | Prova | Esito (aggiornato Task 4) |
 |---|---|
 | **T3** il «chi» dal vivo | ✅ **CHIUSA** — `DPA-2026-0003`, `emesso_da = eb161af4-…` (`h4t@live.it`, titolare), riga nuova non riusata, audit_log 0→1 sul dato vivo |
+
+---
+
+## 🛑 Nota sulle DATE — corretta da Francesco, e riguarda ogni documento di questa serie
+
+⚠️ **La data dei documenti (04/08) NON è la data dell'orologio.** `provato:` `date` sulla macchina →
+**`Sun Aug 2 17:50 CEST 2026`**; `git log` del commit che ha applicato la migration (`0e7d1b6f`) →
+**`2026-08-02 15:22:49 +0200`**.
+
+**Il fatto che l'ha generata.** La revisione finale del ramo ha scritto che la parte già applicata «*gira
+contro il codice di produzione **dal 04/08**, senza incidenti*», e chi riferiva l'ha ripetuto in chat.
+**Francesco l'ha smontato in una riga: «*se oggi è il 2 agosto*».**
+
+🔑 **Perché non è una pignoleria sul calendario.** «Dal 4 agosto senza incidenti» si legge come **giorni**
+di prova sul campo. La verità è **due ore e mezza**, tutte dentro la sessione che l'ha applicata, e in un
+intervallo in cui **nessun laboratorio vero ha usato l'app**. Non è robustezza dimostrata: è **assenza di
+occasioni di rompersi**, che è tutta un'altra cosa.
+
+✅ **L'argomento che regge davvero, e resta:** l'unico percorso che scrive su
+`data_processing_agreements` passa dal client di **servizio** (`getTypedServiceClient()`), che ha
+`rolbypassrls = true` — quindi la regola nuova non può rompere nessuna scrittura esistente. È un
+ragionamento **sul codice**, verificato per setaccio; **non** un collaudo sul tempo trascorso.
+
+🔑 **La lezione, e vale oltre P7:** in questo progetto la serie dei documenti corre **avanti** rispetto
+all'orologio. Ogni volta che una data di documento viene usata per misurare **quanto tempo è passato**,
+il conto è sbagliato — e sbaglia sempre nella direzione che rassicura.
