@@ -845,8 +845,16 @@ export function ScaricaDpaButton(_props: { clienteId: string; mancanza: 'laborat
   return <button type="button">Scarica DPA PDF</button>   // INERTE
 }
 ```
-**Contare le asserzioni che si accendono. Atteso: 14 su 16** (passano «tasto premibile coi dati completi» e
-«non usa disabled», che l'abbozzo soddisfa per caso). **Scrivere il numero vero.**
+**Contare le asserzioni che si accendono. Atteso: 13 su 16** — passano per caso **tre** prove, non due:
+«tasto premibile coi dati completi» · «non usa `disabled`» · **«premere un tasto inerte non chiama la rotta»**,
+perché l'abbozzo non ha nessun `onClick` e quindi `fetch` non parte mai. **Scrivere il numero VERO osservato.**
+
+🔄 **CORRETTO il 02/08/2026, e la correzione viene dall'esecutore del Task 1** (R-E2: trovato fuori dal suo
+mandato e **riferito**, non corretto di nascosto). 🔑 **La previsione sbagliata nasceva da un errore di
+ragionamento che vale la pena nominare, perché è ripetibile:** il piano contava su ciò che l'abbozzo *serve a
+fare* invece che su ciò che *fa*. Un abbozzo inerte **supera** ogni prova che chiede un'**assenza** — e le
+prove che chiedono un'assenza sono le più facili da scrivere e le più deboli.
+⚠️ **Stesso difetto trovato anche nel Task 1** (previsti «10 su 13», osservati **8 su 12**): due volte su due.
 
 - [ ] **Passo 3 — L'implementazione**
 
@@ -892,8 +900,27 @@ function nomeDaHeader(intestazione: string | null): string {
   return nudo?.[1]?.trim() || NOME_DI_RIPIEGO
 }
 
+/** 🔄 CORRETTO il 02/08/2026 — rilievo dell'esecutore del Task 1 (R-E2).
+ *  La prima stesura confrontava `codice: unknown` con stringhe scritte a mano:
+ *  l'unione chiusa costruita nel Task 1 NON avrebbe protetto niente qui, e un
+ *  refuso in `'LAB_DATI_FISCAL'` sarebbe compilato pulito, restituendo per
+ *  sempre il messaggio di guasto generico. Ora i valori passano da una mappa
+ *  verificata contro il tipo: il refuso non compila.
+ *  ✅ `import type` è sicuro da un componente client: viene cancellato in
+ *  compilazione, e `provato:` `errori-dpa.ts` non ha nemmeno `server-only`
+ *  (`grep -c "server-only"` → 0). */
+import type { CodiceDatiDpa } from '@/lib/pdf/errori-dpa'
+
+const CODICE = {
+  labFiscali: 'LAB_DATI_FISCALI',
+  clienteFiscali: 'CLIENTE_DATI_FISCALI',
+  clienteAssente: 'CLIENTE_ASSENTE',
+} as const satisfies Record<string, CodiceDatiDpa>
+
 /** Dal codice/stato al messaggio. 🔑 MAI dal testo del messaggio: sarebbe la
- *  mappa fragile che `errori-dpa.ts` dichiara di aver evitato, un piano più su. */
+ *  mappa fragile che `errori-dpa.ts` dichiara di aver evitato, un piano più su.
+ *  ⚠️ Il parametro resta `unknown` DI PROPOSITO — arriva dalla rete, quindi non
+ *  è verificato: è il CONFRONTO a essere tipizzato, non l'ingresso. */
 function esitoDa(stato: number, codice: unknown): Esito {
   if (stato === 401) {
     return { titolo: 'Sessione scaduta', testo: 'Rientra e riprova: la tua sessione non è più valida.', riprova: false, vaiAImpostazioni: false }
@@ -901,21 +928,21 @@ function esitoDa(stato: number, codice: unknown): Esito {
   if (stato === 403) {
     return { titolo: 'Non puoi emettere questo documento', testo: 'Il contratto lo emette il titolare del laboratorio.', riprova: false, vaiAImpostazioni: false }
   }
-  if (codice === 'LAB_DATI_FISCALI') {
+  if (codice === CODICE.labFiscali) {
     return { titolo: 'Mancano i dati del tuo laboratorio', testo: 'Senza Partita IVA il contratto non si può emettere per nessuno studio.', riprova: false, vaiAImpostazioni: true }
   }
-  if (codice === 'CLIENTE_DATI_FISCALI') {
+  if (codice === CODICE.clienteFiscali) {
     return { titolo: 'Manca un dato dello studio', testo: 'Per emettere il contratto serve la Partita IVA o il Codice Fiscale del dentista.', riprova: false, vaiAImpostazioni: false }
   }
-  if (codice === 'CLIENTE_ASSENTE') {
+  if (codice === CODICE.clienteAssente) {
     return { titolo: 'Questo studio non risulta più', testo: 'Potrebbe essere stato cancellato. Torna all\'elenco dei dentisti.', riprova: false, vaiAImpostazioni: false }
   }
   return { titolo: 'Non è stato possibile preparare il documento', testo: 'Non dipende dai tuoi dati. Se succede di nuovo, segnalacelo.', riprova: true, vaiAImpostazioni: false }
 }
 
 const MANCANZA: Record<'laboratorio' | 'cliente', Esito> = {
-  laboratorio: esitoDa(422, 'LAB_DATI_FISCALI'),
-  cliente: esitoDa(422, 'CLIENTE_DATI_FISCALI'),
+  laboratorio: esitoDa(422, CODICE.labFiscali),
+  cliente: esitoDa(422, CODICE.clienteFiscali),
 }
 
 const stileTasto = {
