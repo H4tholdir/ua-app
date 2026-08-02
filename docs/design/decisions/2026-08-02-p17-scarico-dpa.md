@@ -139,8 +139,23 @@ Fonti lette il 02/08/2026: [CSS-Tricks](https://css-tricks.com/making-disabled-b
 | rosso `#D90012` come **testo** | **4,01:1** | — | ❌ sotto 4,5 |
 | ambra `#F59E0B` come **testo** | ~2,1:1 | — | ❌ sotto 4,5 |
 
-➡️ **Quindi il colore sta nell'icona e nella striscia** (un segno grafico deve reggere **3:1**, e li regge),
-**il testo sta su `--t1`.**
+➡️ **Quindi il colore sta nella STRISCIA e nel FONDO del blocco**, e **testo e icona stanno su `--t1`**.
+
+🔄 **PRECISATA il 02/08/2026 — rilievo dell'esecutore del Task 2 (R-E2), e la prima stesura induceva in
+errore.** Diceva «*il colore sta nell'**icona** e nella striscia*»: vero per la **variante A** (scartata), dove
+il segno `▲` è `#7A5500` — un ambra **scurito apposta**, proprio perché quello pieno non tiene. Nella
+**variante B, che è quella approvata (D161)**, l'icona è su `--t1` come il testo. `misurato:` l'ambra sul fondo
+del blocco dà **1,80:1**, `--t1` dà **12,26:1**, e il minimo per un segno grafico è **3:1**: l'icona è proprio
+il segno che deve reggere quando il colore non si distingue. ✅ **Verificato sullo scatto approvato**
+campionando il pixel dell'icona → `(28, 25, 22)` = `--t1`.
+🔑 **Perché la correzione sta qui e non solo nel codice:** il commento nel file protegge il file; una riga
+sbagliata in un documento di decisione manda la sessione successiva a «riparare» ciò che è giusto.
+
+⚠️ **E il nome del colore è una trappola, censita:** `var(--amber)` in questo progetto vale **`#FD7E14`**
+(`globals.css:91`, warning MDR), **non** `#F59E0B` — che si chiama **`--c-amber`** (`:97`). L'equivoco nasce da
+`src/design-system/tokens.ts:39`, dove la voce si chiama `amber` e porta il **secondo** valore. Il blocco usa
+**`--c-amber`**. 📌 `globals.css:101` avverte per iscritto: «*MAI usare `--c-amber` come colore testo*» —
+coerente con la scelta di tenere ogni testo su `--t1`.
 
 🛑 **P16 NON si riapre qui, ed è già deciso.** Le righe «Ultima emissione…» (`--t2`) e «Stampa e firma…»
 (`--t3`) restano illeggibili in modo scuro: è **P16**, misurata il 04/08 e **deferita da D134** all'ondata di
