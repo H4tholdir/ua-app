@@ -1,9 +1,12 @@
-# Sessione attiva — P17 è finita: il cancello, stavolta, ha scattato PRIMA del merge
+# Sessione attiva — P17 è finita, il cancello ha scattato prima del merge, ed è IN PRODUZIONE
 
 🚪 **PUNTO DI RIPRESA: `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`** — il referto
 del gate, che dice che cosa è stato guardato e che cosa resta deferito.
-⏭️ **La cosa da fare: unire il ramo `p17-scarico-che-fallisce` — 🛑 solo se Francesco lo autorizza.**
-🛑 **Ancora NON su `main`: niente di P17 è in produzione.**
+🚀 **PUBBLICATA il 02/08/2026** su autorizzazione di Francesco: `main` = **`bea6fe53`**, merge di **19**
+salvataggi, **CI verde · CD verde**, albero pulito, **0 da pubblicare**.
+✅ **Verificata su `uachelab.com`**, non solo in locale: 1 bottone e **0** collegamenti verso `/dpa` nella
+card · `--brd-cmd` = `#6b5c51` chiaro / `#928778` scuro · documento scaricato **dalla produzione** →
+**`DPA-2026-0001.pdf`** integro · **nessun numero bruciato** · nessun errore di console.
 ⚠️ **L'handoff `docs/roadmap/2026-08-02-sera-p17-codice-completo-handoff.md` è SUPERATO nella sua §0**
 (dice che il gate non è stato fatto): porta in testa la riga che lo corregge.
 
@@ -24,4 +27,4 @@ token nuovo `--brd-cmd`, **chiaro invariato**; ed erano **quattro** comandi, non
 📌 `tsc` **0** · `vitest` **4439 | 19** (379 file) · `next build` **0** · guardia **verde**.
 📎 **167** decisioni in **57** tornate; la prossima è **D168**.
 
-⏭️ **Dopo il merge: P30** (la pagina di modifica del dentista, **D165**) **o il resto della FASE 1.**
+⏭️ **Prossima cosa: P30** (la pagina di modifica del dentista, **D165**) **o il resto della FASE 1.**
