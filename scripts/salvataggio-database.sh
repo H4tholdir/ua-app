@@ -22,14 +22,30 @@
 #  funzioni) MA lo schema `auth` non c'era — cioè **i dati tornavano e nessuno
 #  poteva entrare** — e non c'era `storage`, cioè l'anagrafe dei file.
 #  🛑 E i FILE veri (contratti in PDF, foto cliniche) non stanno nel database:
-#  si scaricano a parte, con `scripts/salvataggio-archivio.ts`.
+#  si scaricano a parte, con `scripts/salvataggio-archivio.mjs`.
 #
 #  USO:  bash scripts/salvataggio-database.sh
 #  ESITO: in ~/Backup-UA-database/<data-e-ora>/
 #         ruoli.sql · struttura.sql · dati.sql            ← l'applicazione
 #         struttura-piattaforma.sql · dati-piattaforma.sql ← utenti e archivio
+#
+#  🔑 GIRA ANCHE FUORI DAL PROGETTO (D139, 04/08/2026). Il salvataggio
+#  automatico non può leggere dentro `~/Downloads` — macOS non lo permette
+#  (`provato:` un lavoro `launchd` riceve «Operation not permitted» su ogni
+#  livello di quel percorso, mentre `~/Library` lo legge) — quindi una copia di
+#  questi script vive in `~/Library/Application Support/UA-salvataggio/`.
+#  Perciò qui dentro NON si usa nulla che stia in `node_modules`:
+#  `scripts/installa-salvataggio-programmato.sh` copia, e
+#  `scripts/guardia-salvataggio-installato.mjs` si accende se le due divergono.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
+
+# 🛑 La versione dello strumento è FISSATA di proposito: il ripristino provato
+#    il 04/08/2026 è stato fatto con questa. `npx --yes supabase` senza numero
+#    prenderebbe l'ultima uscita quel giorno — cioè cambierebbe la parte PROVATA
+#    del salvataggio mentre nessuno guarda. Alzarla vuol dire riprovare il
+#    ripristino, non solo cambiare il numero.
+CLI_SUPABASE="supabase@2.111.0"
 
 QUI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DESTINAZIONE="${HOME}/Backup-UA-database"
@@ -56,24 +72,24 @@ echo "→ salvo in ${CARTELLA}"
 
 # ① I RUOLI — chi può fare cosa nel database. Senza, la struttura non si applica.
 echo "  ① ruoli…"
-npx --yes supabase db dump --db-url "${DB_URL}" -f "${CARTELLA}/ruoli.sql" --role-only
+npx --yes "${CLI_SUPABASE}" db dump --db-url "${DB_URL}" -f "${CARTELLA}/ruoli.sql" --role-only
 
 # ② LA STRUTTURA — tabelle, funzioni, regole di accesso, automatismi.
 #    🔑 È il pezzo che vale di più: 104 funzioni, 125 regole, 73 automatismi.
 echo "  ② struttura…"
-npx --yes supabase db dump --db-url "${DB_URL}" -f "${CARTELLA}/struttura.sql"
+npx --yes "${CLI_SUPABASE}" db dump --db-url "${DB_URL}" -f "${CARTELLA}/struttura.sql"
 
 # ③ I DATI. `--use-copy` è il formato che si ricarica più in fretta.
 echo "  ③ dati…"
-npx --yes supabase db dump --db-url "${DB_URL}" -f "${CARTELLA}/dati.sql" --data-only --use-copy
+npx --yes "${CLI_SUPABASE}" db dump --db-url "${DB_URL}" -f "${CARTELLA}/dati.sql" --data-only --use-copy
 
 # ④ LA PIATTAFORMA — gli UTENTI (`auth`) e l'anagrafe dei file (`storage`).
 #    🔑 Senza questo il ripristino dà un database pieno in cui NESSUNO ENTRA.
 #    ⚠️ Dentro ci sono le password (in forma cifrata) di tutti gli utenti.
 echo "  ④ struttura di utenti e archivio…"
-npx --yes supabase db dump --db-url "${DB_URL}" --schema auth,storage -f "${CARTELLA}/struttura-piattaforma.sql"
+npx --yes "${CLI_SUPABASE}" db dump --db-url "${DB_URL}" --schema auth,storage -f "${CARTELLA}/struttura-piattaforma.sql"
 echo "  ⑤ dati di utenti e archivio…"
-npx --yes supabase db dump --db-url "${DB_URL}" --schema auth,storage --data-only --use-copy -f "${CARTELLA}/dati-piattaforma.sql"
+npx --yes "${CLI_SUPABASE}" db dump --db-url "${DB_URL}" --schema auth,storage --data-only --use-copy -f "${CARTELLA}/dati-piattaforma.sql"
 
 # ── Controllo che i file abbiano davvero dentro qualcosa ────────────────────
 #    🛑 Un salvataggio che non si controlla non è un salvataggio: è un file.
@@ -114,7 +130,7 @@ fi
 
 # ⑥ I FILE VERI — contratti in PDF e foto cliniche. Non stanno nel database.
 echo "  ⑥ archivio dei file…"
-npx --yes tsx "${QUI}/scripts/salvataggio-archivio.ts" "${CARTELLA}/archivio"
+node "${QUI}/scripts/salvataggio-archivio.mjs" "${CARTELLA}/archivio"
 
 # 🛑 I file li può leggere SOLO il proprietario: dal primo laboratorio vero
 #    qui dentro ci sono nomi di pazienti, anamnesi e password cifrate.

@@ -21,3 +21,12 @@ node scripts/guardia-reduced-motion.mjs     # ~4,6 s — «Riduci movimento»: n
 # ⚠️ Controlla la COERENZA, non la VERITA': non sa cosa e' stato deciso e mai scritto. Quella la
 #    garantisce solo la regola «il numero si da' subito» (CLAUDE.md §0A-bis).
 node scripts/guardia-coerenza-documenti.mjs --staged
+
+# ── Aggiunta il 04/08/2026 (D139) ───────────────────────────────────────────────────────────────
+# Il salvataggio notturno gira da una COPIA in ~/Library, perché un lavoro automatico non puo'
+# leggere dentro ~/Downloads dov'e' il progetto. Quindi lo stesso script vive in due posti: se si
+# corregge l'originale e non si rilancia l'installatore, la copia continua a fare la versione
+# vecchia e a dichiararsi RIUSCITA. Costo misurato: ~0,03 s (su tre giri).
+# ⚠️ Ferma il commit SOLO sulla deriva (difetto tuo, rimediabile subito); lo stato della rete
+#    (fallita / vecchia / non installata) e' un AVVISO: non e' colpa del commit che stai facendo.
+node scripts/guardia-salvataggio-installato.mjs

@@ -59,7 +59,7 @@ I due ❌ trovati sono stati **portati come decisione** (P16 → **D134**, defer
 | 🔴 **Il ritrovamento più pesante** | **Il database di produzione non ha copie di sicurezza** — e non c'entra col contratto. → **P20** |
 | 🔴 **Il difetto contrattuale** | **UÀ non ha un contratto sulla protezione dei dati con i laboratori che la usano**, e il documento che quei laboratori consegnano ai dentisti **dice che ce l'ha** (`DpaTemplate.tsx:210`). Confermato da Francesco: «*no, oggi non firma niente*». → **P19** |
 | ✍️ **Cinque decisioni** | **D134** il contrasto in scuro si deferisce, col prezzo scritto · **D135** la firma resta l'accettazione tracciata, ma il testo si corregge prima · **D136** UÀ si dà le proprie condizioni col contratto sui dati dentro · **D137** sì a tutte e tre (momento · secondo passaggio · messa in sicurezza prima) · **D138** niente migrazione sul VPS |
-| 🛡️ **Una rete costruita e PROVATA** | `scripts/salvataggio-database.sh` + `scripts/salvataggio-archivio.ts`. **11 MB**, e il ripristino provato davvero |
+| 🛡️ **Una rete costruita e PROVATA** | `scripts/salvataggio-database.sh` + ~~scripts/salvataggio-archivio·ts~~ → 🔄 **sostituito il 04/08 da `scripts/salvataggio-archivio.mjs`** (D139): il vecchio importava `@supabase/supabase-js` e quindi girava **solo** dentro il progetto, mentre il salvataggio automatico deve girare da `~/Library`. Il nuovo non usa nessuna libreria, ed è `provato equivalente` confrontando le **impronte** dei 31 file scaricati, non il loro numero. **11 MB**, e il ripristino provato davvero |
 | **Salvataggi** | `b9111b3e` · `5ce2a904` · `e4516dc6` · `7c4a36cb` · `9044bc83` · `09d5b4f5` · `d7024c30` · `4bce6b35` · `7185498f` · `9e0da8a9` · `a05f3cfa` · `744025be` — **tutti pubblicati** |
 
 ---
