@@ -17,7 +17,7 @@
 ## Vincoli globali — valgono per OGNI task
 
 - 🛑 **MAI un git worktree.** Branch nel repo principale: `git checkout -b p7-registro-dpa-cancello-traccia`.
-- 🛑 **`read_only: true` SEMPRE** sulle letture della Management API. Le scritture sul database vivo sono **una decisione di Francesco** (Task 1 Step 6) — non perché manchi la password (`.env.local` ce l'ha), ma perché scrivere su un ambiente vero si chiede.
+- 🛑 **`read_only: true` SEMPRE** sulle letture della Management API. ✅ **Le scritture sul database vivo sono state AUTORIZZATE da Francesco (D151)** e valgono **solo** per la migration del Task 1 Step 5 e per le prove del Task 3, che finiscono tutte in `ROLLBACK`. **Nessun'altra scrittura**: fuori da quei due punti si torna a `read_only: true`.
 - 🛑 **Mai `git add -A`.** `git commit -F <file-messaggio>` col messaggio **fuori dal repo**.
 - 🛑 **Nessun `BEGIN;`/`COMMIT;` dentro la migration** — il runner Supabase la avvolge già. L'idempotenza è **per singola istruzione**.
 - **Ogni migration aggiorna ANCHE `supabase/schema.sql` a mano**, nello stesso commit. `provato:` `git show --name-only a7206183` → i due file insieme.
@@ -212,32 +212,33 @@ grep -c "BEGIN;\|COMMIT;" supabase/migrations/20260804120000_p7_dpa_cancello_tra
 
 Atteso: **0**.
 
-- [ ] **Step 5: le sonde — su transazione ANNULLATA, mai sulla migration registrata**
+- [ ] **Step 5: APPLICARE la migration — Management API, `read_only:false` (D151)**
 
-🛑 Provano le **assunzioni**, non il DDL del file. Girano con `read_only:false` e **finiscono in `ROLLBACK`**.
-⚠️ **Questo Step richiede già la decisione dello Step 6.** Se Francesco non ha ancora scelto, si salta a 6.
+🔄 **Questo Step era il numero 6, e prima di lui ce n'era un altro che è stato TOLTO.** Lo Step 5 originale prometteva «le sonde su transazione annullata» e conteneva un `CREATE TEMP TABLE` seguito da `SELECT 1`: **non provava niente**. 🔑 **Un passo che finge una verifica è peggio di un passo assente** — chi lo esegue lo spunta e crede di aver provato qualcosa (R-P1: si marca solo ciò che è provato). Le prove vere di questa migration sono **T1-T5, nel Task 3**, e girano sulla tabella **vera**.
 
-```sql
-BEGIN;
-  -- la regola nuova, provata su una copia usa-e-getta
-  CREATE TEMP TABLE prova_p7 (LIKE public.data_processing_agreements INCLUDING ALL);
-  -- (il valore che DEVE essere rifiutato arriva col Task 3, sulla tabella vera)
-  SELECT 1;
-ROLLBACK;
+**Chi la applica:** Claude, con la Management API. ✅ **Deciso da Francesco (D151)**, fra tre strade presentate col loro prezzo.
+🔑 **La decisione è esistita perché il divieto non era tecnico:** `.env.local` ha sempre avuto `SUPABASE_ACCESS_TOKEN` e `SUPABASE_DB_URL`. Un motivo falso è un motivo che smette di funzionare.
+✅ **Rischio misurato:** la banca dati ha **solo dati di prova** (3 laboratori finti) e ogni istruzione è **idempotente**, quindi una seconda passata non fa nulla.
+
+```bash
+# le tre istruzioni della migration, una chiamata per blocco, read_only:false
+# (il file è la fonte: si legge da lì, non si ricopia a mano)
 ```
 
-- [ ] **Step 6: APPLICARE la migration — è il punto in cui il lavoro aspetta Francesco**
-
-Il CI **non** applica le migration. Tre strade, si sceglie con lui:
-① incollare i tre riquadri nell'editor SQL del pannello Supabase · ② `npx supabase db push` · ③ Management API con `read_only:false`.
-
-🔑 **Ci si ferma perché scrivere su un ambiente vero è una decisione di Francesco** — **non** perché manchi la password: `.env.local` ha `SUPABASE_DB_URL` e `SUPABASE_ACCESS_TOKEN`. Un motivo sbagliato è un motivo che smette di funzionare.
-
-⚠️ Con la strada ① o ③ il **ledger** resta indietro di una riga:
+⚠️ **Il ledger resta indietro di una riga e va rimesso in pari:**
 
 ```bash
 npx supabase migration repair --status applied 20260804120000
 ```
+
+- [ ] **Step 6: verificare che il database sia DAVVERO cambiato — in sola lettura**
+
+```bash
+node scripts/tmp/p7-riverifica.mjs
+```
+
+Atteso, e sono tre cose diverse: `dpa_laboratorio` con `comando: "r"` (era `"*"`) · `data_processing_agreements` **presente** fra gli automatismi · la colonna `emesso_da` nell'elenco.
+🛑 **Questo Step NON prova il comportamento**, solo che il catalogo è cambiato. Il comportamento è il Task 3.
 
 - [ ] **Step 7: FASE 6b — rigenerare i tipi (solo dopo lo Step 6)**
 
