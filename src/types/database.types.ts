@@ -793,6 +793,7 @@ export type Database = {
           dentista_id: string | null
           documento_url: string | null
           emesso_at: string | null
+          emesso_da: string | null
           firmato_at: string | null
           firmato_da: string | null
           id: string
@@ -817,6 +818,7 @@ export type Database = {
           dentista_id?: string | null
           documento_url?: string | null
           emesso_at?: string | null
+          emesso_da?: string | null
           firmato_at?: string | null
           firmato_da?: string | null
           id?: string
@@ -841,6 +843,7 @@ export type Database = {
           dentista_id?: string | null
           documento_url?: string | null
           emesso_at?: string | null
+          emesso_da?: string | null
           firmato_at?: string | null
           firmato_da?: string | null
           id?: string
@@ -871,6 +874,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "partitario_clienti"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "data_processing_agreements_emesso_da_fkey"
+            columns: ["emesso_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "data_processing_agreements_laboratorio_id_fkey"

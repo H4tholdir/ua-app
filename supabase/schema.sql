@@ -2879,6 +2879,7 @@ CREATE TABLE data_processing_agreements (
   pdf_sha256        TEXT,                              -- impronta del PDF emesso
   payload_sha256    TEXT,                              -- impronta dei soli dati SOSTANZIALI (chiave del riuso)
   emesso_at         TIMESTAMPTZ,
+  emesso_da         UUID REFERENCES utenti(id),        -- chi ha PREMUTO (≠ firmato_da, che e' la controparte)
 
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -2933,7 +2934,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
 
 ALTER TABLE data_processing_agreements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "dpa_laboratorio" ON data_processing_agreements
-  USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
+  FOR SELECT USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
+-- Solo SELECT (P7, 04/08/2026) — una prova che la parte interessata puo'
+-- riscrivere non e' una prova. Stesso principio di sdi_receipts.
+CREATE TRIGGER _audit_data_processing_agreements
+  AFTER INSERT OR DELETE OR UPDATE ON data_processing_agreements
+  FOR EACH ROW EXECUTE FUNCTION _audit_trigger_fn();
 SELECT apply_updated_at_trigger('data_processing_agreements');
 
 
