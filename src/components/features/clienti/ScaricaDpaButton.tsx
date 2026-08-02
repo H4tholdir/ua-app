@@ -76,23 +76,28 @@ function esitoDa(stato: number, codice: unknown): Esito {
     return { titolo: 'Mancano i dati del tuo laboratorio', testo: 'Senza Partita IVA il contratto non si può emettere per nessuno studio.', riprova: false, vaiAImpostazioni: true }
   }
   if (codice === CODICE.clienteFiscali) {
-    // 🛑 BUCO DICHIARATO — riferito il 02/08/2026 dall'esecutore del Task 3,
-    //    NON tappato con un segnaposto. Lo stato ② approvato porta un'azione,
-    //    «Aggiungi il dato» (tabella §3 del documento di decisione; mockup
-    //    `2026-08-02-p17-scarico-dpa.html`, blocco `variante-b` del caso ②), e
-    //    qui quell'azione NON c'è.
-    //    ⚠️ Perché non la si aggiunge da qui: la decisione dice «la modifica è
-    //    già su questa scheda», e su questa scheda la modifica è un pannello
-    //    che vive dentro `ClienteModificaButton` con un `useState` suo
-    //    (`src/components/features/clienti/ClienteModificaButton.tsx:11`),
-    //    montato nell'intestazione della pagina. Non ha né una rotta né un
-    //    indirizzo: da un componente fratello non si apre. Il mockup scrive
-    //    `href="#"` perché è un mockup — `#` in produzione è un tasto morto,
-    //    ed è esattamente il segnaposto che «Built Right First Time» vieta.
-    //    ➡️ Aprirla richiede di sollevare lo stato del pannello nella pagina
-    //    (`page.tsx`, cioè il Task 4) oppure una scelta di Francesco su dove
-    //    mandare. Fuori dal mandato di questo task: si riferisce.
-    return { titolo: 'Manca un dato dello studio', testo: 'Per emettere il contratto serve la Partita IVA o il Codice Fiscale del dentista.', riprova: false, vaiAImpostazioni: false }
+    // 🛑 QUI NON CI VA NESSUN TASTO, ed è una decisione — non una dimenticanza.
+    //    Il disegno approvato ne prevedeva uno, «Aggiungi il dato», e in
+    //    produzione sarebbe stato MORTO: la modifica del dentista è un pannello
+    //    dentro `ClienteModificaButton` con uno `useState` suo
+    //    (`ClienteModificaButton.tsx:11`), montato nell'intestazione della
+    //    pagina — non ha nessun indirizzo, quindi da qui non si apre. L'`href="#"`
+    //    del mockup era linguaggio da mockup.
+    //    ➡️ **D165**: il tasto si toglie e il testo manda al «Modifica» che è già
+    //    in cima a questa stessa schermata, a due dita di distanza. La pagina di
+    //    modifica del dentista si costruirà a parte — voce **P30** della roadmap,
+    //    fuori dal perimetro di P17. Il debito ha un numero e una destinazione.
+    //    📌 Il rimando «in alto in questa schermata» è vero perché questo tasto
+    //    vive SOLO nella scheda dentista (`clienti/[id]/page.tsx`), e la frase
+    //    esce sia dalla prevenzione (`MANCANZA.cliente`, all'apertura) sia dal
+    //    422 vivo. Chi un giorno montasse questo componente altrove deve
+    //    riscrivere questa riga: è un rimando SPAZIALE, e si sposta con lui.
+    return {
+      titolo: 'Manca un dato dello studio',
+      testo: 'Per emettere il contratto serve la Partita IVA o il Codice Fiscale del dentista. Il dato si aggiunge dal tasto Modifica, in alto in questa schermata.',
+      riprova: false,
+      vaiAImpostazioni: false,
+    }
   }
   if (codice === CODICE.clienteAssente) {
     return { titolo: 'Questo studio non risulta più', testo: 'Potrebbe essere stato cancellato. Torna all\'elenco dei dentisti.', riprova: false, vaiAImpostazioni: false }

@@ -1237,8 +1237,76 @@ un'asserzione — cioè un rosso che non dice niente.
 
 **File:**
 - Modifica: `src/app/(app)/clienti/[id]/page.tsx` (import · `:165-186` · `:312-368`)
+- 🔄 **Modifica: `tests/unit/cliente-dpa-ultima-emissione.test.ts`** — **mancava dal piano, aggiunto il
+  02/08/2026 dall'esecutore del Task 4.** È l'**unica prova che RENDE questa pagina**, e il suo finto di
+  `from()` **lancia** su ogni tabella che non conosce: la lettura di `laboratori` la faceva esplodere per
+  intero. Stessa forma del difetto già pagato al Task 1 con `tests/unit/dpa-route.test.ts` — **due volte su
+  due, il file mancante è una PROVA** (R-P2/R-P6: il censimento non si ferma a `src/`).
+- 🔄 **Modifica: `tests/unit/ScaricaDpaButton.test.tsx`** — una prova nuova che blocca **D165**.
+- 🔄 **Modifica: `src/components/features/clienti/ScaricaDpaButton.tsx`** — **solo** il ramo
+  `CLIENTE_DATI_FISCALI`, per **D165** (v. sotto).
+- 🔄 **Modifica: `src/app/api/clienti/[id]/dpa/route.ts`** (`:39-44` e `:95-98`) — le due righe marchiate
+  `MISURATO` che questo task rende false. Il piano le assegnava al Task 4 **nella prosa** (Task 5, Passo 5)
+  e le **dimenticava nell'elenco dei file**: l'elenco non lo decide chi scrive.
 
 **Interfacce consumate:** `ScaricaDpaButton` (Task 3) · `BloccoAvviso` (Task 2) · `puoEmettereDpa` (Task 1).
+
+### 🔄 ESEGUITO il 02/08/2026 — sei correzioni al piano, e tre cose riferite e NON toccate
+
+**Corrette qui sotto (i blocchi dei Passi 1-3 sono già aggiornati: si copiano quelli):**
+
+1. 🛑 **Un guasto di lettura dei dati del laboratorio diventava un'ACCUSA.** Il piano scriveva
+   `const mancaLab = !labFiscale?.partita_iva && !labFiscale?.codice_fiscale` **scartando `error`**: se la
+   lettura fallisce, `labFiscale` è `null`, `mancaLab` diventa vero, e il titolare legge «*Mancano i dati
+   del tuo laboratorio*» con un collegamento a `/impostazioni` — **dove la Partita IVA è scritta**. 🔑 **È
+   il difetto stesso che P17 ripara sul registro, reintrodotto DIECI RIGHE PIÙ SOTTO**: «ho letto e non
+   c'è» e «non sono riuscito a leggere» sono fatti opposti (documento di design §1). ➡️ La prevenzione si
+   **arrende** sull'errore (il tasto resta vivo, decide la rotta — D159: «la ① non rende inutile la ②») e il
+   guasto va nei **log**, come per il registro (`page.tsx:182-184`). `provato:` sonda C sotto.
+2. 🛑 **«Non ancora emesso per questo studio.» nasceva su `--t2`, cioè col difetto P16 addosso.** È una riga
+   **NUOVA** (prima quel ramo rendeva `null`), quindi il vincolo globale 2 la vuole su `--t1` — e il
+   documento di design §4 lo dice per esteso: «*tutto ciò che P17 aggiunge sta su `--t1`*». ✅ La riga
+   «Ultima emissione» resta su `--t2`: **quella c'era già**, ed è P16 deferita (D134). I due rami sono
+   alternativi, quindi nessun lettore vede mai i due colori insieme.
+3. 🛑 **La riga di chiusura condizionata al ruolo era un'INVENZIONE del piano, e portava testo nuovo su
+   `--t3`.** Il piano rendeva «*Il contratto lo emette il titolare…*» a chi non emette. **Nessuna decisione
+   la chiede:** D160/§2② dice che il non-titolare «*vede tutto il resto*», e la riga ⑥ della tabella §3 dice
+   solo «*il riquadro resta, senza tasto*». ➡️ La riga resta **una sola e identica**, come era.
+4. 🛑 **La spiegazione del NOME DEL FILE non va persa** (era già riferita dall'esecutore del Task 3, e il
+   blocco del Passo 3 la cancellava e basta): riscritta **corta, come rimando**, perché il meccanismo vive
+   ora in `nomeDaHeader` e due copie della stessa spiegazione sono il modo in cui questo repo si ritrova
+   commenti scaduti.
+5. 📌 **D165 nel tasto.** Il ramo `CLIENTE_DATI_FISCALI` di `ScaricaDpaButton` portava ancora il commento
+   «*BUCO DICHIARATO … decide Francesco*»: **è deciso**. Niente tasto, e il testo manda al «Modifica» in
+   cima alla stessa schermata. `provato:` il pannello modifica **contiene davvero** i due campi
+   (`ClienteEditSheet.tsx:392,401`) — mandarci qualcuno non è un rimando a vuoto; e `ScaricaDpaButton` è
+   montato **solo** in `clienti/[id]/page.tsx` (`grep` → 1 occorrenza fuori dalle prove), quindi «*in alto in
+   questa schermata*» è vero in tutti e due i cammini (prevenzione e 422 vivo).
+6. 📌 **Le due righe `MISURATO` di `route.ts`.** Riscritte come **storia**, non come regola viva. 🔑 **E la
+   riga era falsa in un modo in più di quello riferito:** diceva «*nessun codice client dirama sullo
+   stato*» — adesso dirama, ma **su `status` e `codice`, mai su `error`**. Quindi il campo `error` non
+   arriva più a **nessun utente**: resta, ed è per **chi ripara** (log, pannello di rete).
+
+**Riferite e NON toccate (R-E2):**
+
+- 🛑 **Lo stato ⑦c approvato ha un'azione, «Ricarica», e questo codice non la rende** — già riferito
+  dall'esecutore del Task 3, e **qui c'è il fatto nuovo che cambia la forma della scelta:** da questa
+  pagina **non si può fare con un `onClick`**. È un componente server, e una funzione non attraversa il
+  confine RSC (non è serializzabile): servirebbe **un componente client nuovo** che chiami
+  `router.refresh()`, oppure un `href`. Né il mockup né D165 lo sapevano. ➡️ Resta al gate del Task 5.
+  📌 D165 ha **barrato ② e lasciato ⑦c intatto** nella tabella §3: è genuinamente **non deciso**, non
+  approvato in silenzio.
+- ⚠️ **L'esito del Task 0 dice «*il ruolo che la pagina legge viene dai CLAIM del token, non da una lettura
+  fresca del database*»: è impreciso.** `provato:` `lab-context.ts:34-46` → `getLabContext` fa una `select`
+  su `utenti` col client di servizio a ogni richiesta; **dai claim locali viene solo l'identità** (`sub`),
+  non il ruolo. ✅ **La conclusione non cambia** (il gate della pagina è cortesia visiva, quello della rotta
+  è la protezione, e i due non si sostituiscono), quindi il commento nel codice **dichiara la conclusione
+  senza ripetere il meccanismo sbagliato**. 🔑 Ma una premessa falsa in un documento manda la sessione dopo
+  a «riparare» la cosa giusta.
+- 📌 **L'autorevisione del piano dice «*in questo repo non ci sono prove di componenti server*»: è FALSO**, e
+  ha un costo — è la frase che ha fatto uscire il Task 4 **senza nessun passo di prova**.
+  `tests/unit/cliente-dpa-ultima-emissione.test.ts` **rende questo stesso componente server** e girava già
+  prima di P17. Il caso ⑦c non solo si può provare: **è provato**, insieme a tutto il resto.
 
 - [ ] **Passo 1 — La lettura in più, in PARALLELO**
 
@@ -1248,7 +1316,11 @@ un'asserzione — cioè un rosso che non dice niente.
 Sostituire il blocco `:165-174` con:
 
 ```ts
-  const [{ data: emissioneRaw, error: erroreRegistro }, { data: labFiscale }] = await Promise.all([
+  // 🔄 `error: erroreLabFiscale` NON si scarta (correzione 1 del Task 4).
+  const [
+    { data: emissioneRaw, error: erroreRegistro },
+    { data: labFiscale, error: erroreLabFiscale },
+  ] = await Promise.all([
     svc
       .from('data_processing_agreements')
       .select('numero_dpa, emesso_at')
@@ -1279,7 +1351,10 @@ Dopo il blocco della data (`:196-200`), aggiungere:
   // 🛑 `&&` e non `||`, IDENTICO a validateDpaData (generate-dpa.ts:80,83):
   //    ne basta UNO dei due perché l'emissione proceda. Con `||` il tasto si
   //    spegnerebbe su clienti che emetterebbero benissimo.
-  const mancaLab = !labFiscale?.partita_iva && !labFiscale?.codice_fiscale
+  // 🔄 CORREZIONE 1 del Task 4 — `!erroreLabFiscale` in testa: senza, un guasto
+  //    di LETTURA diventa l'accusa «ti manca la Partita IVA», e manda il
+  //    titolare in /impostazioni a cercare un dato che c'è già.
+  const mancaLab = !erroreLabFiscale && !labFiscale?.partita_iva && !labFiscale?.codice_fiscale
   const mancaCliente = !c.partita_iva && !c.codice_fiscale
   const mancanzaDpa: 'laboratorio' | 'cliente' | null = mancaLab ? 'laboratorio' : mancaCliente ? 'cliente' : null
 
@@ -1328,15 +1403,21 @@ Sostituire il corpo del riquadro «Privacy — GDPR» (`:313-368`):
                 Ultima emissione: <strong>{ultimaEmissione.numero_dpa}</strong> — {dataUltimaEmissione}
               </p>
             ) : (
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t2)', marginTop: '6px' }}>
+              // 🔄 CORREZIONE 2 del Task 4 — `--t1`, non `--t2`: questa riga NON
+              //    c'era, e un testo NUOVO non nasce col difetto deferito (P16).
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t1, #1C1916)', marginTop: '6px' }}>
                 Non ancora emesso per questo studio.
               </p>
             )}
 
+            {/* 🔄 CORREZIONE 3 del Task 4 — la riga di chiusura resta UNA E
+                IDENTICA, come era. Il ramo condizionato al ruolo che stava qui
+                era un'invenzione del piano (nessuna decisione lo chiede: D160 e
+                la riga ⑥ della tabella §3 dicono solo «il riquadro resta, senza
+                tasto») e per giunta portava testo NUOVO su `--t3`. */}
             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3)', marginTop: '6px' }}>
-              {puoEmettere
-                ? 'Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio. Ogni versione emessa resta conservata da UÀ.'
-                : 'Il contratto lo emette il titolare. Ogni versione emessa resta conservata da UÀ.'}
+              Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio.
+              Ogni versione emessa resta conservata da UÀ.
             </p>
           </div>
         </SectionCard>
@@ -1344,6 +1425,47 @@ Sostituire il corpo del riquadro «Privacy — GDPR» (`:313-368`):
 
 ⚠️ **`--t2`/`--t3` restano SOLO sulle righe che c'erano già** (P16, deferita da D134): non si aggiunge testo
 nuovo su quei token, e non si «corregge» qui ciò che è stato deferito.
+🛑 **E il commento «NIENTE attributo `download`» (`:318-328`) NON si cancella e basta:** si riscrive **corto,
+come rimando** a `nomeDaHeader`, dove il meccanismo vive adesso (correzione 4).
+
+- [ ] 🆕 **Passo 3-bis — LE PROVE (passo MANCANTE dal piano, aggiunto il 02/08/2026)**
+
+> Il piano andava dal codice alla verifica **senza un solo passo di prova**, e la ragione è scritta
+> nell'autorevisione: «*in questo repo non ci sono prove di componenti server*». **È falso**, e
+> `tests/unit/cliente-dpa-ultima-emissione.test.ts` lo era già prima di P17.
+
+Prima si scrivono le prove, poi si tocca la pagina (R-P4). 🔄 **MISURATO: `Tests 16 failed | 8 passed (24)`**
+— rosso vero, non «modulo non trovato». ⚠️ **Le 8 che passano sul codice vecchio sono quasi tutte prove a
+forma di ASSENZA** (`tecnico NON vede il tasto` passa perché il tasto non esiste ancora per nessuno): è la
+stessa debolezza già nominata ai Task 1 e 3, e per questo il conto si scrive.
+
+Il finto `from()` di quel file **lancia** su ogni tabella che non conosce (`Mock scheda cliente: tabella
+inattesa «laboratori»`): va insegnata la tabella nuova, o il file esplode per intero.
+
+🔑 **Le prove che valgono davvero, e il valore che DEVE essere rifiutato (R-P1):**
+un cliente (o un laboratorio) con **UNO SOLO** dei due dati fiscali → il tasto è **ATTIVO**. È il caso che
+smaschera un `||`, e il caso comune («ha entrambi») resta verde con tutti e due gli operatori.
+**Tre sonde sull'implementazione VERA, poi rimessa a posto:**
+
+| sonda | che cosa si è rotto | esito |
+|---|---|---|
+| **A** | `mancaCliente` da `&&` a `\|\|` | `Tests 6 failed \| 18 passed` — `expected 'cliente' to be null` |
+| **B** | `mancaLab` da `&&` a `\|\|` | `Tests 7 failed \| 17 passed` — `expected 'laboratorio' to be null` · `expected 'laboratorio' to be 'cliente'` |
+| **C** | tolta la guardia `!erroreLabFiscale` (**cioè il codice del piano**) | `Tests 1 failed \| 23 passed` — `expected 'laboratorio' to be null` |
+
+**A2 — la lettura in più NON rallenta: ✅ VERO, e adesso è MISURATA** (era «da provare nel suo task»).
+`provato:` sonda usa-e-getta contro il database vero, 12 giri, mediane:
+
+```
+solo registro (il PRIMA)  : 78,2 ms
+in fila                   : 161,5 ms   → costo aggiunto  83,3 ms
+in parallelo (Promise.all):  83,2 ms   → costo aggiunto   4,9 ms
+```
+
+➡️ **In fila la pagina sarebbe RADDOPPIATA.** In parallelo costa **~5 ms**, cioè il rumore.
+📌 E la parallelità ha anche una prova che non ha bisogno del database: nel file di prova la lettura del
+registro risolve solo dopo un giro di macro-task, e `laboratori` risulta **già chiesta** prima che il
+registro risponda — se fossero in fila, arriverebbe dopo.
 
 - [ ] **Passo 4 — Verifica**
 
@@ -1352,6 +1474,23 @@ npx tsc --noEmit && npx vitest run && npx next build
 ```
 **Atteso:** 0 · tutte verdi · uscita 0. ⚠️ `tsc` **non** valida la firma degli handler di rotta: i tre comandi
 sono tre, e nessuno sostituisce l'altro.
+
+🔄 **OSSERVATO il 02/08/2026:**
+
+```
+npx tsc --noEmit   → uscita 0, nessun errore
+npx vitest run     → Test Files 378 passed | 3 skipped (381)
+                     Tests 4434 passed | 19 skipped (4453)
+npx next build     → uscita 0 · ✓ Compiled successfully in 7.6s
+                     ƒ /clienti/[id]  (dinamica, come prima)
+```
+
+🔑 **E qui `next build` conta DAVVERO, per la prima volta in questo piano:** ai Task 2 e 3 non provava nulla
+perché nessuna pagina importava i file nuovi. Adesso `/clienti/[id]` li importa tutti e tre, quindi il
+confine server/client (un componente server che monta due componenti `'use client'`) è finalmente
+attraversato in compilazione.
+📌 **Il rumore `Not implemented: navigation to another Document` c'è ancora, ed è 1 riga:** preesistente e
+già censito dall'esecutore del Task 3, non è di P17.
 
 - [ ] **Passo 5 — Salvare**
 
@@ -1438,5 +1577,12 @@ FASE 6b · FASE 9b → Task 5.
 **Segnaposto:** nessuno — ogni passo porta il codice o il comando vero.
 **Coerenza dei nomi:** `ScaricaDpaButton`, `BloccoAvviso`, `puoEmettereDpa`, `RUOLI_EMISSIONE_DPA`,
 `CodiceDatiDpa`, `mancanza`, `esitoDa`, `nomeDaHeader` — usati identici in tutti i task.
-**Buco noto e dichiarato:** il caso ⑦c (registro illeggibile) **non ha un test unitario** — è un componente
-server, e in questo repo non ci sono prove di componenti server. Si verifica **a mano** nel Task 5, passo 1.
+~~**Buco noto e dichiarato:** il caso ⑦c (registro illeggibile) **non ha un test unitario** — è un componente
+server, e in questo repo non ci sono prove di componenti server. Si verifica **a mano** nel Task 5, passo 1.~~
+🔄 **RITIRATA il 02/08/2026 dall'esecutore del Task 4: era FALSA, e non era gratis.**
+`tests/unit/cliente-dpa-ultima-emissione.test.ts` **rende questo stesso componente server**, girava già prima
+di P17, e provava **già** il ramo del registro illeggibile. 🔑 **Il costo:** creduta vera, quella frase ha
+fatto uscire il Task 4 **senza nessun passo di prova** e ha tenuto quel file fuori dall'elenco dei file —
+cioè lo stesso difetto di censimento del Task 1, con lo stesso identificatore mancante: **una prova**.
+⚠️ Una frase che dichiara un buco è **una scusa per non guardare**: si verifica come qualunque altra
+affermazione (`grep -rln "app/(app)" tests/` bastava).

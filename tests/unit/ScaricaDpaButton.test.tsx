@@ -42,6 +42,20 @@ describe('ScaricaDpaButton', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/studio/i)
   })
 
+  // 🛑 D165 — il caso del CLIENTE non ha nessun tasto, e il testo manda al
+  //    «Modifica» che è già in cima alla scheda. Il disegno approvato ne
+  //    prevedeva uno («Aggiungi il dato») che in produzione sarebbe stato MORTO:
+  //    il pannello di modifica del dentista non ha indirizzo (P30). Questa prova
+  //    esiste perché il tasto non torni per distrazione, disegno alla mano.
+  it('D165 — se mancano i dati del CLIENTE NON c\'è nessun tasto, e il testo manda al «Modifica»', () => {
+    render(<ScaricaDpaButton clienteId="cli-1" mancanza="cliente" />)
+    const avviso = screen.getByRole('alert')
+    expect(avviso).toHaveTextContent(/Modifica/)
+    // Nessun elemento premibile DENTRO l'avviso: né link né tasto d'azione.
+    expect(avviso.querySelector('a')).toBeNull()
+    expect(avviso.querySelector('button')).toBeNull()
+  })
+
   it('se mancano i dati del LABORATORIO l\'azione porta alle impostazioni', () => {
     render(<ScaricaDpaButton clienteId="cli-1" mancanza="laboratorio" />)
     expect(screen.getByRole('link', { name: /Completa i dati/i })).toHaveAttribute('href', '/impostazioni')
