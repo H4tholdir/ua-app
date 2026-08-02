@@ -51,34 +51,38 @@ tutti di prova**: nessuno da rincorrere.
 clausole che vogliono approvazione specifica) · **contenuto** e ciò che UÀ **NON deve promettere**
 (monito: **D126**) · **dove si attacca** nel prodotto (onboarding, Stripe, cambio di versione).
 
-🔴 **PANEL D136 — DUE REFERTI SU TRE ARRIVATI, e ognuno CORREGGE la decisione. Il terzo (contenuto) è
-ancora in corso; il referto completo si scrive quando arriva.**
+🔴 **PANEL D136 COMPLETO — tre referti su tre, tutti REGGE CON CONDIZIONI.** Referto:
+`docs/roadmap/2026-08-04-panel-d136-referto.md`. **Il meccanismo regge, il MOMENTO no.**
 
-**① Il MOMENTO è sbagliato** (verificato da me nel codice): un laboratorio nasce `stato:'trial'`
-(`admin/labs/route.ts:86`) e **in prova tutte le scritture passano** (`lab-guard.ts:55-58`) → fra
-l'ingresso e l'abbonamento c'è una finestra in cui **entrano dati veri di pazienti senza nessun
-contratto**. Il momento giusto è **il primo accesso**, dentro la transazione atomica dell'invito
-(`20260525000002_invite_atomic.sql:20-57`).
+🔴 **PRIMA DI TUTTO, e non c'entra col contratto: IL DATABASE DI PRODUZIONE NON HA COPIE DI SICUREZZA.**
+`provato:` Management API → `pitr_enabled:false`, **`backups:[]`**. Oggi il danno sarebbe zero (solo dati
+di prova), **ma è il rischio che diventa principale il giorno del primo laboratorio vero**, e **si compra,
+non si scrive**. → **P20**.
 
-**② La macchina dell'ondata 1 NON si riusa** (verificato sul catalogo vivo): il vincolo
-`dpa_emissione_coerente` pretende `dentista_id IS NOT NULL AND tipo_controparte='dentista'` per il ramo
-«emissione completa» → una riga `sub_responsabile` **non può portare numero, percorso e impronte**; e
-l'indice `dpa_emissione_viva_unica` è su `(laboratorio_id, dentista_id, payload_sha256,
-template_versione)` → col dentista NULL **la deduplicazione smette di funzionare in silenzio**.
-➡️ **Tabella nuova, in sola aggiunta. Si copia il modo di fare, non il codice.**
+**① Il MOMENTO è sbagliato** (verificato nel codice): laboratorio nasce `'trial'`
+(`admin/labs/route.ts:86`), **in prova tutte le scritture passano** (`lab-guard.ts:55-58`) → entrano dati
+veri di pazienti **senza contratto**. Giusto: **il primo accesso**, dentro `accept_invite_atomic`.
 
-**③ 🔴 CASSAZIONE 20945/2026 — il ritrovamento più pesante, ed è POSTERIORE alla mia conoscenza
-(20 giugno 2026).** Sez. III: in un contratto **fra professionisti** concluso online, **la sola spunta
-della casella NON basta** ad approvare una clausola vessatoria — serve una **firma elettronica anche
-semplice** (la Corte fa l'esempio del **codice usa-e-getta per SMS o email**). ⚠️ **Verifica dichiarata:**
-il PDF della Corte **non si è aperto** (errore di certificato di italgiure); riscontro **verbatim** su
-pubblicazione giuridica indipendente + 9 fonti fra cui Il Sole 24 Ore. 🔑 **L'ASIMMETRIA che vale il
-panel:** l'art. 1341 co. 2 colpisce **solo** tetto di responsabilità, sospensione, rinnovo tacito e foro
-— cioè **le difese di UÀ**. **Il contratto sui dati NON è vessatorio e SOPRAVVIVE.** Quindi in causa UÀ
-resterebbe **legata a tutti i doveri e priva di tutte le difese**, con dati sanitari di mezzo, **senza
-tetto**. ➡️ Struttura giusta: condizioni + DPA con un clic; **le clausole che proteggono UÀ in un secondo
-passaggio separato con codice usa-e-getta**. 🛑 **E «lo fanno Supabase/Vercel/Resend» NON vale**: non
-sono società italiane, l'art. 1341 lì non esiste.
+**② CASSAZIONE 20945/2026** (20 giugno, **posteriore alla mia conoscenza**): fra professionisti, online,
+**la sola spunta NON basta** per una clausola vessatoria — serve **firma elettronica anche semplice**
+(esempio della Corte: **codice usa-e-getta per SMS/email**). ⚠️ PDF della Corte **non apribile**; riscontro
+**verbatim** su fonte indipendente + 9 conferme. 🔑 **ASIMMETRIA:** l'art. 1341 co. 2 colpisce **solo le
+difese di UÀ** (tetto, sospensione, rinnovo, foro); **il DPA non è vessatorio e sopravvive** → in causa UÀ
+resta **legata a ogni dovere e priva di ogni difesa**, **senza tetto**, con dati sanitari di mezzo.
+➡️ condizioni + DPA con un clic; **le difese di UÀ in un secondo passaggio separato**.
+
+**③ La macchina dell'ondata 1 NON si riusa** (catalogo vivo): il vincolo pretende
+`dentista_id NOT NULL AND tipo_controparte='dentista'`; l'indice anti-doppione è **sul dentista** → col
+dentista NULL **la deduplicazione muore in silenzio**. **Tabella nuova, in sola aggiunta.**
+
+**④ Due difetti nuovi, misurati:** **P21** cancellare un laboratorio **fabbrica una copia di ciò che
+cancella** (`provato:` 15 righe orfane di 5 laboratori morti; **82 su 82** cancellazioni di lavori portano
+**il nome del paziente**) · **P22** UÀ entra nei dati di un cliente **con l'identità del cliente**, senza
+traccia.
+
+🔴 **DA DECIDERE (referto §7):** ① si sposta il momento al primo accesso? ② si accetta il secondo
+passaggio con codice usa-e-getta? ③ **L1 copie di sicurezza · L2 cancellazione vera · L3 tracciare gli
+accessi di UÀ** vanno **prima** della prima accettazione? 🛑 **L1 va comunque e subito.**
 
 🔴 **LA VOCE È P19.** Francesco: «*no, oggi non firma niente*».
 **UÀ non ha un contratto sulla protezione dei dati con i laboratori che la usano**, e il documento che
