@@ -51,8 +51,16 @@ tu» per un guasto di UÀ) e **cinque** smettono di mandare `e.message` a chi sc
 strada**. 🛑 Il DPA **non** si allinea: la sua ragione è scritta e verificata. **15 prove**; `provato:` prima
 erano **9 su 15 rosse**. **D175 · D175-bis.**
 
+✅ **P11 FATTA** (era «solo se resta tempo vero») — ramo `p11-il-messaggio-del-database`, col piano scritto
+prima. Il testo del database non esce più da `generaProgressivo`: corretto **alla fonte**, perché sei `try`
+sono sei occasioni di dimenticarne uno **e il settimo chiamante nascerebbe scoperto**. Il dettaglio non è
+perso: **log + `cause`** (mai usata prima in questo progetto). 🔑 **Il fatto: una prova esistente
+PROTEGGEVA il difetto** — chiedeva `/ddc.*boom/`, cioè pretendeva che il testo del database fosse nel
+messaggio, ed era verde. Riscritta con la ragione accanto. **D176 · D176-bis.**
+
+📌 FASE 7 su P11: `tsc` **0** · `vitest` **4488 passate | 19 saltate** (384 file) · `next build` **0**.
 📌 FASE 7 su P13: `tsc` **0** · `vitest` **4481 passate | 19 saltate** (383 file) · `next build` **0**.
 📌 FASE 7 su P18: `tsc` **0** · `vitest` **4466 passate | 19 saltate** (382 file) · `next build` **0**.
-⚠️ **I quattro rami sono IMPILATI** (main → p15 → p9 → p23 → p18 → p30 → p13), non indipendenti: unire l'ultimo
+⚠️ **I quattro rami sono IMPILATI** (main → p15 → p9 → p23 → p18 → p30 → p13 → p11), non indipendenti: unire l'ultimo
 porta dentro tutti. Scostamento dal mandato, dichiarato nell'handoff.
-📎 **175** decisioni in **64** tornate; la prossima è **D176**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
+📎 **176** decisioni in **65** tornate; la prossima è **D177**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.

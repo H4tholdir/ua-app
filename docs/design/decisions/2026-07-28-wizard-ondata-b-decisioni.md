@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantaquattresima tornata (D175: P13 — le rotte dei documenti si mettono d'accordo su chi ha sbagliato)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantacinquesima tornata (D176: P11 — il messaggio del database smette di uscire, e una prova che proteggeva il difetto)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettantacinque decisioni in sessantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettantasei decisioni in sessantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1238,3 +1238,30 @@ assunzioni su cui poggiava tutto il piano, ed erano scritte come **da provare**,
 prova che guarda solo il numero `500` **passerebbe lasciando in piedi il difetto peggiore**. Quelle che
 contano verificano che il testo interno **non compaia nel corpo**. `provato:` prima della correzione, **9
 su 15 rosse** — 4 sullo stato e 5 sul messaggio.
+
+---
+
+### Sessantacinquesima tornata — D176: il messaggio del database, e una prova che proteggeva il difetto
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** Su ramo, non pubblicata (**D169**). Piano
+> scritto prima: `scripts/tmp/PIANO-P11.md`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D176** | 🔇 **IL TESTO DEL DATABASE NON ESCE PIÙ DA `generaProgressivo` — e si corregge ALLA FONTE, non nei sei chiamanti** | scelta **mia** fra due strade: ① un `try` in ognuno dei sei punti che chiamano · ② la funzione condivisa che smette di far uscire il testo. **Scelta la ②** | 🔑 **Perché non la ①:** sei `try` sono **sei occasioni di dimenticarne uno**, e soprattutto **il settimo chiamante nascerebbe scoperto**. È la stessa forma di ragionamento di **D171** (il fuso in funzioni condivise invece che ripetuto in dodici punti) e di **D170-bis** (la guardia invece della sola riparazione): *si chiude la strada, non le singole uscite*. 📌 Il `try` che il DPA ha già **resta**: ha una ragione sua scritta (distingue «numero non assegnato» dagli altri guasti) e vale anche adesso |
+| **D176-bis** | 🔊 **MA L'ERRORE NON SI RENDE MUTO: il dettaglio va nel LOG e in `cause`** | stessa origine. Non è un abbellimento: è la metà che impedisce alla correzione di essere un peggioramento | ⚠️ **Un errore senza dettaglio lascia chi ripara a mani vuote** — che è un altro modo di sbagliare, solo più silenzioso. Il dettaglio finisce in **due** posti dove l'utente non arriva mai: il **log del server** (il primo che si guarda) e **`cause`**, agganciata all'errore per chi lo raccoglie più in alto. ⚠️ `provato:` `{ cause: … }` **non era mai stato usato in questo progetto** — è un modo nuovo, e sta scritto nel file perché il prossimo lo riconosca invece di reinventarlo. 📌 Il **tipo** resta nel messaggio pubblico: dice *quale documento* è rimasto senza numero e non svela niente della struttura interna |
+
+🔑 **IL FATTO CHE VALE PIÙ DELLA CORREZIONE — una prova esistente PROTEGGEVA il difetto.**
+`tests/unit/progressivi.test.ts` conteneva: `rejects.toThrow(/ddc.*boom/)` — cioè **pretendeva che il testo
+del database fosse dentro il messaggio dell'errore**. Era **verde**, ed era verde su un comportamento
+sbagliato.
+⚠️ **La conseguenza è più sottile del difetto:** finché quella riga stava lì, correggere il codice avrebbe
+fatto diventare **rossa** la suite — e la correzione giusta sarebbe sembrata **la rottura**. Una prova può
+essere il posto in cui un difetto si mette al sicuro.
+🔑 **Come si riconosce una prova così:** afferma che un dato *interno* compare in un canale *esterno*. Non
+descrive un comportamento voluto, descrive **quello che il codice faceva** — ed è la differenza fra una
+prova e una fotografia. È stata riscritta, con la ragione accanto: il **tipo** sì, il testo del database no.
+
+📌 **E il raggio si era già ristretto poche ore prima, nella stessa notte:** con **D175** (P13) cinque rotte
+hanno smesso di rimandare `e.message` a chi scarica. Le due voci erano catalogate separate e sono **la
+stessa famiglia di difetto** vista da due punti della stessa strada: una alla sorgente, l'altra allo sbocco.

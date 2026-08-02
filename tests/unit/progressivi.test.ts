@@ -14,8 +14,16 @@ describe('generaProgressivo — anno esplicito (fix date fiscali)', () => {
       p_laboratorio_id: 'lab-1', p_tipo: 'fattura', p_anno: 2027,
     })
   })
-  it('errore RPC → throw con tipo nel messaggio', async () => {
+  // 🔄 RISCRITTA il 03/08/2026 (P11, D176) — e la vecchia va raccontata, perché
+  // PROTEGGEVA IL DIFETTO. Chiedeva `/ddc.*boom/`: cioè pretendeva che il testo
+  // del database (`boom`, al posto della risposta vera di PostgREST, che
+  // contiene l'INSERT e i nomi delle funzioni) FOSSE dentro il messaggio
+  // dell'errore. Passava, ed era verde su un comportamento sbagliato.
+  // 🔑 Il tipo resta — dice QUALE documento è rimasto senza numero — il testo del
+  //    database no: quello va nel log e in `cause`.
+  it('errore RPC → il tipo resta nel messaggio, il testo del database NO', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } })
-    await expect(generaProgressivo({ rpc } as never, 'lab-1', 'ddc', 2026)).rejects.toThrow(/ddc.*boom/)
+    await expect(generaProgressivo({ rpc } as never, 'lab-1', 'ddc', 2026)).rejects.toThrow(/ddc/)
+    await expect(generaProgressivo({ rpc } as never, 'lab-1', 'ddc', 2026)).rejects.not.toThrow(/boom/)
   })
 })
