@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla cinquantasettesima tornata (D167: i tasti di rimedio del riquadro d'avviso passano da 34 a 40 pixel, al gate estetico L2)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla cinquantottesima tornata (D168-D169: la notte di lavoro autonomo — difetti senza scelte + P30 fino alla soglia dell'approvazione; e niente si pubblica di notte)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosessantasette decisioni in cinquantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosessantanove decisioni in cinquantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1044,3 +1044,12 @@ raccoglie una per una, spariscono*». Le quattro sono state raccolte tutte: **du
 comandi sotto contrasto in scuro · l'etichetta che cambia dentro `role="alert"`), **una deferita col numero**
 (il fondo del blocco «guasto» in scuro), **una portata a Francesco** — questa. Referto:
 `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`.
+
+---
+
+### Cinquantottesima tornata — D168-D169: la notte di lavoro autonomo, e il confine che non si sposta
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D168** | 🌙 **SI LAVORA DA SOLI TUTTA LA NOTTE, FINO ALLE 07:00 — e il lavoro è DOPPIO: i difetti che non chiedono una scelta di Francesco, poi P30 portata fino alla SOGLIA della sua approvazione** | «*io devo andare a dormire, ma domattina mi sveglio presto, vorrei che però tu continuassi lo sviluppo da solo per tutta la notte … fino alle 7.00 e poi raccogli tutte le domande che di solito mi fai*» → fra tre strade (solo difetti · solo P30 · le due insieme) → **«difetti + P30 pronta da approvare»** | 🔑 **Perché il lavoro è doppio e non «si va avanti nella roadmap»:** la voce successiva è **P30**, una **pagina nuova**, e §0B impone disegni → scatti → **approvazione di Francesco** *prima* del React. Preso alla lettera, «avanza nella roadmap» si sarebbe fermato al cancello entro un'ora. ➡️ **Quindi:** ① i difetti di **solo codice**, senza nessuna scelta d'aspetto (il fuso orario dei PDF · le reti di prova che puntano a file inesistenti · il salvataggio che si ferma a 1000 senza dirlo · il messaggio grezzo del database che arriva all'utente) — ognuno con le sue prove e il suo salvataggio; ② **P30 fino ai mockup e agli scatti**, con **più varianti**, così alle 07:00 c'è **da approvare, non da aspettare**. ⚠️ **E il gate non è aggirato: è ANTICIPATO** — la notte produce esattamente ciò che sta *prima* della sua firma. 🛑 **Il Mac non deve addormentarsi**, o la notte finisce lì: è **lo stesso inciampo di D139** (il salvataggio programmato che da `launchd` non partiva), e la contromisura è dichiarata, non sperata |
+| **D169** | 🛑 **NIENTE VIENE PUBBLICATO DI NOTTE — nemmeno una correzione già verde** | domanda posta con l'alternativa vera accanto («*se un difetto passa tutti e tre i controlli e non tocca nessuna schermata, lo unisco e lo pubblico senza svegliarti*») → **«non pubblicare nulla»** | ➡️ Tutto resta su **rami separati**, provato e verde, col riassunto di che cosa cambia; **unire e pubblicare resta una firma di Francesco**. 🔑 **Non è prudenza generica: è la regola che ha appena lavorato.** Il 02/08 il gate estetico ha trovato **tre difetti** su un codice già verde e già dichiarato finito — fra cui un bordo invisibile in modo scuro su **quattro** comandi. ⚠️ **«Passa i tre controlli» e «è giusto» sono due fatti diversi**, ed è la stessa distinzione di **D156** («in produzione» ≠ «qualcuno lo usa») e di **D155**: una premessa che sembra ovvia e non è mai stata confrontata con un fatto |

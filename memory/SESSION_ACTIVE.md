@@ -1,30 +1,25 @@
-# Sessione attiva — P17 è finita, il cancello ha scattato prima del merge, ed è IN PRODUZIONE
+# Sessione attiva — P17 è in produzione, e comincia una notte di lavoro autonomo
 
-🚪 **PUNTO DI RIPRESA: `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`** — il referto
-del gate, che dice che cosa è stato guardato e che cosa resta deferito.
-🚀 **PUBBLICATA il 02/08/2026** su autorizzazione di Francesco: `main` = **`bea6fe53`**, merge di **19**
-salvataggi, **CI verde · CD verde**, albero pulito, **0 da pubblicare**.
-✅ **Verificata su `uachelab.com`**, non solo in locale: 1 bottone e **0** collegamenti verso `/dpa` nella
-card · `--brd-cmd` = `#6b5c51` chiaro / `#928778` scuro · documento scaricato **dalla produzione** →
-**`DPA-2026-0001.pdf`** integro · **nessun numero bruciato** · nessun errore di console.
-⚠️ **L'handoff `docs/roadmap/2026-08-02-sera-p17-codice-completo-handoff.md` è SUPERATO nella sua §0**
-(dice che il gate non è stato fatto): porta in testa la riga che lo corregge.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-tarda-notte-p17-in-produzione-handoff.md`** — per intero.
+📅 **TERZO handoff del 2 agosto**, dopo `-p7-...` e `-sera-p17-...`. Si chiama «tarda-notte» perché ordinato
+per nome deve venire **dopo** gli altri due (`p` < `s` < `t`): «notte» sarebbe finito primo.
 
-✅ **Collaudo dal vivo:** scaricato **davvero**, e il nome che arriva è **`DPA-2026-0001.pdf`** **sui tre motori**
-(Chromium · Firefox · **WebKit**, cioè l'iPhone), PDF integro — il ripiego `contratto-dpa.pdf` NON compare. `provato:` **nessun numero bruciato** (registro prima e dopo: 3 → 3).
-Tasto inerte davvero inerte · blocco ② senza tasti (D165) · un **tecnico** vero non vede il tasto e vede
-il resto (D158 · D160).
+🚀 **P17 È IN PRODUZIONE.** `main` = **`fdf90dac`**, CI e CD verdi due volte. Verificata su `uachelab.com`:
+1 bottone e **0** collegamenti verso `/dpa` nella card · `--brd-cmd` = `#6b5c51` chiaro / `#928778` scuro ·
+documento scaricato **dalla produzione** → **`DPA-2026-0001.pdf`** integro · **nessun numero bruciato**.
+🔑 Il nome del file è provato **sui TRE motori** (Chromium · Firefox · **WebKit**).
 
-✅ **FASE 9b percorsa:** 8 stati × 3 formati × 2 temi, tre giri (`prima` · `dopo` · `finale`).
-Referto `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`, scatti in
-`docs/design/screenshots/2026-08-02-p17/`.
+🎯 **Il gate estetico ha trovato 3 difetti su un codice già verde e già dichiarato finito**, e le **quattro**
+cose rimandate sono state raccolte tutte: bordo dei comandi in scuro (erano **quattro** comandi, non tre) →
+corretto col token nuovo `--brd-cmd`, **chiaro invariato** · altezza 34 → **40** (**D167**) · fondo scuro del
+«guasto» **deferito col numero** · «Ricarico…» in `role="alert"` → `aria-atomic="false"`.
 
-🔑 **Le QUATTRO cose rimandate al gate raccolte tutte:** bordo dei comandi in scuro (1,71-2,24:1 → 3,53-4,61:1,
-token nuovo `--brd-cmd`, **chiaro invariato**; ed erano **quattro** comandi, non tre) · altezza 34 → **40**
-(**D167**) · fondo scuro del «guasto» **deferito col numero** · «Ricarico…» in `role="alert"` corretto con
-`aria-atomic="false"`.
+🌙 **STANOTTE SI LAVORA DA SOLI FINO ALLE 07:00 (D168):** ① i difetti che non chiedono una scelta di Francesco
+— **P15** (le reti di prova che puntano nel vuoto, per prima) · **P9** (il fuso orario dei PDF) · **P23** ·
+**P18** — ② poi **P30 fino ai mockup e agli scatti**, e ci si ferma lì: la firma di Francesco sta in mezzo.
+🛑 **D169: niente si pubblica di notte** — nemmeno il salvataggio locale del verbale, già fermo apposta.
+🛑 Niente scritture sul database. Se serve una decisione: **si scrive la domanda e si passa alla voce dopo**.
+🛌 Il Mac è tenuto sveglio da un `caffeinate` a mano: **va spento a fine notte** (`pkill -x caffeinate`).
 
-📌 `tsc` **0** · `vitest` **4439 | 19** (379 file) · `next build` **0** · guardia **verde**.
-📎 **167** decisioni in **57** tornate; la prossima è **D168**.
-
-⏭️ **Prossima cosa: P30** (la pagina di modifica del dentista, **D165**) **o il resto della FASE 1.**
+📌 `tsc` **0** · `vitest` **4439 | 19** (379 file) · `next build` **0** · due guardie verdi.
+📎 **169** decisioni in **58** tornate; la prossima è **D170**.
