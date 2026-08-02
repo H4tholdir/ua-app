@@ -1,21 +1,29 @@
-# Sessione attiva — FASE 1: si lavora a P17 (lo scarico che fallisce)
+# Sessione attiva — P17: design approvato, spec scritta, si aspetta il piano
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-p7-in-produzione-e-la-deriva-delle-date-handoff.md`** — leggilo
-per intero, **ma la sua §0 ① è superata da D156** (vedi sotto). 📅 **D155 vale:** la data si legge da `date`
-(`CLAUDE.md` §0F); i file `2026-08-03-*` sono dell'1 agosto, i `2026-08-04-*` del 2.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/specs/2026-08-02-p17-scarico-dpa-design.md`** (spec, 🟡 da rileggere)
++ `docs/design/decisions/2026-08-02-p17-scarico-dpa.md` (design approvato). L'handoff di ieri
+(`docs/roadmap/2026-08-02-p7-in-produzione-e-la-deriva-delle-date-handoff.md`) resta valido **tranne la §0 ①**,
+superata da **D156**. 📅 D155/§0F: la data si legge da `date`.
 
-🛑 **D156 — NESSUNO USA QUESTA PWA, E NESSUNO LA USERÀ FINCHÉ NON SI DISTRIBUISCE.** Promemoria esplicito di
-Francesco. ➡️ **La frase falsa di `DpaTemplate.tsx:210` ESCE da FASE 1 e torna in FASE 2 come `P19-d`**, da fare
-**insieme a P19-a**. 🔑 **Il difetto era nella premessa** («*un documento che l'app produce oggi*»): quel PDF non
-raggiunge nessuno — 3 laboratori, tutti di prova. **«In produzione» ≠ «qualcuno lo usa».** ⚠️ Non tocca l'altra
-metà di D145: **P7 resta FASE 1** (la ragione lì è la finestra sulle righe, non l'utente).
+🛑 **D156 — NESSUNO USA QUESTA PWA FINCHÉ NON SI DISTRIBUISCE** (Francesco). ➡️ La frase falsa di
+`DpaTemplate.tsx:210` esce da FASE 1 → **FASE 2 come P19-d**, insieme a P19-a. **«In produzione» ≠ «qualcuno
+lo usa»**. ⚠️ Non riordina il resto: P7 e P17 restano FASE 1 per scelta esplicita (**D157**).
 
-🔨 **D157 — LA FASE 1 PROSEGUE DA P17.** Il tasto «Scarica DPA PDF» è un `<a href>` nudo: se la rotta risponde
-male, il titolare vede `{"error":"…"}` a schermo, senza tasti. Perimetro **doppio**: ① il tasto
-(`src/app/api/clienti/[id]/dpa/route.ts:66-72`) · ② sulla stessa scheda, guasto di lettura e «mai emesso» si
-vedono **identici** (`src/app/(app)/clienti/[id]/page.tsx:169-171`). ⚠️ Superficie **in produzione**: trascina
-**§0B per intero** (mockup → scatti 390/768/1280 chiaro+scuro → approvazione di Francesco → React) **+ FASE 9b**.
+🔨 **P17 — fatto oggi:** censimento (12 file aperti) · **7 decisioni D156-D162** · mockup approvato
+(`docs/design/mockups/2026-08-02-p17-scarico-dpa.html`, **12 scatti**, variante **B «a blocco»**) · spec con i
+tre registri. **Ramo `p17-scarico-che-fallisce`**, 2 salvataggi, **nessun codice applicativo ancora scritto**.
 
-📌 Stato: `main` **`94576989`**, albero pulito, 0 da pubblicare · `tsc` **0** · `vitest` **4382 | 19** (375 file)
-· `next build` **0** (misure di ieri, da rifare in FASE 7).
-📎 **157** decisioni in **56** tornate (**D156 · D157** oggi); la prossima è **D158**.
+🔴 **Tre cose trovate che il disegno non mostrava:** ① passare a `fetch` **perde il nome del file** e disferebbe
+il Task 8 (`c1a1145d`) — `provato:` 14 occorrenze di `content-disposition`, **0 lato client**, e l'unico
+scarico via fetch in casa **si fabbrica il nome** · ② i due 422 (P.IVA lab / cliente) **non si distinguono**
+dal corpo: serve un **codice** leggibile a macchina, unione chiusa · ③ 🔄 **corretta un'assunzione mia**:
+`lab-context.ts:19` **non** porta i dati fiscali del laboratorio → la prevenzione del caso ③ vuole una lettura
+in più. **È la forma di P28: provato su `clienti`, assunto su `laboratori`.**
+
+⏭️ **PROSSIMO PASSO: Francesco decide se rileggere la spec** (come D149 per P7) → poi il **piano** (FASE 4) →
+esecuzione a task singoli (R-E1). ⚠️ Superficie **in produzione**: **FASE 9b** obbligatoria prima di unire.
+🛑 P16 **non si riapre** (deferita, D134) — ma i testi nuovi stanno su `--t1` per non nascere col suo difetto.
+
+📌 `tsc` · `vitest` · `next build`: **non rimisurati oggi** (nessun codice applicativo toccato). Riferimento di
+ieri: **0** · **4382 | 19** (375 file) · **0**.
+📎 **162** decisioni in **56** tornate (**D156-D162** oggi); la prossima è **D163**.
