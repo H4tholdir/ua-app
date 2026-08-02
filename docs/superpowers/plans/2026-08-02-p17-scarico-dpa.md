@@ -727,6 +727,51 @@ export function ScaricaDpaButton(props: {
 > ⚠️ **Il precedente in casa NON aiuta:** `PacchettoConsegnaSheet.tsx:264` **si fabbrica il nome a mano**.
 > `provato:` 14 occorrenze di `content-disposition` in `src/`, **nessuna** lato client.
 
+### 🔄 ESEGUITO il 02/08/2026 — due correzioni, e una cosa riferita e NON toccata
+
+**Corrette qui sotto (i blocchi dei Passi 1 e 3 sono già aggiornati: si copiano quelli):**
+
+1. 🛑 **La prova ⑮ («mentre prepara») si chiudeva con lo scarico ANCORA IN VOLO, e la perdita finiva
+   dentro un'altra prova.** Il piano faceva `sblocca(rispostaOk())` come **ultima riga**: la funzione
+   riprende dopo che il test è finito, cioè dopo che `afterEach` ha già eseguito
+   `vi.unstubAllGlobals()` — e a quel punto preme un'**ancora vera** su `blob:finto`.
+   `provato:` girando la versione del piano, jsdom stampa **fuori da ogni test**:
+   ```
+   Not implemented: navigation to another Document
+    Test Files  1 passed (1)
+         Tests  16 passed (16)
+   ```
+   Con la correzione (una spia sul `click` + l'attesa che il tasto torni a dire «Scarica DPA PDF»
+   prima di uscire) quella riga **sparisce**, e le 16 restano verdi.
+   🔑 **Perché conta più di un avviso in console:** un guasto che nasce dopo la fine del test non si
+   presenta dove nasce — si presenta **a caso, nel test che sta passando in quel momento**. È la forma
+   esatta del difetto intermittente già pagato in questo progetto (diagnosi citata in `tests/setup.ts`).
+2. 📌 **`import type { CodiceDatiDpa }` spostato in testa al file.** Nel piano stava a metà, dopo
+   `nomeDaHeader`. Funziona (gli import sono issati) e **non** è un errore di lint
+   (`provato:` `eslint.config.mjs` = `next/core-web-vitals` + `next/typescript`, nessun `import/first`;
+   `npx eslint --max-warnings=0` sui due file nuovi → pulito), ma nasconde una dipendenza a chi apre il
+   file. Correzione di forma, non un difetto.
+
+**Riferita e NON toccata (R-E2 — decide Francesco):**
+
+- 🛑 **Lo stato ② approvato ha un'azione, e questo codice non la rende.** La tabella §3 del documento di
+  decisione dice «*② manca P.IVA/CF del cliente → **Aggiungi il dato** (la modifica è già su questa
+  scheda)*», e il mockup approvato la disegna (`2026-08-02-p17-scarico-dpa.html`, blocco `variante-b`
+  del caso ②: `<a class="azione" href="#">Aggiungi il dato</a>`). Nel piano `esitoDa` rende
+  `CLIENTE_DATI_FISCALI` con `riprova: false` **e** `vaiAImpostazioni: false`, cioè **`azione:
+  undefined`**: l'azione approvata non c'è.
+  ⚠️ **Perché non è stata aggiunta qui, invece di metterci un segnaposto:** su questa scheda la modifica
+  è un pannello che vive dentro `ClienteModificaButton` con un `useState` **suo**
+  (`src/components/features/clienti/ClienteModificaButton.tsx:11`), montato nell'intestazione della
+  pagina — **non ha né una rotta né un indirizzo**, e da un componente fratello non si apre. L'`href="#"`
+  del mockup è linguaggio da mockup: in produzione è un tasto morto, cioè il segnaposto che «Built Right
+  First Time» vieta.
+  ➡️ **Due strade, e la scelta non è dell'esecutore:** sollevare lo stato del pannello nella pagina
+  (`page.tsx`, cioè il **Task 4**), oppure una destinazione decisa da Francesco. Il buco è **dichiarato
+  nel codice**, al ramo `clienteFiscali` di `esitoDa`, perché chi passa di lì lo veda.
+  📌 Le prove del Task 3 **non** vanno allargate a coprirlo: chiederebbero un comportamento non ancora
+  deciso.
+
 - [ ] **Passo 1 — Il test che fallisce**
 
 🆕 `tests/unit/ScaricaDpaButton.test.tsx`:
@@ -881,11 +926,19 @@ describe('ScaricaDpaButton', () => {
   it('mentre prepara il tasto è inerte e lo dice', async () => {
     let sblocca: (r: Response) => void = () => {}
     vi.mocked(fetch).mockReturnValue(new Promise<Response>((res) => { sblocca = res }))
+    // 🔄 CORRETTO il 02/08/2026 dall'esecutore del Task 3 — il piano non aveva
+    //    né questa spia né l'attesa in fondo, e la prova SI CHIUDEVA con lo
+    //    scarico ancora in volo (dettaglio e output nel blocco 🔄 sopra).
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     render(<ScaricaDpaButton clienteId="cli-1" mancanza={null} />)
     fireEvent.click(screen.getByRole('button', { name: /Scarica DPA PDF/i }))
     expect(await screen.findByText(/Preparo il documento/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Preparo il documento/i })).toHaveAttribute('aria-disabled', 'true')
     sblocca(rispostaOk())
+    // 🛑 Si ASPETTA che il giro si chiuda mentre i finti sono ancora al loro
+    //    posto: il tasto torna a dire «Scarica DPA PDF» solo nel `finally`.
+    await waitFor(() => expect(screen.getByRole('button', { name: /Scarica DPA PDF/i })).toBeInTheDocument())
+    click.mockRestore()
   })
 
   it('due pressioni rapide chiamano la rotta UNA volta sola', async () => {
@@ -921,6 +974,20 @@ fare* invece che su ciò che *fa*. Un abbozzo inerte **supera** ogni prova che c
 prove che chiedono un'assenza sono le più facili da scrivere e le più deboli.
 ⚠️ **Stesso difetto trovato anche nel Task 1** (previsti «10 su 13», osservati **8 su 12**): due volte su due.
 
+🔄 **MISURATO il 02/08/2026 dall'esecutore del Task 3: la previsione corretta REGGE.**
+
+```
+Tests  13 failed | 3 passed (16)
+```
+
+Le **tre** che passano sono **esattamente** le tre nominate: «con i dati completi il tasto è premibile» ·
+«il tasto inerte NON usa l'attributo `disabled`» · «premere un tasto inerte non chiama la rotta».
+🔑 **E regge per la stessa ragione per cui ha retto nel Task 2:** la previsione corretta conta ciò che
+l'abbozzo **fa**, non ciò che **serve a fare**, e nomina una per una le prove a forma di **assenza** che un
+tasto senza `onClick` soddisfa per caso. 13 ≥ 7 → **si prosegue.**
+📌 **Il giro è lento e non è un blocco:** 13 prove su 16 finiscono in un `waitFor`/`findBy` che scade,
+~1 s l'una — circa 13 s in tutto. Con l'implementazione vera il file torna a **0,9 s**.
+
 - [ ] **Passo 3 — L'implementazione**
 
 🆕 `src/components/features/clienti/ScaricaDpaButton.tsx`:
@@ -937,6 +1004,19 @@ prove che chiedono un'assenza sono le più facili da scrivere e le più deboli.
 import { useCallback, useState } from 'react'
 import { BloccoAvviso } from '@/components/feedback/BloccoAvviso'
 import { hapticLight } from '@/lib/feedback/haptic'
+
+/** 🔄 CORRETTO il 02/08/2026 — rilievo dell'esecutore del Task 1 (R-E2).
+ *  La prima stesura confrontava `codice: unknown` con stringhe scritte a mano:
+ *  l'unione chiusa costruita nel Task 1 NON avrebbe protetto niente qui, e un
+ *  refuso in `'LAB_DATI_FISCAL'` sarebbe compilato pulito, restituendo per
+ *  sempre il messaggio di guasto generico. Ora i valori passano da una mappa
+ *  verificata contro il tipo: il refuso non compila.
+ *  ✅ `import type` è sicuro da un componente client: viene cancellato in
+ *  compilazione, e `provato:` `errori-dpa.ts` non ha nemmeno `server-only`
+ *  (`grep -c "server-only"` → 0).
+ *  📌 Sta in testa e non a metà file (dov'era nel piano): un import in mezzo al
+ *  codice funziona ma nasconde una dipendenza a chi apre il file. */
+import type { CodiceDatiDpa } from '@/lib/pdf/errori-dpa'
 
 const NOME_DI_RIPIEGO = 'contratto-dpa.pdf'
 
@@ -965,17 +1045,6 @@ function nomeDaHeader(intestazione: string | null): string {
   return nudo?.[1]?.trim() || NOME_DI_RIPIEGO
 }
 
-/** 🔄 CORRETTO il 02/08/2026 — rilievo dell'esecutore del Task 1 (R-E2).
- *  La prima stesura confrontava `codice: unknown` con stringhe scritte a mano:
- *  l'unione chiusa costruita nel Task 1 NON avrebbe protetto niente qui, e un
- *  refuso in `'LAB_DATI_FISCAL'` sarebbe compilato pulito, restituendo per
- *  sempre il messaggio di guasto generico. Ora i valori passano da una mappa
- *  verificata contro il tipo: il refuso non compila.
- *  ✅ `import type` è sicuro da un componente client: viene cancellato in
- *  compilazione, e `provato:` `errori-dpa.ts` non ha nemmeno `server-only`
- *  (`grep -c "server-only"` → 0). */
-import type { CodiceDatiDpa } from '@/lib/pdf/errori-dpa'
-
 const CODICE = {
   labFiscali: 'LAB_DATI_FISCALI',
   clienteFiscali: 'CLIENTE_DATI_FISCALI',
@@ -997,6 +1066,10 @@ function esitoDa(stato: number, codice: unknown): Esito {
     return { titolo: 'Mancano i dati del tuo laboratorio', testo: 'Senza Partita IVA il contratto non si può emettere per nessuno studio.', riprova: false, vaiAImpostazioni: true }
   }
   if (codice === CODICE.clienteFiscali) {
+    // 🛑 BUCO DICHIARATO — riferito il 02/08/2026 dall'esecutore del Task 3,
+    //    NON tappato con un segnaposto. Lo stato ② approvato porta un'azione,
+    //    «Aggiungi il dato», e qui quell'azione NON c'è. Ragioni e due strade
+    //    possibili nel blocco 🔄 in testa a questo task. Decide Francesco.
     return { titolo: 'Manca un dato dello studio', testo: 'Per emettere il contratto serve la Partita IVA o il Codice Fiscale del dentista.', riprova: false, vaiAImpostazioni: false }
   }
   if (codice === CODICE.clienteAssente) {
@@ -1087,6 +1160,11 @@ export function ScaricaDpaButton({ clienteId, mancanza }: Props) {
       >
         {inCorso ? (
           <>
+            {/* 📌 Il segno è FERMO, e non è una dimenticanza: il mockup
+                approvato non ha nessuna animazione (`provato:` `grep -n
+                "keyframes\|animation"` sul mockup → nessuna riga). Non
+                «ripararlo» aggiungendo una rotazione: costerebbe anche un
+                passaggio dalla guardia `reduced-motion`. */}
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" strokeOpacity=".35" />
               <path d="M14 8a6 6 0 00-6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -1129,6 +1207,27 @@ npx vitest run tests/unit/ScaricaDpaButton.test.tsx
 npx tsc --noEmit
 ```
 **Atteso:** 16 passate · `tsc` 0.
+
+🔄 **OSSERVATO il 02/08/2026: `Tests 16 passed (16)` · `npx tsc --noEmit` → uscita 0.** E, come nel Task 2,
+si è girata **tutta la FASE 7**: `npx vitest run` → **4417 passate, 19 saltate, 381 file** ·
+`npx next build` → **uscita 0**, `✓ Compiled successfully in 7.3s`.
+
+⚠️ **`next build` non prova NIENTE su questo file:** nessuna pagina lo importa ancora — lo farà il Task 4 —
+quindi non entra nel grafo. Chi lo copre davvero è `tsc`, esattamente come nel Task 2.
+
+🔑 **La prova del NOME DEL FILE ha i denti, e si è verificato rompendola apposta** (R-P1: un vincolo si prova
+con un valore che DEVE essere rifiutato). Due sonde sull'implementazione vera, poi rimessa a posto:
+
+| sonda | che cosa si è rotto | esito |
+|---|---|---|
+| **A** | `ancora.download = nome` → `ancora.download = NOME_DI_RIPIEGO` (il nome smette di venire dall'intestazione) | `Tests 1 failed \| 15 passed` — `AssertionError: expected 'contratto-dpa.pdf' to be 'DPA-2026-0042.pdf'` |
+| **B** | la riga `ancora.download = …` **tolta** (il `fetch` scritto in fretta) | `Tests 2 failed \| 14 passed` — `expected '' to be 'DPA-2026-0042.pdf'` e `expected '' to be 'contratto-dpa.pdf'` |
+
+📌 **E il meccanismo su cui la prova poggia è stato verificato nella libreria, non assunto:**
+`click.mock.instances[0]` è davvero l'ancora — `provato:` `@vitest/spy` (4.1.6) fa
+`const context = new.target ? undefined : this` e poi `registerInstance(context, …)`, quindi su una chiamata
+normale `instances[0] === this`. Se non lo fosse, la prova sarebbe morta con un `TypeError` invece che con
+un'asserzione — cioè un rosso che non dice niente.
 
 - [ ] **Passo 5 — Salvare**
 
@@ -1296,6 +1395,38 @@ Già noto e da riferire, **non** da correggere qui:
   possono divergere dai nomi che le rotte dichiarano.
 - **I numeri di riga nei commenti** di `errori-dpa.ts` e `route.ts` (`:106`, `:159`, `:182`…) **non
   corrispondono più** alle righe vere (`:115`, `:168`, `:191`…): il file è cresciuto e i riferimenti no.
+
+🆕 **Aggiunti il 02/08/2026 dall'esecutore del Task 3 (R-E2 — trovati fuori dal suo mandato, riferiti e
+NON toccati):**
+
+- 🛑 **`src/app/api/clienti/[id]/dpa/route.ts:97-98` diventa FALSO nel momento in cui i Task 3 e 4
+  arrivano**, ed è un commento che si dichiara `MISURATO`. Dice: «*questo corpo JSON è davvero l'unico
+  canale verso chi scarica — **nessun codice client dirama sullo stato, il tasto è un `<a href>` e
+  basta***». Da qui in avanti il tasto **non** è più un `<a href>` e il codice client **dirama** eccome
+  (è tutto il senso di `esitoDa`). 🔑 **È esattamente il modo di sbagliare che quel file racconta di aver
+  già pagato due volte** — una riga scritta prima del mondo che descrive, marchiata come misurata.
+  ➡️ **Il Task 4 la aggiorni insieme al resto** (o si scriva perché no): non è una svista di stile, è una
+  riga che il prossimo lettore userà per decidere.
+- 📌 **`src/app/(app)/clienti/[id]/page.tsx:318-328`** — il blocco «*NIENTE attributo `download` qui*»
+  spiega un meccanismo (`Content-Disposition` letto dal browser su una navigazione) che con il tasto vivo
+  **non è più quello**: adesso l'intestazione la rilegge `nomeDaHeader` in JavaScript. Il Task 4 riscrive
+  già quel riquadro (`:313-368`), quindi **basta non perdere la spiegazione**: va riscritta, non
+  cancellata, perché il difetto che documenta (due emissioni, stesso nome) è ancora quello.
+- ⚠️ **Il bordo `--t3`, seconda occorrenza — stessa radice del rilievo del Task 2, NON un ritrovamento
+  nuovo.** Il Task 2 l'aveva misurato sul tasto dell'azione del blocco; qui ricompare sul **tasto
+  principale quando è inerte** (`border: '1px solid var(--t3)'`, dal mockup `.tasto[aria-disabled="true"]`):
+  **4,49:1 in chiaro, 1,72:1 in scuro**, sotto il 3:1 che WCAG 1.4.11 chiede al confine di un comando.
+  ✅ **Il testo del tasto è su `--t1`**, quindi il vincolo globale 2 è rispettato e P16 non si riapre. È il
+  disegno approvato: **va al gate FASE 9b insieme all'altro**, come una cosa sola.
+- 📌 **Rumore preesistente nella suite, e NON è di P17.** `npx vitest run` stampa una riga
+  `Not implemented: navigation to another Document` **fuori da ogni test**. `provato:` togliendo i due
+  file nuovi del Task 3 e rigirando l'intera suite, quella riga **c'è ancora** (1 occorrenza). Qualche
+  altra prova preme un'ancora vera. Non trovato il colpevole — non è il mandato di questo task, ma è
+  esattamente la forma di perdita che il Task 3 ha appena chiuso da sé.
+- ⚠️ **Anche lo stato ⑦c del Task 4 perde la sua azione approvata.** La tabella §3 del documento di
+  decisione dice «*⑦c registro non leggibile → **Ricarica***», e il blocco del Passo 3 del Task 4 rende
+  un `BloccoAvviso` **senza `azione`**. Stessa famiglia del buco dichiarato nel Task 3 sullo stato ②:
+  vanno guardati insieme, non uno per volta.
 
 ---
 
