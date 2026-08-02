@@ -103,11 +103,11 @@ retro-compatibile, ma l'elenco dei chiamanti non lo decide chi scrive).
 ## Task 1 — Il codice d'errore, dall'emettitore al browser
 
 **File:**
-- Crea: `src/lib/pdf/permessi-dpa.ts`
+- 🆕 Crea: `src/lib/pdf/permessi-dpa.ts`
 - Modifica: `src/lib/pdf/errori-dpa.ts` (la classe, in fondo al file)
 - Modifica: `src/lib/pdf/generate-dpa.ts:81,84,124,125` (i 4 `throw`)
 - Modifica: `src/app/api/clienti/[id]/dpa/route.ts:22,69-71`
-- Test: `tests/unit/errori-dpa-codice.test.ts`
+- 🆕 Test: `tests/unit/errori-dpa-codice.test.ts`
 
 **Interfacce prodotte** (i task dopo si appoggiano a questi nomi esatti):
 ```ts
@@ -120,7 +120,7 @@ Il corpo d'errore della rotta diventa `{ error: string, codice?: CodiceDatiDpa }
 
 - [ ] **Passo 1 — Scrivere il test che fallisce**
 
-`tests/unit/errori-dpa-codice.test.ts`:
+🆕 `tests/unit/errori-dpa-codice.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -170,7 +170,7 @@ npx vitest run tests/unit/errori-dpa-codice.test.ts
 
 - [ ] **Passo 3 — Abbozzo INERTE e conteggio delle asserzioni**
 
-Creare `src/lib/pdf/permessi-dpa.ts` con un abbozzo che **non fa il lavoro**:
+🆕 Creare `src/lib/pdf/permessi-dpa.ts` con un abbozzo che **non fa il lavoro**:
 
 ```ts
 export const RUOLI_EMISSIONE_DPA = [] as const
@@ -186,7 +186,7 @@ più deboli di quanto sembrano: **fermarsi e riferire.**
 
 - [ ] **Passo 4 — L'implementazione vera**
 
-`src/lib/pdf/permessi-dpa.ts`:
+🆕 `src/lib/pdf/permessi-dpa.ts`:
 
 ```ts
 import 'server-only'
@@ -308,8 +308,8 @@ git commit -F <messaggio fuori dal repo>
 ## Task 2 — Il blocco d'avviso (presentazione pura, v2.3, riusabile)
 
 **File:**
-- Crea: `src/components/feedback/BloccoAvviso.tsx`
-- Test: `tests/unit/BloccoAvviso.test.tsx`
+- 🆕 Crea: `src/components/feedback/BloccoAvviso.tsx`
+- 🆕 Test: `tests/unit/BloccoAvviso.test.tsx`
 
 **Interfacce consumate:** nessuna. **Interfacce prodotte:**
 ```tsx
@@ -329,7 +329,7 @@ export function BloccoAvviso(props: {
 
 - [ ] **Passo 1 — Il test che fallisce**
 
-`tests/unit/BloccoAvviso.test.tsx`:
+🆕 `tests/unit/BloccoAvviso.test.tsx`:
 
 ```tsx
 import { describe, it, expect, vi } from 'vitest'
@@ -408,7 +408,7 @@ numero vero.**
 
 - [ ] **Passo 4 — L'implementazione**
 
-`src/components/feedback/BloccoAvviso.tsx`:
+🆕 `src/components/feedback/BloccoAvviso.tsx`:
 
 ```tsx
 'use client'
@@ -530,8 +530,8 @@ npx vitest run tests/unit/BloccoAvviso.test.tsx
 ## Task 3 — Il tasto vivo
 
 **File:**
-- Crea: `src/components/features/clienti/ScaricaDpaButton.tsx`
-- Test: `tests/unit/ScaricaDpaButton.test.tsx`
+- 🆕 Crea: `src/components/features/clienti/ScaricaDpaButton.tsx`
+- 🆕 Test: `tests/unit/ScaricaDpaButton.test.tsx`
 
 **Interfacce consumate:** `BloccoAvviso` (Task 2) · `CodiceDatiDpa` (Task 1).
 **Interfacce prodotte:**
@@ -552,7 +552,7 @@ export function ScaricaDpaButton(props: {
 
 - [ ] **Passo 1 — Il test che fallisce**
 
-`tests/unit/ScaricaDpaButton.test.tsx`:
+🆕 `tests/unit/ScaricaDpaButton.test.tsx`:
 
 ```tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -738,7 +738,7 @@ export function ScaricaDpaButton(_props: { clienteId: string; mancanza: 'laborat
 
 - [ ] **Passo 3 — L'implementazione**
 
-`src/components/features/clienti/ScaricaDpaButton.tsx`:
+🆕 `src/components/features/clienti/ScaricaDpaButton.tsx`:
 
 ```tsx
 'use client'

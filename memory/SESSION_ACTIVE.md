@@ -20,8 +20,11 @@ dal corpo: serve un **codice** leggibile a macchina, unione chiusa · ③ 🔄 *
 `lab-context.ts:19` **non** porta i dati fiscali del laboratorio → la prevenzione del caso ③ vuole una lettura
 in più. **È la forma di P28: provato su `clienti`, assunto su `laboratori`.**
 
-⏭️ **PROSSIMO PASSO: Francesco decide se rileggere la spec** (come D149 per P7) → poi il **piano** (FASE 4) →
-esecuzione a task singoli (R-E1). ⚠️ Superficie **in produzione**: **FASE 9b** obbligatoria prima di unire.
+✅ **IL PIANO C'È: `docs/superpowers/plans/2026-08-02-p17-scarico-dpa.md`** — **D163**: la spec è passata al
+piano **senza rilettura, per scelta** (come D149 per P7; ⚠️ **diverso** da P19-a, che aspetta una risposta mai
+arrivata). **Cinque task** + un **Task 0** che prova le assunzioni prima di costruirci sopra.
+⏭️ **PROSSIMO PASSO: eseguire il piano, un task alla volta (R-E1)**, a partire dal Task 0.
+⚠️ Superficie **in produzione**: **FASE 9b** obbligatoria prima di unire. **Nessuna migration** → niente FASE 6b.
 🛑 P16 **non si riapre** (deferita, D134) — ma i testi nuovi stanno su `--t1` per non nascere col suo difetto.
 
 📌 `tsc` · `vitest` · `next build`: **non rimisurati oggi** (nessun codice applicativo toccato). Riferimento di
