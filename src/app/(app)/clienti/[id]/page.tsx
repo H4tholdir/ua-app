@@ -7,7 +7,7 @@ import { PortaleLinkButtons } from '@/components/features/clienti/PortaleLinkBut
 import { PortaleFatturazioneCard } from '@/components/features/clienti/PortaleFatturazioneCard'
 import { ClienteModificaButton } from '@/components/features/clienti/ClienteModificaButton'
 import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
-import { BloccoAvviso } from '@/components/feedback/BloccoAvviso'
+import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica'
 import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -392,7 +392,17 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
                 «ho letto e non c'è», l'altro «non sono riuscito a leggere», e
                 confonderli può far riemettere un contratto che esiste già. */}
             {erroreRegistro ? (
-              <BloccoAvviso
+              /* 🔄 Il tasto «Ricarica» APPROVATO in D161 arriva qui il 02/08/2026:
+                 il Task 4 aveva reso il blocco SENZA azione, e l'aveva riferito.
+                 🔑 Il motivo del ritardo, e il motivo per cui adesso c'è un
+                 componente in mezzo: questa pagina gira sul SERVER, e una
+                 funzione (`onClick`) non attraversa il confine RSC. Il ponte
+                 client sta in `BloccoAvvisoRicarica` — qui non cambia nient'altro
+                 (stesso blocco, stesso tipo, stesse parole).
+                 📌 Fuori da `puoEmettere` DI PROPOSITO: chi non emette vede tutto
+                 il resto (D160), e rileggere un registro è innocuo per chiunque —
+                 chi sta al banco deve poter riprovare senza chiamare il titolare. */
+              <BloccoAvvisoRicarica
                 tipo="attesa"
                 titolo="Non riesco a leggere il registro"
                 testo="Il contratto potrebbe essere già stato emesso: questa riga non fa fede."

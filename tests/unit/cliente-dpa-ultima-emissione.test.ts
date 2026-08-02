@@ -20,6 +20,7 @@ import type { ReactElement } from 'react'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
 import { BloccoAvviso } from '@/components/feedback/BloccoAvviso'
+import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica'
 
 const { mockGetLabContext, mockNotFound, mockFrom } = vi.hoisted(() => ({
   mockGetLabContext: vi.fn(),
@@ -29,7 +30,14 @@ const { mockGetLabContext, mockNotFound, mockFrom } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
 }))
 
-vi.mock('next/navigation', () => ({ notFound: mockNotFound }))
+// 📌 `useRouter` sta nel finto benché nessun componente client venga ESEGUITO
+//    qui: da quando la pagina monta `BloccoAvvisoRicarica`, questo file importa
+//    un modulo che lo richiede. Dichiararlo costa una riga e toglie una
+//    dipendenza dall'ordine con cui vitest risolve un export mancante.
+vi.mock('next/navigation', () => ({
+  notFound: mockNotFound,
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}))
 vi.mock('@/lib/supabase/lab-context', () => ({ getLabContext: mockGetLabContext }))
 vi.mock('@/lib/supabase/server-service', () => ({ getServiceClient: () => ({ from: mockFrom }) }))
 
@@ -175,11 +183,30 @@ function tasto(albero: ReactElement): PropsTasto | null {
   return trovati.length === 1 ? (trovati[0].props as PropsTasto) : null
 }
 
-/** I blocchi d'avviso montati DALLA PAGINA (quelli del tasto non si vedono qui). */
-function avvisi(albero: ReactElement): { tipo: string; titolo: string; testo: string; azione?: unknown }[] {
+/** I blocchi d'avviso montati DALLA PAGINA (quelli del tasto non si vedono qui).
+ *  🔑 DUE tipi, non uno: dal 02/08/2026 il caso «registro illeggibile» monta
+ *  `BloccoAvvisoRicarica`, il ponte client che porta il tasto «Ricarica» (da un
+ *  componente server un `onClick` non si può passare). `componente` dice QUALE
+ *  dei due, così una prova può chiedere l'uno e non l'altro.
+ *  ⚠️ `azione` qui è SEMPRE `undefined` per il ponte, e non è un difetto: il
+ *  ponte non viene mai ESEGUITO in questo file (nessun renderer gira qui), e
+ *  l'azione nasce dentro di lui. Che il tasto esista davvero e chiami `refresh`
+ *  lo prova `tests/unit/BloccoAvvisoRicarica.test.tsx`, che lo rende per vero.
+ *  🛑 Non «riparare» questa riga asserendo su `azione`: sarebbe un'asserzione
+ *  che NON PUÒ accendersi, cioè peggio di nessuna asserzione. */
+function avvisi(albero: ReactElement): {
+  componente: 'blocco' | 'ricarica'
+  tipo: string
+  titolo: string
+  testo: string
+  azione?: unknown
+}[] {
   return [...percorri(albero)]
-    .filter((el) => el.type === BloccoAvviso)
-    .map((el) => el.props as { tipo: string; titolo: string; testo: string; azione?: unknown })
+    .filter((el) => el.type === BloccoAvviso || el.type === BloccoAvvisoRicarica)
+    .map((el) => ({
+      componente: el.type === BloccoAvvisoRicarica ? ('ricarica' as const) : ('blocco' as const),
+      ...(el.props as { tipo: string; titolo: string; testo: string; azione?: unknown }),
+    }))
 }
 
 /** Le `<a>` nude che puntano alla rotta del DPA: devono essere ZERO. */
@@ -252,6 +279,13 @@ describe('scheda cliente — ultima emissione del DPA', () => {
     //    sono fatti OPPOSTI, e confonderli fa riemettere un contratto che esiste.
     expect(t).not.toContain('Non ancora emesso per questo studio.')
     expect(avvisi(albero).map((a) => a.titolo)).toContain('Non riesco a leggere il registro')
+    // 🛑 E il blocco dev'essere quello CON L'AZIONE (D161: variante «a blocco»,
+    //    con un tasto vero). Fino al 02/08/2026 era un `BloccoAvviso` nudo: si
+    //    diceva al titolare che qualcosa non andava e non gli si dava niente da
+    //    premere. Se qualcuno tornasse indietro al blocco senza azione, questa
+    //    riga si accende — e il difetto non si ripresenta in silenzio.
+    expect(avvisi(albero).find((a) => a.titolo === 'Non riesco a leggere il registro')?.componente)
+      .toBe('ricarica')
     expect(tasto(albero)).not.toBeNull()
     expect(spia).toHaveBeenCalled()
     expect(spia.mock.calls.flat().join(' ')).toContain('connection reset')
