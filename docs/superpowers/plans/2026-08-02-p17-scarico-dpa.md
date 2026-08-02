@@ -132,12 +132,21 @@ una **allowlist**: `src/lib/supabase/lab-context-allowlist.ts:8`.
 ➡️ **L'allowlist NON si tocca** (la rotta non cambia categoria: continua a usare il contesto dai claim), **ma
 dice una cosa che il Task 4 deve sapere:**
 
-> 🛑 **Il ruolo che la pagina legge viene dai CLAIM del token, non da una lettura fresca del database.**
-> Quindi **nascondere il tasto (D158) è cortesia visiva, NON un controllo di sicurezza**: la protezione vera
-> resta quella della rotta (`puoEmettereDpa`, che gira sul server a ogni richiesta). ⚠️ Un lettore futuro
-> potrebbe scambiare il gate della pagina per una protezione e togliere quello della rotta: **non lo è, e i
-> due non si sostituiscono**. ✅ Pagina e rotta usano comunque la **stessa** fonte (`getLabContext`), quindi
-> questo lavoro **non introduce** divergenze nuove.
+> 🛑 **Nascondere il tasto (D158) è cortesia visiva, NON un controllo di sicurezza**: la protezione vera resta
+> quella della rotta (`puoEmettereDpa`, che gira sul server a ogni richiesta). ⚠️ Un lettore futuro potrebbe
+> scambiare il gate della pagina per una protezione e togliere quello della rotta: **non lo è, e i due non si
+> sostituiscono** — chiunque può chiamare la rotta direttamente, senza passare da nessuna pagina.
+>
+> 🔄 **CORRETTA il 02/08/2026 — rilievo dell'esecutore del Task 4, e l'errore era mio.** La prima stesura di
+> questo riquadro spiegava la conclusione con un meccanismo **sbagliato**: «*il ruolo viene dai CLAIM del
+> token*». **Falso.** `provato:` `lab-context.ts:34-45` → `fetchUtenteRow` legge la tabella `utenti` col client
+> di servizio a ogni richiesta, e `toContext` (`:48-58`) prende `ruolo: row.ruolo` **da quella riga**. Dal
+> token viene l'**identità** (`userId`), non il ruolo. L'allowlist `lab-context-allowlist.ts` distingue
+> `getLabContext` da `getFreshLabContext` per **altro** (la memoria di richiesta), non per «claim contro
+> database».
+> 🔑 **La conclusione non cambia — e questo è precisamente il punto:** era **giusta per la ragione sbagliata**.
+> Un ragionamento del genere regge finché nessuno lo verifica, e crolla nel momento peggiore, cioè quando
+> qualcuno ci costruisce sopra.
 
 **A2 (la lettura in più non rallenta) e A4 (il corpo può non essere JSON):** restano **da provare nei loro
 task** — A2 con il `Promise.all` del Task 4, A4 col caso di prova dedicato del Task 3. Sono dichiarate lì.
