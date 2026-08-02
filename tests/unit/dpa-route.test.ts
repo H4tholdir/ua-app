@@ -81,9 +81,9 @@ describe('GET /api/clienti/[id]/dpa', () => {
     expect(res.headers.get('content-disposition')).not.toContain(CLIENTE_ID.slice(0, 8).toUpperCase())
     // Il FILE consegnato è quello dell'emissione, non un corpo vuoto.
     expect(Buffer.from(await res.arrayBuffer())).toEqual(EMISSIONE.buffer)
-    // …e l'emissione è stata chiesta per QUESTO laboratorio e QUESTO cliente,
-    // in quest'ordine (`generateDpa(laboratorio_id, cliente_id)`).
-    expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)
+    // …e l'emissione è stata chiesta per QUESTO laboratorio, QUESTO cliente e
+    // da QUESTO utente, in quest'ordine (`generateDpa(laboratorio_id, cliente_id, emesso_da)`).
+    expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID, CONTESTO.userId)
     // 🛑 L'INSIEME degli header, non solo i tre che interessano. Asserire tre
     //    chiavi lascia entrare in silenzio la quarta: con `X-Emissione-Id` e
     //    `X-Riemessa` aggiunti alla risposta questo file restava VERDE, e
@@ -268,7 +268,7 @@ describe('GET /api/clienti/[id]/dpa', () => {
       const res = await GET(richiesta(), parametri)
 
       expect(res.status).toBe(200)
-      expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)
+      expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID, CONTESTO.userId)
     })
 
     it('B2 · laboratorioId assente su un ruolo qualunque → 403 «Lab non trovato»', async () => {
@@ -367,7 +367,7 @@ describe('GET /api/clienti/[id]/dpa', () => {
       const res = await GET(richiesta(), parametri)
 
       expect(res.status).toBe(200)
-      expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID)
+      expect(mockGenerateDpa).toHaveBeenCalledWith(LAB_ID, CLIENTE_ID, CONTESTO.userId)
     })
 
     it('B10 · laboratorio in blacklist → 403 anche in LETTURA (stato terminale)', async () => {

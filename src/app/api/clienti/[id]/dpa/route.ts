@@ -46,7 +46,7 @@ export async function GET(
       //    `Content-Disposition` si prende al passo 2, il `download` si guarda
       //    solo ai passi 7-9) serviva quando i pretendenti erano due. Oggi il
       //    secondo non esiste più. Referto Task 7 §5-B.
-      const emissione = await generateDpa(labId, clienteId)
+      const emissione = await generateDpa(labId, clienteId, context.userId)
       const filename = `${emissione.numero_dpa}.pdf`
 
       return new NextResponse(new Uint8Array(emissione.buffer), {

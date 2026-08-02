@@ -338,7 +338,7 @@ describe('emissione nuova', () => {
 
   it('quando non esiste nulla: carica il file, prende un progressivo, scrive la riga', async () => {
     montaTabelle(null)
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     expect(r.riemessa).toBe(true)
     expect(r.numero_dpa).toBe(`DPA-${ANNO_ROMA}-0007`)
@@ -370,7 +370,7 @@ describe('emissione nuova', () => {
 
   it('🛑 il caricamento non SOVRASCRIVE mai: `upsert: false`, nel contenitore privato', async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // 🔑 È la riga che impedisce di sovrascrivere un documento CONSERVATO.
     //    Con `upsert: true` un secondo giro sullo stesso numero rimpiazzerebbe
@@ -387,7 +387,7 @@ describe('emissione nuova', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-03T14:25:36.123Z'))
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
     expect(riga.emesso_at).toBe('2026-08-03T14:25:36.123Z')
   })
@@ -400,7 +400,7 @@ describe('emissione nuova', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-12-31T23:30:00.000Z'))   // → 2027-01-01 00:30 a Roma
     montaTabelle(null)
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     expect(r.numero_dpa).toBe('DPA-2027-0007')
     expect(mockProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'dpa', 2027)
@@ -411,19 +411,19 @@ describe('emissione nuova', () => {
 
   it("il progressivo è chiesto col tipo «dpa» e con l'anno di Roma", async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(mockProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'dpa', ANNO_ROMA)
   })
 
   it("la lettura del cliente porta SEMPRE il filtro laboratorio_id (il client di servizio aggira la RLS)", async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(catene.clienti.calls).toContainEqual({ method: 'eq', args: ['laboratorio_id', 'lab-test-001'] })
   })
 
   it('la riga di registro nasce dentro il proprio laboratorio, e il percorso del file pure', async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
     expect(riga.laboratorio_id).toBe('lab-test-001')
     // Stesso invariante del CHECK `dpa_percorso_nel_proprio_laboratorio`:
@@ -434,18 +434,18 @@ describe('emissione nuova', () => {
 
   it('🛑 due emissioni a dati IMMUTATI portano LA STESSA impronta dei dati — è la premessa del guard', async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     const prima = (mockInsert.mock.calls[0][0] as Record<string, unknown>).payload_sha256
     vi.clearAllMocks(); mockUpload.mockResolvedValue({ error: null }); mockProgressivo.mockResolvedValue(8)
     mockInsert.mockReturnValue(createChain({ data: { id: 'em-2' }, error: null }))
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect((mockInsert.mock.calls[0][0] as Record<string, unknown>).payload_sha256).toBe(prima)
   })
 
   it('🛑 l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
     // 🔑 Le due `toMatch` PRIMA del confronto, e non è pignoleria: senza,
     //    `expect(undefined).not.toBe(<hash>)` è VERDE sul difetto vivo.
@@ -453,6 +453,20 @@ describe('emissione nuova', () => {
     expect(riga.pdf_sha256).toMatch(/^[0-9a-f]{64}$/)
     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
     expect(riga.payload_sha256).not.toBe(riga.pdf_sha256)
+  })
+
+  it('✅ T3a — su un\'emissione NUOVA il registro sa dire CHI ha premuto', async () => {
+    montaTabelle(null)
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
+
+    const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
+    // 🔑 `toBe`, non `toBeDefined()`: una colonna che esiste ed e' vuota e'
+    //    ESATTAMENTE il difetto di dichiarazioni_conformita.generated_by
+    //    (5 righe, 0 riempite — voce P26). «Definita» non basta.
+    expect(riga.emesso_da).toBe('utente-007')
+    // 🛑 E non si e' scritto nella colonna sbagliata: `firmato_da` e' il nome
+    //    della CONTROPARTE allo studio, non chi opera in UA.
+    expect(riga.firmato_da).toBeUndefined()
   })
 })
 
@@ -517,7 +531,7 @@ describe('riuso dell\'emissione', () => {
   it('stessi dati e stessa versione: restituisce il PDF conservato, NESSUN numero nuovo', async () => {
     montaTabelle(CORRENTE)
 
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     expect(r.riemessa).toBe(false)
     expect(r.numero_dpa).toBe('DPA-2026-0003')
@@ -530,7 +544,7 @@ describe('riuso dell\'emissione', () => {
 
   it('🔑 il filtro del guard è LO STESSO dell\'indice dpa_emissione_viva_unica — colonne, predicato E ordinamento', async () => {
     montaTabelle(null)
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     const filtri = catenaGuard().calls
 
     // Le QUATTRO colonne dell'indice, nell'ordine che si vuole.
@@ -556,9 +570,9 @@ describe('riuso dell\'emissione', () => {
 
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-03T10:00:00Z'))
-    const a = await generateDpa('lab-test-001', 'cli-001')
+    const a = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     vi.setSystemTime(new Date('2026-11-20T10:00:00Z'))
-    const b = await generateDpa('lab-test-001', 'cli-001')
+    const b = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // 🔑 `toBe('em-vecchia')` e non solo `a === b`: se la data entrasse
     //    nell'impronta, ENTRAMBE le chiamate riemetterebbero e tornerebbero
@@ -572,14 +586,14 @@ describe('riuso dell\'emissione', () => {
 
   it('versione del modello diversa: RIEMETTE', async () => {
     montaTabelle({ ...CORRENTE, template_versione: 'dpa-v1' })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
   })
 
   it('dati diversi: RIEMETTE', async () => {
     montaTabelle({ ...ESISTENTE, payload_sha256: 'f'.repeat(64) })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
   })
@@ -591,14 +605,14 @@ describe('riuso dell\'emissione', () => {
   //    isolamento fra laboratori su un client che la RLS la aggira.
   it('🛑 l\'emissione di un ALTRO laboratorio non fa da corrente: RIEMETTE', async () => {
     montaTabelle({ ...CORRENTE, laboratorio_id: 'lab-altrui-999' })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
   })
 
   it('🛑 l\'emissione di un ALTRO dentista non fa da corrente: RIEMETTE', async () => {
     montaTabelle({ ...CORRENTE, dentista_id: 'cli-altro-999' })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
   })
@@ -607,7 +621,7 @@ describe('riuso dell\'emissione', () => {
     '🛑 un\'emissione %s non fa da corrente: RIEMETTE (D132 — «viva» comprende lo STATO)',
     async (stato) => {
       montaTabelle({ ...CORRENTE, stato })
-      const r = await generateDpa('lab-test-001', 'cli-001')
+      const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
       expect(r.riemessa).toBe(true)
       expect(mockProgressivo).toHaveBeenCalled()
     }
@@ -623,7 +637,7 @@ describe('riuso dell\'emissione', () => {
   //    resta NELL'indice, cioè continua a deduplicare»).
   it('🔑 uno stato vivo FUORI dalla denylist si RIUSA: «firmato» è corrente a tutti gli effetti', async () => {
     montaTabelle({ ...CORRENTE, stato: 'firmato' })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(false)
     expect(r.emissione_id).toBe('em-vecchia')
     expect(mockProgressivo).not.toHaveBeenCalled()
@@ -631,7 +645,7 @@ describe('riuso dell\'emissione', () => {
 
   it('🛑 una riga già archiviata (deleted_at) non fa da corrente: RIEMETTE', async () => {
     montaTabelle({ ...CORRENTE, deleted_at: '2026-07-01T10:00:00.000Z' })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
   })
@@ -639,7 +653,7 @@ describe('riuso dell\'emissione', () => {
   it('il PDF conservato non si trova più nell\'archivio: RIEMETTE invece di rispondere errore', async () => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.riemessa).toBe(true)
     expect(mockProgressivo).toHaveBeenCalled()
   })
@@ -648,7 +662,7 @@ describe('riuso dell\'emissione', () => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
 
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // La chiave dell'indice va liberata: il predicato è `WHERE deleted_at IS NULL`.
     expect(mockUpdate).toHaveBeenCalledWith({ deleted_at: expect.any(String) })
@@ -665,7 +679,7 @@ describe('riuso dell\'emissione', () => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
 
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // 🔑 Le tre asserzioni qui sopra guardano gli ARGOMENTI dell'UPDATE; questa
     //    guarda il suo ESITO. La differenza non è formale: la richiesta parte
@@ -684,7 +698,7 @@ describe('riuso dell\'emissione', () => {
   it('🛑 il PDF conservato si cerca nel contenitore PRIVATO «documenti»', async () => {
     montaTabelle(CORRENTE)
 
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // 🔑 Il contenitore non è un dettaglio di percorso: è ciò che rende privato
     //    un contratto GDPR. E un contenitore sbagliato non dà errore di
@@ -692,6 +706,21 @@ describe('riuso dell\'emissione', () => {
     //    riga archiviata e un numero bruciato a ogni scarico.
     expect(mockStorageFrom).toHaveBeenCalledWith('documenti')
     expect(mockDownload).toHaveBeenCalledWith('lab-test-001/dpa/2026/DPA-2026-0003.pdf')
+  })
+
+  it('🛑 T3b — sul RIUSO il «chi» NON si riscrive, nemmeno se scarica un altro utente', async () => {
+    montaTabelle(CORRENTE)   // esiste gia' un'emissione riusabile
+
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-DIVERSO')
+
+    // 🔑 Perche' questa prova esiste: senza di lei, chi legge solo T3a fa
+    //    riscrivere `emesso_da` sul ramo di riuso «per coerenza» — cioe'
+    //    riscrive un campo del REGISTRO DELLE PROVE, che e' il difetto che P7
+    //    esiste per chiudere. La colonna dice CHI HA EMESSO, e l'emissione e'
+    //    avvenuta una volta sola.
+    expect(r.riemessa).toBe(false)
+    expect(mockInsert).not.toHaveBeenCalled()
+    expect(mockUpdate).not.toHaveBeenCalled()
   })
 })
 
@@ -739,7 +768,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null)
     mockUpload.mockResolvedValue({ error: { message: 'storage giù' } })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     // 🔑 QUESTA è la prova che protegge l'invariante «il file prima della riga».
     //    `toHaveBeenCalledBefore` prova solo il cammino felice: togliendo il
@@ -761,7 +790,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null)
     mockUpload.mockResolvedValue({ error: { message: 'chiave segreta xyz nel bucket documenti' } })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: non è stato possibile conservare il documento')
     expect(msg).not.toMatch(/chiave segreta/)
@@ -771,7 +800,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null)
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     // 🔑 La positiva PRIMA della negativa, e non è pignoleria: `not.toMatch` da
     //    sola è verde su QUALUNQUE messaggio che non contenga quelle parole —
@@ -797,7 +826,7 @@ describe('fail-closed e corsa', () => {
       'generaProgressivo fallito (tipo=dpa): duplicate key value violates unique constraint "progressivi_anno_pkey" — INSERT INTO public.progressivi_anno (laboratorio_id, tipo, anno, ultimo) VALUES (…) · CONTEXT: PL/pgSQL function public.genera_progressivo(uuid,text,integer)'
     ))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     // 🔑 La positiva PRIMA della negativa: `not.toMatch` da sola è verde su
     //    qualunque messaggio, compreso il vuoto.
@@ -822,7 +851,7 @@ describe('fail-closed e corsa', () => {
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
     mockDownload.mockResolvedValue({ data: new Blob([Buffer.from('%PDF-della-vincitrice')]), error: null })
 
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     expect(r.emissione_id).toBe('em-vincitrice')
     expect(r.numero_dpa).toBe('DPA-2026-0011')
@@ -839,7 +868,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null, VINCITRICE)
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     const filtri = catenaRilettura().calls
 
     // 🛑 L'INVARIANTE dell'ondata: colonne E predicato dell'indice = filtro del
@@ -868,7 +897,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null, { ...VINCITRICE, template_versione: 'dpa-v1' })
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     // 🔑 Le due righe che rendono questa prova COMPORTAMENTALE e non un
     //    controllo di testo: la rilettura dev'essere AVVENUTA (e `catenaRilettura`
@@ -884,7 +913,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null, { ...VINCITRICE, stato })
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(catenaRilettura().calls).toContainEqual({ method: 'not', args: ['stato', 'in', '("revocato","scaduto")'] })
     expect(mockDownload).not.toHaveBeenCalled()
@@ -894,7 +923,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null, VINCITRICE)
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
-    await generateDpa('lab-test-001', 'cli-001')
+    await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // Il caricamento precede l'INSERT (ed è giusto così): il perdente ha già
     // scritto un PDF su un percorso che nessuna riga nominerà MAI. Un file coi
@@ -920,7 +949,7 @@ describe('fail-closed e corsa', () => {
       error: { code: '23505', message: 'duplicate key value violates unique constraint "dpa_emissione_numero_unico"' },
     }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(msg).not.toMatch(/dpa_emissione_numero_unico|duplicate key/)
@@ -944,7 +973,7 @@ describe('fail-closed e corsa', () => {
       error: { code: '23514', message: 'new row violates check constraint "dpa_impronte_esadecimali"' },
     }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(msg).not.toMatch(/dpa_impronte_esadecimali|check constraint/)
@@ -958,7 +987,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null)
     mockInsert.mockReturnValue(createChain({ data: null, error: null }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(mockRemove).toHaveBeenCalledWith([NOSTRO_PERCORSO])
   })
@@ -967,7 +996,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(null, { ...VINCITRICE, storage_path_pdf: null })
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(mockDownload).not.toHaveBeenCalled()
   })
@@ -981,7 +1010,7 @@ describe('fail-closed e corsa', () => {
     mockDownload.mockResolvedValue({ data: null, error: ARCHIVIO_GIU })
     const log = spiaIlLog()
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     // 🔑 …e il PERCHÉ finisce nel log. Era il difetto che il Task 6 ha chiuso —
     //    l'errore della vincitrice non ci finiva nemmeno — e senza queste righe
@@ -1007,7 +1036,7 @@ describe('fail-closed e corsa', () => {
     mockRemove.mockResolvedValue({ data: null, error: { message: 'remove rifiutato: chiave sk_live_xyz' } })
     const log = spiaIlLog()
 
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     // Un PDF di troppo nell'archivio è meno grave di un errore sostituito da un
     // altro errore — e chi ha chiesto il documento lo riceve comunque.
@@ -1035,7 +1064,7 @@ describe('fail-closed e corsa', () => {
     }))
     mockRemove.mockResolvedValue({ data: null, error: { message: 'remove rifiutato: chiave sk_live_xyz' } })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(msg).not.toMatch(/sk_live_xyz|remove rifiutato/)
@@ -1052,7 +1081,7 @@ describe('fail-closed e corsa', () => {
     mockInsert.mockReturnValue(createChain({ data: null, error: DUPLICATO_SULLA_CHIAVE_VIVA }))
     const log = spiaIlLog()
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: non è stato possibile registrare il documento')
     expect(msg).not.toMatch(/rilettura rifiutata|08006/)
@@ -1087,7 +1116,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: errore })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: archivio non raggiungibile, riprovare fra qualche istante')
     // 🛑 Le quattro asserzioni che contano: nel dubbio non si tocca NIENTE.
@@ -1101,7 +1130,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: { message: 'token di servizio scaduto: sk_live_xyz', status: 503, statusCode: '503' } })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: archivio non raggiungibile, riprovare fra qualche istante')
     expect(msg).not.toMatch(/sk_live_xyz/)
@@ -1114,7 +1143,7 @@ describe('fail-closed e corsa', () => {
     montaTabelle(CORRENTE)
     mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
 
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     expect(r.riemessa).toBe(true)
     expect(mockUpdate).toHaveBeenCalledWith({ deleted_at: expect.any(String) })
@@ -1128,7 +1157,7 @@ describe('fail-closed e corsa', () => {
     // prende 23505 dalla riga viva che c'era e non si è vista.
     montaTabelle(CORRENTE, IDENTICA, { message: 'connessione col database interrotta', code: '08006' })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(msg).toBe('DPA: non è stato possibile leggere il registro')
     expect(msg).not.toMatch(/connessione col database|08006/)
@@ -1142,7 +1171,7 @@ describe('fail-closed e corsa', () => {
     mockDownload.mockResolvedValue({ data: null, error: SPARITO_DAVVERO })
     mockUpdate.mockReturnValue(createChain({ data: null, error: { message: 'update rifiutato dalla policy', code: '42501' } }))
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     // Andare avanti a chiave occupata è la porta chiusa permanente: ogni clic
     // brucerebbe un progressivo e lascerebbe un PDF orfano prima di fallire.
@@ -1161,7 +1190,7 @@ describe('fail-closed e corsa', () => {
       return conFalla(tabella)
     })
 
-    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001'))
+    const msg = await messaggioDiErrore(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     // 🔑 «Laboratorio non trovato» a chi ha solo perso la rete per due secondi
     //    manda a cercare un dato che c'è. Il dato ASSENTE e il dato NON LETTO
@@ -1188,7 +1217,7 @@ describe('fail-closed e corsa', () => {
       return conFalla(tabella)
     })
 
-    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001'))
+    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(e).toBeInstanceOf(ErroreDatiDpa)
     expect((e as ErroreDatiDpa).message).toBe('Cliente non trovato')
@@ -1216,7 +1245,7 @@ describe('fail-closed e corsa', () => {
       return conFalla(tabella)
     })
 
-    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001'))
+    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect((e as Error).message).toBe('Laboratorio non trovato')
     // …e anche questo è un 404: il dato non c'è, non è UÀ a essere rotta.

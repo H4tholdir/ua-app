@@ -52,7 +52,7 @@ describe('generateDpa', () => {
 
   it('genera una DPA con dati fiscali completi', async () => {
     mockTables(LAB_FIXTURE, CLIENTE_FIXTURE)
-    const r = await generateDpa('lab-test-001', 'cli-001')
+    const r = await generateDpa('lab-test-001', 'cli-001', 'utente-007')
     expect(r.buffer.length).toBeGreaterThan(0)
   })
 
@@ -61,7 +61,7 @@ describe('generateDpa', () => {
   it('rifiuta se il laboratorio non ha né Partita IVA né Codice Fiscale — 422, non un guasto del servizio', async () => {
     mockTables({ ...LAB_FIXTURE, partita_iva: null, codice_fiscale: null }, CLIENTE_FIXTURE)
 
-    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001'))
+    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(e).toBeInstanceOf(ErroreDatiDpa)
     expect((e as ErroreDatiDpa).message).toBe('DPA: laboratorio privo di Partita IVA e Codice Fiscale')
@@ -71,7 +71,7 @@ describe('generateDpa', () => {
   it('rifiuta se il cliente non ha né Partita IVA né Codice Fiscale — 422, non un guasto del servizio', async () => {
     mockTables(LAB_FIXTURE, { ...CLIENTE_FIXTURE, partita_iva: null, codice_fiscale: null })
 
-    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001'))
+    const e = await erroreSollevato(() => generateDpa('lab-test-001', 'cli-001', 'utente-007'))
 
     expect(e).toBeInstanceOf(ErroreDatiDpa)
     expect((e as ErroreDatiDpa).message).toBe('DPA: cliente privo di Partita IVA e Codice Fiscale')

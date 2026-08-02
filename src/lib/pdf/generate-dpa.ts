@@ -85,7 +85,16 @@ function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
   }
 }
 
-export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<EmissioneDpa> {
+export async function generateDpa(
+  laboratorio_id: string,
+  cliente_id: string,
+  /** Chi ha PREMUTO. 🛑 OBBLIGATORIO per scelta, non per rigore inutile: la
+   *  colonna gemella della DdC (`dichiarazioni_conformita.generated_by`) e'
+   *  facoltativa da mesi e ha 5 righe con ZERO valori. Una colonna che si puo'
+   *  dimenticare e' una colonna dimenticata, e la dimenticanza non fa rumore.
+   *  Qui il rumore lo fa `tsc`. */
+  emesso_da: string,
+): Promise<EmissioneDpa> {
   const svc = getTypedServiceClient()
 
   const [{ data: labRaw, error: erroreLab }, { data: clienteRaw, error: erroreCliente }] = await Promise.all([
@@ -298,6 +307,7 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
       pdf_sha256: createHash('sha256').update(buffer).digest('hex'),
       payload_sha256: impronta,
       emesso_at: new Date().toISOString(),
+      emesso_da,
     })
     .select('id')
     .single()
