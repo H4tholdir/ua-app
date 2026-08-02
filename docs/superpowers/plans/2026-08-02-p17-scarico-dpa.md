@@ -156,6 +156,11 @@ funzionano. `provato:` senza questo controllo ogni esecutore si sarebbe fermato 
 - Modifica: `src/lib/pdf/generate-dpa.ts:81,84,124,125` (i 4 `throw`)
 - Modifica: `src/app/api/clienti/[id]/dpa/route.ts:22,69-71`
 - 🆕 Test: `tests/unit/errori-dpa-codice.test.ts`
+- 🔄 **Modifica: `tests/unit/dpa-route.test.ts:153,158,163,169,179`** — **mancava dal piano, aggiunto il
+  02/08/2026 dall'esecutore del Task 1.** Non è opzionale e non è di un altro task: `tsconfig.json` include
+  `**/*.ts` con solo `node_modules` escluso, quindi **`tests/` è tipizzato**, e quel file costruisce
+  `ErroreDatiDpa` in **tre** punti. Senza toccarlo il Passo 8 non può dare 0 e il **commit è bloccato**
+  (`.husky/pre-commit` gira `npx tsc --noEmit` come secondo comando, con `sh -e`).
 
 **Interfacce prodotte** (i task dopo si appoggiano a questi nomi esatti):
 ```ts
@@ -227,10 +232,23 @@ export function puoEmettereDpa(_ruolo: string | null | undefined): boolean {
 }
 ```
 
-Rieseguire e **CONTARE quante asserzioni si accendono**. **Atteso: 10 su 13** — falliscono l'elenco (1) e i
-sei rifiuti (6), passano i tre `ammette` (che l'abbozzo indovina per caso) e le tre di `ErroreDatiDpa`, che
-questo abbozzo non tocca. **Scrivere il numero vero nel referto.** Se se ne accendono meno di 7, i test sono
-più deboli di quanto sembrano: **fermarsi e riferire.**
+Rieseguire e **CONTARE quante asserzioni si accendono**. **Scrivere il numero vero nel referto.** Se se ne
+accendono meno di 7, i test sono più deboli di quanto sembrano: **fermarsi e riferire.**
+
+🔄 **MISURATO il 02/08/2026 dall'esecutore — il numero che il piano prevedeva era sbagliato due volte.**
+Il piano diceva «**10 su 13**», ma la sua stessa prosa ne enumerava 7 che falliscono e 6 che passano: il
+titolo non tornava nemmeno col corpo che aveva sotto. L'osservazione vera:
+
+```
+Tests  8 failed | 4 passed (12)
+```
+
+**Il totale è 12, non 13** (2 di `ErroreDatiDpa` + 1 elenco + 6 rifiuti + 3 `ammette`). **E se ne accendono
+8, non 7**, perché il piano si sbagliava sull'ordine dei propri passi: a questo punto `errori-dpa.ts` è
+**ancora la classe a DUE parametri** — è il Passo 4 a cambiarla — quindi il terzo argomento viene ignorato,
+`e.codice` resta `undefined` e **fallisce anche «porta il codice accanto allo stato»**. Il piano dava per
+passanti tutte le prove di `ErroreDatiDpa` («che questo abbozzo non tocca»): vero per l'abbozzo, falso per
+il momento in cui lo si misura. 8 ≥ 7 → **si prosegue.**
 
 - [ ] **Passo 4 — L'implementazione vera**
 
@@ -293,10 +311,26 @@ export class ErroreDatiDpa extends Error {
 ```bash
 npx tsc --noEmit 2>&1 | grep -c "error TS"
 ```
-**Atteso: 4** — i quattro `throw new ErroreDatiDpa` di `generate-dpa.ts` (`:81` `:84` `:124` `:125`), che ora
-hanno un argomento in meno.
-⚠️ **Il numero conta SOLO dopo aver messo il terzo parametro obbligatorio.** Prima è **0**, e chi si aspetta 4
-troppo presto va a caccia di un difetto che non c'è.
+⚠️ **Il numero conta SOLO dopo aver messo il terzo parametro obbligatorio.** Prima è **0**, e chi si aspetta
+il numero pieno troppo presto va a caccia di un difetto che non c'è.
+
+🔄 **MISURATO il 02/08/2026: sono SETTE, non quattro.** Il piano ne prevedeva 4 perché aveva censito i
+`throw` e non i **costruttori**: `new ErroreDatiDpa` si scrive anche nelle **prove**, e `tsconfig.json`
+(`include: ["**/*.ts"]`, esclude solo `node_modules`) le tipizza tutte.
+
+```
+src/lib/pdf/generate-dpa.ts(81,11): error TS2554: Expected 3 arguments, but got 2.
+src/lib/pdf/generate-dpa.ts(84,11): error TS2554: Expected 3 arguments, but got 2.
+src/lib/pdf/generate-dpa.ts(124,22): error TS2554: Expected 3 arguments, but got 2.
+src/lib/pdf/generate-dpa.ts(125,26): error TS2554: Expected 3 arguments, but got 2.
+tests/unit/dpa-route.test.ts(153,39): error TS2554: Expected 3 arguments, but got 2.
+tests/unit/dpa-route.test.ts(163,7): error TS2554: Expected 3 arguments, but got 2.
+tests/unit/dpa-route.test.ts(179,19): error TS2554: Expected 3 arguments, but got 2.
+```
+
+🔑 **È il difetto che R-P6 esiste per prendere:** il censimento si fa su **ogni identificatore**, non solo
+sui `throw` che si sta andando a cambiare. Il comando giusto è `grep -rn "new ErroreDatiDpa"` su **tutto** il
+repo, prove comprese — non su `src/`.
 
 - [ ] **Passo 6 — Passare il codice ai quattro `throw`**
 
@@ -336,18 +370,48 @@ if (e instanceof ErroreDatiDpa) {
 }
 ```
 
+- [ ] 🆕 **Passo 7-bis — La prova che c'era già: `tests/unit/dpa-route.test.ts`**
+
+> **Passo MANCANTE dal piano, aggiunto il 02/08/2026 dall'esecutore del Task 1.** Senza, il Passo 8 non
+> può dare 0 e il commit resta bloccato dal `tsc` del pre-commit.
+
+Due cose diverse, e vanno fatte **tutte e due**:
+
+**① I tre costruttori** (`:153` `:163` `:179`) prendono il terzo argomento — `'CLIENTE_ASSENTE'`,
+`'CLIENTE_DATI_FISCALI'`, `'LAB_ASSENTE'` rispettivamente. È ciò che chiude i 3 errori di `tsc`.
+
+**② Le due asserzioni sul CORPO** (`:158` C5 e `:169` C6) devono includere il codice: il corpo che la rotta
+rende ora è `{ error, codice }`, e quelle due usano `toEqual`, che è **esatto**.
+
+`provato:` censimento completo delle asserzioni sul corpo di quel file —
+`grep -n "res.json()\|toEqual\|toMatchObject" tests/unit/dpa-route.test.ts` → **10 righe**, classificate per
+ramo HTTP: `:83` `:92` (200) · `:141` `:195` (500) · `:251` `:317` `:342` `:382` (403 del lab-guard) non
+toccano `ErroreDatiDpa` e **restano com'erano**; **solo `:158` e `:169`** passano dal ramo che guadagna il
+codice. C7 (`:179`) costruisce l'errore ma asserisce **solo lo stato**: gli serve il terzo argomento, non una
+nuova aspettativa.
+🛑 **Si resta su `toEqual`, NON si passa a `toMatchObject`**: se un giorno il codice smettesse di finire nel
+corpo, `toMatchObject` lascerebbe passare la perdita in silenzio. Il senso di questo lavoro è che quella
+perdita faccia rumore.
+
 - [ ] **Passo 8 — Verde e verifica**
 
+🛑 **La verifica del piano era più stretta del raggio del cambiamento.** Il corpo JSON della rotta è cambiato,
+e **nel pre-commit non gira nessun test** (`lint-staged` → `tsc` → `check-ds-compliance` → `check-csrf` →
+`reduced-motion` → `coerenza-documenti` → `salvataggio-installato`: vitest non c'è). Un'asserzione rotta
+passerebbe il commit e scoppierebbe nel Task 4 o 5. Quindi si gira **tutto l'insieme DPA**, non il solo file
+nuovo:
+
 ```bash
-npx vitest run tests/unit/errori-dpa-codice.test.ts
+npx vitest run tests/unit/errori-dpa-codice.test.ts tests/unit/dpa-route.test.ts tests/unit/generate-dpa.test.ts tests/unit/dpa-registro.test.ts
 npx tsc --noEmit
 ```
-**Atteso:** 13 passate · `tsc` **0 errori**.
+**Atteso:** `tsc` **0 errori** · l'insieme DPA tutto verde · il file nuovo **12 passate** (🔄 non 13: il piano
+aveva contato male — 2 + 1 + 6 + 3 = 12).
 
 - [ ] **Passo 9 — Salvare**
 
 ```bash
-git add src/lib/pdf/permessi-dpa.ts src/lib/pdf/errori-dpa.ts src/lib/pdf/generate-dpa.ts src/app/api/clienti/[id]/dpa/route.ts tests/unit/errori-dpa-codice.test.ts
+git add src/lib/pdf/permessi-dpa.ts src/lib/pdf/errori-dpa.ts src/lib/pdf/generate-dpa.ts src/app/api/clienti/[id]/dpa/route.ts tests/unit/errori-dpa-codice.test.ts tests/unit/dpa-route.test.ts
 git commit -F <messaggio fuori dal repo>
 ```
 

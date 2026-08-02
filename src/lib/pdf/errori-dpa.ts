@@ -54,15 +54,32 @@
  *  di questa funzione: `generateDpa` non è della sola rotta DPA, e domani può
  *  essere chiamata da dove quella chiave esterna non dice niente.
  */
+/** I quattro cammini che NON sono guasti del servizio, nominati.
+ *  🛑 Unione CHIUSA di proposito: il compilatore obbliga ogni `throw` a
+ *  scegliere da che parte sta. È lo stesso meccanismo di `emesso_da` in P7 —
+ *  il rumore lo fa `tsc`, non la memoria di chi scrive.
+ *  🔑 Serve perché i due 422 (`LAB_DATI_FISCALI` e `CLIENTE_DATI_FISCALI`)
+ *  portano l'utente in DUE POSTI DIVERSI a rimediare, e distinguerli dal
+ *  TESTO del messaggio sarebbe la mappa fragile che questo file dichiara
+ *  poco sopra di aver evitato — solo spostata di un piano più su. */
+export type CodiceDatiDpa =
+  | 'LAB_DATI_FISCALI'
+  | 'CLIENTE_DATI_FISCALI'
+  | 'LAB_ASSENTE'
+  | 'CLIENTE_ASSENTE'
+
 export class ErroreDatiDpa extends Error {
   /** 404 = il dato a cui la richiesta punta non c'è.
    *  422 = il dato c'è ma non basta per emettere (Partita IVA / Codice Fiscale
    *  mancanti): la richiesta è ben formata, il documento no. */
   readonly stato: 404 | 422
+  /** 🛑 OBBLIGATORIO: senza, il browser non sa dove mandare a rimediare. */
+  readonly codice: CodiceDatiDpa
 
-  constructor(message: string, stato: 404 | 422) {
+  constructor(message: string, stato: 404 | 422, codice: CodiceDatiDpa) {
     super(message)
     this.name = 'ErroreDatiDpa'
     this.stato = stato
+    this.codice = codice
   }
 }

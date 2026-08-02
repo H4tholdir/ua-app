@@ -5,6 +5,7 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { generateDpa } from '@/lib/pdf/generate-dpa'
 import { ErroreDatiDpa } from '@/lib/pdf/errori-dpa'
+import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
 
 // GET /api/clienti/[id]/dpa
 // Genera e scarica il DPA GDPR Art. 28 per il cliente specificato
@@ -19,7 +20,7 @@ export async function GET(
     Object.assign(t, timings)
     if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     if (!context.laboratorioId) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
-    if (!['titolare', 'admin_rete', 'admin_sistema'].includes(context.ruolo ?? '')) {
+    if (!puoEmettereDpa(context.ruolo)) {
       return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
     }
     const guard = assertLabOperativo(context, 'GET')
@@ -67,7 +68,10 @@ export async function GET(
       //    03/08/2026 rispondevano 500, cioè «è rotta UÀ», per una richiesta
       //    che puntava a un dato che non c'è.
       if (e instanceof ErroreDatiDpa) {
-        return NextResponse.json({ error: e.message }, { status: e.stato })
+        // 📌 `codice` è un'AGGIUNTA: chi legge solo `error` continua a funzionare.
+        //    Serve al browser per sapere DOVE mandare a rimediare, senza diramare
+        //    sul testo italiano del messaggio.
+        return NextResponse.json({ error: e.message, codice: e.codice }, { status: e.stato })
       }
       // 🛑 Tutto il resto è 500, NON 400 — e il conto si dice ESATTO, non «la grande maggioranza».
       //    `provato:` `grep -n "throw new" src/lib/pdf/generate-dpa.ts`
