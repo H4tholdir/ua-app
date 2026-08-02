@@ -163,6 +163,10 @@ l'utente passato. `new_data` **contiene la riga intera**, non solo un puntatore.
 
 ## T3 dal vivo — il «chi» c'è — ⚠️ ESEGUITA, non chiudibile oggi sul dato vivo (motivo sotto)
 
+🔄 **CHIUSA nel Task 4, con un'emissione vera autorizzata da Francesco (D152) — v. §10.** Questa
+sezione resta com'era scritta il giorno di Task 3, perché era vera allora: nessuna emissione reale
+era mai passata dalla rotta. §10 non la sostituisce, la segue.
+
 Query **letterale** del brief, in **sola lettura**, nessuna scrittura:
 
 ```sql
@@ -287,14 +291,13 @@ protegge la FK `emesso_da`, quando nient'altro a monte lo impedisce?») — v. �
 | **T1(a)** controllo positivo (regola vecchia) | ✅ PROVATO | 2 righe toccate (≥1 atteso) |
 | **T1(b)** il rifiuto (regola attuale) | ✅ PROVATO | 2 righe lette, 0 toccate — il rifiuto è «0 righe», non un'eccezione |
 | **T2** la traccia esiste | ✅ PROVATO | `audit_log` 0→1, `operation='INSERT'`, `new_data` con la riga intera |
-| **T3** il «chi» dal vivo | ⚠️ ESEGUITA, non chiudibile oggi | 0 righe sul dato vivo — nessuna emissione reale è mai avvenuta da quando esiste `emesso_da`; motivo dichiarato (v. sopra); proxy di comportamento fatto ma dichiarato non equivalente |
+| **T3** il «chi» dal vivo | 🔄 ✅ **CHIUSA nel Task 4** (era: ⚠️ ESEGUITA, non chiudibile oggi) | Emissione VERA autorizzata (D152): `DPA-2026-0003`, `emesso_da` valorizzato con l'utente reale — v. §10 |
 | **T4** cancellazione con `emesso_da` riempito | ⚠️ BLOCCATA (bug reale, fuori mandato) — claim isolata ✅ CONFERMATA | `admin_delete_laboratorio` fallisce PRIMA di arrivare alla sezione DPA/utenti, per una FK diversa (`dentista_id→clienti`); isolando il bug (Follow-up C), l'ordine DPA-prima-di-utenti tiene |
 | **T5** la chiave esterna morde | ✅ PROVATO | 23503 esatto, messaggio incollato, nessun residuo |
 
-**4 prove su 5 pienamente confermate come da brief (T1 conta come una prova a due bracci, entrambi
-verdi); T3 eseguita ma il suo esito reale contraddice l'«atteso» del brief per un fatto sul dato, non
-per un errore di esecuzione; T4 letterale bloccata da un bug indipendente, ma la sua claim di fondo
-verificata isolatamente.**
+**5 prove su 6 pienamente confermate** (T1 conta come una prova a due bracci, entrambi verdi; T3
+chiusa nel Task 4 con un'emissione vera, D152); **T4 letterale resta bloccata da un bug indipendente
+(P28)**, ma la sua claim di fondo è stata verificata isolatamente.
 
 ---
 
@@ -426,6 +429,112 @@ T5 e i due follow-up di F1/F2.
    futuro laboratorio che emetta una DdC/DPA a un dentista. Da decidere: quando e come riordinare la
    funzione (probabile candidato: spostare `DELETE FROM data_processing_agreements` prima del blocco
    `clienti`, o azzerare `dentista_id` con `SET NULL` a monte).
-2. **T3 non ha ancora una riga vera da mostrare.** Per chiuderla per davvero serve o una emissione reale
-   (permanente, fuori dalla mia autorizzazione per questo task) o attendere che accada nel flusso
-   normale dell'app.
+2. ~~T3 non ha ancora una riga vera da mostrare.~~ 🔄 **CHIUSA nel Task 4** (D152, v. §10): emissione
+   reale autorizzata, `DPA-2026-0003`, `emesso_da` valorizzato con l'utente vero.
+
+---
+
+## 10. Task 4 — T3 CHIUSA con un'emissione VERA (D152)
+
+**Autorizzata da Francesco (D152):** «*resta una riga in più, permanente, su un database che contiene
+solo dati finti*» → «sì, emetti davvero». Il motivo per cui valeva la riga in più è scritto in D152
+stesso: i test automatici provano che il codice **mette** il valore nel carico; non provano che la
+colonna in banca dati lo **riceva**.
+
+**Percorso applicativo vero, con una deviazione dichiarata.** `origin/main` (produzione,
+`uachelab.com`) non porta ancora il codice del Task 2 — verificato PRIMA di premere niente:
+
+```
+$ git show origin/main:src/lib/pdf/generate-dpa.ts | grep -c "emesso_da"
+0
+```
+
+Premere il tasto vero su `uachelab.com` avrebbe bruciato `DPA-2026-0003` scrivendo `emesso_da = NULL`,
+cioè avrebbe provato l'esatto contrario di quello che T3 vuole. **Deviazione:** server locale
+(`npm run dev`, ramo `p7-registro-dpa-cancello-traccia`) puntato sullo **stesso database di produzione
+vivo** (`.env.local` → `iagibumwjstnveqpjbwq`, lo stesso progetto usato in tutto questo referto). Stesso
+handler (`src/app/api/clienti/[id]/dpa/route.ts`), stessa autenticazione Supabase reale, stesso
+database: «percorso applicativo vero» è soddisfatto; «in produzione» (cioè sul deploy Vercel) no,
+e la ragione è che premerlo lì non avrebbe provato niente.
+
+**Cliente scelto:** BARALE S.A.S. (`f6e8774d-2618-4d28-9759-b6853dd18c7f`), laboratorio Filippo
+Opromolla (`971061a1-…`) — **zero righe DPA riusabili** prima di premere (verificato in lettura,
+`n_dpa_vivi_riusabili: 0`), Partita IVA presente (requisito di `validateDpaData`).
+
+**PRIMA — istantanea, sola lettura:**
+```
+[{"id":"38390641-…","numero_dpa":"DPA-2026-0002","emesso_da":null,"emesso_at":"2026-08-01 22:56:21…"},
+ {"id":"cea45305-…","numero_dpa":"DPA-2026-0001","emesso_da":null,"emesso_at":"2026-08-01 22:56:06…"}]
+now(): 2026-08-02 15:03:28.404624+00
+audit_log per data_processing_agreements: count = 0
+```
+
+**Il tasto premuto ESATTAMENTE UNA VOLTA**, dalla sessione autenticata reale (cookie di sessione vero,
+non un token fabbricato), via `fetch` same-origin nella pagina del browser già loggata come
+`h4t@live.it` (titolare del laboratorio, verificato `GET /api/clienti` prima di premere — l'elenco
+contiene BARALE):
+
+```
+GET http://localhost:3000/api/clienti/f6e8774d-2618-4d28-9759-b6853dd18c7f/dpa
+→ HTTP 200
+  content-disposition: attachment; filename="DPA-2026-0003.pdf"
+  content-type: application/pdf
+  server-timing: auth;dur=2, db;dur=175, total;dur=978
+  byteLength: 13402
+```
+
+**DOPO — la query LETTERALE del brief, sola lettura:**
+```sql
+SELECT numero_dpa, emesso_da FROM public.data_processing_agreements
+ WHERE emesso_da IS NOT NULL ORDER BY emesso_at DESC LIMIT 1;
+```
+```
+[{"numero_dpa":"DPA-2026-0003","emesso_da":"eb161af4-0232-4e8e-b0e2-3283d551e2fd"}]
+```
+
+**Una riga, non zero.** ✅ **`emesso_da` è arrivato in banca dati**, non solo nel carico preparato dal
+codice — è esattamente la distanza (codice vs colonna) in cui è caduta la DdC gemella (`generated_by`,
+voce **P26**).
+
+**Controllo che sia una riga VERA e NUOVA, non il riuso di una vecchia:**
+- `numero_dpa = 'DPA-2026-0003'` — **non** `DPA-2026-0001`/`DPA-2026-0002` (le due preesistenti):
+  progressivo nuovo, nessun riuso.
+- `dentista_id = 'f6e8774d-…'` (BARALE) — il cliente scelto, non uno degli altri due.
+- `emesso_at = '2026-08-02 15:03:38.296+00'` — 10 secondi dopo lo snapshot PRIMA (`15:03:28`), non un
+  timestamp vecchio.
+- `emesso_da = 'eb161af4-0232-4e8e-b0e2-3283d551e2fd'` — **l'utente che ha premuto**, verificato per
+  nome:
+  ```sql
+  SELECT d.numero_dpa, d.emesso_da, u.ruolo, au.email FROM public.data_processing_agreements d
+  JOIN public.utenti u ON u.id = d.emesso_da JOIN auth.users au ON au.id = u.id
+  WHERE d.numero_dpa = 'DPA-2026-0003';
+  ```
+  ```
+  [{"numero_dpa":"DPA-2026-0003","emesso_da":"eb161af4-…","ruolo":"titolare","email":"h4t@live.it"}]
+  ```
+  `h4t@live.it` è esattamente `TEST_EMAIL`, la sessione con cui si è premuto il tasto.
+
+**Rinforzo gratuito: T2 si ripete sul dato vivo, non su una transazione annullata.** L'`INSERT` reale ha
+acceso il trigger di sorveglianza per davvero:
+```sql
+SELECT id, operation, actor_id, row_id, changed_at,
+       new_data->>'emesso_da' AS new_emesso_da, new_data->>'numero_dpa' AS new_numero_dpa,
+       (SELECT count(*) FROM jsonb_object_keys(new_data)) AS n_chiavi
+FROM public.audit_log WHERE table_name = 'data_processing_agreements' ORDER BY changed_at DESC;
+```
+```
+[{"id":2772,"operation":"INSERT","actor_id":null,"row_id":"20387331-…","changed_at":"2026-08-02 15:03:38.397…",
+  "new_emesso_da":"eb161af4-…","new_numero_dpa":"DPA-2026-0003","n_chiavi":23}]
+```
+`operation='INSERT'` ✅, `new_data->>'emesso_da'` valorizzato ✅, 23 chiavi (riga intera, non un
+puntatore) ✅. **`actor_id: null`** — non è un difetto di questa prova: è **P25 in carne**, la stessa
+ragione per cui D148 ha scelto una colonna sulla riga invece di fidarsi dell'attore del trigger
+(`auth.uid()` torna vuoto perché la scrittura passa dal client di servizio anche quando parte da un
+click umano reale).
+
+**Esito:** T3 ⚠️→**✅ CHIUSA**. Riga permanente lasciata in banca dati per scelta esplicita (D152), come
+autorizzato — non ripulita, non annullata.
+
+| Prova | Esito (aggiornato Task 4) |
+|---|---|
+| **T3** il «chi» dal vivo | ✅ **CHIUSA** — `DPA-2026-0003`, `emesso_da = eb161af4-…` (`h4t@live.it`, titolare), riga nuova non riusata, audit_log 0→1 sul dato vivo |

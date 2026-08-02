@@ -1,8 +1,20 @@
 # Spec — P7: il registro DPA smette di essere riscrivibile da chi dovrebbe vincolare, e comincia a lasciare traccia
 
-**Stato: NON ESEGUITA** — scritta il 04/08/2026, approvata da Francesco in sessione, **nessuna riga di codice ancora scritta**.
-**Decisioni che la fondano:** **D146** (la FASE 1 parte da P7) · **D147** (cancello + traccia, la guardia sulla firma va a P19-b) · **D148** (la traccia deve saper dire anche *chi*).
-**Voce di roadmap:** **P7** · **Fase:** 1 (finire la PWA, D144-D145).
+**Stato: ESEGUITA IN PARTE** — scritta il 04/08/2026, approvata da Francesco in sessione, eseguita nei
+Task 1-4. 🛑 **Non chiusa al 100%, e va detto qui perché la roadmap non può dire ✅ senza che questa
+riga dica altrettanto.** Verdi: **T1** (rifiuto, controllo positivo compreso) · **T2** (traccia,
+`audit_log` 0→1) · **T5** (la chiave esterna morde) · **T3** (il «chi» sul dato vivo — chiusa nel
+Task 4 con un'emissione VERA autorizzata da Francesco, **D152**: `DPA-2026-0003`, `emesso_da`
+valorizzato con l'utente reale, riga permanente lasciata per scelta). **T4 resta NON ESEGUIBILE**:
+bloccata da un difetto preesistente e **indipendente da questa spec** — `admin_delete_laboratorio()`
+cancella `clienti` prima di `data_processing_agreements`, e ogni DPA emesso davvero ha `dentista_id`
+valorizzato con una FK NO ACTION verso `clienti(id)` → 23503 alla cancellazione del laboratorio.
+Riferito in roadmap, non corretto qui (R-E2) → **P28**, FASE 2 (**D153**).
+🔑 **L'assunzione A7 di questa spec (§ sotto) era INCOMPLETA**: dichiarava sicuro l'ordine dei `DELETE`
+avendolo provato **solo su `utenti`** (155 vs 163), mai su `clienti` (130) — una prova su un caso
+presentata come prova sul comportamento. È esattamente come P28 è stato trovato.
+**Decisioni che la fondano:** **D146** (la FASE 1 parte da P7) · **D147** (cancello + traccia, la guardia sulla firma va a P19-b) · **D148** (la traccia deve saper dire anche *chi*) · **D152** (T3 si chiude con un'emissione vera) · **D153** (P28 in roadmap, non riparato qui).
+**Voce di roadmap:** **P7** · **Fase:** 1 (finire la PWA, D144-D145). Referto completo: `docs/roadmap/2026-08-04-p7-referto-prove.md`.
 
 > ⚠️ **Sulla data.** L'orologio della macchina dice **2 agosto**; i documenti di questo progetto seguono la serie del **4 agosto**, e questa spec la tiene. `provato:` `find docs -name "2026-08-04-*"` → è il **settimo** documento della serie (5 in `roadmap/`, 2 in `specs/`).
 
