@@ -33,12 +33,18 @@ l'espressione su cui il **CAD art. 20 co. 1-bis** costruisce tutto. ✅ Davanti 
 è **riscrivibile dalla parte che la prova deve vincolare**, e la finestra per ripararlo senza toccare
 prove vere è **adesso** (2 righe, **0 firmate**).
 
-🔴 **DA DECIDERE — tre domande, che diventeranno la prossima decisione a verbale** (referto §6): ① D128 resta com'è con le condizioni C1-C11,
-o si riguarda la firma avanzata? ② **Esiste il contratto laboratorio↔UÀ?** (il nostro DPA lo **afferma**
-a `DpaTemplate.tsx:210`, il prodotto non ne conserva traccia) ③ si accetta l'**ORDINE** — correzioni di
-testo **prima** di qualunque accettazione, perché dopo costringono a rifare il giro su tutti?
+✍️ **D135 — Francesco ha deciso DUE cose su tre.** **(a)** Il modo di firmare **resta l'accettazione
+tracciata**, con le condizioni C1-C11 del referto. **(b)** **Si accetta l'ORDINE: prima le correzioni di
+TESTO, poi la firma** — le quattro si fanno in un colpo solo, perché ognuna da sola sposterebbe la
+versione, e oggi costano **zero** (0 dentisti hanno accettato).
 
-📌 **TRE salvataggi, TUTTI DA PUBBLICARE, attendono il via libera di Francesco:** `b9111b3e` (il gate
-estetico L2) · `5ce2a904` (D134) · `e4516dc6` (il referto del panel su D128). `main` era a `7d6ee54c`
-a inizio sessione. **Nessuna riga di codice toccata: sono tutti documenti.**
+🔴 **RESTA APERTA la terza domanda, e BLOCCA l'inizio dell'ondata 2: ESISTE il contratto
+laboratorio↔UÀ?** Il DPA che i dentisti scaricano lo **afferma** (`DpaTemplate.tsx:210`, «*per
+contratto*»); il prodotto **non ne conserva traccia**. Da qui dipende se **C1** è una riga di testo da
+riscrivere o un documento da produrre — e C1 è dentro il pacchetto (b). Francesco ha chiesto di
+**rispiegare la domanda**: fatto in chat, attende risposta.
+
+📌 **PUBBLICATO** su autorizzazione di Francesco: `7d6ee54c` → **`7c4a36cb`**, quattro salvataggi (gate
+estetico L2 · D134 · referto del panel su D128 · tre correzioni di rigore). **Nessuna riga di codice
+toccata: sono tutti documenti.**
 ⚠️ L'orologio della macchina dice 2 agosto; i documenti seguono la serie del **4 agosto**.
