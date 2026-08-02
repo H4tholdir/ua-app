@@ -1,7 +1,7 @@
 # Handoff — il salvataggio che non partiva, la spec del contratto, e la roadmap rimessa in ordine
 
 **Per:** la sessione nuova, a contesto pulito.
-**Stato del ramo:** `main` = **`6ca93092`**, albero **pulito**, 🔴 **3 da pubblicare** — v. §0 ②.
+**Stato del ramo:** `main` = **`4674056e`**, albero **pulito**, ✅ **0 da pubblicare** — tutto è in produzione (v. §0 ②).
 **Riferimento misurato ADESSO:** `tsc` **0** · `vitest` **4380 | 19** prove (riverificate alla chiusura; i **375 | 3** file vengono dalla misura di inizio sessione) · `next build` **uscita 0** · **guardia documenti verde** · **guardia salvataggio verde**.
 ⚠️ **Sulla data.** L'orologio della macchina dice **2 agosto**; i documenti seguono la serie del **4 agosto**. Questo handoff la tiene ed è il **secondo** del 4 agosto.
 
@@ -15,10 +15,11 @@
 
 🔑 **E questa volta pesa il doppio**, perché la giornata si è chiusa ratificando che **prima si finisce la PWA** (D144). Sono stati scritti **script** (`scripts/`) e **documenti**: la rete di sicurezza, una spec, il riordino della roadmap. **Utile, ma non è l'applicazione.** Chi legge «sette decisioni e due voci nuove» può credere che la FASE 1 sia iniziata: **non è iniziata**, e non è stata toccata **nessuna** delle sue voci.
 
-### ② 🔴 **Tre salvataggi NON pubblicati**
+### ② ✅ ~~Tre salvataggi NON pubblicati~~ — **CHIUSA subito dopo la chiusura**
 
-`provato:` `git log origin/main..main` → **3** (`81034849` · `32bdf75c` · `6ca93092`).
-I primi due della giornata (`d1a41eda`, `0f5963ee`) **sono** stati pubblicati, con autorizzazione esplicita. **Per questi tre l'autorizzazione non è stata chiesta.** Sono solo documenti — nessun file di `src/` — ma finché non si pubblicano, **la roadmap riordinata e la spec vivono solo su questo Mac**.
+Questa voce era: «*3 da pubblicare, la roadmap riordinata e la spec vivono solo su questo Mac*». **Francesco ha autorizzato e sono stati pubblicati.**
+`provato:` `git push` → `0f5963ee..4674056e`, poi `git log origin/main..main` → **0**, albero **pulito**.
+🔑 **Resta scritta invece di sparire**, perché la §0 racconta anche *come* si è chiusa una cosa: la pubblicazione **non è mai automatica**, si chiede.
 
 ### ③ 🔴 **La spec P19-a non è stata RILETTA da Francesco**
 
@@ -59,7 +60,7 @@ Il **ripristino vero mai provato** e le **11 regole su 115** senza spiegazione �
 | 🧭 **Roadmap rimessa in ordine** | **D144 · D145**. Sezione **ordinatrice in testa** (FASE 1 finire la PWA · FASE 2 distribuire), **senza riscrivere l'archivio** |
 | 🔴 **P24 — il piano Vercel vieta l'uso commerciale** | `verificato alla fonte`, **due documenti**: regole d'uso e **Termini §4** — «*You shall only use the Services under a Hobby plan for your personal or non-commercial use*». UÀ ha **Stripe in produzione** |
 | ✍️ **Sette decisioni** | **D139** il salvataggio parte da solo · **D140** UÀ non esiste come soggetto giuridico · **D141** il testo promette il minimo corretto · **D142** cancellazione piena promessa ora, costruita dopo · **D143** il testo vive nel repository · **D144** prima la PWA poi la distribuzione · **D145** la regola «chi lo vede, e chi costa rifarlo» |
-| **Salvataggi** | `d1a41eda` · `0f5963ee` (**pubblicati**) · `81034849` · `32bdf75c` · `6ca93092` (**da pubblicare**) |
+| **Salvataggi** | `d1a41eda` · `0f5963ee` · `81034849` · `32bdf75c` · `6ca93092` · `4674056e` — **tutti pubblicati** |
 
 ---
 
@@ -85,7 +86,7 @@ Il **ripristino vero mai provato** e le **11 regole su 115** senza spiegazione �
 
 | # | cosa | dove |
 |---|---|---|
-| 🔴 **1** | **Pubblicare i tre salvataggi** — la roadmap riordinata e la spec vivono **solo su questo Mac** | §0 ② |
+| ✅ ~~1~~ | ~~Pubblicare i tre salvataggi~~ — **FATTO**: `git push` → `0f5963ee..4674056e`, **0 da pubblicare** | §0 ② |
 | 🔴 **2** | **FASE 1 non è iniziata.** La prima voce che l'utente incontra è **P17** (lo scarico che fallisce → pagina di codice, zero elementi interattivi); quella che costa di più rifare dopo è **P7** (`provato:` 2 righe, **0 firmate** — la finestra è adesso) | sezione ordinatrice, FASE 1 |
 | 🔴 **3** | **La frase falsa al dentista** — `DpaTemplate.tsx:210`, **1 occorrenza viva**. Con D145 è FASE 1 e **non aspetta più P19** | §0 ④ |
 | 🔴 **4** | **I traguardi V1.9 / V2.0** portano ancora il trigger «Filippo» — dichiarato morto in testa, **vivo in fondo** | §0 ⑤ · righe 639 e 656 |

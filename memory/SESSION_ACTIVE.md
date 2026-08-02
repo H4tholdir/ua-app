@@ -4,7 +4,7 @@
 
 🔴 **La §0 in una riga: nemmeno oggi una riga di codice APPLICATIVO** (`provato:` `git diff 8caadc2c..HEAD --
 src/ supabase/` → vuoto) — e pesa il doppio, perché la giornata si è chiusa ratificando che **prima si finisce
-la PWA** (D144). **La FASE 1 non è iniziata.** Poi: 🔴 **3 salvataggi NON pubblicati** · la **spec P19-a non è
+la PWA** (D144). **La FASE 1 non è iniziata.** Poi: ✅ salvataggi **tutti pubblicati** · la **spec P19-a non è
 stata riletta** da Francesco · la **frase falsa a `DpaTemplate.tsx:210` è ancora viva** (FASE 1, non aspetta
 più P19) · i traguardi **V1.9/V2.0** portano ancora il trigger «Filippo», **dichiarato morto in testa e vivo
 in fondo**.
@@ -20,6 +20,6 @@ vieta l'uso commerciale** (`verificato alla fonte`, Termini §4) — **UÀ così
 📎 Verbale: **centoquarantacinque** decisioni in **cinquantuno** tornate; la prossima è **D146**.
 ⚠️ L'orologio del Mac dice **2 agosto**; i documenti seguono la serie del **4 agosto**.
 
-⏭️ **PRIMA COSA: pubblicare i tre salvataggi.** Poi si esegue la **FASE 1** — **P17** (la più visibile) o
+⏭️ **PRIMA COSA: si esegue la FASE 1** — **P17** (la più visibile) o
 **P7** (la più costosa da rimandare: `provato:` 2 righe, **0 firmate**). ⚡ Mezz'ora: la correzione di
 `DpaTemplate.tsx:210`.
