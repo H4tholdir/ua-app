@@ -51,6 +51,35 @@ tutti di prova**: nessuno da rincorrere.
 clausole che vogliono approvazione specifica) · **contenuto** e ciò che UÀ **NON deve promettere**
 (monito: **D126**) · **dove si attacca** nel prodotto (onboarding, Stripe, cambio di versione).
 
+🔴 **PANEL D136 — DUE REFERTI SU TRE ARRIVATI, e ognuno CORREGGE la decisione. Il terzo (contenuto) è
+ancora in corso; il referto completo si scrive quando arriva.**
+
+**① Il MOMENTO è sbagliato** (verificato da me nel codice): un laboratorio nasce `stato:'trial'`
+(`admin/labs/route.ts:86`) e **in prova tutte le scritture passano** (`lab-guard.ts:55-58`) → fra
+l'ingresso e l'abbonamento c'è una finestra in cui **entrano dati veri di pazienti senza nessun
+contratto**. Il momento giusto è **il primo accesso**, dentro la transazione atomica dell'invito
+(`20260525000002_invite_atomic.sql:20-57`).
+
+**② La macchina dell'ondata 1 NON si riusa** (verificato sul catalogo vivo): il vincolo
+`dpa_emissione_coerente` pretende `dentista_id IS NOT NULL AND tipo_controparte='dentista'` per il ramo
+«emissione completa» → una riga `sub_responsabile` **non può portare numero, percorso e impronte**; e
+l'indice `dpa_emissione_viva_unica` è su `(laboratorio_id, dentista_id, payload_sha256,
+template_versione)` → col dentista NULL **la deduplicazione smette di funzionare in silenzio**.
+➡️ **Tabella nuova, in sola aggiunta. Si copia il modo di fare, non il codice.**
+
+**③ 🔴 CASSAZIONE 20945/2026 — il ritrovamento più pesante, ed è POSTERIORE alla mia conoscenza
+(20 giugno 2026).** Sez. III: in un contratto **fra professionisti** concluso online, **la sola spunta
+della casella NON basta** ad approvare una clausola vessatoria — serve una **firma elettronica anche
+semplice** (la Corte fa l'esempio del **codice usa-e-getta per SMS o email**). ⚠️ **Verifica dichiarata:**
+il PDF della Corte **non si è aperto** (errore di certificato di italgiure); riscontro **verbatim** su
+pubblicazione giuridica indipendente + 9 fonti fra cui Il Sole 24 Ore. 🔑 **L'ASIMMETRIA che vale il
+panel:** l'art. 1341 co. 2 colpisce **solo** tetto di responsabilità, sospensione, rinnovo tacito e foro
+— cioè **le difese di UÀ**. **Il contratto sui dati NON è vessatorio e SOPRAVVIVE.** Quindi in causa UÀ
+resterebbe **legata a tutti i doveri e priva di tutte le difese**, con dati sanitari di mezzo, **senza
+tetto**. ➡️ Struttura giusta: condizioni + DPA con un clic; **le clausole che proteggono UÀ in un secondo
+passaggio separato con codice usa-e-getta**. 🛑 **E «lo fanno Supabase/Vercel/Resend» NON vale**: non
+sono società italiane, l'art. 1341 lì non esiste.
+
 🔴 **LA VOCE È P19.** Francesco: «*no, oggi non firma niente*».
 **UÀ non ha un contratto sulla protezione dei dati con i laboratori che la usano**, e il documento che
 quei laboratori consegnano ai dentisti dice che ce l'ha (`DpaTemplate.tsx:210`). Stessa classe di
