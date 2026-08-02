@@ -1,48 +1,32 @@
-# Sessione attiva — P7 IN PRODUZIONE, chiusa in parte e dichiarata tale
+# Sessione attiva — P7 in produzione, e la deriva delle date chiusa
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/ROADMAP-UFFICIALE.md`, sezione ordinatrice — **la FASE 1 è
-iniziata e P7 è la sua prima voce lavorata**. Spec: `docs/superpowers/specs/2026-08-04-p7-registro-dpa-cancello-traccia-design.md`
-(testa: **ESEGUITA IN PARTE**). Referto delle prove: `docs/roadmap/2026-08-04-p7-referto-prove.md`.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-p7-in-produzione-e-la-deriva-delle-date-handoff.md`** —
+leggilo per intero. 📅 **È il primo documento con la DATA VERA** (D155): si chiama `2026-08-02` perché oggi
+**è** il 2 agosto, e ordinandolo per nome finisce **prima** dei file `2026-08-03/04-*`. **Non è un errore.**
 
-✅ **T3 CHIUSA nel Task 4 (D152):** emissione VERA del DPA via il percorso applicativo reale (stessa
-rotta, stesso database, servito in locale sul ramo perché `origin/main` non ha ancora il codice del
-Task 2 — `git show origin/main:…generate-dpa.ts` → **0** occorrenze di `emesso_da`). `DPA-2026-0003`,
-`emesso_da` valorizzato con l'utente reale, riga permanente lasciata per scelta. Referto:
-`docs/roadmap/2026-08-04-p7-referto-prove.md` §10.
+🔴 **La §0 in una riga: la frase falsa a `DpaTemplate.tsx:210` è ancora viva — TERZO handoff di fila**
+(`provato:` 1 occorrenza). Stavolta pesa di più: è stata **messa sul tavolo** a inizio sessione e il suo costo
+**rimisurato** (mezza giornata, non mezz'ora — nessuno dei 17 controlli la blocca, ma il testo nuovo vuole un
+panel). Poi: **P7 chiusa solo IN PARTE** (T4 non eseguibile, dichiarato ovunque) · la **spec P19-a non è ancora
+stata riletta** (0 marchi, seconda giornata) · l'**archivio resta datato male per decisione** (D155) · le **tre
+cose di Francesco** invariate (**P24 · P20 · D140**).
 
-🔴 **P27 e P28 aperte in roadmap**, entrambe riverificate sul catalogo vivo: **P27** — `schema.sql`
-mostra 1 trigger di sorveglianza su 11 vivi. **P28** — `admin_delete_laboratorio()` cancella `clienti`
-prima di `data_processing_agreements`: un laboratorio con un DPA vero non si può più cancellare (23503)
-— FASE 2, accanto a P21 (**D153**). Distinta dalla voce del 28/07 (quella: sei tabelle mai toccate;
-questa: ordine sbagliato fra due `DELETE` che esistono entrambe).
+🔨 **LA FASE 1 È INIZIATA** — prima riga di codice applicativo in tre giornate. **P7 è in produzione**
+(`main` **`45e89a62`**, CI verde, rilascio riuscito, `uachelab.com` 200; verificato che il codice **pubblicato**
+porti il cambiamento, non solo che il rilascio sia andato). Tre pezzi: regola di riga a **sola lettura** ·
+registro delle modifiche **da 10 a 11** tabelle · colonna **`emesso_da`** con parametro **obbligatorio**.
+🔬 **Prove sul database vivo: T1 ✅** (col controllo positivo: regola vecchia 2 righe toccate, nuova 0) ·
+**T2 ✅** · **T3 ✅** sul dato vero (`DPA-2026-0003`) · **T5 ✅** · **T4 🔴 non eseguibile** (bloccata da **P28**).
 
-🛑 **P7 NON è ✅:** T1 · T2 · T5 · T3 verdi, **T4 non eseguibile** (bloccata da P28). Scritto allineato
-sia nella voce di roadmap sia in testa alla spec (guardia verde).
+🔴 **QUATTRO voci nuove, tutte da ritrovamenti FUORI mandato (R-E2): P25 · P26 · P27 · P28** — fra cui:
+un laboratorio che ha emesso un contratto **non si può più cancellare** (P28, preesistente dal 02/07).
 
-✅ **FASE 7:** `tsc` 0 · `vitest` **4382 | 19** (375 file) · `next build` 0, 81 rotte. Guardia coerenza
-documenti verde.
+📅 **D155 — la deriva delle date è chiusa.** `provato:` tre server indipendenti + `sntp` → **l'orologio era
+giusto, i documenti sbagliati di +2 giorni**; i `2026-08-03-*` sono dell'1 agosto, i `2026-08-04-*` del 2.
+Regola in **`CLAUDE.md` §0F**; l'archivio **non** è stato rinominato, resta la tabella di conversione.
 
-🚀 **UNITO E PUBBLICATO (D154):** `main` = **`5b2a7481`**, avanzamento pulito (fast-forward), 15 file.
-🔑 **Pubblicare era più sicuro che aspettare:** la metà rischiosa (regola a sola lettura + traccia) era
-**già viva in produzione** dalle **15:22 di oggi**; il merge ha consegnato **solo TypeScript e documenti**.
-Lo scarto era il danno vero — il codice pubblicato chiamava `generateDpa` con **due** argomenti, quindi
-ogni emissione da `uachelab.com` scriveva `emesso_da` **NULL**: le stesse righe mute che **P26** documenta
-sulla DdC.
+📌 `tsc` **0** · `vitest` **4382 | 19** (375 file) · `next build` **0** · due guardie verdi.
+📎 **155** decisioni in **55** tornate (**D146-D155** oggi); la prossima è **D156**.
 
-📅 **D155 — LA DERIVA DELLE DATE È CHIUSA (regola in `CLAUDE.md` §0F).** `provato:` `date` → **2 agosto
-18:19 CEST**, e **tre server indipendenti** (Google · GitHub · Supabase) dicono lo stesso istante; `sntp`
-→ **+0,09 s**. **L'orologio era giusto: erano i DOCUMENTI a essere sbagliati.** `provato:` `git log
---diff-filter=A` su ~40 file → i `2026-08-03-*` scritti l'**1 agosto**, i `2026-08-04-*` il **2 agosto**:
-deriva **costante di +2 giorni**, che sarebbe cresciuta di **un giorno a ogni sessione**.
-🔑 **La regola: prima di dare un nome a un documento si esegue `date`** — mai dedurla dall'handoff
-precedente. 📌 **L'archivio NON è stato rinominato** (~40 file + centinaia di citazioni): resta la tabella
-di conversione in §0F. **Dal prossimo documento in poi, la data è vera.**
-
-⚠️ **La correzione che ha innescato tutto, e vale oltre P7:** la revisione finale aveva scritto «*gira in produzione
-**dal 04/08**, senza incidenti*», e chi riferiva l'ha ripetuto. `provato:` `date` → **2 agosto 17:50**;
-il commit della migration → **02/08 15:22**. Sono **due ore e mezza**, non giorni — e in un intervallo in
-cui **nessun laboratorio vero ha usato l'app**: non è robustezza, è assenza di occasioni di rompersi.
-🔑 **In questo progetto la serie dei documenti corre AVANTI all'orologio: una data di documento usata per
-misurare quanto tempo è passato sbaglia sempre nella direzione che rassicura.** Scritto nel referto §Nota.
-
-📎 **155** decisioni in **55** tornate; la prossima è **D156**.
+⏭️ **PRIMA COSA: si prosegue la FASE 1** — ⚡ la correzione di `DpaTemplate.tsx:210` (mezza giornata) oppure
+**P17** (⚠️ pagina in produzione: trascina §0B per intero **più** la FASE 9b).
