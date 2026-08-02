@@ -24,6 +24,7 @@ Il panel è **materiale di lavoro**, non una fonte. Tutto ciò che segue in ques
 | protezione del registro DPA | catalogo vivo (`pg_class`, `pg_policy`) | ✅ confermato il difetto — 🔄 **ma lo STRATO era sbagliato: v. sotto** |
 | il contratto laboratorio↔UÀ non esiste nel prodotto | `grep` su `src/` + catalogo vivo | ✅ confermato |
 | il testo del contratto afferma che esiste | `DpaTemplate.tsx:210`, letto | ✅ confermato verbatim |
+| il Codice privacy non pone requisiti di forma | Normattiva, interrogazione mia sulle tre espressioni | ⚠️ **concorde con l'advisor, ma NON esaustivo**: v. §2 |
 
 ### 🔄 La correzione — e vale come lezione, non come rimprovero
 
@@ -70,7 +71,9 @@ Un advisor ha dato per **bloccante** che «*i permessi sulla tabella permettono 
 
 ## 2. La risposta sulla forma, in due righe
 
-**① Davanti al Garante, in ispezione: REGGE.** L'Art. 28(9) chiede un atto **scritto**, e l'unica cosa che l'EDPB esclude sono gli accordi **non scritti** (§101). Un PDF conservato più un'accettazione registrata **è** un atto scritto in forma elettronica. Le firme l'EDPB le **raccomanda**, non le impone. Il Codice privacy italiano non aggiunge nulla: `provato:` sul testo vigente esportato da Normattiva, «forma scritta» **0 occorrenze**, «documento informatico» **0**, «firma elettronica» **0**.
+**① Davanti al Garante, in ispezione: REGGE.** L'Art. 28(9) chiede un atto **scritto**, e l'unica cosa che l'EDPB esclude sono gli accordi **non scritti** (§101). Un PDF conservato più un'accettazione registrata **è** un atto scritto in forma elettronica. Le firme l'EDPB le **raccomanda**, non le impone.
+
+Il **Codice privacy italiano non aggiunge nulla** — e questo è un fatto **negativo**, cioè il tipo che è più facile affermare che provare, quindi va detto come sta. **Due strade indipendenti, stessa risposta:** l'advisor ha esportato da Normattiva il testo vigente (~405.000 caratteri) e vi ha cercato «forma scritta» → **0**, «documento informatico» → **0**, «firma elettronica» → **0**; io ho interrogato Normattiva per conto mio, con le stesse tre espressioni, e ho avuto **nessuna occorrenza** più la conferma che l'**art. 28 del Codice è abrogato dal D.Lgs. 101/2018**. ⚠️ **Il limite, dichiarato:** non posso certificare che la pagina che ho letto contenesse il testo **integrale**. Due strade concordi non sono una prova esaustiva — sono due strade concordi.
 
 **② In causa, se il dentista nega di aver accettato: NON regge da solo.** Il CAD art. 20 co. 1-bis apre una porta e ne chiude un'altra. La porta stretta — valore di scrittura privata — chiede una firma qualificata/avanzata **oppure** un processo con «**previa identificazione informatica del suo autore**». D128 non identifica nessuno: chi ha il link scrive il nome che vuole. Quindi si finisce nella porta larga: «**liberamente valutabili in giudizio, in relazione alle caratteristiche di sicurezza, integrità e immodificabilità**».
 
@@ -158,7 +161,7 @@ L'Art. 28(3) impone che il contratto stipuli «**gli obblighi e i diritti del ti
 
 ---
 
-## 6. Che cosa deve decidere Francesco — sarà **D135**
+## 6. Che cosa deve decidere Francesco — sarà la PROSSIMA decisione a verbale
 
 Il panel **non ratifica**: propone. Le tre domande, in ordine:
 

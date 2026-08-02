@@ -188,6 +188,16 @@ l'idratazione è un altro. → **da aprire come voce propria.**
   tutti gli `ErroreDatiDpa`).
 - **Non ha misurato su un dispositivo vero**, solo su emulazione di viewport. I bersagli tappabili sono
   misurati in pixel CSS, che è ciò che la regola dei 44 px chiede.
+- 🛑 **NON esiste il giro «dopo», e lo strumento che ha fatto il «prima» NON sopravvive.** Tutti gli
+  scatti si chiamano `prima-*`, il che promette un `dopo` che oggi non c'è: i due ❌ sono stati
+  **portati come decisione** (P16 → **D134**, si deferisce) e **aperti come voce** (P17), non corretti.
+  Lo script che ha prodotto misure e scatti stava in `scripts/tmp/`, che è **ignorato da git**: non è
+  nel repo e non ci sarà. **Quando l'ondata 2 correggerà P17 su questa stessa superficie, il giro
+  «dopo» va riscritto.** La ricetta, perché non si riparta da zero: due studi (uno **con** emissione,
+  uno **mai emesso**) × 390·768·1280 × chiaro·scuro; accesso al banco con un link monouso; il tema si
+  fissa scrivendo `ua-tema` nella memoria del browser, non affidandosi al sistema; e 🔑 **la sonda dei
+  contrasti misura il fondo EFFETTIVO risalendo dall'elemento stesso** — non `--bg`, e non partendo dal
+  padre, o il tasto rosso risulta 1,32 anziché 5,30.
 
 ---
 

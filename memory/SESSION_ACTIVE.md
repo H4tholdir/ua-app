@@ -19,7 +19,7 @@ scelto fra tre col gate in mano: **(A)** allineare i token a v3 · **(B) esclusa
 lo studio dentistico** e **il numero che rende dimostrabile l'emissione**. ✅ Ragionevole perché
 l'ondata di migrazione porta i valori v3 **per costruzione**. ⚠️ Nodo per quell'ondata: `#928778` sta a
 **4,06 sull'elevato `#2C2A27`**. 📌 Se la migrazione slitta, si riapre (A) — col suo panel.
-**Verbale: 134 decisioni in 46 tornate; la prossima è D135.**
+**Verbale: 134 decisioni in 46 tornate.**
 
 🆕 **Aperte:** **P17** (lo scarico che fallisce mostra `{"error":"…"}`, zero elementi interattivi) ·
 **P18** (idratazione disallineata su `PortaleLinkButtons`, fa divergere il link mandato al dentista).
@@ -33,10 +33,12 @@ l'espressione su cui il **CAD art. 20 co. 1-bis** costruisce tutto. ✅ Davanti 
 è **riscrivibile dalla parte che la prova deve vincolare**, e la finestra per ripararlo senza toccare
 prove vere è **adesso** (2 righe, **0 firmate**).
 
-🔴 **DA DECIDERE — sarà D135, tre domande** (referto §6): ① D128 resta com'è con le condizioni C1-C11,
+🔴 **DA DECIDERE — tre domande, che diventeranno la prossima decisione a verbale** (referto §6): ① D128 resta com'è con le condizioni C1-C11,
 o si riguarda la firma avanzata? ② **Esiste il contratto laboratorio↔UÀ?** (il nostro DPA lo **afferma**
 a `DpaTemplate.tsx:210`, il prodotto non ne conserva traccia) ③ si accetta l'**ORDINE** — correzioni di
 testo **prima** di qualunque accettazione, perché dopo costringono a rifare il giro su tutti?
 
-📌 `main` = `7d6ee54c` a inizio gate; il gate è salvato in `b9111b3e` (**non pubblicato**, attende via libera).
+📌 **TRE salvataggi, TUTTI DA PUBBLICARE, attendono il via libera di Francesco:** `b9111b3e` (il gate
+estetico L2) · `5ce2a904` (D134) · `e4516dc6` (il referto del panel su D128). `main` era a `7d6ee54c`
+a inizio sessione. **Nessuna riga di codice toccata: sono tutti documenti.**
 ⚠️ L'orologio della macchina dice 2 agosto; i documenti seguono la serie del **4 agosto**.
