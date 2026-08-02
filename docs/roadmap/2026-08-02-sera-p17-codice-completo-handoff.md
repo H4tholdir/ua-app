@@ -1,5 +1,18 @@
 # Handoff — P17: il codice è scritto e verde, ma la pagina nessuno l'ha ancora GUARDATA
 
+> 🔄 **SUPERATO NELLA §0, il 02/08/2026 in serata — si legge PRIMA del resto.**
+> **Il Task 5 è stato ESEGUITO:** collaudo dal vivo (documento **scaricato davvero**, nome
+> **`DPA-2026-0001.pdf`**, **nessun numero bruciato**) e **FASE 9b percorsa** — 8 stati × 390·768·1280 ×
+> chiaro·scuro, scatti e misure in `docs/design/screenshots/2026-08-02-p17/`, referto in
+> `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`.
+> ✅ **Le QUATTRO cose di §0 ② sono state raccolte tutte e quattro:** il bordo `--t3` **corretto**
+> (ed erano **quattro** comandi, non tre) · l'altezza 34px → **40px, D167** · il fondo scuro del «guasto»
+> **misurato e deferito col numero** · «Ricarico…» in `role="alert"` **corretto** (`aria-atomic="false"`).
+> 🛑 **Resta vero tutto il resto**, §0 ③ ④ ⑤ ⑥ compresi, e resta vero che **il ramo non è unito**.
+> 🔑 **Questa riga sta qui e non solo altrove** perché quando due documenti si contraddicono vince quello
+> letto per primo: un handoff che continua a dire «*nessuno ha guardato la pagina*» manderebbe la sessione
+> successiva a rifare un gate già fatto.
+
 **Per:** la sessione nuova, a contesto pulito.
 **Stato del ramo:** 🛑 **NON `main`.** Si lavora su **`p17-scarico-che-fallisce`** = **`299043ed`**, albero
 **pulito**, **15 salvataggi da pubblicare**. ✅ **NIENTE di questo è in produzione**, ed è voluto.

@@ -67,17 +67,28 @@ function Icona({ tipo }: { tipo: TipoAvviso }) {
 const stileAzione = {
   display: 'inline-flex',
   alignItems: 'center',
-  height: '34px',
+  /* 🔄 34 → 40 al gate FASE 9b del 02/08/2026 — **D167**, scelta di Francesco.
+   *  Il mockup approvato diceva 34, di proposito, per distinguere il comando di
+   *  rimedio dal tasto principale (44). `misurato:` 34 rispetta WCAG 2.5.8 AA
+   *  (che chiede 24 × 24) ma non la regola di casa (§0B: ≥ 44), e questa app si
+   *  tocca IN PIEDI AL BANCO, col pollice. 40 è il compromesso scelto: più
+   *  comodo da premere, e ancora visibilmente più piccolo del principale — la
+   *  gerarchia che il mockup voleva resta leggibile. */
+  height: '40px',
   marginTop: '8px',
   padding: '0 12px',
   borderRadius: '8px',
-  // 📌 `--t3` qui è il BORDO, non un testo: il vincolo «ogni testo nuovo su
-  //    `--t1`» resta intatto e P16 non si riapre. È il mockup approvato
-  //    (`.blocco .azione`). ⚠️ `misurato:` come confine di un elemento
-  //    premibile dà 4,49:1 in chiaro e 1,72:1 in SCURO, sotto il 3:1 che
-  //    WCAG 1.4.11 chiede al bordo di un comando. Riferito al gate FASE 9b
-  //    del Task 5 — non corretto qui, perché è il disegno approvato.
-  border: '1px solid var(--t3, #6B5C51)',
+  // 📌 Questo è il BORDO, non un testo: il vincolo «ogni testo nuovo su `--t1`»
+  //    resta intatto e P16 non si riapre.
+  // 🔄 CORRETTO al gate FASE 9b del 02/08/2026. Era `var(--t3)`, cioè il valore
+  //    del mockup approvato: `misurato:` in CHIARO 4,49:1 ✅, ma in SCURO
+  //    **1,71:1** sul fondo ambra e **2,16:1** sul fondo rosso, sotto il 3:1 che
+  //    WCAG 1.4.11 chiede al confine di un comando — e qui il bordo è l'UNICA
+  //    cosa che delimita il tasto, perché il fondo è trasparente.
+  //    `--brd-cmd` vale esattamente `--t3` in chiaro (l'aspetto approvato non
+  //    cambia di un pixel) e in scuro il valore che v3 ha già scelto per questo
+  //    stesso difetto: 3,53:1 sull'ambra, 4,45:1 sul rosso, 4,61:1 sulla card.
+  border: '1px solid var(--brd-cmd, #6B5C51)',
   background: 'transparent',
   color: 'var(--t1, #1C1916)',
   fontFamily: 'DM Sans, sans-serif',
@@ -92,6 +103,19 @@ export function BloccoAvviso({ tipo, titolo, testo, azione }: Props): ReactEleme
   return (
     <div
       role="alert"
+      /* 🔄 AGGIUNTO al gate FASE 9b del 02/08/2026, e non è un dettaglio di
+       *  targa: `role="alert"` porta con sé `aria-atomic="true"` per difetto
+       *  (ARIA 1.2), cioè «se cambia una parola, rileggi TUTTO il riquadro».
+       *  Il tasto qui dentro cambia etichetta mentre lavora («Ricarica» →
+       *  «Ricarico…», `BloccoAvvisoRicarica`), quindi a ogni pressione un
+       *  lettore di schermo rileggerebbe titolo e testo per intero — e succede
+       *  a chi è già fermo davanti a un guasto. Con `false` si annuncia solo
+       *  ciò che è cambiato.
+       *  ✅ NON indebolisce la comparsa: quando il blocco viene INSERITO, la
+       *     cosa cambiata è il blocco intero, e viene letto tutto lo stesso.
+       *  ⚠️ `non provato con un lettore di schermo vero`: qui si segue la
+       *     specifica, non una misura. */
+      aria-atomic="false"
       style={{
         display: 'flex',
         gap: '10px',

@@ -180,7 +180,12 @@ export function ScaricaDpaButton({ clienteId, mancanza }: Props) {
           ...stileTasto,
           background: inCorso ? 'var(--t3, #6B5C51)' : mancanza ? 'transparent' : 'var(--primary, #D90012)',
           color: mancanza ? 'var(--t1, #1C1916)' : '#fff',
-          border: mancanza ? '1px solid var(--t3, #6B5C51)' : 0,
+          /* 🔄 `--brd-cmd` e non `--t3`, corretto al gate FASE 9b del 02/08/2026:
+             quando il tasto è inerte il fondo è trasparente, quindi il bordo è
+             l'UNICA cosa che lo delimita — e `--t3` in scuro dava 2,24:1 contro
+             il 3:1 di WCAG 1.4.11. In chiaro `--brd-cmd` vale esattamente `--t3`:
+             l'aspetto approvato non cambia. La nota per intero: `globals.css`. */
+          border: mancanza ? '1px solid var(--brd-cmd, #6B5C51)' : 0,
           boxShadow: inerte ? 'none' : 'var(--sh-red)',
           cursor: inCorso ? 'progress' : mancanza ? 'not-allowed' : 'pointer',
         }}

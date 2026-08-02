@@ -1,30 +1,27 @@
-# Sessione attiva — P17: il codice è scritto e verde, ma nessuno ha ancora GUARDATO la pagina
+# Sessione attiva — P17 è finita: il cancello, stavolta, ha scattato PRIMA del merge
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-02-sera-p17-codice-completo-handoff.md`** — leggilo per intero.
-📅 **Secondo handoff del 2 agosto**, dopo `2026-08-02-p7-in-produzione-e-la-deriva-delle-date-handoff.md`.
-⚠️ Si chiama «sera» perché ordinato per nome `p17` finirebbe **prima** di `p7` (`1` < `7`).
+🚪 **PUNTO DI RIPRESA: `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`** — il referto
+del gate, che dice che cosa è stato guardato e che cosa resta deferito.
+⏭️ **La cosa da fare: unire il ramo `p17-scarico-che-fallisce` — 🛑 solo se Francesco lo autorizza.**
+🛑 **Ancora NON su `main`: niente di P17 è in produzione.**
+⚠️ **L'handoff `docs/roadmap/2026-08-02-sera-p17-codice-completo-handoff.md` è SUPERATO nella sua §0**
+(dice che il gate non è stato fatto): porta in testa la riga che lo corregge.
 
-🛑 **NON siamo su `main`.** Ramo **`p17-scarico-che-fallisce`** = **`299043ed`**, albero pulito,
-**15 salvataggi da pubblicare**. ✅ **Niente di P17 è in produzione**, ed è voluto (**D166**).
+✅ **Collaudo dal vivo:** scaricato **davvero**, e il nome che arriva è **`DPA-2026-0001.pdf`** — il ripiego
+`contratto-dpa.pdf` NON compare. `provato:` **nessun numero bruciato** (registro prima e dopo: 3 → 3).
+Tasto inerte davvero inerte · blocco ② senza tasti (D165) · un **tecnico** vero non vede il tasto e vede
+il resto (D158 · D160).
 
-🔴 **La §0 in una riga: P17 NON È FINITA — il gate estetico (FASE 9b) e il collaudo dal vivo NON sono stati
-fatti.** `provato:` nessuna cartella scatti per P17. 🛑 **Il ramo non si unisce senza**: su questa stessa
-superficie quel cancello è già stato saltato una volta. E **quattro rilievi** sono stati rimandati proprio a
-quel gate (bordo `--t3` ×3 · altezza 34px · fondo scuro del «guasto» · «Ricarico…» in `role="alert"`): **se il
-gate non li raccoglie uno per uno, spariscono.**
+✅ **FASE 9b percorsa:** 8 stati × 3 formati × 2 temi, tre giri (`prima` · `dopo` · `finale`).
+Referto `docs/design/audit-ui-ux/LIVELLO-2-2026-08-02-p17-scarico-dpa-ESITI.md`, scatti in
+`docs/design/screenshots/2026-08-02-p17/`.
 
-🔨 **Fatto: P17 scritta per intero** — codice d'errore su unione chiusa · `BloccoAvviso` riusabile (non sa di
-DPA) · `ScaricaDpaButton` che **conserva il nome del file** · la pagina legge ruolo e dati del laboratorio, e
-la riga «ultima emissione» dice **tre** cose invece di due. **5 esecutori freschi (R-E1), 17 difetti del piano
-trovati, nessuno arrivato al codice.**
+🔑 **Le QUATTRO cose rimandate al gate raccolte tutte:** bordo dei comandi in scuro (1,71-2,24:1 → 3,53-4,61:1,
+token nuovo `--brd-cmd`, **chiaro invariato**; ed erano **quattro** comandi, non tre) · altezza 34 → **40**
+(**D167**) · fondo scuro del «guasto» **deferito col numero** · «Ricarico…» in `role="alert"` corretto con
+`aria-atomic="false"`.
 
-✍️ **Undici decisioni, D156-D166.** 🛑 **D156: nessuno usa questa PWA finché non si distribuisce** → la frase
-falsa di `DpaTemplate.tsx:210` è **FASE 2** (P19-d), non più FASE 1. **«In produzione» ≠ «qualcuno lo usa».**
-🆕 **Due voci nuove: P29** (una parola, due colori: `amber` nei token ≠ `--amber` nel CSS) · **P30** (la scheda
-del dentista **non ha una pagina di modifica** — un tasto approvato sarebbe stato morto, **D165**).
+📌 `tsc` **0** · `vitest` **4439 | 19** (379 file) · `next build` **0** · guardia **verde**.
+📎 **167** decisioni in **57** tornate; la prossima è **D168**.
 
-📌 `tsc` **0** · `vitest` **4439 | 19** (379 file) · `next build` **0** · due guardie verdi — misurati in
-chiusura. 📎 **166** decisioni in **56** tornate; la prossima è **D167**.
-
-⏭️ **PRIMA COSA: il Task 5 del piano** `docs/superpowers/plans/2026-08-02-p17-scarico-dpa.md` — collaudo dal
-vivo → FASE 9b → BP-1 → merge **solo se Francesco autorizza**.
+⏭️ **Dopo il merge: P30** (la pagina di modifica del dentista, **D165**) **o il resto della FASE 1.**
