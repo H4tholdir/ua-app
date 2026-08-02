@@ -78,7 +78,15 @@ export async function GET(
       },
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Errore generazione PDF'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    // P13 (03/08/2026) — lo stato era già giusto (500: ha sbagliato il servizio);
+    // cambia il MESSAGGIO. `err.message` usciva grezzo verso chi scarica, e a
+    // differenza del DPA qui NON c'è nessuna garanzia a monte che quei testi
+    // siano curati: da `generateCedolinoTecnico` può risalire il testo di un
+    // guasto del database. Il dettaglio va nei log, dove lo legge chi ripara.
+    console.error('[cedolino] generazione fallita:', err)
+    return NextResponse.json(
+      { error: 'Non è stato possibile generare il documento (cedolino). Riprova fra poco.' },
+      { status: 500 },
+    )
   }
 }

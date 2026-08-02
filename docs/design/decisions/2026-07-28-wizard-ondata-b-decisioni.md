@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantatreesima tornata (D174: P30 — tre varianti disegnate e portate alla soglia della firma, con i contrasti misurati)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantaquattresima tornata (D175: P13 — le rotte dei documenti si mettono d'accordo su chi ha sbagliato)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettantaquattro decisioni in sessantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettantacinque decisioni in sessantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1205,3 +1205,36 @@ inventato costa quanto uno vero, perché manda a riparare ciò che è già a pos
 🛑 **Che cosa resta NON deciso, e aspetta Francesco** (§5 del documento): quale variante · se il salvataggio
 è subito o alla fine · se i campi oggi non correggibili (tecnico predefinito, IBAN, i tre interruttori) entrano
 · se la pagina ha un indirizzo suo `/clienti/[id]/modifica` come il lavoro.
+
+---
+
+### Sessantaquattresima tornata — D175: chi ha sbagliato, e chi ha diritto di saperlo
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** Su ramo, non pubblicata (**D169**). Il mandato
+> chiedeva un **piano scritto prima** per le voci a raggio largo: `scripts/tmp/PIANO-P13.md`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D175** | 🔢 **QUANDO LA GENERAZIONE DI UN DOCUMENTO FALLISCE, LA RISPOSTA È `500` — E IL FATTO INTERNO NON ESCE.** Cinque rotte allineate al modello che era già in casa | scelta **mia**, e non è stata libera: **il modello esisteva già** (`scheda-fabbricazione` faceva **500 + testo fisso**). La domanda vera non era «quale stato scegliamo», era **perché quattro rotte facevano diverso** | 🔑 **Lo stato HTTP è un'affermazione su CHI ha sbagliato.** `400` dice «hai sbagliato **tu**», `500` dice «ho sbagliato **io**»: quattro rotte prendevano i guasti della generazione — il database che non risponde, un modello che esplode — e li raccontavano come colpa di chi aveva premuto il tasto. ✅ **E lo stesso gesto chiude un SECONDO difetto che stava sulla stessa riga:** `{ error: e.message }` mandava a chi scarica il testo del guasto interno. Ora esce una frase fissa e il dettaglio va **nei log del server**, cioè **dove serve a chi ripara** invece che davanti a chi non può farci niente |
+| **D175-bis** | 🛑 **IL DPA NON SI ALLINEA, E NON È UN'ECCEZIONE DIMENTICATA** | stessa origine | Il DPA tiene `e.message`, e la sua ragione è **scritta e verificata nel suo file**: lì arrivano solo testi **fissi e curati** (chiusi a monte in `generate-dpa.ts`) e il client dirama su `status` e `codice`, **mai** su `error`. 🔑 **Allinearlo «per coerenza» sarebbe stato disfare una decisione presa, senza il suo panel** — e la coerenza che si ottiene cancellando una ragione non è coerenza, è pareggio |
+
+🔑 **Tre cose che questa tornata insegna, e nessuna riguarda gli stati HTTP:**
+
+**① L'elenco era di nuovo incompleto — la terza volta in una notte.** La voce diceva tre rotte più il DPA;
+`provato:` `grep -rln "application/pdf" src/app/api` → **sette**. Mancavano **etichetta**, **IFU** e
+**scheda di fabbricazione** — e proprio quest'ultima era **il modello da copiare**. ⚠️ **Cioè: non
+censire non fa solo perdere lavoro da fare, fa perdere la soluzione già trovata.**
+
+**② Due difetti sulla stessa riga si toccano una volta sola.** Lo stato sbagliato e il messaggio che esce
+stavano nella stessa `return`. Correggerne uno solo avrebbe voluto dire riaprire quel file una seconda
+volta — e lasciare in piedi, nel frattempo, **il peggiore dei due**. Stessa forma di **D172**, dove il terzo
+pezzo era ciò che rendeva vivi i primi due.
+
+**③ Il rischio si misura PRIMA, non si spera.** `provato:` nessuna prova esistente verificava quei `400`
+(`grep "toBe(400)"` → zero righe) e **nessun client dirama** sullo stato di queste rotte. Erano le due
+assunzioni su cui poggiava tutto il piano, ed erano scritte come **da provare**, non come vere.
+
+⚠️ **E la prova che vale è la seconda metà.** Delle 15 prove, quelle sullo stato sono la parte facile: una
+prova che guarda solo il numero `500` **passerebbe lasciando in piedi il difetto peggiore**. Quelle che
+contano verificano che il testo interno **non compaia nel corpo**. `provato:` prima della correzione, **9
+su 15 rosse** — 4 sullo stato e 5 sul messaggio.

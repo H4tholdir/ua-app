@@ -43,7 +43,16 @@ scuro (un tasto non eredita il colore del testo; **l'occhio l'aveva saltato**) �
 il componente vero scrive a 21px, il disegno a 17 — **era il disegno a essere diverso da lui**. **D174 · D174-bis.**
 ❓ **D-Q4** (quale variante + 3 sotto-domande) · **D-Q5** (le etichette in scuro).
 
+✅ **P13 FATTA** (era «solo se resta tempo vero») — ramo `p13-chi-ha-sbagliato`, col **piano scritto prima**
+(`scripts/tmp/PIANO-P13.md`). ⚠️ **Le rotte erano SETTE, non quattro** — terza volta in una notte che un
+elenco «completo» non lo era, e stavolta fra le mancanti c'era **il modello da copiare**
+(`scheda-fabbricazione`, già 500 + testo fisso). Quattro rotte da **400 a 500** (`400` diceva «hai sbagliato
+tu» per un guasto di UÀ) e **cinque** smettono di mandare `e.message` a chi scarica — **P11 da un'altra
+strada**. 🛑 Il DPA **non** si allinea: la sua ragione è scritta e verificata. **15 prove**; `provato:` prima
+erano **9 su 15 rosse**. **D175 · D175-bis.**
+
+📌 FASE 7 su P13: `tsc` **0** · `vitest` **4481 passate | 19 saltate** (383 file) · `next build` **0**.
 📌 FASE 7 su P18: `tsc` **0** · `vitest` **4466 passate | 19 saltate** (382 file) · `next build` **0**.
-⚠️ **I quattro rami sono IMPILATI** (main → p15 → p9 → p23 → p18 → p30), non indipendenti: unire l'ultimo
+⚠️ **I quattro rami sono IMPILATI** (main → p15 → p9 → p23 → p18 → p30 → p13), non indipendenti: unire l'ultimo
 porta dentro tutti. Scostamento dal mandato, dichiarato nell'handoff.
-📎 **174** decisioni in **63** tornate; la prossima è **D175**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
+📎 **175** decisioni in **64** tornate; la prossima è **D176**. 🛌 `caffeinate` PID 41560 — spegnerlo alle 07:00.
