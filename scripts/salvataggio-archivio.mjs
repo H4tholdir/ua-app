@@ -89,16 +89,32 @@ const PER_PAGINA = 1000
  *  quindi il difetto NON mordeva ancora, e non avrebbe avvisato quando iniziava.
  *  Le foto cliniche i 1000 li raggiungono.
  *
- *  🔑 La condizione d'arresto è «la pagina è tornata CORTA», non «la pagina è
- *  vuota»: fermarsi solo sul vuoto costa una richiesta in più per ogni cartella,
- *  ma soprattutto un archivio che restituisse meno del richiesto senza essere
- *  finito ci farebbe girare a vuoto. Se la pagina è piena si chiede la prossima —
- *  e nel caso limite (totale multiplo esatto di 1000) l'ultima richiesta torna
- *  vuota e chiude il giro.
+ *  🔑 LA CONDIZIONE D'ARRESTO È «LA PAGINA È VUOTA», non «la pagina è corta» —
+ *  e la scelta è stata CAMBIATA in revisione, perché la prima era fragile nello
+ *  stesso identico modo del difetto che questa funzione ripara.
+ *    · «mi fermo se ne tornano meno di 1000» presuppone che l'archivio dia
+ *      SEMPRE il massimo quando ce ne sono altri. È il comportamento normale di
+ *      un'API a pagine, ma non è garantito da nessuna parte, e qui NON è provato
+ *      contro l'archivio vero: `provato:` la cartella più piena ha 20 file, e una
+ *      prova che non supera il limite non dice niente su cosa succede sopra.
+ *      Se un giorno l'archivio ne restituisse 800 pur avendone altri, ci
+ *      fermeremmo a 800 — e il salvataggio si dichiarerebbe RIUSCITO. Cioè
+ *      esattamente P23, di nuovo, con un numero diverso.
+ *    · «mi fermo quando non ne torna nemmeno uno» non presuppone niente. Costa
+ *      UNA richiesta in più per cartella — che su un salvataggio notturno è
+ *      niente, e su una copia di sicurezza la robustezza vale più della fretta.
+ *  ⚠️ Sul caso limite (totale multiplo esatto di 1000) le due si comportano
+ *  uguale: l'ultima richiesta torna vuota e chiude il giro.
  */
 async function elenca(secchio, prefisso = '') {
   const trovati = []
-  for (let scarto = 0; ; scarto += PER_PAGINA) {
+  // ⚠️ Lo scarto avanza di QUANTI NE SONO ARRIVATI, non di PER_PAGINA — e le due
+  //    cose coincidono solo finché l'archivio dà sempre il massimo. Con un
+  //    archivio «avaro» (300 per volta pur avendone 900) avanzare di 1000
+  //    salterebbe 600 file **in silenzio**: la condizione d'arresto giusta, da
+  //    sola, non bastava. Trovato in revisione, dalla prova dell'archivio avaro.
+  let scarto = 0
+  for (;;) {
     const r = await chiedi(`/object/list/${encodeURIComponent(secchio)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -111,7 +127,8 @@ async function elenca(secchio, prefisso = '') {
       if (v.id === null) trovati.push(...await elenca(secchio, percorso))
       else trovati.push(percorso)
     }
-    if (pagina.length < PER_PAGINA) break
+    if (pagina.length === 0) break
+    scarto += pagina.length
   }
   return trovati
 }

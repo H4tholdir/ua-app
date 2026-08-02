@@ -39,8 +39,17 @@ function archivioFinto(opzioni: {
   quanti: number
   /** percorsi che al momento dello scarico rispondono con un guasto */
   rotti?: Set<string>
+  /**
+   * Quanti oggetti restituire al massimo per pagina, ANCHE se ne sono stati
+   * chiesti di più. Serve a fingere un archivio «avaro»: ne dà meno del limite
+   * pur avendone altri. 🔑 È il caso che ha fatto cambiare la condizione
+   * d'arresto in revisione — con «mi fermo se ne tornano meno di 1000» qui si
+   * perderebbero file in silenzio, cioè P23 di nuovo con un numero diverso.
+   */
+  tettoPerPagina?: number
 }) {
   const rotti = opzioni.rotti ?? new Set<string>()
+  const tetto = opzioni.tettoPerPagina
   const nomi = Array.from({ length: opzioni.quanti }, (_, i) => `foto/f${String(i).padStart(5, '0')}.jpg`)
 
   const server = createServer((req, res) => {
@@ -64,10 +73,11 @@ function archivioFinto(opzioni: {
           // la radice contiene UNA cartella: si riconosce da `id: null`
           return res.end(JSON.stringify(offset > 0 ? [] : [{ name: 'foto', id: null }]))
         }
+        const quanti = tetto ? Math.min(limit, tetto) : limit
         const dentro = nomi
           .filter((n) => n.startsWith(`${prefix}/`))
           .map((n) => n.slice(prefix.length + 1))
-          .slice(offset, offset + limit)
+          .slice(offset, offset + quanti)
         return res.end(JSON.stringify(dentro.map((n, i) => ({ name: n, id: `id-${offset + i}` }))))
       })
       return
@@ -200,5 +210,39 @@ describe('P23, la seconda metà — un file che non si scarica FERMA il salvatag
 
   it('gli altri nove li ha scaricati lo stesso: si ferma, non butta via il lavoro', () => {
     expect(readdirSync(join(dest, 'clinico', 'foto')).length).toBe(9)
+  })
+})
+
+describe("P23, la revisione — un archivio AVARO non fa perdere file in silenzio", () => {
+  let server: Server
+  let dest: string
+
+  beforeAll(async () => {
+    // 🔑 Il caso che ha fatto cambiare la condizione d'arresto DOPO che il lavoro
+    //    sembrava finito. Questo archivio ne restituisce 300 per volta pur
+    //    avendone 900: è il comportamento che un'API a pagine NON garantisce di
+    //    non avere, e che qui non è provato contro l'archivio vero (`provato:` la
+    //    cartella più piena ha 20 file — una prova sotto il limite non dice
+    //    niente su cosa succede sopra).
+    // 🛑 Con «mi fermo se ne tornano meno di quanti ne ho chiesti» questa prova
+    //    troverebbe 300 file su 900, e il salvataggio si dichiarerebbe RIUSCITO:
+    //    cioè P23 di nuovo, con un numero diverso.
+    server = archivioFinto({ quanti: 900, tettoPerPagina: 300 })
+    await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
+    dest = mkdtempSync(join(tmpdir(), 'ua-salv-'))
+    await lanciaSalvataggio(server, dest)
+  }, 120000)
+
+  afterAll(() => {
+    server?.close()
+    if (dest) rmSync(dest, { recursive: true, force: true })
+  })
+
+  it('li scarica tutti e 900, non i primi 300', () => {
+    expect(readdirSync(join(dest, 'clinico', 'foto')).length).toBe(900)
+  })
+
+  it("e prende anche l'ultimo, quello oltre la terza pagina", () => {
+    expect(existsSync(join(dest, 'clinico', 'foto', 'f00899.jpg'))).toBe(true)
   })
 })
