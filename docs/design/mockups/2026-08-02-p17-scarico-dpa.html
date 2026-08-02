@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P17 — Lo scarico del DPA che fallisce · mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ═══ TOKEN v2.3 — copiati da src/design-system/tokens.ts, MAI inventati ═══ */
+:root {
+  --bg:      #F4F0E7;
+  --sfc:     #E4DFD9;
+  --elv:     #EDEDEA;
+  --prs:     #D4CFC9;
+  --t1:      #1C1916;
+  --t2:      #4A3D33;
+  --t3:      #6B5C51;
+  --primary: #D90012;
+  --amber:   #F59E0B;
+  --red:     #EF4444;
+  --green:   #22C55E;
+  --sh-b: rgba(255,255,255,.90) 0 1px 0 0 inset,
+          rgba(0,0,0,.05) 0 -2px 3px 0 inset,
+          rgba(255,255,255,.78) -5px -5px 11px,
+          rgba(148,128,118,.44) 9px 13px 22px -4px,
+          rgba(148,128,118,.26) 3px 5px 9px -1px;
+  --sh-red: rgba(217,0,18,.32) 0 6px 14px -4px, rgba(217,0,18,.20) 0 2px 5px -1px;
+  --sh-inset: rgba(148,128,118,.32) 4px 4px 9px 0 inset,
+              rgba(255,255,255,.66) -3px -3px 7px 0 inset;
+}
+[data-tema="dark"] {
+  --bg:      #171411;
+  --sfc:     #232018;
+  --elv:     #2B2720;
+  --prs:     #141210;
+  --t1:      #F0EDE8;
+  --t2:      #8A8580;
+  --t3:      #5A5652;
+  --primary: #E8001A;
+  --sh-b: none;                     /* dark = flat, card più chiara del bg */
+  --sh-red: none;
+  --sh-inset: rgba(4,3,2,.92) 4px 4px 9px 0 inset,
+              rgba(40,37,32,.50) -3px -3px 7px 0 inset;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--t1);
+  padding: 24px 16px 64px;
+}
+
+/* ═══ Intestazione del mockup (non fa parte dell'interfaccia) ═══ */
+.doc-head { max-width: 1180px; margin: 0 auto 28px; }
+.doc-head h1 { font-size: 22px; margin: 0 0 6px; }
+.doc-head p  { font-size: 13px; color: var(--t2); margin: 0 0 4px; line-height: 1.55; }
+.doc-head code { background: var(--elv); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+.barra {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  max-width: 1180px; margin: 0 auto 28px;
+  position: sticky; top: 0; z-index: 10;
+  background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--elv);
+}
+.barra button {
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--t3);
+  background: transparent; color: var(--t1); cursor: pointer;
+}
+.barra button[aria-pressed="true"] { background: var(--t1); color: var(--bg); border-color: var(--t1); }
+
+.griglia { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.caso { min-width: 0; }
+.caso > h3 {
+  font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--t2); margin: 0 0 4px;
+}
+.caso > .quando { font-size: 12px; color: var(--t3); margin: 0 0 10px; line-height: 1.5; }
+
+/* ═══ LA SCHEDA — riproduce SectionCard di clienti/[id]/page.tsx ═══ */
+.card {
+  background: var(--sfc); border-radius: 16px; padding: 16px;
+  box-shadow: var(--sh-b); margin-bottom: 0;
+}
+.card > h2 {
+  font-size: 12px; font-weight: 600; color: var(--t2);
+  text-transform: uppercase; letter-spacing: .08em; margin: 0 0 8px;
+}
+.card > .corpo { border-top: 1px solid var(--elv); padding: 12px 0 0; }
+.intro { font-size: 13px; color: var(--t2); margin: 0 0 10px; line-height: 1.5; }
+
+/* Tasto attivo — identico a quello vivo oggi */
+.tasto {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 44px; padding: 0 18px; border-radius: 10px;
+  background: var(--primary); color: #fff;
+  font-family: inherit; font-weight: 700; font-size: 14px;
+  text-decoration: none; border: 0; cursor: pointer;
+  box-shadow: var(--sh-red);
+}
+/* Tasto inerte — aria-disabled, NON l'attributo disabled:
+   resta raggiungibile da tastiera e dal lettore di schermo */
+/* ⚠️ testo `t1`, NON t2 né t3 — e la ragione è misurata, non estetica.
+   In modo scuro, su questa card (`#232018`): t3 = 2,24:1 e t2 = 4,45:1,
+   ENTRAMBI sotto il 4,5:1 che WCAG chiede a un testo di 14px (grassetto
+   compreso: «large» parte da 18,66px). È il difetto P16, già misurato il
+   04/08 e DEFERITO da D134 all'ondata v3 di questa route.
+   🔑 Deferire un difetto esistente è una scelta; NASCERE con lo stesso
+   difetto su testo nuovo non lo è. Quindi i testi che questo lavoro
+   AGGIUNGE stanno tutti su `t1` (14,06:1 scuro · ~13:1 chiaro).
+   Che il tasto sia inerte lo dicono il fondo assente, il bordo,
+   `aria-disabled` e il messaggio sotto — mai il solo colore. */
+.tasto[aria-disabled="true"] {
+  background: transparent; color: var(--t1);
+  border: 1px solid var(--t3); box-shadow: none; cursor: not-allowed;
+}
+/* 🛑 il `color` va RIDICHIARATO: senza, eredita quello della riga sopra
+   (t3 su t3 = testo invisibile — difetto visto nel primo giro di scatti). */
+.tasto.occupato {
+  background: var(--t3); color: #fff; border-color: var(--t3);
+  box-shadow: none; cursor: progress;
+}
+.tasto svg { flex: none; }
+
+.riga-emissione { font-size: 11px; color: var(--t2); margin: 6px 0 0; }
+.conserva { font-size: 11px; color: var(--t3); margin: 6px 0 0; line-height: 1.5; }
+
+/* ═══ VARIANTE A — «discreta»: il motivo è una riga sotto il tasto ═══ */
+.motivo-a {
+  display: flex; gap: 6px; align-items: flex-start;
+  font-size: 12px; line-height: 1.5; margin: 8px 0 0;
+}
+/* 🛑 IL TESTO RESTA `t1`, il COLORE sta nel segno — e non è una scelta di gusto.
+   Misurato sul fondo vero della card (`sfc`): rosso #D90012 → 4,01:1 e ambra
+   #F59E0B → 2,1:1, cioè SOTTO il 4,5:1 richiesto a un testo di 12px. Un segno
+   grafico invece deve reggere 3:1, e li regge (4,01 e 3,4 in scuro).
+   Così il colore RINFORZA lo stato senza esserne l'unica fonte. */
+.motivo-a { color: var(--t1); }
+.motivo-a .segno { flex: none; font-weight: 700; font-size: 13px; }
+.motivo-a.attesa .segno { color: #7A5500; }
+[data-tema="dark"] .motivo-a.attesa .segno { color: var(--amber); }
+.motivo-a.guasto .segno { color: #A8000E; }
+[data-tema="dark"] .motivo-a.guasto .segno { color: var(--primary); }
+.motivo-a a, .azione-testo {
+  color: inherit; font-weight: 700; text-decoration: underline;
+  text-underline-offset: 2px; cursor: pointer;
+}
+
+/* ═══ VARIANTE B — «a blocco»: riquadro pieno con icona e azione ═══ */
+.blocco {
+  display: flex; gap: 10px; align-items: flex-start;
+  border-radius: 10px; padding: 10px 12px; margin: 10px 0 0;
+  border-left: 3px solid;
+}
+.blocco.attesa { background: rgba(245,158,11,.14); border-color: var(--amber); }
+.blocco.guasto { background: rgba(217,0,18,.10);  border-color: var(--primary); }
+[data-tema="dark"] .blocco.guasto { background: rgba(232,0,26,.14); }
+.blocco .icona { flex: none; margin-top: 1px; }
+.blocco .testo { font-size: 12.5px; line-height: 1.5; color: var(--t1); }
+.blocco .testo strong { display: block; font-weight: 700; margin-bottom: 2px; }
+.blocco .azione {
+  display: inline-flex; align-items: center; height: 34px; margin-top: 8px;
+  padding: 0 12px; border-radius: 8px; border: 1px solid var(--t3);
+  background: transparent; color: var(--t1);
+  font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  text-decoration: none;
+}
+
+.nota-var {
+  font-size: 11px; color: var(--t3); margin: 10px 0 0; line-height: 1.5;
+  padding-left: 10px; border-left: 2px solid var(--elv);
+}
+.solo-a .variante-b, .solo-b .variante-a { display: none; }
+</style>
+</head>
+<body data-tema="light" class="solo-a">
+
+<div class="doc-head">
+  <h1>P17 — quando lo scarico del contratto non va a buon fine</h1>
+  <p>Superficie: il riquadro <strong>«Privacy — GDPR»</strong> della scheda dentista (<code>src/app/(app)/clienti/[id]/page.tsx</code>). Design system <strong>v2.3</strong> — la pagina non è ancora migrata a v3, e i due sistemi non si mischiano.</p>
+  <p>Oggi quel riquadro sa stare in <strong>una</strong> situazione sola. Qui ne impara <strong>sei</strong>, più i <strong>tre</strong> modi di raccontare l'ultima emissione.</p>
+  <p>Le due varianti si distinguono per <strong>come</strong> si dice ciò che non va: <strong>A</strong> lo dice in una riga sotto il tasto, <strong>B</strong> in un riquadro con la sua azione.</p>
+  <p>🛑 <strong>In modo scuro due righe restano illeggibili, ed è voluto:</strong> «Ultima emissione…» e «Stampa e firma…» usano <code>--t2</code> e <code>--t3</code>, che su questa card danno <strong>4,45</strong> e <strong>2,24</strong> contro il minimo di 4,5. È <strong>P16</strong>, misurata il 04/08 e <strong>deferita da D134</strong> all'ondata di migrazione a v3 di questa route, perché nessun colore di testo v2.3 scuro passa su questa card tranne quello dei titoli. <strong>Non è un difetto di questa bozza e non va «corretto» qui.</strong> Tutto ciò che questo lavoro <em>aggiunge</em> sta invece su <code>--t1</code>, per non nascere con lo stesso difetto.</p>
+</div>
+
+<div class="barra">
+  <button id="b-tema" aria-pressed="false">Modo scuro</button>
+  <button id="b-a" aria-pressed="true">Variante A — discreta</button>
+  <button id="b-b" aria-pressed="false">Variante B — a blocco</button>
+</div>
+
+<div class="griglia">
+
+  <!-- ① TUTTO A POSTO -->
+  <div class="caso">
+    <h3>① Tutto a posto</h3>
+    <p class="quando">Il titolare apre la scheda, i dati fiscali ci sono. È l'unico caso che l'app oggi sa gestire.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro">Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.</p>
+        <a class="tasto" href="#">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Scarica DPA PDF
+        </a>
+        <p class="riga-emissione">Ultima emissione: <strong>DPA-2026-0007</strong> — 12 marzo 2026</p>
+        <p class="conserva">Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio. Ogni versione emessa resta conservata da UÀ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② MANCA LA P.IVA DEL DENTISTA -->
+  <div class="caso">
+    <h3>② Manca la Partita IVA dello studio</h3>
+    <p class="quando">Il dato manca sulla scheda che si sta guardando. Oggi: si preme e arriva la pagina di codice. Qui non si preme nemmeno.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro">Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.</p>
+        <button class="tasto" aria-disabled="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Scarica DPA PDF
+        </button>
+
+        <div class="variante-a">
+          <p class="motivo-a attesa"><span class="segno" aria-hidden="true">▲</span><span>Per emettere il contratto serve la <strong>Partita IVA</strong> o il <strong>Codice Fiscale</strong> dello studio. <a href="#">Aggiungilo ora</a></span></p>
+        </div>
+
+        <div class="variante-b">
+          <div class="blocco attesa">
+            <svg class="icona" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5L15 14H1L8 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.4M8 11.6v.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <div class="testo">
+              <strong>Manca un dato dello studio</strong>
+              Per emettere il contratto serve la Partita IVA o il Codice Fiscale del dentista.
+              <br><a class="azione" href="#">Aggiungi il dato</a>
+            </div>
+          </div>
+        </div>
+
+        <p class="conserva">Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio. Ogni versione emessa resta conservata da UÀ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ MANCA LA P.IVA DEL LABORATORIO -->
+  <div class="caso">
+    <h3>③ Manca la Partita IVA del laboratorio</h3>
+    <p class="quando">Un laboratorio appena entrato lo incontra al <strong>primo</strong> tentativo, su <em>ogni</em> dentista. Il rimedio è altrove: nei dati del laboratorio.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro">Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.</p>
+        <button class="tasto" aria-disabled="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Scarica DPA PDF
+        </button>
+
+        <div class="variante-a">
+          <p class="motivo-a attesa"><span class="segno" aria-hidden="true">▲</span><span>Nei dati del tuo laboratorio manca la <strong>Partita IVA</strong>. Senza, il contratto non si può emettere. <a href="#">Completa i dati</a></span></p>
+        </div>
+
+        <div class="variante-b">
+          <div class="blocco attesa">
+            <svg class="icona" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5L15 14H1L8 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.4M8 11.6v.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <div class="testo">
+              <strong>Mancano i dati del tuo laboratorio</strong>
+              Senza Partita IVA il contratto non si può emettere per nessuno studio.
+              <br><a class="azione" href="#">Completa i dati del laboratorio</a>
+            </div>
+          </div>
+        </div>
+
+        <p class="conserva">Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio. Ogni versione emessa resta conservata da UÀ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ IN CORSO -->
+  <div class="caso">
+    <h3>④ Mentre lo prepara</h3>
+    <p class="quando">Il documento si scrive sul momento e si archivia: non è istantaneo. Oggi non c'è nessun segnale, e si preme due volte.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro">Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.</p>
+        <button class="tasto occupato" aria-disabled="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.6" stroke-opacity=".35"/><path d="M14 8a6 6 0 00-6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Preparo il documento…
+        </button>
+        <p class="riga-emissione">Ultima emissione: <strong>DPA-2026-0007</strong> — 12 marzo 2026</p>
+        <p class="conserva">Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio. Ogni versione emessa resta conservata da UÀ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ GUASTO NOSTRO -->
+  <div class="caso">
+    <h3>⑤ Si è rotto qualcosa di nostro</h3>
+    <p class="quando">Sette cammini diversi (archivio irraggiungibile, numero non assegnato, riga non scritta…). Il titolare non può farci niente: può solo riprovare.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro">Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.</p>
+        <a class="tasto" href="#">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Scarica DPA PDF
+        </a>
+
+        <div class="variante-a">
+          <p class="motivo-a guasto"><span class="segno" aria-hidden="true">✕</span><span>Non è stato possibile preparare il documento. Non è colpa dei tuoi dati. <a href="#">Riprova</a></span></p>
+        </div>
+
+        <div class="variante-b">
+          <div class="blocco guasto">
+            <svg class="icona" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div class="testo">
+              <strong>Non è stato possibile preparare il documento</strong>
+              Non dipende dai tuoi dati. Se succede di nuovo, segnalacelo.
+              <br><button class="azione">Riprova</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="conserva">Stampa e firma in duplice copia con lo studio: una copia al laboratorio, una allo studio. Ogni versione emessa resta conservata da UÀ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ NON TITOLARE -->
+  <div class="caso">
+    <h3>⑥ Chi non è il titolare</h3>
+    <p class="quando">Tecnico e front desk. Il riquadro resta — al telefono con lo studio serve — ma il tasto non c'è (D160). Oggi lo vedono e prendono la pagina di codice.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro">Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — firmato con lo studio dentistico.</p>
+        <p class="riga-emissione">Ultima emissione: <strong>DPA-2026-0007</strong> — 12 marzo 2026</p>
+        <p class="conserva">Il contratto lo emette il titolare. Ogni versione emessa resta conservata da UÀ.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑦ LE TRE RIGHE DELL'ULTIMA EMISSIONE -->
+  <div class="caso">
+    <h3>⑦ La riga «ultima emissione» — i tre casi</h3>
+    <p class="quando">Oggi sono <strong>due</strong>: o la riga c'è, o non c'è. E «non c'è» vuol dire due cose opposte.</p>
+    <div class="card">
+      <h2>Privacy — GDPR</h2>
+      <div class="corpo">
+        <p class="intro" style="margin-bottom:14px">Emesso — <em>si è letto il registro e c'è</em></p>
+        <p class="riga-emissione" style="margin:0 0 18px">Ultima emissione: <strong>DPA-2026-0007</strong> — 12 marzo 2026</p>
+
+        <p class="intro" style="margin-bottom:14px">Mai emesso — <em>si è letto il registro e non c'è niente</em></p>
+        <p class="riga-emissione" style="margin:0 0 18px; color:var(--t3)">Non ancora emesso per questo studio.</p>
+
+        <p class="intro" style="margin-bottom:14px">Registro illeggibile — <em>NON si è riusciti a leggere</em></p>
+        <div class="variante-a">
+          <p class="motivo-a attesa" style="margin:0"><span class="segno" aria-hidden="true">▲</span><span>Non riesco a leggere il registro delle emissioni: qui potrebbe mancare qualcosa. <a href="#">Ricarica</a></span></p>
+        </div>
+        <div class="variante-b">
+          <div class="blocco attesa" style="margin:0">
+            <svg class="icona" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5L15 14H1L8 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.4M8 11.6v.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <div class="testo">
+              <strong>Non riesco a leggere il registro</strong>
+              Il contratto potrebbe essere già stato emesso: questa riga non fa fede.
+              <br><button class="azione">Ricarica</button>
+            </div>
+          </div>
+        </div>
+        <p class="nota-var">Il punto: «non ancora emesso» e «non riesco a leggere» oggi si vedono <strong>identici</strong> — la riga sparisce e basta. Un titolare potrebbe riemettere un contratto che esiste già.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const b = document.body
+  const bt = document.getElementById('b-tema')
+  const ba = document.getElementById('b-a')
+  const bb = document.getElementById('b-b')
+  bt.addEventListener('click', () => {
+    const scuro = b.dataset.tema === 'dark'
+    b.dataset.tema = scuro ? 'light' : 'dark'
+    bt.textContent = scuro ? 'Modo scuro' : 'Modo chiaro'
+    bt.setAttribute('aria-pressed', String(!scuro))
+  })
+  ba.addEventListener('click', () => {
+    b.className = 'solo-a'; ba.setAttribute('aria-pressed','true'); bb.setAttribute('aria-pressed','false')
+  })
+  bb.addEventListener('click', () => {
+    b.className = 'solo-b'; bb.setAttribute('aria-pressed','true'); ba.setAttribute('aria-pressed','false')
+  })
+</script>
+</body>
+</html>
