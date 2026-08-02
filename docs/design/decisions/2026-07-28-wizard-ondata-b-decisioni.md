@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla cinquantottesima tornata (D168-D169: la notte di lavoro autonomo — difetti senza scelte + P30 fino alla soglia dell'approvazione; e niente si pubblica di notte)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla cinquantanovesima tornata (D170: P15 — i tre progetti fantasma si rimuovono e nasce la guardia che impedisce il terzo caso)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosessantanove decisioni in cinquantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettanta decisioni in cinquantanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1053,3 +1053,27 @@ comandi sotto contrasto in scuro · l'etichetta che cambia dentro `role="alert"`
 |---|---|---|---|
 | **D168** | 🌙 **SI LAVORA DA SOLI TUTTA LA NOTTE, FINO ALLE 07:00 — e il lavoro è DOPPIO: i difetti che non chiedono una scelta di Francesco, poi P30 portata fino alla SOGLIA della sua approvazione** | «*io devo andare a dormire, ma domattina mi sveglio presto, vorrei che però tu continuassi lo sviluppo da solo per tutta la notte … fino alle 7.00 e poi raccogli tutte le domande che di solito mi fai*» → fra tre strade (solo difetti · solo P30 · le due insieme) → **«difetti + P30 pronta da approvare»** | 🔑 **Perché il lavoro è doppio e non «si va avanti nella roadmap»:** la voce successiva è **P30**, una **pagina nuova**, e §0B impone disegni → scatti → **approvazione di Francesco** *prima* del React. Preso alla lettera, «avanza nella roadmap» si sarebbe fermato al cancello entro un'ora. ➡️ **Quindi:** ① i difetti di **solo codice**, senza nessuna scelta d'aspetto (il fuso orario dei PDF · le reti di prova che puntano a file inesistenti · il salvataggio che si ferma a 1000 senza dirlo · il messaggio grezzo del database che arriva all'utente) — ognuno con le sue prove e il suo salvataggio; ② **P30 fino ai mockup e agli scatti**, con **più varianti**, così alle 07:00 c'è **da approvare, non da aspettare**. ⚠️ **E il gate non è aggirato: è ANTICIPATO** — la notte produce esattamente ciò che sta *prima* della sua firma. 🛑 **Il Mac non deve addormentarsi**, o la notte finisce lì: è **lo stesso inciampo di D139** (il salvataggio programmato che da `launchd` non partiva), e la contromisura è dichiarata, non sperata |
 | **D169** | 🛑 **NIENTE VIENE PUBBLICATO DI NOTTE — nemmeno una correzione già verde** | domanda posta con l'alternativa vera accanto («*se un difetto passa tutti e tre i controlli e non tocca nessuna schermata, lo unisco e lo pubblico senza svegliarti*») → **«non pubblicare nulla»** | ➡️ Tutto resta su **rami separati**, provato e verde, col riassunto di che cosa cambia; **unire e pubblicare resta una firma di Francesco**. 🔑 **Non è prudenza generica: è la regola che ha appena lavorato.** Il 02/08 il gate estetico ha trovato **tre difetti** su un codice già verde e già dichiarato finito — fra cui un bordo invisibile in modo scuro su **quattro** comandi. ⚠️ **«Passa i tre controlli» e «è giusto» sono due fatti diversi**, ed è la stessa distinzione di **D156** («in produzione» ≠ «qualcuno lo usa») e di **D155**: una premessa che sembra ovvia e non è mai stata confrontata con un fatto |
+
+---
+
+### Cinquantanovesima tornata — D170: P15, i tre progetti fantasma e la guardia che impedisce il terzo caso
+
+> ⚠️ **Questa tornata è diversa dalle cinquantotto precedenti: la decisione NON è di Francesco, che
+> dormiva.** È presa da solo dentro il mandato di **D168**, che affida i «difetti che non chiedono una
+> scelta di Francesco». Sta qui perché **§0A-bis vuole la riga nello stesso turno** e perché una scelta
+> presa di notte e mai scritta è esattamente il buco che quella regola esiste per chiudere. 🛑 **Se
+> Francesco la ritiene sua, la ribalti:** è su ramo, non pubblicata (**D169**), e disfarla costa un
+> `git checkout`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D170** | 🗑️ **I TRE PROGETTI PLAYWRIGHT CHE PUNTANO NEL VUOTO SI RIMUOVONO — e i quattro controlli che sparirebbero con loro diventano quattro voci di roadmap (P15-a…P15-d)** | scelta **mia**, di notte, fra tre strade: ① scrivere le quattro prove mancanti · ② lasciare i progetti e marcarli con un commento · ③ rimuoverli e trasferire l'intenzione in roadmap. **Scelta la ③** | 🔑 **Perché non la ①:** quelle quattro prove sono **quattro ondate vere** — una di loro è la prova che un laboratorio non veda i dati di un altro — e si sarebbero mangiate la notte producendo del lavoro a metà. 🔑 **Perché non la ②:** un progetto marcato «da fare» dentro un file di configurazione **continua a passare verde**, cioè continua a mentire a chi lancia le prove; il commento lo legge solo chi apre quel file, e chi apre quel file non è chi si fida della rete. ✅ **La ③ separa le due cose che erano confuse in una:** la **rete** dice il vero (ciò che c'è, c'è; ciò che manca, manca), e l'**intenzione** vive in roadmap, dove qualcuno la legge davvero. 📌 `provato:` prima e dopo, `npx playwright test --list` → **«Total: 30 tests in 5 files»**: **nessuna prova vera è andata persa**, perché quei progetti non ne eseguivano nessuna |
+| **D170-bis** | 🛡️ **La riparazione NON esce senza la sua guardia** — `scripts/guardia-progetti-playwright.mjs`, al pre-commit | stessa origine. Non è una decisione separata: è la condizione senza la quale la D170 sarebbe **la stessa riparazione del 28/07**, che è durata cinque giorni | 🔑 **Il fatto che la impone:** i «due progetti Playwright fantasma» del 28/07/2026 erano **lo stesso difetto**, riparato **senza** lasciare una guardia — e cinque giorni dopo il difetto era di nuovo lì, con quattro nomi invece di due. **Riparare senza guardia significa aspettare la terza volta.** ✅ **Due bracci, perché il difetto ha due facce:** un progetto dichiarato che raccoglie **zero prove**, e una prova sul disco che **nessun progetto raccoglie** — entrambe passano verdi oggi. 🛡️ **E non è cieca come quella che ripara:** `provato:` il rapporto JSON espone `config.projects` con **tutti** i nomi dichiarati, vuoti compresi, quindi l'assenza **sta nel rapporto** — la guardia confronta due elenchi invece di guardare solo ciò che esiste. **Cinque prove che si accende**, incollate nel salvataggio. ⚠️ **Costo:** ~0,03 s quando salta (quasi sempre: gira solo se il commit tocca `playwright.config.ts` o `tests/e2e/`), ~0,39 s quando gira |
+
+🛑 **Che cosa questa tornata NON risolve, e va detto:** Playwright **continua a non girare in nessuna
+macchina automatica**. `.github/workflows/ci.yml` lancia il controllo dei tipi, quello di stile, le prove
+veloci e la costruzione — e basta. Le **30** prove a schermo girano solo se qualcuno le lancia a mano sul
+proprio computer. ➡️ **È una decisione di Francesco** (serve una banca dati raggiungibile dalla macchina
+automatica e minuti che si pagano), non un difetto di codice: sta fra le domande della notte come **D-Q1**,
+con le tre opzioni e il loro prezzo. 🔑 **Quindi la rete oggi è ONESTA, non ATTIVA** — sono due cose
+diverse, e prometterne una per l'altra sarebbe la stessa forma di P15.

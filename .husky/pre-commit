@@ -30,3 +30,18 @@ node scripts/guardia-coerenza-documenti.mjs --staged
 # ⚠️ Ferma il commit SOLO sulla deriva (difetto tuo, rimediabile subito); lo stato della rete
 #    (fallita / vecchia / non installata) e' un AVVISO: non e' colpa del commit che stai facendo.
 node scripts/guardia-salvataggio-installato.mjs
+
+# ── Aggiunta il 02/08/2026 (P15, D170) ──────────────────────────────────────────────────────────
+# Tre dei cinque progetti Playwright puntavano a quattro file di prova MAI SCRITTI, e nessuno se
+# n'era accorto: un progetto che non trova nessun file Playwright lo esegue VUOTO e ne esce VERDE.
+# `provato:` `npx playwright test --list` → uscita 0, «Total: 30 tests in 5 files» — e i tre
+# progetti vuoti non comparivano nemmeno nell'elenco.
+# 🔑 Ed era la SECONDA volta: i «due progetti fantasma» del 28/07/2026 erano lo stesso difetto,
+#    riparato senza lasciare una guardia. Questa e' la guardia.
+# Costo misurato: ~0,03 s quando salta (il caso normale), ~0,39 s quando gira (tre giri:
+# 0,40 · 0,37 · 0,39). Con `--staged` gira SOLO se il commit tocca `playwright.config.ts` o
+# `tests/e2e/` — cioe' quasi mai.
+# ⚠️ NON prova che le prove passino, e non le esegue: oggi Playwright non gira in nessuna macchina
+#    automatica (v. la domanda aperta a Francesco). Vede che ogni squadra ha giocatori e che ogni
+#    giocatore e' in una squadra; non guarda la partita.
+node scripts/guardia-progetti-playwright.mjs --staged
