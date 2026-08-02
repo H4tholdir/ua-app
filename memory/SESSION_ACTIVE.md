@@ -24,8 +24,19 @@ l'ondata di migrazione porta i valori v3 **per costruzione**. ⚠️ Nodo per qu
 🆕 **Aperte:** **P17** (lo scarico che fallisce mostra `{"error":"…"}`, zero elementi interattivi) ·
 **P18** (idratazione disallineata su `PortaleLinkButtons`, fa divergere il link mandato al dentista).
 
-⏭️ **PROSSIMO: il panel normativo su D128** — Art. 28(9) GDPR letto **alla fonte** (EUR-Lex, testo
-consolidato, versione italiana), **poi** il panel. È il cancello d'ingresso dell'ondata 2.
+✅ **FATTO ANCHE: il panel normativo su D128**, la voce 🔴 2 dell'handoff. Referto:
+`docs/roadmap/2026-08-04-panel-d128-referto.md`. Tre advisor a mandato disgiunto, tutti e tre
+**REGGE CON CONDIZIONI**. 🔄 Il testo vero dice «**in forma scritta**», non «per iscritto» — è
+l'espressione su cui il **CAD art. 20 co. 1-bis** costruisce tutto. ✅ Davanti al Garante **regge**;
+🛑 in causa, se il dentista nega, **non regge da sola** (il flusso non identifica nessuno).
+🔴 **P7 RIVALUTATA da 🟢 a 🔴 — precondizione dell'ondata 2:** il registro che dovrà contenere la prova
+è **riscrivibile dalla parte che la prova deve vincolare**, e la finestra per ripararlo senza toccare
+prove vere è **adesso** (2 righe, **0 firmate**).
+
+🔴 **DA DECIDERE — sarà D135, tre domande** (referto §6): ① D128 resta com'è con le condizioni C1-C11,
+o si riguarda la firma avanzata? ② **Esiste il contratto laboratorio↔UÀ?** (il nostro DPA lo **afferma**
+a `DpaTemplate.tsx:210`, il prodotto non ne conserva traccia) ③ si accetta l'**ORDINE** — correzioni di
+testo **prima** di qualunque accettazione, perché dopo costringono a rifare il giro su tutti?
 
 📌 `main` = `7d6ee54c` a inizio gate; il gate è salvato in `b9111b3e` (**non pubblicato**, attende via libera).
 ⚠️ L'orologio della macchina dice 2 agosto; i documenti seguono la serie del **4 agosto**.
