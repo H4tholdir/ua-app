@@ -74,6 +74,20 @@ Colonna nuova: **`emesso_da UUID REFERENCES utenti(id)`**, **annullabile**, riem
 
 **Perché il nome:** la tabella ha già **`emesso_at`** — c'era il *quando*, mancava il *chi*. 🛑 **Non si chiama `firmato_da`, che esiste già ed è un'altra cosa** (M9): `firmato_da` è il **nome della controparte allo studio**, `emesso_da` è **l'utente di UÀ che ha premuto**. Due colonne che si leggono entrambe «chi» e indicano **parti diverse** sono il modo classico in cui, mesi dopo, qualcuno scrive la sbagliata dentro una prova.
 
+#### 🛑 La chiave esterna: la clausola si SCEGLIE, non si eredita
+
+Una chiave esterna senza `ON DELETE` vale `NO ACTION`: **cancellare l'utente fallisce** finché una riga lo nomina. Va deciso apposta, perché il difetto sarebbe di quelli che si vedono solo in produzione.
+
+**Decisione: `REFERENCES utenti(id)` NUDA, come tutte le altre — e per due ragioni provate, non per abitudine.**
+
+- `provato:` **nessuna** delle **18** chiavi esterne che puntano a `utenti` in tutto il progetto dichiara un `ON DELETE` (`tecnici` · `lavori` · `dichiarazioni_conformita` · `pagamenti` · `notifiche` · `messaggi` · `fascicoli_tecnici` · `risk_analyses` · … tutte nude). Fare l'eccezione qui sarebbe il vero pericolo.
+- `provato:` **non esiste nessun percorso che cancelli un utente SINGOLO**: `from('utenti')` nel codice applicativo compare solo in **lettura**; gli utenti spariscono **unicamente** dentro `admin_delete_laboratorio`.
+- 🔑 **E lì l'ordine tiene, ma da oggi è PORTANTE:** `provato:` in `supabase/migrations/20260727120200_lavori_colore_caso.sql` la riga `DELETE FROM data_processing_agreements` è alla **155**, `DELETE FROM utenti` alla **163** — le righe che nominano l'utente se ne vanno **otto istruzioni prima** di lui. ⚠️ **Chi in futuro riordina quella funzione deve saperlo**, e **T4** è la prova che lo tiene onesto.
+
+🛑 **Scartato `ON DELETE SET NULL`**, che pure farebbe funzionare tutto: **cancellerebbe il «chi»** dalla riga nel momento in cui un tecnico lascia il laboratorio — cioè proprio quando serve sapere chi era. Contraddirebbe **D148** in silenzio.
+
+⚠️ **E il precedente NON copre questo caso:** `dichiarazioni_conformita.generated_by` ha la chiave esterna **identica**, ma essendo **sempre vuota** (M6) quel cammino **non è mai stato percorso con un valore dentro**. Qui lo sarà. Per questo T4 non è una formalità.
+
 ---
 
 ## 4. 🔑 Il vincolo che rende ③ diverso dalla colonna morta della DdC
@@ -106,8 +120,9 @@ Con il parametro obbligatorio, il rumore lo fa il **compilatore**: l'app non si 
 |---|---|---|
 | **T1** | 🔴 **Il rifiuto vero.** Un client `authenticated` di un laboratorio tenta un `UPDATE` su una riga del **proprio** laboratorio e **viene respinto**, col messaggio incollato. E la **lettura** dello stesso client continua a funzionare | «`CREATE POLICY` è riuscita». Una regola creata prova la sintassi, non il comportamento |
 | **T2** | 🔴 **La traccia esiste davvero.** Dopo un'emissione c'è **una riga nuova** in `audit_log` con `table_name = 'data_processing_agreements'`, l'operazione giusta e la fotografia dei valori | «il trigger risulta creato» |
-| **T3** | 🔴 **Il «chi» è riempito.** Dopo un'emissione, `emesso_da` della riga nuova **non è vuoto** e vale l'utente che ha premuto. **È ESATTAMENTE la prova che alla DdC è mancata** (M6) | «la colonna esiste» e «il tipo compila» — sono le due cose che la DdC ha già |
-| **T4** | La cancellazione di un laboratorio continua a funzionare, con la tabella ormai sorvegliata | l'analisi di M7/M8: sono argomenti, non esecuzioni |
+| **T3a** | 🔴 **Il «chi» è riempito su un'emissione NUOVA.** Con `riemessa: true`, `emesso_da` della riga nuova **non è vuoto** e vale l'utente che ha premuto. **È ESATTAMENTE la prova che alla DdC è mancata** (M6) | «la colonna esiste» e «il tipo compila» — sono le due cose che la DdC ha **già** |
+| **T3b** | 🛑 **Sul RIUSO il «chi» NON si tocca.** Con `riemessa: false` la funzione restituisce una riga esistente **senza scriverla** (`generate-dpa.ts:162-171`): `emesso_da` deve restare **quello di chi emise allora**, anche se a scaricare è un altro utente. Si asserisce che è **invariato**, non lo si lascia al caso | 🔑 **Perché questa prova esiste:** senza di lei un esecutore che legge solo T3a fa riscrivere `emesso_da` sul ramo di riuso «per coerenza» — cioè **riscrive un campo del registro delle prove**, che è **il difetto che P7 esiste per chiudere**. La colonna dice **chi ha emesso**, e l'emissione è avvenuta una volta sola |
+| **T4** | 🔴 **La cancellazione di un laboratorio funziona ancora — con `emesso_da` DAVVERO RIEMPITO.** Cioè: emissione con un utente vero, poi `admin_delete_laboratorio`, e la funzione **arriva in fondo** | l'analisi di M7/M8 (sono argomenti, non esecuzioni) **e** una prova su righe con `emesso_da` vuoto: sarebbe il cammino che la DdC percorre da mesi senza mai esercitare la chiave esterna (§3 ③) |
 | **T5** | **FASE 6b** — `npx supabase gen types typescript … > src/types/database.types.ts` poi `npx tsc --noEmit` | — |
 | **T6** | **FASE 7 per intero**, output incollato: `npx tsc --noEmit` **0** · `npx vitest run` · `npx next build` uscita **0**. Riferimento di partenza: **4380 \| 19** prove | due comandi su tre |
 

@@ -21,5 +21,12 @@ di `postgres`** → nulla si rompe.
 la **DdC ha già** la colonna «chi ha premuto» e **non la riempie mai** (5 righe, **0**) — è la ragione per cui
 il parametro nasce obbligatorio.
 
-🔄 **Chiusa la voce 🔴 4 dell'handoff:** V1.9 e V2.0 non portano più il trigger «Filippo».
+🔍 **La spec è stata RIVISTA prima della rilettura, e portava tre difetti** (`a211173a`): la chiave esterna di
+`emesso_da` non dichiarava cosa fare quando l'utente sparisce (ora **nuda e provata**: 18 su 18 così, e in
+`admin_delete_laboratorio` le righe DPA se ne vanno alla **155**, gli utenti alla **163** — ordine **portante**) ·
+**T3 induceva il difetto che P7 chiude** (sul **riuso** la funzione non riscrive: ora T3a + **T3b «il chi resta
+invariato»**) · T4 era una formalità, ora si prova con `emesso_da` **davvero riempito**.
+
+🔄 **Chiusa la voce 🔴 4 dell'handoff:** V1.9 e V2.0 non portano più il trigger «Filippo». E la roadmap diceva
+«P1-P24, nessun buco» in **due** punti mentre ne conteneva **26** — stesso difetto, corretto.
 🛑 **Zero righe di codice applicativo.** 📎 **148** decisioni in **52** tornate; la prossima è **D149**.
