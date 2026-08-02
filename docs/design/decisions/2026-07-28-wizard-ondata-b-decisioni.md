@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantaduesima tornata (D173: P18 — il collegamento al dentista smette di dipendere da dove naviga il laboratorio)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantatreesima tornata (D174: P30 — tre varianti disegnate e portate alla soglia della firma, con i contrasti misurati)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettantatré decisioni in sessantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centosettantaquattro decisioni in sessantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1159,3 +1159,49 @@ cambi**. `provato:` sul codice di prima sono **5 su 5 rosse**.
 guardata nel browser**. Nessuno ha riaperto la scheda del cliente per vedere sparire l'avvertimento di
 idratazione. Le prove coprono il comportamento, **non l'occhio** — e la lezione ① del 02/08 dice
 esattamente che le due cose non si sostituiscono.
+
+---
+
+### Sessantatreesima tornata — D174: P30 alla soglia della firma, e i contrasti misurati invece che dichiarati
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** 🛑 **Qui però il confine è diverso dalle tre
+> tornate precedenti: P30 NON è deciso.** Questa riga registra **come** il lavoro è stato preparato, non
+> quale strada si prende — quella è **la firma di Francesco**, ed è tutto il senso di §0B.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D174** | 🎨 **P30 SI PRESENTA CON TRE VARIANTI, NON CON UNA PROPOSTA — perché la scelta vera non è estetica, è dove cade il confine fra la regola di casa e la fretta di chi lavora al banco** | scelta **mia** su **come** preparare la scelta. Il mandato chiedeva «più varianti fra cui scegliere» (preferenza permanente di Francesco, §0B punto 3) | 🔑 **Il nodo, e per questo tre e non due:** un dentista ha **22 dati**. Metterli in fila in una pagina è quello che fa ogni gestionale — e contraddice **L1** («una cosa alla volta») e **§5.27** («i campi vivono solo dentro fogli e procedure guidate»). 🅰️ *le righe che si toccano* sta tutta dalla parte della regola · 🅲 *la pagina intera* tutta dalla parte della fretta · 🅱️ *i quattro cartoncini* nel mezzo, ed è **la consigliata** perché regge il caso vero descritto da Francesco il 27/07: chi sbaglia una digitazione al banco **raramente ne sbaglia una sola** — il telefono e l'email li ha copiati insieme dallo stesso foglietto |
+| **D174-bis** | 📐 **I CONTRASTI SI MISURANO PRIMA DELLA FIRMA, non dopo** — 442 testi, tre varianti × due temi × foglio aperto e chiuso | scelta **mia**. Erano già scritti fra «le cose non fatte»; c'era tempo, e **ciò che si rimanda sparisce** | ✅ **Esito: 442 misurati, 0 sotto soglia** — ma dopo aver trovato **tre** cose, e la terza è quella che insegna di più (sotto) |
+
+🔑 **Le tre cose che la misura ha trovato, e perché contano più del numero finale:**
+
+**① Il difetto che l'OCCHIO aveva saltato.** Nella variante B, in tema scuro, i quattro cartoncini erano a
+**1,25:1**: `misurato:` testo **nero puro** su fondo quasi nero, perché **un tasto non eredita il colore del
+testo** e si tiene quello predefinito del browser. In tema chiaro nero su bianco *sembra* giusto — il difetto
+si vedeva **solo al buio**. 🛑 **E gli scatti li avevo guardati:** ma avevo aperto la A in scuro e la C in
+chiaro, **non la B in scuro**. La macchina ha visto quello che l'occhio ha saltato. ⚠️ È la lezione di ieri
+(«un codice verde non è un codice guardato») **presa dal verso opposto**: guardare non sostituisce misurare,
+esattamente come misurare non sostituisce guardare.
+
+**② Un difetto del codice già scritto, trovato per caso.** Le etichette dentro il foglio, in tema scuro, sono
+a **4,25:1**. Il colore non è sbagliato: `--faint` passa su `--bg` e su `--card`, ma il foglio ha un fondo
+**più chiaro** (`--elv`) e lì cade. Riguarda `Campo.tsx` dentro ogni `Sheet` v3 — **ogni campo di ogni foglio
+dell'app**. Riferito come **P30-bis**, non corretto (R-E2).
+
+**③ 🎣 Un difetto INESISTENTE, a cui stavo per credere.** La sonda dava il tasto rosso a **3,52:1** in tema
+scuro, contro il 4,5 richiesto. E c'era **il precedente perfetto**: la spec §5.4 racconta lo **stesso**
+identico caso risolto per il verde («stop pinnati in hex, MAI `var(--green)` come faccia») — sembrava
+evidente che la correzione non fosse mai arrivata al rosso, e stavo per aprirci una voce di roadmap.
+🛑 **Non era vero.** Il tasto primario **vero** scrive a **21px**; il mio disegno l'aveva scritto a **17**.
+Sopra i 18,66px in grassetto la soglia WCAG scende da 4,5 a **3**, e 3,52 la supera: **il componente era a
+posto, era il disegno a essere diverso da lui.**
+🔑 **Ed è la terza volta in due giorni che questa forma si ripresenta** (dopo il `role="alert"` contato nello
+shadow DOM e le prove verdi «perché la macchina è a Roma»): **prima di credere a una misura sorprendente si
+guarda che cosa ha misurato.** ⚠️ Qui con un'aggravante nuova: **un precedente che combacia troppo bene è un
+acceleratore di errore** — rende la conclusione sbagliata più credibile, non meno.
+📌 E la causa a monte: **un disegno che non usa le misure vere del componente inventa difetti**, e un difetto
+inventato costa quanto uno vero, perché manda a riparare ciò che è già a posto.
+
+🛑 **Che cosa resta NON deciso, e aspetta Francesco** (§5 del documento): quale variante · se il salvataggio
+è subito o alla fine · se i campi oggi non correggibili (tecnico predefinito, IBAN, i tre interruttori) entrano
+· se la pagina ha un indirizzo suo `/clienti/[id]/modifica` come il lavoro.

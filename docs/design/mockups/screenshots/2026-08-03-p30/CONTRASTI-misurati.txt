@@ -1,0 +1,12 @@
+✅ A-righe · light — 52 testi, tutti sopra soglia
+✅ A-righe · light · foglio aperto — 58 testi, tutti sopra soglia
+✅ A-righe · dark — 52 testi, tutti sopra soglia
+✅ A-righe · dark · foglio aperto — 58 testi, tutti sopra soglia
+✅ B-gruppi · light — 24 testi, tutti sopra soglia
+✅ B-gruppi · light · foglio aperto — 37 testi, tutti sopra soglia
+✅ B-gruppi · dark — 24 testi, tutti sopra soglia
+✅ B-gruppi · dark · foglio aperto — 37 testi, tutti sopra soglia
+✅ C-pagina · light — 50 testi, tutti sopra soglia
+✅ C-pagina · dark — 50 testi, tutti sopra soglia
+
+✅ 442 testi misurati, 0 sotto soglia

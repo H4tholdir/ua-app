@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P30 · Variante A — Le righe che si toccano</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══ TOKEN v3 — copiati da src/design-system/v3/tokens.ts, MAI inventati ═══ */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  --scrim:rgba(29,25,19,.35);
+}
+[data-tema="dark"]{
+  --bg:#171411; --bg-deep:#211D18; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --red-tint:rgba(255,59,68,.14); --amber-tint:rgba(232,161,61,.14);
+  --blue-tint:rgba(91,155,255,.14); --green-tint:rgba(52,196,104,.14);
+  --sh-card:none; --sh-press:none;   /* dark = piatto */
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--ink);
+  min-height:100dvh; padding-bottom:120px;
+}
+/* ── Header: tasto tondo a sinistra, nient'altro (§5.6) ── */
+.testata{display:flex;align-items:center;gap:16px;padding:20px 24px 8px}
+.tondo{
+  width:50px;height:50px;flex:none;border-radius:999px;border:none;
+  background:var(--card);box-shadow:var(--sh-press);
+  font-size:21px;font-weight:800;color:var(--ink);cursor:pointer;
+}
+[data-tema="dark"] .tondo{border:1px solid var(--line)}
+.titolo{font-size:27px;font-weight:800;letter-spacing:-0.02em;line-height:1.15}
+.sottotitolo{padding:0 24px 20px;font-size:15.5px;font-weight:600;color:var(--muted)}
+
+.corpo{padding:0 24px;max-width:720px;margin:0 auto}
+.gruppo{margin-bottom:24px}
+.gruppo-nome{
+  font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--faint);padding:0 4px 8px;
+}
+.card{background:var(--card);border-radius:24px;padding:4px 20px;box-shadow:var(--sh-card)}
+[data-tema="dark"] .card{border:1px solid var(--line)}
+
+/* ── La riga che si tocca: chiave a sinistra, valore a destra, chevron ── */
+.riga{color:var(--ink);
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:14px 0;background:none;border:none;border-bottom:1.5px solid var(--line);
+  text-align:left;cursor:pointer;font-family:inherit;min-height:60px;
+}
+.riga:last-child{border-bottom:none}
+.riga:active{opacity:.6}
+.chiave{
+  font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--faint);flex:none;width:92px;
+}
+.valore{flex:1;font-size:17px;font-weight:700;color:var(--ink);text-align:right;overflow-wrap:break-word;word-break:normal}
+.valore.vuoto{color:var(--faint);font-weight:600}
+.chevron{flex:none;color:var(--faint);font-size:19px;font-weight:800;width:14px;text-align:right}
+
+/* ── L'avviso: un dato che serve e non c'è (L3: colore + parola) ── */
+.avviso{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--amber-tint);border-radius:18px;padding:16px 18px;margin-bottom:24px;
+}
+.avviso-glifo{
+  flex:none;width:34px;height:34px;border-radius:999px;background:var(--card);
+  display:grid;place-items:center;font-size:17px;
+}
+[data-tema="dark"] .avviso-glifo{background:rgba(0,0,0,.25)}
+.avviso-testo{font-size:15.5px;font-weight:700;color:var(--ink);line-height:1.4}
+.avviso-testo b{color:var(--amber)}
+
+/* ── Il foglio che si apre: UNA domanda sola (§5.16 + §5.27) ── */
+.scrim{
+  position:fixed;inset:0;background:var(--scrim);opacity:0;pointer-events:none;
+  transition:opacity .22s ease;z-index:10;
+}
+.foglio{visibility:hidden;
+  position:fixed;left:0;right:0;bottom:0;z-index:11;
+  background:var(--card);border-radius:28px 28px 0 0;padding:12px 24px 28px;
+  transform:translateY(101%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+  box-shadow:0 -18px 40px -20px rgba(50,40,25,.4);
+}
+[data-tema="dark"] .foglio{background:var(--elv);border-top:1px solid var(--line)}
+/* ⚠️ SCOSTAMENTO PROPOSTO dalla spec §5.27, con la ragione misurata: l'etichetta
+   vuole `--faint`, ma sul fondo del foglio (`--elv`) in tema scuro dà 4,25:1 —
+   sotto il 4,5 di WCAG 1.4.3. Su `--card` passerebbe: è il fondo PIÙ CHIARO del
+   foglio a farla cadere. Qui si usa `--muted`. 🛑 Il difetto NON è di questo
+   disegno: è del `Campo` v3 dentro un `Sheet` v3, cioè del codice già scritto. */
+[data-tema="dark"] .foglio .label{color:var(--muted)}
+body.aperto .scrim{opacity:1;pointer-events:auto}
+body.aperto .foglio{transform:translateY(0);visibility:visible}
+.maniglia{width:44px;height:5px;border-radius:999px;background:var(--line);margin:0 auto 20px}
+.foglio-domanda{font-size:21px;font-weight:800;letter-spacing:-0.02em;margin-bottom:20px}
+.label{
+  display:block;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;
+  color:var(--faint);margin-bottom:4px;
+}
+.campo{
+  display:block;width:100%;height:64px;border-radius:18px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);font-family:inherit;font-size:19px;font-weight:700;
+  padding:0 18px;margin-bottom:20px;
+}
+[data-tema="dark"] .campo{background:var(--bg-deep)}
+.campo:focus{outline:none;box-shadow:0 0 0 2px var(--blue)}
+.aiuto{font-size:14px;font-weight:600;color:var(--muted);margin:-12px 0 20px;line-height:1.45}
+.primario{
+  display:block;width:100%;height:62px;border-radius:20px;border:none;cursor:pointer;
+  background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+  color:#fff;font-family:inherit;font-size:21px;font-weight:800;
+  box-shadow:0 5px 0 var(--red-dark),0 14px 24px -12px rgba(217,0,18,.5);
+}
+.primario:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red-dark)}
+.fuga{
+  display:block;width:100%;margin-top:16px;background:none;border:none;cursor:pointer;
+  font-family:inherit;font-size:14.5px;font-weight:600;color:var(--muted);
+  text-decoration:underline;text-underline-offset:3px;
+}
+/* ── Tablet e scrivania: due colonne, margini della spec (§4.2) ── */
+@media(min-width:768px){ .corpo{padding:0 28px} .testata{padding:24px 28px 8px} .sottotitolo{padding:0 28px 24px} }
+@media(min-width:1000px){
+  .corpo{padding:0 32px;max-width:1000px}
+  .griglia{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .foglio{left:50%;right:auto;bottom:0;width:520px;transform:translate(-50%,101%);border-radius:28px 28px 0 0}
+  body.aperto .foglio{transform:translate(-50%,0);visibility:visible}
+}
+
+/* ⚠️ Per gli scatti a pagina intera: gli elementi ancorati al bordo (il foglio,
+   la barra) in uno scatto lungo finirebbero IN MEZZO al contenuto — uno scatto
+   che mente su come la schermata si vede davvero. Con questa classe spariscono,
+   e il loro posto vero si guarda negli scatti a schermo. */
+html.scatto-lungo .foglio, html.scatto-lungo .scrim, html.scatto-lungo .barra{display:none !important}
+</style>
+</head>
+<body>
+<div class="testata">
+  <button class="tondo" aria-label="Torna alla scheda">←</button>
+  <div>
+    <div class="titolo">Studio Bianchi</div>
+  </div>
+</div>
+<div class="sottotitolo">Tocca il dato che vuoi correggere.</div>
+
+<div class="corpo">
+  <div class="avviso">
+    <div class="avviso-glifo">📄</div>
+    <div class="avviso-testo">Per fatturare a questo studio manca la <b>Partita IVA</b>.</div>
+  </div>
+
+  <div class="griglia">
+    <div>
+      <div class="gruppo">
+        <div class="gruppo-nome">Chi è</div>
+        <div class="card">
+          <button class="riga"><span class="chiave">Studio</span><span class="valore">Studio Dentistico Bianchi</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Dentista</span><span class="valore">Marco Bianchi</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Telefono</span><span class="valore">+39 02 4567 8901</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Email</span><span class="valore">studio@bianchi.it</span><span class="chevron">›</span></button>
+        </div>
+      </div>
+
+      <div class="gruppo">
+        <div class="gruppo-nome">Dove sta</div>
+        <div class="card">
+          <button class="riga"><span class="chiave">Indirizzo</span><span class="valore">Via Manzoni 14</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Città</span><span class="valore">20121 Milano (MI)</span><span class="chevron">›</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="gruppo">
+        <div class="gruppo-nome">Per la fattura</div>
+        <div class="card">
+          <button class="riga"><span class="chiave">P. IVA</span><span class="valore vuoto">Manca — tocca per aggiungerla</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Cod. fisc.</span><span class="valore">BNCMRC70A01F205X</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Cod. SDI</span><span class="valore">M5UXCR1</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">PEC</span><span class="valore vuoto">Non indicata</span><span class="chevron">›</span></button>
+        </div>
+      </div>
+
+      <div class="gruppo">
+        <div class="gruppo-nome">Come si lavora insieme</div>
+        <div class="card">
+          <button class="riga"><span class="chiave">Listino</span><span class="valore">Listino 2</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Sconto</span><span class="valore">5%</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Pagamento</span><span class="valore">30 giorni data fattura</span><span class="chevron">›</span></button>
+          <button class="riga"><span class="chiave">Note</span><span class="valore">Preferisce ritiro il venerdì</span><span class="chevron">›</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim"></div>
+<div class="foglio" role="dialog" aria-label="Correggi il telefono">
+  <div class="maniglia"></div>
+  <div class="foglio-domanda">Qual è il telefono dello studio?</div>
+  <label class="label" for="c">Telefono</label>
+  <input class="campo" id="c" type="tel" value="+39 02 4567 8901" inputmode="tel">
+  <div class="aiuto">È il numero a cui UÀ manda i messaggi di consegna su WhatsApp.</div>
+  <button class="primario">Salva il telefono</button>
+  <button class="fuga">Aspetta, lascia com'era</button>
+</div>
+
+<script>
+  document.querySelectorAll('.riga').forEach(r=>r.addEventListener('click',()=>document.body.classList.add('aperto')))
+  document.querySelector('.scrim').addEventListener('click',()=>document.body.classList.remove('aperto'))
+  document.querySelector('.fuga').addEventListener('click',()=>document.body.classList.remove('aperto'))
+  document.querySelector('.primario').addEventListener('click',()=>document.body.classList.remove('aperto'))
+</script>
+</body>
+</html>

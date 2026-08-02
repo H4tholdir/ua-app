@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P30 · Variante C — La pagina intera</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══ TOKEN v3 — copiati da src/design-system/v3/tokens.ts, MAI inventati ═══ */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --amber-tint:#F8F0E1; --green-tint:#EAF4EC;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+}
+[data-tema="dark"]{
+  --bg:#171411; --bg-deep:#211D18; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --amber-tint:rgba(232,161,61,.14); --green-tint:rgba(52,196,104,.14);
+  --sh-card:none; --sh-press:none;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); min-height:100dvh; padding-bottom:130px;
+}
+.testata{display:flex;align-items:center;gap:16px;padding:20px 24px 8px}
+.tondo{
+  width:50px;height:50px;flex:none;border-radius:999px;border:none;
+  background:var(--card);box-shadow:var(--sh-press);
+  font-size:21px;font-weight:800;color:var(--ink);cursor:pointer;
+}
+[data-tema="dark"] .tondo{border:1px solid var(--line)}
+.titolo{font-size:27px;font-weight:800;letter-spacing:-0.02em;line-height:1.15}
+.sottotitolo{padding:0 24px 20px;font-size:15.5px;font-weight:600;color:var(--muted)}
+.corpo{padding:0 24px;max-width:720px;margin:0 auto}
+
+.avviso{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--amber-tint);border-radius:18px;padding:16px 18px;margin-bottom:24px;
+}
+.avviso-glifo{flex:none;width:34px;height:34px;border-radius:999px;background:var(--card);display:grid;place-items:center;font-size:17px}
+[data-tema="dark"] .avviso-glifo{background:rgba(0,0,0,.25)}
+.avviso-testo{font-size:15.5px;font-weight:700;color:var(--ink);line-height:1.4}
+.avviso-testo b{color:var(--amber)}
+
+.sezione{margin-bottom:32px}
+.sezione-nome{
+  font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--faint);padding:0 4px 10px;
+}
+.card{background:var(--card);border-radius:24px;padding:20px;box-shadow:var(--sh-card)}
+[data-tema="dark"] .card{border:1px solid var(--line)}
+.label{display:block;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;color:var(--faint);margin-bottom:4px}
+.campo{
+  display:block;width:100%;height:64px;border-radius:18px;border:1px solid var(--line);
+  background:var(--bg-deep);color:var(--ink);font-family:inherit;font-size:19px;font-weight:700;
+  padding:0 18px;margin-bottom:18px;
+}
+.campo:last-child{margin-bottom:0}
+.campo:focus{outline:none;box-shadow:0 0 0 2px var(--blue)}
+.campo.manca{border:1px solid var(--amber);background:var(--amber-tint)}
+.aiuto{font-size:14px;font-weight:600;color:var(--muted);margin:-10px 0 18px;line-height:1.45}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.trio{display:grid;grid-template-columns:1fr 1.4fr .7fr;gap:12px}
+
+/* ── La barra che resta in basso: dice cosa è cambiato, e salva (L6) ── */
+.barra{
+  position:fixed;left:0;right:0;bottom:0;z-index:9;
+  background:var(--card);border-top:1px solid var(--line);
+  padding:14px 24px calc(14px + env(safe-area-inset-bottom));
+  box-shadow:0 -14px 30px -18px rgba(50,40,25,.4);
+  display:flex;align-items:center;gap:16px;
+}
+[data-tema="dark"] .barra{background:var(--elv)}
+.barra-conto{flex:1;font-size:14.5px;font-weight:700;color:var(--muted);line-height:1.35}
+.barra-conto b{color:var(--ink)}
+.primario{
+  flex:none;height:62px;padding:0 28px;border-radius:20px;border:none;cursor:pointer;
+  background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+  color:#fff;font-family:inherit;font-size:21px;font-weight:800;
+  box-shadow:0 5px 0 var(--red-dark),0 14px 24px -12px rgba(217,0,18,.5);
+}
+.primario:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red-dark)}
+@media(min-width:768px){ .corpo{padding:0 28px} .testata{padding:24px 28px 8px} .sottotitolo{padding:0 28px 24px} .barra{padding-left:28px;padding-right:28px} }
+@media(min-width:1000px){
+  .corpo{padding:0 32px;max-width:1000px}
+  .griglia{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .barra{padding-left:32px;padding-right:32px;justify-content:center}
+  .barra-conto{flex:none;max-width:520px}
+}
+
+/* ⚠️ Per gli scatti a pagina intera: gli elementi ancorati al bordo (il foglio,
+   la barra) in uno scatto lungo finirebbero IN MEZZO al contenuto — uno scatto
+   che mente su come la schermata si vede davvero. Con questa classe spariscono,
+   e il loro posto vero si guarda negli scatti a schermo. */
+html.scatto-lungo .foglio, html.scatto-lungo .scrim, html.scatto-lungo .barra{display:none !important}
+</style>
+</head>
+<body>
+<div class="testata">
+  <button class="tondo" aria-label="Torna alla scheda">←</button>
+  <div class="titolo">Studio Bianchi</div>
+</div>
+<div class="sottotitolo">Correggi quello che serve, poi salva in fondo.</div>
+
+<div class="corpo">
+  <div class="avviso">
+    <div class="avviso-glifo">📄</div>
+    <div class="avviso-testo">Per fatturare a questo studio manca la <b>Partita IVA</b>.</div>
+  </div>
+
+  <div class="griglia">
+    <div>
+      <div class="sezione">
+        <div class="sezione-nome">Chi è</div>
+        <div class="card">
+          <label class="label" for="s">Studio</label>
+          <input class="campo" id="s" value="Studio Dentistico Bianchi">
+          <div class="duo">
+            <div><label class="label" for="n">Nome</label><input class="campo" id="n" value="Marco"></div>
+            <div><label class="label" for="cg">Cognome</label><input class="campo" id="cg" value="Bianchi"></div>
+          </div>
+          <label class="label" for="t">Telefono</label>
+          <input class="campo" id="t" type="tel" value="+39 02 4567 8901" inputmode="tel">
+          <div class="aiuto">È il numero a cui UÀ manda i messaggi di consegna su WhatsApp.</div>
+          <label class="label" for="e">Email</label>
+          <input class="campo" id="e" type="email" value="studio@bianchi.it">
+        </div>
+      </div>
+
+      <div class="sezione">
+        <div class="sezione-nome">Dove sta</div>
+        <div class="card">
+          <label class="label" for="i">Indirizzo</label>
+          <input class="campo" id="i" value="Via Manzoni 14">
+          <div class="trio">
+            <div><label class="label" for="cap">CAP</label><input class="campo" id="cap" value="20121" inputmode="numeric"></div>
+            <div><label class="label" for="ci">Città</label><input class="campo" id="ci" value="Milano"></div>
+            <div><label class="label" for="pr">Prov.</label><input class="campo" id="pr" value="MI"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sezione">
+        <div class="sezione-nome">Per la fattura</div>
+        <div class="card">
+          <label class="label" for="piva">Partita IVA</label>
+          <input class="campo manca" id="piva" inputmode="numeric" placeholder="11 cifre">
+          <div class="aiuto">Senza, a questo studio non si può emettere fattura elettronica.</div>
+          <label class="label" for="cf">Codice fiscale</label>
+          <input class="campo" id="cf" value="BNCMRC70A01F205X">
+          <label class="label" for="sdi">Codice destinatario</label>
+          <input class="campo" id="sdi" value="M5UXCR1">
+          <div class="aiuto">Sette caratteri. In alternativa basta la PEC.</div>
+          <label class="label" for="pec">PEC</label>
+          <input class="campo" id="pec" type="email" placeholder="studio@pec.it">
+        </div>
+      </div>
+
+      <div class="sezione">
+        <div class="sezione-nome">Come si lavora insieme</div>
+        <div class="card">
+          <div class="duo">
+            <div><label class="label" for="li">Listino</label><input class="campo" id="li" value="Listino 2"></div>
+            <div><label class="label" for="sc">Sconto %</label><input class="campo" id="sc" value="5" inputmode="decimal"></div>
+          </div>
+          <label class="label" for="pg">Pagamento</label>
+          <input class="campo" id="pg" value="30 giorni data fattura">
+          <label class="label" for="no">Note</label>
+          <input class="campo" id="no" value="Preferisce ritiro il venerdì">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="barra">
+  <div class="barra-conto">Hai cambiato <b>2 cose</b>: telefono e Partita IVA.</div>
+  <button class="primario">Salva</button>
+</div>
+</body>
+</html>
