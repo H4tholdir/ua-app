@@ -1,0 +1,33 @@
+✅ chromium · A-righe · light · chiuso — 15 bersagli, tutti ≥ 44px
+✅ chromium · A-righe · light · aperto — 18 bersagli, tutti ≥ 44px
+✅ chromium · A-righe · dark · chiuso — 15 bersagli, tutti ≥ 44px
+✅ chromium · A-righe · dark · aperto — 18 bersagli, tutti ≥ 44px
+✅ chromium · B-gruppi · light · chiuso — 5 bersagli, tutti ≥ 44px
+✅ chromium · B-gruppi · light · aperto — 11 bersagli, tutti ≥ 44px
+✅ chromium · B-gruppi · dark · chiuso — 5 bersagli, tutti ≥ 44px
+✅ chromium · B-gruppi · dark · aperto — 11 bersagli, tutti ≥ 44px
+✅ chromium · C-pagina · light · chiuso — 19 bersagli, tutti ≥ 44px
+✅ chromium · C-pagina · dark · chiuso — 19 bersagli, tutti ≥ 44px
+✅ firefox · A-righe · light · chiuso — 15 bersagli, tutti ≥ 44px
+✅ firefox · A-righe · light · aperto — 18 bersagli, tutti ≥ 44px
+✅ firefox · A-righe · dark · chiuso — 15 bersagli, tutti ≥ 44px
+✅ firefox · A-righe · dark · aperto — 18 bersagli, tutti ≥ 44px
+✅ firefox · B-gruppi · light · chiuso — 5 bersagli, tutti ≥ 44px
+✅ firefox · B-gruppi · light · aperto — 11 bersagli, tutti ≥ 44px
+✅ firefox · B-gruppi · dark · chiuso — 5 bersagli, tutti ≥ 44px
+✅ firefox · B-gruppi · dark · aperto — 11 bersagli, tutti ≥ 44px
+✅ firefox · C-pagina · light · chiuso — 19 bersagli, tutti ≥ 44px
+✅ firefox · C-pagina · dark · chiuso — 19 bersagli, tutti ≥ 44px
+✅ webkit · A-righe · light · chiuso — 15 bersagli, tutti ≥ 44px
+✅ webkit · A-righe · light · aperto — 18 bersagli, tutti ≥ 44px
+✅ webkit · A-righe · dark · chiuso — 15 bersagli, tutti ≥ 44px
+✅ webkit · A-righe · dark · aperto — 18 bersagli, tutti ≥ 44px
+✅ webkit · B-gruppi · light · chiuso — 5 bersagli, tutti ≥ 44px
+✅ webkit · B-gruppi · light · aperto — 11 bersagli, tutti ≥ 44px
+✅ webkit · B-gruppi · dark · chiuso — 5 bersagli, tutti ≥ 44px
+✅ webkit · B-gruppi · dark · aperto — 11 bersagli, tutti ≥ 44px
+✅ webkit · C-pagina · light · chiuso — 19 bersagli, tutti ≥ 44px
+✅ webkit · C-pagina · dark · chiuso — 19 bersagli, tutti ≥ 44px
+
+📸 18 scatti in /Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app/docs/design/mockups/screenshots/2026-08-03-p30/motori
+✅ nessun bersaglio sotto 44px, su tutti i motori provati

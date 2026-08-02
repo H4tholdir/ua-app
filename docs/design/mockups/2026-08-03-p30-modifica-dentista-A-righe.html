@@ -121,10 +121,20 @@ body.aperto .foglio{transform:translateY(0);visibility:visible}
 }
 .primario:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red-dark)}
 .fuga{
-  display:block;width:100%;margin-top:16px;background:none;border:none;cursor:pointer;
+  /* ⚠️ Copiato VERBATIM da `src/components/ds/LinkQuieto.tsx`, e non è un
+     dettaglio: la via di fuga è alta 18px di testo, ma il dito ha bisogno di 44.
+     Il padding allarga l'area toccabile, il margin negativo uguale e contrario la
+     annulla nel layout — l'aspetto non cambia di un pixel, cambia solo quanto è
+     facile centrarla. 🔑 La prima stesura di questo disegno NON l'aveva, e la
+     misura sui tre motori l'ha trovata: 342×18. Un disegno che non copia le
+     misure vere del componente inventa difetti che il codice non ha. */
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-height:44px;padding:13px 0;margin:16px 0 -13px;
+  background:none;border:none;cursor:pointer;
   font-family:inherit;font-size:14.5px;font-weight:600;color:var(--muted);
   text-decoration:underline;text-underline-offset:3px;
 }
+.fuga:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 /* ── Tablet e scrivania: due colonne, margini della spec (§4.2) ── */
 @media(min-width:768px){ .corpo{padding:0 28px} .testata{padding:24px 28px 8px} .sottotitolo{padding:0 28px 24px} }
 @media(min-width:1000px){

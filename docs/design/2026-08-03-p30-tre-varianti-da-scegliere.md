@@ -170,15 +170,47 @@ difetto inventato costa quanto uno vero, perché manda a riparare ciò che è gi
 
 ---
 
-## 8. 🛑 Che cosa non è stato guardato — dichiarato
+## 8. I tre motori e il dito: **due vuoti chiusi**, e un altro difetto trovato
+
+Nella prima stesura di questo documento erano scritti fra «le cose non fatte». C'era tempo, e valgono la
+stessa regola dei contrasti: **ciò che si rimanda sparisce**.
+
+### ✅ La resa su **tre** motori, non su uno
+
+Gli scatti sono stati rifatti su **Chromium · Firefox · WebKit** — 18 scatti in
+`screenshots/2026-08-03-p30/motori/`. **Le tre rese sono coerenti**: cambia dove il testo va a capo di
+qualche pixel e lo spessore della freccia «indietro», niente che sposti una decisione.
+🔑 **E i due controlli non erano indipendenti:** la resa dei caratteri decide dove un testo va a capo, e un
+testo che va a capo cambia **l'altezza di una riga tappabile**. Il primo controllo può creare il difetto che
+misura il secondo — per questo sono stati fatti insieme.
+
+### ✅ I bersagli tappabili, misurati uno per uno
+
+Ogni tasto, campo e collegamento, sui tre motori, in due temi, a foglio chiuso e aperto.
+**Esito finale: nessun bersaglio sotto i 44px richiesti.** Referto: `screenshots/2026-08-03-p30/BERSAGLI-E-MOTORI.txt`.
+
+### 🔴 Ma prima di arrivarci ha trovato un difetto — e per la SECONDA volta era **nel disegno**
+
+`misurato:` la via di fuga «Aspetta, lascia com'era» era **342 × 18** — contro i 44 richiesti. Su **tutti e
+tre** i motori.
+🛑 **E anche stavolta il componente vero era già a posto.** `LinkQuieto` (§5.5) risolve la cosa con una
+tecnica che il mio disegno non aveva copiato: `min-height: 44` più un `padding` verticale e un `margin`
+negativo uguale e contrario — **l'area cresce, l'aspetto non cambia di un pixel**. C'è perfino il commento
+che lo spiega, nel file del componente.
+🔑 **È la stessa causa del «difetto inesistente» del §7 ③, dall'altro lato:** un disegno che non copia le
+misure vere dei componenti **mente in due direzioni** — una volta inventa un difetto che non c'è (il tasto a
+17px invece di 21), una volta ne nasconde uno che c'è (la via di fuga senza area tappabile). ✅ Allineata,
+copiando il componente verbatim, e il commento è nel disegno.
+
+---
+
+## 9. 🛑 Che cosa non è stato guardato — dichiarato
 
 - **Nessun lettore di schermo.** Le etichette e i ruoli sono scritti secondo la regola, ma VoiceOver non è
   stato acceso. È lo stesso vuoto del gate di ieri, e resta.
-- **Un motore solo.** Gli scatti e le misure vengono da Chromium. La resa dei caratteri su un altro motore
-  non è stata vista.
-- **Nessuna prova col dito.** Le aree tappabili sono disegnate sopra i 44px richiesti, ma **non sono state
-  misurate** una per una come si fa al gate.
 - **Nessun dato vero.** Lo studio Bianchi è inventato; nessuna lettura dalla banca dati (era la regola della
   notte).
 - **Nessun movimento provato.** I fogli salgono con la molla giusta nel disegno, ma il comportamento con
   «Riduci movimento» acceso non è stato guardato.
+- **Nessuna prova su un telefono vero.** Tutto è stato misurato su finestre di 390px, che non è la stessa
+  cosa di un pollice su un vetro.
