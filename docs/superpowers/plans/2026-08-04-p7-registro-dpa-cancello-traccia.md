@@ -286,24 +286,24 @@ In `tests/unit/dpa-registro.test.ts`, in coda al blocco che asserisce sul payloa
     await generateDpa('lab-test-001', 'cli-001', 'utente-007')
 
     const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
-    // 🔑 `toBe`, non `toBeDefined()`: una colonna che esiste ed e' vuota e'
+    // 🔑 `toBe`, non `toBeDefined()`: una colonna che esiste ed è vuota è
     //    ESATTAMENTE il difetto di dichiarazioni_conformita.generated_by
     //    (5 righe, 0 riempite — voce P26). «Definita» non basta.
     expect(riga.emesso_da).toBe('utente-007')
-    // 🛑 E non si e' scritto nella colonna sbagliata: `firmato_da` e' il nome
+    // 🛑 E non si è scritto nella colonna sbagliata: `firmato_da` è il nome
     //    della CONTROPARTE allo studio, non chi opera in UA.
     expect(riga.firmato_da).toBeUndefined()
   })
 
   it('🛑 T3b — sul RIUSO il «chi» NON si riscrive, nemmeno se scarica un altro utente', async () => {
-    montaTabelle(CORRENTE)   // esiste gia' un'emissione riusabile
+    montaTabelle(CORRENTE)   // esiste già un'emissione riusabile
 
     const r = await generateDpa('lab-test-001', 'cli-001', 'utente-DIVERSO')
 
-    // 🔑 Perche' questa prova esiste: senza di lei, chi legge solo T3a fa
-    //    riscrivere `emesso_da` sul ramo di riuso «per coerenza» — cioe'
-    //    riscrive un campo del REGISTRO DELLE PROVE, che e' il difetto che P7
-    //    esiste per chiudere. La colonna dice CHI HA EMESSO, e l'emissione e'
+    // 🔑 Perché questa prova esiste: senza di lei, chi legge solo T3a fa
+    //    riscrivere `emesso_da` sul ramo di riuso «per coerenza» — cioè
+    //    riscrive un campo del REGISTRO DELLE PROVE, che è il difetto che P7
+    //    esiste per chiudere. La colonna dice CHI HA EMESSO, e l'emissione è
     //    avvenuta una volta sola.
     expect(r.riemessa).toBe(false)
     expect(mockInsert).not.toHaveBeenCalled()
@@ -350,9 +350,9 @@ export async function generateDpa(
   laboratorio_id: string,
   cliente_id: string,
   /** Chi ha PREMUTO. 🛑 OBBLIGATORIO per scelta, non per rigore inutile: la
-   *  colonna gemella della DdC (`dichiarazioni_conformita.generated_by`) e'
-   *  facoltativa da mesi e ha 5 righe con ZERO valori. Una colonna che si puo'
-   *  dimenticare e' una colonna dimenticata, e la dimenticanza non fa rumore.
+   *  colonna gemella della DdC (`dichiarazioni_conformita.generated_by`) è
+   *  facoltativa da mesi e ha 5 righe con ZERO valori. Una colonna che si può
+   *  dimenticare è una colonna dimenticata, e la dimenticanza non fa rumore.
    *  Qui il rumore lo fa `tsc`. */
   emesso_da: string,
 ): Promise<EmissioneDpa> {

@@ -89,9 +89,9 @@ export async function generateDpa(
   laboratorio_id: string,
   cliente_id: string,
   /** Chi ha PREMUTO. 🛑 OBBLIGATORIO per scelta, non per rigore inutile: la
-   *  colonna gemella della DdC (`dichiarazioni_conformita.generated_by`) e'
-   *  facoltativa da mesi e ha 5 righe con ZERO valori. Una colonna che si puo'
-   *  dimenticare e' una colonna dimenticata, e la dimenticanza non fa rumore.
+   *  colonna gemella della DdC (`dichiarazioni_conformita.generated_by`) è
+   *  facoltativa da mesi e ha 5 righe con ZERO valori. Una colonna che si può
+   *  dimenticare è una colonna dimenticata, e la dimenticanza non fa rumore.
    *  Qui il rumore lo fa `tsc`. */
   emesso_da: string,
 ): Promise<EmissioneDpa> {

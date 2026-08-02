@@ -2871,7 +2871,10 @@ CREATE TABLE data_processing_agreements (
   note              TEXT,
 
   -- Registro delle emissioni (ondata 1 — migration 20260803150000_dpa_registro_emissioni.sql).
-  -- I sette campi viaggiano tutti insieme o nessuno: v. CHECK dpa_emissione_coerente.
+  -- Il CHECK dpa_emissione_coerente vincola SETTE degli OTTO campi di emissione qui
+  -- sotto (tutti insieme o nessuno). L'ottavo, emesso_da (P7, 04/08/2026), è
+  -- deliberatamente ESCLUSO da quel vincolo: le righe nate prima non hanno un "chi"
+  -- e non si inventa.
   numero_dpa        TEXT,                              -- Es. "DPA-2026-0007"
   anno_dpa          SMALLINT,
   progressivo_dpa   INTEGER,                           -- da genera_progressivo(tipo='dpa')
@@ -2937,6 +2940,14 @@ CREATE POLICY "dpa_laboratorio" ON data_processing_agreements
   FOR SELECT USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
 -- Solo SELECT (P7, 04/08/2026) — una prova che la parte interessata puo'
 -- riscrivere non e' una prova. Stesso principio di sdi_receipts.
+-- ⚠️ _audit_trigger_fn() NON è definita in questo file: vive in
+-- supabase/migrations/20260517000002_fix_audit_trigger_jsonb.sql. La tabella
+-- audit_log è anche peggio: NESSUN file di supabase/migrations/ la crea
+-- (zero `CREATE TABLE audit_log` nel repo) — esiste solo nel database vivo.
+-- Di conseguenza, da questo trigger in poi questo file NON è più eseguibile
+-- da zero nel SQL Editor (come dichiara la sua intestazione, riga 3): un run
+-- pulito fallisce qui perché la funzione invocata non esiste ancora nella
+-- fotografia (voce P27 della roadmap).
 CREATE TRIGGER _audit_data_processing_agreements
   AFTER INSERT OR DELETE OR UPDATE ON data_processing_agreements
   FOR EACH ROW EXECUTE FUNCTION _audit_trigger_fn();
