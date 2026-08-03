@@ -1,19 +1,18 @@
-# Sessione attiva — D198: l'unione è fatta, la Fase 0 di PIPELINE-3 è nel metodo
+# Sessione attiva — D199: il colore di D193 approvato a schermo, la §0① è chiusa
 
 🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-04-pipeline3-fase0-handoff.md` — la **§0 per prima**.
 
-🔀 **D198:** `pipeline3-fase-0` unito su `main` = **`2f8ec7b8`** (nodo esplicito), albero pulito.
-🛑 **NON pubblicato** — su `main` ci sono salvataggi non pubblicati che includono **D193 mai
-guardata a schermo**: la pubblicazione è una decisione separata, prima gli scatti.
+👁️ **D199:** `--faint` scuro `#9A8F80` **resta** — approvato da Francesco sui sei scatti veri del
+foglio «Nuovo dentista» (`docs/design/screenshots/2026-08-04-d193/`, 390·768·1280 × chiaro·scuro).
+`provato:` etichetta renderizzata in scuro = `#9A8F80`, in chiaro `#7b6a59` intoccato.
+✅ **`guardia-stili-collaudo` misurata per la PRIMA volta: verde** (build vera) — §0③ chiusa.
+Della §0 di ieri resta solo **D179** (le prove a schermo in una macchina automatica).
 
-📌 **Gate L3 sull'albero unito:** `verify:full` in **1 min 06 s** — `tsc` **0** · `vitest`
-**4542 | 19** (394 file) · build **0**, 81 rotte · **sei guardie verdi**, coerenza a **12**.
+✅ `main` = `4a65d505` + verbale/memoria D199, albero in chiusura di commit.
+🛑 **Salvataggi da pubblicare: 9 alla scrittura (il numero cresce coi commit di verbale)** →
+**Q2 in `docs/ops/DECISIONI-PENDENTI.md`, ALTO rischio: niente default, decide Francesco.**
 
-🔑 Da oggi: FASE 7 = `npm run verify:fast`/`verify:full` (la skill `/chiudi` usa il full) ·
-diramazioni con policy a 4 esiti (`docs/processes/PIPELINE-3.md` §3, code in `docs/ops/`) ·
-promemoria verifica allo Stop (ricorda, non blocca).
-
-➡️ **ORDINE:** ① prodotto: scatti di D193, P38, P39 (invariato) — dal prossimo item **modalità
-Fase 1** (pipelining) ② betting: scheda **E1** di `docs/ops/EMERGENTI.md` (Supabase locale +
-prove RLS, 5-10 giorni) ③ **Q1** in `docs/ops/DECISIONI-PENDENTI.md` (basso rischio, default).
-❓ Resta **D-Q2**. 📎 **198 decisioni in 73 tornate**; la prossima è **D199**.
+➡️ **ORDINE:** ① **P38** — dossier pronto: `docs/roadmap/2026-08-04-p38-esplorazione-referto.md` (3 opzioni, attende la scelta di Francesco) — e **P39**
+② betting: **E1** di `docs/ops/EMERGENTI.md` (Supabase locale + RLS) ③ Q1 (basso rischio, default).
+❓ Restano **D-Q2** e Q1-Q2 della coda decisioni.
+📎 **199 decisioni in 74 tornate**; la prossima è **D200**.

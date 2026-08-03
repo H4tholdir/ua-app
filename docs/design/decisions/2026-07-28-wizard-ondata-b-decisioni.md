@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla settantatreesima tornata (D198: l'unione di `pipeline3-fase-0` è autorizzata e fatta — la Fase 0 di PIPELINE-3 è NEL METODO, non pubblicata)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla settantaquattresima tornata (D199: il colore di D193 è APPROVATO A SCHERMO — la §0① è chiusa, FASE 9/9b percorse sul foglio a 5 campi)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centonovantotto decisioni in settantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centonovantanove decisioni in settantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1651,3 +1651,9 @@ completo del metodo con prova di ritorno.
 | # | decisione | come è stata posta | che cosa comporta |
 |---|---|---|---|
 | **D198** | 🔀 **L'UNIONE È AUTORIZZATA E FATTA: `pipeline3-fase-0` → `main` con nodo esplicito (`2f8ec7b8`, un solo punto di ritorno come per D177) — LA FASE 0 DI PIPELINE-3 È NEL METODO. NON PUBBLICATO** | Francesco, il 04/08, letto il referto della Fase 0: «*procedi con l'unione del ramo*» | ✅ **Gate L3 eseguito SULL'ALBERO UNITO** (la lezione di D177: il verde per-ramo non prova l'unione): `npm run verify:full` in **1 min 06 s** — `tsc` **0** · `vitest` **4542 \| 19** (394 file) · build **0**, 81 rotte · **sei guardie verdi**, coerenza a 12 documenti col numero letto. 🛑 **La pubblicazione resta una decisione separata e NON è chiesta qui:** su `main` ci sono ora salvataggi non pubblicati che includono **D193, il colore mai guardato a schermo** — prima gli scatti (l'ordine della sessione precedente resta primo), poi si decide se pubblicare. ➡️ **Dal prossimo item di prodotto si lavora in modalità Fase 1** — pipelining, `docs/processes/PIPELINE-3.md` §5 |
+
+### Settantaquattresima tornata — D199: il colore di D193 è approvato a schermo (04/08/2026)
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D199** | 👁️ **IL COLORE DI D193 È APPROVATO A SCHERMO: `--faint` scuro `#9A8F80` RESTA.** Guardato da Francesco sui sei scatti veri del foglio «Nuovo dentista» (5 etichette di campo), `docs/design/screenshots/2026-08-04-d193/`, 390·768·1280 × chiaro·scuro | Francesco, il 04/08, davanti agli scatti con la doppia domanda esplicita (leggibilità su fondo scuro · distinzione dal testo secondario, margine calcolato 0,77): «*il colore va bene, procedi*» | ✅ **La §0① dell'handoff è CHIUSA — e la forma del difetto «due sessioni di fila» si ferma qui: stavolta il lavoro è stato CONSEGNATO.** FASE 9/9b percorse per D193 sulla superficie giusta: `provato:` colore etichetta renderizzato in scuro = `rgb(154,143,128)` = `#9A8F80`, in chiaro `#7b6a59` intoccato; `guardia-stili-collaudo` misurata PRIMA di fotografare (prima volta in assoluto: exit 0, build vera — chiusa anche la §0③). 🛑 **La pubblicazione degli 8 salvataggi in attesa resta una decisione di Francesco**: messa in coda come domanda ad alto rischio in `docs/ops/DECISIONI-PENDENTI.md` (blocca finché non risponde — alto rischio = niente default). ➡️ Prodotto: si passa a **P38 e P39** (il dossier di esplorazione P38 è in preparazione, pipelining di Fase 1) |
