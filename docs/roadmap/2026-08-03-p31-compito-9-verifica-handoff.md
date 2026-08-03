@@ -28,8 +28,10 @@ diventare rossa quando ho puntato questo stesso punto di ripresa a un file non a
 tornare verde una volta scritto). Le tre superfici (wizard a 5 campi, pannello di modifica —**primi
 scatti mai fatti su questa veste, D186 copriva solo wizard e foglio**—, foglio della consegna)
 fotografate a 390·768·1280 × chiaro·scuro, bersagli tappabili misurati (tutti i campi NUOVI ≥44px).
-Gate estetico L2 percorso: 2 difetti trovati, entrambi pre-esistenti e non introdotti da P31,
-deferiti con motivo scritto (uno è già P16/D134). Collaudo dal vivo (D103) completo: cliente senza
+Gate estetico L2 percorso: 3 difetti trovati (la prima stesura di questo referto ne contava 2,
+dimenticandone uno), tutti pre-esistenti e non introdotti da P31, deferiti con motivo scritto
+(contrasto `--t3` è già P16/D134; overflow del wizard e i tre bersagli <44px sono ritrovamenti
+nuovi di questo compito, indipendenti fra loro). Collaudo dal vivo (D103) completo: cliente senza
 cellulare → richiesta → salvataggio → WhatsApp con prefisso 39 → verificato in anagrafica e su
 database → consegna annullata in 13 secondi.
 

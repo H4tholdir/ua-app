@@ -7,10 +7,11 @@ sopra lo cita per chi vuole il dettaglio).
 
 ✅ **Compito 9 chiuso — «i cancelli, prima dell'unione».** Ramo `p31-due-numeri-per-il-cliente`,
 **NON mergiato** (l'unione la decide Francesco). FASE 7: `tsc` 0 · `vitest` 4540|19 (397 file) ·
-`next build` 0. Cinque guardie verdi coi numeri (8 documenti · 115 route CSRF · 2 progetti/5 file
-Playwright). FASE 9+9b sulle tre superfici (wizard 5 campi · pannello di modifica — primi scatti
-mai fatti, D186 non lo copriva · foglio della consegna dal vivo): 2 ❌ chiusi con motivo, **entrambi
-pre-esistenti** (contrasto `--t3` = P16/D134 · overflow tile dentisti, non il foglio P31).
+`next build` 0. Cinque guardie verdi coi numeri (coerenza documenti 8→1→1→4, risolta a 4 vivi ·
+115 route CSRF · 2 progetti/5 file Playwright). FASE 9+9b sulle tre superfici (wizard 5 campi ·
+pannello di modifica — primi scatti mai fatti, D186 non lo copriva · foglio della consegna dal
+vivo): **3** ❌ chiusi con motivo, **tutti pre-esistenti** (contrasto `--t3` = P16/D134 · overflow
+tile dentisti · 3 bersagli <44px preesistenti — nessuno dei tre nel foglio P31).
 
 ✅ **Collaudo dal vivo (D103) completo**, su `TEST-DdC-001` (fixture riusabile): richiesta →
 salvataggio → WhatsApp con prefisso 39 → verificato in anagrafica e DB → annullato in 13s.
