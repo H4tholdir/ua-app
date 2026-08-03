@@ -28,12 +28,12 @@ describe('numeroPerWhatsapp — prepara un numero per wa.me (P31, D182)', () => 
     expect(numeroPerWhatsapp('391 2345678')).toBe('393912345678')
   })
 
-  // ...e il verso opposto: 11 cifre che cominciano per 39 -> gia' internazionale
+  // ...e il verso opposto: 11 cifre che cominciano per 39 -> già internazionale
   it("un fisso gia' internazionale resta intatto", () => {
     expect(numeroPerWhatsapp('39 0976 71439')).toBe('39097671439')
   })
 
-  it.each([null, undefined, '', '   ', '---', '()'])('senza un numero usabile da null: %s', (v) => {
+  it.each([null, undefined, '', '   ', '---', '()', '00'])('senza un numero usabile da null: %s', (v) => {
     expect(numeroPerWhatsapp(v as string | null | undefined)).toBeNull()
   })
 })

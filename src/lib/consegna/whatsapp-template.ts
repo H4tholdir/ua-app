@@ -58,7 +58,7 @@ export function numeroPerWhatsapp(grezzo: string | null | undefined): string | n
   if (!cifre) return null
 
   if (conPiu) return cifre                                  // il paese è dichiarato: si rispetta
-  if (cifre.startsWith('00')) return cifre.slice(2)          // forma internazionale con 00
+  if (cifre.startsWith('00')) return cifre.slice(2) || null  // forma internazionale con 00
   if (cifre.startsWith('39') && cifre.length >= 11) return cifre  // già internazionale
   return `39${cifre}`                                        // nazionale italiano
 }
