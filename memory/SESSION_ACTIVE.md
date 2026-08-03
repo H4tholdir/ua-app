@@ -10,12 +10,15 @@ digitazione, fonte allegata sempre; riserva panel su compatibilità con D101/MDC
 **D206** letture prudenti ratificate (direttore sanitario facoltativo per studio associato,
 prescrittore sempre; istituzione vuota legittima per dottore singolo).
 
-⚖️ **PANEL ADVISOR IN CORSA** (3 lenti: normativa MDR · operativa/UX front desk · dati/architettura)
-sulla domanda centrale: che cosa rende VERA l'attribuzione al medico nello snapshot da wizard.
-Referti di base: `docs/roadmap/2026-08-04-p38-esplorazione-referto.md` ·
-`docs/roadmap/2026-08-04-p38-verifiche-normative-referto.md`.
+⚖️ **PANEL CONSEGNATO — TRE LENTI SU TRE: REGGE CON CONDIZIONI.** Verbale:
+`docs/roadmap/2026-08-04-panel-d204-referto.md` — l'attribuzione al medico è vera quando è
+FALSIFICABILE: fonte allegata obbligatoria all'emissione, provenienza per-caratteristica,
+snapshot server-side in tabella propria (`lavori_prescrizioni`), gesto typo-vs-divergenza,
+solo-scansione bloccato all'emissione. ⚠️ Trovato un difetto nella formulazione di D204: sui
+denti la prima modifica CANCELLEREBBE la trascrizione (UNIQUE + DELETE&INSERT) → snapshot
+separato. Stima ondata B completa: 4 sessioni. **Attende la RATIFICA di Francesco (§5).**
 
-➡️ **ORDINE:** ① verbale del panel → spec B → mockup a Francesco (0B) prima di ogni codice
+➡️ **ORDINE:** ① ratifica di Francesco sul panel → spec B → mockup (0B) prima di ogni codice
 ② P39 · ③ betting: E1 di `docs/ops/EMERGENTI.md` · Q1 in coda.
 📌 In produzione: tutto pubblicato, albero pulito. ❓ Restano **D-Q2** e Q1.
 📎 **206 decisioni in 76 tornate**; la prossima è **D207**.
