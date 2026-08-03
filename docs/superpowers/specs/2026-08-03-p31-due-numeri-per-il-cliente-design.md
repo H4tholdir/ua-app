@@ -276,9 +276,27 @@ correzione di **P11** (03/08): il difetto si chiude **alla fonte**, non nei chia
 
 ---
 
-## 6. Il tasto che chiede il numero (D183)
+## 6. Il tasto che chiede il numero (D183 · **D185**)
 
-**Dove.** `FrameConsegnato.tsx:123`, che oggi rende `<TastoWhatsApp waUrl={esito.whatsapp_url}>`.
+**Dove.** In **quattro** punti, non uno — 🔄 **esteso il 03/08 da D185**, dopo un rilievo del revisore
+del compito 4:
+
+| # | punto | che cos'è |
+|---|---|---|
+| ① | `FrameConsegnato.tsx:123` | la **consegna** (D183) |
+| ② | `EstrattoContoView.tsx:224` | **sollecito globale** dell'estratto conto |
+| ③ | `EstrattoContoView.tsx:38` (`DovutoBottomSheet`) | **sollecito su un singolo dovuto** |
+| ④ | `ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+
+🔑 **Perché non solo alla consegna (D185).** Un tasto che in una schermata chiede il numero e in
+un'altra **sparisce** insegna due comportamenti diversi per la stessa cosa. ⚠️ **La domanda è nata da un
+rilievo del revisore**, non da chi ha scritto il piano: l'esecutore del compito 4 aveva cambiato di sua
+iniziativa il gate di quel tasto — scelta **giusta e dichiarata** — e il revisore ha chiesto che avesse
+un **numero di decisione** invece di restare una scelta di esecutore.
+
+➡️ **Conseguenza sulla struttura:** `ChiediCellulareSheet` nasce **condiviso**, non locale alla
+consegna. Vive in `src/components/features/clienti/` (è un pezzo di **anagrafica**, non di consegna) e
+lo montano quattro schermate.
 
 **Comportamento.** Se il cliente non ha `cellulare_whatsapp`:
 

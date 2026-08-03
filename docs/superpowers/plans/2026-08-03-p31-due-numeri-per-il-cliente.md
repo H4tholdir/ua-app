@@ -81,7 +81,7 @@ L'elenco **non l'ha deciso l'autore del piano**: nasce dal censimento §4 della 
 | `src/components/features/clienti/ClienteEditSheet.tsx` | **modifica** — campo nuovo + etichetta corretta | 7 |
 | `src/components/features/wizard/NuovoDentistaSheet.tsx` | **modifica** — da 4 a 5 campi (D184) | 7 |
 | `src/components/features/lavori/consegna-v3/FrameConsegnato.tsx` | **modifica** — il tasto che chiede (D183) | 8 |
-| `src/components/features/lavori/consegna-v3/ChiediCellulareSheet.tsx` | **crea** — il foglio a un campo | 8 |
+| `src/components/features/clienti/ChiediCellulareSheet.tsx` | **crea** — il foglio a un campo | 8 |
 
 ---
 
@@ -1110,12 +1110,33 @@ git commit -m "feat(clienti): P31 — le due schermate dell'anagrafica chiedono 
 
 ---
 
-# Compito 8 — Il tasto che chiede il numero (D183)
+# Compito 8 — Il tasto che chiede il numero (D183 · **D185**)
 
 ⛔ **Non iniziare senza l'approvazione del compito 6.**
 
+🔄 **ALLARGATO il 03/08 da D185.** Il foglio non serve solo alla consegna: lo montano **quattro**
+schermate. Quindi **nasce condiviso**, e vive in `src/components/features/clienti/` — è un pezzo di
+**anagrafica**, non di consegna.
+
+| # | dove | che cosa cambia |
+|---|---|---|
+| ① | `FrameConsegnato.tsx:123` | la consegna (D183) |
+| ② | `EstrattoContoView.tsx:224` | sollecito globale dell'estratto conto |
+| ③ | `EstrattoContoView.tsx:38` (`DovutoBottomSheet`) | sollecito su un singolo dovuto |
+| ④ | `ScadenzarioList.tsx:85` | sollecito dall'elenco |
+
+🛑 **Il compito 4 ha reso quei tre tasti dello scadenzario condizionati a `cellulare_whatsapp`:** oggi
+**spariscono** se il numero manca. D185 dice che devono **restare e chiedere**. Quindi in ognuno dei tre
+il gate va **rimosso** e sostituito con la stessa scelta fra tasto-che-apre-WhatsApp e
+tasto-che-chiede-il-numero già descritta al passo 4.
+
+⚠️ **Ognuno dei quattro punti ha già l'id del cliente sottomano?** `provato:` **no** per la consegna —
+è il motivo del passo 6.1 (`ConsegnaResult.cliente_id`). Per i tre dello scadenzario **verificalo prima
+di scrivere**: se un punto non ce l'ha, **fermati e riferisci** invece di risalirlo con una chiamata in
+più.
+
 **File:**
-- Crea: `src/components/features/lavori/consegna-v3/ChiediCellulareSheet.tsx`
+- Crea: `src/components/features/clienti/ChiediCellulareSheet.tsx` *(condiviso — **non** in `consegna-v3/`)*
 - Modifica: `src/components/features/lavori/consegna-v3/FrameConsegnato.tsx:123`
 - Crea: `tests/unit/consegna-chiede-il-cellulare.test.tsx`
 
@@ -1183,7 +1204,7 @@ Atteso: **1 passata** (col cellulare, comportamento di oggi), **3 fallite**.
 - [ ] **Passo 3 — Il foglio**
 
 ```tsx
-// src/components/features/lavori/consegna-v3/ChiediCellulareSheet.tsx
+// src/components/features/clienti/ChiediCellulareSheet.tsx
 'use client'
 import { useState } from 'react'
 import { Sheet } from '@/components/ds/Sheet'
