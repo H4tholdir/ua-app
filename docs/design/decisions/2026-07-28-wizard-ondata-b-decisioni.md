@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantasettesima tornata (D181-D188: due numeri per il cliente, il prefisso lo mette UÀ, il tasto chiede il numero che manca in CINQUE punti, il wizard li chiede entrambi, i disegni sono approvati, e P31 si pubblica)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla settantunesima tornata (D195: la forma del cliente è un'ENTITÀ PIÙ UNA PERSONA — forma giuridica + direttore sanitario/medico dello studio — e ogni lavoro porta il nome del prescrittore; coincide parola per parola con l'Allegato XIII)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centottantotto decisioni in sessantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centonovantacinque decisioni in settantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1369,3 +1369,255 @@ fisso, per un cellulare senza prefisso e per uno col prefisso: **la validazione 
 server**, quindi da qui non è osservabile. Serve **un telefono vero**. ⚠️ **La prima stesura scriveva
 «*non arriva a nessuno e nessuno se ne accorge*»: era una DEDUZIONE travestita da misura** — lezione ① della
 notte applicata a una frase propria.
+
+---
+
+### Sessantottesima tornata — D189-D190: chi consiglia, e la veste mai approvata
+
+**Quando:** lunedì 3 agosto 2026, sera (`provato:` `date` → `2026-08-03 20:28:59`), all'apertura della
+sessione di ripresa, **prima** di iniziare P30-a.
+**Come ci si è arrivati:** Francesco ha chiesto di verificare un'affermazione fatta in una sessione
+precedente — «*i consulenti specializzati non risultano più raggiungibili*». 🔑 **La verifica l'ha
+smentita e ha scoperto altro:** i consulenti c'erano, ma erano generici, e stavano in un posto che li
+faceva sparire a seconda di dove si apriva il terminale.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D189** | 🧹 **LE SCHEDE GENERICHE DEI CONSULENTI SI DISATTIVANO — il panel di §0C si convoca con mandati SCRITTI AL MOMENTO sulla domanda specifica** | «*non puoi invocare gli advisor specializzati che ti servono di volta in volta?*» → poi, davanti alle misure: **«fai pulizia di quelle schede così non rischiamo di invocarle»** | 🔑 **La misura che ha deciso, presa prima di proporre:** `provato:` ricerca di `UÀ\|odontotecnic\|dental\|MDR\|FatturaPA\|Supabase\|uachelab` su tutte e cinque le schede che §0C nomina → **0 riferimenti al progetto in ognuna**; e `ux-designer.md`, una delle cinque, è lunga **506 byte** in tutto e chiede di consegnare **un link Figma e un punteggio SUS** — due artefatti che in UÀ **non esistono** (qui si fanno bozze HTML, tre formati, due temi, e si portano a Francesco). Le schede sono del **4 agosto 2025**, mai più toccate. 🛑 **Non erano solo inutili: erano pericolose.** Una scheda generica fa *risultare eseguita* la regola del panel consegnando un parere generico — **la stessa forma del verde che non prova niente** (P15), che questo progetto ha già pagato. ✅ **Eseguito:** `/Users/hatholdir/Downloads/.claude/agents` → **`agents-DISATTIVATE-2026-08-03`**; `provato:` la cartella `agents` non esiste più, i **25 file sono integri** a fianco. 🛑 **Spostate, NON cancellate:** quella cartella **non è sotto git**, quindi cancellare sarebbe stato senza ritorno. ⚠️ **E la verifica ha scoperto una fragilità che questa decisione chiude:** quelle schede stavano in una cartella appesa a **`Downloads`**, non al progetto — `provato:` `ua-app/.claude/agents/` e `~/.claude/agents/` sono **tutte e due VUOTE**. Aprendo il terminale **dentro `ua-app`**, come uno naturalmente farebbe, non venivano caricate affatto: **§0C era ineseguibile senza dare alcun errore**, a seconda di dove partiva la sessione. È la stessa forma della guardia degli overlay, dichiarata protettiva e mai lanciata. ➡️ **Vincolo operativo che ne segue:** ogni panel **dichiara nel verbale la LENTE di ciascun consulente**, e ognuno riceve l'istruzione esplicita di **cercare dove sbaglia chi propone**. Senza le lenti scritte, fra un mese «panel fatto» non è più verificabile — e tre mandati scritti di fretta dalla stessa mano sono **un'eco, non un panel** |
+| **D190** | ✅ **LA VESTE DEL PANNELLO «MODIFICA CLIENTE» È APPROVATA** | **«gli scatti vanno bene»**, detto dopo aver guardato i **sei scatti veri** (390 · 768 · 1280 × chiaro · scuro), consegnati in chat | 🔑 **Chiude §0① dell'handoff del 03/08**, cioè la prima delle due cose «preparate e mai portate a Francesco». Il pannello riceve da P31 **un campo nuovo** (`cellulare_whatsapp`) e **un'etichetta cambiata** («Telefono» → «Telefono dello studio»), e **la sua veste non era mai passata da un disegno approvato**: D186 copriva **solo** il wizard e il foglio della consegna. ⚠️ **È un'approvazione A POSTERIORI, non un cancello:** il codice era già in produzione (D188), quindi la posta in gioco era un eventuale ritocco, non il rilascio. 🛑 **NON chiude D-Q5, e non va scritto che la chiude:** «gli scatti vanno bene» approva **questa superficie**; D-Q5 chiede se schiarire `--t3` **in tutta l'app** in tema scuro, che è una scelta di token e tocca ogni schermata. Dedurre l'una dall'altra sarebbe una deduzione travestita da ratifica. **D-Q5 resta aperta e va richiesta.** 📌 **Osservazioni annotate guardando gli scatti, nessuna bloccante:** al chiaro i due numeri stanno affiancati con lo stesso peso e la riga di aiuto è al posto giusto (D186 rispettata) · in scuro le etichette sono grigio su grigio (è `--t3`, **P16/D134**, preesistente) · la riga di aiuto sotto il solo cellulare **sbilancia la coppia a 390px** (cinque righe da un lato, zero dall'altro) |
+
+🔎 **Un ritrovamento fuori mandato, riferito e non toccato (R-E2), che vale per P30-a.** Gli scatti
+mostrano i **dati veri** del cliente di prova: `STUDIO / CLINICA` = `STUDIO ODONTOIATRICO PIEGARI
+GIANFRANCO`, ma **`NOME` = `STUDIO`** e **`COGNOME` = `ODONTOIATRICO PIEGARI GIANFR…`**.
+`provato:` `supabase/schema.sql:370-372` — `studio_nome` è la ragione sociale, `nome` e `cognome` sono
+**il dentista referente**, cioè una **persona**, e sono **`NOT NULL` tutti e due**. 🔑 **Quindi chi
+inserisce un cliente che è uno studio DEVE mettere qualcosa in due caselle pensate per una persona, e ci
+mette l'insegna.** Non è un errore di chi ha caricato il dato di prova: è **la struttura che chiede una
+persona dove spesso c'è un'insegna**. ➡️ **Materia di P30-a**, e nasce da un dato reale, non da
+un'opinione.
+
+---
+
+### Sessantanovesima tornata — D191-D192: che cosa è un cliente, e chi è il prescrittore
+
+**Quando:** lunedì 3 agosto 2026, sera (`provato:` `date` → `2026-08-03 20:51:20 CEST`), dopo il
+censimento di P30-a.
+**Come ci si è arrivati:** il censimento ha trovato un ritrovamento **non richiesto** — nel **58%** dei
+lavori vivi la DdC stampa come prescrittore una ragione sociale. 🔑 **E Francesco ha messo in dubbio la
+conclusione invece di accettarla** («*controlla bene, io ricordo, ma posso sbagliare…*»): **il controllo
+gli ha dato ragione**, e ha cambiato il rimedio.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D191** | 🏢 **UN CLIENTE PUÒ ESSERE UN'ENTITÀ, NON SOLO UNA PERSONA — «qualsiasi forma giuridica nel panorama dentale»** | domanda posta dopo il censimento: «un cliente è una persona o può essere un'entità?» → **«il cliente può essere anche un'entità, qualsiasi forma giuridica nel panorama dentale»** | 🛑 **Cade il vincolo di oggi:** `clienti.nome` e `clienti.cognome` sono **`NOT NULL` tutti e due** e `studio_nome` è **facoltativo** (`supabase/schema.sql:370-372`) — cioè oggi la struttura **obbliga** ogni cliente a essere una persona. `misurato:` **10 clienti su 39** ci hanno infatti infilato un'insegna (`C.O.M.`/`s.r.l. uninominale`, `GDA`/`STP S.R.L.`, `Dental`/`Center s.r.l. uninominale`, quattro «STUDIO ODONTOIATRICO …»). ➡️ **Serve una forma del cliente** e una migration — **e si può fare adesso**: v. la correzione qui sotto. ⚠️ **Tocca due documenti a valore legale**, non solo una schermata: la **fattura** (`generate-xml.ts:262` costruisce `<Denominazione>` da `studio_nome ?? "cognome nome"`) e la **DdC** (`generate-ddc.ts:146-147`). 🔑 **Il modello giusto esiste già in casa e non è quello del cliente:** `fornitori` ha `ragione_sociale TEXT NOT NULL` (`schema.sql:545`), un campo, un'entità — **il fornitore, che non finisce su nessun documento legale, è modellato meglio del cliente, che ci finisce sempre** |
+| **D192** | 🔴 **LA FACCENDA DEL PRESCRITTORE DIVENTA UNA VOCE DI ROADMAP PROPRIA — `P37`** | «*trattala con voce sua, ma controlla bene, io ricordo, ma posso sbagliare, che il prescrittore può essere sia persona fisica che giuridica*» | ✅ **CONTROLLATO SULLA NORMA, e Francesco ricordava BENE — con una precisazione che cambia il rimedio.** Il testo dell'**Allegato XIII punto 1** MDR nomina **tutti e due**, ma li tiene **separati** e li unisce con «**e**», non con «oppure»: «*il nome della persona che ha prescritto il dispositivo e che vi è autorizzata dal diritto nazionale in virtù delle sue qualifiche professionali **e, se del caso, il nome dell'istituzione sanitaria in questione***». 🔑 **Quindi sono DUE caselle, non una scelta fra due:** la **persona** è obbligatoria e deve avere qualifiche professionali proprie (che una S.R.L. non può avere); l'**istituzione** si aggiunge «se del caso». 🛑 **E questo peggiora la diagnosi invece di alleggerirla: UÀ oggi ha UNA SOLA casella**, ci mette `cliente.cognome + nome`, e **per l'istituzione non ha alcun posto**. Il rimedio non è «accettare anche le aziende»: è **avere i due campi che la norma prevede**. ⚠️ **Due cose restano «non verificato» e vanno chiuse prima di ratificare:** ① se uno **studio odontoiatrico singolo** sia un'«istituzione sanitaria» ai sensi dell'Allegato XIII — cioè quando scatta il «se del caso» ② il testo letterale è stato preso da una **riproduzione secondaria** ([medicaldevicenews.eu](https://www.medicaldevicenews.eu/MDR/pagina/allegato-xiii-procedura-per-i-dispositivi-su-misura-5cdeaa63b1c61131d9c646ee.html)), corroborata da una resa inglese indipendente, **perché EUR-Lex si è troncato prima degli allegati in tre tentativi** — lo standard **D125** vuole il consolidato EUR-Lex, quindi **la rilettura lì è un passo dovuto** |
+
+🔄 **CORREZIONE di un limite dato a Francesco e SBAGLIATO, in questa stessa sessione.** Avevo scritto
+«*stasera non si tocca la banca dati: P33 blocca le migration fino al 04/08 alle 12:00*». **Falso, e la
+voce P33 lo dice già:** P33 blocca **`supabase db push`**, e la strada **D151** (Management API +
+`migration repair`) è **ratificata, funzionante e già usata il 03/08** per applicare
+`cellulare_whatsapp` durante il compito 1 di P31 (**D188**). 🔑 **Era un limite inutile che mi ero
+imposto**, e Francesco l'ha rifiutato con la ragione giusta: «*non importi limiti inutili … se le cose
+richiedono tempo, seguiremo quel tempo*». ⚠️ **Vale come promemoria di metodo:** una precauzione non
+misurata è una decisione presa di nascosto.
+
+---
+
+### Settantesima tornata — D193: le etichette in scuro, e cosa ha scoperto l'esecuzione
+
+**Quando:** lunedì 3 agosto 2026, sera (`provato:` `date`), subito dopo D191-D192.
+**Come ci si è arrivati:** **D-Q5** era aperta dal 03/08 mattina. Spiegata a Francesco con le due
+strade e i loro prezzi → **«va bene la B, procedi»**.
+🔑 **E il prezzo dichiarato della B — «va rimisurato dappertutto» — si è pagato subito, trovando che la
+domanda descriveva il problema sbagliato.**
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D193** | 🎨 **OPZIONE B — il grigio delle etichette si schiarisce OVUNQUE in tema scuro, una regola sola e nessuna eccezione** | fra le due strade di D-Q5, con i prezzi in chiaro (**A** = grigio più chiaro solo dentro i fogli, ma è uno scostamento dalla spec §5.27 da scrivere · **B** = una regola sola, ma **va rimisurato dappertutto**) → **«va bene la B, procedi»** | ✅ **ESEGUITO:** `--faint` in tema scuro **`#928778` → `#9A8F80`**, in **tre** posti che si muovono insieme — `src/design-system/v3/tokens.ts:15` · `src/app/ds-v3.css:57` · la tabella dei token della spec v3 §… 🛑 **E in un quarto posto NON si è toccato niente:** `src/app/globals.css:192` porta **lo stesso identico `#928778`**, ma è `--brd-cmd`, **un altro token** (un bordo di v2.3) che condivide il valore per derivazione. `provato:` censimento `grep -rni "928778"` → **4 occorrenze, 3 da cambiare e 1 da lasciare**. 🔑 **Cercare per VALORE e non per nome è ciò che ha reso visibile la quarta** — R-P2/R-P3 applicate a un colore. 📌 `misurato:` (`scripts/tmp/dq5-contrasti.ts`, ricalcolo indipendente, nessun numero ripreso dai documenti) — **prima:** 5,21 su `--bg` · 4,75 su `--card` · **4,25 su `--elv` ❌**; **dopo:** **5,78 · 5,28 · 4,72 ✅** su tutti e tre, e **0,77 sotto `--muted`** (5,49 su `--elv`), così i due grigi restano distinguibili invece di collassare in uno |
+
+🔴 **CIÒ CHE L'ESECUZIONE HA SCOPERTO, e che va portato a Francesco perché cambia il perimetro di
+quello che ha approvato.**
+
+**① La B non tocca il difetto che Francesco ha effettivamente guardato.** Negli scatti del pannello
+«Modifica cliente» (D190) le etichette sono illeggibili, e **non sono `--faint`**: `provato:`
+`ClienteEditSheet.tsx:59,72,234` usa `var(--t3, #6B5C51)`, e in tema scuro `--t3` vale **`#5A5652`**
+(`globals.css:191`, token **v2.3**). `misurato:` **2,52 su `--bg` · 2,30 su `--card` · 2,06 su `--elv`**
+— **fallisce ovunque, e di molto** (la soglia è 4,5). ➡️ **Cambiare `--faint` non lo migliora di un
+punto.**
+
+**② E il 4,25 della domanda oggi NON morde.** `provato:` il rimappaggio `--card: var(--elv)` di
+`ds-v3.css:92` è **scoped a `.ds-chip-scelta` e `.ds-tasto-tondo`**, non al pannello del foglio: il
+foglio è dipinto `--card` (**#211D18**), dove il valore vecchio dava **4,75 — sopra soglia**. Il
+**4,25** è il numero su `--elv`, cioè **ciò che succederà il giorno in cui `Sheet.tsx` sarà allineato
+alla spec §3.2** (**P34**). 🔑 **Quindi la B è una messa in sicurezza in anticipo, non una correzione di
+qualcosa che si vede oggi** — il che la rende comunque giusta (P34 diventa innocua), ma va detto invece
+che lasciar credere di aver sistemato ciò che si vedeva negli scatti.
+
+⚠️ **E la spec aveva già saltato il fondo che conta:** la nota di rev. 3.1 diceva «*ora 5.21/4.75*»,
+cioè **due fondi su tre**, omettendo proprio `--elv` — la superficie che **quella stessa spec** assegna
+ai fogli in §3.2. 🔑 **È la stessa forma dell'elenco «completo» che sbaglia** (lezione ① di P31): il
+numero era vero, l'elenco no.
+
+➡️ **DOMANDA APERTA per Francesco (erediterebbe il numero D194):** la B si estende a **`--t3` di v2.3 in
+tema scuro** — cioè al difetto vero, quello degli scatti — oppure quello resta sotto **P16/D134** e si
+tratta con la sua ondata? 📌 Il progetto lo sapeva già: `globals.css:192` porta scritto in un commento
+che «*`--t3` scuro dà 1,71-2,24:1, sotto il 3:1 di WCAG 1.4.11*», e ci si era **girati intorno**
+introducendo `--brd-cmd` invece di correggerlo.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D194** | 🚫 **LA B NON SI ESTENDE a `--t3` di v2.3: il difetto resta dov'è (P16/D134)** | domanda posta col prezzo di entrambe le strade, e con la raccomandazione **opposta** di chi la poneva («*propendo per estendere*») → **«lasciala lì, tanto poi dovremmo ritoccare ogni singola pagina con il design, andiamo avanti»** | 🔑 **La ragione è più forte della decisione, e va tenuta:** ogni pagina ancora su v2.3 **verrà comunque riaperta** dalla migrazione a v3, che procede **per route** (DS v3 §14). Correggere oggi il token vecchio è lavoro **su una superficie destinata a sparire** — si pagherebbe due volte. ➡️ **Conseguenza operativa: P16/D134 non è una voce autonoma da schedulare, è un effetto collaterale della migrazione** — si chiude **quando la pagina passa a v3**, perché a quel punto `--t3` si risolve in `--faint`, che con **D193** ora passa su tutti e tre i fondi. ⚠️ **Il costo accettato, dichiarato:** finché una pagina resta su v2.3, **in tema scuro le sue etichette stanno a 2,0-2,5 contro il 4,5 richiesto** — cioè si leggono male sul serio, non «un filo sotto». **È un debito con una scadenza (la migrazione), non un difetto ignorato.** ✅ **Con questa, D-Q5 è CHIUSA** |
+
+📌 **Conto delle domande aperte:** restava **D-Q2** (quale prova a schermo scrivere per prima) e
+**D-Q5**. ✅ **D-Q5 chiusa** da D193+D194. ❓ **Resta D-Q2.**
+
+---
+
+### Settantunesima tornata — D195: la forma del cliente, dettata da Francesco
+
+**Quando:** lunedì 3 agosto 2026, sera, dopo che il censimento di P30-a aveva mostrato **sette forme
+reali** e **una sola modellata**.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D195** | 🏛️ **IL CLIENTE È UN'ENTITÀ PIÙ UNA PERSONA — «la forma giuridica, e il nome e cognome del direttore sanitario oppure del medico dello studio». E OGNI LAVORO PORTA SEMPRE IL NOME DEL PRESCRITTORE** | dettata da Francesco dopo la §5 del referto: «*ogni cliente può avere la forma giuridica, il nome e cognome del direttore sanitario, oppure il nome e cognome del medico dello studio. se arriva un lavoro in laboratorio, il laboratorio ha sempre il nome del prescrittore, e la scheda del cliente presenta, se è forma giuridica la forma giuridica più il nome e cognome del prescrittore, se è ad esempio solo un dottore, allora avrà nell'intestazione dottor esposito giuseppe e nel nome e cognome, se è lui che prescrive, esposito giuseppe*» | 🔑 **QUESTA FORMA È, PAROLA PER PAROLA, LA STRUTTURA CHE CHIEDE L'ALLEGATO XIII** — «*il nome della **persona** che ha prescritto … **e, se del caso, il nome dell'istituzione sanitaria***». **La forma giuridica è l'istituzione; il direttore sanitario / medico dello studio è la persona.** Francesco l'ha dettata dall'esperienza del banco, non dalla norma, e coincide: è la conferma più forte che si potesse avere. ➡️ **`clienti.nome`/`cognome` cambiano SIGNIFICATO, non solo forma:** non sono «il nome del cliente», sono **il medico responsabile** (direttore sanitario o medico dello studio). ➡️ **Regola di resa, dalle parole di Francesco:** entità → *intestazione = forma giuridica* **+** nome e cognome del prescrittore · dottore singolo → *intestazione = «Dottor Esposito Giuseppe»*, e nome/cognome = «Esposito Giuseppe». ✅ **E il pezzo per-lavoro ESISTE GIÀ:** `lavori.richiedente_nome` (`002_fase2_schema.sql:58`), scrivibile dal wizard e in allowlist PATCH — `misurato:` **valorizzato in 1 lavoro su 295**, cioè costruito e mai usato. ➡️ **Non si inventa una struttura: si finisce quella che c'è**, e la si riempie per difetto col medico responsabile del cliente. 🔑 **Chiude P37 alla radice** invece di rattopparlo |
+
+🔴 **DUE COSE TROVATE VERIFICANDO D195, che ne sostengono il bisogno.**
+
+**① La fila di pillole «medici dello stesso studio» ESISTE già, e sui dati veri non funziona.**
+`provato:` `TabDati.tsx:228-303` mostra una pillola per ogni collega, presi da
+`/api/clienti/[id]/studio-members` — che `provato:` (`route.ts:46-52`) li cerca **fra gli altri
+`clienti` con la STESSA IDENTICA STRINGA in `studio_nome`**. `misurato:`
+(`scripts/tmp/p30a-studio-members.ts`) **scatta per 2 clienti su 39** — e quei due sono **il doppione
+di `Dr. Villani Gaetano`**, cioè la stessa persona due volte: **la funzione presenta un medico come
+collega di sé stesso**. Per gli altri **37 la fila non compare mai**. 🛑 **E i casi che dovrebbe unire
+non li unisce:** `Guida` sta in **4 righe** con quattro insegne diverse (`Prof. Guida Dr. Luigi` ·
+`Prof. L. Dr. GUIDA` · `DOTT. GUIDA AGOSTINO ODONTOIATRA` · dentro lo studio associato). 🔑 **È la
+prova che il modello mancava: qualcuno ha costruito la scorciatoia su un TESTO LIBERO, perché non
+c'era una chiave** — e un testo libero non è una chiave.
+
+**② Il difetto latente di P37 ha un innesco a UN CLIC.** `provato:` `TabDati.tsx:283` — la pillola
+«**+ Nuovo**» scrive `richiedente_nome: ''` (**stringa vuota**, non `null`). Se poi non si digita
+niente e si salva, `POST /api/lavori:233` fa `body.richiedente_nome ?? null`, e `''` **non è nullish**:
+la stringa vuota **arriva in banca dati**. Da lì `generate-ddc.ts:146-147` usa `??`, che **non scatta
+sulla stringa vuota** → **prescrittore stampato VUOTO** su un documento obbligatorio, **mentre il
+precheck passa** (controlla `.trim().length > 0` **oppure** il cliente, e il cliente c'è sempre).
+🔄 **Corregge la voce P37 scritta due ore fa**, che dava il difetto per «latente, oggi non attivo»:
+`misurato:` 0 stringhe vuote **oggi** — ma la strada per crearne una è **una pillola**, non un caso di
+laboratorio. ⚠️ **E il commento dice il falso sul codice accanto:** `TabDati.tsx:101` scrive «*solo se
+ci sono almeno 2 medici*», il codice fa `>= 1`.
+
+#### Il panel su D195 — **convocato il 03/08/2026 sera**, autorizzato da Francesco («*si, falli girare*»)
+
+📌 **Primo panel convocato secondo D189**: mandati **scritti al momento sulla domanda specifica**, non
+schede generiche. **Le tre lenti si dichiarano qui**, come D189 impone — un panel di cui non si sa con
+che occhi ha guardato non è verificabile a posteriori.
+
+| lente | che cosa deve trovare | perché è stata scelta |
+|---|---|---|
+| ⚖️ **LA LEGGE** | il testo **letterale** dell'Allegato XIII punto 1 su EUR-Lex (i tre tentativi in HTML si erano troncati prima degli allegati) · **quando scatta il «se del caso»** dell'istituzione sanitaria, e se uno studio individuale ci rientra · se il prescrittore vada identificato con più del nome (albo) · se emettere `<Denominazione>` per una **persona fisica** sia non conformità o imprecisione · **quali forme di studio sono obbligate ad avere un direttore sanitario**, e se sia per forza lui a prescrivere | è la lente che può **falsificare la tesi centrale** di D195 — che la forma dettata da Francesco coincida con la norma |
+| 🧤 **CHI DIGITA AL BANCO** | **perché un campo costruito, visibile e facile è compilato 1 volta su 295** · se il prescrittore vada chiesto a ogni lavoro o proposto per difetto · l'interazione giusta per la pillola «+ Nuovo» che può svuotare un dato legale · **che cosa va TOLTO**, distinguendo «nessuno lo compila perché non serve» da «nessuno lo compila perché è chiesto male» | è la lente che dice se la struttura giusta **verrà aggirata**. Il campo a 1 su 295 è la prova che qui succede davvero |
+| 🏭 **IL LABORATORIO COMMITTENTE** | chi è il **fabbricante** nel subappalto fra laboratori e **chi firma la DdC** · se il subappaltatore debba emetterne una (e che ruolo abbia il campo `dispositivo_semilavorato` già esistente) · chi sia il «prescrittore» quando il cliente **non ha medici** · se la natura IVA **N4** valga anche fra due laboratori — 🛑 **domanda fiscale seria: se la risposta è che va con IVA, il codice oggi sbaglierebbe** (`generate-xml.ts:199` la impone) | è **l'unico caso che nessuno ha mai progettato**, ed è quello su cui «entità + persona» può rompersi: un laboratorio **non ha un direttore sanitario e non prescrive** |
+
+🛑 **A tutti e tre è stato dato lo stesso ordine esplicito: «il tuo compito non è approvare, è trovare
+dove la proposta sbaglia»**, più lo **statuto delle fonti** (`ANALISI/15` non chiude una discussione;
+`ANALISI/17` e `ANALISI/23` sì) e l'obbligo di scrivere **«non verificato»** dove non hanno una prova.
+🔑 **Alla lente del laboratorio committente è stato detto in più che lì il rischio è massimo:** non
+esistendo **nessun dato** su quel caso (`laboratorio_odontotecnico` è `false` su tutti e 39), la
+tentazione di inventare una prassi plausibile è la più forte.
+
+#### ESITO DEL PANEL — **D195 NON PASSA COSÌ COM'È SCRITTA**
+
+🔑 **Il panel ha funzionato: tutte e tre le lenti hanno trovato qualcosa, e nessuna ha approvato.**
+Le affermazioni portanti di ciascuna sono state **riverificate a mano** prima di essere accettate.
+
+**⚖️ LA LENTE DELLA LEGGE — ha risolto il problema della fonte e ha smontato il ponte.**
+✅ **Testo dell'Allegato XIII ottenuto ALLA LETTERA dal consolidato EUR-Lex** (CELEX
+`02017R0745-20260101`, italiano, 1,69 MB **scaricato per intero** con `curl` invece di farsi riassumere
+la pagina — è così che si aggira il troncamento che mi aveva fermato tre volte), **riscontrato riga per
+riga con la versione inglese**. ➡️ **Il vincolo D125 è soddisfatto: la citazione di P37 poggia ora su
+fonte primaria, non su riproduzione.**
+🔴 **E il rilievo che rompe D195:** **il direttore sanitario NON è il prescrittore.** `L. 124/2017,
+art. 1 c. 153` (Normattiva, verbatim): l'obbligo di direttore sanitario esiste **solo per le
+«società»** e per le polispecialistiche (c. 154), e le prestazioni «*sono erogate dai soggetti in
+possesso dei titoli abilitanti*» — **al plurale: prescrive chi ha visitato**. Il direttore sanitario
+risponde dell'**organizzazione**. ➡️ **Usare il medico responsabile del cliente come valore del
+prescrittore significa attribuire per iscritto una prescrizione a un medico che può non averla fatta**,
+sotto la firma del fabbricante, in un documento conservato **10 anni**.
+🛑 **E il rilievo principale, che è più sottile e peggiore:** **D195 non elimina il ripiego, lo rende
+INVISIBILE.** Oggi la DdC stampa una ragione sociale alla voce «persona che ha prescritto»: è falso, ma
+è **falso in modo evidente** — un ispettore lo vede. Con D195 stamperebbe **il nome plausibile di un
+odontoiatra vero**, ugualmente non verificato, e **nessuno se ne accorgerebbe più**. 🔑 **Un campo
+sbagliato che sembra giusto è un'esposizione peggiore di un campo sbagliato che sembra sbagliato.**
+📌 Altri due rilievi propri: **«medico» è la parola sbagliata** (il c. 153 chiede l'iscrizione
+all'**albo degli odontoiatri**; dopo la L. 409/1985 sono albi distinti) · **D195 fonde due voci che la
+norma tiene separate** — `provato:` `grep -ri "istituzione" src/ supabase/schema.sql` → **zero
+occorrenze**, e `dichiarazioni_conformita.prescrittore_nome` è **un solo TEXT**.
+⚠️ **E un errore strutturale: un campo solo serve DUE documenti con destinatari giuridicamente
+diversi.** La DdC deve nominare **il prescrittore**; la fattura deve nominare **il committente** (DPR
+633/72 art. 21 c. 2 lett. e). Quando paga la S.R.L. e prescrive un socio **non coincidono**, e
+`generate-xml.ts:262` costruisce la denominazione della fattura dagli stessi campi.
+
+**🧤 LA LENTE DEL BANCO — ha ribaltato due miei fatti (verificati e confermati).**
+🔄 **«Il difetto è a un clic» era SBAGLIATO:** `provato:` `LavoroFormClient.tsx:139-145` monta
+`TabDati` **senza `clienteId`** → `showChips` è **sempre falso** → **la fila di pillole non si
+renderizza in nessuna schermata**, e il «+ Nuovo» **non è premibile**. Il mio «2 clienti su 39»
+descriveva **la risposta dell'API, non lo schermo**: a schermo è **0 su 39**.
+🔴 **Ma la porta viva esiste ed è peggiore:** la casella di testo sta **fuori** dal guardiano
+(`TabDati.tsx:305-313`), e `e.target.value || null` salva **uno spazio**; poi `precheck.ts:23` usa `||`
+(ripiega) e `generate-ddc.ts:146` usa `??` (**non** ripiega) → **prescrittore in bianco, controllo
+verde** — e `useLavoroForm.ts:383-401` **salva da solo dopo 30 secondi**: nessun tasto premuto.
+🔴 **«1 su 295» non è scarsa adozione: il campo NON È NEL WIZARD.** `provato:` `crea-lavoro.ts:332-360`
+non lo spedisce, `api/lavori/route.ts:233` lo mette a `null`. **Non viene mai chiesto.**
+🔴 **Il difetto vero è a monte, al Passo 1:** `dati-wizard.ts:103` etichetta il riquadro con
+`studio_nome ?? "Dr. cognome"`, e `studio_nome` ce l'hanno **39 su 39** → **due dentisti dello stesso
+studio associato danno due riquadri IDENTICI**, che `:106` ordina **affiancati**. E
+`PassoDentista.tsx:49` **filtra sull'etichetta**: cercare «Esposito» in «Studio Rossi» dà **zero**.
+🐛 **Difetto nuovo:** dopo la consegna `richiedente_nome` resta modificabile **senza alcun lucchetto
+legato alla DdC** (`api/lavori/[id]/route.ts:181`; l'unico è `incluso_in_fattura` sui prezzi) →
+l'addetta corregge, legge **«Salvato»**, e **il documento non cambia**.
+🔄 **E mi ha corretto sulla trappola che avevo dichiarato io:** `iban` e `tecnico_default_id` **non
+hanno nessuna casella in tutta l'app** — lo zero su quelli **non dice niente**. Lo zero su
+`email`/`codice_sdi`/`pec` è invece una **scelta già ratificata e scritta**
+(`NuovoDentistaSheet.tsx:8-10`: il fiscale diventa bloccante alla prima FatturaPA, non alla creazione).
+
+**🏭 LA LENTE DEL LABORATORIO COMMITTENTE — ha spostato la rottura sul caso COMUNE.**
+🔴 **Non è il lab che RICEVE a rompersi: è quello che MANDA FUORI.** Allegato XIII p. 1, primo
+trattino: «*il nome e l'indirizzo del fabbricante **e di tutti i luoghi di fabbricazione***».
+`provato:` `generate-ddc.ts:139-141` ha **un solo** `fabbricante_nome`/`indirizzo`/`piva`. **Chi
+subappalta una fase non può produrre una DdC conforme.**
+📌 **Fabbricante = chi ci mette il nome**, non chi tiene la fresa (Art. 2(30) MDR, EUR-Lex: «*fabbrica
+o … **lo fa fabbricare** … e lo commercializza apponendovi il suo nome*»). **UÀ non ha nessun campo che
+registri quale dei due firma.**
+🛑 **Due cose che sembravano fatte:** `provato:` **nessuna riga di `src/lib/consegna/` o
+`src/lib/pdf/` legge `dispositivo_semilavorato`** — la spec dice «se spuntato non genera DdC», **mai
+implementato** · e **`laboratorio_odontotecnico` non è letto da NESSUNA riga di codice**: 🔑 **è questa
+la prova che il caso non è mai stato progettato, non i 39 `false`.**
+📌 **Tracciabilità:** per la parte subappaltata i lotti sono dell'altro laboratorio, e UÀ scrive
+`tracciabilita_materiali_ok` **su una base incompleta**.
+📌 **IVA:** la **N4 fra due laboratori regge** (il cedente è odontotecnico, l'operazione è connessa
+alla prestazione del dentista) — 🛑 **ma su TRE FONTI SECONDARIE CONCORDANTI e nessuna primaria**: i PDF
+dell'Agenzia non erano estraibili. **Va firmata da un commercialista, non da noi.** ⚠️ E
+`generate-xml.ts:198-199` **non ha la N4 come predefinito: la impone con un `throw`** — se un caso
+richiedesse l'imponibile, UÀ **non può emettere affatto**.
+⚠️ **Trappola di migration che vale oro:** rendere `nome`/`cognome` nullable **fa sparire quei clienti
+dalla ricerca in silenzio** — `provato:` `schema.sql:447` concatena `coalesce(studio_nome,'') || ' ' ||
+nome || ' ' || cognome`: con NULL l'intera espressione è NULL e la riga **esce dall'indice**.
+
+🔴 **TRE RILIEVI FUORI PERIMETRO, PIÙ GRAVI DELL'ANAGRAFICA — riferiti, non corretti (R-E2).**
+Diventano voci proprie: **P38 · P39 · P40**.
+
+📌 **CHE COSA SOPRAVVIVE DI D195, e va detto con precisione perché la sostanza regge:**
+✅ **il cliente può essere un'entità** (D191, invariata) · ✅ **serve una forma giuridica** · ✅ **ogni
+lavoro porta il nome del prescrittore** — **è la metà giusta e nessuno l'ha contestata** · ✅ **il
+prescrittore è per forza una persona fisica abilitata**: `R.D. 1334/1928 art. 11` (Agenas) più
+`L. 409/1985` — **una S.R.L. non può prescrivere**, e su questo la lente della legge dà ragione piena a
+Francesco. ⚠️ **MDCG 2021-3 Q7 dice che il prescrittore non deve essere per forza un operatore
+sanitario e rimanda al diritto nazionale** — ma **in Italia il diritto nazionale c'è**, ed è il R.D.
+sopra: quindi la riserva **si chiude**, non resta aperta.
+🛑 **CHE COSA NON PASSA:** **il medico responsabile del cliente NON può essere la sorgente del
+prescrittore della DdC.** Il ripiego va **eliminato**, non migliorato: meglio **fermare l'emissione**
+che stampare una dichiarazione plausibile e falsa.
+
+➡️ **La riformulazione va portata a Francesco e prenderà il numero D196.** Il panel **non ratifica**:
+riferisce.

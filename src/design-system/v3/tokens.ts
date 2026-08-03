@@ -12,7 +12,7 @@ export const luce = {
 
 export const notte = {
   bg: '#171411', sfc: '#211D18', elv: '#2B2620',
-  ink: '#F2EEE7', muted: '#A69B8C', faint: '#928778', line: '#342E26', // faint: rev. 3.1 — era #6E6457 (WCAG fail)
+  ink: '#F2EEE7', muted: '#A69B8C', faint: '#9A8F80', line: '#342E26', // faint: rev. 3.2 (D193, opzione B) — era #928778, che passava su --bg (5,21) e --card (4,75) ma NON su --elv (4,25, sotto il 4,5 di WCAG 1.4.3). Ora 5,78/5,28/4,72: passa su TUTTI E TRE i fondi del tema scuro. Resta 0,77 sotto --muted, così la gerarchia dei due grigi regge. Rev. 3.1 era #6E6457 (WCAG fail)
   red: '#FF3B44', redDark: '#8F0910',
   amber: '#E8A13D', green: '#34C468', blue: '#5B9BFF',
   purple: '#B98BE8', purpleTint: 'rgba(185,139,232,.14)', // rev. 3.1

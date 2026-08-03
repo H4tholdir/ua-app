@@ -133,7 +133,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 | `--elv` | `#2B2620` | carta livello 2 (sheet, elementi sollevati, tasti tondi) |
 | `--ink` | `#F2EEE7` | testo primario |
 | `--muted` | `#A69B8C` | testo secondario (4.6:1 su sfc ✓) |
-| `--faint` | `#928778` | etichette (rev. 3.1: era `#6E6457`, fail; ora 5.21/4.75) |
+| `--faint` | `#9A8F80` | etichette — **rev. 3.2 (D193, opzione B)**: era `#928778`. ⚠️ **La nota di rev. 3.1 diceva «ora 5.21/4.75» ed elencava DUE fondi su tre**, saltando proprio `--elv` — cioè la superficie che **questa stessa spec** assegna ai fogli in §3.2, dove il valore vecchio dava **4,25**, sotto il 4,5 di WCAG 1.4.3. 🔑 **Un contrasto si misura su OGNI fondo su cui il token può cadere, non su quelli comodi.** `misurato:` il nuovo valore dà **5,78 su `--bg` · 5,28 su `--card` · 4,72 su `--elv`** — passa su tutti e tre, e resta **0,77 sotto `--muted`** (5,49 su `--elv`), così i due grigi restano distinguibili. Rev. 3.1: era `#6E6457`, fail |
 | `--line` | `#342E26` | separatori |
 | `--red` | `#FF3B44` | più vivo al buio (regola Apple: accent più saturi in dark) |
 | `--red-dark` | `#8F0910` | corsa del tasto |

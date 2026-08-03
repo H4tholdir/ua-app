@@ -11,9 +11,13 @@ describe('token Ondata 1 — revisioni di legge v3.1 (bucket B)', () => {
     expect(notte.purpleTint).toBe('rgba(185,139,232,.14)')
   })
 
-  it('ha il --faint scurito AA (§3 rev. 3.1)', () => {
+  it('ha il --faint scurito AA (§3 rev. 3.1 chiaro · rev. 3.2 scuro, D193)', () => {
     expect(luce.faint).toBe('#7B6A59')
-    expect(notte.faint).toBe('#928778')
+    // rev. 3.2 (D193, opzione B): era #928778, che passava su --bg (5,21) e
+    // --card (4,75) ma NON su --elv (4,25, sotto il 4,5 di WCAG 1.4.3) — cioè
+    // proprio il fondo che la spec §3.2 assegna ai fogli. Ora 5,78/5,28/4,72:
+    // passa su tutti e tre. Misura: scripts/tmp/dq5-contrasti.ts
+    expect(notte.faint).toBe('#9A8F80')
   })
 
   it('pinna gli stop del gradiente PillFase (§5.4 rev. 3.1 — mai var(--green) come faccia)', () => {
@@ -34,7 +38,7 @@ describe('token Ondata 1 — revisioni di legge v3.1 (bucket B)', () => {
     expect(css).toContain('--purple: #7C3F9C')
     expect(css).toContain('--purple-tint: #F3EAF7')
     // dark
-    expect(css).toContain('--faint: #928778')
+    expect(css).toContain('--faint: #9A8F80') // rev. 3.2 — D193
     expect(css).toContain('--purple: #B98BE8')
     expect(css).toContain('--purple-tint: rgba(185,139,232,.14)')
   })
