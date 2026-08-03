@@ -5,11 +5,15 @@
 🚀 **D200 — PUBBLICATO:** push `a41b2b0b..91e9118e` · CI verde · CD verde · uachelab.com 200 ·
 `provato:` `#9a8f80` (D193/D199) **trovato nel CSS servito dalla produzione**. Q2 chiusa.
 🏗️ **D201 — P38 = strada B** (dato prescritto strutturato, percorso GRANDE, panel obbligatorio).
-Dossier: `docs/roadmap/2026-08-04-p38-esplorazione-referto.md`. **Ricerca normativa in corso**
-(All. XIII p.1 · MDCG 2021-3 Q6 · le due «non verificato» di D196 — bloccanti per la spec).
+Dossier: `docs/roadmap/2026-08-04-p38-esplorazione-referto.md`. ✅ **Verifiche normative CHIUSE:**
+`docs/roadmap/2026-08-04-p38-verifiche-normative-referto.md` — All. XIII p.1 e MDCG 2021-3 Q6
+VERIFICATI su fonte primaria (e l'All. XIII è identico dal 2017); le due domande di D196 AMBIGUE
+con lettura prudente: direttore sanitario facoltativo per studio associato, prescrittore sempre
+chiesto; istituzione vuota legittima per il dottore singolo. Il «troncamento EUR-Lex» era dello
+strumento, non della fonte.
 📋 **D202 — le prescrizioni reali hanno 4 forme** (mano libera · email · moduli · piattaforme
 tipo iTero): spec agnostica al canale, fonte allegata sempre, solo-scansione → tema panel.
 
-➡️ **ORDINE:** ① referto normativo → brainstorm + panel spec B → mockup a Francesco (0B) ② P39
+➡️ **ORDINE:** ① brainstorm con Francesco sulla spec B (domande poste in chat) → panel → mockup (0B) ② P39
 ③ betting: E1 di `docs/ops/EMERGENTI.md` · Q1 (basso rischio) ancora in coda.
 ❓ Restano **D-Q2** e Q1. 📎 **202 decisioni in 75 tornate**; la prossima è **D203**.
