@@ -150,6 +150,32 @@ tasto sparisce senza un errore.
 uno per uno invece di dire «aggiornare le query»: una query dimenticata **non dà errore**, dà un tasto
 che non c'è.
 
+### 4.2-ter 🔴 La catena verso il PANNELLO DI MODIFICA — e qui una query dimenticata **CANCELLA UN DATO**
+
+🔄 **Aggiunta il 03/08 eseguendo il compito 3**, da un ritrovamento fuori mandato dell'esecutore
+(R-E2) — che ne aveva visto **uno**; guardandolo si è visto che sono **quattro**.
+
+| # | punto | che cosa fa |
+|---|---|---|
+| ① | `src/app/(app)/clienti/[id]/page.tsx:127-133` | la `select` della **scheda cliente** — elenca le colonne **una per una**, e `cellulare_whatsapp` non c'è |
+| ② | `src/app/(app)/clienti/[id]/page.tsx:15-39` | il tipo `ClienteDettaglio`, dichiarato **in loco** |
+| ③ | `src/app/(app)/clienti/[id]/page.tsx:258-270` | l'oggetto passato a `ClienteModificaButton` → `ClienteEditSheet` |
+| ④ | `src/app/api/clienti/[id]/route.ts:45-77` | la `select` della **GET** del singolo cliente (rotta separata, stesso difetto) |
+
+🛑 **PERCHÉ È PIÙ GRAVE DI UN TASTO CHE NON COMPARE.** Se il campo non arriva al pannello di modifica,
+il suo stato iniziale è la stringa vuota; e `ClienteEditSheet.tsx:132` salva
+`form.<campo>.trim() || null`. Quindi **aprire il pannello per correggere l'email e premere Salva
+CANCELLA il cellulare WhatsApp**, senza avvisare nessuno.
+
+🔑 **È la stessa forma del difetto che P31 esiste per chiudere, ma peggiore:** lì un messaggio non
+arrivava, qui **un dato sparisce**. E si vedrebbe solo alla consegna dopo — quando il tasto WhatsApp
+ricomincia a chiedere un numero che era già stato inserito.
+
+⚠️ **Quarta volta in questa sessione che un elenco «completo» non lo è.** Le prime tre erano sui punti
+d'**uso**; questa è sui punti di **trasporto**, che sono più insidiosi perché **non compaiono in nessuna
+ricerca per comportamento**: non contengono né `wa.me` né `telefono` come azione — contengono un nome di
+colonna dentro una lista.
+
 ### 4.3 Chi LEGGE come «numero da chiamare» (3 punti — **non cambiano**)
 
 `ClienteInfoCard.tsx:52-67` (ci costruisce un `href="tel:"`) · `clienti/[id]/page.tsx:264, 294` (riga

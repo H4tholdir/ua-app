@@ -1000,6 +1000,56 @@ Gli stati (riga 44) e l'invio (riga 74):
 🛑 **Entrambi restano facoltativi**: il vincolo di creazione è su nome e cognome, e questa ondata non
 lo cambia.
 
+- [ ] **Passo 3-bis — 🔴 FAR ARRIVARE IL CAMPO AL PANNELLO, o salvare lo CANCELLA**
+
+🛑 **Aggiunto il 03/08 da un ritrovamento del compito 3.** Il pannello di modifica riceve il cliente da
+una catena di **quattro** anelli, e **nessuno** nomina ancora il campo nuovo. Se resta così, il campo
+nel pannello è vuoto e `ClienteEditSheet.tsx:132` salva `form.cellulare_whatsapp.trim() || null`:
+**aprire il pannello per correggere l'email e premere Salva cancella il cellulare.**
+
+**① La `select` della scheda** — `src/app/(app)/clienti/[id]/page.tsx:127-133`:
+
+```ts
+    .select(`
+      id, studio_nome, nome, cognome, telefono, cellulare_whatsapp, email,
+      partita_iva, codice_fiscale, codice_sdi, pec,
+      indirizzo, cap, citta, provincia, paese,
+      listino_numero, sconto_percentuale, modalita_pagamento,
+      non_soggetto_fe, portale_token, portale_fatturazione_attiva, portale_pin_hash, note
+    `)
+```
+
+**② Il tipo `ClienteDettaglio`** — stesso file, righe 15-39, subito dopo `telefono`:
+
+```ts
+  telefono: string | null
+  cellulare_whatsapp: string | null
+```
+
+**③ L'oggetto passato al pannello** — stesso file, righe 258-270: accanto a `telefono: c.telefono`
+aggiungi `cellulare_whatsapp: c.cellulare_whatsapp`.
+
+**④ La `select` della GET del singolo cliente** — `src/app/api/clienti/[id]/route.ts:45-77`: aggiungi
+`cellulare_whatsapp` subito dopo `telefono` nell'elenco delle colonne.
+
+- [ ] **Passo 3-ter — La prova che il dato NON si perde**
+
+🔑 **Questa prova vale più di quella che il campo si salva:** il caso distruttivo è **salvare senza
+toccare il cellulare**.
+
+```tsx
+// in tests/unit/ClienteEditSheet.test.tsx (o il file di prova del pannello)
+it('salvare senza toccare il cellulare NON lo cancella', async () => {
+  const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+  render(<ClienteEditSheet aperto cliente={{ ...clienteBase, cellulare_whatsapp: '333 1234567' }} onChiudi={() => {}} />)
+  await userEvent.clear(screen.getByLabelText('Email'))
+  await userEvent.type(screen.getByLabelText('Email'), 'nuova@studio.it')
+  await userEvent.click(screen.getByRole('button', { name: /salva/i }))
+  const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string)
+  expect(body.cellulare_whatsapp).toBe('333 1234567')
+})
+```
+
 - [ ] **Passo 4 — Il pannello di modifica**
 
 Riga 15 (il tipo), 83 (lo stato iniziale), 132 (il salvataggio), 324-330 (i campi):
