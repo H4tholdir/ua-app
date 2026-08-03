@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantacinquesima tornata (D176: P11 — il messaggio del database smette di uscire, e una prova che proteggeva il difetto)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantaseiesima tornata (D177-D180: le risposte di Francesco al risveglio — si unisce tutto, la variante A con tre riserve, la data dei documenti, le prove in CI)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosettantasei decisioni in sessantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centottanta decisioni in sessantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1265,3 +1265,43 @@ prova e una fotografia. È stata riscritta, con la ragione accanto: il **tipo** 
 📌 **E il raggio si era già ristretto poche ore prima, nella stessa notte:** con **D175** (P13) cinque rotte
 hanno smesso di rimandare `e.message` a chi scarica. Le due voci erano catalogate separate e sono **la
 stessa famiglia di difetto** vista da due punti della stessa strada: una alla sorgente, l'altra allo sbocco.
+
+---
+
+### Sessantaseiesima tornata — D177-D180: le risposte di Francesco al risveglio
+
+> ✅ **Queste SONO decisioni di Francesco**, a differenza delle sette precedenti (D170-D176, prese da solo
+> dentro il mandato della notte). Lunedì 3 agosto 2026, mattina.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D177** | 📦 **SI UNISCE TUTTO IN UN COLPO SOLO** — i dieci salvataggi della notte | scelta fra quattro strade (tutto · prima li guardo · solo i difetti · uno alla volta) → **«Tutto, in un colpo solo»** | Si unisce `p30-secondo-motore-e-bersagli`, che è l'ultimo della catena e li porta dentro tutti nell'ordine giusto. 🔴 **PRECONDIZIONE, e non è facoltativa:** subito dopo il merge `bash scripts/installa-salvataggio-programmato.sh` — senza, il salvataggio notturno continua a fermarsi a 1000 file **mentre il progetto dice che è riparato** |
+| **D178** | 📄 **SULLE ISTRUZIONI PER L'USO LA DATA NON CI VA AFFATTO; ricevuta di consegna e scheda di fabbricazione la prendono dalla DATA DELL'EVENTO che attestano** | fra quattro strade → **«Sulle istruzioni per l'uso la data non ci vuole affatto»** (che nel testo della domanda includeva: *«per gli altri due vale la prima opzione»*) | 🔑 **La distinzione è di sostanza, non di forma:** le istruzioni per l'uso sono **un foglio informativo**, non un attestato — non certificano un fatto, quindi non hanno una data da portare. La ricevuta e la scheda invece **attestano qualcosa che è successo**, e la data giusta è quella del fatto: consegna effettiva per la ricevuta, ultima fase eseguita per la scheda. ✅ **Nessuna colonna nuova in banca dati.** ➡️ Chiude **P9-bis** per tre dei quattro documenti; per il **buono** la colonna esiste già (`buoni_consegna.data_emissione`) |
+| **D179** | 🧪 **IN CI SI ACCENDONO SOLO LE PROVE «PUBBLICHE»** (~20 su 30: login, redirect, PWA, sicurezza delle porte d'ingresso) | fra quattro strade → **«Solo le pubbliche»** | Non serve toccare la banca dati né creare un progetto Supabase dedicato. Costo: qualche minuto in più a ogni salvataggio. ➡️ Chiude **D-Q1**; resta aperta **D-Q2** (quale delle quattro prove mancanti scrivere per prima) |
+| **D180** | 🅰️ **P30 — LA VARIANTE È LA «A», le righe che si toccano — MA CON TRE RISERVE che vanno sciolte PRIMA di scrivere React** | «*preferisco A, ma ho tre domande*» | ✅ La forma è scelta: si vedono tutti i dati, si tocca quello sbagliato, si apre un foglio con **quel solo dato**. 🛑 **Le tre riserve NON sono dettagli di rifinitura: due su tre possono cambiare la pagina.** Sono elencate qui sotto |
+
+🔑 **LE TRE RISERVE DI FRANCESCO SU D180 — e nessuna era stata posta da me, il che è il punto.**
+
+**① «Il numero dei campi come è stato deciso?»** — Risposta onesta: **non l'ho deciso io, e non l'ha deciso
+nessuno.** I 22 campi del disegno sono **esattamente le colonne che la tabella `clienti` ha già**: ho preso
+quello che c'era, senza aggiungere né togliere. ⚠️ **Quindi la domanda vera è un'altra, ed è la sua:
+quella tabella è completa?** Non è mai stato verificato. `provato:` la tabella `pazienti` ne ha **sei** e
+tiene nome e cognome in **un campo solo**, mentre `clienti` li tiene separati — le due anagrafiche non
+seguono la stessa regola, e nessun documento dice perché. ➡️ **Serve una ricerca** su cosa deve contenere
+l'anagrafica di uno studio odontoiatrico e di un laboratorio committente in Italia, e un confronto con la
+filosofia di UÀ. **Voce P30-a.**
+
+**② «Questa schermata sostituirà la schermata dell'anagrafica del cliente?»** — 🔑 **Domanda che smonta il
+disegno, ed è giusta.** `provato:` la scheda cliente di oggi ha **sei sezioni** (Anagrafica · Dati fiscali ·
+Commerciale · Note · Portale dentista · Privacy GDPR); la variante A ne mostra **quattro**, con le stesse
+informazioni, **solo toccabili**. ⚠️ **Due pagine quasi identiche sono un difetto, non una scelta** — e con
+la A la risposta naturale è **una sola pagina**: la scheda diventa correggibile, e la «pagina di modifica»
+non esiste. ➡️ **Va deciso prima del React**, perché cambia se la pagina nuova nasce o no. **Voce P30-b.**
+
+**③ «Il telefono dello studio deve essere diverso dal cellulare col WhatsApp»** — ✅ **Ha ragione, ed è un
+difetto vivo già oggi.** `provato:` `clienti` ha **UN SOLO** campo `telefono`, e il commento nello schema
+dice testualmente «*Usato per WhatsApp*»; il form di inserimento ha **un solo** campo telefono; e
+`src/lib/consegna/orchestrate.ts:117` legge **quel** campo per mandare il messaggio di consegna. 🛑 **Cioè
+oggi: se metti il fisso della segreteria, il messaggio di consegna non arriva a nessuno; se metti il
+cellulare, sui documenti compare un numero che non è quello dello studio.** ➡️ Serve una colonna nuova →
+**tocca la banca dati**, quindi non è un dettaglio di P30: ha voce propria, **P31**.

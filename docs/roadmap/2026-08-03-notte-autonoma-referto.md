@@ -157,7 +157,33 @@ lasciare in piedi nel frattempo **il peggiore dei due**.
 
 ---
 
-## 3. ❓ Le cinque domande — tutte in un posto solo
+## 3. ✅ LE RISPOSTE DI FRANCESCO (mattina del 3 agosto) — D177-D180
+
+| domanda | risposta | che cosa comporta |
+|---|---|---|
+| **Cosa unire** | **tutto in un colpo solo** (**D177**) | si unisce `p30-secondo-motore-e-bersagli`. 🔴 **Subito dopo:** `bash scripts/installa-salvataggio-programmato.sh` |
+| **D-Q3** la data dei documenti | **sulle istruzioni per l'uso non ci va affatto**; ricevuta e scheda dalla **data dell'evento** (**D178**) | 🔑 Le istruzioni sono un **foglio informativo**, non un attestato: non certificano niente, quindi non hanno una data da portare. ✅ **Nessuna colonna nuova** |
+| **D-Q1** le prove a schermo in CI | **solo le «pubbliche»**, ~20 su 30 (**D179**) | niente banca dati, niente progetto Supabase nuovo |
+| **D-Q4** quale variante di P30 | **la 🅰️**, «le righe che si toccano» — **ma con TRE RISERVE** (**D180**) | 🛑 **Non si scrive React finché non sono sciolte:** **P30-a** · **P30-b** · **P31** |
+
+🔑 **Le tre riserve non le avevo poste io, ed è il punto.** Due su tre possono cambiare la pagina:
+**①** i 22 campi non li ha scelti nessuno — sono le colonne che la tabella aveva già, e nessuno ha mai
+verificato se bastano (**P30-a**, serve una ricerca) · **②** con la A la pagina di modifica e la scheda
+sono quasi identiche, e forse devono essere **una sola** (**P30-b**) · **③** il telefono dello studio e il
+cellulare WhatsApp sono **due dati diversi con lo stesso nome**, e oggi ce n'è **uno solo** (**P31** —
+difetto vivo: col fisso il messaggio di consegna non arriva a nessuno).
+
+🔧 **E un difetto del disegno, trovato da Francesco provandolo:** nella variante A **ogni riga apriva sempre
+lo stesso foglio**, quello del telefono. ⚠️ **Un disegno che si tocca e risponde sempre la stessa cosa fa
+credere che preveda un foglio unico.** ✅ Corretto: le **14** righe aprono ognuna la propria domanda.
+
+**Resta aperta una sola domanda:** **D-Q2** — quale delle quattro prove a schermo mancanti scrivere per
+prima (il consiglio resta: quella che un laboratorio **non veda i dati di un altro**). E **D-Q5**, minore:
+le etichette dei campi in tema scuro.
+
+---
+
+## 3-bis. ❓ Le domande, come erano state poste
 
 Il testo esteso, con le opzioni e il loro prezzo, è in **`docs/roadmap/2026-08-03-notte-autonoma-domande.md`**. In breve:
 

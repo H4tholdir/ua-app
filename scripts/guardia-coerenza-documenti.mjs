@@ -118,6 +118,22 @@ function paroleDi(n) {
   if (resto === 3) varianti.push(testa + 'tré')
   // «centouno» e «centuno» sono entrambe in uso; lo stesso per «centootto»/«centotto».
   if (resto === 1 || resto === 8) varianti.push(testa.slice(0, -1) + UNITA[resto])
+  // 🛑 CORRETTA il 03/08/2026 — l'elisione non vale solo per «uno» e «otto».
+  //    In italiano la `o` di «cento» cade davanti a QUALSIASI coda che comincia
+  //    per vocale: cent+ottanta = «centottanta», ed è la forma CORRETTA (mentre
+  //    «centoottanta» è quella che questa funzione sapeva leggere).
+  //    🔑 Il difetto si è visto perché il conteggio è arrivato a 180 e la guardia
+  //    ha detto di sé la cosa giusta: «non è un'intestazione mancante, è la rete
+  //    che si è spenta». Una rete che non sa leggere una grafia corretta si
+  //    disattiva da sola, in silenzio, il giorno in cui quel numero arriva.
+  //    ⚠️ Le varianti si AGGIUNGONO, non si sostituiscono: «centoottanta» resta
+  //    valida, perché documenti già scritti possono usarla.
+  for (const coda of paroleDi(resto)) {
+    if (/^[aeiou]/.test(coda)) {
+      const elisa = testa.slice(0, -1) + coda
+      if (!varianti.includes(elisa)) varianti.push(elisa)
+    }
+  }
   return varianti
 }
 
