@@ -9,7 +9,12 @@ import { ilikeLiterale, pgrestQuote } from '@/lib/utils/escape-postgrest'
 /** I campi che questo ELENCO può mostrare. Vive in un posto solo perché serve
  *  due volte — per chiedere al database e per rispondere al browser — e due
  *  copie divergerebbero.
- *  🛑 `portale_token` NON è qui, e non ci torna: v. il commento in `select`. */
+ *  🛑 `portale_token` NON è qui, e non ci torna: v. il commento in `select`.
+ *  🛑 `cellulare_whatsapp` NON è qui, ed è una SCELTA (P31, spec §4.4):
+ *     l'elenco mostra UN numero sotto ogni studio, ed è quello da CHIAMARE.
+ *     Due numeri in una riga d'elenco sono rumore su una schermata fatta per
+ *     TROVARE un cliente, non per contattarlo. Il cellulare si vede sulla
+ *     scheda. Se un giorno servisse qui, questa riga è il punto da cambiare. */
 const CAMPI_ELENCO = [
   'id', 'studio_nome', 'nome', 'cognome', 'telefono', 'email', 'citta', 'provincia',
   'partita_iva', 'codice_fiscale', 'codice_sdi', 'pec', 'listino_numero',
@@ -123,6 +128,7 @@ export async function POST(req: Request) {
     cognome: (body.cognome as string).trim(),
     studio_nome: body.studio_nome ?? null,
     telefono: body.telefono ?? null,
+    cellulare_whatsapp: body.cellulare_whatsapp ?? null,
     email: body.email ?? null,
     partita_iva: body.partita_iva ?? null,
     codice_fiscale: body.codice_fiscale ?? null,
