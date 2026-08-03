@@ -1,0 +1,2210 @@
+[
+  {
+    "superficie": "wizard",
+    "viewport": 390,
+    "tema": "chiaro",
+    "file": "wizard-nuovo-dentista-390-chiaro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Indietro",
+        "w": 50,
+        "h": 50,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "BSBARALE S.A.S.3 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "CSC.O.M. s.r.l. uninominale1 lavori · 30",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "LMLEO MARIANTONIETTA1 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "DCDental Center s.r.l. uninominale0 lavo",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "＋ Nuovo dentista",
+        "w": 520.78,
+        "h": 67.25,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔍 Cerca fra tutti i 18 dentisti",
+        "w": 342,
+        "h": 58,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Dimmelo a voce",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "02 1234567",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "333 1234567",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Studio Rossi",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Crea dentista",
+        "w": 342,
+        "h": 70,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 45.09,
+        "h": 47.75,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "wizard",
+    "viewport": 390,
+    "tema": "scuro",
+    "file": "wizard-nuovo-dentista-390-scuro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Indietro",
+        "w": 50,
+        "h": 50,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "BSBARALE S.A.S.3 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "CSC.O.M. s.r.l. uninominale1 lavori · 30",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "LMLEO MARIANTONIETTA1 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "DCDental Center s.r.l. uninominale0 lavo",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "＋ Nuovo dentista",
+        "w": 520.78,
+        "h": 67.25,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔍 Cerca fra tutti i 18 dentisti",
+        "w": 342,
+        "h": 58,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Dimmelo a voce",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "02 1234567",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "333 1234567",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Studio Rossi",
+        "w": 342,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Crea dentista",
+        "w": 342,
+        "h": 70,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 45.09,
+        "h": 47.75,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "wizard",
+    "viewport": 768,
+    "tema": "chiaro",
+    "file": "wizard-nuovo-dentista-768-chiaro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Indietro",
+        "w": 50,
+        "h": 50,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "BSBARALE S.A.S.3 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "CSC.O.M. s.r.l. uninominale1 lavori · 30",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "LMLEO MARIANTONIETTA1 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "DCDental Center s.r.l. uninominale0 lavo",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "＋ Nuovo dentista",
+        "w": 520.78,
+        "h": 67.25,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔍 Cerca fra tutti i 18 dentisti",
+        "w": 432,
+        "h": 58,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Dimmelo a voce",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "02 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "333 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Studio Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Crea dentista",
+        "w": 432,
+        "h": 70,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 45.09,
+        "h": 47.75,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "wizard",
+    "viewport": 768,
+    "tema": "scuro",
+    "file": "wizard-nuovo-dentista-768-scuro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Indietro",
+        "w": 50,
+        "h": 50,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "BSBARALE S.A.S.3 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "CSC.O.M. s.r.l. uninominale1 lavori · 30",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "LMLEO MARIANTONIETTA1 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "DCDental Center s.r.l. uninominale0 lavo",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "＋ Nuovo dentista",
+        "w": 520.78,
+        "h": 67.25,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔍 Cerca fra tutti i 18 dentisti",
+        "w": 432,
+        "h": 58,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Dimmelo a voce",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "02 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "333 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Studio Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Crea dentista",
+        "w": 432,
+        "h": 70,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 45.09,
+        "h": 47.75,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "wizard",
+    "viewport": 1280,
+    "tema": "chiaro",
+    "file": "wizard-nuovo-dentista-1280-chiaro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Indietro",
+        "w": 50,
+        "h": 50,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "BSBARALE S.A.S.3 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "CSC.O.M. s.r.l. uninominale1 lavori · 30",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "LMLEO MARIANTONIETTA1 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "DCDental Center s.r.l. uninominale0 lavo",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "＋ Nuovo dentista",
+        "w": 520.78,
+        "h": 67.25,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔍 Cerca fra tutti i 18 dentisti",
+        "w": 432,
+        "h": 58,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Dimmelo a voce",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "02 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "333 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Studio Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Crea dentista",
+        "w": 432,
+        "h": 60,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 45.09,
+        "h": 47.75,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "wizard",
+    "viewport": 1280,
+    "tema": "scuro",
+    "file": "wizard-nuovo-dentista-1280-scuro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Indietro",
+        "w": 50,
+        "h": 50,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "BSBARALE S.A.S.3 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "CSC.O.M. s.r.l. uninominale1 lavori · 30",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "LMLEO MARIANTONIETTA1 lavori · 30gg",
+        "w": 215.52,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "DCDental Center s.r.l. uninominale0 lavo",
+        "w": 290.27,
+        "h": 158.75,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "＋ Nuovo dentista",
+        "w": 520.78,
+        "h": 67.25,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔍 Cerca fra tutti i 18 dentisti",
+        "w": 432,
+        "h": 58,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Dimmelo a voce",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "02 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "333 1234567",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Studio Rossi",
+        "w": 432,
+        "h": 64,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Crea dentista",
+        "w": 432,
+        "h": 60,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 45.09,
+        "h": 47.75,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "pannello-modifica",
+    "viewport": 390,
+    "tema": "chiaro",
+    "file": "pannello-modifica-cliente-390-chiaro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Apri profilo",
+        "w": 40,
+        "h": 40,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Torna indietro",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Modifica cliente",
+        "w": 108.78,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 36,
+        "h": 36,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Nome studio dentistico",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Telefono dello studio",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Cellulare WhatsApp",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Email",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Via Roma 1",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "20100",
+        "w": 80,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Milano",
+        "w": 190,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "MI",
+        "w": 60,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "IT12345678901",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "RSSMRA80A01H501U",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "XXXXXXX",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "studio@pec.it",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "SELECT",
+        "testo": "Listino 1Listino 2Listino 3Listino 4",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "0",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "es. Bonifico 30gg",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "testo": "Note interne sul cliente...",
+        "w": 350,
+        "h": 85,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Salva modifiche",
+        "w": 350,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Condividi portale dentista",
+        "w": 157.8,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "📎 Copia link ordinazione",
+        "w": 190.3,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔗 Copia link stato lavori",
+        "w": 186.7,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Attiva sezione economica del portale",
+        "w": 56,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Scarica DPA PDF",
+        "w": 173.63,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Oggi — dashboard principale",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Crea nuovo lavoro",
+        "w": 56,
+        "h": 56,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Clienti — lista dentisti",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Fatture — gestione fatturazione",
+        "w": 52.39,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Scadenzario — pagamenti in sospeso",
+        "w": 56.28,
+        "h": 52,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "pannello-modifica",
+    "viewport": 390,
+    "tema": "scuro",
+    "file": "pannello-modifica-cliente-390-scuro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Apri profilo",
+        "w": 40,
+        "h": 40,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Torna indietro",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Modifica cliente",
+        "w": 108.78,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 36,
+        "h": 36,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Nome studio dentistico",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Telefono dello studio",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Cellulare WhatsApp",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Email",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Via Roma 1",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "20100",
+        "w": 80,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Milano",
+        "w": 190,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "MI",
+        "w": 60,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "IT12345678901",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "RSSMRA80A01H501U",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "XXXXXXX",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "studio@pec.it",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "SELECT",
+        "testo": "Listino 1Listino 2Listino 3Listino 4",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "0",
+        "w": 170,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "es. Bonifico 30gg",
+        "w": 350,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "testo": "Note interne sul cliente...",
+        "w": 350,
+        "h": 85,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Salva modifiche",
+        "w": 350,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Condividi portale dentista",
+        "w": 157.8,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "📎 Copia link ordinazione",
+        "w": 190.3,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔗 Copia link stato lavori",
+        "w": 186.7,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Attiva sezione economica del portale",
+        "w": 56,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Scarica DPA PDF",
+        "w": 173.63,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Oggi — dashboard principale",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Crea nuovo lavoro",
+        "w": 56,
+        "h": 56,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Clienti — lista dentisti",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Fatture — gestione fatturazione",
+        "w": 52.39,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Scadenzario — pagamenti in sospeso",
+        "w": 56.28,
+        "h": 52,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "pannello-modifica",
+    "viewport": 768,
+    "tema": "chiaro",
+    "file": "pannello-modifica-cliente-768-chiaro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Apri profilo",
+        "w": 40,
+        "h": 40,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Torna indietro",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Modifica cliente",
+        "w": 108.78,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 36,
+        "h": 36,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Nome studio dentistico",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Telefono dello studio",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Cellulare WhatsApp",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Email",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Via Roma 1",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "20100",
+        "w": 80,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Milano",
+        "w": 400,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "MI",
+        "w": 60,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "IT12345678901",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "RSSMRA80A01H501U",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "XXXXXXX",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "studio@pec.it",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "SELECT",
+        "testo": "Listino 1Listino 2Listino 3Listino 4",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "0",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "es. Bonifico 30gg",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "testo": "Note interne sul cliente...",
+        "w": 560,
+        "h": 85,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Salva modifiche",
+        "w": 560,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Condividi portale dentista",
+        "w": 157.8,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "📎 Copia link ordinazione",
+        "w": 190.3,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔗 Copia link stato lavori",
+        "w": 186.7,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Attiva sezione economica del portale",
+        "w": 56,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Scarica DPA PDF",
+        "w": 173.63,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Oggi — dashboard principale",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Crea nuovo lavoro",
+        "w": 56,
+        "h": 56,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Clienti — lista dentisti",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Fatture — gestione fatturazione",
+        "w": 52.39,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Scadenzario — pagamenti in sospeso",
+        "w": 56.28,
+        "h": 52,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "pannello-modifica",
+    "viewport": 768,
+    "tema": "scuro",
+    "file": "pannello-modifica-cliente-768-scuro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Apri profilo",
+        "w": 40,
+        "h": 40,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Torna indietro",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Modifica cliente",
+        "w": 108.78,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 36,
+        "h": 36,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Nome studio dentistico",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Telefono dello studio",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Cellulare WhatsApp",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Email",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Via Roma 1",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "20100",
+        "w": 80,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Milano",
+        "w": 400,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "MI",
+        "w": 60,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "IT12345678901",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "RSSMRA80A01H501U",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "XXXXXXX",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "studio@pec.it",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "SELECT",
+        "testo": "Listino 1Listino 2Listino 3Listino 4",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "0",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "es. Bonifico 30gg",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "testo": "Note interne sul cliente...",
+        "w": 560,
+        "h": 85,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Salva modifiche",
+        "w": 560,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Condividi portale dentista",
+        "w": 157.8,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "📎 Copia link ordinazione",
+        "w": 190.3,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔗 Copia link stato lavori",
+        "w": 186.7,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Attiva sezione economica del portale",
+        "w": 56,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Scarica DPA PDF",
+        "w": 173.63,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Oggi — dashboard principale",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Crea nuovo lavoro",
+        "w": 56,
+        "h": 56,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Clienti — lista dentisti",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Fatture — gestione fatturazione",
+        "w": 52.39,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Scadenzario — pagamenti in sospeso",
+        "w": 56.28,
+        "h": 52,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "pannello-modifica",
+    "viewport": 1280,
+    "tema": "chiaro",
+    "file": "pannello-modifica-cliente-1280-chiaro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Apri profilo",
+        "w": 40,
+        "h": 40,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Torna indietro",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Modifica cliente",
+        "w": 108.78,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 36,
+        "h": 36,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Nome studio dentistico",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Telefono dello studio",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Cellulare WhatsApp",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Email",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Via Roma 1",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "20100",
+        "w": 80,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Milano",
+        "w": 400,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "MI",
+        "w": 60,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "IT12345678901",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "RSSMRA80A01H501U",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "XXXXXXX",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "studio@pec.it",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "SELECT",
+        "testo": "Listino 1Listino 2Listino 3Listino 4",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "0",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "es. Bonifico 30gg",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "testo": "Note interne sul cliente...",
+        "w": 560,
+        "h": 85,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Salva modifiche",
+        "w": 560,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Condividi portale dentista",
+        "w": 157.8,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "📎 Copia link ordinazione",
+        "w": 190.3,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔗 Copia link stato lavori",
+        "w": 186.7,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Attiva sezione economica del portale",
+        "w": 56,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Scarica DPA PDF",
+        "w": 173.63,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Oggi — dashboard principale",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Crea nuovo lavoro",
+        "w": 56,
+        "h": 56,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Clienti — lista dentisti",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Fatture — gestione fatturazione",
+        "w": 52.39,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Scadenzario — pagamenti in sospeso",
+        "w": 56.28,
+        "h": 52,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  },
+  {
+    "superficie": "pannello-modifica",
+    "viewport": 1280,
+    "tema": "scuro",
+    "file": "pannello-modifica-cliente-1280-scuro.png",
+    "bersagli": [
+      {
+        "tag": "A",
+        "testo": "Vai al contenuto",
+        "w": 139.36,
+        "h": 37,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Apri profilo",
+        "w": 40,
+        "h": 40,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Torna indietro",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Modifica cliente",
+        "w": 108.78,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Chiudi",
+        "w": 36,
+        "h": 36,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Nome studio dentistico",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Mario",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Rossi",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Telefono dello studio",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Cellulare WhatsApp",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Email",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Via Roma 1",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "20100",
+        "w": 80,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "Milano",
+        "w": 400,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "MI",
+        "w": 60,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "IT12345678901",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "RSSMRA80A01H501U",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "XXXXXXX",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "studio@pec.it",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "SELECT",
+        "testo": "Listino 1Listino 2Listino 3Listino 4",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "0",
+        "w": 275,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "INPUT",
+        "testo": "es. Bonifico 30gg",
+        "w": 560,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "testo": "Note interne sul cliente...",
+        "w": 560,
+        "h": 85,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Salva modifiche",
+        "w": 560,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Condividi portale dentista",
+        "w": 157.8,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "📎 Copia link ordinazione",
+        "w": 190.3,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "🔗 Copia link stato lavori",
+        "w": 186.7,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Attiva sezione economica del portale",
+        "w": 56,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "BUTTON",
+        "testo": "Scarica DPA PDF",
+        "w": 173.63,
+        "h": 44,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Oggi — dashboard principale",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Crea nuovo lavoro",
+        "w": 56,
+        "h": 56,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Clienti — lista dentisti",
+        "w": 52,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Fatture — gestione fatturazione",
+        "w": 52.39,
+        "h": 52,
+        "visibile": true
+      },
+      {
+        "tag": "A",
+        "testo": "Scadenzario — pagamenti in sospeso",
+        "w": 56.28,
+        "h": 52,
+        "visibile": true
+      }
+    ],
+    "erroriConsole": []
+  }
+]
