@@ -20,7 +20,7 @@
 ALTER TABLE public.clienti ADD COLUMN cellulare_whatsapp TEXT;
 
 COMMENT ON COLUMN public.clienti.telefono IS
-  'Telefono dello studio: si chiama, va sui documenti. Puo'' essere un fisso. NON e'' il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
+  'Telefono dello studio: si chiama, va sui documenti. Può essere un fisso. NON è il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
 
 COMMENT ON COLUMN public.clienti.cellulare_whatsapp IS
   'Cellulare su cui il dentista riceve i messaggi (consegna, solleciti). Il prefisso internazionale lo aggiunge il codice, non l''utente (P31, D182).';
