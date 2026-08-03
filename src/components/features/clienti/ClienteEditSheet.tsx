@@ -13,6 +13,7 @@ export interface ClienteEditData {
   nome: string
   cognome: string
   telefono: string | null
+  cellulare_whatsapp: string | null
   email: string | null
   indirizzo: string | null
   cap: string | null
@@ -61,6 +62,17 @@ const labelStyle: React.CSSProperties = {
   marginBottom: '5px',
 }
 
+// Aiuto sotto il campo Cellulare WhatsApp (P31/D184). Riga di testo con lo
+// stile di QUESTO file (v2.3 legacy) — niente da `src/components/ds/`, la
+// migrazione è per route (§14 DS v3), non per singolo componente.
+const aiutoStyle: React.CSSProperties = {
+  fontFamily: 'DM Sans, sans-serif',
+  fontSize: '12px',
+  lineHeight: 1.4,
+  color: 'var(--t3, #6B5C51)',
+  margin: '4px 0 0',
+}
+
 function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: '12px' }}>
@@ -81,6 +93,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
     nome: cliente.nome,
     cognome: cliente.cognome,
     telefono: cliente.telefono ?? '',
+    cellulare_whatsapp: cliente.cellulare_whatsapp ?? '',
     email: cliente.email ?? '',
     indirizzo: cliente.indirizzo ?? '',
     cap: cliente.cap ?? '',
@@ -130,6 +143,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
         nome: form.nome.trim(),
         cognome: form.cognome.trim(),
         telefono: form.telefono.trim() || null,
+        cellulare_whatsapp: form.cellulare_whatsapp.trim() || null,
         email: form.email.trim() || null,
         indirizzo: form.indirizzo.trim() || null,
         cap: form.cap.trim() || null,
@@ -320,26 +334,49 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
                 </FieldGroup>
               </div>
 
+              {/* P31/D184 (mockup approvato D186): i due numeri hanno LO STESSO
+                  PESO — stessa colonna della griglia, stesso `inputStyle`,
+                  nessun campo "avanzato"/richiudibile. «Telefono» → «Telefono
+                  dello studio» (può essere un fisso, va sui documenti);
+                  «Cellulare WhatsApp» è il campo NUOVO (→ colonna
+                  `cellulare_whatsapp`, compito 3). Placeholder senza prefisso
+                  (D182): il prefisso lo mette il programma. */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <FieldGroup label="Telefono">
+                <FieldGroup label="Telefono dello studio">
                   <input
                     type="tel"
                     value={form.telefono}
                     onChange={set('telefono')}
-                    placeholder="+39 02 1234567"
+                    placeholder="02 1234567"
+                    aria-label="Telefono dello studio"
                     style={inputStyle}
                   />
                 </FieldGroup>
-                <FieldGroup label="Email">
+                <FieldGroup label="Cellulare WhatsApp">
                   <input
-                    type="email"
-                    value={form.email}
-                    onChange={set('email')}
-                    placeholder="studio@esempio.it"
+                    type="tel"
+                    value={form.cellulare_whatsapp}
+                    onChange={set('cellulare_whatsapp')}
+                    placeholder="333 1234567"
+                    aria-label="Cellulare WhatsApp"
                     style={inputStyle}
                   />
+                  <p style={aiutoStyle}>
+                    È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio.
+                  </p>
                 </FieldGroup>
               </div>
+
+              <FieldGroup label="Email">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={set('email')}
+                  placeholder="studio@esempio.it"
+                  aria-label="Email"
+                  style={inputStyle}
+                />
+              </FieldGroup>
 
               <FieldGroup label="Indirizzo">
                 <input

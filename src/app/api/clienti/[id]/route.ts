@@ -14,7 +14,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 // I campi portale (portale_fatturazione_attiva, portale_pin) hanno gestione
 // dedicata con controllo ruolo: vedi più sotto, NON aggiungerli qui.
 export const PATCHABLE_FIELDS_CLIENTE = [
-  'studio_nome', 'nome', 'cognome', 'telefono', 'email',
+  'studio_nome', 'nome', 'cognome', 'telefono', 'cellulare_whatsapp', 'email',
   'partita_iva', 'codice_fiscale', 'codice_sdi', 'pec',
   'indirizzo', 'cap', 'citta', 'provincia', 'paese',
   'listino_numero', 'sconto_percentuale', 'tecnico_default_id',
@@ -49,6 +49,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
         nome,
         cognome,
         telefono,
+        cellulare_whatsapp,
         email,
         partita_iva,
         codice_fiscale,

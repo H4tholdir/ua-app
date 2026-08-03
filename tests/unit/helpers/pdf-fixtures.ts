@@ -42,6 +42,7 @@ export const CLIENTE_FIXTURE: Cliente = {
   nome: 'Mario',
   cognome: 'Rossi',
   telefono: null,
+  cellulare_whatsapp: null,
   email: null,
   partita_iva: null,
   codice_fiscale: 'RSSMRA80A01H703X',

@@ -156,6 +156,10 @@ export interface Cliente {
   nome: string;
   cognome: string;
   telefono: string | null;
+  /** Cellulare per WhatsApp (P31, D182/D183): telefono può essere un fisso
+   *  dello studio — chi manda WhatsApp legge SEMPRE questo campo, mai
+   *  telefono, altrimenti il messaggio riparte su un fisso. */
+  cellulare_whatsapp: string | null;
   email: string | null;
   partita_iva: string | null;
   codice_fiscale: string | null;
@@ -633,6 +637,11 @@ export interface PrecheckConsegnaResponse {
 export interface ConsegnaResult {
   ok: true;
   lavoro_id: string;
+  /** Id del cliente a cui è andato il lavoro. Serve al tasto WhatsApp per
+   *  salvare il cellulare quando manca (P31, D183): senza, la schermata
+   *  della consegna non sa a chi salvarlo. Additivo — nessun consumatore
+   *  preesistente si rompe. */
+  cliente_id: string;
   numero_lavoro: string;
   ddc: { numero: string; url: string; signed_url: string };
   buono: { numero: string; url: string; signed_url: string };

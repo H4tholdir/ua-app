@@ -32,6 +32,7 @@ export async function GET() {
     cognome: string
     studio_nome: string | null
     telefono: string | null
+    cellulare_whatsapp: string | null
   }
 
   interface DovutoRow {
@@ -45,7 +46,7 @@ export async function GET() {
 
   const { data: fattureData, error: fattureError } = await svc
     .from('fatture')
-    .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono)')
+    .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono, cellulare_whatsapp)')
     .eq('laboratorio_id', labId)
     .eq('pagata', false)
     .neq('stato_sdi', 'draft')
@@ -66,7 +67,7 @@ export async function GET() {
     .from('lavori')
     .select(`
       id, numero_lavoro, prezzo_unitario, data_consegna_prevista,
-      cliente:clienti(id, nome, cognome, studio_nome, telefono),
+      cliente:clienti(id, nome, cognome, studio_nome, telefono, cellulare_whatsapp),
       pagamenti(importo, stato),
       credito_clienti_movimenti(importo, tipo),
       lavorazioni:lavori_lavorazioni(importo)

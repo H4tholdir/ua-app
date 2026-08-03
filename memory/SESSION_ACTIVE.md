@@ -1,39 +1,26 @@
-# Sessione attiva — la notte è in produzione, si riparte da P31
+# Sessione attiva — P31 fatta (9/9), non pubblicata
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-unione-notte-e-ripresa-p31.md`** — la **§0 per prima**.
-🛑 **NON puntarlo su `memory/MEMORY.md`:** gli archivi sono esclusi apposta dalla catena che
-`guardia-coerenza-documenti.mjs` segue, e puntarci la porta d'ingresso **svuota la guardia** — 7
-documenti controllati → 1, **restando verde**. Difetto introdotto e chiuso il 03/08 (§0④ del referto).
+🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-03-p31-compito-9-verifica-handoff.md` (la **§0 per
+prima**). Referto completo con gli output reali: `.superpowers/sdd/p31-compito-9-report.md`
+(fuori dalla catena che la guardia dei documenti segue — non è un `docs/`/`memory/` — l'handoff
+sopra lo cita per chi vuole il dettaglio).
 
-✅ **UNITO E PUBBLICATO (D177):** `main` = **`8d06ea5b`** (`fdf90dac..8d06ea5b`), nodo di unione
-esplicito. **Undici** salvataggi = 9 correzioni + referto + verbale (non nove, non dieci: il
-conteggio era sbagliato in due documenti, corretto qui).
+✅ **Compito 9 chiuso — «i cancelli, prima dell'unione».** Ramo `p31-due-numeri-per-il-cliente`,
+**NON mergiato** (l'unione la decide Francesco). FASE 7: `tsc` 0 · `vitest` 4540|19 (397 file) ·
+`next build` 0. Cinque guardie verdi coi numeri (coerenza documenti 8→1→1→4, risolta a 4 vivi ·
+115 route CSRF · 2 progetti/5 file Playwright). FASE 9+9b sulle tre superfici (wizard 5 campi ·
+pannello di modifica — primi scatti mai fatti, D186 non lo copriva · foglio della consegna dal
+vivo): **3** ❌ chiusi con motivo, **tutti pre-esistenti** (contrasto `--t3` = P16/D134 · overflow
+tile dentisti · 3 bersagli <44px preesistenti — nessuno dei tre nel foglio P31).
 
-🔴 **La precondizione è stata eseguita per prima e provata in quattro modi** — non basta che
-l'installatore stampi «✅»: guardia **rosso→verde** (la copia era del 02/08 12:04) · `diff` identico ·
-`scarto += pagina.length` e arresto sulla pagina **vuota** dentro la copia che gira di notte ·
-`launchctl` ore 3:00, in ascolto.
+✅ **Collaudo dal vivo (D103) completo**, su `TEST-DdC-001` (fixture riusabile): richiesta →
+salvataggio → WhatsApp con prefisso 39 → verificato in anagrafica e DB → annullato in 13s.
 
-📌 `tsc` **0** · `vitest` **4490 | 19** (384 file) · `next build` **0** · **cinque** guardie verdi
-sull'albero unito (nessuno le aveva mai eseguite lì).
+🔎 **Tre fuori mandato riferiti (R-E2), non corretti:** emoji WhatsApp → `U+FFFD` nel template
+(pre-esistente) · mismatch idratazione su `?consegna=1` (pre-esistente, solo dev) · scheda cliente
+in sola lettura non mostra `cellulare_whatsapp` (probabile P30/P30-a).
 
-🔎 **Riferito, non corretto (R-E2):** P31 tocca **tre** punti WhatsApp, non uno — `orchestrate.ts:123`
-· `EstrattoContoView.tsx:223-224` · `ScadenzarioList.tsx:85`; più tre punti «numero da chiamare».
+🛑 **Vuoto dichiaratamente aperto:** resa di un numero senza prefisso dentro WhatsApp — serve un
+telefono vero.
 
-✅ **Tutto pubblicato:** `main` = **`ab76bca7`**, albero pulito, 0 da pubblicare.
-
-🔨 **P31 — SPEC RATIFICATA, il piano non è ancora scritto.**
-📄 `docs/superpowers/specs/2026-08-03-p31-due-numeri-per-il-cliente-design.md` (in attesa della
-revisione di Francesco). **D181** due campi (`telefono` = studio · **`cellulare_whatsapp`** nuovo) ·
-**D182** il prefisso `39` lo mette UÀ, non l'utente · **D183** se il cellulare manca, il tasto lo chiede
-e lo **salva prima** di aprire WhatsApp.
-🔑 **Tre misure hanno cambiato il perimetro:** il **travaso non esiste** (39 clienti, **1** con
-telefono, **0** con email) · le **due schermate si contraddicono già nelle etichette** · **nessuno mette
-il prefisso**, quindi la colonna nuova da sola ereditava il difetto.
-🛑 **Due vincoli scoperti dalla validazione:** le allowlist sono **due** (`PATCHABLE_FIELDS_CLIENTE` +
-`CAMPI_ELENCO`) · **`ConsegnaResult` non porta l'id del cliente** (`domain.ts:633-647`), quindi D183
-richiede di aggiungerlo.
-
-➡️ **DOPO P31: P30-a → P30-b → poi il React di P30.** 🆕 **P32** aperta (la guardia dei documenti perde
-un anello a ogni handoff nuovo). ❓ Restano **D-Q2** e **D-Q5**.
-📎 **183** decisioni in **67** tornate; la prossima è **D184**.
+➡️ **PROSSIMO:** autorizzazione di Francesco a unire P31 → poi P30-a → P30-b → React di P30 (D180).

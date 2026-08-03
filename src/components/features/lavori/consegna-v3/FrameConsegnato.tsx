@@ -18,12 +18,15 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
 import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
+import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { DialogConferma } from '@/components/ds/DialogConferma'
+import { ChiediCellulareSheet } from '@/components/features/clienti/ChiediCellulareSheet'
 import { tipografia, spazio } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
+import { numeroPerWhatsapp } from '@/lib/consegna/whatsapp-template'
 import type { ConsegnaResult } from '@/types/domain'
 
 const FINESTRA_MS = 10 * 60 * 1000
@@ -46,6 +49,10 @@ export function FrameConsegnato(props: {
   const [rimasti, setRimasti] = useState(FINESTRA_MS)
   const [annulloAperto, setAnnulloAperto] = useState(false)
   const [annulloInCorso, setAnnulloInCorso] = useState(false)
+  // D183/D185: il cellulare WhatsApp può mancare — il tasto non sparisce,
+  // apre questo foglio (condiviso, `features/clienti/`) che lo chiede e lo
+  // salva PRIMA di aprire WhatsApp.
+  const [chiediAperto, setChiediAperto] = useState(false)
   // Feedback D-6 sul fallimento dell'annullo: il dialog RESTA aperto con una
   // nota ambra generica (mai la stringa server) — un'azione che annulla DdC e
   // buono non può fallire in silenzio. Reset alla riapertura del dialog.
@@ -120,7 +127,18 @@ export function FrameConsegnato(props: {
         </p>
 
         <div style={{ marginTop: spazio.m, display: 'flex', justifyContent: 'center' }}>
-          <TastoWhatsApp waUrl={esito.whatsapp_url}>Invia messaggio WhatsApp</TastoWhatsApp>
+          {/* D183 — il segnale che il cellulare manca è nell'URL: server-side
+              (orchestrate.ts) `buildWhatsappUrl` produce `https://wa.me/?text=…`
+              (senza cifre) quando non c'è un cellulare da comporre. TastoWhatsApp
+              è un collegamento e rifiuta comunque un waUrl del genere (contratto
+              di sicurezza, v. il suo commento): qui serve un TASTO, non un
+              collegamento — non si allenta quel controllo per farci passare un
+              caso che non è il suo. */}
+          {esito.whatsapp_url.startsWith('https://wa.me/?') ? (
+            <TastoPrimario onClick={() => setChiediAperto(true)}>Invia messaggio WhatsApp</TastoPrimario>
+          ) : (
+            <TastoWhatsApp waUrl={esito.whatsapp_url}>Invia messaggio WhatsApp</TastoWhatsApp>
+          )}
         </div>
 
         {/* Annullo (Frame 3): LinkQuieto + countdown NON-live; sparisce a 0 */}
@@ -143,6 +161,22 @@ export function FrameConsegnato(props: {
         nota={annulloFallito ? 'Non è andata a buon fine — la consegna resta valida. Riprova.' : undefined}
         onConferma={() => void annulla()}
         onAnnulla={() => setAnnulloAperto(false)}
+      />
+
+      <ChiediCellulareSheet
+        aperto={chiediAperto}
+        clienteId={esito.cliente_id}
+        nomeDestinatario={dentista}
+        onChiudi={() => setChiediAperto(false)}
+        onSalvato={(cellulare) => {
+          setChiediAperto(false)
+          const numero = numeroPerWhatsapp(cellulare)
+          if (!numero) return
+          // Stesso testo già pronto server-side (orchestrate.ts): si ricompone
+          // solo il numero mancante, non si ricostruisce il messaggio.
+          const testo = esito.whatsapp_url.split('?text=')[1] ?? ''
+          window.open(`https://wa.me/${numero}?text=${testo}`, '_blank', 'noopener,noreferrer')
+        }}
       />
     </div>,
     document.body,

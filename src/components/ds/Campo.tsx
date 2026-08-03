@@ -29,6 +29,17 @@ const stileLabel: CSSProperties = {
   marginBottom: spazio.xs,
 }
 
+/** L'aiuto sotto un campo (P31, D184). `--muted` e NON `--faint`: dentro un foglio in
+ *  tema scuro `--faint` scende a 4,25:1, sotto il 4,5 che WCAG 1.4.3 chiede a un testo
+ *  piccolo (è P30-bis, difetto già aperto nel progetto — qui lo si evita, non lo si
+ *  corregge). E non è un messaggio d'errore: mai un colore semantico. */
+const stileAiuto: CSSProperties = {
+  margin: '6px 0 0',
+  fontSize: 13,
+  lineHeight: 1.35,
+  color: 'var(--muted)',
+}
+
 function stileCampo(extra?: CSSProperties): CSSProperties {
   return {
     display: 'block',
@@ -60,9 +71,19 @@ export function CampoTesto(props: {
   onCambia: (v: string) => void
   placeholder?: string
   autoFocus?: boolean
+  /** Riga sotto il campo che spiega a che cosa serve (P31, D184). Legata
+   *  all'input con `aria-describedby`. Opzionale: senza, non cambia niente
+   *  per le 13 schermate che usavano questo campo prima. */
+  aiuto?: string
+  /** Tastiera da chiedere al telefono. `'tel'` fa uscire il tastierino
+   *  numerico: su una PWA da telefono, per un numero, la tastiera delle
+   *  lettere è un attrito reale. Stesso motivo per cui `CampoNumero` usa
+   *  `inputMode="decimal"`. */
+  inputMode?: 'tel'
 }) {
-  const { label, valore, onCambia, placeholder, autoFocus = false } = props
+  const { label, valore, onCambia, placeholder, autoFocus = false, aiuto, inputMode } = props
   const id = useId()
+  const idAiuto = `${id}-aiuto`
 
   return (
     <div>
@@ -79,12 +100,19 @@ export function CampoTesto(props: {
         id={id}
         className="ds-campo-testo"
         type="text"
+        inputMode={inputMode}
+        aria-describedby={aiuto ? idAiuto : undefined}
         value={valore}
         placeholder={placeholder}
         autoFocus={autoFocus}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onCambia(e.target.value)}
         style={stileCampo()}
       />
+      {aiuto && (
+        <p id={idAiuto} style={stileAiuto}>
+          {aiuto}
+        </p>
+      )}
     </div>
   )
 }

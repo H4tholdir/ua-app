@@ -114,21 +114,26 @@ export async function orchestraConsegna(
 
     const { data: lavoro } = await supabase
       .from('lavori')
-      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(telefono, cognome, portale_token)')
+      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(id, telefono, cellulare_whatsapp, cognome, portale_token)')
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
       .single()
 
-    const clienteTel =
-      (lavoro?.cliente as unknown as { telefono?: string } | null)?.telefono ?? ''
-    const portaleToken =
-      (lavoro?.cliente as unknown as { portale_token?: string } | null)?.portale_token ?? ''
+    const clienteRec = lavoro?.cliente as unknown as {
+      id?: string
+      cellulare_whatsapp?: string | null
+      portale_token?: string | null
+    } | null
+    // P31: il messaggio va sul CELLULARE. Nessun ripiego sul telefono dello
+    // studio: sarebbe il difetto di P31 rimesso dentro.
+    const clienteCell = clienteRec?.cellulare_whatsapp ?? ''
+    const portaleToken = clienteRec?.portale_token ?? ''
     const numeroLavoro = (lavoro?.numero_lavoro as string | undefined) ?? lavoro_id
     const waMessage = buildWhatsappMessage({
       numeroLavoro,
       portalToken: portaleToken,
     })
-    const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
+    const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
 
     const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${annoRoma()}-000`
     const ddcUrl = ddcRow?.pdf_url ?? ''
@@ -145,6 +150,7 @@ export async function orchestraConsegna(
     return {
       ok: true,
       lavoro_id,
+      cliente_id: clienteRec?.id ?? '',
       numero_lavoro: numeroLavoro,
       ddc: { numero: ddcNumero, url: ddcUrl, signed_url: ddcUrl },
       buono: { numero: buonoNumero, url: buonoUrl, signed_url: buonoUrl },
@@ -351,17 +357,20 @@ export async function orchestraConsegna(
     // Step 6 — Costruisci link WhatsApp (GDPR-safe: NO dati personali)
     // ----------------------------------------------------------------
     const clienteContattoRaw = lavoro.cliente as unknown as {
-      telefono?: string | null
+      id?: string | null
+      cellulare_whatsapp?: string | null
       portale_token?: string | null
     } | null
 
-    const clienteTel = clienteContattoRaw?.telefono ?? ''
+    // P31: il messaggio va sul CELLULARE. Nessun ripiego sul telefono dello
+    // studio: sarebbe il difetto di P31 rimesso dentro.
+    const clienteCell = clienteContattoRaw?.cellulare_whatsapp ?? ''
     const portaleToken = clienteContattoRaw?.portale_token ?? ''
     const waMessage = buildWhatsappMessage({
       numeroLavoro: lavoro.numero_lavoro as string,
       portalToken: portaleToken,
     })
-    const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
+    const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
 
     // ----------------------------------------------------------------
     // Step 7 — Restituisci ConsegnaResult
@@ -369,6 +378,7 @@ export async function orchestraConsegna(
     return {
       ok: true,
       lavoro_id,
+      cliente_id: clienteContattoRaw?.id ?? '',
       numero_lavoro: lavoro.numero_lavoro as string,
       ddc: { numero: ddc.numero, url: ddc.url, signed_url: ddc.url },
       buono: { numero: buono.numero, url: buono.url, signed_url: buono.url },

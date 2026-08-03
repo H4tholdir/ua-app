@@ -370,7 +370,8 @@ CREATE TABLE clienti (
   studio_nome       TEXT,               -- Ragione sociale studio
   nome              TEXT NOT NULL,      -- Nome dentista referente
   cognome           TEXT NOT NULL,
-  telefono          TEXT,               -- Usato per WhatsApp
+  telefono          TEXT,               -- Telefono dello STUDIO: si chiama, va sui documenti. Può essere un fisso. NON è WhatsApp (P31, D181)
+  cellulare_whatsapp TEXT,              -- Cellulare per consegna e solleciti. Il prefisso lo mette il codice (P31, D182)
   email             TEXT,
 
   -- Dati fiscali (obbligatori per FatturaPA)

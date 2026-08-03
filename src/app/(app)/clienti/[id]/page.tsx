@@ -18,6 +18,7 @@ type ClienteDettaglio = {
   nome: string
   cognome: string
   telefono: string | null
+  cellulare_whatsapp: string | null
   email: string | null
   partita_iva: string | null
   codice_fiscale: string | null
@@ -125,7 +126,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   const { data: cliente, error } = await svc
     .from('clienti')
     .select(`
-      id, studio_nome, nome, cognome, telefono, email,
+      id, studio_nome, nome, cognome, telefono, cellulare_whatsapp, email,
       partita_iva, codice_fiscale, codice_sdi, pec,
       indirizzo, cap, citta, provincia, paese,
       listino_numero, sconto_percentuale, modalita_pagamento,
@@ -262,6 +263,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
         nome: c.nome,
         cognome: c.cognome,
         telefono: c.telefono,
+        cellulare_whatsapp: c.cellulare_whatsapp,
         email: c.email,
         indirizzo: c.indirizzo,
         cap: c.cap,

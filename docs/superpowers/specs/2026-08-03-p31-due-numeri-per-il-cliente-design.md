@@ -54,10 +54,18 @@ commento** che oggi dice il falso.
 ```sql
 ALTER TABLE clienti ADD COLUMN cellulare_whatsapp TEXT;
 COMMENT ON COLUMN clienti.telefono IS
-  'Telefono dello studio: si chiama, va sui documenti. Puo'' essere un fisso. NON e'' il numero WhatsApp (v. cellulare_whatsapp) — P31, D181.';
+  'Telefono dello studio: si chiama, va sui documenti. Può essere un fisso. NON è il numero WhatsApp (v. cellulare_whatsapp) — P31, D181.';
 COMMENT ON COLUMN clienti.cellulare_whatsapp IS
   'Cellulare su cui il dentista riceve i messaggi (consegna, solleciti). Il prefisso internazionale lo aggiunge il codice, non l''utente — P31, D182.';
 ```
+
+> 🔧 **CORRETTO il 03/08 dalla revisione del compito 1, e il difetto era di questo piano.** La prima
+> stesura scriveva `Puo''` e `e''` dentro la stringa di `COMMENT ON`, credendo che l'accento andasse
+> raddoppiato come l'apostrofo. **È falso:** in SQL due apici consecutivi valgono **un apostrofo
+> letterale**, quindi `Puo''` finisce nel database come `Puo'`, non come `Può`. L'accento non ha
+> bisogno di alcun escaping. `provato:` `supabase/migrations/20260803090000_*.sql` — stessa cartella,
+> stesso giorno — usa l'accento **vero** non raddoppiato accanto a un apostrofo **correttamente**
+> raddoppiato (`dell''emissione`). 🔑 **Solo l'apostrofo si raddoppia, mai la lettera accentata.**
 
 `non eseguito` — l'esecutore la scrive sotto test e la verifica con:
 `npx supabase migration up` → `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → `npx tsc --noEmit` (**FASE 6b**).
@@ -87,11 +95,24 @@ nessuno l'ha mai inserito.
 | `src/components/features/clienti/ClienteEditSheet.tsx:83, 132, 324-330` | pannello di modifica | campo nuovo + **correggere l'etichetta e l'esempio di quello vecchio** (oggi «Telefono» con esempio `+39 02 1234567`) |
 | `src/components/features/wizard/NuovoDentistaSheet.tsx:44, 74, 102-111` | wizard nuovo dentista | **D184: chiede ENTRAMBI i numeri, con lo stesso peso**, e sotto il cellulare c'è scritto a cosa serve — v. §4.5 |
 
-### 4.2 Chi LEGGE per mandare WhatsApp — **CINQUE chiamate, non tre**
+### 4.2 Chi LEGGE per mandare WhatsApp — **SEI punti, non cinque e non tre**
 
-🔄 **CORRETTO il 03/08 scrivendo il piano.** La prima stesura di questa spec ne contava **tre**, perché
-il censimento era stato fatto cercando `buildWhatsappUrl` **per file** e non **per chiamata**.
-`provato:` `grep -rn "buildWhatsappUrl(" src/` → **5 chiamate in 4 file**.
+🔄 **CORRETTO DUE VOLTE, e la seconda correzione insegna più della prima.**
+**① Scrivendo il piano:** la prima stesura ne contava **tre**, perché il censimento cercava
+`buildWhatsappUrl` **per file** e non **per chiamata** → `grep -rn "buildWhatsappUrl(" src/` = **5**.
+**② Eseguendo il compito 2:** l'esecutore ha riferito (R-E2) un punto che **non usa affatto quella
+funzione** — costruisce il collegamento **a mano**. `provato:` il censimento giusto non è sul nome della
+funzione ma sul **comportamento**:
+
+```
+grep -rn "wa\.me/" --include="*.ts" --include="*.tsx" src/
+```
+
+→ **sei punti**, di cui **uno solo** dentro il perimetro di P31 e invisibile al censimento precedente.
+
+🔑 **È esattamente ciò che R-P2 prescrive** («cercare il precedente per **COMPORTAMENTO**, non per
+nome») — e la spec l'aveva violato pur citando la regola. Terza volta in una sessione che un elenco
+«completo» non lo è, e **sempre la stessa causa**.
 
 | # | punto | che cos'è |
 |---|---|---|
@@ -100,8 +121,14 @@ il censimento era stato fatto cercando `buildWhatsappUrl` **per file** e non **p
 | ③ | `src/components/features/scadenzario/EstrattoContoView.tsx:224` | **sollecito globale** dell'estratto conto |
 | ④ | `src/components/features/scadenzario/EstrattoContoView.tsx:38` | 🛑 **sollecito su un singolo dovuto**, dentro `DovutoBottomSheet` — **componente definito nello stesso file** (righe 23-33), quindi invisibile a chi cerca per nome di file. Riceve il numero come **prop** (`:27` il tipo, `:349` il passaggio, `:108` il tasto) |
 | ⑤ | `src/components/features/scadenzario/ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+| ⑥ | 🆕 `src/components/features/lavori/form/TabAccettazione.tsx:232` | 🛑 **«Abbiamo ricevuto il lavoro»**, mandato al cliente all'**accettazione in ingresso**. **NON passa da `buildWhatsappUrl`**: costruisce `https://wa.me/${clienteTelefono.replace(/\D/g,'')}` **a mano** — per questo era invisibile. Riceve il numero come prop da `LavoroFormClient.tsx:152` (`lavoro.cliente?.telefono`) |
 
-🛑 **Un compito atomico, non cinque.** Se la colonna nasce e questi restano a leggere `telefono`, la
+✅ **E per il ⑥ la catena di trasporto NON va toccata:** `provato:` `src/app/(app)/lavori/[id]/page.tsx:25`
+e `.../modifica/page.tsx:46` caricano `cliente:clienti(*)` — **tutte** le colonne, quindi
+`cellulare_whatsapp` arriva già. Servono **due sole righe**: la prop passata da `LavoroFormClient` e la
+costruzione del collegamento, che deve **passare da `buildWhatsappUrl`** invece di fare da sé.
+
+🛑 **Un compito atomico, non sei.** Se la colonna nasce e questi restano a leggere `telefono`, la
 separazione esiste **nello schema** e il difetto resta vivo **nel programma**.
 
 ### 4.2-bis La catena di trasporto — il campo deve ARRIVARE fin lì
@@ -122,6 +149,32 @@ tasto sparisce senza un errore.
 🔑 **Nove punti di trasporto per cinque punti d'uso.** È il motivo per cui questa spec elenca i percorsi
 uno per uno invece di dire «aggiornare le query»: una query dimenticata **non dà errore**, dà un tasto
 che non c'è.
+
+### 4.2-ter 🔴 La catena verso il PANNELLO DI MODIFICA — e qui una query dimenticata **CANCELLA UN DATO**
+
+🔄 **Aggiunta il 03/08 eseguendo il compito 3**, da un ritrovamento fuori mandato dell'esecutore
+(R-E2) — che ne aveva visto **uno**; guardandolo si è visto che sono **quattro**.
+
+| # | punto | che cosa fa |
+|---|---|---|
+| ① | `src/app/(app)/clienti/[id]/page.tsx:127-133` | la `select` della **scheda cliente** — elenca le colonne **una per una**, e `cellulare_whatsapp` non c'è |
+| ② | `src/app/(app)/clienti/[id]/page.tsx:15-39` | il tipo `ClienteDettaglio`, dichiarato **in loco** |
+| ③ | `src/app/(app)/clienti/[id]/page.tsx:258-270` | l'oggetto passato a `ClienteModificaButton` → `ClienteEditSheet` |
+| ④ | `src/app/api/clienti/[id]/route.ts:45-77` | la `select` della **GET** del singolo cliente (rotta separata, stesso difetto) |
+
+🛑 **PERCHÉ È PIÙ GRAVE DI UN TASTO CHE NON COMPARE.** Se il campo non arriva al pannello di modifica,
+il suo stato iniziale è la stringa vuota; e `ClienteEditSheet.tsx:132` salva
+`form.<campo>.trim() || null`. Quindi **aprire il pannello per correggere l'email e premere Salva
+CANCELLA il cellulare WhatsApp**, senza avvisare nessuno.
+
+🔑 **È la stessa forma del difetto che P31 esiste per chiudere, ma peggiore:** lì un messaggio non
+arrivava, qui **un dato sparisce**. E si vedrebbe solo alla consegna dopo — quando il tasto WhatsApp
+ricomincia a chiedere un numero che era già stato inserito.
+
+⚠️ **Quarta volta in questa sessione che un elenco «completo» non lo è.** Le prime tre erano sui punti
+d'**uso**; questa è sui punti di **trasporto**, che sono più insidiosi perché **non compaiono in nessuna
+ricerca per comportamento**: non contengono né `wa.me` né `telefono` come azione — contengono un nome di
+colonna dentro una lista.
 
 ### 4.3 Chi LEGGE come «numero da chiamare» (3 punti — **non cambiano**)
 
@@ -223,9 +276,30 @@ correzione di **P11** (03/08): il difetto si chiude **alla fonte**, non nei chia
 
 ---
 
-## 6. Il tasto che chiede il numero (D183)
+## 6. Il tasto che chiede il numero (D183 · **D185**)
 
-**Dove.** `FrameConsegnato.tsx:123`, che oggi rende `<TastoWhatsApp waUrl={esito.whatsapp_url}>`.
+**Dove.** In **cinque** punti, non uno — 🔄 **esteso il 03/08 da D185** (a quattro, dopo un rilievo del
+revisore del compito 4), poi **da D187** (a cinque, con l'accettazione in ingresso). ⚠️ Questa riga e la
+tabella dicevano ancora «quattro» fino alla revisione finale del 03/08: il numero va **contato sul
+codice** (censimento import di `ChiediCellulareSheet`), non dedotto dal documento precedente:
+
+| # | punto | che cos'è |
+|---|---|---|
+| ① | `FrameConsegnato.tsx:123` | la **consegna** (D183) |
+| ② | `EstrattoContoView.tsx:224` | **sollecito globale** dell'estratto conto |
+| ③ | `EstrattoContoView.tsx:38` (`DovutoBottomSheet`) | **sollecito su un singolo dovuto** |
+| ④ | `ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+| ⑤ | `TabAccettazione.tsx:783` | **conferma ricezione al dentista** (accettazione in ingresso, D187) |
+
+🔑 **Perché non solo alla consegna (D185).** Un tasto che in una schermata chiede il numero e in
+un'altra **sparisce** insegna due comportamenti diversi per la stessa cosa. ⚠️ **La domanda è nata da un
+rilievo del revisore**, non da chi ha scritto il piano: l'esecutore del compito 4 aveva cambiato di sua
+iniziativa il gate di quel tasto — scelta **giusta e dichiarata** — e il revisore ha chiesto che avesse
+un **numero di decisione** invece di restare una scelta di esecutore.
+
+➡️ **Conseguenza sulla struttura:** `ChiediCellulareSheet` nasce **condiviso**, non locale alla
+consegna. Vive in `src/components/features/clienti/` (è un pezzo di **anagrafica**, non di consegna) e
+lo montano cinque punti di montaggio.
 
 **Comportamento.** Se il cliente non ha `cellulare_whatsapp`:
 

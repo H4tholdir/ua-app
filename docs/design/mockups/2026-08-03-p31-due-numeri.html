@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P31 · Due numeri per il cliente — wizard e consegna</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   TOKEN v3 — copiati VERBATIM da src/design-system/v3/tokens.ts e
+   src/app/ds-v3.css (letti il 03/08/2026), MAI inventati o stimati a occhio.
+   Il tema scuro si attiva con [data-tema="dark"] sull'elemento <html>: NON
+   c'è un tasto di cambio tema in pagina — i 6 scatti scuri si prendono
+   impostando l'attributo via automazione (stesso metodo del mockup P30 dello
+   stesso giorno), non con un controllo visibile qui.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --green-tint:#EAF4EC;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --scrim:rgba(29,25,19,.35);
+  --wa-corsa:#0E4A28;
+}
+[data-tema="dark"]{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468;
+  --green-tint:rgba(52,196,104,.14);
+  --sh-card:none;   /* dark = piatto, spec §3.2 */
+  --wa-corsa:#0E4A28;   /* valore-legge, NON temato — tokens.ts verdeWhatsApp.corsa */
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:#ddd6c4; /* fondo dell'area di lavoro, MAI un token — solo per far risaltare i riquadri scena */
+  color:var(--ink);
+}
+[data-tema="dark"] body{background:#0a0908}
+
+/* ── Mobilio del file: etichette per chi legge il mockup a occhio.
+      NON fanno parte del disegno approvato e NON entrano negli scatti
+      (gli scatti clippano l'elemento .scena, non la pagina intera). ── */
+.nota-scena{
+  max-width:900px;margin:0 auto;padding:28px 24px 10px;
+  font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+  color:#7a7266;
+}
+.nota-scena b{color:#3a352c}
+
+/* ── .scena: il riquadro che UN singolo scatto cattura. Larghezza 100%,
+      altezza 100vh — a ogni resize del viewport (390/768/1280) diventa
+      esattamente il rettangolo di un vero schermo, overflow:hidden come
+      farebbe un device reale. position:relative così scrim/foglio (sotto)
+      possono restare `absolute` invece di `fixed`: `fixed` prenderebbe come
+      riferimento l'INTERA pagina (con le etichette sopra), non il riquadro
+      — qui la scena è pensata per essere l'intero schermo, quindi l'ancora
+      giusta è lei stessa. ── */
+.scena{
+  position:relative;width:100%;height:100vh;max-height:960px;overflow:hidden;
+  background:var(--bg);
+  margin:0 auto 40px;max-width:1280px;
+}
+
+/* ══════════════ SFONDO A — wizard «Nuovo lavoro», Passo 1 ══════════════ */
+.sf-testata{display:flex;align-items:center;gap:14px;padding:20px 24px 4px}
+.sf-tondo{
+  width:46px;height:46px;flex:none;border-radius:999px;border:none;
+  background:var(--card);box-shadow:var(--sh-card);
+  font-size:19px;font-weight:800;color:var(--ink);
+}
+[data-tema="dark"] .sf-tondo{border:1px solid var(--line)}
+.sf-passo{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--faint)}
+.sf-corpo{max-width:480px;margin:0 auto;padding:18px 24px 0}
+.sf-domanda{font-size:31px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;color:var(--ink)}
+.sf-hint{font-size:15.5px;font-weight:600;color:var(--muted);margin-top:8px}
+.sf-griglia{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:22px}
+.sf-tile{
+  background:var(--card);border-radius:22px;padding:16px;box-shadow:var(--sh-card);
+  display:flex;flex-direction:column;gap:8px;
+}
+[data-tema="dark"] .sf-tile{border:1px solid var(--line)}
+.sf-avatar{width:34px;height:34px;border-radius:999px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.sf-tile-nome{font-size:15.5px;font-weight:800;color:var(--ink)}
+.sf-tile-sotto{font-size:12.5px;font-weight:600;color:var(--muted)}
+.sf-tile-nuovo{
+  grid-column:1 / -1;background:var(--card);border-radius:22px;padding:18px;
+  box-shadow:var(--sh-card);text-align:center;font-size:17px;font-weight:800;color:var(--red);
+  border:1.5px dashed var(--line);
+}
+
+/* ══════════════ SFONDO B — «Consegnato!», prima di WhatsApp ══════════════ */
+.sg-corpo{max-width:480px;margin:0 auto;padding:20px 24px 0;text-align:center}
+.sg-check{width:78px;height:78px;border-radius:999px;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.sg-titolo{font-size:31px;font-weight:800;letter-spacing:-0.02em;color:var(--ink)}
+.sg-sotto{font-size:15.5px;font-weight:600;color:var(--muted);margin-top:8px;max-width:300px;margin-inline:auto}
+.sg-lista{background:var(--card);border-radius:24px;padding:6px 18px;margin-top:20px;box-shadow:var(--sh-card);text-align:left}
+[data-tema="dark"] .sg-lista{border:1px solid var(--line)}
+.sg-riga{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.sg-riga:last-child{border-bottom:none}
+.sg-spunta{flex:none;width:26px;height:26px;border-radius:999px;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+.sg-riga-nome{font-size:15.5px;font-weight:700;color:var(--ink)}
+.sg-riga-sub{font-size:13px;font-weight:600;color:var(--muted)}
+.sg-nota{font-size:14.5px;font-weight:600;color:var(--muted);margin-top:16px}
+
+/* ══════════════ Overlay: scrim + Sheet — copiato da Sheet.tsx §5.16 ══════════════
+   `position:absolute` (non `fixed`, v. commento su .scena sopra) — inset:0
+   rispetto al riquadro .scena, che qui FA le veci dell'intero viewport. */
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet-wrap{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
+.foglio{
+  position:relative;width:100%;max-width:480px;max-height:92%;overflow-y:auto;
+  background:var(--card);
+  /* 🛑 --card, non --elv. Verificato in src/components/ds/Sheet.tsx:508: il pannello
+     dipinge var(--card), NON var(--elv) — nonostante la spec §3.2 assegni --elv ai
+     fogli. Questa divergenza fra spec e codice è GIÀ tracciata come bug P34 in
+     ROADMAP-UFFICIALE.md (trovato dall'esecutore del compito 5 di questo stesso
+     piano) — riferita là, non "corretta" qui. Questo disegno copia il codice VERO
+     oggi, non la spec: usare --elv qui avrebbe ripetuto lo stesso scarto che ha
+     generato quel bug, invece di limitarsi a fotografarlo. */
+  border-top-left-radius:28px;border-top-right-radius:28px;
+  padding:32px 24px 24px;
+  box-shadow:var(--sh-card);
+}
+.maniglia{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:4px;border-radius:999px;background:var(--line)}
+.foglio-titolo{font-size:21px;font-weight:800;color:var(--ink);margin:0 0 16px}
+.foglio-campi{display:flex;flex-direction:column;gap:16px}
+.foglio-chiudi-wrap{margin-top:24px;display:flex;justify-content:center}
+
+/* ══════════════ Campo — copiato VERBATIM da src/components/ds/Campo.tsx ══════════════ */
+.label{
+  display:block;font-size:13px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.16em;color:var(--faint);margin-bottom:4px;
+}
+.campo{
+  display:block;box-sizing:border-box;width:100%;height:64px;border-radius:18px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);
+  font-family:inherit;font-size:19px;font-weight:700;padding:0 20px;
+}
+.campo::placeholder{color:var(--faint);font-weight:700;opacity:1}
+.campo:focus{outline:2px solid var(--blue);outline-offset:2px}
+/* Riga sotto il campo (P31, D184) — --muted, MAI --faint (v. Campo.tsx:32-35,
+   difetto già aperto P30-bis: --faint su un foglio scende sotto soglia). */
+.aiuto{margin:6px 0 0;font-size:13px;line-height:1.35;color:var(--muted)}
+
+/* Contesto informativo sopra il campo (non è un componente v3 a sé — solo
+   testo, stesso ruolo di .foglio-domanda nei mockup P30 dello stesso giorno). */
+.contesto{font-size:15.5px;font-weight:600;color:var(--muted);line-height:1.4}
+.contesto b{color:var(--ink);font-weight:800}
+
+/* ══════════════ TastoPrimario — copiato VERBATIM da TastoPrimario.tsx §5.1 ══════════════ */
+.tp-wrap{width:100%;max-width:480px;border-radius:20px;box-shadow:var(--sh-card)}
+.tp-btn{
+  width:100%;height:70px;border-radius:20px;border:none;
+  background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+  color:#FFFFFF;font-family:inherit;font-size:21px;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase;
+  box-shadow:0 6px 0 var(--red-dark);cursor:pointer;
+}
+@media(min-width:1024px){ .tp-btn{height:60px} }
+.tp-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ══════════════ LinkQuieto «Chiudi» — copiato VERBATIM da LinkQuieto.tsx §5.5 ══════════════
+   Testo visivo 14.5px sottolineato, ma l'area tappabile è 44px: padding 13px
+   sopra e sotto + margin -13px uguale e contrario, così l'aspetto non cambia
+   di un pixel e cambia solo quanto è facile centrarla col dito (lezione della
+   notte 2-3 agosto: un mockup che NON lo copia inventa una via di fuga
+   342×18 che il componente vero non ha). */
+.chiudi{
+  display:inline-flex;align-items:center;min-height:44px;padding:13px 0;margin:-13px 0;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  font-size:14.5px;font-weight:600;color:var(--muted);
+  text-decoration:underline;text-underline-offset:3px;
+}
+.chiudi:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="nota-scena">Foglio 1 di 2 — <b>il wizard «nuovo dentista»</b>, cinque campi (D184)</div>
+<div class="scena" id="scena-a">
+  <!-- Sfondo: Passo 1 del wizard «Nuovo lavoro» (contesto — non è l'oggetto
+       dell'approvazione, per questo resta semplificato rispetto a
+       PassoDentista.tsx reale). Due dentisti già in rubrica + il tasto
+       "+ Nuovo dentista" che ha aperto il foglio. -->
+  <div class="sf-testata">
+    <button class="sf-tondo" aria-label="Torna al passo precedente">←</button>
+    <span class="sf-passo">Nuovo lavoro · Passo 1</span>
+  </div>
+  <div class="sf-corpo">
+    <h1 class="sf-domanda">Per quale dentista?</h1>
+    <p class="sf-hint">Tocca chi te l'ha portato. I più frequenti stanno in alto.</p>
+    <div class="sf-griglia">
+      <div class="sf-tile">
+        <span class="sf-avatar">P</span>
+        <span class="sf-tile-nome">Studio Piegari</span>
+        <span class="sf-tile-sotto">3 lavori · 30gg</span>
+      </div>
+      <div class="sf-tile">
+        <span class="sf-avatar">B</span>
+        <span class="sf-tile-nome">Dr. Bianchi</span>
+        <span class="sf-tile-sotto">1 lavoro · 30gg</span>
+      </div>
+      <div class="sf-tile-nuovo">＋ Nuovo dentista</div>
+    </div>
+  </div>
+
+  <div class="scrim"></div>
+  <div class="sheet-wrap">
+    <div class="foglio" role="dialog" aria-label="Nuovo dentista">
+      <div class="maniglia"></div>
+      <h2 class="foglio-titolo">Nuovo dentista</h2>
+      <div class="foglio-campi">
+        <div>
+          <label class="label" for="a-nome">Nome</label>
+          <input class="campo" id="a-nome" type="text" value="Vincenzo">
+        </div>
+        <div>
+          <label class="label" for="a-cognome">Cognome</label>
+          <input class="campo" id="a-cognome" type="text" value="Telesca">
+        </div>
+        <div>
+          <label class="label" for="a-tel-studio">Telefono dello studio</label>
+          <input class="campo" id="a-tel-studio" type="tel" inputmode="tel" value="0976 74210">
+        </div>
+        <div>
+          <label class="label" for="a-cell-wa">Cellulare WhatsApp</label>
+          <input class="campo" id="a-cell-wa" type="tel" inputmode="tel" value="349 662 0187">
+          <p class="aiuto" id="a-cell-wa-aiuto">È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio.</p>
+        </div>
+        <div>
+          <label class="label" for="a-studio">Studio</label>
+          <input class="campo" id="a-studio" type="text" value="Studio Dentistico Telesca">
+        </div>
+        <div class="tp-wrap">
+          <button class="tp-btn" type="button">Crea dentista</button>
+        </div>
+      </div>
+      <div class="foglio-chiudi-wrap">
+        <button class="chiudi" type="button">Chiudi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nota-scena">Foglio 2 di 2 — <b>il foglio della consegna</b>, un campo solo (D183)</div>
+<div class="scena" id="scena-b">
+  <!-- Sfondo: la schermata «Consegnato!» (contesto — semplificata rispetto a
+       FrameConsegnato.tsx reale). Il tasto "Invia messaggio WhatsApp" è stato
+       toccato: mancando il cellulare di Piegari (vero nella banca dati: è
+       l'UNICO cliente con un numero, ed è il fisso — nessun cliente ha oggi
+       un cellulare_whatsapp), si apre questo foglio a un campo solo. -->
+  <div class="sg-corpo">
+    <span class="sg-check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>
+    </span>
+    <h1 class="sg-titolo">Consegnato!</h1>
+    <p class="sg-sotto">La corona in disilicato di litio n.214 è andata allo Studio Piegari</p>
+    <div class="sg-lista">
+      <div class="sg-riga">
+        <span class="sg-spunta">✓</span>
+        <span>
+          <div class="sg-riga-nome">Dichiarazione di Conformità</div>
+          <div class="sg-riga-sub">Generata a ogni consegna ✓ · DDC-2026-0214</div>
+        </span>
+      </div>
+      <div class="sg-riga">
+        <span class="sg-spunta">✓</span>
+        <span>
+          <div class="sg-riga-nome">Buono di consegna</div>
+          <div class="sg-riga-sub">BUO-2026-0214</div>
+        </span>
+      </div>
+      <div class="sg-riga">
+        <span class="sg-spunta">✓</span>
+        <span>
+          <div class="sg-riga-nome">Messaggio WhatsApp</div>
+          <div class="sg-riga-sub">Pronto da inviare</div>
+        </span>
+      </div>
+    </div>
+    <p class="sg-nota">La fatturazione si decide con il dentista</p>
+  </div>
+
+  <div class="scrim"></div>
+  <div class="sheet-wrap">
+    <div class="foglio" role="dialog" aria-label="Il cellulare per WhatsApp">
+      <div class="maniglia"></div>
+      <h2 class="foglio-titolo">Il cellulare per WhatsApp</h2>
+      <div class="foglio-campi">
+        <p class="contesto">Per «<b>Studio Piegari</b>» manca ancora un cellulare: il messaggio parte da qui.</p>
+        <div>
+          <label class="label" for="b-cell-wa">Cellulare WhatsApp</label>
+          <input class="campo" id="b-cell-wa" type="tel" inputmode="tel" value="" placeholder="333 1234567">
+          <p class="aiuto" id="b-cell-wa-aiuto">È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio.</p>
+        </div>
+        <div class="tp-wrap">
+          <button class="tp-btn" type="button">Salva e apri WhatsApp</button>
+        </div>
+      </div>
+      <div class="foglio-chiudi-wrap">
+        <button class="chiudi" type="button">Chiudi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

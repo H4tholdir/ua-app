@@ -81,7 +81,7 @@ L'elenco **non l'ha deciso l'autore del piano**: nasce dal censimento §4 della 
 | `src/components/features/clienti/ClienteEditSheet.tsx` | **modifica** — campo nuovo + etichetta corretta | 7 |
 | `src/components/features/wizard/NuovoDentistaSheet.tsx` | **modifica** — da 4 a 5 campi (D184) | 7 |
 | `src/components/features/lavori/consegna-v3/FrameConsegnato.tsx` | **modifica** — il tasto che chiede (D183) | 8 |
-| `src/components/features/lavori/consegna-v3/ChiediCellulareSheet.tsx` | **crea** — il foglio a un campo | 8 |
+| `src/components/features/clienti/ChiediCellulareSheet.tsx` | **crea** — il foglio a un campo | 8 |
 
 ---
 
@@ -130,11 +130,19 @@ vecchia deriva di date: **copiarne il numero manderebbe la migration nel futuro*
 ALTER TABLE public.clienti ADD COLUMN cellulare_whatsapp TEXT;
 
 COMMENT ON COLUMN public.clienti.telefono IS
-  'Telefono dello studio: si chiama, va sui documenti. Puo'' essere un fisso. NON e'' il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
+  'Telefono dello studio: si chiama, va sui documenti. Può essere un fisso. NON è il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
 
 COMMENT ON COLUMN public.clienti.cellulare_whatsapp IS
   'Cellulare su cui il dentista riceve i messaggi (consegna, solleciti). Il prefisso internazionale lo aggiunge il codice, non l''utente (P31, D182).';
 ```
+
+> 🔧 **CORRETTO il 03/08 dalla revisione del compito 1, e il difetto era di questo piano.** La prima
+> stesura scriveva `Puo''` e `e''` dentro la stringa di `COMMENT ON`, credendo che l'accento andasse
+> raddoppiato come l'apostrofo. **È falso:** in SQL due apici consecutivi valgono **un apostrofo
+> letterale**, quindi `Puo''` finisce nel database come `Puo'`, non come `Può`. L'accento non ha
+> bisogno di alcun escaping. `provato:` `supabase/migrations/20260803090000_*.sql` — stessa cartella,
+> stesso giorno — usa l'accento **vero** non raddoppiato accanto a un apostrofo **correttamente**
+> raddoppiato (`dell''emissione`). 🔑 **Solo l'apostrofo si raddoppia, mai la lettera accentata.**
 
 `non eseguito` — verifica al passo 3.
 
@@ -651,6 +659,42 @@ function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraP
 🔑 **Il rinominare non è cosmesi:** una prop chiamata `telefono` che deve ricevere il cellulare è
 esattamente il modo in cui P31 è nata.
 
+- [ ] **Passo 7-bis — 🆕 IL SESTO PUNTO, che il primo censimento non vedeva**
+
+🛑 **Aggiunto il 03/08 dall'esecutore del compito 2 (R-E2).** `src/components/features/lavori/form/TabAccettazione.tsx:232`
+manda un WhatsApp al cliente all'**accettazione in ingresso** («abbiamo ricevuto il lavoro»), ma
+**costruisce il collegamento a mano** invece di usare `buildWhatsappUrl` — per questo il censimento
+sulle chiamate a quella funzione non lo trovava.
+
+`TabAccettazione.tsx:231-233` — oggi:
+
+```tsx
+  const whatsappUrl = clienteTelefono
+    ? `https://wa.me/${clienteTelefono.replace(/\D/g, '')}?text=${encodeURIComponent(messaggioPreview)}`
+    : ''
+```
+
+diventa:
+
+```tsx
+  // P31: passa dalla funzione condivisa, che aggiunge il prefisso internazionale
+  // (D182). Costruire il link a mano qui era il motivo per cui questo punto non
+  // compariva nel censimento delle chiamate a buildWhatsappUrl.
+  const whatsappUrl = clienteCellulare
+    ? buildWhatsappUrl(messaggioPreview, clienteCellulare)
+    : ''
+```
+
+Rinomina la prop da `clienteTelefono` a `clienteCellulare` (tipo compreso), e in
+`src/components/features/lavori/LavoroFormClient.tsx:152`:
+
+```tsx
+                  clienteCellulare={lavoro.cliente?.cellulare_whatsapp ?? null}
+```
+
+✅ **La catena di trasporto qui NON va toccata:** `provato:` `src/app/(app)/lavori/[id]/page.tsx:25` e
+`.../modifica/page.tsx:46` caricano `cliente:clienti(*)` — **tutte** le colonne.
+
 - [ ] **Passo 8 — Verifica che i punti «da chiamare» NON siano stati toccati**
 
 ```bash
@@ -705,7 +749,7 @@ describe('CampoTesto — aiuto e tastiera (P31, D184)', () => {
 
   it('con aiuto lo rende, e lo LEGA all-input per chi usa un lettore di schermo', () => {
     render(<CampoTesto label="Cellulare WhatsApp" valore="" onCambia={() => {}}
-                       aiuto="Qui arrivano i messaggi di consegna. Dev'essere un cellulare, non il fisso." />)
+                       aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio." />)
     const input = screen.getByLabelText('Cellulare WhatsApp')
     const idAiuto = input.getAttribute('aria-describedby')
     expect(idAiuto).toBeTruthy()
@@ -936,7 +980,7 @@ cambiamento voluto** — quella etichetta stava su un campo che scriveva in `tel
         onCambia={setCellulare}
         placeholder="333 1234567"
         inputMode="tel"
-        aiuto="Qui arrivano i messaggi di consegna. Dev'essere un cellulare, non il fisso."
+        aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio."
       />
       <CampoTesto label="Studio" valore={studio} onCambia={setStudio} placeholder="Studio Rossi" />
 ```
@@ -955,6 +999,56 @@ Gli stati (riga 44) e l'invio (riga 74):
 
 🛑 **Entrambi restano facoltativi**: il vincolo di creazione è su nome e cognome, e questa ondata non
 lo cambia.
+
+- [ ] **Passo 3-bis — 🔴 FAR ARRIVARE IL CAMPO AL PANNELLO, o salvare lo CANCELLA**
+
+🛑 **Aggiunto il 03/08 da un ritrovamento del compito 3.** Il pannello di modifica riceve il cliente da
+una catena di **quattro** anelli, e **nessuno** nomina ancora il campo nuovo. Se resta così, il campo
+nel pannello è vuoto e `ClienteEditSheet.tsx:132` salva `form.cellulare_whatsapp.trim() || null`:
+**aprire il pannello per correggere l'email e premere Salva cancella il cellulare.**
+
+**① La `select` della scheda** — `src/app/(app)/clienti/[id]/page.tsx:127-133`:
+
+```ts
+    .select(`
+      id, studio_nome, nome, cognome, telefono, cellulare_whatsapp, email,
+      partita_iva, codice_fiscale, codice_sdi, pec,
+      indirizzo, cap, citta, provincia, paese,
+      listino_numero, sconto_percentuale, modalita_pagamento,
+      non_soggetto_fe, portale_token, portale_fatturazione_attiva, portale_pin_hash, note
+    `)
+```
+
+**② Il tipo `ClienteDettaglio`** — stesso file, righe 15-39, subito dopo `telefono`:
+
+```ts
+  telefono: string | null
+  cellulare_whatsapp: string | null
+```
+
+**③ L'oggetto passato al pannello** — stesso file, righe 258-270: accanto a `telefono: c.telefono`
+aggiungi `cellulare_whatsapp: c.cellulare_whatsapp`.
+
+**④ La `select` della GET del singolo cliente** — `src/app/api/clienti/[id]/route.ts:45-77`: aggiungi
+`cellulare_whatsapp` subito dopo `telefono` nell'elenco delle colonne.
+
+- [ ] **Passo 3-ter — La prova che il dato NON si perde**
+
+🔑 **Questa prova vale più di quella che il campo si salva:** il caso distruttivo è **salvare senza
+toccare il cellulare**.
+
+```tsx
+// in tests/unit/ClienteEditSheet.test.tsx (o il file di prova del pannello)
+it('salvare senza toccare il cellulare NON lo cancella', async () => {
+  const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+  render(<ClienteEditSheet aperto cliente={{ ...clienteBase, cellulare_whatsapp: '333 1234567' }} onChiudi={() => {}} />)
+  await userEvent.clear(screen.getByLabelText('Email'))
+  await userEvent.type(screen.getByLabelText('Email'), 'nuova@studio.it')
+  await userEvent.click(screen.getByRole('button', { name: /salva/i }))
+  const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string)
+  expect(body.cellulare_whatsapp).toBe('333 1234567')
+})
+```
 
 - [ ] **Passo 4 — Il pannello di modifica**
 
@@ -1016,12 +1110,33 @@ git commit -m "feat(clienti): P31 — le due schermate dell'anagrafica chiedono 
 
 ---
 
-# Compito 8 — Il tasto che chiede il numero (D183)
+# Compito 8 — Il tasto che chiede il numero (D183 · **D185**)
 
 ⛔ **Non iniziare senza l'approvazione del compito 6.**
 
+🔄 **ALLARGATO il 03/08 da D185.** Il foglio non serve solo alla consegna: lo montano **quattro**
+schermate. Quindi **nasce condiviso**, e vive in `src/components/features/clienti/` — è un pezzo di
+**anagrafica**, non di consegna.
+
+| # | dove | che cosa cambia |
+|---|---|---|
+| ① | `FrameConsegnato.tsx:123` | la consegna (D183) |
+| ② | `EstrattoContoView.tsx:224` | sollecito globale dell'estratto conto |
+| ③ | `EstrattoContoView.tsx:38` (`DovutoBottomSheet`) | sollecito su un singolo dovuto |
+| ④ | `ScadenzarioList.tsx:85` | sollecito dall'elenco |
+
+🛑 **Il compito 4 ha reso quei tre tasti dello scadenzario condizionati a `cellulare_whatsapp`:** oggi
+**spariscono** se il numero manca. D185 dice che devono **restare e chiedere**. Quindi in ognuno dei tre
+il gate va **rimosso** e sostituito con la stessa scelta fra tasto-che-apre-WhatsApp e
+tasto-che-chiede-il-numero già descritta al passo 4.
+
+⚠️ **Ognuno dei quattro punti ha già l'id del cliente sottomano?** `provato:` **no** per la consegna —
+è il motivo del passo 6.1 (`ConsegnaResult.cliente_id`). Per i tre dello scadenzario **verificalo prima
+di scrivere**: se un punto non ce l'ha, **fermati e riferisci** invece di risalirlo con una chiamata in
+più.
+
 **File:**
-- Crea: `src/components/features/lavori/consegna-v3/ChiediCellulareSheet.tsx`
+- Crea: `src/components/features/clienti/ChiediCellulareSheet.tsx` *(condiviso — **non** in `consegna-v3/`)*
 - Modifica: `src/components/features/lavori/consegna-v3/FrameConsegnato.tsx:123`
 - Crea: `tests/unit/consegna-chiede-il-cellulare.test.tsx`
 
@@ -1089,7 +1204,7 @@ Atteso: **1 passata** (col cellulare, comportamento di oggi), **3 fallite**.
 - [ ] **Passo 3 — Il foglio**
 
 ```tsx
-// src/components/features/lavori/consegna-v3/ChiediCellulareSheet.tsx
+// src/components/features/clienti/ChiediCellulareSheet.tsx
 'use client'
 import { useState } from 'react'
 import { Sheet } from '@/components/ds/Sheet'
