@@ -6,6 +6,7 @@ import type { Lavoro } from '@/types/domain'
 import { motionTokens, useReducedMotion } from '@/design-system/motion'
 import { hapticLight, hapticMedium } from '@/lib/feedback/haptic'
 import { buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+import { ChiediCellulareSheet } from '@/components/features/clienti/ChiediCellulareSheet'
 import {
   inputBase,
   labelStyle,
@@ -52,6 +53,28 @@ const MATERIALI: { key: MaterialeKey; label: string }[] = [
   { key: 'articolatore',  label: 'Articolatore' },
   { key: 'altro',         label: 'Altro' },
 ]
+
+// Stile condiviso del CTA «Conferma ricezione al dentista» (D183/D185/D187):
+// STESSA faccia sia da link (cellulare presente) sia da tasto che chiede il
+// numero (cellulare assente) — la scelta fra i due rami non deve leggersi
+// anche nell'aspetto. Stesso pattern di `whatsappCtaStyle` in
+// EstrattoContoView.tsx / ScadenzarioList.tsx.
+const confermaRicezioneCtaStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  padding: '15px',
+  borderRadius: '14px',
+  background: '#25D366',
+  color: '#fff',
+  fontFamily: 'var(--font-v3, sans-serif)',
+  fontSize: '15px',
+  fontWeight: 700,
+  textDecoration: 'none',
+  boxShadow: '0 4px 16px rgba(37,211,102,.35)',
+  minHeight: '52px',
+}
 
 // ─── Toggle switch animato ────────────────────────────────────────
 interface ToggleSwitchProps {
@@ -172,6 +195,19 @@ interface TabAccettazioneProps {
    *  dello studio: quel campo, se letto qui, manderebbe la conferma di
    *  ricezione su un numero che non riceve WhatsApp. */
   clienteCellulare?: string | null
+  /** Id del cliente (P31, D187) — serve a `ChiediCellulareSheet`: quando il
+   *  cellulare manca, il tasto non sparisce più, chiede il numero e lo SALVA
+   *  in anagrafica (PATCH su `/api/clienti/[id]`) PRIMA di aprire WhatsApp.
+   *  Sempre disponibile dal vero chiamante (`LavoroFormClient`, lavoro già
+   *  esistente: `lavori.cliente_id` è NOT NULL) — opzionale solo per restare
+   *  compatibile con `tests/unit/tab-accettazione-cassetta.test.tsx`, che
+   *  monta questo tab su un `data` parziale non legato a un cliente reale. */
+  clienteId?: string
+  /** Nome di chi riceve il messaggio (studio, o "nome cognome" del dentista)
+   *  — riga di contesto nel foglio che chiede il cellulare (D187). Stessa
+   *  derivazione già usata in `LavoroFormClient` per `PacchettoConsegnaSheet`/
+   *  `SegnalaProblemaSheet`: `studio_nome` se c'è, altrimenti "nome cognome". */
+  clienteNome?: string
   numeroLavoro?: string | null
   labNome?: string | null
   labTelefono?: string | null
@@ -200,6 +236,8 @@ export function TabAccettazione({
   data,
   onChange,
   clienteCellulare,
+  clienteId = '',
+  clienteNome = '',
   numeroLavoro,
   labNome,
   labTelefono,
@@ -207,6 +245,9 @@ export function TabAccettazione({
   const reduced = useReducedMotion()
   const spring = motionTokens.spring.snappy
   const materialiAttuali = data.materiali_allegati ?? []
+  // D183/D185/D187: quinto punto di montaggio del foglio condiviso — il
+  // cellulare può mancare, il tasto non sparisce più (v. sotto, sezione 5).
+  const [chiediAperto, setChiediAperto] = useState(false)
 
   // ─── Disinfettante "Altro" — testo libero ─────────────────────────
   const isAltroDisinfettante =
@@ -676,61 +717,51 @@ export function TabAccettazione({
       </div>
 
       {/* ═══ 5. CONFERMA RICEZIONE AL DENTISTA (WhatsApp) ═══════════ */}
-      {clienteCellulare && (
-        <div style={{ marginTop: '16px' }}>
-          {/* Anteprima messaggio */}
-          <div style={{
-            background: 'rgba(37,211,102,.07)',
-            border: '1px solid rgba(37,211,102,.2)',
-            borderRadius: '10px',
-            padding: '10px 12px',
-            marginBottom: '10px',
+      <div style={{ marginTop: '16px' }}>
+        {/* Anteprima messaggio — non dipende dal cellulare (è solo testo),
+            resta visibile in entrambi i rami sotto. */}
+        <div style={{
+          background: 'rgba(37,211,102,.07)',
+          border: '1px solid rgba(37,211,102,.2)',
+          borderRadius: '10px',
+          padding: '10px 12px',
+          marginBottom: '10px',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-v3, sans-serif)',
+            fontSize: '10px',
+            fontWeight: 700,
+            color: 'var(--success, #16A34A)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            margin: '0 0 4px',
           }}>
-            <p style={{
-              fontFamily: 'var(--font-v3, sans-serif)',
-              fontSize: '10px',
-              fontWeight: 700,
-              color: 'var(--success, #16A34A)',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              margin: '0 0 4px',
-            }}>
-              Messaggio WhatsApp (anteprima)
-            </p>
-            <p style={{
-              fontFamily: 'var(--font-v3, sans-serif)',
-              fontSize: '12px',
-              color: 'var(--t1, #1C1916)',
-              margin: 0,
-              lineHeight: 1.4,
-              fontStyle: 'italic',
-            }}>
-              &ldquo;{messaggioPreview}&rdquo;
-            </p>
-          </div>
+            Messaggio WhatsApp (anteprima)
+          </p>
+          <p style={{
+            fontFamily: 'var(--font-v3, sans-serif)',
+            fontSize: '12px',
+            color: 'var(--t1, #1C1916)',
+            margin: 0,
+            lineHeight: 1.4,
+            fontStyle: 'italic',
+          }}>
+            &ldquo;{messaggioPreview}&rdquo;
+          </p>
+        </div>
 
-          {/* Bottone WhatsApp */}
+        {/* Bottone WhatsApp — D183/D185/D187: il cellulare può mancare, il
+            tasto non sparisce (era `{clienteCellulare && (...)}` su TUTTA la
+            sezione 5 — quinto punto di montaggio, stesso schema dei quattro
+            già in consegna/scadenzario): chiede il numero e lo SALVA in
+            anagrafica PRIMA di aprire WhatsApp, invece di nascondere l'azione. */}
+        {clienteCellulare ? (
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => hapticMedium()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '15px',
-              borderRadius: '14px',
-              background: '#25D366',
-              color: '#fff',
-              fontFamily: 'var(--font-v3, sans-serif)',
-              fontSize: '15px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 4px 16px rgba(37,211,102,.35)',
-              minHeight: '52px',
-            }}
+            style={confermaRicezioneCtaStyle}
             aria-label="Apri WhatsApp per confermare la ricezione al dentista"
           >
             {/* WhatsApp SVG icon */}
@@ -746,8 +777,40 @@ export function TabAccettazione({
             </svg>
             Conferma ricezione al dentista
           </a>
-        </div>
-      )}
+        ) : (
+          <button
+            type="button"
+            onClick={() => { hapticMedium(); setChiediAperto(true) }}
+            style={{ ...confermaRicezioneCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}
+            aria-label="Apri WhatsApp per confermare la ricezione al dentista"
+          >
+            {/* WhatsApp SVG icon */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+              role="img"
+            >
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            Conferma ricezione al dentista
+          </button>
+        )}
+      </div>
+
+      <ChiediCellulareSheet
+        aperto={chiediAperto}
+        clienteId={clienteId}
+        nomeDestinatario={clienteNome}
+        onChiudi={() => setChiediAperto(false)}
+        onSalvato={(cellulare) => {
+          setChiediAperto(false)
+          const url = buildWhatsappUrl(messaggioPreview, cellulare)
+          window.open(url, '_blank', 'noopener,noreferrer')
+        }}
+      />
     </div>
   )
 }

@@ -150,6 +150,13 @@ export function LavoroFormClient({
                   data={data}
                   onChange={update}
                   clienteCellulare={lavoro.cliente?.cellulare_whatsapp ?? null}
+                  clienteId={lavoro.cliente?.id ?? ''}
+                  clienteNome={
+                    lavoro.cliente
+                      ? (lavoro.cliente.studio_nome ??
+                          `${lavoro.cliente.nome} ${lavoro.cliente.cognome}`.trim())
+                      : ''
+                  }
                   numeroLavoro={lavoro.numero_lavoro}
                   labNome={lavoro.laboratorio?.nome ?? null}
                   labTelefono={lavoro.laboratorio?.telefono ?? null}

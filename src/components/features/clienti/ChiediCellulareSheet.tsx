@@ -37,10 +37,15 @@ export function ChiediCellulareSheet(props: {
   aperto: boolean
   clienteId: string
   /** Nome di chi riceverà il messaggio (dentista/studio) — riga di contesto
-   *  sopra il campo, fedele al mockup approvato (D186): «Manca ancora un
-   *  cellulare per Studio Piegari…». Generico apposta (mai "per lo"/"per il"):
-   *  il nome è testo libero, l'articolo giusto in italiano dipende dal genere
-   *  del nome e questo componente non può saperlo. */
+   *  sopra il campo. D187 (03/08/2026): l'ordine torna a quello del mockup
+   *  approvato («Per lo Studio Piegari manca ancora un cellulare…»), ma senza
+   *  «di consegna» — D185 ha allargato questo foglio anche ai solleciti di
+   *  pagamento, e «messaggio di consegna» sarebbe falso in tre dei cinque
+   *  punti di montaggio. Il nome va fra virgolette («…») invece che dopo un
+   *  articolo del tipo "per lo"/"per il": resta generico apposta, perché è
+   *  testo libero (nome di studio o "nome cognome" del dentista) e l'articolo
+   *  giusto in italiano dipende dal genere del nome, cosa che questo
+   *  componente non può sapere. */
   nomeDestinatario: string
   onChiudi: () => void
   onSalvato: (cellulare: string) => void
@@ -77,7 +82,7 @@ export function ChiediCellulareSheet(props: {
   return (
     <Sheet aperto={aperto} onChiudi={onChiudi} titolo="Il cellulare per WhatsApp">
       <p style={{ fontSize: 15.5, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', lineHeight: 1.4, margin: 0 }}>
-        Manca ancora un cellulare per <strong style={{ color: 'var(--ink)', fontWeight: tipografia.weight.extrabold }}>{nomeDestinatario}</strong>: il messaggio parte da qui.
+        Per «<strong style={{ color: 'var(--ink)', fontWeight: tipografia.weight.extrabold }}>{nomeDestinatario}</strong>» manca ancora un cellulare: il messaggio parte da qui.
       </p>
       <CampoTesto
         label="Cellulare WhatsApp"
