@@ -1,19 +1,21 @@
-# Sessione attiva — D200-D202: pubblicato con le prove, P38 prende la strada B
+# Sessione attiva — D203-D206: il brainstorm della B è chiuso, il panel è in corsa
 
 🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-04-pipeline3-fase0-handoff.md` — la **§0 per prima**.
 
-🚀 **D200 — PUBBLICATO:** push `a41b2b0b..91e9118e` · CI verde · CD verde · uachelab.com 200 ·
-`provato:` `#9a8f80` (D193/D199) **trovato nel CSS servito dalla produzione**. Q2 chiusa.
-🏗️ **D201 — P38 = strada B** (dato prescritto strutturato, percorso GRANDE, panel obbligatorio).
-Dossier: `docs/roadmap/2026-08-04-p38-esplorazione-referto.md`. ✅ **Verifiche normative CHIUSE:**
-`docs/roadmap/2026-08-04-p38-verifiche-normative-referto.md` — All. XIII p.1 e MDCG 2021-3 Q6
-VERIFICATI su fonte primaria (e l'All. XIII è identico dal 2017); le due domande di D196 AMBIGUE
-con lettura prudente: direttore sanitario facoltativo per studio associato, prescrittore sempre
-chiesto; istituzione vuota legittima per il dottore singolo. Il «troncamento EUR-Lex» era dello
-strumento, non della fonte.
-📋 **D202 — le prescrizioni reali hanno 4 forme** (mano libera · email · moduli · piattaforme
-tipo iTero): spec agnostica al canale, fonte allegata sempre, solo-scansione → tema panel.
+🏗️ **Ondata B (P38+P37, D203) — brainstorm CHIUSO in 4 decisioni:**
+**D203** perimetro P38+P37, si ripara il MECCANISMO mai i dati (niente backfill, dati di test) ·
+**D204** 🔑 **la prescrizione la cattura il WIZARD** (snapshot del prescritto, niente doppia
+digitazione, fonte allegata sempre; riserva panel su compatibilità con D101/MDCG Q6) ·
+**D205** campi = minimo normativo derivato dal wizard + avviso solo-scansione ·
+**D206** letture prudenti ratificate (direttore sanitario facoltativo per studio associato,
+prescrittore sempre; istituzione vuota legittima per dottore singolo).
 
-➡️ **ORDINE:** ① brainstorm con Francesco sulla spec B (domande poste in chat) → panel → mockup (0B) ② P39
-③ betting: E1 di `docs/ops/EMERGENTI.md` · Q1 (basso rischio) ancora in coda.
-❓ Restano **D-Q2** e Q1. 📎 **202 decisioni in 75 tornate**; la prossima è **D203**.
+⚖️ **PANEL ADVISOR IN CORSA** (3 lenti: normativa MDR · operativa/UX front desk · dati/architettura)
+sulla domanda centrale: che cosa rende VERA l'attribuzione al medico nello snapshot da wizard.
+Referti di base: `docs/roadmap/2026-08-04-p38-esplorazione-referto.md` ·
+`docs/roadmap/2026-08-04-p38-verifiche-normative-referto.md`.
+
+➡️ **ORDINE:** ① verbale del panel → spec B → mockup a Francesco (0B) prima di ogni codice
+② P39 · ③ betting: E1 di `docs/ops/EMERGENTI.md` · Q1 in coda.
+📌 In produzione: tutto pubblicato, albero pulito. ❓ Restano **D-Q2** e Q1.
+📎 **206 decisioni in 76 tornate**; la prossima è **D207**.
