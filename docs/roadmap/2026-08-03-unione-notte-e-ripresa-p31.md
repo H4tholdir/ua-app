@@ -84,6 +84,15 @@ casi.
 ✅ **Chiuso da questo documento stesso:** il punto di ripresa torna a essere un documento vivo di
 `docs/roadmap/`, e la catena si riempie. **La verifica è il conteggio, non il verde.**
 
+🛑 **MA IL DIFETTO VERO NON È QUELLO, ed è aperto come voce `P32`.** `SALTI` è **fisso a 2**: questo
+documento, mettendosi **fra** la porta e il referto della notte, ha **spinto giù di un anello** tutto ciò
+che stava sotto — e i tre documenti in fondo (verbale delle decisioni, domande, piani) sono scivolati al
+terzo salto, cioè **fuori dal controllo, in silenzio**. `misurato:` **4** documenti vivi, non 7. Rimediato
+a mano citandoli direttamente (§2), **ma la prossima sessione che scrive un handoff rifarà lo stesso buco
+senza saperlo.** 🔑 **Una lezione scritta solo nel documento che l'ha causata non arriva a chi scrive il
+prossimo:** per questo sta in `ROADMAP-UFFICIALE.md` come **P32**, con tre strade e il perché la seconda
+è l'unica che non chiede a nessuno di ricordarsi di niente.
+
 ---
 
 ## 1. Che cosa è stato fatto
