@@ -20,5 +20,11 @@ sull'albero unito (nessuno le aveva mai eseguite lì).
 🔎 **Riferito, non corretto (R-E2):** P31 tocca **tre** punti WhatsApp, non uno — `orchestrate.ts:123`
 · `EstrattoContoView.tsx:223-224` · `ScadenzarioList.tsx:85`; più tre punti «numero da chiamare».
 
-➡️ **ORDINE: P31 → P30-a → P30-b → poi il React di P30.** ❓ Restano **D-Q2** e **D-Q5**.
+🛑 **DUE SALVATAGGI LOCALI NON PUBBLICATI** (`29e9b2db` verifica di produzione · `08c3db65` voci P32 e
+censimento P31): `git push` è stato **negato due volte dal filtro dei permessi**, non da un errore di
+git. Il **codice** è tutto in produzione (`8d06ea5b`) e i documenti fino a `e0bb1de4`: mancano solo
+questi due di documentazione. ➡️ Serve un `git push origin main` autorizzato da Francesco.
+
+➡️ **ORDINE: P31 → P30-a → P30-b → poi il React di P30.** 🆕 **P32** aperta (la guardia dei documenti
+perde un anello a ogni handoff nuovo). ❓ Restano **D-Q2** e **D-Q5**.
 📎 **180** decisioni in **66** tornate; la prossima è **D181**.
