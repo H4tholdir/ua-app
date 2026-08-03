@@ -32,6 +32,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/promemoria-verifica.js",
+            "timeout": 10,
+            "statusMessage": "promemoria-verifica"
+          }
+        ]
+      }
     ]
   }
 }

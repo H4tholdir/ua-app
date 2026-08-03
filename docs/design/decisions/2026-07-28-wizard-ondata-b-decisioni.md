@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla settantunesima tornata (D195-D196: la forma del cliente, il panel che l'ha smontata, e la riformulazione di Francesco — È LA FORMA GIURIDICA A DECIDERE SE UÀ CHIEDE CHI HA PRESCRITTO)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla settantaduesima tornata (D197: si adotta PIPELINE-3 per fasi, in modo reversibile — la Fase 0, hardening dell'harness, è ATTIVA)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centonovantasei decisioni in settantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centonovantasette decisioni in settantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1632,3 +1632,16 @@ riferisce.
 **P38 e P39 per primi** — sono gli unici due che **non dipendono da nessuna scelta di disegno** e si
 possono chiudere mentre l'anagrafica è ancora in discussione. Poi il resto di P30-a con D196, e il
 Passo 1 del wizard (le etichette ambigue) come parte della stessa ondata.
+
+---
+
+### Settantaduesima tornata — D197: si adotta PIPELINE-3, per fasi e in modo reversibile (04/08/2026)
+
+Fuori dall'ondata (b): è una decisione di **processo**, registrata qui perché il verbale è unico.
+Nasce dalla domanda di Francesco del 03/08 («come possiamo andare più veloci senza perdere pezzi e
+senza arronzare?») e dal percorso che ne è seguito: ricerca specializzata + panel advisor + backup
+completo del metodo con prova di ritorno.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D197** | 🏗️ **SI ADOTTA PIPELINE-3, PER FASI E IN MODO REVERSIBILE — LA FASE 0 (HARDENING) È ATTIVA DA OGGI:** gate di verifica `npm run verify:fast` / `verify:full` / `guardie`, promemoria di verifica allo Stop di sessione, policy delle diramazioni a 4 esiti (EXPEDITE massimo 1 · FOLD-IN <30 min · QUEUE default · DROP-NOTE), code operative in `docs/ops/EMERGENTI.md` + `docs/ops/DECISIONI-PENDENTI.md` + `docs/ops/EXPIRED.md`, template di brief e referto in `docs/templates/TASK-BRIEF.md` + `docs/templates/EVIDENCE-PACK.md`. **Documento normativo: `docs/processes/PIPELINE-3.md`** — in caso di divergenza vale `CLAUDE.md` §0C, sempre | Francesco, il 04/08, dopo il percorso del 03-04/08: ricerca su fonti primarie (DORA 2024/2025 · Anthropic engineering · Reinertsen · Shape Up · Kanban/Anderson) + **panel di 3 advisor a mandato disgiunto** (Regola Advisor; lenti dichiarate: flusso/throughput · qualità/architettura · riusabilità del playbook — dossier: `docs/processes/2026-08-04-pipeline3-playbook-originale.md`) + **backup completo del metodo verificato con double check** e tag di ritorno `metodo-2026-08-03-pre-pipeline3` — «perfetto, procediamo con la fase 0» | 🔑 **L'ordine di adozione è obbligato e la fretta lo rovescia:** prima si abbatte il costo di verifica e review (Fase 0), poi si sovrappongono le fasi di item diversi (Fase 1: Francesco progetta N+1 mentre gli agenti eseguono N, spec congelata come punto di sgancio), e SOLO con le precondizioni misurate per 2 settimane si apre la seconda corsia di codice (Fase 3) — **su branch, MAI worktree** (la regola del 28/07 resta). Adattamenti alla casa, scritti in `docs/processes/PIPELINE-3.md` §1: questo verbale resta l'UNICO registro decisioni (niente ADR doppi), la roadmap resta l'unico backlog, il pre-commit resta intatto, lo Stop hook RICORDA e non blocca. Guadagno atteso onesto **1,7-2,2×**, non 3×. Ciò che della Fase 0 resta da fare è censito in `docs/ops/EMERGENTI.md` (E1: Supabase locale + prove RLS a due utenti, misurato 5-10 giorni, va a betting come voce propria — vedi `docs/ops/EMERGENTI.md`). Attuazione sul ramo `pipeline3-fase-0`: **l'unione la decide Francesco** |

@@ -123,6 +123,11 @@ memory/SESSION_ACTIVE.md
 # === WORKTREES (locali, non appartengono al repo) ===
 .claude/worktrees/
 
+# === STATO LOCALE PIPELINE-3 (D197) ===
+# Marcatore dell'ultima verifica riuscita, scritto da scripts/segna-verifica.mjs.
+# È stato della macchina (come *.tsbuildinfo), mai del repo.
+.claude/state/
+
 # === MOCKUP ALTRO CLIENTE (Lello — potenziale cliente esterno a UÀ, non appartiene a questo repo) ===
 docs/design/mockups/*lello*
 
