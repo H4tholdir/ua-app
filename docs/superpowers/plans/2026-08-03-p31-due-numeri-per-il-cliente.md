@@ -130,11 +130,19 @@ vecchia deriva di date: **copiarne il numero manderebbe la migration nel futuro*
 ALTER TABLE public.clienti ADD COLUMN cellulare_whatsapp TEXT;
 
 COMMENT ON COLUMN public.clienti.telefono IS
-  'Telefono dello studio: si chiama, va sui documenti. Puo'' essere un fisso. NON e'' il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
+  'Telefono dello studio: si chiama, va sui documenti. Può essere un fisso. NON è il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
 
 COMMENT ON COLUMN public.clienti.cellulare_whatsapp IS
   'Cellulare su cui il dentista riceve i messaggi (consegna, solleciti). Il prefisso internazionale lo aggiunge il codice, non l''utente (P31, D182).';
 ```
+
+> 🔧 **CORRETTO il 03/08 dalla revisione del compito 1, e il difetto era di questo piano.** La prima
+> stesura scriveva `Puo''` e `e''` dentro la stringa di `COMMENT ON`, credendo che l'accento andasse
+> raddoppiato come l'apostrofo. **È falso:** in SQL due apici consecutivi valgono **un apostrofo
+> letterale**, quindi `Puo''` finisce nel database come `Puo'`, non come `Può`. L'accento non ha
+> bisogno di alcun escaping. `provato:` `supabase/migrations/20260803090000_*.sql` — stessa cartella,
+> stesso giorno — usa l'accento **vero** non raddoppiato accanto a un apostrofo **correttamente**
+> raddoppiato (`dell''emissione`). 🔑 **Solo l'apostrofo si raddoppia, mai la lettera accentata.**
 
 `non eseguito` — verifica al passo 3.
 
