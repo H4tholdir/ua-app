@@ -87,16 +87,41 @@ nessuno l'ha mai inserito.
 | `src/components/features/clienti/ClienteEditSheet.tsx:83, 132, 324-330` | pannello di modifica | campo nuovo + **correggere l'etichetta e l'esempio di quello vecchio** (oggi «Telefono» con esempio `+39 02 1234567`) |
 | `src/components/features/wizard/NuovoDentistaSheet.tsx:44, 74, 102-111` | wizard nuovo dentista | **D184: chiede ENTRAMBI i numeri, con lo stesso peso**, e sotto il cellulare c'è scritto a cosa serve — v. §4.5 |
 
-### 4.2 Chi LEGGE per mandare WhatsApp (3 punti — **cambiano insieme alla colonna, in un compito solo**)
+### 4.2 Chi LEGGE per mandare WhatsApp — **CINQUE chiamate, non tre**
 
-| punto | che cos'è |
-|---|---|
-| `src/lib/consegna/orchestrate.ts:117, 123` (e `:364`, il secondo percorso) | messaggio di **consegna** — la `select` nomina `clienti(telefono, …)` |
-| `src/components/features/scadenzario/EstrattoContoView.tsx:223-224, 349` | **sollecito** dall'estratto conto |
-| `src/components/features/scadenzario/ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+🔄 **CORRETTO il 03/08 scrivendo il piano.** La prima stesura di questa spec ne contava **tre**, perché
+il censimento era stato fatto cercando `buildWhatsappUrl` **per file** e non **per chiamata**.
+`provato:` `grep -rn "buildWhatsappUrl(" src/` → **5 chiamate in 4 file**.
 
-🛑 **Un compito atomico, non tre.** Se la colonna nasce e questi restano a leggere `telefono`, la
+| # | punto | che cos'è |
+|---|---|---|
+| ① | `src/lib/consegna/orchestrate.ts:131` | consegna — **percorso «già consegnato»** (idempotente) |
+| ② | `src/lib/consegna/orchestrate.ts:364` | consegna — **percorso normale**. ⚠️ Sono **due**, e leggono il cliente da due `select` diverse (`:117` e `:353-357`) |
+| ③ | `src/components/features/scadenzario/EstrattoContoView.tsx:224` | **sollecito globale** dell'estratto conto |
+| ④ | `src/components/features/scadenzario/EstrattoContoView.tsx:38` | 🛑 **sollecito su un singolo dovuto**, dentro `DovutoBottomSheet` — **componente definito nello stesso file** (righe 23-33), quindi invisibile a chi cerca per nome di file. Riceve il numero come **prop** (`:27` il tipo, `:349` il passaggio, `:108` il tasto) |
+| ⑤ | `src/components/features/scadenzario/ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+
+🛑 **Un compito atomico, non cinque.** Se la colonna nasce e questi restano a leggere `telefono`, la
 separazione esiste **nello schema** e il difetto resta vivo **nel programma**.
+
+### 4.2-bis La catena di trasporto — il campo deve ARRIVARE fin lì
+
+I tre punti dello scadenzario non leggono `clienti` direttamente: ricevono un oggetto costruito da
+`select` esplicite. **Ogni `select` che non nomina il campo nuovo lo fa arrivare `undefined`**, e il
+tasto sparisce senza un errore.
+
+| punto | che cosa fa |
+|---|---|
+| `src/app/api/scadenzario/route.ts:34` | il **tipo** del cliente (`telefono: string \| null`) |
+| `src/app/api/scadenzario/route.ts:48, 69` | **due** `select` con `cliente:clienti(id, nome, cognome, studio_nome, telefono)` |
+| `src/app/api/scadenzario/[cliente_id]/route.ts:15` | il **tipo** |
+| `src/app/api/scadenzario/[cliente_id]/route.ts:52, 79` | `select` + mappatura |
+| `src/app/(app)/scadenzario/[cliente_id]/page.tsx:29, 45` | `select` + mappatura (percorso server) |
+| `src/lib/consegna/orchestrate.ts:117` e `:353-357` | le **due** `select` del cliente nella consegna |
+
+🔑 **Nove punti di trasporto per cinque punti d'uso.** È il motivo per cui questa spec elenca i percorsi
+uno per uno invece di dire «aggiornare le query»: una query dimenticata **non dà errore**, dà un tasto
+che non c'è.
 
 ### 4.3 Chi LEGGE come «numero da chiamare» (3 punti — **non cambiano**)
 
