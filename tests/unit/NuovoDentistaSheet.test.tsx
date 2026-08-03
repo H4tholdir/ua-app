@@ -4,10 +4,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 import { NuovoDentistaSheet } from '@/components/features/wizard/NuovoDentistaSheet'
 
-// Task 9 (A7): sheet «Nuovo dentista» a SOLO 4 campi — Nome, Cognome
-// (obbligatori), Cellulare/WhatsApp, Studio (opzionali). NIENTE campi
-// fiscali (A7, spec §2.1) — la DdC All. XIII chiede solo il nome del
-// prescrittore, il fiscale diventa bloccante solo alla prima fattura.
+// Task 9 (A7) + P31/D184 (03/08/2026): sheet «Nuovo dentista» a CINQUE campi —
+// Nome, Cognome (obbligatori — l'unico dato che la DdC All. XIII MDR chiede
+// al prescrittore), Telefono dello studio, Cellulare WhatsApp e Studio
+// (opzionali). Il vecchio campo unico «Cellulare/WhatsApp» si è sdoppiato in
+// DUE campi con LO STESSO PESO (D184): «Telefono dello studio» (→ colonna
+// `telefono`) e «Cellulare WhatsApp» (→ colonna `cellulare_whatsapp`, dove UÀ
+// manda i messaggi di consegna) — il testo di aiuto sotto quest'ultimo è
+// quello approvato in D186. NIENTE campi fiscali (A7, spec §2.1) — il
+// fiscale diventa bloccante solo alla prima fattura.
 
 function renderSheet(props?: Partial<Parameters<typeof NuovoDentistaSheet>[0]>) {
   const onChiudi = vi.fn()
