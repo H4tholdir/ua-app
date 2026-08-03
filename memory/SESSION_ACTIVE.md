@@ -1,20 +1,24 @@
-# Sessione attiva — la notte D168 è chiusa, e Francesco ha risposto
+# Sessione attiva — la notte è in produzione, si riparte da P31
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-notte-autonoma-referto.md`** — §0 e §3 (le risposte).
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-unione-notte-e-ripresa-p31.md`** — la **§0 per prima**.
+🛑 **NON puntarlo su `memory/MEMORY.md`:** gli archivi sono esclusi apposta dalla catena che
+`guardia-coerenza-documenti.mjs` segue, e puntarci la porta d'ingresso **svuota la guardia** — 7
+documenti controllati → 1, **restando verde**. Difetto introdotto e chiuso il 03/08 (§0④ del referto).
 
-✅ **D177 — SI UNISCE TUTTO:** `p30-secondo-motore-e-bersagli` (l'ultimo della catena) porta dentro tutti e
-dieci i salvataggi. 🔴 **SUBITO DOPO IL MERGE, prima di ogni altra cosa:**
-`bash scripts/installa-salvataggio-programmato.sh`
+✅ **UNITO E PUBBLICATO (D177):** `main` = **`8d06ea5b`** (`fdf90dac..8d06ea5b`), nodo di unione
+esplicito. **Undici** salvataggi = 9 correzioni + referto + verbale (non nove, non dieci: il
+conteggio era sbagliato in due documenti, corretto qui).
 
-✅ **D178** la data dei documenti · ✅ **D179** in CI solo le prove «pubbliche» ·
-✅ **D180 — P30 è la variante 🅰️**, 🛑 **ma con TRE RISERVE prima del React:**
-**P30-a** (l'anagrafica non è mai stata progettata — serve una **ricerca**) · **P30-b** (con la A, scheda e
-modifica sono quasi la stessa pagina: forse è **una sola**) · **P31** (il telefono dello studio ≠ cellulare
-WhatsApp — **difetto vivo**, tocca la banca dati).
-➡️ **ORDINE: P31 → P30-a → P30-b → poi il React di P30.**
+🔴 **La precondizione è stata eseguita per prima e provata in quattro modi** — non basta che
+l'installatore stampi «✅»: guardia **rosso→verde** (la copia era del 02/08 12:04) · `diff` identico ·
+`scarto += pagina.length` e arresto sulla pagina **vuota** dentro la copia che gira di notte ·
+`launchctl` ore 3:00, in ascolto.
 
-🔧 Corretto il disegno A: ogni riga apre **la sua** domanda (prima ne apriva sempre una sola).
-🛠️ Corretta anche `guardia-coerenza-documenti.mjs`: non sapeva leggere «centottanta» e **si spegneva da sola**.
+📌 `tsc` **0** · `vitest` **4490 | 19** (384 file) · `next build` **0** · **cinque** guardie verdi
+sull'albero unito (nessuno le aveva mai eseguite lì).
 
-📌 `tsc` **0** · `vitest` **4490 | 19** (384 file) · `next build` **0** · guardie verdi.
-📎 **180** decisioni in **66** tornate; la prossima è **D181**. ❓ Restano **D-Q2** e **D-Q5**.
+🔎 **Riferito, non corretto (R-E2):** P31 tocca **tre** punti WhatsApp, non uno — `orchestrate.ts:123`
+· `EstrattoContoView.tsx:223-224` · `ScadenzarioList.tsx:85`; più tre punti «numero da chiamare».
+
+➡️ **ORDINE: P31 → P30-a → P30-b → poi il React di P30.** ❓ Restano **D-Q2** e **D-Q5**.
+📎 **180** decisioni in **66** tornate; la prossima è **D181**.
