@@ -8,7 +8,7 @@
 // portava ancora «Salva e invia»: qui si usa il testo REALE approvato,
 // «Salva e apri WhatsApp», nomina entrambe le cose che succedono nell'ordine
 // in cui succedono (D186).
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -98,5 +98,67 @@ describe('D183 — se il cellulare manca, il tasto lo chiede e lo salva', () => 
     await user.click(screen.getByRole('button', { name: /salva e apri whatsapp/i }))
     expect(openSpy).not.toHaveBeenCalled()
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+  })
+
+  // 🔴 R1 (revisione finale ramo, 03/08/2026) — DISCRIMINANTE.
+  // `ChiediCellulareSheet` è montato INCONDIZIONATAMENTE da `FrameConsegnato`
+  // (qui sotto: `chiediAperto` cambia, il componente no) — il suo stato
+  // sopravvive alla chiusura. Prima del fix, `setInvio(false)` viveva SOLO
+  // nei due rami di errore: dopo un salvataggio RIUSCITO restava `true` per
+  // sempre, e il campo non veniva mai azzerato. Riaprendo lo stesso foglio il
+  // tasto restava disabilitato con «Un attimo…» a vita, col numero della
+  // volta prima già scritto — nessuna via d'uscita se non lasciare la
+  // schermata.
+  // Prova A — LA PROVA DI R1 in senso stretto: il tasto deve tornare
+  // premibile. Riscrive SUBITO il numero dopo la riapertura (senza
+  // assumere che il campo sia vuoto: quella è la prova B, sotto, separata
+  // apposta perché non deve nascondere questa) e verifica che il tasto non
+  // resti bloccato su «Un attimo…».
+  it('dopo un salvataggio riuscito, riaperto il foglio il tasto torna DAVVERO premibile (non resta bloccato da un salvataggio precedente)', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    vi.spyOn(window, 'open').mockImplementation(() => null)
+    montaFrame({ ...esitoBase, whatsapp_url: 'https://wa.me/?text=x' })
+
+    // Primo giro: apre, scrive, salva con successo → il foglio si chiude.
+    await user.click(screen.getByRole('button', { name: /invia messaggio whatsapp/i }))
+    await user.type(screen.getByLabelText('Cellulare WhatsApp'), '333 1234567')
+    await user.click(screen.getByRole('button', { name: /salva e apri whatsapp/i }))
+    await waitFor(() => expect(screen.queryByLabelText('Cellulare WhatsApp')).not.toBeInTheDocument())
+
+    // Secondo giro: riapre lo STESSO foglio (mai smontato dal genitore) e
+    // riscrive un numero — indipendentemente da cosa contenesse già il
+    // campo (`user.clear` lo garantisce, senza asserire nulla sul suo
+    // valore: quello è compito della prova B).
+    await user.click(screen.getByRole('button', { name: /invia messaggio whatsapp/i }))
+    const campo = screen.getByLabelText('Cellulare WhatsApp') as HTMLInputElement
+    await user.clear(campo)
+    await user.type(campo, '333 7654321')
+
+    // 🔑 Con del testo nel campo, il tasto deve essere disabilitato SOLO se
+    // `invio` fosse davvero in corso — qui non lo è. Prima del fix restava
+    // bloccato su «Un attimo…» per sempre, perché `setInvio(false)` non
+    // veniva mai richiamato sul percorso di successo.
+    expect(screen.queryByText('Un attimo…')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /salva e apri whatsapp/i })).not.toBeDisabled()
+  })
+
+  // Prova B — il difetto IN PIÙ che la strada scelta copre: il campo non
+  // deve ripresentarsi già scritto dalla volta precedente.
+  it('dopo un salvataggio riuscito, riaperto il foglio il campo NON si ripresenta già scritto dalla volta precedente', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    vi.spyOn(window, 'open').mockImplementation(() => null)
+    montaFrame({ ...esitoBase, whatsapp_url: 'https://wa.me/?text=x' })
+
+    await user.click(screen.getByRole('button', { name: /invia messaggio whatsapp/i }))
+    await user.type(screen.getByLabelText('Cellulare WhatsApp'), '333 1234567')
+    await user.click(screen.getByRole('button', { name: /salva e apri whatsapp/i }))
+    await waitFor(() => expect(screen.queryByLabelText('Cellulare WhatsApp')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /invia messaggio whatsapp/i }))
+    const campo = screen.getByLabelText('Cellulare WhatsApp') as HTMLInputElement
+    expect(campo.value).toBe('')
+    expect(screen.getByText('Scrivi il cellulare')).toBeInTheDocument()
   })
 })

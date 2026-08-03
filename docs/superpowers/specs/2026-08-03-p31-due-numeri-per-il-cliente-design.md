@@ -278,8 +278,10 @@ correzione di **P11** (03/08): il difetto si chiude **alla fonte**, non nei chia
 
 ## 6. Il tasto che chiede il numero (D183 · **D185**)
 
-**Dove.** In **quattro** punti, non uno — 🔄 **esteso il 03/08 da D185**, dopo un rilievo del revisore
-del compito 4:
+**Dove.** In **cinque** punti, non uno — 🔄 **esteso il 03/08 da D185** (a quattro, dopo un rilievo del
+revisore del compito 4), poi **da D187** (a cinque, con l'accettazione in ingresso). ⚠️ Questa riga e la
+tabella dicevano ancora «quattro» fino alla revisione finale del 03/08: il numero va **contato sul
+codice** (censimento import di `ChiediCellulareSheet`), non dedotto dal documento precedente:
 
 | # | punto | che cos'è |
 |---|---|---|
@@ -287,6 +289,7 @@ del compito 4:
 | ② | `EstrattoContoView.tsx:224` | **sollecito globale** dell'estratto conto |
 | ③ | `EstrattoContoView.tsx:38` (`DovutoBottomSheet`) | **sollecito su un singolo dovuto** |
 | ④ | `ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+| ⑤ | `TabAccettazione.tsx:783` | **conferma ricezione al dentista** (accettazione in ingresso, D187) |
 
 🔑 **Perché non solo alla consegna (D185).** Un tasto che in una schermata chiede il numero e in
 un'altra **sparisce** insegna due comportamenti diversi per la stessa cosa. ⚠️ **La domanda è nata da un
@@ -296,7 +299,7 @@ un **numero di decisione** invece di restare una scelta di esecutore.
 
 ➡️ **Conseguenza sulla struttura:** `ChiediCellulareSheet` nasce **condiviso**, non locale alla
 consegna. Vive in `src/components/features/clienti/` (è un pezzo di **anagrafica**, non di consegna) e
-lo montano quattro schermate.
+lo montano cinque punti di montaggio.
 
 **Comportamento.** Se il cliente non ha `cellulare_whatsapp`:
 

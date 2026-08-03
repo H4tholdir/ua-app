@@ -5,9 +5,14 @@
 // deve morire. Chiede il numero, lo SALVA in anagrafica, POI il chiamante
 // apre WhatsApp.
 //
-// 🔄 D185 (03/08/2026): questo foglio nasce CONDIVISO — lo montano quattro
-// schermate (consegna + tre punti dello scadenzario), non solo la consegna.
-// Per questo vive in `features/clienti/` (è un pezzo di anagrafica) e NON
+// 🔄 D185 (03/08/2026), numero aggiornato da D187 (03/08/2026): questo foglio
+// nasce CONDIVISO — lo montano CINQUE punti di montaggio (consegna +
+// accettazione + tre punti dello scadenzario), non solo la consegna. Numero
+// verificato sul codice (censimento import di questo componente): non è più
+// "quattro" da quando D187 ha aggiunto il punto dell'accettazione in
+// ingresso (`TabAccettazione.tsx`) — v. anche il commento della prop
+// `nomeDestinatario` qui sotto, che già diceva "cinque". Per questo vive in
+// `features/clienti/` (è un pezzo di anagrafica) e NON
 // sa nulla di "consegna" o "sollecito": riceve `clienteId` e restituisce il
 // cellulare salvato con `onSalvato`, il chiamante decide come usarlo.
 //
@@ -54,6 +59,32 @@ export function ChiediCellulareSheet(props: {
   const [cellulare, setCellulare] = useState('')
   const [invio, setInvio] = useState(false)
   const [guasto, setGuasto] = useState(false)
+
+  // 🔴 R1 (revisione finale ramo, 03/08/2026) — questo foglio è montato
+  // INCONDIZIONATAMENTE dai chiamanti (§ commento in cima): non si smonta mai,
+  // quindi il suo stato sopravvive alla chiusura. Sul percorso di successo di
+  // `salvaEInvia` `setInvio(false)` non veniva MAI chiamato (viveva solo nei
+  // due rami di errore sotto): il tasto restava disabilitato con «Un
+  // attimo…» per sempre alla riapertura successiva. Si azzera quando `aperto`
+  // torna falso — copre lo stesso salvataggio andato a buon fine E, in più,
+  // il campo che altrimenti si ripresenterebbe già scritto dalla volta
+  // precedente (nessuno dei cinque chiamanti smonta mai questo componente per
+  // farlo da solo).
+  //
+  // Pattern "adjusting state when a prop changes" (React docs), NON un
+  // `useEffect`: si azzera IN RENDER confrontando `aperto` con l'ultimo
+  // valore visto, evitando sia il giro di render in più che un effect
+  // introdurrebbe sia l'errore lint `react-hooks/set-state-in-effect`
+  // (chiamare `setState` dentro un effect senza un evento esterno reale).
+  const [apertoVisto, setApertoVisto] = useState(aperto)
+  if (aperto !== apertoVisto) {
+    setApertoVisto(aperto)
+    if (!aperto) {
+      setCellulare('')
+      setInvio(false)
+      setGuasto(false)
+    }
+  }
 
   async function salvaEInvia() {
     if (!cellulare.trim()) return

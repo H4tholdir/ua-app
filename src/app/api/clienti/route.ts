@@ -13,8 +13,15 @@ import { ilikeLiterale, pgrestQuote } from '@/lib/utils/escape-postgrest'
  *  🛑 `cellulare_whatsapp` NON è qui, ed è una SCELTA (P31, spec §4.4):
  *     l'elenco mostra UN numero sotto ogni studio, ed è quello da CHIAMARE.
  *     Due numeri in una riga d'elenco sono rumore su una schermata fatta per
- *     TROVARE un cliente, non per contattarlo. Il cellulare si vede sulla
- *     scheda. Se un giorno servisse qui, questa riga è il punto da cambiare. */
+ *     TROVARE un cliente, non per contattarlo.
+ *     ⚠️ CORRETTO in revisione finale (03/08/2026): questo commento diceva
+ *     «il cellulare si vede sulla scheda», ma non è vero — `provato:`
+ *     `clienti/[id]/page.tsx:296` ha `<InfoRow label="Telefono" …>` e nessuna
+ *     riga per `cellulare_whatsapp`. Oggi il cellulare NON è ancora visibile
+ *     in NESSUNA vista di sola lettura (si vede solo riaprendo «Modifica
+ *     cliente», che è un form, non lettura) — sede naturale della vista di
+ *     lettura: voce di roadmap P30/P30-a. Se un giorno servisse anche qui,
+ *     questa riga è il punto da cambiare. */
 const CAMPI_ELENCO = [
   'id', 'studio_nome', 'nome', 'cognome', 'telefono', 'email', 'citta', 'provincia',
   'partita_iva', 'codice_fiscale', 'codice_sdi', 'pec', 'listino_numero',
