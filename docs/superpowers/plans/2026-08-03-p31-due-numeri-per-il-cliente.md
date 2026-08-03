@@ -749,7 +749,7 @@ describe('CampoTesto — aiuto e tastiera (P31, D184)', () => {
 
   it('con aiuto lo rende, e lo LEGA all-input per chi usa un lettore di schermo', () => {
     render(<CampoTesto label="Cellulare WhatsApp" valore="" onCambia={() => {}}
-                       aiuto="Qui arrivano i messaggi di consegna. Dev'essere un cellulare, non il fisso." />)
+                       aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio." />)
     const input = screen.getByLabelText('Cellulare WhatsApp')
     const idAiuto = input.getAttribute('aria-describedby')
     expect(idAiuto).toBeTruthy()
@@ -980,7 +980,7 @@ cambiamento voluto** — quella etichetta stava su un campo che scriveva in `tel
         onCambia={setCellulare}
         placeholder="333 1234567"
         inputMode="tel"
-        aiuto="Qui arrivano i messaggi di consegna. Dev'essere un cellulare, non il fisso."
+        aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio."
       />
       <CampoTesto label="Studio" valore={studio} onCambia={setStudio} placeholder="Studio Rossi" />
 ```
