@@ -659,6 +659,42 @@ function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraP
 🔑 **Il rinominare non è cosmesi:** una prop chiamata `telefono` che deve ricevere il cellulare è
 esattamente il modo in cui P31 è nata.
 
+- [ ] **Passo 7-bis — 🆕 IL SESTO PUNTO, che il primo censimento non vedeva**
+
+🛑 **Aggiunto il 03/08 dall'esecutore del compito 2 (R-E2).** `src/components/features/lavori/form/TabAccettazione.tsx:232`
+manda un WhatsApp al cliente all'**accettazione in ingresso** («abbiamo ricevuto il lavoro»), ma
+**costruisce il collegamento a mano** invece di usare `buildWhatsappUrl` — per questo il censimento
+sulle chiamate a quella funzione non lo trovava.
+
+`TabAccettazione.tsx:231-233` — oggi:
+
+```tsx
+  const whatsappUrl = clienteTelefono
+    ? `https://wa.me/${clienteTelefono.replace(/\D/g, '')}?text=${encodeURIComponent(messaggioPreview)}`
+    : ''
+```
+
+diventa:
+
+```tsx
+  // P31: passa dalla funzione condivisa, che aggiunge il prefisso internazionale
+  // (D182). Costruire il link a mano qui era il motivo per cui questo punto non
+  // compariva nel censimento delle chiamate a buildWhatsappUrl.
+  const whatsappUrl = clienteCellulare
+    ? buildWhatsappUrl(messaggioPreview, clienteCellulare)
+    : ''
+```
+
+Rinomina la prop da `clienteTelefono` a `clienteCellulare` (tipo compreso), e in
+`src/components/features/lavori/LavoroFormClient.tsx:152`:
+
+```tsx
+                  clienteCellulare={lavoro.cliente?.cellulare_whatsapp ?? null}
+```
+
+✅ **La catena di trasporto qui NON va toccata:** `provato:` `src/app/(app)/lavori/[id]/page.tsx:25` e
+`.../modifica/page.tsx:46` caricano `cliente:clienti(*)` — **tutte** le colonne.
+
 - [ ] **Passo 8 — Verifica che i punti «da chiamare» NON siano stati toccati**
 
 ```bash

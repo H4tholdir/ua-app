@@ -95,11 +95,24 @@ nessuno l'ha mai inserito.
 | `src/components/features/clienti/ClienteEditSheet.tsx:83, 132, 324-330` | pannello di modifica | campo nuovo + **correggere l'etichetta e l'esempio di quello vecchio** (oggi «Telefono» con esempio `+39 02 1234567`) |
 | `src/components/features/wizard/NuovoDentistaSheet.tsx:44, 74, 102-111` | wizard nuovo dentista | **D184: chiede ENTRAMBI i numeri, con lo stesso peso**, e sotto il cellulare c'è scritto a cosa serve — v. §4.5 |
 
-### 4.2 Chi LEGGE per mandare WhatsApp — **CINQUE chiamate, non tre**
+### 4.2 Chi LEGGE per mandare WhatsApp — **SEI punti, non cinque e non tre**
 
-🔄 **CORRETTO il 03/08 scrivendo il piano.** La prima stesura di questa spec ne contava **tre**, perché
-il censimento era stato fatto cercando `buildWhatsappUrl` **per file** e non **per chiamata**.
-`provato:` `grep -rn "buildWhatsappUrl(" src/` → **5 chiamate in 4 file**.
+🔄 **CORRETTO DUE VOLTE, e la seconda correzione insegna più della prima.**
+**① Scrivendo il piano:** la prima stesura ne contava **tre**, perché il censimento cercava
+`buildWhatsappUrl` **per file** e non **per chiamata** → `grep -rn "buildWhatsappUrl(" src/` = **5**.
+**② Eseguendo il compito 2:** l'esecutore ha riferito (R-E2) un punto che **non usa affatto quella
+funzione** — costruisce il collegamento **a mano**. `provato:` il censimento giusto non è sul nome della
+funzione ma sul **comportamento**:
+
+```
+grep -rn "wa\.me/" --include="*.ts" --include="*.tsx" src/
+```
+
+→ **sei punti**, di cui **uno solo** dentro il perimetro di P31 e invisibile al censimento precedente.
+
+🔑 **È esattamente ciò che R-P2 prescrive** («cercare il precedente per **COMPORTAMENTO**, non per
+nome») — e la spec l'aveva violato pur citando la regola. Terza volta in una sessione che un elenco
+«completo» non lo è, e **sempre la stessa causa**.
 
 | # | punto | che cos'è |
 |---|---|---|
@@ -108,8 +121,14 @@ il censimento era stato fatto cercando `buildWhatsappUrl` **per file** e non **p
 | ③ | `src/components/features/scadenzario/EstrattoContoView.tsx:224` | **sollecito globale** dell'estratto conto |
 | ④ | `src/components/features/scadenzario/EstrattoContoView.tsx:38` | 🛑 **sollecito su un singolo dovuto**, dentro `DovutoBottomSheet` — **componente definito nello stesso file** (righe 23-33), quindi invisibile a chi cerca per nome di file. Riceve il numero come **prop** (`:27` il tipo, `:349` il passaggio, `:108` il tasto) |
 | ⑤ | `src/components/features/scadenzario/ScadenzarioList.tsx:85` | **sollecito** dall'elenco |
+| ⑥ | 🆕 `src/components/features/lavori/form/TabAccettazione.tsx:232` | 🛑 **«Abbiamo ricevuto il lavoro»**, mandato al cliente all'**accettazione in ingresso**. **NON passa da `buildWhatsappUrl`**: costruisce `https://wa.me/${clienteTelefono.replace(/\D/g,'')}` **a mano** — per questo era invisibile. Riceve il numero come prop da `LavoroFormClient.tsx:152` (`lavoro.cliente?.telefono`) |
 
-🛑 **Un compito atomico, non cinque.** Se la colonna nasce e questi restano a leggere `telefono`, la
+✅ **E per il ⑥ la catena di trasporto NON va toccata:** `provato:` `src/app/(app)/lavori/[id]/page.tsx:25`
+e `.../modifica/page.tsx:46` caricano `cliente:clienti(*)` — **tutte** le colonne, quindi
+`cellulare_whatsapp` arriva già. Servono **due sole righe**: la prop passata da `LavoroFormClient` e la
+costruzione del collegamento, che deve **passare da `buildWhatsappUrl`** invece di fare da sé.
+
+🛑 **Un compito atomico, non sei.** Se la colonna nasce e questi restano a leggere `telefono`, la
 separazione esiste **nello schema** e il difetto resta vivo **nel programma**.
 
 ### 4.2-bis La catena di trasporto — il campo deve ARRIVARE fin lì
