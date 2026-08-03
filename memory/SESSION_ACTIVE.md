@@ -1,26 +1,31 @@
-# Sessione attiva — P31 fatta (9/9), non pubblicata
+# Sessione attiva — P31 è in produzione, si riparte da P30-a
 
 🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-03-p31-compito-9-verifica-handoff.md` (la **§0 per
-prima**). Referto completo con gli output reali: `.superpowers/sdd/p31-compito-9-report.md`
-(fuori dalla catena che la guardia dei documenti segue — non è un `docs/`/`memory/` — l'handoff
-sopra lo cita per chi vuole il dettaglio).
+prima**) · voci **P31 · P30-a · P30-b · P30** in `docs/roadmap/ROADMAP-UFFICIALE.md` · verbale
+`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` (D181-D188) · spec
+`docs/superpowers/specs/2026-08-03-p31-due-numeri-per-il-cliente-design.md`.
 
-✅ **Compito 9 chiuso — «i cancelli, prima dell'unione».** Ramo `p31-due-numeri-per-il-cliente`,
-**NON mergiato** (l'unione la decide Francesco). FASE 7: `tsc` 0 · `vitest` 4540|19 (397 file) ·
-`next build` 0. Cinque guardie verdi coi numeri (coerenza documenti 8→1→1→4, risolta a 4 vivi ·
-115 route CSRF · 2 progetti/5 file Playwright). FASE 9+9b sulle tre superfici (wizard 5 campi ·
-pannello di modifica — primi scatti mai fatti, D186 non lo copriva · foglio della consegna dal
-vivo): **3** ❌ chiusi con motivo, **tutti pre-esistenti** (contrasto `--t3` = P16/D134 · overflow
-tile dentisti · 3 bersagli <44px preesistenti — nessuno dei tre nel foglio P31).
+✅ **PUBBLICATA (D188):** `main` = **`8c84df97`**, 24 salvataggi, nodo di unione esplicito.
+📌 FASE 7 **sull'albero unito**: `tsc` **0** · `vitest` **4542 | 19** (394 file) · `next build` **0** ·
+cinque guardie verdi. Lo stato del database era **già avanti** (colonna applicata col compito 1, D151):
+il merge ha consegnato **solo codice**.
 
-✅ **Collaudo dal vivo (D103) completo**, su `TEST-DdC-001` (fixture riusabile): richiesta →
-salvataggio → WhatsApp con prefisso 39 → verificato in anagrafica e DB → annullato in 13s.
+🔴 **La revisione finale di ramo ha trovato un difetto che i nove revisori di compito non potevano
+vedere:** il foglio che chiede il cellulare **moriva al secondo tentativo** (tasto disabilitato per
+sempre dopo un salvataggio riuscito). **La causa è una GIUNTURA, non una riga** — il foglio conserva lo
+stato alla chiusura — e **tre dei cinque punti sfuggivano per caso**, non per progetto. ✅ Corretto e
+provato con un rosso vero.
 
-🔎 **Tre fuori mandato riferiti (R-E2), non corretti:** emoji WhatsApp → `U+FFFD` nel template
-(pre-esistente) · mismatch idratazione su `?consegna=1` (pre-esistente, solo dev) · scheda cliente
-in sola lettura non mostra `cellulare_whatsapp` (probabile P30/P30-a).
+🛑 **CINQUE VOCI APERTE, dichiarate:** **P36** (il collegamento del portale — **una credenziale** —
+mandato a un numero potenzialmente sbagliato) · **P35** (due difetti preesistenti del pannello di
+modifica, uno è **accessibilità**) · **P34** (il foglio v3 dipinge un fondo diverso dalla sua spec, ed è
+**l'unica ragione** per cui P30-bis non morde) · **P33** (la deriva di date blocca le migration fino al
+**04/08 alle 12:00**) · **P32** (la guardia dei documenti perde un anello a ogni handoff — `misurato:`
+già ricaduta a **4** documenti vivi).
 
-🛑 **Vuoto dichiaratamente aperto:** resa di un numero senza prefisso dentro WhatsApp — serve un
-telefono vero.
+⚠️ **Un vuoto dichiarato:** che cosa vede chi preme il tasto con un numero malformato — **serve un
+telefono vero**. Il revisore finale l'ha giudicato compatibile con l'unione.
 
-➡️ **PROSSIMO:** autorizzazione di Francesco a unire P31 → poi P30-a → P30-b → React di P30 (D180).
+➡️ **PROSSIMO: P30-a** (la ricerca sull'anagrafica, chiesta da Francesco), poi **P30-b**, poi il **React
+di P30** (D180). ❓ Restano **D-Q2** e **D-Q5**.
+📎 **188** decisioni in **67** tornate; la prossima è **D189**.
