@@ -2,12 +2,20 @@
 
 // DS v3 §5.16/§5.27 (Ondata 2, Task 9) — NuovoDentistaSheet: lo sheet «＋ Nuovo
 // dentista» del Passo 1 del wizard (decisione A7, spec §2.1, gate 12/07/2026
-// notte). SOLO 4 campi: Nome, Cognome (obbligatori — l'UNICO dato richiesto
+// notte). SOLO 5 campi: Nome, Cognome (obbligatori — l'UNICO dato richiesto
 // dalla DdC All. XIII MDR, «il nome della persona che ha prescritto»),
-// Cellulare/WhatsApp e Studio (opzionali). NIENTE campi fiscali qui: il
-// fiscale diventa bloccante solo alla prima FatturaPA (BACKLOG-TECNICO §O4),
-// non alla creazione anagrafica — aggiungerli in questo sheet contraddirebbe
-// la decisione ratificata.
+// Telefono dello studio, Cellulare WhatsApp e Studio (tutti e tre opzionali).
+// NIENTE campi fiscali qui: il fiscale diventa bloccante solo alla prima
+// FatturaPA (BACKLOG-TECNICO §O4), non alla creazione anagrafica — aggiungerli
+// in questo sheet contraddirebbe la decisione ratificata.
+//
+// P31/D184 (03/08/2026, mockup approvato D186): il vecchio campo unico
+// «Cellulare/WhatsApp» scriveva in `telefono` — ambiguo fra fisso e cellulare.
+// Si è sdoppiato in DUE campi con LO STESSO PESO: «Telefono dello studio»
+// (→ colonna `telefono`, può essere un fisso) e «Cellulare WhatsApp»
+// (→ colonna `cellulare_whatsapp`, dove UÀ manda i messaggi di consegna).
+// Entrambi restano facoltativi: il vincolo di creazione resta solo su nome e
+// cognome.
 //
 // label del dentista creato = `studio_nome` se compilato, altrimenti
 // `Dr. ${cognome}` — STESSA regola di `aggregaDatiWizard` (Task 7,
@@ -41,7 +49,8 @@ export function NuovoDentistaSheet(props: {
 
   const [nome, setNome] = useState('')
   const [cognome, setCognome] = useState('')
-  const [telefono, setTelefono] = useState('')
+  const [telefonoStudio, setTelefonoStudio] = useState('')
+  const [cellulare, setCellulare] = useState('')
   const [studio, setStudio] = useState('')
   const [vincolo, setVincolo] = useState<string | null>(null)
   const [invio, setInvio] = useState(false)
@@ -49,7 +58,8 @@ export function NuovoDentistaSheet(props: {
   function resetForm() {
     setNome('')
     setCognome('')
-    setTelefono('')
+    setTelefonoStudio('')
+    setCellulare('')
     setStudio('')
     setVincolo(null)
     setInvio(false)
@@ -71,7 +81,8 @@ export function NuovoDentistaSheet(props: {
     setInvio(true)
 
     const body: Record<string, string> = { nome: nomeOk, cognome: cognomeOk }
-    if (telefono.trim()) body.telefono = telefono.trim()
+    if (telefonoStudio.trim()) body.telefono = telefonoStudio.trim()
+    if (cellulare.trim()) body.cellulare_whatsapp = cellulare.trim()
     if (studio.trim()) body.studio_nome = studio.trim()
 
     try {
@@ -103,10 +114,19 @@ export function NuovoDentistaSheet(props: {
       <CampoTesto label="Nome" valore={nome} onCambia={setNome} placeholder="Mario" autoFocus />
       <CampoTesto label="Cognome" valore={cognome} onCambia={setCognome} placeholder="Rossi" />
       <CampoTesto
-        label="Cellulare/WhatsApp"
-        valore={telefono}
-        onCambia={setTelefono}
+        label="Telefono dello studio"
+        valore={telefonoStudio}
+        onCambia={setTelefonoStudio}
+        placeholder="02 1234567"
+        inputMode="tel"
+      />
+      <CampoTesto
+        label="Cellulare WhatsApp"
+        valore={cellulare}
+        onCambia={setCellulare}
         placeholder="333 1234567"
+        inputMode="tel"
+        aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio."
       />
       <CampoTesto label="Studio" valore={studio} onCambia={setStudio} placeholder="Studio Rossi" />
 

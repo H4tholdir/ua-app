@@ -49,6 +49,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
         nome,
         cognome,
         telefono,
+        cellulare_whatsapp,
         email,
         partita_iva,
         codice_fiscale,
