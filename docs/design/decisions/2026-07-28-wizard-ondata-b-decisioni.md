@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla settantunesima tornata (D195: la forma del cliente è un'ENTITÀ PIÙ UNA PERSONA — forma giuridica + direttore sanitario/medico dello studio — e ogni lavoro porta il nome del prescrittore; coincide parola per parola con l'Allegato XIII)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla settantunesima tornata (D195-D196: la forma del cliente, il panel che l'ha smontata, e la riformulazione di Francesco — È LA FORMA GIURIDICA A DECIDERE SE UÀ CHIEDE CHI HA PRESCRITTO)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centonovantacinque decisioni in settantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centonovantasei decisioni in settantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1621,3 +1621,14 @@ che stampare una dichiarazione plausibile e falsa.
 
 ➡️ **La riformulazione va portata a Francesco e prenderà il numero D196.** Il panel **non ratifica**:
 riferisce.
+
+#### D196 — la forma finale, dettata da Francesco dopo aver letto i rilievi
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D196** | 🏛️ **LA SCHEDA CLIENTE PORTA: denominazione (se è un'entità giuridica) + nome e cognome del dottore o direttore sanitario. SE QUELLA PERSONA COINCIDE COL PRESCRITTORE, BASTA COSÌ; SE IL PRESCRITTORE È DIVERSO, ALLORA — E SOLO ALLORA — UN CAMPO A PARTE.** 🔑 **E la regola che la rende sicura: È LA FORMA GIURIDICA A DECIDERE SE UÀ CHIEDE.** Cliente = **dottore singolo** → il prescrittore è lui, **nessuna domanda, zero tap**. Cliente = **società o studio associato** → **UÀ chiede sempre chi ha prescritto**, perché lì il direttore sanitario può non essere chi ha visitato | Francesco, **dopo** aver letto i rilievi del panel, ha **chiesto invece di suggerire**: «*non sarebbe meglio, e sto chiedendo non suggerendo, che nella scheda cliente ci fosse: denominazione (quindi se è un'entità giuridica) nome e cognome del dottore o direttore sanitario che se coincide con il prescrittore bene, se il prescrittore è differente solo in quel caso un campo a parte, che ne pensi?*» → poi, sulla regola della forma giuridica: «*sì, scrivila così*» | ✅ **SCIOGLIE il rilievo principale del panel senza pagarne il prezzo al banco.** L'obiezione era che D195 **rendeva invisibile** un ripiego automatico. Qui il ripiego **non è cieco: è dichiarato**, e — questo è il punto — **è ammesso solo dove NON PUÒ sbagliare**. 🔑 **Un dottore che esercita da solo non ha altri prescrittori possibili:** attribuirgli la prescrizione non è un'inferenza, è l'unico fatto disponibile. Dove invece i prescrittori possibili sono più d'uno — società, studio associato — **il ripiego è vietato e la domanda è obbligatoria**. ➡️ **Quindi la macchina non si fida mai della memoria di chi ha fretta:** la condizione è **un dato strutturato** (la forma giuridica), non una spunta che qualcuno deve ricordarsi di mettere. ✅ **Regge anche il rilievo della lente della legge su `L. 124/2017 c. 153`** — l'obbligo di direttore sanitario esiste **solo per le società**: nella forma di D196 quel campo è chiesto **proprio dove l'obbligo esiste**, e per lo studio individuale è semplicemente «il dottore». ⚠️ **Resta la parola da correggere in fase di scrittura:** il c. 153 chiede l'iscrizione all'**albo degli odontoiatri**, non «medico» (albi distinti dalla L. 409/1985). 🛑 **DUE COSE ANCORA «NON VERIFICATO», da chiudere prima del React:** ① se lo **studio associato** (associazione professionale) rientri fra le «società» del c. 153 — cambia se il campo del direttore sanitario è obbligatorio o no ② se uno **studio individuale** sia un'«istituzione sanitaria» ai sensi dell'Art. 2(36) MDR — cioè se per lui il secondo campo della DdC vada compilato o resti vuoto. ➡️ **Il campo «istituzione sanitaria» sulla DdC nasce comunque** (oggi `provato:` la parola non compare **zero volte** in tutto il progetto) |
+
+📌 **Ordine di ripresa deciso da chi esegue, su delega di Francesco** («*decidi tu la strada migliore*»):
+**P38 e P39 per primi** — sono gli unici due che **non dipendono da nessuna scelta di disegno** e si
+possono chiudere mentre l'anagrafica è ancora in discussione. Poi il resto di P30-a con D196, e il
+Passo 1 del wizard (le etichette ambigue) come parte della stessa ondata.
