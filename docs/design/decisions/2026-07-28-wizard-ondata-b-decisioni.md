@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantasettesima tornata (D181-D183: due numeri per il cliente, il prefisso lo mette UÀ, e il tasto chiede il numero che manca — apertura di P31)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantasettesima tornata (D181-D184: due numeri per il cliente, il prefisso lo mette UÀ, il tasto chiede il numero che manca, e il wizard li chiede entrambi — P31)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centottantatré decisioni in sessantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centottantaquattro decisioni in sessantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1319,6 +1319,20 @@ misure — e tutte e tre hanno cambiato la domanda.
 | **D181** | 📞 **DUE NUMERI, con due significati distinti: «Telefono dello studio» (quello che si chiama, che va sui documenti, può essere un fisso) e «Cellulare WhatsApp» (quello a cui arrivano consegne e solleciti)** | fra tre strade (due campi · tre campi, distinguendo il cellulare del dentista dal numero su cui tiene WhatsApp · un campo solo con l'interruttore «questo numero è su WhatsApp») → **«Due: studio + WhatsApp»** | ➡️ **Una colonna nuova** su `clienti` → migration + `gen types` + **FASE 6b**, e **dominio critico → percorso GRANDE**. 🛑 **La colonna nuova va aggiunta a `PATCHABLE_FIELDS_CLIENTE`** (`src/app/api/clienti/[id]/route.ts:16-23`), o il dato **smette di salvarsi in silenzio** (R-P6) |
 | **D182** | 🔢 **IL PREFISSO INTERNAZIONALE LO METTE UÀ DA SOLO** — chi sta al banco scrive il numero come lo scrive sempre, e il programma aggiunge il `39` quando costruisce il collegamento; se il numero ha già un `+` o comincia con `39`, non lo tocca | fra tre strade (lo mette UÀ · lo chiede la schermata col campo precompilato `+39` · tutt'e due) → **«Lo mette UÀ da solo»** | ✅ **Fedele al principio fondante** («*non deve preoccuparsi più di niente*»): nessuno deve imparare una regola nuova. ➡️ Nasce **una funzione condivisa** — e va messa **in un posto solo**, perché i punti che costruiscono un collegamento WhatsApp col numero del cliente sono **tre** (consegna + due solleciti) e un quarto nascerebbe scoperto. 🔑 **È la stessa forma della correzione di P11**, dove il difetto è stato chiuso **alla fonte** e non nei sei chiamanti. ⚠️ **Il caso straniero va dichiarato, non dedotto:** un numero con `+` proprio si rispetta; **che cosa fare di un numero senza `+` che non è italiano non è deciso** — oggi non ci sono clienti stranieri in banca dati, e la scelta si scrive nella spec |
 | **D183** | ➕ **SE IL CELLULARE WHATSAPP MANCA, IL TASTO LO CHIEDE E LO SALVA** — si apre un foglio col solo campo, il numero entra in anagrafica, poi parte il messaggio; la volta dopo non lo chiede più | fra tre strade (lo chiede e lo salva · come oggi, WhatsApp senza destinatario e si sceglie il contatto a mano · il tasto non compare affatto) → **«Il tasto lo chiede e lo salva»** | 🔑 **Il momento in cui te ne accorgi è il momento giusto per rimediare**, e **nessun tasto è mai morto** — che è la stessa ragione di **D165** (il tasto «Aggiungi il dato» di P17 sarebbe stato un tasto che si preme e non succede niente) e della **direttiva permanente del 27/07** («*ogni campo si corregge, fino alla consegna*»). ➡️ **Costo:** un foglio v3 a un campo solo, e una scrittura in anagrafica **dal percorso della consegna** — cioè un punto di scrittura in più da mettere in allowlist. 🛑 **E un vincolo che nasce da qui:** il numero si salva **prima** di aprire WhatsApp, non dopo — altrimenti un messaggio mandato e un'anagrafica non aggiornata sono due fatti che si separano, e alla consegna dopo si richiede di nuovo |
+| **D184** | 📝 **IL WIZARD «NUOVO DENTISTA» CHIEDE ENTRAMBI I NUMERI, con lo stesso peso — e sotto il cellulare WhatsApp c'è scritto a che cosa serve** | domanda posta nella revisione della spec («*il wizard serve a creare l'anagrafica del nuovo cliente? allora deve chiederli tutti e due no? dando il peso giusto ad entrambe le richieste e spiegando a cosa serve il numero con whatsapp*») | 🔑 **La ragione è che quel foglio non è una scorciatoia: è il posto in cui l'anagrafica NASCE.** Un campo non chiesto lì è un campo che qualcuno dovrà rimettere dopo, da un'altra schermata — cioè la mancanza che P30-bis e **D165** hanno già pagato una volta. ➡️ **Il foglio passa da 4 campi a 5** (Nome · Cognome · **Telefono dello studio** · **Cellulare WhatsApp** · Studio). ⚠️ **«Lo stesso peso» è un vincolo di disegno, non un'intenzione:** nessuno dei due è secondario, quindi **niente «campo avanzato», niente sezione richiudibile, niente carattere più piccolo**. 🛑 **E la richiesta scopre due cose che il componente condiviso non sa fare** — v. sotto |
+
+🔧 **D184 scopre due mancanze in `CampoTesto` (`src/components/ds/Campo.tsx:57-63`), e riguardano il DS v3, non questo foglio.**
+
+**① Non esiste un testo di aiuto.** Il componente accetta `label`, `valore`, `onCambia`, `placeholder`,
+`autoFocus` — e basta. «*Spiegando a cosa serve*» non è scrivibile senza aggiungere la capacità.
+⚠️ **`CampoTesto` è usato da 13 schermate** (`provato:` `grep`), quindi la prop va **opzionale**: dove
+non si passa, non cambia niente.
+
+**② Il campo è SEMPRE `type="text"`** (riga 81). Su un telefono, per digitare un numero, **esce la
+tastiera alfabetica**. 🔑 **Il precedente in casa esiste già ed è a due righe di distanza:**
+`CampoNumero` usa `inputMode="decimal"` proprio per far uscire il tastierino. ⚠️ **Su una PWA pensata
+per il telefono questo non è rifinitura**, ed è passato inosservato perché finora nessun campo v3
+chiedeva un numero di telefono. 📌 **Riferito come difetto del DS**, non come dettaglio di P31.
 
 🔎 **TRE MISURE PRESE PRIMA DI CHIEDERE, e ognuna ha smontato qualcosa di scritto.**
 

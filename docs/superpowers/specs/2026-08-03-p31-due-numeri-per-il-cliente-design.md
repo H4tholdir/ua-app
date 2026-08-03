@@ -1,7 +1,7 @@
 # P31 — Due numeri per il cliente: il telefono dello studio e il cellulare WhatsApp
 
 **Data:** 3 agosto 2026 (`provato:` `date` → `2026-08-03 13:08:15 CEST`)
-**Decide:** Francesco Formicola — **D181 · D182 · D183**, verbale
+**Decide:** Francesco Formicola — **D181 · D182 · D183 · D184**, verbale
 `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, sessantasettesima tornata
 **Stato:** ratificata in sessione · **precede** il React di P30 (D180, riserva ③)
 **Percorso:** tocca la banca dati → **dominio critico → GRANDE** (`ua-app/CLAUDE.md` §0C)
@@ -40,6 +40,7 @@ entra nel perimetro di questa spec.
 | **D181** | **Due campi.** `telefono` = **telefono dello studio** (può essere un fisso, va sui documenti). **`cellulare_whatsapp`** = numero a cui arrivano consegne e solleciti |
 | **D182** | **Il prefisso lo mette UÀ.** Chi sta al banco scrive il numero come lo scrive sempre; il programma aggiunge il `39` quando costruisce il collegamento, e rispetta il `+` se c'è |
 | **D183** | **Se il cellulare WhatsApp manca, il tasto lo chiede e lo salva** — foglio a un campo solo, salvataggio in anagrafica **prima** di aprire WhatsApp, poi il messaggio |
+| **D184** | **Il wizard «nuovo dentista» chiede ENTRAMBI i numeri, con lo stesso peso**, e sotto il cellulare WhatsApp è scritto a che cosa serve (§4.5) |
 
 **Perché `telefono` resta il numero dello studio e non diventa il cellulare.** L'unico dato vero in
 banca dati è un **fisso**: quel campo **si comporta già** da telefono dello studio. Rinominarlo
@@ -84,7 +85,7 @@ nessuno l'ha mai inserito.
 | `src/app/api/clienti/[id]/route.ts:16-23` | **`PATCHABLE_FIELDS_CLIENTE`** | 🛑 **aggiungere `'cellulare_whatsapp'`.** Senza, la rotta **scarta la chiave senza errore** (riga 169-171: `if (field in body)`) e l'utente legge «Salvato» su un dato che non c'è — R-P6, con l'esempio gemello di `lavori` |
 | `src/app/api/clienti/route.ts:125` | creazione (POST), scrittura campo per campo | aggiungere `cellulare_whatsapp: body.cellulare_whatsapp ?? null` |
 | `src/components/features/clienti/ClienteEditSheet.tsx:83, 132, 324-330` | pannello di modifica | campo nuovo + **correggere l'etichetta e l'esempio di quello vecchio** (oggi «Telefono» con esempio `+39 02 1234567`) |
-| `src/components/features/wizard/NuovoDentistaSheet.tsx:44, 74, 106-110` | wizard nuovo dentista | oggi ha **un** campo chiamato «Cellulare/WhatsApp» che scrive in `telefono`: va **spostato** su `cellulare_whatsapp`, e va deciso se il wizard chiede anche il telefono dello studio |
+| `src/components/features/wizard/NuovoDentistaSheet.tsx:44, 74, 102-111` | wizard nuovo dentista | **D184: chiede ENTRAMBI i numeri, con lo stesso peso**, e sotto il cellulare c'è scritto a cosa serve — v. §4.5 |
 
 ### 4.2 Chi LEGGE per mandare WhatsApp (3 punti — **cambiano insieme alla colonna, in un compito solo**)
 
@@ -110,6 +111,45 @@ separazione esiste **nello schema** e il difetto resta vivo **nel programma**.
 | `src/app/api/clienti/route.ts:13-17` | **`CAMPI_ELENCO`** — governa **due volte**: cosa si chiede al database (`:51`) e cosa si risponde al browser (`:81`) | 🛑 **NON si aggiunge, e questa è la destinazione della riga.** L'elenco mostra **un** numero sotto ogni studio (`ClientiSearchList.tsx:243-252`), e quel numero è **quello da chiamare** — cioè `telefono`, che resta. Due numeri in una riga d'elenco sono rumore su una schermata fatta per **trovare** un cliente, non per contattarlo. ➡️ **Conseguenza da sapere:** il cellulare WhatsApp **non è visibile nell'elenco**; si vede sulla scheda. Se un giorno servisse lì, questa riga è il punto da cambiare |
 | `supabase/schema.sql:2405` | vista con `c.telefono AS cliente_telefono` | ✅ **resta**: alimenta usi da «numero da chiamare» |
 | `src/lib/contabilita/queries.ts:38` · `src/lib/dashboard/queries.ts:157` | leggono `cliente_telefono` dalla vista | ✅ **restano** |
+
+### 4.5 Il wizard «nuovo dentista» — D184
+
+**Quel foglio non è una scorciatoia: è il posto in cui l'anagrafica NASCE.** Un campo non chiesto lì è
+un campo che qualcuno dovrà rimettere dopo, da un'altra schermata — la mancanza che **D165** e
+**P30-bis** hanno già pagato una volta.
+
+**Da 4 campi a 5:** Nome · Cognome · **Telefono dello studio** · **Cellulare WhatsApp** · Studio.
+
+🛑 **«Lo stesso peso» è un vincolo di disegno, non un'intenzione.** Nessuno dei due numeri è secondario:
+**niente «campo avanzato», niente sezione richiudibile, niente carattere più piccolo.** Entrambi restano
+**facoltativi** — il vincolo di creazione oggi è su nome e cognome, e questa spec non lo cambia.
+
+**Sotto il cellulare WhatsApp va scritto a che cosa serve.** Testo proposto, da approvare sugli scatti:
+
+> *Qui arrivano i messaggi di consegna. Dev'essere un cellulare, non il fisso.*
+
+Il DS v3 §2.3 vieta il gergo: «cellulare» e «fisso» sono parole di casa, non termini tecnici.
+
+#### 4.5.1 🔧 Due mancanze del componente condiviso, scoperte da D184
+
+`CampoTesto` (`src/components/ds/Campo.tsx:57-63`) è usato da **13 schermate** (`provato:` `grep`).
+Entrambe le aggiunte sono **prop opzionali**: dove non si passano, non cambia niente.
+
+| # | mancanza | che cosa serve | perché non è rifinitura |
+|---|---|---|---|
+| ① | **nessun testo di aiuto** — accetta solo `label`, `valore`, `onCambia`, `placeholder`, `autoFocus` | `aiuto?: string`, reso sotto il campo e legato all'input con `aria-describedby` | «*Spiegando a cosa serve*» (D184) **non è scrivibile** senza questa capacità |
+| ② | **`type="text"` fisso** (riga 81) | `inputMode?: 'tel'` (o una variante `CampoTelefono`) | Su un telefono, per digitare un numero, **esce la tastiera alfabetica**. 🔑 Il precedente è a due righe: `CampoNumero` usa `inputMode="decimal"` per lo stesso motivo. ⚠️ È passato inosservato perché **finora nessun campo v3 chiedeva un numero di telefono** |
+
+⚠️ **Il colore non può essere l'unica fonte di stato** e il testo di aiuto **non è un messaggio
+d'errore**: va reso con `--muted`, non con un colore semantico. 🛑 **In tema scuro attenzione a
+`--faint`**, che dentro un foglio scende a 4,25:1 — è **P30-bis**, difetto già aperto: qui si usa
+`--muted` e non lo si tocca.
+
+#### 4.5.2 §0B — questo foglio cambia aspetto, quindi passa dai disegni
+
+Un campo in più e un testo nuovo sono **UI nuova**: mockup in `docs/design/mockups/`, scatti a
+**390 · 768 · 1280** in **chiaro e scuro**, **approvazione di Francesco**, poi React. E **FASE 9b**
+(gate estetico L2) prima dell'unione.
 
 ---
 
