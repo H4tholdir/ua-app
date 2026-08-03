@@ -95,6 +95,33 @@ casi.
 | ✅ **Le guardie sull'ALBERO UNITO** | 🔑 **nessuno le aveva mai eseguite lì:** sei salvataggi su undici avevano scavalcato il gancio del commit (per la ragione buona e scritta nel referto della notte §0③), quindi il gruppo completo aveva girato solo sui singoli rami, mai sull'unione. Esiti: coerenza documenti **verde** (7 documenti vivi) · progetti Playwright **verde** (2 progetti, 5 file) · CSRF **verde** · conformità DS **verde** · reduced-motion **verde** |
 | ✅ **FASE 7 sull'unione** | `tsc --noEmit` → **0** · `vitest run` → **4490 passate \| 19 saltate** (384 file passati \| 3 saltati) · `next build` → **uscita 0**. 🔑 **Numeri IDENTICI alla misura di chiusura della notte**, ed è il confronto a essere la prova: i rami erano stati misurati uno per uno, l'unione no |
 | ✅ **Pubblicazione** | `git push origin main` → `fdf90dac..8d06ea5b`. ⚠️ **`origin/main` era a `fdf90dac`, non a `89541135`:** c'era **un** salvataggio locale mai pubblicato, il documento di chiusura della sessione precedente — fatto **già dichiarato** nella memoria (blocco 123) e non un buco |
+| ✅ **CI e CD** | CI **verde** (7m55s, `30804080068`) · CD — Deploy to Vercel **verde** (3m3s, `30804654361`) |
+
+### 1-bis. ✅ La verifica su `uachelab.com` — fatta col banco vero (D103), non col solo `curl`
+
+🛑 **Che il sito risponda `200` non prova che sia il codice nuovo:** la notte non ha toccato **nessuna
+pagina pubblica**, quindi non esiste un marcatore osservabile da fuori. Serviva entrare, e le credenziali
+sono in `.env.local` (**D103**): link d'accesso **monouso**, `npx tsx scripts/tmp/link-accesso.ts`.
+
+**Tre cose provate in un colpo solo, sulla scheda di `STUDIO ODONTOIATRICO PIEGARI GIANFRANCO`:**
+
+1. ✅ **IL VUOTO DICHIARATO NEL REFERTO DELLA NOTTE È CHIUSO.** §0④ diceva: «*la scheda risponde 200 e
+   resta sullo scheletro di caricamento; il contenuto non arriva mai. Causa non identificata*».
+   `provato:` **in produzione la scheda si carica per intero** — anagrafica, dati fiscali, commerciale,
+   portale dentista, privacy GDPR. 🔑 **Era la lentezza della prima compilazione in locale, non un
+   difetto:** l'ipotesi meno allarmante era quella giusta, ma **solo perché è stata verificata**.
+2. ✅ **P18 verificata dal vivo:** il collegamento del portale è
+   `https://uachelab.com/richiedi/7b67ac4c-…` — **dominio canonico**. ⚠️ **Con un limite dichiarato:** in
+   produzione l'origine della navigazione **coincide già** col dominio giusto, quindi questa prova
+   mostra che il link è **corretto**, non che sia **indipendente** da dove si naviga. Quella proprietà è
+   provata dalle prove unitarie, non da qui.
+3. 🔴 **P31 NON È PIÙ TEORICA — c'è un dato vero che la mostra.** `provato:` il campo **TELEFONO** di
+   quello studio vale **`097671439`**, e `0976` è il prefisso di **Muro Lucano (PZ)** — coerente con
+   l'indirizzo della stessa scheda, «*VIA ROMA, 12, 85054, MURO LUCANO, PZ*». 🛑 **È un numero FISSO in
+   un campo che lo schema dichiara «Usato per WhatsApp».** Cioè: **il messaggio di consegna a questo
+   studio, oggi, non arriverebbe a nessuno** — e nessuno se ne accorgerebbe, perché il messaggio parte
+   lo stesso. 🔑 **Questo cambia il peso di P31:** non è un difetto latente in attesa di un caso limite,
+   è un difetto **già mordente su un dato già inserito**.
 
 ---
 
