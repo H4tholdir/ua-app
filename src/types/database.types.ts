@@ -441,6 +441,7 @@ export type Database = {
       clienti: {
         Row: {
           cap: string | null
+          cellulare_whatsapp: string | null
           citta: string | null
           codice_fiscale: string | null
           codice_sdi: string | null
@@ -479,6 +480,7 @@ export type Database = {
         }
         Insert: {
           cap?: string | null
+          cellulare_whatsapp?: string | null
           citta?: string | null
           codice_fiscale?: string | null
           codice_sdi?: string | null
@@ -517,6 +519,7 @@ export type Database = {
         }
         Update: {
           cap?: string | null
+          cellulare_whatsapp?: string | null
           citta?: string | null
           codice_fiscale?: string | null
           codice_sdi?: string | null
