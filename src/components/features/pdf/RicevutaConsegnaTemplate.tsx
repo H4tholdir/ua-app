@@ -4,6 +4,7 @@
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -170,18 +171,8 @@ const styles = StyleSheet.create({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-function formatData(isoString: string | null | undefined): string {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  } catch {
-    return isoString
-  }
-}
+// P9 (02/08/2026) — giorno civile italiano, non fuso della macchina.
+const formatData = dataItalianaBreve
 
 function codiceGDPR(lavoro: LavoroDettaglio): string {
   if (lavoro.paziente?.codice_paziente) return `PAZ-${lavoro.paziente.codice_paziente}`
@@ -222,11 +213,10 @@ interface RicevutaConsegnaTemplateProps {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function RicevutaConsegnaTemplate({ lavoro, lab }: RicevutaConsegnaTemplateProps) {
-  const dataEmissione = new Date().toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  // P9: il fuso è corretto. 🛑 La SORGENTE no, ed è dichiarata e non corretta qui
+  // (R-E2, fuori dal mandato di P9): «adesso» significa che ristampare la ricevuta
+  // domani le cambia la data di emissione. Roadmap, voce P9-bis.
+  const dataEmissione = dataItalianaBreve(new Date().toISOString())
   const labNome = lab.ragione_sociale ?? lab.nome
   const tipoFormatted = lavoro.tipo_dispositivo.replace(/_/g, ' ')
   const dataConsegna = formatData(

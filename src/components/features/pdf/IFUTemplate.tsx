@@ -4,6 +4,7 @@
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -153,18 +154,8 @@ const styles = StyleSheet.create({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-function formatData(isoString: string | null | undefined): string {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  } catch {
-    return isoString
-  }
-}
+// P9 (02/08/2026) — giorno civile italiano, non fuso della macchina.
+const formatData = dataItalianaBreve
 
 function codiceGDPR(lavoro: LavoroDettaglio): string {
   // Codice anonimizzato GDPR — NO nome reale
@@ -207,11 +198,8 @@ interface IFUTemplateProps {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function IFUTemplate({ lavoro, lab }: IFUTemplateProps) {
-  const dataEmissione = new Date().toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  // P9: fuso corretto. 🛑 Sorgente «adesso», dichiarata e non corretta (R-E2): v. P9-bis.
+  const dataEmissione = dataItalianaBreve(new Date().toISOString())
   const labNome = lab.ragione_sociale ?? lab.nome
   const tipoFormatted = lavoro.tipo_dispositivo.replace(/_/g, ' ')
   const dataFabbricazione = formatData(

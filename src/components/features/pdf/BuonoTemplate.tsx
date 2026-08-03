@@ -4,6 +4,7 @@
 
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -222,18 +223,8 @@ const styles = StyleSheet.create({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-function formatData(isoString: string | null | undefined): string {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  } catch {
-    return isoString
-  }
-}
+// P9 (02/08/2026) — giorno civile italiano, non fuso della macchina.
+const formatData = dataItalianaBreve
 
 function formatImporto(n: number): string {
   return n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -289,6 +280,13 @@ export function BuonoTemplate({ lavoro, lab, numeroBuono }: BuonoTemplateProps) 
             ) : null}
             <Text style={styles.docTitolo}>Buono di Consegna</Text>
             <Text style={styles.docNumero}>N. {numeroBuono}</Text>
+            {/* 🛑 DIFETTO DICHIARATO, NON CORRETTO QUI (R-E2 — sta fuori dal mandato
+                di P9, che riguarda il FUSO). Questa data è «adesso», l'istante in cui
+                il file viene generato: RISTAMPARE il buono domani gli cambia la data.
+                Il fuso è corretto, la SORGENTE no. ⚠️ E la colonna giusta esiste già:
+                `buoni_consegna.data_emissione` (`supabase/schema.sql:1318`, DATE).
+                Stesso difetto in RicevutaConsegna, IFU e SchedaFabbricazione: roadmap,
+                voce P9-bis, dove sta anche la domanda «da quale campo, per ognuno?». */}
             <Text style={styles.docNumero}>{formatData(new Date().toISOString())}</Text>
           </View>
         </View>

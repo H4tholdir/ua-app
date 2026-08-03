@@ -3,6 +3,7 @@
 // NON è un documento fiscale: l'originale è l'XML FatturaPA trasmesso al SDI.
 // Usa SOLO proprietà CSS supportate da @react-pdf/renderer (pattern BuonoTemplate).
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 const styles = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 10, color: '#1a1a1a', paddingTop: 36, paddingBottom: 48, paddingLeft: 48, paddingRight: 48 },
@@ -32,13 +33,15 @@ const styles = StyleSheet.create({
   cortesia: { marginTop: 24, padding: 8, border: '0.5pt solid #cccccc', fontSize: 8, color: '#555555', textAlign: 'center' },
 })
 
-function formatData(iso: string): string {
-  try {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  } catch {
-    return iso
-  }
-}
+// P9 (02/08/2026) — questo era l'unico dei dodici punti con un pattern DIVERSO:
+// `iso + 'T00:00:00'`, cioè mezzanotte LOCALE. `provato:` `fatture.data` è una DATE
+// (`supabase/schema.sql`, riga «data DATE NOT NULL DEFAULT CURRENT_DATE»), quindi
+// quella concatenazione era valida e il risultato era già giusto in ogni fuso.
+// 🔑 È stato uniformato lo stesso, e la ragione non è l'ordine: un pattern che
+//    funziona per una ragione DIVERSA dagli altri undici è quello che il prossimo
+//    copierà nel posto sbagliato — dove il valore è un istante e la concatenazione
+//    produce una data illeggibile.
+const formatData = dataItalianaBreve
 
 function formatImporto(n: number): string {
   return n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

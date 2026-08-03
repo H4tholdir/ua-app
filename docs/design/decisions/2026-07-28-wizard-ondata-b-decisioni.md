@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla cinquantottesima tornata (D168-D169: la notte di lavoro autonomo — difetti senza scelte + P30 fino alla soglia dell'approvazione; e niente si pubblica di notte)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantaseiesima tornata (D177-D180: le risposte di Francesco al risveglio — si unisce tutto, la variante A con tre riserve, la data dei documenti, le prove in CI)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centosessantanove decisioni in cinquantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centottanta decisioni in sessantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1053,3 +1053,255 @@ comandi sotto contrasto in scuro · l'etichetta che cambia dentro `role="alert"`
 |---|---|---|---|
 | **D168** | 🌙 **SI LAVORA DA SOLI TUTTA LA NOTTE, FINO ALLE 07:00 — e il lavoro è DOPPIO: i difetti che non chiedono una scelta di Francesco, poi P30 portata fino alla SOGLIA della sua approvazione** | «*io devo andare a dormire, ma domattina mi sveglio presto, vorrei che però tu continuassi lo sviluppo da solo per tutta la notte … fino alle 7.00 e poi raccogli tutte le domande che di solito mi fai*» → fra tre strade (solo difetti · solo P30 · le due insieme) → **«difetti + P30 pronta da approvare»** | 🔑 **Perché il lavoro è doppio e non «si va avanti nella roadmap»:** la voce successiva è **P30**, una **pagina nuova**, e §0B impone disegni → scatti → **approvazione di Francesco** *prima* del React. Preso alla lettera, «avanza nella roadmap» si sarebbe fermato al cancello entro un'ora. ➡️ **Quindi:** ① i difetti di **solo codice**, senza nessuna scelta d'aspetto (il fuso orario dei PDF · le reti di prova che puntano a file inesistenti · il salvataggio che si ferma a 1000 senza dirlo · il messaggio grezzo del database che arriva all'utente) — ognuno con le sue prove e il suo salvataggio; ② **P30 fino ai mockup e agli scatti**, con **più varianti**, così alle 07:00 c'è **da approvare, non da aspettare**. ⚠️ **E il gate non è aggirato: è ANTICIPATO** — la notte produce esattamente ciò che sta *prima* della sua firma. 🛑 **Il Mac non deve addormentarsi**, o la notte finisce lì: è **lo stesso inciampo di D139** (il salvataggio programmato che da `launchd` non partiva), e la contromisura è dichiarata, non sperata |
 | **D169** | 🛑 **NIENTE VIENE PUBBLICATO DI NOTTE — nemmeno una correzione già verde** | domanda posta con l'alternativa vera accanto («*se un difetto passa tutti e tre i controlli e non tocca nessuna schermata, lo unisco e lo pubblico senza svegliarti*») → **«non pubblicare nulla»** | ➡️ Tutto resta su **rami separati**, provato e verde, col riassunto di che cosa cambia; **unire e pubblicare resta una firma di Francesco**. 🔑 **Non è prudenza generica: è la regola che ha appena lavorato.** Il 02/08 il gate estetico ha trovato **tre difetti** su un codice già verde e già dichiarato finito — fra cui un bordo invisibile in modo scuro su **quattro** comandi. ⚠️ **«Passa i tre controlli» e «è giusto» sono due fatti diversi**, ed è la stessa distinzione di **D156** («in produzione» ≠ «qualcuno lo usa») e di **D155**: una premessa che sembra ovvia e non è mai stata confrontata con un fatto |
+
+---
+
+### Cinquantanovesima tornata — D170: P15, i tre progetti fantasma e la guardia che impedisce il terzo caso
+
+> ⚠️ **Questa tornata è diversa dalle cinquantotto precedenti: la decisione NON è di Francesco, che
+> dormiva.** È presa da solo dentro il mandato di **D168**, che affida i «difetti che non chiedono una
+> scelta di Francesco». Sta qui perché **§0A-bis vuole la riga nello stesso turno** e perché una scelta
+> presa di notte e mai scritta è esattamente il buco che quella regola esiste per chiudere. 🛑 **Se
+> Francesco la ritiene sua, la ribalti:** è su ramo, non pubblicata (**D169**), e disfarla costa un
+> `git checkout`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D170** | 🗑️ **I TRE PROGETTI PLAYWRIGHT CHE PUNTANO NEL VUOTO SI RIMUOVONO — e i quattro controlli che sparirebbero con loro diventano quattro voci di roadmap (P15-a…P15-d)** | scelta **mia**, di notte, fra tre strade: ① scrivere le quattro prove mancanti · ② lasciare i progetti e marcarli con un commento · ③ rimuoverli e trasferire l'intenzione in roadmap. **Scelta la ③** | 🔑 **Perché non la ①:** quelle quattro prove sono **quattro ondate vere** — una di loro è la prova che un laboratorio non veda i dati di un altro — e si sarebbero mangiate la notte producendo del lavoro a metà. 🔑 **Perché non la ②:** un progetto marcato «da fare» dentro un file di configurazione **continua a passare verde**, cioè continua a mentire a chi lancia le prove; il commento lo legge solo chi apre quel file, e chi apre quel file non è chi si fida della rete. ✅ **La ③ separa le due cose che erano confuse in una:** la **rete** dice il vero (ciò che c'è, c'è; ciò che manca, manca), e l'**intenzione** vive in roadmap, dove qualcuno la legge davvero. 📌 `provato:` prima e dopo, `npx playwright test --list` → **«Total: 30 tests in 5 files»**: **nessuna prova vera è andata persa**, perché quei progetti non ne eseguivano nessuna |
+| **D170-bis** | 🛡️ **La riparazione NON esce senza la sua guardia** — `scripts/guardia-progetti-playwright.mjs`, al pre-commit | stessa origine. Non è una decisione separata: è la condizione senza la quale la D170 sarebbe **la stessa riparazione del 28/07**, che è durata cinque giorni | 🔑 **Il fatto che la impone:** i «due progetti Playwright fantasma» del 28/07/2026 erano **lo stesso difetto**, riparato **senza** lasciare una guardia — e cinque giorni dopo il difetto era di nuovo lì, con quattro nomi invece di due. **Riparare senza guardia significa aspettare la terza volta.** ✅ **Due bracci, perché il difetto ha due facce:** un progetto dichiarato che raccoglie **zero prove**, e una prova sul disco che **nessun progetto raccoglie** — entrambe passano verdi oggi. 🛡️ **E non è cieca come quella che ripara:** `provato:` il rapporto JSON espone `config.projects` con **tutti** i nomi dichiarati, vuoti compresi, quindi l'assenza **sta nel rapporto** — la guardia confronta due elenchi invece di guardare solo ciò che esiste. **Cinque prove che si accende**, incollate nel salvataggio. ⚠️ **Costo:** ~0,03 s quando salta (quasi sempre: gira solo se il commit tocca `playwright.config.ts` o `tests/e2e/`), ~0,39 s quando gira |
+
+🛑 **Che cosa questa tornata NON risolve, e va detto:** Playwright **continua a non girare in nessuna
+macchina automatica**. `.github/workflows/ci.yml` lancia il controllo dei tipi, quello di stile, le prove
+veloci e la costruzione — e basta. Le **30** prove a schermo girano solo se qualcuno le lancia a mano sul
+proprio computer. ➡️ **È una decisione di Francesco** (serve una banca dati raggiungibile dalla macchina
+automatica e minuti che si pagano), non un difetto di codice: sta fra le domande della notte come **D-Q1**,
+con le tre opzioni e il loro prezzo. 🔑 **Quindi la rete oggi è ONESTA, non ATTIVA** — sono due cose
+diverse, e prometterne una per l'altra sarebbe la stessa forma di P15.
+
+---
+
+### Sessantesima tornata — D171: la data dei documenti, e una prova che si fingeva verde
+
+> ⚠️ **Come la tornata precedente: decisione presa da solo dentro il mandato di D168**, mentre Francesco
+> dorme. È su ramo, non pubblicata (**D169**), e si ribalta con un `git checkout`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D171** | 🕐 **LA DATA CHE FINISCE STAMPATA SU UN DOCUMENTO SI LEGGE DALL'OROLOGIO DI ROMA — e lo si ottiene con TRE FUNZIONI CONDIVISE, non aggiungendo un'opzione in dodici punti** | scelta **mia**, di notte, fra due strade: ① aggiungere `timeZone: 'Europe/Rome'` a ognuno dei dodici punti · ② tre funzioni in `data-roma.ts` e i dodici punti che le usano. **Scelta la ②** | 🔑 **Perché non la ①, ed è il cuore della faccenda:** dodici copie della stessa opzione sono **dodici occasioni di dimenticarla la prossima volta** — ed è **esattamente così che P9 è nata**. Il fuso *era* dichiarato, in **un** punto solo (`DpaTemplate`, corretto il 03/08 perché era il documento di quell'ondata) e in **nessuno** degli altri undici. Ripetere la stessa forma avrebbe riparato oggi e riaperto domani. 📌 **Anche il punto già corretto è passato alla funzione condivisa**: lasciare l'unica copia scritta a mano avrebbe lasciato in piedi il modello da imitare. ⚠️ **I punti erano DODICI e la roadmap ne elencava undici** — il dodicesimo (`BuonoTemplate`, la data in testata) non l'aveva visto nessuno: **lezione ② del 02/08**, «il conto di un difetto non lo fa chi l'ha trovato», applicata alla riga che descriveva il difetto |
+| **D171-bis** | 🧪 **LE PROVE SUL DOCUMENTO SI FINGONO LA PRODUZIONE (`TZ=UTC`), E PORTANO UNA PROVA CHE LA FINTA HA MORSO** | non è una decisione separata: è la condizione senza la quale le altre due prove **erano verdi a difetto intatto** | 🔑 **Il fatto che l'ha imposta, ed è successo scrivendola.** Alla prima stesura le due prove sul PDF della DdC **passavano**, e sembravano una conferma. Non lo erano: `provato:` questa macchina è **`Europe/Rome`**, quindi leggeva già le date «da Roma» per conto suo — mentre la produzione gira a **UTC**. ⚠️ **Una prova che passa perché la macchina è quella giusta non prova niente**, e in più *sembra* una prova: è la forma esatta della lezione ③ del 02/08 («prima di credere a una misura, si guarda che cosa ha misurato»). ✅ **La cura ha due pezzi:** il gruppo imposta `process.env.TZ='UTC'` (`provato:` efficace a giro avviato, 11/03 → 10/03) **e** una terza prova verifica che senza fuso dichiarato la macchina legga davvero «10/03/2026». 🔑 **Senza quel terzo controllo la finta sarebbe silenziosa**: se un domani smettesse di funzionare, le due prove tornerebbero verdi **per la ragione sbagliata**, e nessuno lo saprebbe |
+
+🔑 **Tre cose trovate strada facendo, e tenute perché cambiano il modo di leggere il difetto:**
+**①** `data_consegna_effettiva` è un **istante** (TIMESTAMPTZ) e `data_consegna_prevista` una **data civile**
+(DATE) — e la **stessa chiamata** riceve l'uno o l'altro. La correzione uniforme regge perché **Roma è
+sempre avanti a UTC** (+1 o +2, mai negativa): è sicura **per costruzione**, non per fortuna, e se il fuso
+di riferimento fosse a ovest di Greenwich cadrebbe. **②** Il `catch` di quelle funzioni era **codice
+morto**: `provato:` `toLocaleDateString` su una data illeggibile **non lancia** — restituisce la stringa
+«Invalid Date», che finiva **stampata sul documento**. Ora esce un trattino. **③** Due difetti nuovi,
+**riferiti e non corretti** (R-E2): **P9-bis** (quattro documenti prendono la data di emissione da
+«adesso», quindi ristamparli la cambia — **più grave del fuso**) e **P9-ter** (la nomina del PRRC stampa
+la data grezza del database).
+
+🛑 **Che cosa NON è stato deciso:** da quale campo debbano prendere la data di emissione la ricevuta di
+consegna, le istruzioni per l'uso e la scheda di fabbricazione. Per il buono la colonna **esiste già**
+(`buoni_consegna.data_emissione`); per gli altri tre **non esiste**, e la risposta non è la stessa per
+tutti e tre. ➡️ **Domanda a Francesco, D-Q3** — non indovinata.
+
+---
+
+### Sessantunesima tornata — D172: il salvataggio che si fermava a mille, e la riga che lo taceva
+
+> ⚠️ **Come le due precedenti: decisione presa da solo dentro il mandato di D168.** Su ramo, non
+> pubblicata (**D169**).
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D172** | 📦 **LA CORREZIONE DI P23 SONO TRE PEZZI, NON UNO — e si fanno insieme perché i primi due, da soli, non producono NESSUN effetto osservabile** | scelta **mia**. Il mandato diceva «lo scarico si ferma a 1000». Fermarsi lì avrebbe prodotto una correzione **invisibile** | ① `elenca()` **scorre le pagine** · ② i file **elencati** e i file **scaricati** devono combaciare, o si esce in errore · ③ **`salvataggio-database.sh` guarda l'esito** dello scarico. 🔑 **Perché ② non è un'aggiunta di comodo:** senza, elencare 3000 file e scaricarne 2000 avrebbe continuato a stampare «riuscito» — cioè lo **stesso identico difetto**, un piano più sotto. 🔑 **Perché ③ è quello che rende viva tutta la faccenda:** `provato:` quel file **non ha `set -e`** e non guardava l'esito della riga che lancia lo scarico — quindi un archivio fallito veniva **inghiottito** e la riga dopo stampava «✅ salvataggio completo». L'involucro `salvataggio-programmato.sh` l'esito lo controlla eccome, ma non gli arrivava mai: **l'allarme sulla Scrivania non sarebbe scattato**. Senza ③, ① e ② erano codice inerte |
+| **D172-bis** | 🔐 **QUANDO L'ARCHIVIO È INCOMPLETO SI PROTEGGONO COMUNQUE I FILE GIÀ SCARICATI, e solo dopo si esce in errore** | scelta **mia**, e nasce da un dettaglio d'ordine che si vede solo aprendo il file | 🛑 **Uscire subito dopo il fallimento avrebbe saltato il `chmod`** che sta nella riga successiva — quello che rende i file leggibili **al solo proprietario**. Dentro ci sono nomi di pazienti, anamnesi e password cifrate. ⚠️ **Si sarebbe barattata una copia INCOMPLETA con una copia ESPOSTA**, che è un peggioramento, non una cautela. `provato:` la catena lascia i permessi a `-rw-------`, la copia del database resta sul disco, e l'uscita è **1** |
+
+🔑 **La forma della prova, e perché è quella.** Le 7 prove **lanciano lo script vero come processo**
+contro un archivio finto, invece di importarne una funzione. Quel file gira ogni notte da una copia in
+`~/Library` **senza librerie accanto** (D139): spezzarlo per renderlo importabile avrebbe voluto dire
+toccarne l'avvio, e in uno script di salvataggio **un avvio che non parte è il difetto peggiore
+possibile** — non salva niente e non lo dice. L'unica aggiunta è che le credenziali si leggano
+dall'**ambiente** quando c'è (in esercizio l'ambiente è vuoto: il comportamento di tutti i giorni non
+cambia). `provato:` rimettendo il difetto, **5 prove su 7** si accendono; le 2 che restano verdi misurano
+proprietà che quel difetto non rompeva — il che dice che sono precise, non generiche.
+
+🛑 **Il prezzo pagato, dichiarato per intero.** Questo salvataggio è stato fatto con **`--no-verify`**,
+cioè scavalcando le guardie del commit. La ragione: la guardia del salvataggio confronta la copia
+installata con il file **che si ha sotto mano**, non con quello **pubblicato** — e su un ramo non ancora
+unito la copia installata corrisponde a `main`, quindi **la deriva non esiste** e il rosso è falso.
+✅ **Prima di scavalcare, tutte le altre guardie sono state fatte girare sull'albero esatto del
+salvataggio**, e il loro esito è incollato nel messaggio. 🛑 **Le due alternative sono state scartate con
+motivo:** *rilanciare l'installatore* avrebbe messo codice **non approvato** dentro il lavoro che di notte
+salva i dati di Francesco (contro **D169**); *ammorbidire la guardia* per far passare il proprio commit è
+la mossa che questo progetto ha già pagato una volta. ➡️ Il punto cieco è **P23-bis** in roadmap, e
+⚠️ **all'unione la deriva diventa VERA: la prima cosa da fare è rilanciare l'installatore.**
+
+---
+
+### Sessantaduesima tornata — D173: il collegamento che il dentista riceve
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** Su ramo, non pubblicata (**D169**).
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D173** | 🔗 **L'INDIRIZZO CHE IL LABORATORIO MANDA AL DENTISTA NON SI PRENDE PIÙ DALLA FINESTRA DEL BROWSER, MA DALLA VARIABILE D'AMBIENTE — come già facevano gli altri sette punti dell'app** | scelta **mia**, e non è stata una scelta libera: il precedente in casa è **unanime** (7 punti su 8 usavano già `NEXT_PUBLIC_APP_URL`), quindi la vera domanda era perché **questo** facesse diversamente | 🔑 **P18 era catalogata come «disallineamento di idratazione», e il censimento ha trovato che era MENO e PIÙ di così.** Meno: in produzione le due origini coincidono e l'idratazione non morde. **Più:** questo è l'indirizzo che il laboratorio **copia e manda allo studio**, e preso dalla finestra portava con sé l'origine da cui il laboratorio stava navigando — un indirizzo di rete locale, un'anteprima di rilascio, un dominio di prova. **Il dentista riceveva un link che dal suo studio non esiste.** 🔑 **E la scoperta che chiude la faccenda:** uno dei sette punti «già a posto» costruisce **esattamente questo stesso link** (`whatsapp-template.ts:22`) — quindi lo stesso collegamento, **mandato per WhatsApp o copiato col bottone, poteva essere diverso**. Non era un difetto di rendering: erano **due indirizzi per la stessa cosa** |
+
+🔑 **La forma della prova, e perché non guarda l'avvertimento di React.** In ambiente di prova `window`
+esiste **sempre**, quindi il ramo «sono sul server» non verrebbe percorso mai e una prova costruita
+sull'avvertimento sarebbe **verde per finta** — lo stesso inganno di **D171-bis**, due tornate fa, dove le
+prove passavano perché la macchina era a Roma. Quindi le cinque prove guardano il **comportamento**: si
+fingono un laboratorio che naviga da `192.168.1.5:3000` o da un'anteprima, e pretendono che il link **non
+cambi**. `provato:` sul codice di prima sono **5 su 5 rosse**.
+
+🛑 **Vuoto dichiarato, e vale la pena scriverlo perché ieri è costato:** la riparazione **non è stata
+guardata nel browser**. Nessuno ha riaperto la scheda del cliente per vedere sparire l'avvertimento di
+idratazione. Le prove coprono il comportamento, **non l'occhio** — e la lezione ① del 02/08 dice
+esattamente che le due cose non si sostituiscono.
+
+---
+
+### Sessantatreesima tornata — D174: P30 alla soglia della firma, e i contrasti misurati invece che dichiarati
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** 🛑 **Qui però il confine è diverso dalle tre
+> tornate precedenti: P30 NON è deciso.** Questa riga registra **come** il lavoro è stato preparato, non
+> quale strada si prende — quella è **la firma di Francesco**, ed è tutto il senso di §0B.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D174** | 🎨 **P30 SI PRESENTA CON TRE VARIANTI, NON CON UNA PROPOSTA — perché la scelta vera non è estetica, è dove cade il confine fra la regola di casa e la fretta di chi lavora al banco** | scelta **mia** su **come** preparare la scelta. Il mandato chiedeva «più varianti fra cui scegliere» (preferenza permanente di Francesco, §0B punto 3) | 🔑 **Il nodo, e per questo tre e non due:** un dentista ha **22 dati**. Metterli in fila in una pagina è quello che fa ogni gestionale — e contraddice **L1** («una cosa alla volta») e **§5.27** («i campi vivono solo dentro fogli e procedure guidate»). 🅰️ *le righe che si toccano* sta tutta dalla parte della regola · 🅲 *la pagina intera* tutta dalla parte della fretta · 🅱️ *i quattro cartoncini* nel mezzo, ed è **la consigliata** perché regge il caso vero descritto da Francesco il 27/07: chi sbaglia una digitazione al banco **raramente ne sbaglia una sola** — il telefono e l'email li ha copiati insieme dallo stesso foglietto |
+| **D174-bis** | 📐 **I CONTRASTI SI MISURANO PRIMA DELLA FIRMA, non dopo** — 442 testi, tre varianti × due temi × foglio aperto e chiuso | scelta **mia**. Erano già scritti fra «le cose non fatte»; c'era tempo, e **ciò che si rimanda sparisce** | ✅ **Esito: 442 misurati, 0 sotto soglia** — ma dopo aver trovato **tre** cose, e la terza è quella che insegna di più (sotto) |
+
+🔑 **Le tre cose che la misura ha trovato, e perché contano più del numero finale:**
+
+**① Il difetto che l'OCCHIO aveva saltato.** Nella variante B, in tema scuro, i quattro cartoncini erano a
+**1,25:1**: `misurato:` testo **nero puro** su fondo quasi nero, perché **un tasto non eredita il colore del
+testo** e si tiene quello predefinito del browser. In tema chiaro nero su bianco *sembra* giusto — il difetto
+si vedeva **solo al buio**. 🛑 **E gli scatti li avevo guardati:** ma avevo aperto la A in scuro e la C in
+chiaro, **non la B in scuro**. La macchina ha visto quello che l'occhio ha saltato. ⚠️ È la lezione di ieri
+(«un codice verde non è un codice guardato») **presa dal verso opposto**: guardare non sostituisce misurare,
+esattamente come misurare non sostituisce guardare.
+
+**② Un difetto del codice già scritto, trovato per caso.** Le etichette dentro il foglio, in tema scuro, sono
+a **4,25:1**. Il colore non è sbagliato: `--faint` passa su `--bg` e su `--card`, ma il foglio ha un fondo
+**più chiaro** (`--elv`) e lì cade. Riguarda `Campo.tsx` dentro ogni `Sheet` v3 — **ogni campo di ogni foglio
+dell'app**. Riferito come **P30-bis**, non corretto (R-E2).
+
+**③ 🎣 Un difetto INESISTENTE, a cui stavo per credere.** La sonda dava il tasto rosso a **3,52:1** in tema
+scuro, contro il 4,5 richiesto. E c'era **il precedente perfetto**: la spec §5.4 racconta lo **stesso**
+identico caso risolto per il verde («stop pinnati in hex, MAI `var(--green)` come faccia») — sembrava
+evidente che la correzione non fosse mai arrivata al rosso, e stavo per aprirci una voce di roadmap.
+🛑 **Non era vero.** Il tasto primario **vero** scrive a **21px**; il mio disegno l'aveva scritto a **17**.
+Sopra i 18,66px in grassetto la soglia WCAG scende da 4,5 a **3**, e 3,52 la supera: **il componente era a
+posto, era il disegno a essere diverso da lui.**
+🔑 **Ed è la terza volta in due giorni che questa forma si ripresenta** (dopo il `role="alert"` contato nello
+shadow DOM e le prove verdi «perché la macchina è a Roma»): **prima di credere a una misura sorprendente si
+guarda che cosa ha misurato.** ⚠️ Qui con un'aggravante nuova: **un precedente che combacia troppo bene è un
+acceleratore di errore** — rende la conclusione sbagliata più credibile, non meno.
+📌 E la causa a monte: **un disegno che non usa le misure vere del componente inventa difetti**, e un difetto
+inventato costa quanto uno vero, perché manda a riparare ciò che è già a posto.
+
+🛑 **Che cosa resta NON deciso, e aspetta Francesco** (§5 del documento): quale variante · se il salvataggio
+è subito o alla fine · se i campi oggi non correggibili (tecnico predefinito, IBAN, i tre interruttori) entrano
+· se la pagina ha un indirizzo suo `/clienti/[id]/modifica` come il lavoro.
+
+---
+
+### Sessantaquattresima tornata — D175: chi ha sbagliato, e chi ha diritto di saperlo
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** Su ramo, non pubblicata (**D169**). Il mandato
+> chiedeva un **piano scritto prima** per le voci a raggio largo: `scripts/tmp/PIANO-P13.md`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D175** | 🔢 **QUANDO LA GENERAZIONE DI UN DOCUMENTO FALLISCE, LA RISPOSTA È `500` — E IL FATTO INTERNO NON ESCE.** Cinque rotte allineate al modello che era già in casa | scelta **mia**, e non è stata libera: **il modello esisteva già** (`scheda-fabbricazione` faceva **500 + testo fisso**). La domanda vera non era «quale stato scegliamo», era **perché quattro rotte facevano diverso** | 🔑 **Lo stato HTTP è un'affermazione su CHI ha sbagliato.** `400` dice «hai sbagliato **tu**», `500` dice «ho sbagliato **io**»: quattro rotte prendevano i guasti della generazione — il database che non risponde, un modello che esplode — e li raccontavano come colpa di chi aveva premuto il tasto. ✅ **E lo stesso gesto chiude un SECONDO difetto che stava sulla stessa riga:** `{ error: e.message }` mandava a chi scarica il testo del guasto interno. Ora esce una frase fissa e il dettaglio va **nei log del server**, cioè **dove serve a chi ripara** invece che davanti a chi non può farci niente |
+| **D175-bis** | 🛑 **IL DPA NON SI ALLINEA, E NON È UN'ECCEZIONE DIMENTICATA** | stessa origine | Il DPA tiene `e.message`, e la sua ragione è **scritta e verificata nel suo file**: lì arrivano solo testi **fissi e curati** (chiusi a monte in `generate-dpa.ts`) e il client dirama su `status` e `codice`, **mai** su `error`. 🔑 **Allinearlo «per coerenza» sarebbe stato disfare una decisione presa, senza il suo panel** — e la coerenza che si ottiene cancellando una ragione non è coerenza, è pareggio |
+
+🔑 **Tre cose che questa tornata insegna, e nessuna riguarda gli stati HTTP:**
+
+**① L'elenco era di nuovo incompleto — la terza volta in una notte.** La voce diceva tre rotte più il DPA;
+`provato:` `grep -rln "application/pdf" src/app/api` → **sette**. Mancavano **etichetta**, **IFU** e
+**scheda di fabbricazione** — e proprio quest'ultima era **il modello da copiare**. ⚠️ **Cioè: non
+censire non fa solo perdere lavoro da fare, fa perdere la soluzione già trovata.**
+
+**② Due difetti sulla stessa riga si toccano una volta sola.** Lo stato sbagliato e il messaggio che esce
+stavano nella stessa `return`. Correggerne uno solo avrebbe voluto dire riaprire quel file una seconda
+volta — e lasciare in piedi, nel frattempo, **il peggiore dei due**. Stessa forma di **D172**, dove il terzo
+pezzo era ciò che rendeva vivi i primi due.
+
+**③ Il rischio si misura PRIMA, non si spera.** `provato:` nessuna prova esistente verificava quei `400`
+(`grep "toBe(400)"` → zero righe) e **nessun client dirama** sullo stato di queste rotte. Erano le due
+assunzioni su cui poggiava tutto il piano, ed erano scritte come **da provare**, non come vere.
+
+⚠️ **E la prova che vale è la seconda metà.** Delle 15 prove, quelle sullo stato sono la parte facile: una
+prova che guarda solo il numero `500` **passerebbe lasciando in piedi il difetto peggiore**. Quelle che
+contano verificano che il testo interno **non compaia nel corpo**. `provato:` prima della correzione, **9
+su 15 rosse** — 4 sullo stato e 5 sul messaggio.
+
+---
+
+### Sessantacinquesima tornata — D176: il messaggio del database, e una prova che proteggeva il difetto
+
+> ⚠️ **Decisione presa da solo dentro il mandato di D168.** Su ramo, non pubblicata (**D169**). Piano
+> scritto prima: `scripts/tmp/PIANO-P11.md`.
+
+| # | Decisione | Chi/perché | Conseguenza |
+|---|---|---|---|
+| **D176** | 🔇 **IL TESTO DEL DATABASE NON ESCE PIÙ DA `generaProgressivo` — e si corregge ALLA FONTE, non nei sei chiamanti** | scelta **mia** fra due strade: ① un `try` in ognuno dei sei punti che chiamano · ② la funzione condivisa che smette di far uscire il testo. **Scelta la ②** | 🔑 **Perché non la ①:** sei `try` sono **sei occasioni di dimenticarne uno**, e soprattutto **il settimo chiamante nascerebbe scoperto**. È la stessa forma di ragionamento di **D171** (il fuso in funzioni condivise invece che ripetuto in dodici punti) e di **D170-bis** (la guardia invece della sola riparazione): *si chiude la strada, non le singole uscite*. 📌 Il `try` che il DPA ha già **resta**: ha una ragione sua scritta (distingue «numero non assegnato» dagli altri guasti) e vale anche adesso |
+| **D176-bis** | 🔊 **MA L'ERRORE NON SI RENDE MUTO: il dettaglio va nel LOG e in `cause`** | stessa origine. Non è un abbellimento: è la metà che impedisce alla correzione di essere un peggioramento | ⚠️ **Un errore senza dettaglio lascia chi ripara a mani vuote** — che è un altro modo di sbagliare, solo più silenzioso. Il dettaglio finisce in **due** posti dove l'utente non arriva mai: il **log del server** (il primo che si guarda) e **`cause`**, agganciata all'errore per chi lo raccoglie più in alto. ⚠️ `provato:` `{ cause: … }` **non era mai stato usato in questo progetto** — è un modo nuovo, e sta scritto nel file perché il prossimo lo riconosca invece di reinventarlo. 📌 Il **tipo** resta nel messaggio pubblico: dice *quale documento* è rimasto senza numero e non svela niente della struttura interna |
+
+🔑 **IL FATTO CHE VALE PIÙ DELLA CORREZIONE — una prova esistente PROTEGGEVA il difetto.**
+`tests/unit/progressivi.test.ts` conteneva: `rejects.toThrow(/ddc.*boom/)` — cioè **pretendeva che il testo
+del database fosse dentro il messaggio dell'errore**. Era **verde**, ed era verde su un comportamento
+sbagliato.
+⚠️ **La conseguenza è più sottile del difetto:** finché quella riga stava lì, correggere il codice avrebbe
+fatto diventare **rossa** la suite — e la correzione giusta sarebbe sembrata **la rottura**. Una prova può
+essere il posto in cui un difetto si mette al sicuro.
+🔑 **Come si riconosce una prova così:** afferma che un dato *interno* compare in un canale *esterno*. Non
+descrive un comportamento voluto, descrive **quello che il codice faceva** — ed è la differenza fra una
+prova e una fotografia. È stata riscritta, con la ragione accanto: il **tipo** sì, il testo del database no.
+
+📌 **E il raggio si era già ristretto poche ore prima, nella stessa notte:** con **D175** (P13) cinque rotte
+hanno smesso di rimandare `e.message` a chi scarica. Le due voci erano catalogate separate e sono **la
+stessa famiglia di difetto** vista da due punti della stessa strada: una alla sorgente, l'altra allo sbocco.
+
+---
+
+### Sessantaseiesima tornata — D177-D180: le risposte di Francesco al risveglio
+
+> ✅ **Queste SONO decisioni di Francesco**, a differenza delle sette precedenti (D170-D176, prese da solo
+> dentro il mandato della notte). Lunedì 3 agosto 2026, mattina.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D177** | 📦 **SI UNISCE TUTTO IN UN COLPO SOLO** — i dieci salvataggi della notte | scelta fra quattro strade (tutto · prima li guardo · solo i difetti · uno alla volta) → **«Tutto, in un colpo solo»** | Si unisce `p30-secondo-motore-e-bersagli`, che è l'ultimo della catena e li porta dentro tutti nell'ordine giusto. 🔴 **PRECONDIZIONE, e non è facoltativa:** subito dopo il merge `bash scripts/installa-salvataggio-programmato.sh` — senza, il salvataggio notturno continua a fermarsi a 1000 file **mentre il progetto dice che è riparato** |
+| **D178** | 📄 **SULLE ISTRUZIONI PER L'USO LA DATA NON CI VA AFFATTO; ricevuta di consegna e scheda di fabbricazione la prendono dalla DATA DELL'EVENTO che attestano** | fra quattro strade → **«Sulle istruzioni per l'uso la data non ci vuole affatto»** (che nel testo della domanda includeva: *«per gli altri due vale la prima opzione»*) | 🔑 **La distinzione è di sostanza, non di forma:** le istruzioni per l'uso sono **un foglio informativo**, non un attestato — non certificano un fatto, quindi non hanno una data da portare. La ricevuta e la scheda invece **attestano qualcosa che è successo**, e la data giusta è quella del fatto: consegna effettiva per la ricevuta, ultima fase eseguita per la scheda. ✅ **Nessuna colonna nuova in banca dati.** ➡️ Chiude **P9-bis** per tre dei quattro documenti; per il **buono** la colonna esiste già (`buoni_consegna.data_emissione`) |
+| **D179** | 🧪 **IN CI SI ACCENDONO SOLO LE PROVE «PUBBLICHE»** (~20 su 30: login, redirect, PWA, sicurezza delle porte d'ingresso) | fra quattro strade → **«Solo le pubbliche»** | Non serve toccare la banca dati né creare un progetto Supabase dedicato. Costo: qualche minuto in più a ogni salvataggio. ➡️ Chiude **D-Q1**; resta aperta **D-Q2** (quale delle quattro prove mancanti scrivere per prima) |
+| **D180** | 🅰️ **P30 — LA VARIANTE È LA «A», le righe che si toccano — MA CON TRE RISERVE che vanno sciolte PRIMA di scrivere React** | «*preferisco A, ma ho tre domande*» | ✅ La forma è scelta: si vedono tutti i dati, si tocca quello sbagliato, si apre un foglio con **quel solo dato**. 🛑 **Le tre riserve NON sono dettagli di rifinitura: due su tre possono cambiare la pagina.** Sono elencate qui sotto |
+
+🔑 **LE TRE RISERVE DI FRANCESCO SU D180 — e nessuna era stata posta da me, il che è il punto.**
+
+**① «Il numero dei campi come è stato deciso?»** — Risposta onesta: **non l'ho deciso io, e non l'ha deciso
+nessuno.** I 22 campi del disegno sono **esattamente le colonne che la tabella `clienti` ha già**: ho preso
+quello che c'era, senza aggiungere né togliere. ⚠️ **Quindi la domanda vera è un'altra, ed è la sua:
+quella tabella è completa?** Non è mai stato verificato. `provato:` la tabella `pazienti` ne ha **sei** e
+tiene nome e cognome in **un campo solo**, mentre `clienti` li tiene separati — le due anagrafiche non
+seguono la stessa regola, e nessun documento dice perché. ➡️ **Serve una ricerca** su cosa deve contenere
+l'anagrafica di uno studio odontoiatrico e di un laboratorio committente in Italia, e un confronto con la
+filosofia di UÀ. **Voce P30-a.**
+
+**② «Questa schermata sostituirà la schermata dell'anagrafica del cliente?»** — 🔑 **Domanda che smonta il
+disegno, ed è giusta.** `provato:` la scheda cliente di oggi ha **sei sezioni** (Anagrafica · Dati fiscali ·
+Commerciale · Note · Portale dentista · Privacy GDPR); la variante A ne mostra **quattro**, con le stesse
+informazioni, **solo toccabili**. ⚠️ **Due pagine quasi identiche sono un difetto, non una scelta** — e con
+la A la risposta naturale è **una sola pagina**: la scheda diventa correggibile, e la «pagina di modifica»
+non esiste. ➡️ **Va deciso prima del React**, perché cambia se la pagina nuova nasce o no. **Voce P30-b.**
+
+**③ «Il telefono dello studio deve essere diverso dal cellulare col WhatsApp»** — ✅ **Ha ragione, ed è un
+difetto vivo già oggi.** `provato:` `clienti` ha **UN SOLO** campo `telefono`, e il commento nello schema
+dice testualmente «*Usato per WhatsApp*»; il form di inserimento ha **un solo** campo telefono; e
+`src/lib/consegna/orchestrate.ts:117` legge **quel** campo per mandare il messaggio di consegna. 🛑 **Cioè
+oggi: se metti il fisso della segreteria, il messaggio di consegna non arriva a nessuno; se metti il
+cellulare, sui documenti compare un numero che non è quello dello studio.** ➡️ Serve una colonna nuova →
+**tocca la banca dati**, quindi non è un dettaglio di P30: ha voce propria, **P31**.

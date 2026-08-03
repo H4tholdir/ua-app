@@ -131,10 +131,24 @@ function SharePortaleButton({
 }
 
 export function PortaleLinkButtons({ portaleToken, clienteNome }: Props) {
-  const base =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : 'https://uachelab.com'
+  // ⚠️ P18 (02/08/2026) — QUI C'ERA `window.location.origin`, e faceva due danni.
+  //
+  // ① **Idratazione disallineata.** Il server stampava sempre `uachelab.com`, il
+  //    browser l'origine vera: React se ne accorgeva («*the server rendered text
+  //    didn't match*») e **rigenerava il sottoalbero**. In produzione le due
+  //    origini coincidono, quindi non mordeva — ma è una coincidenza, non una
+  //    garanzia.
+  // ② 🔑 **E il danno grosso è l'altro: il link poteva essere SBAGLIATO.** Questo
+  //    è l'indirizzo che il laboratorio **copia e manda al dentista**. Aperto da
+  //    un tablet sulla rete del laboratorio, da un'anteprima di rilascio o da un
+  //    dominio di prova, il dentista riceveva un indirizzo che dal suo studio
+  //    **non esiste**.
+  //
+  // 📌 Il precedente in casa è unanime — **sette punti** costruiscono così un
+  //    indirizzo assoluto — e uno di quei sette fa **esattamente questo link**:
+  //    `src/lib/consegna/whatsapp-template.ts:22`. Cioè lo stesso collegamento,
+  //    mandato per WhatsApp o copiato col bottone, poteva essere **diverso**.
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://uachelab.com'
 
   const portaleUrl = `${base}/portale/${portaleToken}`
   const richiestaUrl = `${base}/richiedi/${portaleToken}`

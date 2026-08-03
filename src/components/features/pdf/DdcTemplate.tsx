@@ -5,6 +5,7 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio, DichiarazioneConformita, ClasseRischio, TipoDispositivo } from '@/types/domain'
 import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -195,18 +196,13 @@ const styles = StyleSheet.create({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-function formatData(isoString: string): string {
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  } catch {
-    return isoString
-  }
-}
+// P9 (02/08/2026) — la data si stampa nel giorno civile ITALIANO, non nel fuso
+// della macchina. `dichiarazioni_conformita.data_emissione` è un TIMESTAMPTZ, cioè
+// un istante: letto a UTC — com'è in produzione — un documento emesso alle 00:30
+// di Roma portava la data del giorno prima, mentre il suo NUMERO era già del
+// giorno dopo (`annoRoma`, dal 20/07/2026). Su un documento a valore legale
+// (Art. 52(8) + Allegato XIII MDR) è una discordanza che non si tiene.
+const formatData = dataItalianaBreve
 
 function formatClasseRischio(classe: ClasseRischio): string {
   const map: Record<ClasseRischio, string> = {

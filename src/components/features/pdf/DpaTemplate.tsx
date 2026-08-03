@@ -4,6 +4,7 @@
 // react/no-unescaped-entities disabilitato via eslint.config.mjs per tutti i template PDF
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { dataItalianaEstesa } from '@/lib/utils/data-roma'
 
 const styles = StyleSheet.create({
   page: {
@@ -100,12 +101,11 @@ export function DpaTemplate({ dpa }: Props) {
   //    `provato:` 2026-03-10T23:30:00Z → «10 marzo 2026» a UTC, «11 marzo 2026»
   //    a Roma. E in prova, senza fuso dichiarato, l'impronta del testo cambia
   //    da macchina a macchina.
-  //    ⚠️ Lo stesso difetto vive in altri DIECI punti, in sette modelli PDF
-  //    (DdC compresa): roadmap, voce P9. Qui è corretto perché è il documento di
-  //    questa ondata — gli altri NON si toccano di sfuggita (R-E2).
-  const data = new Date(dpa.data_emissione).toLocaleDateString('it-IT', {
-    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome',
-  })
+  //    ✅ **P9 CHIUSA il 02/08/2026**: gli altri undici punti sono stati corretti,
+  //    e questo è passato dall'opzione scritta a mano alla funzione condivisa. 🔑 Il
+  //    fuso dichiarato in UN punto solo era proprio la forma del difetto: undici
+  //    copie della stessa opzione sono undici occasioni di dimenticarla.
+  const data = dataItalianaEstesa(dpa.data_emissione)
 
   return (
     <Document title={`DPA-${dpa.numero_dpa}`} author={labNome}>

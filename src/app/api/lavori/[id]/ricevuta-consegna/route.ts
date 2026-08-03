@@ -43,8 +43,24 @@ export async function GET(
         },
       })
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Errore imprevisto'
-      return NextResponse.json({ error: message }, { status: 400 })
+    // P13 (03/08/2026) — DUE cose su una riga sola.
+    // ① 🛑 LO STATO. Qui arrivano i guasti della GENERAZIONE, non gli errori di
+    //    chi ha premuto: `400` diceva «hai sbagliato tu» per un guasto di UÀ.
+    //    Lo stato HTTP è un'affermazione su CHI ha sbagliato, e qui ha
+    //    sbagliato il servizio. Il modello è `scheda-fabbricazione`, che
+    //    faceva già così.
+    // ② 🛑 IL MESSAGGIO. `e.message` finiva nel corpo della risposta: il testo
+    //    di un guasto interno — nomi di tabelle, di colonne, la query — arriva
+    //    a chi sta davanti allo schermo. È P11 visto da un'altra strada.
+    //    Ora esce una frase fissa, e il dettaglio va DOVE SERVE: nei log del
+    //    server, per chi ripara.
+    // 🛑 Il DPA fa diverso APPOSTA (tiene `e.message`) e non si allinea qui:
+    //    la sua ragione è scritta nel suo file ed è stata verificata.
+      console.error('[ricevuta-consegna] generazione fallita:', e)
+      return NextResponse.json(
+        { error: 'Non è stato possibile generare il documento (ricevuta di consegna). Riprova fra poco.' },
+        { status: 500 },
+      )
     }
   })
 }
