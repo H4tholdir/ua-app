@@ -30,9 +30,12 @@ git status --short
 Mai fidarsi della memoria di sessione per dire dove siamo. Si misura:
 ```bash
 git log --oneline -3 && git log --oneline origin/main..main | wc -l
-npx tsc --noEmit && npx vitest run && npx next build
+npm run verify:full
 ```
-🛑 **I tre comandi sono tre e nessuno sostituisce l'altro** (`tsc` non vede la firma degli handler di rotta).
+🛑 **I tre comandi storici (tsc · vitest · build) sono tre e nessuno sostituisce l'altro** (`tsc` non vede
+la firma degli handler di rotta). `verify:full` (D197, PIPELINE-3 Fase 0) li esegue tutti e tre PIÙ lint
+e le sei guardie — e usa `npm run build`, non `next build` nudo: il one-liner precedente saltava la
+generazione del service worker (`prebuild` → `scripts/generate-sw.mjs`).
 Il numero delle prove **si incolla**, non si stima: diventa il riferimento della sessione nuova.
 
 ### 3. Fai il censimento di ciò che resta aperto — e cercalo, non ricordalo

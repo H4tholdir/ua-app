@@ -16,6 +16,9 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run tests/integration",
     "seed:e2e": "tsx scripts/seed-e2e.ts",
+    "verify:fast": "tsc --noEmit && eslint src --max-warnings 0 && vitest run tests/unit && node scripts/segna-verifica.mjs fast",
+    "verify:full": "tsc --noEmit && eslint src --max-warnings 0 && vitest run && npm run build && npm run guardie && node scripts/segna-verifica.mjs full",
+    "guardie": "bash scripts/check-ds-compliance.sh && bash scripts/check-csrf.sh && node scripts/guardia-reduced-motion.mjs && node scripts/guardia-coerenza-documenti.mjs && node scripts/guardia-salvataggio-installato.mjs && node scripts/guardia-progetti-playwright.mjs",
     "prepare": "husky"
   },
   "dependencies": {
