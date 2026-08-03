@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
 import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
 import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+import { ChiediCellulareSheet } from '@/components/features/clienti/ChiediCellulareSheet'
 import type { EstrattoContoResponse, DovutoEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
 import { RegistraPagamentoSheet, type TargetPagamento } from './RegistraPagamentoSheet'
 import { FatturaCard } from './FatturaCard'
@@ -28,14 +29,25 @@ interface BottomSheetProps {
    *  prop chiamata "telefono" che doveva ricevere il cellulare è esattamente
    *  come è nato il difetto P31. */
   cellulare: string | null
+  /** D185 — serve a salvare il cellulare quando manca (`ChiediCellulareSheet`
+   *  chiama `PATCH /api/clienti/[id]`): senza, il tasto non saprebbe a chi
+   *  salvarlo. */
+  clienteId: string
   studioNome: string
   onClose: () => void
   onRegistraPagamento: (target: TargetPagamento) => void
+  /** D185 — dopo il salvataggio il cliente ha di nuovo un cellulare: si
+   *  aggiorna la vista (stessa `router.refresh()` di `handleRegistrato`)
+   *  così il sollecito globale non chiede di nuovo un numero già salvato. */
+  onCellulareSalvato: () => void
 }
 
-function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
+function DovutoBottomSheet({ dovuto, cellulare, clienteId, studioNome, onClose, onRegistraPagamento, onCellulareSalvato }: BottomSheetProps) {
   const reducedMotion = useReducedMotion()
   const color = dovuto ? urgencyColor(dovuto) : DS.t2
+  // D183/D185: il cellulare può mancare — il tasto non sparisce più (il gate
+  // era `cellulare && !dovuto.pagata`, compito 4), chiede il numero e lo salva.
+  const [chiediAperto, setChiediAperto] = useState(false)
 
   const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo }) : ''
   const whatsappUrl = (dovuto && cellulare && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, cellulare) : ''
@@ -108,22 +120,26 @@ function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraP
             </div>
 
             <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {cellulare && !dovuto.pagata && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={onClose}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
-                    borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
-                    textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
-                  }}
-                >
-                  <WhatsAppIcon />
-                  Invia sollecito WhatsApp
-                </a>
+              {!dovuto.pagata && (
+                cellulare ? (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={onClose}
+                    style={whatsappCtaStyle}
+                  >
+                    <WhatsAppIcon />
+                    Invia sollecito WhatsApp
+                  </a>
+                ) : (
+                  // D183/D185 — il cellulare manca: il tasto CHIEDE il numero
+                  // invece di sparire (era il gate del compito 4).
+                  <button type="button" onClick={() => setChiediAperto(true)} style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}>
+                    <WhatsAppIcon />
+                    Invia sollecito WhatsApp
+                  </button>
+                )
               )}
 
               {!dovuto.pagata && (
@@ -165,10 +181,33 @@ function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraP
               )}
             </div>
           </motion.div>
+
+          <ChiediCellulareSheet
+            aperto={chiediAperto}
+            clienteId={clienteId}
+            nomeDestinatario={studioNome}
+            onChiudi={() => setChiediAperto(false)}
+            onSalvato={(cell) => {
+              setChiediAperto(false)
+              const url = buildWhatsappUrl(whatsappMsg, cell)
+              window.open(url, '_blank', 'noopener,noreferrer')
+              onCellulareSalvato()
+            }}
+          />
         </>
       )}
     </AnimatePresence>
   )
+}
+
+// Stile condiviso del CTA WhatsApp (link diretto o tasto che chiede il
+// cellulare, D183/D185): STESSA faccia in entrambi i rami — la scelta fra
+// "apre" e "chiede" non deve leggersi anche nell'aspetto.
+const whatsappCtaStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+  minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+  borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+  textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
 }
 
 function KpiMini({ label, value, color }: { label: string; value: string; color: string }) {
@@ -208,6 +247,9 @@ export function EstrattoContoView({ dati }: Props) {
   const reducedMotion = useReducedMotion()
   const [selectedDovuto, setSelectedDovuto] = useState<DovutoEstratto | null>(null)
   const [targetPagamento, setTargetPagamento] = useState<TargetPagamento | null>(null)
+  // D183/D185: sollecito globale — il cellulare può mancare, il tasto chiede
+  // invece di sparire (era il gate del compito 4: `whatsappUrlGlobale` null).
+  const [chiediGlobaleAperto, setChiediGlobaleAperto] = useState(false)
 
   const nonSaldati = dati.dovuti.filter((d) => !d.pagata)
   const saldati = dati.dovuti.filter((d) => d.pagata)
@@ -315,34 +357,40 @@ export function EstrattoContoView({ dati }: Props) {
             dovutiApplicabili={nonSaldati}
           />
 
-          {dati.creditoCliente.confermato > 0 && whatsappUrlGlobale && (
+          {dati.creditoCliente.confermato > 0 && (
             <div style={{ padding: '0 16px 24px' }} className="estratto-card-list">
-              <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
-                borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
-                textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
-              }}>
-                <WhatsAppIcon />
-                Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
-              </a>
+              {whatsappUrlGlobale ? (
+                <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={whatsappCtaStyle}>
+                  <WhatsAppIcon />
+                  Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
+                </a>
+              ) : (
+                // D183/D185 — il cellulare manca: il tasto CHIEDE il numero
+                // invece di sparire (era il gate del compito 4).
+                <button type="button" onClick={() => setChiediGlobaleAperto(true)} style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}>
+                  <WhatsAppIcon />
+                  Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
+                </button>
+              )}
             </div>
           )}
         </div>
 
         <div className="estratto-col-sidebar">
           <ClienteInfoCard cliente={dati.cliente} saldo_insoluto={dati.creditoCliente.confermato} />
-          {dati.creditoCliente.confermato > 0 && whatsappUrlGlobale && (
+          {dati.creditoCliente.confermato > 0 && (
             <div style={{ marginTop: 12 }}>
-              <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
-                borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
-                textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
-              }}>
-                <WhatsAppIcon />
-                Invia sollecito WhatsApp
-              </a>
+              {whatsappUrlGlobale ? (
+                <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={whatsappCtaStyle}>
+                  <WhatsAppIcon />
+                  Invia sollecito WhatsApp
+                </a>
+              ) : (
+                <button type="button" onClick={() => setChiediGlobaleAperto(true)} style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}>
+                  <WhatsAppIcon />
+                  Invia sollecito WhatsApp
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -351,15 +399,30 @@ export function EstrattoContoView({ dati }: Props) {
       <DovutoBottomSheet
         dovuto={selectedDovutoAggiornato}
         cellulare={dati.cliente.cellulare_whatsapp}
+        clienteId={dati.cliente.id}
         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
         onClose={closeSheet}
         onRegistraPagamento={setTargetPagamento}
+        onCellulareSalvato={() => router.refresh()}
       />
 
       <RegistraPagamentoSheet
         target={targetPagamento}
         onClose={() => setTargetPagamento(null)}
         onRegistrato={handleRegistrato}
+      />
+
+      <ChiediCellulareSheet
+        aperto={chiediGlobaleAperto}
+        clienteId={dati.cliente.id}
+        nomeDestinatario={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
+        onChiudi={() => setChiediGlobaleAperto(false)}
+        onSalvato={(cell) => {
+          setChiediGlobaleAperto(false)
+          const url = buildWhatsappUrl(whatsappMsgGlobale, cell)
+          window.open(url, '_blank', 'noopener,noreferrer')
+          router.refresh()
+        }}
       />
     </>
   )
