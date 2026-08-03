@@ -127,10 +127,19 @@ sono in `.env.local` (**D103**): link d'accesso **monouso**, `npx tsx scripts/tm
 3. 🔴 **P31 NON È PIÙ TEORICA — c'è un dato vero che la mostra.** `provato:` il campo **TELEFONO** di
    quello studio vale **`097671439`**, e `0976` è il prefisso di **Muro Lucano (PZ)** — coerente con
    l'indirizzo della stessa scheda, «*VIA ROMA, 12, 85054, MURO LUCANO, PZ*». 🛑 **È un numero FISSO in
-   un campo che lo schema dichiara «Usato per WhatsApp».** Cioè: **il messaggio di consegna a questo
-   studio, oggi, non arriverebbe a nessuno** — e nessuno se ne accorgerebbe, perché il messaggio parte
-   lo stesso. 🔑 **Questo cambia il peso di P31:** non è un difetto latente in attesa di un caso limite,
-   è un difetto **già mordente su un dato già inserito**.
+   un campo che lo schema dichiara «Usato per WhatsApp».** 🔑 **Questo cambia il peso di P31:** non è un
+   difetto latente in attesa di un caso limite, è un difetto **già mordente su un dato già inserito**.
+   🔄 **CORRETTA la sera stessa — la prima stesura di questa riga diceva «*non arriverebbe a nessuno, e
+   nessuno se ne accorgerebbe, perché il messaggio parte lo stesso*». Era una DEDUZIONE, non una misura.**
+   `provato:` `buildWhatsappUrl` (`src/lib/consegna/whatsapp-template.ts:35-40`) costruisce
+   `https://wa.me/<solo le cifre>` — quindi il collegamento **si forma** e **si apre**; `curl` mostra che
+   `wa.me` reindirizza a `api.whatsapp.com` **allo stesso modo** per un fisso, per un cellulare senza
+   prefisso e per uno col prefisso: **la validazione avviene nell'app, non nel server**. 🛑 **Che cosa
+   veda esattamente chi preme — un errore, una chat vuota, nient'altro — NON È VERIFICATO**, e per
+   verificarlo serve un telefono vero. **Resta un vuoto dichiarato**, non un fatto.
+   ⚠️ **E la deduzione sbagliata rendeva il difetto più drammatico di quanto sia provato**: è la forma
+   della lezione ① della notte (*una misura sorprendente si smonta prima di crederle*) applicata a una
+   frase **mia**.
 
 ---
 

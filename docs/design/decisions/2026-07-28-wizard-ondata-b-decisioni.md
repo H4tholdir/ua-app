@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla sessantaseiesima tornata (D177-D180: le risposte di Francesco al risveglio — si unisce tutto, la variante A con tre riserve, la data dei documenti, le prove in CI)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla sessantasettesima tornata (D181-D183: due numeri per il cliente, il prefisso lo mette UÀ, e il tasto chiede il numero che manca — apertura di P31)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Centottanta decisioni in sessantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Centottantatré decisioni in sessantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1305,3 +1305,49 @@ dice testualmente «*Usato per WhatsApp*»; il form di inserimento ha **un solo*
 oggi: se metti il fisso della segreteria, il messaggio di consegna non arriva a nessuno; se metti il
 cellulare, sui documenti compare un numero che non è quello dello studio.** ➡️ Serve una colonna nuova →
 **tocca la banca dati**, quindi non è un dettaglio di P30: ha voce propria, **P31**.
+
+---
+
+### Sessantasettesima tornata — D181: quanti numeri tiene un cliente
+
+**Quando:** lunedì 3 agosto 2026, dopo l'unione della notte in produzione (`provato:` `date`).
+**Come ci si è arrivati:** apertura di **P31** con la FASE 2 (brainstorming). Prima di chiedere, tre
+misure — e tutte e tre hanno cambiato la domanda.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D181** | 📞 **DUE NUMERI, con due significati distinti: «Telefono dello studio» (quello che si chiama, che va sui documenti, può essere un fisso) e «Cellulare WhatsApp» (quello a cui arrivano consegne e solleciti)** | fra tre strade (due campi · tre campi, distinguendo il cellulare del dentista dal numero su cui tiene WhatsApp · un campo solo con l'interruttore «questo numero è su WhatsApp») → **«Due: studio + WhatsApp»** | ➡️ **Una colonna nuova** su `clienti` → migration + `gen types` + **FASE 6b**, e **dominio critico → percorso GRANDE**. 🛑 **La colonna nuova va aggiunta a `PATCHABLE_FIELDS_CLIENTE`** (`src/app/api/clienti/[id]/route.ts:16-23`), o il dato **smette di salvarsi in silenzio** (R-P6) |
+| **D182** | 🔢 **IL PREFISSO INTERNAZIONALE LO METTE UÀ DA SOLO** — chi sta al banco scrive il numero come lo scrive sempre, e il programma aggiunge il `39` quando costruisce il collegamento; se il numero ha già un `+` o comincia con `39`, non lo tocca | fra tre strade (lo mette UÀ · lo chiede la schermata col campo precompilato `+39` · tutt'e due) → **«Lo mette UÀ da solo»** | ✅ **Fedele al principio fondante** («*non deve preoccuparsi più di niente*»): nessuno deve imparare una regola nuova. ➡️ Nasce **una funzione condivisa** — e va messa **in un posto solo**, perché i punti che costruiscono un collegamento WhatsApp col numero del cliente sono **tre** (consegna + due solleciti) e un quarto nascerebbe scoperto. 🔑 **È la stessa forma della correzione di P11**, dove il difetto è stato chiuso **alla fonte** e non nei sei chiamanti. ⚠️ **Il caso straniero va dichiarato, non dedotto:** un numero con `+` proprio si rispetta; **che cosa fare di un numero senza `+` che non è italiano non è deciso** — oggi non ci sono clienti stranieri in banca dati, e la scelta si scrive nella spec |
+| **D183** | ➕ **SE IL CELLULARE WHATSAPP MANCA, IL TASTO LO CHIEDE E LO SALVA** — si apre un foglio col solo campo, il numero entra in anagrafica, poi parte il messaggio; la volta dopo non lo chiede più | fra tre strade (lo chiede e lo salva · come oggi, WhatsApp senza destinatario e si sceglie il contatto a mano · il tasto non compare affatto) → **«Il tasto lo chiede e lo salva»** | 🔑 **Il momento in cui te ne accorgi è il momento giusto per rimediare**, e **nessun tasto è mai morto** — che è la stessa ragione di **D165** (il tasto «Aggiungi il dato» di P17 sarebbe stato un tasto che si preme e non succede niente) e della **direttiva permanente del 27/07** («*ogni campo si corregge, fino alla consegna*»). ➡️ **Costo:** un foglio v3 a un campo solo, e una scrittura in anagrafica **dal percorso della consegna** — cioè un punto di scrittura in più da mettere in allowlist. 🛑 **E un vincolo che nasce da qui:** il numero si salva **prima** di aprire WhatsApp, non dopo — altrimenti un messaggio mandato e un'anagrafica non aggiornata sono due fatti che si separano, e alla consegna dopo si richiede di nuovo |
+
+🔎 **TRE MISURE PRESE PRIMA DI CHIEDERE, e ognuna ha smontato qualcosa di scritto.**
+
+**① Il «travaso» non esiste — e la voce di roadmap lo dava per il pezzo delicato.** P31 diceva: «*va
+deciso il travaso di ciò che c'è (i numeri già inseriti sono fissi o cellulari? non è distinguibile a
+occhio)*». `provato:` **39 clienti in banca dati, UNO SOLO ha il telefono valorizzato** (il fisso di Muro
+Lucano trovato in produzione), e **ZERO hanno l'email**. 🔑 **Non c'è niente da travasare**, e la domanda
+che sembrava la più costosa **si dissolve**. ⚠️ Vale la pena notare come si era formata: nessuno aveva
+contato, e «*non è distinguibile a occhio*» presuppone che ci sia qualcosa da guardare.
+
+**② Le due schermate che scrivono quel campo si contraddicono GIÀ OGGI, nelle etichette.** `provato:`
+`ClienteEditSheet.tsx:324-330` lo chiama **«Telefono»** e suggerisce **`+39 02 1234567`** — un **fisso**,
+col prefisso internazionale; `NuovoDentistaSheet.tsx:106-110` lo chiama **«Cellulare/WhatsApp»** e
+suggerisce **`333 1234567`** — un **cellulare**, **senza** prefisso. 🔑 **Il difetto che Francesco ha
+visto nei disegni era già scritto nelle etichette**, e non l'aveva visto nessuno perché **le due
+schermate non si guardano mai insieme**.
+
+**③ E c'è un TERZO pezzo che non era nella voce: nessuno mette il prefisso internazionale.** `provato:`
+`buildWhatsappUrl` (`src/lib/consegna/whatsapp-template.ts:35-40`) fa `phone.replace(/\D/g,'')` e lo
+attacca a `https://wa.me/` — **nessun punto del codice aggiunge il `39`**. Il confronto in casa:
+`PecSetupWidget.tsx:164-167` funziona **solo perché** `NEXT_PUBLIC_SUPPORT_PHONE` è già scritto `+39…` e
+gli basta togliere il `+`. 🛑 **Quindi anche un cellulare GIUSTO, scritto come lo scrive chiunque in
+Italia, produce un collegamento senza prefisso paese** — e la seconda colonna, da sola, **eredita lo
+stesso problema**. ➡️ **La normalizzazione entra nel perimetro di P31**, non è una voce a parte.
+
+🛑 **UN VUOTO DICHIARATO, e va detto perché la prima stesura del referto lo dava per fatto:** che cosa
+veda esattamente chi preme il tasto con un numero senza prefisso — un errore, una chat vuota, nient'altro
+— **NON è verificato**. `provato:` `wa.me` reindirizza a `api.whatsapp.com` **allo stesso modo** per un
+fisso, per un cellulare senza prefisso e per uno col prefisso: **la validazione avviene nell'app, non nel
+server**, quindi da qui non è osservabile. Serve **un telefono vero**. ⚠️ **La prima stesura scriveva
+«*non arriva a nessuno e nessuno se ne accorge*»: era una DEDUZIONE travestita da misura** — lezione ① della
+notte applicata a una frase propria.
