@@ -63,7 +63,7 @@ L'elenco **non l'ha deciso l'autore del piano**: nasce dal censimento §4 della 
 
 | file | responsabilità | compito |
 |---|---|---|
-| `supabase/migrations/20260803T####_p31_cellulare_whatsapp.sql` | **crea** — la colonna e i due commenti | 1 |
+| `supabase/migrations/20260803113525_p31_cellulare_whatsapp.sql` | **crea** — la colonna e i due commenti | 1 |
 | `src/types/database.types.ts` | **rigenerato** — mai a mano | 1 |
 | `src/lib/consegna/whatsapp-template.ts` | **modifica** — ospita `numeroPerWhatsapp` accanto a `buildWhatsappUrl` | 2 |
 | `tests/unit/numero-per-whatsapp.test.ts` | **crea** — le forme del numero | 2 |
