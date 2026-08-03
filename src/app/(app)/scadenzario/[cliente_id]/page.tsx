@@ -26,7 +26,7 @@ export default async function EstrattoContoPage({ params }: Props) {
 
   const { data: clienteRow } = await svc
     .from('clienti')
-    .select('id, nome, cognome, studio_nome, telefono, indirizzo, cap, citta')
+    .select('id, nome, cognome, studio_nome, telefono, cellulare_whatsapp, indirizzo, cap, citta')
     .eq('id', cliente_id)
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
@@ -43,6 +43,7 @@ export default async function EstrattoContoPage({ params }: Props) {
       cognome: clienteRow.cognome,
       studio_nome: clienteRow.studio_nome,
       telefono: clienteRow.telefono,
+      cellulare_whatsapp: clienteRow.cellulare_whatsapp,
       indirizzo: clienteRow.indirizzo,
       cap: clienteRow.cap,
       citta: clienteRow.citta,

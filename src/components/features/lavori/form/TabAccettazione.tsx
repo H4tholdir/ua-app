@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import type { Lavoro } from '@/types/domain'
 import { motionTokens, useReducedMotion } from '@/design-system/motion'
 import { hapticLight, hapticMedium } from '@/lib/feedback/haptic'
+import { buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import {
   inputBase,
   labelStyle,
@@ -167,7 +168,10 @@ function ToggleSwitch({ id, checked, onChange, label, sub, reduced }: ToggleSwit
 interface TabAccettazioneProps {
   data: Partial<Lavoro>
   onChange: (u: Partial<Lavoro>) => void
-  clienteTelefono?: string | null
+  /** Cellulare del cliente per WhatsApp (P31, D182) — MAI il telefono fisso
+   *  dello studio: quel campo, se letto qui, manderebbe la conferma di
+   *  ricezione su un numero che non riceve WhatsApp. */
+  clienteCellulare?: string | null
   numeroLavoro?: string | null
   labNome?: string | null
   labTelefono?: string | null
@@ -195,7 +199,7 @@ function mdrScore(data: Partial<Lavoro>): number {
 export function TabAccettazione({
   data,
   onChange,
-  clienteTelefono,
+  clienteCellulare,
   numeroLavoro,
   labNome,
   labTelefono,
@@ -228,8 +232,11 @@ export function TabAccettazione({
     labTelefono ? labTelefono : '',
   ].filter(Boolean).join(' ')
 
-  const whatsappUrl = clienteTelefono
-    ? `https://wa.me/${clienteTelefono.replace(/\D/g, '')}?text=${encodeURIComponent(messaggioPreview)}`
+  // P31: passa dalla funzione condivisa, che aggiunge il prefisso internazionale
+  // (D182). Costruire il link a mano qui era il motivo per cui questo punto non
+  // compariva nel censimento delle chiamate a buildWhatsappUrl.
+  const whatsappUrl = clienteCellulare
+    ? buildWhatsappUrl(messaggioPreview, clienteCellulare)
     : ''
 
   return (
@@ -669,7 +676,7 @@ export function TabAccettazione({
       </div>
 
       {/* ═══ 5. CONFERMA RICEZIONE AL DENTISTA (WhatsApp) ═══════════ */}
-      {clienteTelefono && (
+      {clienteCellulare && (
         <div style={{ marginTop: '16px' }}>
           {/* Anteprima messaggio */}
           <div style={{

@@ -149,7 +149,7 @@ export function LavoroFormClient({
                 <TabAccettazione
                   data={data}
                   onChange={update}
-                  clienteTelefono={lavoro.cliente?.telefono ?? null}
+                  clienteCellulare={lavoro.cliente?.cellulare_whatsapp ?? null}
                   numeroLavoro={lavoro.numero_lavoro}
                   labNome={lavoro.laboratorio?.nome ?? null}
                   labTelefono={lavoro.laboratorio?.telefono ?? null}

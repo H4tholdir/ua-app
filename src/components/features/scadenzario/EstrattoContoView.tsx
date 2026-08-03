@@ -24,18 +24,21 @@ import {
 
 interface BottomSheetProps {
   dovuto: DovutoEstratto | null
-  telefono: string | null
+  /** P31: cellulare per WhatsApp, MAI il telefono fisso dello studio — una
+   *  prop chiamata "telefono" che doveva ricevere il cellulare è esattamente
+   *  come è nato il difetto P31. */
+  cellulare: string | null
   studioNome: string
   onClose: () => void
   onRegistraPagamento: (target: TargetPagamento) => void
 }
 
-function DovutoBottomSheet({ dovuto, telefono, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
+function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
   const reducedMotion = useReducedMotion()
   const color = dovuto ? urgencyColor(dovuto) : DS.t2
 
   const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo }) : ''
-  const whatsappUrl = (dovuto && telefono && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, telefono) : ''
+  const whatsappUrl = (dovuto && cellulare && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, cellulare) : ''
 
   return (
     <AnimatePresence>
@@ -105,7 +108,7 @@ function DovutoBottomSheet({ dovuto, telefono, studioNome, onClose, onRegistraPa
             </div>
 
             <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {telefono && !dovuto.pagata && (
+              {cellulare && !dovuto.pagata && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
@@ -220,8 +223,9 @@ export function EstrattoContoView({ dati }: Props) {
     studioNome: dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`,
     totaleInsoluto: dati.creditoCliente.confermato,
   })
-  const whatsappUrlGlobale = dati.cliente.telefono
-    ? buildWhatsappUrl(whatsappMsgGlobale, dati.cliente.telefono)
+  // P31: il sollecito va sul cellulare, mai sul fisso dello studio.
+  const whatsappUrlGlobale = dati.cliente.cellulare_whatsapp
+    ? buildWhatsappUrl(whatsappMsgGlobale, dati.cliente.cellulare_whatsapp)
     : null
 
   const selectedDovutoAggiornato = selectedDovuto
@@ -346,7 +350,7 @@ export function EstrattoContoView({ dati }: Props) {
 
       <DovutoBottomSheet
         dovuto={selectedDovutoAggiornato}
-        telefono={dati.cliente.telefono}
+        cellulare={dati.cliente.cellulare_whatsapp}
         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
         onClose={closeSheet}
         onRegistraPagamento={setTargetPagamento}

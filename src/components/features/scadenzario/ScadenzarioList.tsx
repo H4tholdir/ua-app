@@ -14,6 +14,7 @@ interface ClienteSnap {
   cognome: string
   studio_nome: string | null
   telefono: string | null
+  cellulare_whatsapp: string | null
 }
 
 interface DovutoRow {
@@ -82,7 +83,8 @@ function InsolutoCard({
     studioNome: item.cliente.studio_nome ?? `${item.cliente.nome} ${item.cliente.cognome}`,
     totaleInsoluto: item.totale_insoluto,
   })
-  const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.telefono ?? undefined)
+  // P31: il sollecito va sul cellulare. Niente ripiego sul fisso dello studio.
+  const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.cellulare_whatsapp ?? undefined)
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--surface, #E4DFD9)',
@@ -305,8 +307,10 @@ function InsolutoCard({
                 📊 Estratto conto completo →
               </Link>
 
-              {/* WhatsApp sollecito CTA */}
-              {item.cliente.telefono && (
+              {/* WhatsApp sollecito CTA — P31: mostrato solo se c'è un
+                  cellulare, non solo perché c'è un fisso (altrimenti il
+                  tasto comparirebbe e produrrebbe un link senza destinatario). */}
+              {item.cliente.cellulare_whatsapp && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
