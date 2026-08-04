@@ -74,6 +74,16 @@
 // lì è diventata rossa — è la differenza fra 15 e 16 falliti.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
+// T8 — le frasi si IMPORTANO, non si ricopiano (modello: prescrizione-costanti
+// + la sua spia). Una frase incollata a mano qui resterebbe verde anche se la
+// rotta cambiasse parola: il confronto deve leggere la STESSA costante.
+import {
+  MESSAGGIO_FONTE_ALTRO_LAVORO,
+  MESSAGGIO_FONTE_FILE_PERSO,
+  MESSAGGIO_FONTE_QUESTO_LAVORO,
+  MOTIVO_FONTE_IN_USO,
+  MOTIVO_FONTE_IN_USO_FILE_PERSO,
+} from '@/lib/domain/immagini-eliminazione-messaggi'
 
 // ============================================================
 // T4 — Passo 1: la finta cresce PRIMA del codice
@@ -188,6 +198,10 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     lavoro?: { data: unknown; error: unknown }
     deleteResult?: { data: unknown; error: unknown }
     tracciaResult?: { data: unknown; error: unknown }
+    // T8 — di norma nessuna riga: l'immagine NON è la fonte di nessuna
+    // prescrizione, ed è il caso di default di quasi tutti i test esistenti
+    // (scritti PRIMA di T8, che non sanno di questa tabella).
+    fonteResult?: { data: unknown; error: unknown }
   }) {
     // 🔑 T4: la guardia di esistenza legge ORA anche `storage_path` — è l'unico
     //    punto in cui la rotta lo conosce, e senza di esso non saprebbe quale
@@ -196,6 +210,7 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     const lavoro = opts.lavoro ?? { data: { stato: 'in_lavorazione' }, error: null }
     const deleteResult = opts.deleteResult ?? { data: [{ id: IMG_ID }], error: null }
     const tracciaResult = opts.tracciaResult ?? { data: null, error: null }
+    const fonteResult = opts.fonteResult ?? { data: [], error: null }
 
     const existingChain = createChain(existing)
     const lavoroChain = createChain(lavoro)
@@ -204,6 +219,32 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     const deleteCalls: true[] = []
     const tracciaInserita: Record<string, unknown>[] = []
     let immaginiCallCount = 0
+
+    // T8 — la finta del pre-check su `lavori_prescrizioni`. NON usa
+    // `createChain`: quella risolve solo su `.single()`/`.maybeSingle()`, e il
+    // pre-check NON li usa (una fonte clonata da un rifacimento può lasciare
+    // PIÙ righe che puntano alla stessa immagine — vedi cappello del file).
+    // Risolve sul proprio `.then()`, ed è lì che si registra 'precheck'
+    // nell'ordine condiviso: è il punto in cui la rotta AVVIA la query,
+    // stesso istante logico in cui 'file' si registra dentro `remove` e 'riga'
+    // dentro `.delete()` — nessuno dei tre aspetta la propria risoluzione per
+    // annunciarsi.
+    const fonteCalls: { method: string; args: unknown[] }[] = []
+    const fonteChain = {
+      calls: fonteCalls,
+      select: (...args: unknown[]) => {
+        fonteCalls.push({ method: 'select', args })
+        return fonteChain
+      },
+      eq: (...args: unknown[]) => {
+        fonteCalls.push({ method: 'eq', args })
+        return fonteChain
+      },
+      then: (resolve: (v: unknown) => void) => {
+        statoStorage.ordine.push('precheck')
+        resolve(fonteResult)
+      },
+    }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'lavori_immagini') {
@@ -228,6 +269,7 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
         }
       }
       if (table === 'lavori') return lavoroChain
+      if (table === 'lavori_prescrizioni') return fonteChain
       if (table === 'lavori_immagini_eliminazioni') {
         return {
           insert: async (payload: Record<string, unknown>) => {
@@ -239,7 +281,7 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
       throw new Error(`tabella inattesa nel mock: ${table}`)
     })
 
-    return { existingChain, lavoroChain, mutazioneChain, updateCalls, deleteCalls, tracciaInserita }
+    return { existingChain, lavoroChain, mutazioneChain, fonteChain, updateCalls, deleteCalls, tracciaInserita }
   }
 
   // ---- forme d'ingresso: guardia di esistenza ----
@@ -360,7 +402,10 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     //    compare rotta e l'eliminazione si ripete.
     // 🔑 `ordine` è un array SOLO: due contatori separati resterebbero verdi
     //    anche invertendo le due istruzioni.
-    expect(statoStorage.ordine).toEqual(['file', 'riga'])
+    // 🔧 T8 aggiunge 'precheck' in testa: il controllo sulla fonte della
+    //    prescrizione (S7, D214) sta PRIMA di entrambi — v. il describe
+    //    dedicato più sotto per la prova mirata su QUESTO ordine.
+    expect(statoStorage.ordine).toEqual(['precheck', 'file', 'riga'])
   })
 
   it('D61 — il percorso passato a storage.remove è ESATTAMENTE lo storage_path della riga, sul bucket `documenti`', async () => {
@@ -501,6 +546,131 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     expect(res.status).toBe(200)
   })
 
+  // ============================================================
+  // T8 (S7, D214) — il pre-check PRIMA della distruzione
+  // ============================================================
+  // Il pericolo, provato a banco (sonda S7): la FK
+  // `lavori_prescrizioni_fonte_img_fk` (NO ACTION) fa fallire con 23503 il
+  // DELETE della riga di un'immagine usata come fonte — ma la rotta toglie il
+  // BLOB dallo storage (:214, ora più giù per l'inserimento del pre-check)
+  // PRIMA della `.delete()` della riga: col 23503 il file della fonte
+  // risultava già distrutto e non ripristinabile, dietro un 500 generico.
+  // Fix: PRIMA di `storage.remove`, si chiede «questa immagine è
+  // `fonte_immagine_id` di qualche riga di `lavori_prescrizioni`?» → 409
+  // SENZA toccare nulla. Cintura e bretelle: il 23503 sulla `.delete()` resta
+  // mappato per la corsa che sfugge al pre-check.
+  //
+  // ── R-P4, misurato DUE VOLTE (stesso comando, nessuna modifica in mezzo) ──
+  // Comando: `npx vitest run tests/unit/lavori-id-immagini-imgid-route.test.ts`
+  // Contro il route.ts NON MODIFICATO (nessun pre-check, nessuna mappatura
+  // 23503 — cioè esattamente l'«abbozzo inerte»: qui non serve fabbricarne
+  // uno apposta, perché il codice esistente PRIMA di T8 già non fa niente di
+  // quello che le prove nuove pretendono).
+  // Misura 1: **6 falliti su 71**. Misura 2 (stesso comando, rilanciato
+  // subito dopo, zero righe toccate): **6 falliti su 71** — identico,
+  // deterministico.
+  // I 6 rossi sono ESATTAMENTE le 6 prove che dipendono dal codice nuovo:
+  // l'ordine (precheck prima di file), la forma della query (niente
+  // `lavoro_id`), fonte-di-questo-lavoro, fonte-di-un-altro-lavoro (clone),
+  // la catena di rifacimenti, e il 23503 onesto. La settima prova nuova
+  // («non-fonte → cancellazione normale intatta») è VERDE fin da subito: non
+  // misura il codice nuovo, misura che quello vecchio resti intatto — ed è
+  // altrettanto voluto che sia verde da subito quanto gli altri sei sono rossi.
+  describe('T8 — la fonte della prescrizione non si distrugge', () => {
+    it('il pre-check sta PRIMA di storage.remove — la spia sull\'ORDINE lo dimostra (non-fonte: precheck, file, riga)', async () => {
+      mockDelete({})
+      await DELETE(req('DELETE'), { params })
+      expect(statoStorage.ordine).toEqual(['precheck', 'file', 'riga'])
+    })
+
+    it('la query del pre-check NON filtra su lavoro_id (consapevole del clone): solo fonte_immagine_id + laboratorio_id', async () => {
+      const { fonteChain } = mockDelete({})
+      await DELETE(req('DELETE'), { params })
+      const eqCalls = fonteChain.calls.filter((c) => c.method === 'eq')
+      expect(eqCalls.map((c) => c.args[0]).sort()).toEqual(['fonte_immagine_id', 'laboratorio_id'])
+      expect(eqCalls.find((c) => c.args[0] === 'fonte_immagine_id')?.args[1]).toBe(IMG_ID)
+      expect(eqCalls.find((c) => c.args[0] === 'laboratorio_id')?.args[1]).toBe(LAB_ID)
+      expect(eqCalls.some((c) => c.args[0] === 'lavoro_id')).toBe(false)
+    })
+
+    it('fonte della prescrizione DI QUESTO LAVORO → 409, e NULLA viene toccato (né file né riga né traccia)', async () => {
+      const { deleteCalls, tracciaInserita } = mockDelete({
+        fonteResult: { data: [{ lavoro_id: LAVORO_ID }], error: null },
+      })
+      const res = await DELETE(req('DELETE'), { params })
+      const json = await res.json()
+      expect(res.status).toBe(409)
+      expect(json.motivo).toBe(MOTIVO_FONTE_IN_USO)
+      expect(json.error).toBe(MESSAGGIO_FONTE_QUESTO_LAVORO)
+      expect(statoStorage.removeCalls).toHaveLength(0)
+      expect(deleteCalls).toHaveLength(0)
+      expect(tracciaInserita).toHaveLength(0)
+    })
+
+    it('fonte della prescrizione DI UN ALTRO LAVORO (clone da rifacimento) → 409 CON LA VERITÀ, e NULLA toccato', async () => {
+      const { deleteCalls } = mockDelete({
+        fonteResult: { data: [{ lavoro_id: 'lavoro-rifacimento-99' }], error: null },
+      })
+      const res = await DELETE(req('DELETE'), { params })
+      const json = await res.json()
+      expect(res.status).toBe(409)
+      expect(json.motivo).toBe(MOTIVO_FONTE_IN_USO)
+      // La verità: il messaggio NON deve dire che è la prescrizione di
+      // QUESTO lavoro (non lo è) — deve nominare il rifacimento.
+      expect(json.error).toBe(MESSAGGIO_FONTE_ALTRO_LAVORO)
+      expect(json.error).not.toBe(MESSAGGIO_FONTE_QUESTO_LAVORO)
+      expect(statoStorage.removeCalls).toHaveLength(0)
+      expect(deleteCalls).toHaveLength(0)
+    })
+
+    it('più righe (catena di rifacimenti): una è di QUESTO lavoro → conta come "di questo lavoro" anche se ce ne sono altre', async () => {
+      const { deleteCalls } = mockDelete({
+        fonteResult: {
+          data: [{ lavoro_id: 'lavoro-rifacimento-99' }, { lavoro_id: LAVORO_ID }],
+          error: null,
+        },
+      })
+      const res = await DELETE(req('DELETE'), { params })
+      const json = await res.json()
+      expect(res.status).toBe(409)
+      expect(json.error).toBe(MESSAGGIO_FONTE_QUESTO_LAVORO)
+      expect(deleteCalls).toHaveLength(0)
+    })
+
+    it('23503 sulla .delete() (corsa: sfugge al pre-check) → 409 onesto "file perso" — cintura e bretelle', async () => {
+      const { tracciaInserita } = mockDelete({
+        deleteResult: {
+          data: null,
+          error: { code: '23503', message: 'update or delete on table "lavori_immagini" violates foreign key constraint "lavori_prescrizioni_fonte_img_fk"' },
+        },
+      })
+      const res = await DELETE(req('DELETE'), { params })
+      const json = await res.json()
+      expect(res.status).toBe(409)
+      expect(json.motivo).toBe(MOTIVO_FONTE_IN_USO_FILE_PERSO)
+      // A questo punto il pre-check normale non ha trovato niente (altrimenti
+      // non si sarebbe arrivati qui) — è una corsa, e storage.remove È GIÀ
+      // stato chiamato: il file è perso davvero, il messaggio non lo nasconde
+      // né finge un successo.
+      expect(statoStorage.removeCalls).toHaveLength(1)
+      expect(tracciaInserita).toHaveLength(0)
+      expect(json.error).toBe(MESSAGGIO_FONTE_FILE_PERSO)
+      // Niente dettaglio grezzo del database verso il client (G9-76).
+      expect(json.error).not.toMatch(/lavori_prescrizioni_fonte_img_fk/)
+      expect(json.error).not.toMatch(/violates foreign key/i)
+    })
+
+    it('non-fonte (nessuna riga in lavori_prescrizioni) → cancellazione NORMALE, intatta (200, file+riga)', async () => {
+      const { deleteCalls } = mockDelete({ fonteResult: { data: [], error: null } })
+      const res = await DELETE(req('DELETE'), { params })
+      const json = await res.json()
+      expect(res.status).toBe(200)
+      expect(json).toEqual({ ok: true })
+      expect(statoStorage.removeCalls).toHaveLength(1)
+      expect(deleteCalls).toHaveLength(1)
+    })
+  })
+
   // ── Forme d'ingresso del DELETE, enumerate PRIMA delle asserzioni (R-P4) ──
   // COPERTE:
   //  • riga assente / di un altro lavoro / di un altro laboratorio / già
@@ -512,6 +682,13 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   //  • la mutazione tocca 0 righe → 404 · più di una → 500 · errore DB → 500
   //  • la traccia fallisce → 200 fail-soft dichiarato
   //  • CSRF / non autenticato / laboratorio assente / nessun gate di ruolo
+  //  • T8: nessuna fonte → cancellazione intatta · fonte di questo lavoro →
+  //    409 senza toccare nulla · fonte di un altro lavoro (clone/rifacimento)
+  //    → 409 con la verità, distinto dal caso precedente · più righe
+  //    (catena di rifacimenti) con una di questo lavoro → conta come «di
+  //    questo lavoro» · la query non filtra su lavoro_id · l'ordine
+  //    precheck→file→riga · 23503 sulla `.delete()` (corsa) → 409 onesto,
+  //    file già perso, nessun dettaglio grezzo del DB
   // NON COPERTE, dichiarate invece che ignorate in silenzio:
   //  • «corpo non-JSON»: il DELETE non legge un body — forma non applicabile.
   //  • storage.remove risponde `{ data: [], error: null }` perché il file non
@@ -521,6 +698,16 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   //  • `storage_path` NULL o vuoto sulla riga: la colonna è `NOT NULL` in banca
   //    dati (`002_fase2_schema.sql`) e il POST la scrive sempre — sarebbe una
   //    prova su uno stato che lo schema esclude, non su un ingresso.
+  //  • T8: la query del pre-check risponde `{ data: null, error: {...} }` (un
+  //    errore INFRA sulla SELECT, non «nessuna riga»): il codice non legge
+  //    `error` su questa query e tratta `data` falsy come «non è una fonte»,
+  //    proseguendo verso `storage.remove`. Fail-open sul pre-check, ma NON
+  //    fail-open sul dato: se l'immagine è davvero una fonte, la `.delete()`
+  //    successiva la ferma comunque con la mappatura 23503 (cintura e
+  //    bretelle, provata sopra) — col file però già perso, come dichiara il
+  //    suo messaggio. Riferito (R-E2): fuori dal mandato di T8, che chiede il
+  //    pre-check sul CASO NORMALE, non la resilienza della query stessa a un
+  //    guasto infrastrutturale.
 
   // ── Verbale delle MUTAZIONI (T4, Passo 6, 30/07/2026) ──
   // Una prova che nessuna mutazione riesce a uccidere è decorativa. Le tre
@@ -543,6 +730,23 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   // prima del Passo 1 → `TypeError: Cannot read properties of undefined
   // (reading 'from')` su ogni prova che arriva alla mutazione. È esattamente il
   // rosso «che non è un difetto del codice» che il Passo 1 esiste per evitare.
+  //
+  // ── Verbale delle MUTAZIONI, T8 (S7, D214, 05/08/2026) ──
+  // Stesso protocollo: la mutazione si applica al codice VERO (non a una
+  // copia), si misura, si fa il revert (`route-t8-backup.ts` in scratchpad,
+  // scartato a fine misura).
+  //
+  //  1. SPOSTATO il pre-check (query `lavori_prescrizioni` + il suo `if`) da
+  //     PRIMA a DOPO `svc.storage.from('documenti').remove(...)` — cioè
+  //     esattamente il difetto che T8 esiste per chiudere (il pre-check che
+  //     morde troppo tardi) → **4 falliti su 71**: la spia sull'ordine («il
+  //     pre-check sta PRIMA di storage.remove»), le DUE prove «NULLA
+  //     toccato» (fonte di questo lavoro, fonte di un rifacimento — in
+  //     entrambe `removeCalls` passa da 0 a 1, perché il file è già stato
+  //     tolto quando la 409 arriva), e la prova D61 sull'ordine (che ora si
+  //     aspetta `['precheck','file','riga']` e trova `['file','precheck',
+  //     'riga']`). Nessuna delle quattro sopravvive alla mutazione: la spia
+  //     morde davvero, non solo sulla carta.
 })
 
 // ============================================================

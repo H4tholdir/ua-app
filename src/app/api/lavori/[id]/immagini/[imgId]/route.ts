@@ -4,6 +4,13 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
+import {
+  MESSAGGIO_FONTE_ALTRO_LAVORO,
+  MESSAGGIO_FONTE_FILE_PERSO,
+  MESSAGGIO_FONTE_QUESTO_LAVORO,
+  MOTIVO_FONTE_IN_USO,
+  MOTIVO_FONTE_IN_USO_FILE_PERSO,
+} from '@/lib/domain/immagini-eliminazione-messaggi'
 
 type RouteContext = { params: Promise<{ id: string; imgId: string }> }
 
@@ -204,7 +211,44 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     )
   }
 
-  // 3. D61 — il FILE prima, la RIGA dopo. L'ordine non è di stile: se cadesse
+  // 3. T8 (S7, D214) — pre-check: questa immagine è la FONTE di una
+  // prescrizione? La FK `lavori_prescrizioni_fonte_img_fk` (NO ACTION) morde
+  // con 23503 — ma morde SOLO alla `.delete()` di `lavori_immagini`, cioè
+  // DOPO che `storage.remove` (sotto) ha già distrutto il file. Un file
+  // distrutto non si ripristina: il controllo deve stare PRIMA, non dopo, e
+  // senza toccare niente se la risposta è «sì, è una fonte».
+  // 🔑 CONSAPEVOLE DEL CLONE: il rifacimento clona `fonte_immagine_id` per
+  //    intero via RPC (`lavoro_prescrizione_allega_fonte` chiamata da
+  //    `crea_rifacimento_atomico`), quindi la fonte può appartenere alla
+  //    prescrizione di UN ALTRO lavoro (un rifacimento di questo). La query
+  //    NON filtra su `lavoro_id`: un filtro lì cercherebbe solo la
+  //    prescrizione di QUESTO lavoro e lascerebbe passare dritto sull'archivio
+  //    proprio il caso che il pre-check esiste per fermare.
+  // 🔑 `laboratorio_id` resta nel filtro per lo stesso motivo della FK
+  //    composita che lo impone in banca dati: difesa in profondità, anche se
+  //    `imgId` è già stato scoperto di questo laboratorio al punto 1.
+  const { data: righeFonte } = await svc
+    .from('lavori_prescrizioni')
+    .select('lavoro_id')
+    .eq('fonte_immagine_id', imgId)
+    .eq('laboratorio_id', laboratorio_id)
+
+  if (righeFonte && righeFonte.length > 0) {
+    // Riporta la VERITÀ: se la riga trovata è di QUESTO lavoro (caso comune —
+    // la prescrizione del lavoro che si sta guardando) oppure di un ALTRO
+    // lavoro (il rifacimento che ha clonato la fonte) — mai lo stesso
+    // messaggio per due fatti diversi.
+    const diQuestoLavoro = righeFonte.some((r) => r.lavoro_id === lavoro_id)
+    return NextResponse.json(
+      {
+        error: diQuestoLavoro ? MESSAGGIO_FONTE_QUESTO_LAVORO : MESSAGGIO_FONTE_ALTRO_LAVORO,
+        motivo: MOTIVO_FONTE_IN_USO,
+      },
+      { status: 409 }
+    )
+  }
+
+  // 4. D61 — il FILE prima, la RIGA dopo. L'ordine non è di stile: se cadesse
   // la riga prima del file, un guasto fra le due lascerebbe nell'archivio un
   // file orfano che nessuna query può più raggiungere — invisibile e non
   // ritentabile. Nell'ordine giusto, un file già tolto con la riga ancora viva
@@ -218,7 +262,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Non è stato possibile eliminare la foto' }, { status: 500 })
   }
 
-  // 4. La mutazione — ora una cancellazione VERA (.delete(), non più
+  // 5. La mutazione — ora una cancellazione VERA (.delete(), non più
   // .update({deleted_at})), con la stessa forma di sempre: TRE .eq() sulla
   // delete() stessa (non solo sul pre-controllo), perché la rotta usa il client
   // di servizio, la RLS è aggirata, e questi tre confronti sono l'unico
@@ -234,11 +278,28 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     .select()
 
   if (deleteError) {
+    // T8 — cintura e bretelle: il pre-check qui sopra copre il caso normale,
+    // ma non chiude una CORSA (una prescrizione allegata proprio fra il
+    // pre-check e questa `.delete()`). Se sfugge, la FK morde qui con 23503 —
+    // e a questo punto `storage.remove` è GIÀ passato: il file è perso
+    // davvero. Il messaggio lo dice onestamente, mai un finto successo né un
+    // 500 che suggerisce «riprova» (riprovare non cambia niente: il file non
+    // c'è più).
+    if (deleteError.code === '23503') {
+      console.error(
+        'DELETE /api/lavori/[id]/immagini/[imgId] — 23503 sulla delete: la fonte è diventata in uso fra il pre-check e la mutazione (corsa) — file già perso:',
+        deleteError.message
+      )
+      return NextResponse.json(
+        { error: MESSAGGIO_FONTE_FILE_PERSO, motivo: MOTIVO_FONTE_IN_USO_FILE_PERSO },
+        { status: 409 }
+      )
+    }
     console.error('DELETE /api/lavori/[id]/immagini/[imgId] — cancellazione fallita:', deleteError.message)
     return NextResponse.json({ error: 'Non è stato possibile eliminare la foto' }, { status: 500 })
   }
 
-  // 5. Il conteggio delle righe — non si prosegue in silenzio se non è
+  // 6. Il conteggio delle righe — non si prosegue in silenzio se non è
   // esattamente una. 0 righe: qualcuno l'ha già tolta nel frattempo (race) →
   // 404, stesso esito della guardia di esistenza. Più di una riga: impossibile
   // per chiave primaria, ma fail-closed → 500, mai un successo silenzioso.
@@ -251,7 +312,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Errore interno' }, { status: 500 })
   }
 
-  // 6. D63 — la traccia. 🔧 Qui stava scritto «Il blob NON si tocca: nessuna
+  // 7. D63 — la traccia. 🔧 Qui stava scritto «Il blob NON si tocca: nessuna
   // chiamata a storage.remove — conservazione del file deliberata
   // (soft-delete)»: da D61 è falso, e al suo posto c'è quello che il codice fa
   // davvero.
@@ -275,6 +336,6 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     console.error('DELETE /api/lavori/[id]/immagini/[imgId] — traccia non scritta:', erroreTraccia.message)
   }
 
-  // 7. Successo (precedente: `api/cicli/[id]/route.ts:170`).
+  // 8. Successo (precedente: `api/cicli/[id]/route.ts:170`).
   return NextResponse.json({ ok: true })
 }

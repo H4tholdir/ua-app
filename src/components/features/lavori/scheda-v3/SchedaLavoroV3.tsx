@@ -272,6 +272,21 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         credentials: 'same-origin',
       })
       if (!res.ok) {
+        // T8 (S7, D214) — il 409 «fonte in uso» porta la SUA frase, non
+        // quella generica: dice perché non si può eliminare (è la fonte
+        // della prescrizione di questo lavoro, o di un suo rifacimento) —
+        // un messaggio su cui «riprova» non ha senso, perché riprovare non
+        // cambia l'esito finché la foto resta collegata.
+        // 🔑 Forma `{ error }` di QUESTA rotta (verificato leggendo
+        //    `[imgId]/route.ts`: usa sempre la chiave inglese, non `errore`
+        //    come alcune rotte più recenti). `.catch` copre sia un corpo
+        //    non-JSON sia un 409 senza corpo leggibile — in entrambi i casi
+        //    si ricade sul generico invece di un errore non gestito.
+        if (res.status === 409) {
+          const corpo = (await res.json().catch(() => ({}))) as { error?: string }
+          errore(corpo?.error || 'Non sono riuscita a eliminare la foto. Riprova.')
+          return
+        }
         errore('Non sono riuscita a eliminare la foto. Riprova.')
         return
       }
