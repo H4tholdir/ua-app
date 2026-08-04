@@ -26,28 +26,42 @@ import {
 //    `categorie-foto-spia-migration.test.ts`: un conteggio resta verde se il
 //    dizionario cresce da tutte e due le parti nello stesso momento sbagliato.
 //
-// 🔑 QUATTRO estrazioni, non tre: `fonte_tipo` è scritto DUE volte in banca
-//    dati — il CHECK della tabella (che RIFIUTA) e la guardia dentro
-//    `lavoro_prescrizione_allega_fonte` (che risponde `fonte_tipo_non_valido`
-//    invece di far esplodere un 23514). Se i due divergessero, la RPC
-//    accetterebbe un valore che la tabella respinge: un 500 al posto di un
-//    esito parlante. La spia li tiene insieme tutti e tre (SQL×2 + TS).
+// 🔑 CINQUE estrazioni, non tre — perché DUE dizionari su tre sono scritti in
+//    banca dati più di una volta, e ogni scrittura è un posto dove possono
+//    divergere:
+//    · `fonte_tipo` ×2 — il CHECK della tabella (che RIFIUTA) e la guardia
+//      dentro `lavoro_prescrizione_allega_fonte` (che risponde
+//      `fonte_tipo_non_valido` invece di far esplodere un 23514). Se i due
+//      divergessero, la RPC accetterebbe un valore che la tabella respinge: un
+//      500 al posto di un esito parlante.
+//    · il CAMPO ×2 — dentro `lavoro_prescrizione_correggi_typo` e, dal Task 5
+//      (04/08/2026), dentro `lavoro_prescrizione_registra_divergenza`.
+//    · il MOTIVO ×1 — solo dentro `registra_divergenza`.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // 🛑 PUNTANO AL VINCOLO IN VIGORE, e si spostano A MANO quando il vincolo si
 //    sposta (modello categorie-foto: la scansione automatica della cartella è
 //    stata SCARTATA — scambierebbe un rosso rumoroso con un verde silenzioso).
 //
-// 🔴 AVVISO A CHI ESEGUE IL TASK 5 DI QUESTA SESSIONE: T5 fa `CREATE OR
-//    REPLACE` di `lavoro_prescrizione_registra_divergenza` in una migration
-//    NUOVA, per aggiungere il dizionario su `p_campo`. Da quel momento il corpo
-//    vivo di quella funzione NON è più in 20260804152403 — ma il testo vecchio
-//    resta nel file, e questa spia continuerebbe a leggerlo e a dichiararsi
-//    verde. `MIGRATION_RPC` va spostata alla migration di T5 NELLO STESSO
-//    salvataggio, e il nuovo `p_campo NOT IN (...)` di `registra_divergenza`
-//    guadagna la sua estrazione qui sotto.
+// 🔑 I PUNTATORI SONO DUE, E NON PER SIMMETRIA. Il Task 5 (04/08/2026) ha fatto
+//    `CREATE OR REPLACE` della SOLA `lavoro_prescrizione_registra_divergenza`,
+//    in una migration nuova: da quel momento il corpo VIVO di quella funzione
+//    sta lì, mentre `allega_fonte` e `correggi_typo` sono rimaste vive in
+//    20260804152403 (nessuno le ha ricreate). Un solo puntatore non può dire
+//    due verità diverse.
+//    ⚠️ L'avviso che stava qui diceva «`MIGRATION_RPC` va SPOSTATA alla
+//    migration di T5»: preso alla lettera avrebbe rotto le prove di
+//    `allega_fonte` e `correggi_typo`, che in quel file non esistono. Si
+//    sarebbero guastate RUMOROSAMENTE (il `throw` di `corpoFunzione`) — la
+//    trappola progettata ha retto — ma la regola giusta è un'altra: **ogni
+//    funzione punta al file che l'ha definita l'ULTIMA volta**, e chi ricrea
+//    una funzione sposta il suo puntatore, non tutti.
 const MIGRATION_TABELLA = 'supabase/migrations/20260804150306_ondata_b_lavori_prescrizioni.sql'
+// Vive qui: lavoro_prescrizione_allega_fonte · lavoro_prescrizione_correggi_typo
 const MIGRATION_RPC = 'supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql'
+// Vive qui: lavoro_prescrizione_registra_divergenza (T5, M-T3-1 + D221)
+const MIGRATION_RPC_DIVERGENZA =
+  'supabase/migrations/20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql'
 
 /** Il file SENZA i commenti.
  *
@@ -149,10 +163,14 @@ describe('spia — i dizionari della prescrizione non possono divergere dal data
     )
   })
 
+  // 🔑 DAL FILE DI T5, non più da MIGRATION_RPC: il corpo vivo di questa
+  //    funzione è quello ricreato lì. Letto dal vecchio file, il confronto
+  //    resterebbe verde su un corpo MORTO — cioè la spia proverebbe un testo
+  //    che il database non esegue più.
   it('MOTIVI_DIVERGENZA = la guardia dentro `lavoro_prescrizione_registra_divergenza`', () => {
     coincidono(
       valori(
-        MIGRATION_RPC,
+        MIGRATION_RPC_DIVERGENZA,
         'lavoro_prescrizione_registra_divergenza',
         /p_motivo NOT IN \(([^)]+)\)/,
         'guardia p_motivo'
@@ -161,13 +179,25 @@ describe('spia — i dizionari della prescrizione non possono divergere dal data
     )
   })
 
-  // 🔴 T5 aggiunge un `p_campo NOT IN (…)` ANCHE dentro
-  //    `lavoro_prescrizione_registra_divergenza`: quando quella migration
-  //    esiste, qui va aggiunta la sua estrazione — `valori(MIGRATION_T5,
-  //    'lavoro_prescrizione_registra_divergenza', /p_campo NOT IN …/)` contro
-  //    `CAMPI_TYPO`. Finché non c'è, il dizionario del campo della divergenza
-  //    vive SOLO nella route (sonda S3), e lo prova
-  //    `api-prescrizione-divergenza.test.ts`.
+  // 🔑 QUINTA estrazione (M-T3-1, 04/08/2026): dal Task 5 il dizionario del
+  //    CAMPO è scritto DUE volte in banca dati — dentro `correggi_typo` (che
+  //    decide quale chiave dello snapshot si corregge) e dentro
+  //    `registra_divergenza` (che decide su quale campo si può registrare uno
+  //    scostamento). Oggi i due elenchi coincidono, e devono: una divergenza
+  //    su un campo che il typo non conosce sarebbe una riga che nessuna
+  //    schermata mostra. Se un giorno dovranno divergere, questa prova è il
+  //    posto dove la decisione si dichiara — non un rosso da spegnere.
+  it('CAMPI_TYPO = la guardia dentro `lavoro_prescrizione_registra_divergenza`', () => {
+    coincidono(
+      valori(
+        MIGRATION_RPC_DIVERGENZA,
+        'lavoro_prescrizione_registra_divergenza',
+        /p_campo NOT IN \(([^)]+)\)/,
+        'guardia p_campo della divergenza'
+      ),
+      CAMPI_TYPO
+    )
+  })
 })
 
 describe('le tre guardie di tipo riconoscono i valori e rifiutano tutto il resto', () => {

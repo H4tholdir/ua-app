@@ -15,13 +15,15 @@ import { isCampoTypo, isMotivoDivergenza } from '@/lib/domain/prescrizione-costa
 // resta ciò che il dentista ha prescritto, e al registro si APPENDE
 // `{campo, motivo, nota, utente_id, registrata_at}`.
 //
-// 🔴 IL DIZIONARIO DEL CAMPO VIVE QUI, E OGGI SOLO QUI. Provato a banco (sonda
-//    S3): `lavoro_prescrizione_registra_divergenza` accetta `p_campo :=
-//    'pippo'` e perfino `NULL`, e risponde `ok`. Una divergenza registrata su
-//    un campo che non esiste è una riga che nessuna schermata mostrerà mai e
-//    che nessuno saprà di avere — un dato perso in silenzio, che è la classe di
-//    difetto peggiore di questo repo. Il Task 5 chiude il buco anche in banca
-//    dati; questa porta resta comunque la prima.
+// 🔴 IL DIZIONARIO DEL CAMPO VIVE QUI ED È LA PRIMA GUARDIA. Fino al 04/08/2026
+//    era anche l'UNICA: provato a banco (sonda S3),
+//    `lavoro_prescrizione_registra_divergenza` accettava `p_campo := 'pippo'` e
+//    perfino `NULL`, e rispondeva `ok`. Una divergenza registrata su un campo
+//    che non esiste è una riga che nessuna schermata mostrerà mai e che nessuno
+//    saprà di avere — un dato perso in silenzio, che è la classe di difetto
+//    peggiore di questo repo. Il Task 5 (`20260804211256`) ha chiuso il buco
+//    anche in banca dati, con lo STESSO ordine di questa route: campo prima del
+//    motivo. Questa porta resta la prima, ed è quella che dice cosa correggere.
 //
 // 🛑 NIENTE GETTONE DI CONCORRENZA, ed è una scelta, non una dimenticanza: la
 //    RPC non tocca `lavori.updated_at` (fatto 12 del censimento) e l'operazione
@@ -132,9 +134,9 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
   if (esito?.esito === 'motivo_non_valido' || esito?.esito === 'campo_non_valido') {
     // Difesa in profondità: i dizionari hanno già morso sopra.
-    // ⚠️ `campo_non_valido` NON esiste ancora: lo aggiunge il Task 5 alla RPC.
-    //    Mapparlo oggi vuol dire che il giorno del deploy di quella migration
-    //    questa porta risponde già 422 invece di 500, senza toccare niente.
+    // ✅ `campo_non_valido` ESISTE dal 04/08/2026 (`20260804211256`, Task 5) —
+    //    la mappatura scritta in anticipo è entrata in servizio da sola, senza
+    //    toccare questa riga il giorno del deploy.
     return NextResponse.json(
       { errore: 'Valore non valido', esito: esito.esito },
       { status: 422 }

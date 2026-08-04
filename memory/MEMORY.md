@@ -1452,7 +1452,8 @@ LavoroCard, StatoBadge, TabProve, TabProduzione, Dashboard*, BottomNavPill, User
 - **RLS:** `public.current_lab_id()` (NON `auth.current_lab_id()`)
 - **Invite flow:** token custom `/invite/[token]` (NON `inviteUserByEmail`)
 - **PEC Vault:** `upsert_pec_vault_secret` + `get_pec_vault_secret` solo service_role
-- **Rifacimento:** RPC `crea_rifacimento_atomico()` — consente stato 'consegnato'
+- **Rifacimento:** RPC `crea_rifacimento_atomico()` — consente stato 'consegnato'/'pronto'/'sospeso'. Clona: righe dei denti (conservando `provenienza`), colore, snapshot prescrizione (azzerando divergenze e conferma) e — dal 04/08/2026, migration `20260804211256` — **il prescrittore: `richiedente_nome` + `istituzione_sanitaria`** (D221, le due caselle dell'Allegato XIII p.1; prima ogni rifacimento nasceva senza). ⚠️ `paziente_nome_snapshot` NON è clonato: aperto, riga 12 della roadmap
+- **Divergenza prescrizione:** `lavoro_prescrizione_registra_divergenza()` ha DUE dizionari chiusi — `campo` (`campo_non_valido`, dal 04/08/2026, M-T3-1) valutato PRIMA di `motivo` (`motivo_non_valido`), stesso ordine della route
 - **PATCH API:** sempre allowlist esplicita, mai blocklist
 - **Onboarding:** NO `redirect('/onboarding')` nel layout — solo banner dashboard
 - **Template PDF:** `no-unescaped-entities` OFF per `pdf/**`

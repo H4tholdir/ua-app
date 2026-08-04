@@ -33,8 +33,12 @@ export const FONTE_TIPI = ['foglio', 'email', 'modulo', 'piattaforma'] as const
 export type FonteTipo = (typeof FONTE_TIPI)[number]
 
 // ── I campi dello snapshot correggibili come typo (D212) ───────────────────
-// Vincolo in banca dati: `lavoro_prescrizione_correggi_typo`
-// (`20260804152403:242`) → esito `campo_non_valido`.
+// Vincolo in banca dati, DUE volte, e le due si tengono insieme:
+//  · `lavoro_prescrizione_correggi_typo` (`20260804152403:242`) — quale chiave
+//    dello snapshot si può riscrivere;
+//  · `lavoro_prescrizione_registra_divergenza` (`20260804211256:76`, M-T3-1
+//    del 04/08/2026) — su quale campo si può registrare uno scostamento.
+// Entrambe rispondono `campo_non_valido`.
 //
 // ⚠️ `tipo` è correggibile ma NON viene trascritto alla creazione: entra nello
 //    snapshot solo alla conferma di consegna (D213), copiato da
@@ -44,7 +48,8 @@ export type CampoTypo = (typeof CAMPI_TYPO)[number]
 
 // ── I motivi di una divergenza prescritto/eseguito (V9, D212) ──────────────
 // Vincolo in banca dati: `lavoro_prescrizione_registra_divergenza`
-// (`20260804152403:299`) → esito `motivo_non_valido`.
+// (`20260804211256:80` — la funzione è stata RICREATA dal Task 5, quindi il
+// corpo vivo NON è più in 20260804152403) → esito `motivo_non_valido`.
 export const MOTIVI_DIVERGENZA = [
   'richiesta_dentista',
   'esigenza_tecnica',
@@ -75,10 +80,13 @@ export function isCampoTypo(v: unknown): v is CampoTypo {
 
 /** `true` se il valore è un motivo di divergenza ammesso.
  *
- *  🔴 Per il CAMPO della divergenza si usa `isCampoTypo`: fino al Task 5 la
- *     RPC `lavoro_prescrizione_registra_divergenza` NON valida `p_campo`
- *     (provato a banco, sonda S3: `'pippo'` e `NULL` rispondono `ok`), quindi
- *     la route è l'unica guardia. Anche dopo il Task 5 resta la prima. */
+ *  🔴 Per il CAMPO della divergenza si usa `isCampoTypo`. Fino al Task 5 la RPC
+ *     `lavoro_prescrizione_registra_divergenza` NON validava `p_campo`
+ *     (provato a banco, sonda S3: `'pippo'` e `NULL` rispondevano `ok`) e la
+ *     route era l'UNICA guardia. Dal 04/08/2026 il buco è chiuso anche in
+ *     banca dati (`20260804211256`, esito `campo_non_valido`, provato in
+ *     transazione annullata) — ma la route resta la PRIMA, ed è quella che
+ *     risponde 422 con un messaggio leggibile invece di un esito da mappare. */
 export function isMotivoDivergenza(v: unknown): v is MotivoDivergenza {
   return typeof v === 'string' && INSIEME_MOTIVI.has(v)
 }
