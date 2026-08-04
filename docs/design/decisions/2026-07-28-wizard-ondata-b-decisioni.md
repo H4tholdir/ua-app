@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantunesima tornata (D215: la pubblicazione dei salvataggi della sessione ① è autorizzata — Q3 chiusa)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantaduesima tornata (D216-D221: ratifiche della ②, pubblicazione autorizzata, mockup a2/C-1 da rivedere prima della ③, studio del flusso rifacimento)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**215 decisioni in ottantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**221 decisioni in ottantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1721,3 +1721,14 @@ fonte, registrata server-side — resta in piedi: cambia la FORMA, non la condiz
 | # | decisione | come è stata posta | che cosa comporta |
 |---|---|---|---|
 | **D215** | 🚀 **LA PUBBLICAZIONE DEI SALVATAGGI DELLA SESSIONE ① È AUTORIZZATA** (7 al momento del sì, contando questa riga: D208-D214 su verbale/roadmap/memoria, la spec RATIFICATA, i 4 mockup coi 60 scatti, la modifica di D209 a `package.json` — neutra per l'app: la CI chiama `npx vitest run` direttamente) | Francesco, il 04/08, sulla domanda Q3 della coda decisioni (alto rischio, niente default): «*pubblica*» | ✅ Q3 chiusa. **FASE 10 avviata nello stesso turno:** `git push origin main` — l'esito con le prove (CI · CD · sito) atterra nell'aggiornamento di roadmap e memoria, non qui: questa riga registra l'AUTORIZZAZIONE, che è la decisione |
+
+### Ottantaduesima tornata — D216-D221: le ratifiche della ②, la pubblicazione, i mockup da rivedere, lo studio del rifacimento (04/08/2026)
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D216** | ✅ **Ratificato il gate sulla chiave `prescrizione` nel POST:** i lavori creati col wizard di OGGI non generano la trascrizione della prescrizione — partirà col wizard nuovo della ③ (è il framing D210 a rendere la digitazione una trascrizione) | Francesco, il 04/08, sulle tre scelte d'attuazione della ②: «*Ratifico tutte e tre*» | La scelta nata come risoluzione della contraddizione del piano (Step 5.4) ha ora il suo numero. La ③ manderà la chiave esplicitamente |
+| **D217** | ✅ **Ratificato: casella vuota = «non c'era sulla prescrizione»**, mai «prescrizione vuota» (stringa vuota → chiave assente; i soli-spazi si preservano, perché giudicarli richiederebbe il trim che D210 vieta) | idem | La semantica di `componiSnapshot` è ratificata (test ⑧⑨⑪ la fissano) |
+| **D218** | ✅ **Ratificata la retrocompatibilità semantica del POST:** `p_lavoro` porta sempre la casella `istituzione_sanitaria` (vuota per i body legacy) — invisibile all'uso, equivalente per il database | idem | M-T5-1 chiusa con numero |
+| **D219** | 🚀 **LA PUBBLICAZIONE DELLA SESSIONE ② È AUTORIZZATA** (ramo `ondata-b-sessione-2`, 11 salvataggi al momento del sì: 3 migration già applicate al DB in modo compatibile, RPC, server TDD, igiene, BP-1) | Francesco, il 04/08: «*Mergia e pubblica*» | FASE 10 avviata nello stesso turno: merge → push → CI → verifica sito. L'esito con le prove atterra su roadmap e memoria, non qui: questa riga registra l'AUTORIZZAZIONE |
+| **D220** | 🔍 **Le due scene dei mockup approvate solo implicitamente nella ① SI RIVEDONO prima della ③:** il foglio «Allega la prescrizione» (scena a2) e i bloccanti nuovi del precheck (scena C-1) | Francesco, il 04/08: «*Rivediamole prima della ③*» | 🛑 La ③ NON parte finché le due scene non sono riviste. Gli scatti si rimostrano a Francesco subito, in questa stessa sessione |
+| **D221** | 🧭 **IL FLUSSO DEL RIFACIMENTO VA RISTUDIATO PER INTERO** — il fix puntuale del clone P37 (richiedente + istituzione) può entrare nella ③, ma il flusso nacque come bozza e va ripensato | Francesco, il 04/08: «*nella sessione 3, però in realtà va studiato tutto il flusso di un rifacimento, pensando bene a come gestire tutta la cosa, perchè quando è stato creato, era solo una bozza*» | Nasce la **voce 12** di roadmap (studio del flusso, brainstorming PRIMA del codice). Eredita i fatti censiti: clone senza richiedente_nome/istituzione_sanitaria/paziente_nome_snapshot · lock senza tenant param né deleted_at (M-T3-5) · lo snapshot prescrizione ora si clona (②) |
