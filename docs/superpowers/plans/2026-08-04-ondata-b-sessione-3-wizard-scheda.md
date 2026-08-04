@@ -101,7 +101,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
 > cui l'esecutore lo verifica. R-P4 su ogni compito con test: dopo il primo rosso, abbozzo inerte
 > e CONTEGGIO delle asserzioni che si accendono (`N su M`), + enumerazione delle forme d'input.
 
-### T1 — Il wizard manda la trascrizione e lo stato dello sgancio (client, no UI)
+### Task 1 — T1 · Il wizard manda la trascrizione e lo stato dello sgancio (client, no UI)
 - `StatoWizard` (+`STATO_INIZIALE`, `salvaStato`, `riprendi`, `StatoSalvato` — fatto 7): nuovo
   campo OPZIONALE `coloreOrigine?: 'prescrizione' | 'lab'` (default `'prescrizione'`, D223: scrivere
   È trascrivere; lo sgancio lo mette a `'lab'`).
@@ -112,7 +112,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
 - Aggiornare i sei `toEqual` (fatto 15).
 - Verifica: `npx vitest run tests/unit/crea-lavoro*` + conteggio R-P4.
 
-### T2 — Passo 3: framing D223 variante B + sgancio + stato sganciato (UI)
+### Task 2 — T2 · Passo 3: framing D223 variante B + sgancio + stato sganciato (UI)
 - `RigaOpzionale` colore: sottotitolo «come scritto sulla prescrizione · es. A3» (variante B — la
   riga resta gemella delle sorelle); stato APERTO: etichetta «Colore — come scritto sulla
   prescrizione» + aiuto («…vale come trascrizione…») + LinkQuieto «Non è sulla prescrizione: lo
@@ -122,7 +122,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
 - ⚠️ Vincolo D223 a verbale: la B regge SOLO finché lo stato aperto ripete il framing pieno.
 - Verifica: unit su PassoPaziente + scatti di confronto col mockup.
 
-### T3 — FrameFatto: due carte (D224) + CTA che cambia mestiere
+### Task 3 — T3 · FrameFatto: due carte (D224) + CTA che cambia mestiere
 - Carta «Il lavoro»: righe attuali + «Prescritto da» SOLO se `richiedente_nome` presente (vincolo
   0B-9: mai riga vuota; adiacenza Dentista → Prescritto da) + il colore SGANCIATO atterra qui come
   riga senza pastiglia (vincolo 0B-2: il valore digitato non sparisce).
@@ -137,7 +137,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
   cambia il CTA: verde solo con allegato reale (immagine) o fonte con corpo vero.
 - Verifica: unit FrameFatto + scatti.
 
-### T4 — Le route dei gesti (`src/app/api/lavori/[id]/prescrizione/…`) — da zero
+### Task 4 — T4 · Le route dei gesti (`src/app/api/lavori/[id]/prescrizione/…`) — da zero
 - Casa unica delle costanti (fatto 11): file NUOVO `prescrizione-costanti.ts` da creare in
   `src/lib/domain/` — `FONTE_TIPI`
   (foglio·email·modulo·piattaforma) · `CAMPI_TYPO` (elementi·colore·tipo) · `MOTIVI_DIVERGENZA`
@@ -155,7 +155,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
   di scalare · body non-JSON — ognuna col suo 422 o col suo «non coperta, perché».
 - Verifica: `npx vitest run tests/unit/api-prescrizione*` (nuovi) + conteggio.
 
-### T5 — Migration piccola: M-T3-1 + clone P37 (D221)
+### Task 5 — T5 · Migration piccola: M-T3-1 + clone P37 (D221)
 - `lavoro_prescrizione_registra_divergenza`: CREATE OR REPLACE **stessa firma** (lezione 2 della ②:
   firma diversa = overload; qui la firma NON cambia) con dizionario su `p_campo` → esito nuovo
   `campo_non_valido`. La sonda S3 diventa il collaudo: dopo la migration, `'pippo'` e NULL DEVONO
@@ -165,14 +165,14 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
   clone P37», niente altro: né lock né tenant param, che restano alla riga 12).
 - FASE 6b OBBLIGATORIA: `npx supabase gen types` → `npx tsc --noEmit` → verifica RLS.
 
-### T6 — La lettura per la scheda (server)
+### Task 6 — T6 · La lettura per la scheda (server)
 - GET [id]: embed `lavori_prescrizioni` (S8 prova la via RLS; oggi assente — fatto 5).
 - `LavoroDettaglio` + membro opzionale `prescrizione?` · tipo `Divergenza`
   `{campo, motivo, nota, utente_id, registrata_at}` (nota ② 7) · `LavoroImmagine.categoria` →
   `CategoriaFoto` (ritrovamento ② ⑦).
 - Verifica: tsc 0 + unit sul mapping.
 
-### T7 — Scheda UI: riga Colore + pastiglia + gesto D212
+### Task 7 — T7 · Scheda UI: riga Colore + pastiglia + gesto D212
 - `Campo` += `'colore'` in ENTRAMBE le definizioni (fatto 10) · riga «Colore» in CardInfo con
   pastiglia di provenienza (RigaDato esteso DENTRO CardInfo.tsx — RigaDato.tsx NON esiste).
 - Stati della riga (vincolo 0B-5): trascritto (pastiglia verde) · «lo scegliamo noi» (segnale
@@ -185,7 +185,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
 - Verifica: unit + scatti + guardia-navigazione-overlay A MANO se si toccano gli overlay v3
   (regola §9 di CLAUDE.md repo).
 
-### T8 — Cancellazione immagini: il pre-check PRIMA della distruzione
+### Task 8 — T8 · Cancellazione immagini: il pre-check PRIMA della distruzione
 - `[imgId]/route.ts`: PRIMA di `storage.remove` (`:214`), controllo «questa immagine è
   `fonte_immagine_id` di qualche `lavori_prescrizioni`?» → 409 «fonte in uso» SENZA toccare nulla
   (prova S7: la FK morde, ma morde DOPO — fatto 8). Mappare comunque 23503 sulla .delete()
@@ -193,7 +193,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
   SchedaLavoroV3:270,290) e consapevole del clone (fatto 9: la fonte può essere di un rifacimento).
 - Verifica: unit con mock che conta l'ORDINE delle chiamate (il pre-check deve stare prima).
 
-### T9 — Il foglio a2 (UI + upload) — dopo T3+T4
+### Task 9 — T9 · Il foglio a2 (UI + upload) — dopo T3+T4
 - Sheet a 3 voci (testi INVARIATI D222): «Scatta una foto» (input capture) · «Dalla galleria o un
   PDF» (`accept="image/*,application/pdf"` SENZA capture — precedente TabImmagini:391) · «Non ce
   l'ho ancora qui» (fonte_tipo email/piattaforma + riferimento).
@@ -203,7 +203,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
 - Tipo-fonte dedotto dal gesto, mai domanda (spec §4.2).
 - Verifica: unit + giro a banco.
 
-### T10 — P37 UI: il mini-foglio «Chi ha prescritto?» (d1, D211)
+### Task 10 — T10 · P37 UI: il mini-foglio «Chi ha prescritto?» (d1, D211)
 - Dopo il tile del Passo 1 SOLO se il cliente è un'entità (ha `studio_nome`): ultimo prescrittore
   proposto (un tap), altri da `studio-members` (ARRAY NUDO — fatto 14), «È un altro» → pattern
   NuovoDentistaSheet. Dottore singolo: nessun foglio (D196).
@@ -211,7 +211,7 @@ T8, T10 sono catene indipendenti fra loro; T9 dipende da T3+T4; T11 chiude tutto
   «se del caso» — D206). Il POST li accetta già (fatto 2); StatoWizard/persistenza come T1.
 - Verifica: unit su quando il foglio compare/non compare.
 
-### T11 — Il PRIMO giro end-to-end + chiusura
+### Task 11 — T11 · Il PRIMO giro end-to-end + chiusura
 - 🔴 Handoff ② §0①: **nessun giro vero è mai stato percorso.** Sul banco di prova (porta 3020,
   accesso via `scripts/tmp/link-accesso.ts`, D103): wizard nuovo → lavoro creato → riga in
   `lavori_prescrizioni` verificata a DB → foglio a2 → fonte allegata → scheda con card e riga
