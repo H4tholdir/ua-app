@@ -70,6 +70,12 @@ D222 e il gesto di D212 sono nei mockup coi testi invariati alla lettera.
 
 ## §4 Nota di fedeltà del mockup
 
+**Valori dimostrativi ≠ testi vincolanti (risoluzione del controllore, T2 della ③, 04/08 sera):**
+nei mockup i VALORI di esempio (colore «A3», lavoro n.147, «Studio Bianchi») sono dati
+dimostrativi; i testi vincolanti di D223 sono le FRASI del framing. Nella riga chiusa del Passo 3
+in produzione l'esempio resta «es. A2» com'era prima dell'ondata: cambiarlo in «A3» avrebbe
+mosso un valore senza ragione. Il codice cita QUESTA nota.
+
 La scena del Fatto comprime la consegna a una riga e i margini verticali di 2-4px perché lo
 scatto 390×844 mostri anche i comandi in fondo (il vero scorre, lo scatto no): il React usa i
 token veri, non queste compressioni. La testata del wizard nei mockup usa i ProgressDots veri
