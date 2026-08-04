@@ -272,6 +272,57 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
     expect(screen.queryByRole('img', { name: /Passo \d di 3/ })).not.toBeInTheDocument()
   })
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // T3 (ondata B ③) — IL PASSAGGIO DI CONSEGNE Passo 3 → «Fatto!»
+  //
+  // 🔑 Questa prova attraversa un CONFINE che `tsc` non sorveglia:
+  //    `coloreOrigine` è una prop FACOLTATIVA di `FrameFatto` (deve esserlo:
+  //    assente ≡ 'prescrizione', D223). Se un giorno qualcuno togliesse
+  //    `coloreOrigine={fatto.coloreOrigine}` dal punto di chiamata, la
+  //    compilazione resterebbe muta e la carta «La prescrizione» affermerebbe
+  //    «✓ dalla prescrizione» su un colore che il dentista non ha mai scritto
+  //    — una provenienza FALSA sulla superficie su cui si appoggia la
+  //    Dichiarazione di Conformità. Non è una riga che sparisce in silenzio: è
+  //    una riga che mente. Perciò il confine si attraversa davvero, invece di
+  //    fidarsi delle prove che montano `FrameFatto` da solo.
+  // ═══════════════════════════════════════════════════════════════════════
+  it('lo sgancio del colore arriva fino al «Fatto!»: la riga sta in «Il lavoro» e NON porta la pastiglia', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
+    m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ paziente: { id: 'pz-1' } }) })
+    m.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ lavoro: { id: 'lav-1', numero_lavoro: '2026/0001', stato: 'ricevuto' } }),
+    })
+
+    render(<WizardNuovoLavoro dati={DATI_TASK12} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+
+    // Apre la riga «Colore», scrive, e SGANCIA (D210: «lo scegliamo noi»).
+    await user.click(screen.getByRole('button', { name: /^Colore/ }))
+    await user.type(screen.getByLabelText('Colore — come scritto sulla prescrizione'), 'A3')
+    await user.click(screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' }))
+
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+
+    // Sganciato ⇒ carta «Il lavoro», senza pastiglia di provenienza…
+    const lavoro = within(screen.getByRole('region', { name: 'Il lavoro' }))
+    expect(lavoro.getByText('Colore')).toBeInTheDocument()
+    expect(lavoro.getByText('A3')).toBeInTheDocument()
+    // …e MAI l'affermazione «viene dal foglio del dentista».
+    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'La prescrizione' })).queryByText('Colore')).not.toBeInTheDocument()
+
+    // E la trascrizione non è nemmeno partita verso il server (crea-lavoro.ts:343).
+    const corpoLavoro = JSON.parse(m.mock.calls[2][1].body as string)
+    expect(corpoLavoro.prescrizione).toBeUndefined()
+  })
+
   // ───────────────────────────────────────────────────────────────────────
   // Z1 — il testo ratificato da Francesco (**D37**, 30/07/2026).
   //
