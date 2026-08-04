@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ondata B · B — Il gesto «era scritto così?» (typo vs divergenza)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* TOKEN v3 verbatim da src/design-system/v3/tokens.ts, 04/08/2026 (post-D193).
+   Tema scuro: [data-tema="dark"] via automazione. Scatti: clip su .scena. */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --green-tint:#EAF4EC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  --scrim:rgba(29,25,19,.35);
+}
+[data-tema="dark"]{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#9A8F80; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --green-tint:rgba(52,196,104,.14); --amber-tint:rgba(232,161,61,.14); --blue-tint:rgba(91,155,255,.14);
+  --sh-card:none; --sh-press:none;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#ddd6c4;color:var(--ink)}
+[data-tema="dark"] body{background:#0a0908}
+.nota-scena{max-width:900px;margin:0 auto;padding:28px 24px 10px;
+  font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#7a7266}
+.nota-scena b{color:#3a352c}
+.scena{position:relative;width:100%;height:100vh;max-height:960px;overflow:hidden;
+  background:var(--bg);margin:0 auto 40px;max-width:1280px}
+
+/* Sfondo: scheda lavoro sfocata dietro lo scrim (accenno, non protagonista) */
+.sfondo-scheda{max-width:480px;margin:0 auto;padding:20px 24px}
+.sfondo-titolo{font-size:21px;font-weight:800}
+.sfondo-carta{background:var(--card);border-radius:24px;box-shadow:var(--sh-card);padding:4px 20px;margin-top:14px}
+[data-tema="dark"] .sfondo-carta{border:1px solid var(--line)}
+.sfondo-riga{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1.5px solid var(--line)}
+.sfondo-riga:last-child{border-bottom:none}
+.sfondo-k{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--faint)}
+.sfondo-v{font-size:17px;font-weight:700}
+
+/* Overlay */
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet-wrap{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
+.foglio{position:relative;width:100%;max-width:480px;max-height:92%;overflow-y:auto;
+  background:var(--card);border-top-left-radius:28px;border-top-right-radius:28px;
+  padding:32px 24px 24px;box-shadow:var(--sh-card)}
+.maniglia{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:4px;border-radius:999px;background:var(--line)}
+.foglio-titolo{font-size:21px;font-weight:800;color:var(--ink);margin:0 0 6px}
+.foglio-sotto{font-size:14.5px;font-weight:600;color:var(--muted);line-height:1.45;margin-bottom:16px}
+.foglio-sotto b{color:var(--ink)}
+
+/* Il prima→dopo: il valore precedente resta leggibile (Part 11: mai oscurare) */
+.cambio{display:flex;align-items:center;justify-content:center;gap:14px;background:var(--bg-deep);
+  border-radius:18px;padding:16px;margin-bottom:18px}
+.cambio-val{font-size:21px;font-weight:800;color:var(--ink)}
+.cambio-prima{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px}
+.cambio-freccia{font-size:17px;font-weight:800;color:var(--faint)}
+.cambio-eti{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);display:block;text-align:center;margin-top:3px}
+
+/* Le due vie: nessun default preselezionato (la scelta è intenzionale) */
+.via{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;text-align:left;
+  background:var(--card);border:1.5px solid var(--line);border-radius:18px;box-shadow:var(--sh-press);
+  cursor:pointer;font-family:inherit;padding:12px 16px;margin-bottom:12px}
+[data-tema="dark"] .via{background:var(--elv);box-shadow:none}
+.via-icona{width:38px;height:38px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center}
+.via-icona.penna{background:var(--blue-tint);color:var(--blue)}
+.via-icona.noi{background:var(--amber-tint);color:var(--amber)}
+.via-testo{flex:1}
+.via-nome{display:block;font-size:17px;font-weight:800;color:var(--ink)}
+.via-sub{display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin-top:2px;line-height:1.35}
+.quieto{display:inline-flex;align-items:center;min-height:44px;padding:13px 0;margin:-13px 0;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  font-size:14.5px;font-weight:600;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+/* Ramo divergenza: pastiglie del motivo (griglia FoglioCategoria §5.41) */
+.pastiglie{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pastiglia{min-height:60px;border-radius:18px;border:none;background:var(--bg-deep);cursor:pointer;
+  font-family:inherit;font-size:15px;font-weight:700;color:var(--ink);padding:0 12px;line-height:1.25}
+.pastiglia.scelta{background:var(--ink);color:var(--bg)}
+.campo{display:block;width:100%;height:64px;border-radius:18px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);font-family:inherit;font-size:17px;font-weight:600;padding:0 20px}
+.campo::placeholder{color:var(--faint);font-weight:600;opacity:1}
+.label{display:block;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;color:var(--faint);margin-bottom:6px}
+
+/* TastoPrimario + TastoSecondario */
+.tp-btn{width:100%;height:70px;border-radius:20px;border:none;margin-top:6px;
+  background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+  color:#fff;font-family:inherit;font-size:21px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  box-shadow:0 6px 0 var(--red-dark);cursor:pointer}
+@media(min-width:1024px){ .tp-btn{height:60px} }
+.ts-btn{width:100%;height:58px;border-radius:18px;border:1.5px solid var(--line);background:var(--elv);
+  color:var(--ink);font-family:inherit;font-size:17px;font-weight:700;box-shadow:var(--sh-press);cursor:pointer}
+[data-tema="dark"] .ts-btn{border:none;box-shadow:none;border-top:1px solid rgba(255,255,255,.06)}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SCENA 1 — La domanda a due vie ═══════════════ -->
+<div class="nota-scena">Foglio 1 di 2 — <b>il gesto sulla modifica di un campo trascritto</b>: chi corregge il colore da A3 ad A3,5 dichiara con UN tap se sta correggendo la trascrizione o cambiando la scelta. Nessuna via preselezionata; il valore di prima resta leggibile.</div>
+<div class="scena" id="scena-1">
+  <div class="sfondo-scheda" aria-hidden="true">
+    <div class="sfondo-titolo">n.147 · Corona</div>
+    <div class="sfondo-carta">
+      <div class="sfondo-riga"><span class="sfondo-k">Dentista</span><span class="sfondo-v">Studio Bianchi</span></div>
+      <div class="sfondo-riga"><span class="sfondo-k">Colore</span><span class="sfondo-v">A3</span></div>
+      <div class="sfondo-riga"><span class="sfondo-k">Consegna</span><span class="sfondo-v">lun 10 agosto</span></div>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet-wrap">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <h2 class="foglio-titolo">Era scritto così sulla prescrizione?</h2>
+      <p class="foglio-sotto">Il colore di questo lavoro è <b>trascritto dal foglio del Dr. Colombo</b>.
+      Dimmi che cosa sta succedendo, così la Dichiarazione dice la verità.</p>
+
+      <div class="cambio">
+        <span>
+          <span class="cambio-val cambio-prima">A3</span>
+          <span class="cambio-eti">trascritto</span>
+        </span>
+        <span class="cambio-freccia">→</span>
+        <span>
+          <span class="cambio-val">A3,5</span>
+          <span class="cambio-eti">nuovo</span>
+        </span>
+      </div>
+
+      <button class="via">
+        <span class="via-icona penna"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>
+        <span class="via-testo">
+          <span class="via-nome">Sul foglio c'è scritto A3,5</span>
+          <span class="via-sub">avevo copiato male: correggo la trascrizione</span>
+        </span>
+      </button>
+
+      <button class="via">
+        <span class="via-icona noi"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/></svg></span>
+        <span class="via-testo">
+          <span class="via-nome">No: lo stiamo cambiando noi</span>
+          <span class="via-sub">il foglio resta A3 — la Dichiarazione mostrerà prescritto e realizzato</span>
+        </span>
+      </button>
+
+      <div style="margin-top:14px;display:flex;justify-content:center">
+        <button class="quieto">Lascia stare, non cambio niente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCENA 2 — Il ramo «lo cambiamo noi»: il motivo ═══════════════ -->
+<div class="nota-scena">Foglio 2 di 2 — <b>il ramo della divergenza</b>: si registra il perché (pastiglie + nota libera facoltativa). È ciò che la Dichiarazione stamperà accanto a «come realizzato». Solo questo ramo lo chiede: la correzione di un refuso no.</div>
+<div class="scena" id="scena-2">
+  <div class="sfondo-scheda" aria-hidden="true">
+    <div class="sfondo-titolo">n.147 · Corona</div>
+    <div class="sfondo-carta">
+      <div class="sfondo-riga"><span class="sfondo-k">Dentista</span><span class="sfondo-v">Studio Bianchi</span></div>
+      <div class="sfondo-riga"><span class="sfondo-k">Colore</span><span class="sfondo-v">A3</span></div>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet-wrap">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <h2 class="foglio-titolo">Perché cambia?</h2>
+      <p class="foglio-sotto">Il prescritto resta <b>A3</b>, il realizzato diventa <b>A3,5</b>.
+      Una riga di motivo, e la differenza è coperta.</p>
+
+      <div class="pastiglie">
+        <button class="pastiglia scelta">Me l'ha chiesto il dentista</button>
+        <button class="pastiglia">Esigenza tecnica</button>
+        <button class="pastiglia">Materiale non disponibile</button>
+        <button class="pastiglia">Altro</button>
+      </div>
+
+      <label class="label" for="nota">Nota (se serve)</label>
+      <input class="campo" id="nota" placeholder="es. richiesta al telefono, 4 agosto">
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px">
+        <button class="ts-btn">Torna indietro</button>
+        <button class="tp-btn">Registra il cambio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

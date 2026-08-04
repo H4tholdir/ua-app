@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ondata B · D — «Chi ha prescritto?» (P37/D196, due varianti)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* TOKEN v3 verbatim da src/design-system/v3/tokens.ts, 04/08/2026 (post-D193).
+   Tema scuro: [data-tema="dark"] via automazione. Scatti: clip su .scena. */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --green-tint:#EAF4EC; --blue-tint:#EBF1FA;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  --scrim:rgba(29,25,19,.35);
+}
+[data-tema="dark"]{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#9A8F80; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --green-tint:rgba(52,196,104,.14); --blue-tint:rgba(91,155,255,.14);
+  --sh-card:none; --sh-press:none;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#ddd6c4;color:var(--ink)}
+[data-tema="dark"] body{background:#0a0908}
+.nota-scena{max-width:900px;margin:0 auto;padding:28px 24px 10px;
+  font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#7a7266}
+.nota-scena b{color:#3a352c}
+.scena{position:relative;width:100%;height:100vh;max-height:960px;overflow:hidden;
+  background:var(--bg);margin:0 auto 40px;max-width:1280px}
+
+/* Passo 1 del wizard (dal reale: testata + domanda + griglia tile) */
+.sf-testata{display:flex;align-items:center;gap:14px;padding:20px 24px 4px}
+.sf-tondo{width:46px;height:46px;flex:none;border-radius:999px;border:none;
+  background:var(--card);box-shadow:var(--sh-press);font-size:19px;font-weight:800;color:var(--ink)}
+[data-tema="dark"] .sf-tondo{border:1px solid var(--line)}
+.sf-passo{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--faint)}
+.sf-corpo{max-width:480px;margin:0 auto;padding:14px 24px 0}
+.sf-domanda{font-size:35px;font-weight:800;letter-spacing:-0.02em;line-height:1.08;color:var(--ink)}
+.sf-griglia{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:22px}
+.sf-tile{background:var(--card);border-radius:22px;padding:20px 12px 17px;box-shadow:var(--sh-card);
+  display:flex;flex-direction:column;align-items:center;gap:8px;border:none;font-family:inherit;cursor:pointer}
+[data-tema="dark"] .sf-tile{border:1px solid var(--line)}
+.sf-tile.scelto{outline:2.5px solid var(--blue);outline-offset:2px}
+.sf-avatar{width:60px;height:60px;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}
+.sf-tile-nome{font-size:17.5px;font-weight:700;color:var(--ink);text-align:center}
+.sf-tile-sotto{font-size:13px;font-weight:600;color:var(--faint)}
+.sf-cerca{margin-top:15px;height:58px;border-radius:18px;background:var(--card);box-shadow:var(--sh-card);
+  display:flex;align-items:center;gap:10px;padding:0 18px;font-size:17px;font-weight:600;color:var(--muted)}
+[data-tema="dark"] .sf-cerca{border:1px solid var(--line)}
+
+/* Overlay foglio (variante D1) */
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet-wrap{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
+.foglio{position:relative;width:100%;max-width:480px;max-height:92%;overflow-y:auto;
+  background:var(--card);border-top-left-radius:28px;border-top-right-radius:28px;
+  padding:32px 24px 24px;box-shadow:var(--sh-card)}
+.maniglia{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:4px;border-radius:999px;background:var(--line)}
+.foglio-titolo{font-size:21px;font-weight:800;color:var(--ink);margin:0 0 4px}
+.foglio-sotto{font-size:14.5px;font-weight:600;color:var(--muted);line-height:1.4;margin-bottom:16px}
+.foglio-sotto b{color:var(--ink)}
+
+/* Righe-medico (una per medico dello studio; il default è l'ultimo prescrittore) */
+.medico{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;text-align:left;
+  background:var(--card);border:1.5px solid var(--line);border-radius:18px;box-shadow:var(--sh-press);
+  cursor:pointer;font-family:inherit;padding:10px 16px;margin-bottom:10px}
+[data-tema="dark"] .medico{background:var(--elv);box-shadow:none}
+.medico.default{border:none;background:var(--green-tint);box-shadow:none}
+.medico-avatar{width:44px;height:44px;flex:none;border-radius:999px;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+.medico-testo{flex:1}
+.medico-nome{display:block;font-size:17px;font-weight:800;color:var(--ink)}
+.medico-sub{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-top:1px}
+.medico.default .medico-sub{color:var(--green);font-weight:700}
+.quieto{display:inline-flex;align-items:center;min-height:44px;padding:13px 0;margin:-13px 0;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  font-size:14.5px;font-weight:600;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+/* Variante D2: pastiglie inline sotto il tile scelto */
+.inline-blocco{grid-column:1 / -1;background:var(--bg-deep);border-radius:18px;padding:16px}
+.inline-eti{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;color:var(--faint);margin-bottom:10px}
+.inline-chips{display:flex;flex-wrap:wrap;gap:8px}
+.inline-chip{display:inline-flex;align-items:center;gap:7px;min-height:48px;padding:0 18px;border-radius:999px;
+  border:none;background:var(--card);box-shadow:var(--sh-press);cursor:pointer;
+  font-family:inherit;font-size:16px;font-weight:700;color:var(--ink)}
+[data-tema="dark"] .inline-chip{border:1px solid var(--line);box-shadow:none}
+.inline-chip.scelta{background:var(--green-tint);color:var(--green);box-shadow:none;border:none}
+.inline-chip.scelta::before{content:'✓';font-weight:900}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SCENA D1 — mini-foglio dopo il tile ═══════════════ -->
+<div class="nota-scena">Foglio 1 di 2 — <b>VARIANTE D1, il mini-foglio</b>: scelto uno studio con più medici, sale il foglio «Chi ha prescritto?». L'ultimo prescrittore di quello studio è già proposto: nel caso normale è UN tap. Per il dottore singolo il foglio non compare mai.</div>
+<div class="scena" id="scena-d1">
+  <div class="sf-testata">
+    <button class="sf-tondo">‹</button>
+    <span class="sf-passo">Passo 1 di 3</span>
+  </div>
+  <div class="sf-corpo">
+    <h1 class="sf-domanda">Per quale dentista?</h1>
+    <div class="sf-griglia">
+      <button class="sf-tile scelto">
+        <span class="sf-avatar" style="background:var(--blue)">SB</span>
+        <span class="sf-tile-nome">Studio Bianchi</span>
+        <span class="sf-tile-sotto">12 lavori a luglio</span>
+      </button>
+      <button class="sf-tile">
+        <span class="sf-avatar" style="background:#0E8A6B">ES</span>
+        <span class="sf-tile-nome">Dr. Esposito</span>
+        <span class="sf-tile-sotto">8 lavori a luglio</span>
+      </button>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet-wrap">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <h2 class="foglio-titolo">Chi ha prescritto?</h2>
+      <p class="foglio-sotto">Da <b>Studio Bianchi</b> prescrivono in tre. Sulla Dichiarazione
+      va il nome della persona, non dello studio.</p>
+
+      <button class="medico default">
+        <span class="medico-avatar" style="background:#7A4DB8">FC</span>
+        <span class="medico-testo">
+          <span class="medico-nome">Dr. Colombo Francesco</span>
+          <span class="medico-sub">l'ultimo che ha prescritto qui — tocca e via</span>
+        </span>
+      </button>
+
+      <button class="medico">
+        <span class="medico-avatar" style="background:#C24E7A">MB</span>
+        <span class="medico-testo">
+          <span class="medico-nome">Dr.ssa Bianchi Marta</span>
+          <span class="medico-sub">titolare dello studio</span>
+        </span>
+      </button>
+
+      <button class="medico">
+        <span class="medico-avatar" style="background:#9A5C00">AF</span>
+        <span class="medico-testo">
+          <span class="medico-nome">Dr.ssa Ferri Anna</span>
+          <span class="medico-sub">ha prescritto 2 lavori a luglio</span>
+        </span>
+      </button>
+
+      <div style="margin-top:10px;display:flex;justify-content:center;gap:24px">
+        <button class="quieto">È un altro: lo aggiungo allo studio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCENA D2 — pastiglie inline nel Passo 1 ═══════════════ -->
+<div class="nota-scena">Foglio 2 di 2 — <b>VARIANTE D2, le pastiglie inline</b>: nessun foglio — scelto lo studio, la domanda si apre lì sotto, nella stessa schermata, col default già acceso. Un tap per cambiare, zero per confermare.</div>
+<div class="scena" id="scena-d2">
+  <div class="sf-testata">
+    <button class="sf-tondo">‹</button>
+    <span class="sf-passo">Passo 1 di 3</span>
+  </div>
+  <div class="sf-corpo">
+    <h1 class="sf-domanda">Per quale dentista?</h1>
+    <div class="sf-griglia">
+      <button class="sf-tile scelto">
+        <span class="sf-avatar" style="background:var(--blue)">SB</span>
+        <span class="sf-tile-nome">Studio Bianchi</span>
+        <span class="sf-tile-sotto">12 lavori a luglio</span>
+      </button>
+      <button class="sf-tile">
+        <span class="sf-avatar" style="background:#0E8A6B">ES</span>
+        <span class="sf-tile-nome">Dr. Esposito</span>
+        <span class="sf-tile-sotto">8 lavori a luglio</span>
+      </button>
+
+      <div class="inline-blocco">
+        <div class="inline-eti">Chi ha prescritto?</div>
+        <div class="inline-chips">
+          <button class="inline-chip scelta">Dr. Colombo F.</button>
+          <button class="inline-chip">Dr.ssa Bianchi M.</button>
+          <button class="inline-chip">Dr.ssa Ferri A.</button>
+          <button class="inline-chip" style="color:var(--muted)">+ Un altro</button>
+        </div>
+      </div>
+    </div>
+    <div class="sf-cerca">🔍 Cerca fra tutti i 39 dentisti…</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -10,8 +10,13 @@ roadmap, dopo l'ondata B. D-Q2 si scioglie lì.
 
 🔴 Resta della §0: conteggio DdC fresco (sessione ②).
 
-➡️ **IN CORSO: spec ondata B (P38+P37), sessione ① di 4** — vincoli D207 (§2 panel referto),
-modello `lavori_prescrizioni` (§3), mockup a Francesco PRIMA del codice (0B: più varianti,
-chiaro+scuro, 390/768/1280). Citare «MDCG 2021-3, marzo 2021» (mai Rev.1).
+➡️ **IN CORSO: spec ondata B (P38+P37), sessione ① di 4** — bozza spec scritta
+(`docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md`, §4 in attesa delle
+scelte mockup) · **4 mockup fatti e fotografati** (66 scatti, 390/768/1280 × chiaro/scuro, in
+`docs/design/mockups/screenshots/2026-08-04-ondata-b/`): A=Fatto! due varianti (conferma
+dopo/framing prima) · B=gesto typo-vs-divergenza · C=precheck con attestazione ·
+D=chi-ha-prescritto due varianti. **ATTESE le scelte di Francesco** (→ D210+).
+Esplorazione: 6 lettori, fatti chiave in spec §4.0; ritrovamenti R-E2 in scratchpad
+(`ritrovamenti-r-e2-sessione-spec.md`) per l'handoff. Citare «MDCG 2021-3, marzo 2021».
 
 📎 **209 decisioni in 78 tornate**; la prossima è **D210**.
