@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla settantasettesima tornata (D207: il meccanismo di D204 è RATIFICATO con le condizioni del panel — le condizioni diventano i vincoli della spec B)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla settantottesima tornata (D208-D209: D179+E1 si pianificano come voce P41; Q1 chiusa col default — `npm test` = solo unit)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**207 decisioni in settantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**209 decisioni in settantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1683,3 +1683,14 @@ Quattro risposte di Francesco alle domande poste sul dossier P38 e sul referto n
 | # | decisione | come è stata posta | che cosa comporta |
 |---|---|---|---|
 | **D207** | ✅ **IL MECCANISMO DI D204 È RATIFICATO CON LE CONDIZIONI DEL PANEL — la riserva di D204 è SCIOLTA.** Le condizioni unificate del §2 di `docs/roadmap/2026-08-04-panel-d204-referto.md` (fonte obbligatoria all'emissione · provenienza per-caratteristica · snapshot server-side in tabella propria `lavori_prescrizioni` · gesto typo-vs-divergenza · conferma al precheck guardando la fonte · solo-scansione bloccato all'emissione · voce = stato mai fonte · congelamento nelle RPC · divergenze con motivo) **diventano i VINCOLI della spec dell'ondata B** | Francesco, il 04/08, sul referto del panel (tre lenti, tre REGGE CON CONDIZIONI): «*ratifico*» | La spec B si scrive dentro questi vincoli, con i mockup a Francesco PRIMA del codice (0B). Stima a piano: **4 sessioni** (① spec+mockup · ② migration+RPC · ③ wizard+scheda · ④ DdC a due righe+precheck+prove+QA+L2). La spec citerà «MDCG 2021-3, marzo 2021» (mai «Rev.1») e rileggerà L. 409/1985 art. 2 su GU se ne cita il testo (D125) |
+
+### Settantottesima tornata — D208-D209: il betting di D179+E1, e Q1 chiusa col default (04/08/2026)
+
+Le due decisioni della ripresa di sessione del 4 agosto mattina, poste a Francesco col riepilogo
+BP-0 sulla §0 dell'handoff (`docs/roadmap/2026-08-04-spec-ondata-b-handoff.md`): il betting che
+quattro handoff di fila chiedevano, e la finestra mai processata della coda decisioni.
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D208** | 🗓️ **D179 + E1 SI PIANIFICANO — NASCE LA VOCE P41: un'ondata dedicata «il banco di prova automatico», in coda DOPO l'ondata B.** Dentro: l'esecuzione di **D179** (le ~20 prove a schermo «pubbliche» in un job Playwright in CI — decisa il 28/07 alla sessantaseiesima tornata e **mai eseguita**: quattro handoff consecutivi l'hanno segnalata) + la scheda **E1** di `docs/ops/EMERGENTI.md` (Supabase locale + prove RLS a due utenti — oggi l'unico canale DB dei test si connette come owner e BYPASSA la RLS; misurata **5-10 giorni**) + **E3**, che si chiude naturalmente con E1 | Francesco, il 04/08 alla ripresa, sulla domanda a tre uscite del betting (si pianifica · si dichiara che non si fa · se ne riparla a fine sessione): «*Si pianifica*» | ✅ **La voce smette di girare per gli handoff: ha una casa (P41) e un posto in coda (dopo l'ondata B).** Criterio di done, dalle schede: `supabase db reset` produce uno schema identico al remoto (diff incollato) · prove RLS «il lab A non vede i dati del lab B» **verdi in CI** · le ~20 prove a schermo eseguite da una macchina a ogni salvataggio. Traguardo invariato (FD): **prima del primo laboratorio vero**. D-Q2 (quale prova a schermo scrivere per prima) si scioglie dentro P41 |
+| **D209** | ✅ **Q1 È CHIUSA COL DEFAULT (a): `npm test` ESEGUE SOLO `tests/unit`** — lo script di `package.json:12` si allinea al commento di `vitest.config.ts`; le integration si lanciano per nome (`test:integration`). Chiude la scheda **E2** di `docs/ops/EMERGENTI.md` | Francesco, il 04/08 alla ripresa, sulla Q1 della coda decisioni (basso rischio, default proposto): «*Ok al default*» | ✅ **Eseguita nello stesso turno** (una riga in `package.json` + commento di `vitest.config.ts` riscritto in forma vera). `provato:` `npm test` → **Test Files 394 passed (394) · Tests 4542 passed (4542)**, 72 s — i 3 file d'integrazione (coi loro 19 test saltati) **non vengono più nemmeno raccolti** (prima: 397 raccolti, 19 saltati). ⚠️ **La CI non cambia:** `.github/workflows/ci.yml:34` chiama `npx vitest run` direttamente — lì le integration restano raccolte e si saltano da sole senza `SUPABASE_DB_URL` (skipIf) |

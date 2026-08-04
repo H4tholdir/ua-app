@@ -22,11 +22,12 @@ export default defineConfig({
         'src/app/api/auth/**',
       ],
     },
-    // tests/integration/** non gira mai di default: npm test/CI usano
-    // `vitest run` senza argomenti, che con questo include prenderebbe anche
-    // l'integration — per questo `test`/`test:unit` restano scope-limitati
-    // esplicitamente a tests/unit (vedi script in package.json), mentre
-    // `test:integration` punta esplicitamente a tests/integration.
+    // tests/integration/** non gira mai di default: `test`/`test:unit` sono
+    // scope-limitati esplicitamente a tests/unit (vedi script in package.json,
+    // allineati con D209 il 04/08/2026), mentre `test:integration` punta
+    // esplicitamente a tests/integration. La CI (`.github/workflows/ci.yml`)
+    // usa `vitest run` senza argomenti: lì le integration vengono raccolte ma
+    // si saltano da sole senza SUPABASE_DB_URL (skipIf).
     include: [
       'tests/unit/**/*.test.ts',
       'tests/unit/**/*.test.tsx',
