@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantesima tornata (D214: la SPEC dell'ondata B è RATIFICATA — la sessione ① è completa, la ② parte dalla migration col conteggio DdC fresco)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantunesima tornata (D215: la pubblicazione dei salvataggi della sessione ① è autorizzata — Q3 chiusa)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**214 decisioni in ottanta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**215 decisioni in ottantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1715,3 +1715,9 @@ fonte, registrata server-side — resta in piedi: cambia la FORMA, non la condiz
 | # | decisione | come è stata posta | che cosa comporta |
 |---|---|---|---|
 | **D214** | ✅ **LA SPEC DELL'ONDATA B È RATIFICATA** (`docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md`): i 9 vincoli di D207, il modello `lavori_prescrizioni`, le superfici con le scelte D210-D213, la DdC a due righe, la normativa su fonte primaria («MDCG 2021-3, marzo 2021»), le 5 risposte di gate FASE 3, i «non si fa» espliciti | Francesco, il 04/08, sul riepilogo della spec completa: «*Ratifico*» | 🏁 **La sessione ① di 4 è COMPLETA** (spec + mockup + scelte). ➡️ La sessione ② parte dalla **migration + RPC**, e PRIMA di chiudere la policy `ddc_laboratorio_update` misura il **conteggio DdC fresco** (`npx tsx scripts/tmp/verifica-conteggio-ddc.ts` — mai misurato in queste sessioni, §0③ dell'handoff). Il percorso resta GRANDE: FASE 4 con i tre registri (R-P1 · R-P2 · R-P6) sul piano della ② |
+
+### Ottantunesima tornata — D215: si pubblica la sessione ① (04/08/2026)
+
+| # | decisione | come è stata posta | che cosa comporta |
+|---|---|---|---|
+| **D215** | 🚀 **LA PUBBLICAZIONE DEI SALVATAGGI DELLA SESSIONE ① È AUTORIZZATA** (7 al momento del sì, contando questa riga: D208-D214 su verbale/roadmap/memoria, la spec RATIFICATA, i 4 mockup coi 60 scatti, la modifica di D209 a `package.json` — neutra per l'app: la CI chiama `npx vitest run` direttamente) | Francesco, il 04/08, sulla domanda Q3 della coda decisioni (alto rischio, niente default): «*pubblica*» | ✅ Q3 chiusa. **FASE 10 avviata nello stesso turno:** `git push origin main` — l'esito con le prove (CI · CD · sito) atterra nell'aggiornamento di roadmap e memoria, non qui: questa riga registra l'AUTORIZZAZIONE, che è la decisione |
