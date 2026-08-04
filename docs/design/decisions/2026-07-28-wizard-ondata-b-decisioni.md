@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantaduesima tornata (D216-D221: ratifiche della ②, pubblicazione autorizzata, mockup a2/C-1 da rivedere prima della ③, studio del flusso rifacimento)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantatreesima tornata (D222: le scene a2/C-1 confermate — D220 chiusa, via libera al disegno della ③)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**221 decisioni in ottantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**222 decisioni in ottantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1732,3 +1732,9 @@ fonte, registrata server-side — resta in piedi: cambia la FORMA, non la condiz
 | **D219** | 🚀 **LA PUBBLICAZIONE DELLA SESSIONE ② È AUTORIZZATA** (ramo `ondata-b-sessione-2`, 11 salvataggi al momento del sì: 3 migration già applicate al DB in modo compatibile, RPC, server TDD, igiene, BP-1) | Francesco, il 04/08: «*Mergia e pubblica*» | FASE 10 avviata nello stesso turno: merge → push → CI → verifica sito. L'esito con le prove atterra su roadmap e memoria, non qui: questa riga registra l'AUTORIZZAZIONE |
 | **D220** | 🔍 **Le due scene dei mockup approvate solo implicitamente nella ① SI RIVEDONO prima della ③:** il foglio «Allega la prescrizione» (scena a2) e i bloccanti nuovi del precheck (scena C-1) | Francesco, il 04/08: «*Rivediamole prima della ③*» | 🛑 La ③ NON parte finché le due scene non sono riviste. Gli scatti si rimostrano a Francesco subito, in questa stessa sessione |
 | **D221** | 🧭 **IL FLUSSO DEL RIFACIMENTO VA RISTUDIATO PER INTERO** — il fix puntuale del clone P37 (richiedente + istituzione) può entrare nella ③, ma il flusso nacque come bozza e va ripensato | Francesco, il 04/08: «*nella sessione 3, però in realtà va studiato tutto il flusso di un rifacimento, pensando bene a come gestire tutta la cosa, perchè quando è stato creato, era solo una bozza*» | Nasce la **voce 12** di roadmap (studio del flusso, brainstorming PRIMA del codice). Eredita i fatti censiti: clone senza richiedente_nome/istituzione_sanitaria/paziente_nome_snapshot · lock senza tenant param né deleted_at (M-T3-5) · lo snapshot prescrizione ora si clona (②) |
+
+### Ottantatreesima tornata — D222: le due scene sono confermate, la ③ ha il via libera sul disegno (04/08/2026)
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D222** | ✅ **LE SCENE a2 E C-1 SONO CONFERMATE COME MOSTRATE** — il foglio «Allega la prescrizione» (3 vie: foto · galleria/PDF · «non ce l'ho ancora qui») e i tre bloccanti nuovi del precheck («manca il foglio» · «solo scansione, senza scelta scritta» col rimedio · «in attesa di conferma scritta») | Francesco, il 04/08, sugli scatti rimostrati (390 chiaro/scuro + 1280): «*vanno bene così*» | 🏁 **D220 è CHIUSA**: l'approvazione delle due scene non è più implicita — ha il suo numero. **La sessione ③ ha il via libera sul disegno** (restano le sue precondizioni di processo: le note vincolanti nel piano della ② e il brainstorming della riga 12 se la ③ tocca il rifacimento) |

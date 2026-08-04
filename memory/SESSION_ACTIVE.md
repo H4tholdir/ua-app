@@ -1,17 +1,17 @@
-# Sessione attiva — 04/08 pomeriggio: sessione ② dell'ondata B ESEGUITA
+# Sessione attiva — 04/08 sera: sessione ② IN PRODUZIONE, D216-D222 a verbale
 
-🚪 **PUNTO DI RIPRESA:** `docs/superpowers/plans/2026-08-04-ondata-b-sessione-2-migration-rpc.md`
-— la sezione **«Note VINCOLANTI per le sessioni ③ e ④»** per prima (la ③ parte cieca).
+🚪 **PUNTO DI RIPRESA per la ③:** `docs/superpowers/plans/2026-08-04-ondata-b-sessione-2-migration-rpc.md`
+— sezione **«Note VINCOLANTI per le sessioni ③ e ④»** per prima, poi la spec ratificata (D214).
 
-✅ **Fatto (ramo `ondata-b-sessione-2`, 9 commit `3fc71e70..16f71ab5` — NON mergiato, attende
-Francesco):** cancello §0① passato (6 DdC: 2 `generata` pre-v1 + 4 annullate) · 3 migration
-applicate (tabella `lavori_prescrizioni` · 5 RPC + clone rifacimento, collaudo 9/9 · policy
-`ddc_laboratorio_update` CHIUSA, prova prima=1/dopo=0) · server (componiSnapshot 14 test, POST
-V3 col gate sulla chiave `prescrizione`, `istituzione_sanitaria` patchabile) · igiene Allegato
-XIII + stato `annullata`.
+✅ **Pubblicato (D219):** push `c04cf781..d1ba332d` · CI verde (run 30923933154, 7m32s) · CD verde
+(run 30924573853) · sito 200 su /login. In produzione: `lavori_prescrizioni` + 6 RPC (V8) +
+immutabilità DdC strutturale + POST col gate D216 + `istituzione_sanitaria` patchabile + igiene
+Allegato XIII.
 
-📌 **Misurato:** FASE 6b tipi identici · tsc 0 · eslint 0 · vitest **4568/4568** (397 file) ·
-RLS 5 tabelle ok. ⚖️ Review finale di ramo: **READY TO MERGE, zero Critical/Important**.
+⚖️ **Tornate 82-83:** D216 gate chiave `prescrizione` · D217 casella vuota = non prescritto ·
+D218 retrocompat POST · D219 pubblicazione · D220 scene da rivedere → **CHIUSA da D222**
+(«vanno bene così») · D221 studio flusso rifacimento → **riga 12 della tabella di roadmap**
+(brainstorming PRIMA del codice; il solo clone P37 può entrare in ③).
 
-➡️ **PROSSIMO:** ok di Francesco al merge (+ ratifica decisioni d'attuazione, nel piano) →
-sessione ③ (wizard + scheda). 📎 **215 decisioni in 81 tornate**; la prossima è **D216**.
+➡️ **PROSSIMO: sessione ③ di 4 — wizard + scheda col flusso di correzione** (0B: mockup delle
+schermate VERE prima del codice). 📎 **222 decisioni in 83 tornate**; la prossima è **D223**.
