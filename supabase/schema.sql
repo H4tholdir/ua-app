@@ -875,7 +875,7 @@ CREATE INDEX idx_fasi_laboratorio ON fasi_produzione(laboratorio_id) WHERE delet
 -- ============================================================
 -- LAVORI — tabella core del sistema
 -- Ogni record = una lavorazione commissionata da un dentista
--- Contiene i 12 elementi obbligatori per la DoC (Allegato IV MDR)
+-- Contiene gli elementi obbligatori per la DoC (Allegato XIII MDR)
 -- ============================================================
 CREATE TABLE lavori (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -900,7 +900,7 @@ CREATE TABLE lavori (
   paziente_nome_snapshot TEXT,          -- Snapshot nome al momento creazione
   paziente_nascita_snapshot DATE,
 
-  -- Tipo e descrizione dispositivo (MDR Allegato IV §5)
+  -- Tipo e descrizione dispositivo (MDR Allegato XIII p.1)
   tipo_dispositivo  TEXT NOT NULL
                     CHECK (tipo_dispositivo IN (
                       'protesi_fissa', 'protesi_mobile', 'implantologia',
@@ -916,7 +916,7 @@ CREATE TABLE lavori (
   arcata            TEXT CHECK (arcata IN ('superiore','inferiore','entrambe')),
   anamnesi_note     TEXT,               -- Bruxismo, precauzioni, altri dispositivi
 
-  -- MDR — Classificazione (Allegato IV §6 — classe rischio)
+  -- MDR — Classificazione (Allegato XIII p.1 — classe rischio)
   classe_rischio    TEXT NOT NULL DEFAULT 'classe_iia'
                     CHECK (classe_rischio IN ('classe_i','classe_iia','classe_iib','classe_iii')),
   norma_riferimento TEXT,               -- Es. "EN ISO 6872:2015"
@@ -1263,7 +1263,7 @@ CREATE TABLE dichiarazioni_conformita (
   storage_object_version TEXT,             -- versione oggetto Supabase Storage (per audit)
 
   stato             TEXT NOT NULL DEFAULT 'bozza'
-                    CHECK (stato IN ('bozza','generata','firmata','consegnata')),
+                    CHECK (stato IN ('bozza','generata','firmata','consegnata','annullata')),
 
   -- Rischi non eliminabili (4 rischi standard da Odontec/DentalMaster)
   rischi_json       JSONB,
@@ -1272,7 +1272,10 @@ CREATE TABLE dichiarazioni_conformita (
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at        TIMESTAMPTZ,
 
-  -- Una DoC per lavoro (relazione 1:1 per lo standard)
+  -- Backstop della numerazione: un numero (anno_ddc, progressivo_ddc) non si
+  -- ripete per laboratorio. NON è questo il vincolo "una DdC per lavoro" —
+  -- quello è l'indice parziale ddc_lavoro_attiva_unique (sotto, dopo gli
+  -- indici), che ammette N annullate + 1 attiva per lavoro_id.
   UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)
 );
 
@@ -1306,6 +1309,14 @@ CREATE INDEX idx_ddc_laboratorio ON dichiarazioni_conformita(laboratorio_id) WHE
 CREATE INDEX idx_ddc_lavoro ON dichiarazioni_conformita(lavoro_id);
 CREATE INDEX idx_ddc_anno ON dichiarazioni_conformita(laboratorio_id, anno_ddc) WHERE deleted_at IS NULL;
 CREATE INDEX idx_ddc_stato ON dichiarazioni_conformita(laboratorio_id, stato) WHERE deleted_at IS NULL;
+
+-- Vincolo vero "una DdC per lavoro": indice UNIQUE parziale, non la UNIQUE
+-- sopra su (anno_ddc, progressivo_ddc), che è solo il backstop del numero.
+-- Ammette N annullate + 1 attiva per lavoro_id. Origine:
+-- supabase/migrations/20260710090000_ddc_annullata_unique_parziale.sql:15-17.
+CREATE UNIQUE INDEX ddc_lavoro_attiva_unique
+  ON dichiarazioni_conformita (laboratorio_id, lavoro_id)
+  WHERE stato <> 'annullata';
 
 
 -- ============================================================

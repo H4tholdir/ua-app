@@ -188,12 +188,13 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
   // 🛑 IL FATTO: `template_version` e `payload_sha256` esistono in
   //    `supabase/schema.sql` dal primo giorno e per anni NESSUNO le ha
   //    valorizzate. ⚠️ Non è più vero per OGNI riga in archivio: verificato
-  //    con una query di sola lettura sul DB live (non solo riletto dal
-  //    referto), su 4 dichiarazioni presenti in `dichiarazioni_conformita`
-  //    una sola porta `template_version = 'ddc-v1'` (e `payload_sha256`
-  //    valorizzato) — è la DdC emessa e subito annullata durante il collaudo
-  //    dal vivo del 03/08/2026, le altre tre (tutte antecedenti) restano
-  //    NULL (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
+  //    di nuovo il 04/08/2026 con una query di sola lettura sul DB live
+  //    (`scripts/tmp/verifica-conteggio-ddc.ts`): 6 dichiarazioni in archivio,
+  //    2 `generata` di era pre-v1 (`template_version` e `payload_sha256`
+  //    entrambi NULL, risalenti al 06/07/2026) e 4 `annullata`, di cui 3 con
+  //    `template_version = 'ddc-v1'` e `payload_sha256` valorizzato — le DdC
+  //    emesse e poi annullate durante i collaudi dal vivo del 31/07-03/08/2026
+  //    (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
   //    CLAUDE.md §9 «Collaudo dal vivo»). Sono le due colonne che, fra dieci
   //    anni (quindici per gli impiantabili), dicono «questo PDF è quello di
   //    allora e nasce da QUESTI dati». Una colonna dichiarata come prova e

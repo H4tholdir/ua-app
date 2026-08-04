@@ -602,7 +602,7 @@ export interface DichiarazioneConformita {
   inviata_al_dentista: boolean;
   inviata_al_dentista_at: string | null;
   data_emissione: string;
-  stato: 'bozza' | 'generata' | 'firmata' | 'consegnata';
+  stato: 'bozza' | 'generata' | 'firmata' | 'consegnata' | 'annullata';
   // §1 Allegato XIII — Fabbricante (snapshot immutabile)
   fabbricante_nome: string;
   fabbricante_indirizzo: string;
