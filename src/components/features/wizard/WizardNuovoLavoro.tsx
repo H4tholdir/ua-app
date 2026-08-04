@@ -47,6 +47,19 @@ import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
 export type TipoScelto = { kind: 'catalogo'; tipoId: string } | { kind: 'libero'; testo: string }
 
+/**
+ * Lo stato dello sgancio del colore (Task 1, Ondata B ②). UNA SOLA CASA per
+ * l'unione — la consumano sia `StatoWizard.coloreOrigine` qui sotto sia
+ * l'input di `creaLavoroDaWizard` (`crea-lavoro.ts`), così i due non possono
+ * disallinearsi.
+ *
+ * `'prescrizione'` (o campo ASSENTE, stesso significato — D223: scrivere È
+ * trascrivere) = il colore è la trascrizione del foglio del dentista.
+ * `'lab'` = sganciato: è una scelta di laboratorio, non una prescrizione — la
+ * UI che lo mette a `'lab'` è il Task 2 (framing), non questo file.
+ */
+export type ColoreOrigine = 'prescrizione' | 'lab'
+
 export type StatoWizard = {
   passo: 1 | 2 | 3
   cliente: { id: string; label: string } | null
@@ -55,6 +68,8 @@ export type StatoWizard = {
   alias: string
   elemento: string
   colore: string
+  /** OPZIONALE apposta: i salvataggi `v: 1` scritti prima del Task 1 non lo hanno — v. persistenza.ts. */
+  coloreOrigine?: ColoreOrigine
   foto: File | null
 }
 
@@ -66,6 +81,7 @@ const STATO_INIZIALE: StatoWizard = {
   alias: '',
   elemento: '',
   colore: '',
+  coloreOrigine: 'prescrizione',
   foto: null,
 }
 
@@ -170,6 +186,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       alias: stato.alias,
       elemento: stato.elemento,
       colore: stato.colore,
+      coloreOrigine: stato.coloreOrigine,
     })
   }, [pronto, stato, contesto.userId, contesto.labId])
 
@@ -185,6 +202,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       alias: statoSalvato.alias,
       elemento: statoSalvato.elemento,
       colore: statoSalvato.colore,
+      coloreOrigine: statoSalvato.coloreOrigine,
       foto: null,
     })
     setSheetRipresaAperto(false)
@@ -375,6 +393,7 @@ function CorpoWizard(props: {
       alias: stato.alias,
       elemento: stato.elemento,
       colore: stato.colore,
+      coloreOrigine: stato.coloreOrigine,
       foto: stato.foto,
       dataConsegna,
     })

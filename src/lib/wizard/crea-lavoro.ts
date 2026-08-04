@@ -49,7 +49,7 @@
 
 import { trovaTipo, labelTipo } from '@/lib/domain/tipi-lavoro'
 import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
-import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
+import type { TipoScelto, ColoreOrigine } from '@/components/features/wizard/WizardNuovoLavoro'
 import type { TipoDispositivo, ClasseRischio } from '@/types/domain'
 
 /**
@@ -237,10 +237,14 @@ export async function creaLavoroDaWizard(input: {
   alias: string
   elemento: string
   colore: string
+  // Ondata B ②/T1 — assente o 'prescrizione' = il colore è trascrizione del
+  // foglio (D223: scrivere È trascrivere); 'lab' = sganciato, scelta di
+  // laboratorio, quindi NIENTE da trascrivere anche se `colore` è compilato.
+  coloreOrigine?: ColoreOrigine
   foto: File | null
   dataConsegna: Date
 }): Promise<EsitoCreazione> {
-  const { cliente, tipo, pz, alias, elemento, colore, foto, dataConsegna } = input
+  const { cliente, tipo, pz, alias, elemento, colore, coloreOrigine, foto, dataConsegna } = input
 
   // Passi 1-2: risolvi (o crea) il paziente. Qualunque fallimento qui è
   // BLOCCANTE (spec §7: il paziente fa parte del percorso primario) — nessun
@@ -322,6 +326,22 @@ export async function creaLavoroDaWizard(input: {
   // quindi normalizzazione e degradazione vivono nel POST /api/lavori.
   const coloreCodice = colore.trim().toUpperCase()
 
+  // La trascrizione della prescrizione (Task 1, gate D216 — server GIÀ pronto,
+  // `route.ts:211-245`). GREZZA (D210): `colore` qui è la variabile COME
+  // DIGITATA, non `coloreCodice` — un colore fuori catalogo si scarta dal
+  // CASO (sopra) ma resta trascritto (fatto del censimento). La chiave
+  // `prescrizione` parte SOLO se c'è qualcosa da dire: `coloreOrigine`
+  // assente o `'prescrizione'` (D223: scrivere È trascrivere) E il colore non
+  // è vuoto DOPO trim (M-T5-4 — "solo spazi" è trattato come vuoto qui,
+  // gate client-side, indipendente da come il server tratterebbe la stringa
+  // se la ricevesse). `'lab'` = sganciato: niente da trascrivere, anche a
+  // colore compilato — ma `colore_codice` (sopra) viaggia comunque, in
+  // ENTRAMBI gli esiti dello sgancio (task-1-brief.md riga 7).
+  //
+  // Il wizard oggi non ha una casella per `numero_prescrizione`: la chiave
+  // resta fuori da questo corpo (non si inventa un campo che non esiste).
+  const trascriviPrescrizione = coloreOrigine !== 'lab' && colore.trim() !== ''
+
   let lavoro: { id: string; numero_lavoro: string }
   let coloreScartato = false
   try {
@@ -358,6 +378,7 @@ export async function creaLavoroDaWizard(input: {
             }
           : {}),
         ...(coloreCodice ? { colore_codice: coloreCodice } : {}),
+        ...(trascriviPrescrizione ? { prescrizione: { colore } } : {}),
       }),
     })
     if (!res.ok) return ESITO_BLOCCANTE

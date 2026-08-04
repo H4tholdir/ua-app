@@ -448,6 +448,41 @@ describe('WizardNuovoLavoro — persistenza abbandono 24h + sheet «Riprendo da 
     )
   })
 
+  // Task 1 — guardia contro la trappola nota (fatto 3 del censimento):
+  // `salvaStato` (l'effect qui sopra) e `riprendi` ENUMERANO le chiavi a
+  // mano, e `coloreOrigine` è un campo in più da dimenticare in uno dei due
+  // punti — un test a livello di `persistenza.ts` NON lo scoprirebbe (quelle
+  // funzioni sono un passthrough generico, l'omissione avviene qui). Il giro
+  // Riprendi → un vero avanzamento (Indietro, che già esiste, nessuna UI
+  // nuova) → localStorage copre ENTRAMBE le metà della trappola in un colpo
+  // solo: se `riprendi` dimenticasse la chiave, `stato.coloreOrigine` sarebbe
+  // `undefined` da subito; se `salvaStato` la dimenticasse, la riscrittura
+  // dopo «Indietro» la butterebbe comunque fuori.
+  it("coloreOrigine sopravvive al giro Riprendi → un vero avanzamento → salvaStato (trappola nota, fatto 3)", async () => {
+    seedStatoSalvato({
+      passo: 3,
+      cliente: { id: '1', label: 'Dr. Esposito' },
+      tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
+      pz: 'PZ-9999',
+      coloreOrigine: 'lab',
+    })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Riprendi' }))
+    await waitFor(() => expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument())
+
+    // «Indietro» è un vero avanzamento/cambiamento (imposta interazioneAvvenutaRef
+    // e cambia `stato.passo`): fa scattare una riscrittura reale di salvaStato.
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+
+    await waitFor(() => {
+      const salvato = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato | null
+      expect(salvato).not.toBeNull()
+      expect(salvato!.passo).toBe(2)
+      expect(salvato!.coloreOrigine).toBe('lab')
+    })
+  })
+
   it('chiusura accidentale (Esc) NON è distruttiva: conserva localStorage, wizard a Passo 1, e rimontando lo sheet ricompare', async () => {
     seedStatoSalvato()
     const { unmount } = render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)

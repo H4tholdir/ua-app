@@ -21,6 +21,13 @@ export type StatoSalvato = {
   alias: string
   elemento: string
   colore: string
+  /**
+   * OPZIONALE (Task 1, Ondata B ②): i salvataggi `v: 1` scritti PRIMA di
+   * questo task non hanno questa chiave — restano validi, `v` non cambia
+   * (il campo nuovo è additivo). Assente = stessa semantica di `'prescrizione'`
+   * (v. `ColoreOrigine` in WizardNuovoLavoro.tsx).
+   */
+  coloreOrigine?: StatoWizard['coloreOrigine']
 }
 
 export const CHIAVE_WIZARD = 'ua:wizard-lavoro:v1'
