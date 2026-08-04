@@ -1,13 +1,8 @@
 # Sessione attiva — 04/08/2026 sera
 
-🚪 **PUNTO DI RIPRESA:** `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md`
-(la decisione 0B della ③ coi vincoli §3), poi FASE 4 — piano della ③.
+🚪 **PUNTO DI RIPRESA:** `docs/superpowers/plans/2026-08-04-ondata-b-sessione-3-wizard-scheda.md`
+(FASE 4 compiuta: 11 compiti, tre registri, sonda 8/8).
 
-**Sessione ③ dell'ondata B (wizard + scheda), percorso 0B COMPIUTO:** mockup delle schermate
-VERE scelti da Francesco — D223 (riga Colore variante B) · D224 (Fatto a due carte) · D225
-(tre assetti derivati). Tornata 84 a verbale; decisione 0B con le 9 riserve-vincolo del panel:
-`docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md`.
-
-**Prossimo passo:** FASE 4 — piano della ③ (R-P1/R-P2/R-P6), con le 10 note vincolanti del
-piano ② + i vincoli §3 della decisione. Riga 12 roadmap (brainstorming rifacimento) se si
-tocca il rifacimento. Niente ancora committato in questa sessione.
+**Fatto oggi (sera):** mockup schermate vere scelti (D223-D225, tornata 84) · censimento R-P6
+(6 superfici) · sonda R-P1 8/8 (gettone = stringa opaca!) · piano ③ scritto.
+**Prossimo:** FASE 5 branch `ondata-b-sessione-3` + esecuzione R-E1 (T1-T11).
