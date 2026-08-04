@@ -85,6 +85,7 @@ export const LAVORO_FIXTURE: LavoroDettaglio = {
   paziente_codice_richiesta: null,
   richiedente_nome: null,
   richiedente_email: null,
+  istituzione_sanitaria: null,
   colore_dente: 'A2',
   colore_collo: null,
   colore_corpo: null,

@@ -273,6 +273,9 @@ export interface Lavoro {
   paziente_codice_richiesta: string | null;
   richiedente_nome: string | null;
   richiedente_email: string | null;
+  // P37 (ondata B ②): l'istituzione sanitaria del prescrittore — nasce dal
+  // POST /api/lavori e si corregge dalla PATCH fino alla consegna (direttiva §9).
+  istituzione_sanitaria: string | null;
   // Campi colore (tab Clinica)
   // ⚠️ ORFANE dal Task 10 (ondata a): nessuno le scrive più — le due RPC
   // denormalizzano solo i tre `denti_*`. Restano nel tipo perché sono ancora
@@ -386,6 +389,34 @@ export interface LavoroDente {
   codice_corpo: string | null;
   codice_incisale: string | null;
   provenienza: 'prescritto' | 'eseguito';
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// LAVORO PRESCRIZIONE — la trascrizione della prescrizione (ondata B, D214)
+// ============================================================
+// Scrittura SOLO via le RPC dedicate (`lavoro_crea_atomico`,
+// `lavoro_prescrizione_*`): la tabella è in REVOKE ALL, service_role compreso.
+// `contenuto`: chiave presente = caratteristica TRASCRITTA (V2, l'assenza è
+// un'informazione); il colore vive lì COME DIGITATO (D210); `tipo` entra SOLO
+// alla conferma di consegna (D213).
+export interface LavoroPrescrizione {
+  id: string;
+  laboratorio_id: string;
+  lavoro_id: string;
+  contenuto: Record<string, unknown>;
+  // Il registro delle divergenze (gesto typo-vs-divergenza, spec §4.3):
+  // jsonb '[]' di default; la forma delle voci arriva con la sua ondata.
+  divergenze: unknown[];
+  fonte_tipo: 'foglio' | 'email' | 'modulo' | 'piattaforma' | null;
+  fonte_immagine_id: string | null;
+  fonte_riferimento: string | null;
+  // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
+  // (colonna legacy, esclusa dalla PATCH con la sua ragione).
+  numero_prescrizione: string | null;
+  confermata_da: string | null;
+  confermata_at: string | null;
   created_at: string;
   updated_at: string;
 }

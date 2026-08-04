@@ -16,6 +16,10 @@ import { validaDenti, type DenteNormalizzato } from '@/lib/domain/denti-validazi
 // chiamano questa creazione e la correzione dalla scheda (PATCH /api/lavori/
 // [id], Task 12-bis). Due copie della stessa regola sono la classe R3.
 import { risolviColoreCaso } from '@/lib/api/colore-caso'
+// Lo snapshot della prescrizione si compone QUI, server-side (ondata B ②, V3):
+// il client manda dati grezzi (colore come digitato, numero), mai testo MDR
+// composto. La semantica (V2, W20, D210, D213) vive nel modulo.
+import { componiSnapshot, type PrescrizioneInput } from '@/lib/prescrizione/componi-snapshot'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -204,6 +208,42 @@ export async function POST(req: Request) {
     dentiIn = esitoDenti.denti
   }
 
+  // La trascrizione della prescrizione (ondata B ②). Il GATE è la presenza
+  // della chiave `prescrizione`: la trascrizione nasce SOLO se il client la
+  // dichiara. Senza questo gate ogni body legacy CON denti produrrebbe una
+  // riga di `lavori_prescrizioni` dal giorno del deploy del server, prima che
+  // il wizard nuovo esista — e la retro-compatibilità chiede la chiamata RPC
+  // IDENTICA a oggi per i body senza i campi nuovi.
+  // Stessa regola di `denti` (sopra): presente ma della forma sbagliata è un
+  // 422, mai un «niente da trascrivere» — anche `null` cade qui, chi non
+  // trascrive OMETTE la chiave.
+  let prescrizioneIn: PrescrizioneInput | undefined
+  if (body.prescrizione !== undefined) {
+    const grezzaP = body.prescrizione
+    if (grezzaP === null || typeof grezzaP !== 'object' || Array.isArray(grezzaP)) {
+      return NextResponse.json({ error: 'prescrizione deve essere un oggetto' }, { status: 422 })
+    }
+    const p = grezzaP as Record<string, unknown>
+    // Il colore si trascrive COME DIGITATO (D210) — ma solo se è un testo: un
+    // numero o un oggetto non sono una trascrizione, e passarli stringificati
+    // sarebbe inventare un testo che il medico non ha scritto.
+    if (p.colore !== undefined && typeof p.colore !== 'string') {
+      return NextResponse.json({ error: 'colore della prescrizione non valido', valore: p.colore }, { status: 422 })
+    }
+    if (p.numero_prescrizione !== undefined && typeof p.numero_prescrizione !== 'string') {
+      return NextResponse.json({ error: 'numero_prescrizione non valido', valore: p.numero_prescrizione }, { status: 422 })
+    }
+    prescrizioneIn = {
+      colore: p.colore as string | undefined,
+      numero_prescrizione: p.numero_prescrizione as string | undefined,
+    }
+  }
+  // null = NIENTE di prescritto (V2): nessuna riga. Un contenuto `{}` con
+  // numero presente è invece una riga legittima (M-T3-3) — la distinzione la
+  // fa `componiSnapshot`, qui si rispetta l'esito.
+  const snapshotPrescrizione =
+    prescrizioneIn !== undefined ? componiSnapshot(dentiIn, prescrizioneIn) : null
+
   // Creazione ATOMICA: progressivo + lavoro + denti in una transazione sola.
   // Motivo NORMATIVO, non di comodità (spec §4, rischio R1): un colore perso in
   // silenzio produce una Dichiarazione priva di un contenuto obbligatorio
@@ -231,6 +271,11 @@ export async function POST(req: Request) {
         data_consegna_prevista: body.data_consegna_prevista,
         ora_consegna: body.ora_consegna ?? null,
         richiedente_nome: body.richiedente_nome ?? null,
+        // P37 (ondata B ②): l'istituzione sanitaria del prescrittore. Il
+        // `?? null` è il pattern di ogni facoltativo qui sopra: per la RPC
+        // `p_lavoro->>'istituzione_sanitaria'` la chiave a null e la chiave
+        // assente sono lo stesso SQL NULL.
+        istituzione_sanitaria: body.istituzione_sanitaria ?? null,
         priorita: body.priorita ?? 'normale',
         dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
         note_interne: body.note_interne ?? null,
@@ -249,6 +294,12 @@ export async function POST(req: Request) {
         colore_codice: colore.colore_codice,
       },
       p_denti: dentiIn,
+      // 🛑 M-T3-2: quando non c'è niente di trascritto la chiave si OMETTE,
+      // non si manda `p_prescrizione: null`. Con PostgREST un JSON null
+      // diventa `'null'::jsonb`, che NON è SQL NULL: l'`IF p_prescrizione IS
+      // NOT NULL` della RPC scatterebbe e nascerebbe una riga fantasma di
+      // `lavori_prescrizioni` per ogni lavoro senza trascrizione.
+      ...(snapshotPrescrizione !== null ? { p_prescrizione: snapshotPrescrizione } : {}),
     })
   )
 

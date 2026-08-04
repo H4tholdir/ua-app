@@ -52,7 +52,7 @@ const LOCKED_PRICE_FIELDS = [
 //   codice_iva, natura_iva (editabili finché non incluso_in_fattura)
 //
 // Esclusi deliberatamente (verificato: nessun writer nel form React attuale):
-// arcata, colorazione_esterna, impronta_digitale, numero_prescrizione,
+// arcata, colorazione_esterna, impronta_digitale,
 // norma_riferimento, richiedente_email, stato_fisico, tipo_arco,
 // codice_interno, anamnesi_note, classe_rischio, paziente_nascita_snapshot,
 // paziente_nome_snapshot, prescrizione_digitale_id, spedizione_note,
@@ -61,6 +61,11 @@ const LOCKED_PRICE_FIELDS = [
 // crea_rifacimento_atomico), tracciabilita_materiali_ok/da_conformare/
 // materiali_incompleti_dettaglio (calcolati server-side in orchestrate.ts),
 // buono_*/file_stl_url/immagini_urls (gestiti da altri processi/route).
+// numero_prescrizione: escluso CON ragione (non più «nessun writer») — vive
+// su lavori_prescrizioni, scrittura via RPC dedicate (ondata B, spec §3). La
+// colonna omonima su `lavori` è legacy: riaprirla qui sarebbe una seconda
+// penna sullo stesso fatto, la classe già pagata con numero_cassetta.
+// Test di regressione: tests/unit/lavori-patch-istituzione-sanitaria.test.ts.
 // ═══ SENTINELLA D7 (spec portale-dentista-v2 §7) ══════════════════════════
 // proposta_dentista e proposta_at NON devono MAI entrare in questa allowlist:
 // si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).
@@ -179,6 +184,9 @@ export const PATCHABLE_FIELDS = [
   'tipo_dispositivo',
   'descrizione',
   'richiedente_nome',
+  // P37 (ondata B ②): l'istituzione sanitaria del prescrittore — nasce dal
+  // POST e si corregge da qui fino alla consegna (direttiva §9).
+  'istituzione_sanitaria',
   'data_consegna_prevista',
   'ora_consegna',
   'priorita',
