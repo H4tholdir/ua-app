@@ -420,17 +420,58 @@ export interface PrescrizioneContenuto {
   tipo?: string;
 }
 
+// Un valore di un dizionario chiuso, così come letto dal database: o una
+// delle forme valide (`T`), o — quando la riga non rispetta il dizionario —
+// un valore SCONOSCIUTO che porta il testo grezzo, MAI scartato in
+// silenzio (Task 6, review interna: guardia simmetrica a `fonte_tipo`, ma
+// senza il suo ripiegamento su `null` — qui non c'è uno stato legittimo su
+// cui ripiegare, quindi il valore grezzo si conserva).
+//
+// 🛑 PERCHÉ NON `T | string`. Un cast a `T | string` nasconderebbe lo stesso
+// rischio invece di chiuderlo: `string` accetta qualunque valore, quindi uno
+// switch che dimentica il caso fuori dizionario compila comunque, con o
+// senza quel cast — lo stesso «elenco che sembra completo e non lo è» di
+// CLAUDE.md §6. La differenza si vede quando la UI scrive l'esaustività
+// ESPLICITAMENTE (un `default: assertNever(valore)`, pattern già in uso nel
+// dominio): con `T | string` quel `default` sembra irraggiungibile ma non lo
+// è (un qualunque `string` lo soddisfa, quindi `tsc` non lo segnala mai
+// come vivo); con `ValoreDizionario`, `{ noto: false, valore: string }` è un
+// membro REALE dell'unione — un `default` che lo dimentica è un errore di
+// compilazione con nome, non un buco silenzioso. `typeof valore === 'string'`
+// è la guardia con cui la UI separa i due rami.
+export type ValoreDizionario<T extends string> =
+  | T
+  | { readonly noto: false; readonly valore: string };
+
 // Una voce del registro divergenze prescritto/eseguito (V9, D212). Forma
 // fissata dalla RPC `lavoro_prescrizione_registra_divergenza`
 // (jsonb_build_object, migration 20260804211256:85-91) — NON si inventa qui.
+//
+// ⚠️ `campo`/`motivo` non sono garantiti dentro il dizionario per OGNI riga:
+// prima della migration 20260804211256 la stessa RPC non validava `p_campo`
+// (la sonda S3 del Task 5 ha misurato `'pippo'` e perfino `NULL` accettati
+// con esito `ok`) — righe legacy possono quindi portare un valore fuori
+// unione. `normalizzaPrescrizione` (`@/lib/domain/prescrizione-mapper`) le
+// legge con `ValoreDizionario`, non le scarta e non le fa passare con un
+// cast cieco.
 export interface Divergenza {
   /** Uno dei tre campi correggibili dello snapshot — stesso dizionario di CAMPI_TYPO. */
-  campo: CampoTypo;
+  campo: ValoreDizionario<CampoTypo>;
   /** Dizionario chiuso — vedi MOTIVI_DIVERGENZA. */
-  motivo: MotivoDivergenza;
+  motivo: ValoreDizionario<MotivoDivergenza>;
   nota: string | null;
-  utente_id: string;
-  /** ISO timestamp — `now()` lato RPC. */
+  // Nullable (corretto in review, Task 6): `lavoro_prescrizione_registra_divergenza`
+  // (20260804211256:38-44) NON ha un CHECK su `p_utente` — a differenza di
+  // `lavori_prescrizioni_conferma_ck`, che rende una conferma anonima
+  // impossibile per costruzione. L'UNICO chiamante applicativo oggi
+  // (POST /api/lavori/[id]/prescrizione/divergenza:103) passa sempre
+  // `context.userId` (autenticato, mai null) — ma la RPC stessa non lo
+  // impedisce, quindi il tipo non può dichiararlo NOT NULL: un valore NULL
+  // qui è un'anomalia da leggere, non uno stato impossibile da presumere via.
+  utente_id: string | null;
+  /** ISO timestamp — `now()` lato RPC: nessun chiamante lo può omettere
+   *  (non è un parametro), quindi la sua assenza è corruzione strutturale
+   *  della riga, non un'anomalia isolata — la voce si scarta. */
   registrata_at: string;
 }
 
