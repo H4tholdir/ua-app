@@ -1,22 +1,15 @@
-# Sessione attiva — 04/08 mattina: D208-D209 ratificate, spec ondata B in corso
+# Sessione attiva — 04/08: D208-D213, spec ondata B completa in attesa di ratifica
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-04-spec-ondata-b-handoff.md` — §0 per prima
-(due voci su tre ora CHIUSE).
+🚪 **PUNTO DI RIPRESA:** `docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md`
+(stato: scelte D210-D213 incise, attesa RATIFICA finale di Francesco).
 
-✅ **D208:** D179+E1+E3 pianificate → voce **11 · P41 «il banco di prova automatico»** nella
-roadmap, dopo l'ondata B. D-Q2 si scioglie lì.
-✅ **D209:** Q1 chiusa col default (a), eseguita: `npm test` = solo `tests/unit`
-(`provato:` 394 file · 4542 test, integration non più raccolte; CI invariata).
+✅ **Mattina:** D208 (P41 «banco di prova automatico», dopo l'ondata B) · D209 (Q1 default,
+eseguita: npm test = solo unit, provato).
+✅ **Sessione ① ondata B:** esplorazione 6 lettori (spec §4.0 — wizard REALE a 3 passi fissi,
+input foto solo-fotocamera, richiedente_nome mai dal wizard) · 4 mockup, 60 scatti ·
+**le 4 scelte incise (tornata 79):** D210 variante B framing · D211 mini-foglio D1 ·
+D212 gesto ratificato · D213 conferma leggera (due-tempi RESPINTA; V5 intatto).
 
-🔴 Resta della §0: conteggio DdC fresco (sessione ②).
-
-➡️ **IN CORSO: spec ondata B (P38+P37), sessione ① di 4** — bozza spec scritta
-(`docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md`, §4 in attesa delle
-scelte mockup) · **4 mockup fatti e fotografati** (66 scatti, 390/768/1280 × chiaro/scuro, in
-`docs/design/mockups/screenshots/2026-08-04-ondata-b/`): A=Fatto! due varianti (conferma
-dopo/framing prima) · B=gesto typo-vs-divergenza · C=precheck con attestazione ·
-D=chi-ha-prescritto due varianti. **ATTESE le scelte di Francesco** (→ D210+).
-Esplorazione: 6 lettori, fatti chiave in spec §4.0; ritrovamenti R-E2 in scratchpad
-(`ritrovamenti-r-e2-sessione-spec.md`) per l'handoff. Citare «MDCG 2021-3, marzo 2021».
-
-📎 **209 decisioni in 78 tornate**; la prossima è **D210**.
+📎 Ritrovamenti R-E2 in scratchpad (`ritrovamenti-r-e2-sessione-spec.md`) → handoff.
+➡️ **PROSSIMO: ratifica spec → sessione ② (migration+RPC; PRIMA `verifica-conteggio-ddc.ts`).**
+📎 **213 decisioni in 79 tornate**; la prossima è **D214**.

@@ -1,6 +1,6 @@
 # Spec ondata B — «La prescrizione la cattura il wizard» (P38 + P37)
 
-**Stato:** 🚧 BOZZA — in scrittura (sessione ① di 4). Si ratifica DOPO la scelta dei mockup (0B).
+**Stato:** 🟡 SCELTE INCISE (D210-D213, 04/08/2026) — in attesa della RATIFICA finale di Francesco.
 **Quando:** 4 agosto 2026 (`provato:` `date` → `Tue Aug 4 08:31 CEST 2026`).
 **Decide:** Francesco Formicola.
 **Nasce da:** D201 (strada B) · D202 (le 4 forme) · D203 (perimetro P38+P37) · D204 (il wizard
@@ -138,57 +138,71 @@ correggono in questa ondata.
   raggruppa i clienti per `studio_nome` uguale — l'embrione dell'anagrafica per P37 (fragile:
   confronto case-sensitive; le chip che lo consumano oggi sono irraggiungibili — R-E2).
 
-### §4.1 Wizard — il framing della trascrizione (DUE varianti ai mockup)
+### §4.1 Wizard — il framing della trascrizione — ✅ SCELTA: VARIANTE B (D210)
 
-- **Variante A — «La conferma dopo»:** i passi del banco restano INTATTI (zero cambi, zero
-  tap). Nel «Fatto!» la card nuova «La prescrizione» elenca le caratteristiche: elementi con
-  check già acceso (W20), colore e tipo con chip «Era sulla prescrizione?» da accendere con UN
-  tap facoltativo. Chip ignorata = caratteristica FUORI dallo snapshot (V2: omissione lecita).
-- **Variante B — «Il framing prima»:** la casella colore del Passo 3 si presenta come
-  trascrizione («come scritto sulla prescrizione») con lo sgancio «lo scegliamo noi»; il
-  «Fatto!» mostra il riepilogo in sola lettura. Zero tap aggiunti nel percorso felice; il
-  rischio dichiarato: un colore scelto dal laboratorio digitato sotto l'etichetta sbagliata.
+**«Il framing prima»** (parole di Francesco: «*b framing, con la possibilità eventualmente di
+modificare se ci fosse qualche problema*»):
+- La casella colore del Passo 3 si presenta come trascrizione — etichetta **«Colore — come
+  scritto sulla prescrizione»** — con lo sgancio quieto **«Non è sulla prescrizione: lo
+  scegliamo noi»** (LinkQuieto). Scrivere lì È trascrivere: il valore nasce `prescritto`.
+  Con lo sgancio premuto, il valore nasce scelta-di-laboratorio e resta FUORI dallo snapshot.
+- Il «Fatto!» mostra la card «La prescrizione» in **sola lettura**: elementi ✓ (W20), colore ✓
+  se trascritto, e la riga della fonte con lo stato.
+- **Il TIPO entra nello snapshot alla conferma di consegna** (D213): quando l'operatore
+  conferma le righe guardando il foglio, la riga «Lavoro» è fra quelle confermate.
+- **Le tre vie di modifica** (la richiesta esplicita di D210): ① lo sgancio nel Passo 3 ·
+  ② il gesto typo-vs-divergenza (§4.3) su ogni correzione successiva · ③ la finestra «fino
+  alla consegna» (direttiva §9).
+- Fonte di verità visiva: `docs/design/mockups/2026-08-04-ondata-b-A-prescrizione-fatto.html`,
+  scene **b1** e **b2** (+ scatti 390/768/1280 × 2 temi).
+- ⚠️ Rischio dichiarato della B, agli atti in D210: un colore scelto dal lab digitato sotto
+  l'etichetta della prescrizione — mitigato da ② e dalla conferma al precheck (§4.4).
 
-### §4.2 Allega la fonte (foglio a scelta breve)
+### §4.2 Allega la fonte (foglio a scelta breve) — come mockup, scena a2
 
-Il CTA del «Fatto!» apre un **foglio a 2 voci** (pattern DS Sheet): «Scatta una foto» (input
-`capture="environment"`, il caso più frequente resta a 2 tap) · «Dalla galleria o un PDF»
-(input `accept="image/*,application/pdf"` SENZA capture). Terza riga quieta per email/
-piattaforma: registra il riferimento (V7 quando non c'è nulla di scritto). Tipo-fonte dedotto
-dal gesto, mai domanda obbligatoria.
+Il CTA del «Fatto!» apre un **foglio a 3 voci** (anatomia MenuVoce §5.34 dentro uno Sheet):
+«Scatta una foto» (input `capture="environment"`, il caso più frequente resta a 2 tap) ·
+«Dalla galleria o un PDF» (input `accept="image/*,application/pdf"` SENZA capture — il
+precedente in casa è la via Galleria di `TabImmagini.tsx:391`) · terza voce quieta «Non ce
+l'ho ancora qui» per email/piattaforma: registra il riferimento (V7 quando non c'è nulla di
+scritto). Tipo-fonte dedotto dal gesto, mai domanda obbligatoria. Fonte visiva:
+`2026-08-04-ondata-b-A-prescrizione-fatto.html`, scena **a2**.
 
-### §4.3 Il gesto typo-vs-divergenza (V4)
+### §4.3 Il gesto typo-vs-divergenza (V4) — ✅ RATIFICATO COME MOSTRATO (D212)
 
 Sulla modifica di un campo CON snapshot (da `ModificaRigaSheet` o dal form modifica): foglio
 «Era scritto così sulla prescrizione?» a DUE rami, nessun default preselezionato (pattern
 EHR/Part 11: la scelta deve essere intenzionale, il valore precedente resta leggibile):
-- «Sì — sto correggendo la trascrizione» → lo snapshot si aggiorna (typo).
-- «No — lo cambiamo noi» → lo snapshot resta, l'eseguito cambia, e si chiede il motivo
+- «Sul foglio c'è scritto …» → lo snapshot si aggiorna (typo).
+- «No: lo stiamo cambiando noi» → lo snapshot resta, l'eseguito cambia, e si chiede il motivo
   (pastiglie: richiesta del dentista · esigenza tecnica · materiale non disponibile · altro,
-  con testo libero facoltativo) — V9.
+  con nota libera facoltativa) — V9. Solo questo ramo lo chiede.
+Fonte visiva: `2026-08-04-ondata-b-B-typo-divergenza.html` (2 scene).
 
-### §4.4 Il precheck arricchito (V1 · V5 · V6 · V7)
+### §4.4 Il precheck arricchito (V1 · V5 · V6 · V7) — ✅ FORMA LEGGERA (D213)
 
-- Bloccante nuovo in «Prima di consegnare»: «Manca la prescrizione allegata» (V1).
-- Alla conferma di consegna: **miniatura della fonte davanti agli occhi** (pattern KFI: su
-  mobile immagine sopra, righe dello snapshot sotto, ingrandibile) + **attestazione a due
-  tempi** («Ho confrontato con la prescrizione del Dr. X» — un tap che arma, il CONSEGNA che
-  parte; mai checkbox pre-spuntata; l'attestazione nomina il documento). Registrata
-  server-side: chi, quando (V5).
-- Caso solo-scansione: bloccante dedicato con percorso di rimedio (conferma scritta del
-  dentista → diventa fonte aggiuntiva) (V6).
-- Caso «in attesa di conferma scritta» (voce/telefono): stato visibile sulla scheda, bloccante
-  alla consegna finché la conferma non arriva (V7).
+- Bloccanti nuovi in «Prima di consegnare» (RigaBloccante §5.30): «Manca il foglio della
+  prescrizione» (V1) · «C'è solo la scansione, senza una scelta scritta del dentista» con
+  percorso di rimedio: conferma scritta → fonte aggiuntiva (V6) · «In attesa di conferma
+  scritta» per la prescrizione a voce/telefono (V7, stato visibile anche sulla scheda).
+- **La conferma di consegna, forma leggera (D213 — la due-tempi è stata respinta):** il
+  foglio della prescrizione davanti agli occhi (pattern KFI: immagine sopra, ingrandibile;
+  righe dello snapshot sotto) e **il tocco su CONSEGNA È la conferma** — tasto subito acceso,
+  frase sotto: «Consegnando confermi il confronto col foglio del Dr. X — resta registrato».
+  Registrazione server-side (chi, quando) nella stessa transazione della consegna (V5).
+  Link quieto «Correggi una riga» → gesto §4.3. Zero tocchi in più rispetto a oggi.
+  ⚠️ Confine dichiarato a verbale: più leggero di così riapre V5.
+Fonte visiva: `2026-08-04-ondata-b-C-precheck-consegna.html` (2 scene).
 
-### §4.5 P37 — «chi ha prescritto» (D196, DUE varianti ai mockup)
+### §4.5 P37 — «chi ha prescritto» (D196) — ✅ SCELTA: D1, IL MINI-FOGLIO (D211)
 
-Solo quando il cliente è un'entità (studio/società): **selezione a un tap** fra i medici dello
-studio, default sull'ultimo prescrittore di quel cliente; mai testo libero per-lavoro; il nome
-nuovo si aggiunge all'anagrafica dello studio (pattern NuovoDentistaSheet).
-- **Variante D1:** mini-foglio «Chi ha prescritto?» subito dopo il tile del Passo 1.
-- **Variante D2:** riga di pastiglie inline sotto il tile scelto, nello stesso Passo 1.
-Il prescrittore diventa VISIBILE sulla scheda (oggi `richiedente_nome` non compare da nessuna
-parte nella scheda v3) con la sua via di correzione (direttiva §9).
+Solo quando il cliente è un'entità (studio/società): dopo il tile del Passo 1 sale il
+mini-foglio «Chi ha prescritto?» con **l'ultimo prescrittore di quel cliente già proposto**
+(un tap e via); gli altri medici sotto; «È un altro» aggiunge il medico all'anagrafica dello
+studio (pattern NuovoDentistaSheet) — mai testo libero per-lavoro. Per il dottore singolo il
+foglio non compare mai (D196). Il prescrittore diventa VISIBILE sulla scheda (oggi
+`richiedente_nome` non compare da nessuna parte nella scheda v3) con la sua via di correzione
+(direttiva §9). Fonte visiva: `2026-08-04-ondata-b-D-chi-ha-prescritto.html`, scena **d1**.
 
 ## §5 La DdC a due righe (D101)
 

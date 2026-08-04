@@ -147,8 +147,8 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#ddd6c4;col
   </div>
 </div>
 
-<!-- ═══════════════ SCENA 2 — La conferma guardando il foglio (disarmata) ═══════════════ -->
-<div class="nota-scena">Foglio 2 di 3 — <b>la conferma di consegna, guardando il foglio</b> (V5): la prescrizione davanti agli occhi, le righe trascritte sotto, e la spunta da armare. Il CONSEGNA resta spento finché non attesti — e ti dice perché.</div>
+<!-- ═══════════════ SCENA 2 — La conferma leggera: il CONSEGNA È la conferma ═══════════════ -->
+<div class="nota-scena">Foglio 2 di 2 — <b>la conferma LEGGERA</b> (ridisegno dopo il «troppo attrito» di Francesco): niente spunta da armare, il tasto è subito acceso. Il foglio sta davanti agli occhi, le righe sotto, e toccando CONSEGNA confermi il confronto — chi e quando restano registrati. Zero tocchi in più rispetto a oggi.</div>
 <div class="scena" id="scena-2">
   <div class="sfondo-scheda" aria-hidden="true">
     <div class="sfondo-titolo">n.147 · Corona</div>
@@ -166,6 +166,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#ddd6c4;col
       </div>
       <div class="fonte-eti">
         <span class="fonte-nome">Foglio a mano · allegato il 4 agosto</span>
+        <button class="quieto">Correggi una riga</button>
       </div>
 
       <div class="confronta">
@@ -182,66 +183,11 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#ddd6c4;col
           <span class="conf-v">Corona in zirconia</span>
         </div>
       </div>
-
-      <button class="attesta">
-        <span class="attesta-tondo"></span>
-        <span class="attesta-testo">Ho confrontato queste righe col foglio del Dr. Colombo</span>
-      </button>
-
-      <button class="tp-btn" disabled>Consegna</button>
-      <p class="tp-spiega">Si accende dopo il confronto qui sopra.</p>
-
-      <div style="margin-top:10px;display:flex;justify-content:center">
-        <button class="quieto">Non ancora</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════ SCENA 3 — La conferma armata ═══════════════ -->
-<div class="nota-scena">Foglio 3 di 3 — <b>la spunta armata</b>: la conferma è registrata (chi e quando finiscono nell'archivio, server-side), il CONSEGNA si accende. Un tap in più, una volta per lavoro — ed è la cosa che rende vera l'attribuzione al medico.</div>
-<div class="scena" id="scena-3">
-  <div class="sfondo-scheda" aria-hidden="true">
-    <div class="sfondo-titolo">n.147 · Corona</div>
-  </div>
-  <div class="scrim"></div>
-  <div class="sheet-wrap">
-    <div class="foglio">
-      <div class="maniglia"></div>
-      <h2 class="foglio-titolo">Consegno la corona n.147?</h2>
-      <p class="foglio-sotto">Un occhio al foglio del <b>Dr. Colombo</b>, uno alle righe: se tornano, si parte.</p>
-
-      <div class="fonte-grande">
-        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="0.9"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="10.5" x2="16" y2="10.5"/><line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="17.5" x2="12" y2="17.5"/></svg>
-        <button class="fonte-apri">⤢ Apri</button>
-      </div>
-      <div class="fonte-eti">
-        <span class="fonte-nome">Foglio a mano · allegato il 4 agosto</span>
-      </div>
-
-      <div class="confronta">
-        <div class="conf-riga">
-          <span class="conf-k">Elementi</span>
-          <span class="conf-v">dente 21</span>
-        </div>
-        <div class="conf-riga">
-          <span class="conf-k">Colore</span>
-          <span class="conf-v">A3</span>
-        </div>
-        <div class="conf-riga">
-          <span class="conf-k">Lavoro</span>
-          <span class="conf-v">Corona in zirconia</span>
-        </div>
-      </div>
-
-      <button class="attesta armata">
-        <span class="attesta-tondo">✓</span>
-        <span class="attesta-testo">Confrontato col foglio del Dr. Colombo — adesso, da te</span>
-      </button>
 
       <button class="tp-btn">Consegna</button>
+      <p class="tp-spiega">Consegnando confermi il confronto col foglio del Dr. Colombo — resta registrato.</p>
 
-      <div style="margin-top:14px;display:flex;justify-content:center">
+      <div style="margin-top:10px;display:flex;justify-content:center">
         <button class="quieto">Non ancora</button>
       </div>
     </div>
