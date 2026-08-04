@@ -102,7 +102,7 @@ la sua citazione). Più tre letture dirette in sessione.
 | `supabase/migrations/20260710150000` + `20260710180000` + `20260710091500` | letti (L4): `consegna_finalizza_atomica` vigente (150000:23-53, **dormiente** — la consegna vera passa da `orchestrate.ts`, dichiarato in `20260721090000:153-156`); `annulla_consegna_atomica` vigente (180000:60-132; porta la DdC a `annullata` a 114-116); precedente DROP-per-cambio-firma a 150000:26 |
 | `supabase/migrations/20260710090000_ddc_annullata_unique_parziale.sql` | letto (L1): CHECK con `annullata` (:9) + `ddc_lavoro_attiva_unique` UNIQUE parziale (15-17) |
 | `supabase/migrations/20260803090000` + `20260803150000` + `20260804120000` | letti (L6): `denti_snapshot` jsonb sulla DdC SENZA writer («schema prima del writer», 44-45) — il precedente strutturale; registro emissioni DPA; **il precedente ESATTO della chiusura: policy DPA ridotta a FOR SELECT (20260804120000:30-34)** + `emesso_da` (58-62) |
-| `src/lib/wizard/crea-lavoro.ts` | letto INTERO (L5). ⚠️ il percorso `src/lib/lavori/crea-lavoro.ts` NON esiste. Orchestrazione client fail-soft; il POST /api/lavori è l'UNICO confine atomico (22-27, 378-380); colore normalizzato client-side a 323; nessun `richiedente_nome`/`numero_prescrizione` mandato (grep 0 hit) |
+| `src/lib/wizard/crea-lavoro.ts` | letto INTERO (L5). ⚠️ il mandato di lettura lo cercava sotto `src/lib/lavori/` — cartella dove quel modulo NON esiste: il percorso vero è questo. Orchestrazione client fail-soft; il POST /api/lavori è l'UNICO confine atomico (22-27, 378-380); colore normalizzato client-side a 323; nessun `richiedente_nome`/`numero_prescrizione` mandato (grep 0 hit) |
 | `src/app/api/lavori/route.ts` (POST) | letto (L7, mirato): `richiedente_nome: body.richiedente_nome ?? null` a :233 dentro `p_lavoro`; `colore_scartato` a 306-311 |
 | `src/app/api/lavori/[id]/route.ts` | letto INTERO (L7): `PATCHABLE_FIELDS` a 178-213 (34 campi, `richiedente_nome` a 181); commento esclusi a 54-63 (⚠️ le «259-264» delle regole sono slittate: il filtro è a 370-379); nessun gettone concorrenza (E5 confermata: updated_at forzato a 464-465, UPDATE per id+lab a 467-471) |
 | `src/lib/pdf/generate-ddc.ts` | letto (L6): guard idempotenza 93-107 (`.neq('stato','annullata')` a 102 — NON 85-95: citazione CLAUDE.md stantia); INSERT 199-213; `prescrizione_caratteristiche: null` CABLATO a 156; `prescrizione_id` da `lavoro.numero_prescrizione` a 148 (resta vivo in ②: la colonna su `lavori` NON si droppa) |
@@ -494,6 +494,49 @@ export function componiSnapshot(denti: DentiInput[], p?: PrescrizioneInput):
 - [ ] **Step 8.2** Se tutto verde: la sessione decide con Francesco per merge/push (D215 ha il suo protocollo; NON si pubblica senza autorizzazione).
 
 ---
+
+## Note VINCOLANTI per le sessioni ③ e ④ (dalla review finale di ramo, 04/08/2026)
+
+La ② è stata eseguita (9 commit, `3fc71e70..16f71ab5`, review finale: Ready to merge). La ③ e la
+④ partono cieche: queste note sono parte del contratto.
+
+**Per la ③ (wizard + scheda):**
+1. **La via «trascrivo a posteriori» passa OBBLIGATORIAMENTE da `allega_fonte` prima del typo:**
+   solo `allega_fonte` fa UPSERT; `correggi_typo`/`registra_divergenza`/`conferma_consegna`
+   rispondono `'senza_prescrizione'` su riga assente. Per un lavoro legacy: prima `allega_fonte`
+   (crea la riga, contenuto `{}`), poi `correggi_typo` crea le chiavi.
+2. **M-T3-1 esteso:** la guardia su `p_campo` di `registra_divergenza` va anche NELLA RPC
+   (CREATE OR REPLACE stessa firma), non solo nella route — oggi il campo è un dizionario APERTO
+   (qualsiasi testo passa), mentre `correggi_typo` valida `IN ('elementi','colore','tipo')`.
+   L'asimmetria non deve arrivare alla ④ (le divergenze si stampano sulla DdC).
+3. **La route del gesto deve rendere la rimozione un atto dichiarato** (M-T3-3): jsonb `'null'`
+   esplicito = rimuovi la chiave; chiave assente = non toccare. `JSON.stringify` fa sparire gli
+   `undefined`: mai derivare la rimozione da un default.
+4. **FK dell'immagine-fonte** (`lavori_prescrizioni_fonte_img_fk`): quando una foto diventa
+   fonte, la sua cancellazione da TabImmagini fallirà con 23503 SEMPRE (anche senza DdC attiva —
+   più forte di V8). La route di cancellazione immagini deve gestire l'esito «fonte in uso».
+5. **`allega_fonte` coi tre parametri fonte NULL crea una riga vuota** su lavoro senza riga: la
+   route deve validare «almeno un corpo» prima di chiamare.
+6. Chiavi ignote in `body.prescrizione` oggi scartate in silenzio (M-T5-2): quando il contratto
+   del wizard si fissa, valutare il 422.
+7. `domain.ts` sottodichiara `divergenze` (`unknown[]`): la forma è già fissata
+   (`{campo, motivo, nota, utente_id, registrata_at}`) — tipizzarla in ③/④.
+
+**Per la ④ (DdC a due righe + precheck):**
+8. **`generate-ddc.ts:148` legge ancora `lavori.numero_prescrizione`, che ora non ha PIÙ nessuno
+   scrittore:** il numero catturato dal wizard vive SOLO in `lavori_prescrizioni`. La ④ DEVE
+   spostare quella lettura sulla tabella figlia, o la DdC stamperà `prescrizione_id` NULL per
+   ogni lavoro nuovo.
+9. L'ordine delle guardie non è uniforme fra le RPC (`conferma`: senza_prescrizione prima di
+   congelata; `typo`/`divergenza`: viceversa): non dedurre l'ordine dagli esiti.
+10. Fino alla ④ una DdC può ancora nascere senza fonte: V1 morde al precheck, che è ④ (buco di
+    perimetro dichiarato, non un difetto della ②).
+
+**Decisioni d'attuazione prese in ② da ratificare con Francesco** (nessun D-numero assegnato —
+non sono scelte sue): gate sulla presenza della chiave `prescrizione` nel POST (i lavori del
+wizard legacy non creano righe snapshot fino alla ③) · stringa vuota = assente per colore/numero
+(M-T5-4) · retrocompat semantica del POST (M-T5-1) · adjudicazioni del controllore sui rilievi
+dei task (nel ledger di sessione).
 
 ## Self-review (fatto in scrittura)
 
