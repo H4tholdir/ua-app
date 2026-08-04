@@ -6,7 +6,7 @@ import { isSameOrigin } from '@/lib/utils/csrf'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 import { leggiCorpoJson } from '@/lib/api/corpo-json'
 // 🛑 Il dizionario si IMPORTA, non si riscrive (v. prescrizione-costanti.ts).
-import { isCampoTypo } from '@/lib/domain/prescrizione-costanti'
+import { CAMPI_TYPO, type CampoTypo } from '@/lib/domain/prescrizione-costanti'
 
 // POST /api/lavori/[id]/prescrizione/typo — «era scritto così sulla
 // prescrizione»: la metà «typo» del gesto V4/D212.
@@ -40,6 +40,26 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 const CHIAVI_NOTE = ['campo', 'valore', 'atteso_updated_at'] as const
 
+// 🛑 ALLOWLIST DI ROTTA, NON DEL DIZIONARIO (adjudicazione controllore, fix
+//    Important T4, 04/08/2026). `CAMPI_TYPO` (prescrizione-costanti.ts) è la
+//    spia del CHECK SQL di `lavoro_prescrizione_correggi_typo` e include
+//    'tipo' — resta così, NON si tocca. Ma `lavoro_prescrizione_conferma_consegna`
+//    sovrascrive INCONDIZIONATAMENTE `contenuto.tipo` con `lavori.tipo_dispositivo`
+//    alla conferma (D213): una correzione di 'tipo' fatta QUI risponderebbe 200
+//    e sparirebbe silenziosamente alla conferma — l'utente legge «Salvato» su
+//    un dato che non c'è. Finché la sessione ④ non costruisce il momento in cui
+//    correggere il tipo ha senso (la conferma stessa), la ROTTA lo esclude da
+//    sé. `CAMPO_TIPO_ESCLUSO` è tipizzato contro `CampoTypo`: se un domani
+//    'tipo' sparisse da `CAMPI_TYPO`, questa riga smette di compilare.
+const CAMPO_TIPO_ESCLUSO = 'tipo' satisfies CampoTypo
+const CAMPI_TYPO_ROUTE = CAMPI_TYPO.filter(
+  (campo): campo is Exclude<CampoTypo, 'tipo'> => campo !== CAMPO_TIPO_ESCLUSO
+)
+
+function isCampoTypoRoute(v: unknown): v is Exclude<CampoTypo, 'tipo'> {
+  return typeof v === 'string' && (CAMPI_TYPO_ROUTE as readonly string[]).includes(v)
+}
+
 function errore422(messaggio: string, valore?: unknown) {
   return NextResponse.json({ errore: messaggio, valore }, { status: 422 })
 }
@@ -65,12 +85,22 @@ export async function POST(req: Request, { params }: RouteContext) {
   const corpo = letto.corpo
   const labId: string = context.laboratorioId
 
-  // ── campo: dal dizionario ─────────────────────────────────────────────────
+  // ── campo: dall'allowlist DI ROTTA, non dal dizionario intero ─────────────
   // Il dizionario morde ANCHE nella RPC (esito `campo_non_valido`), ma qui deve
   // mordere PRIMA: un 422 che dice cosa correggere, non un giro fino al
   // database per tornare con un codice.
-  if (!isCampoTypo(corpo.campo)) {
-    return errore422('campo non valido: usa elementi, colore o tipo', corpo.campo)
+  // 🔑 'tipo' è un caso a parte, e per questo ha il suo controllo dedicato: è
+  //    un campo VERO del dizionario (la RPC lo accetterebbe), quindi merita un
+  //    422 che indichi la via giusta — non lo stesso messaggio generico di un
+  //    campo che non esiste affatto (v. il commento sopra `CAMPI_TYPO_ROUTE`).
+  if (corpo.campo === CAMPO_TIPO_ESCLUSO) {
+    return errore422(
+      'il tipo si corregge sul lavoro, non sulla trascrizione: usa la scheda del lavoro',
+      corpo.campo
+    )
+  }
+  if (!isCampoTypoRoute(corpo.campo)) {
+    return errore422('campo non valido: usa elementi o colore', corpo.campo)
   }
   const campo = corpo.campo
 
@@ -131,7 +161,8 @@ export async function POST(req: Request, { params }: RouteContext) {
         return errore422('elementi deve contenere solo numeri interi', valore)
       }
     } else {
-      // colore · tipo
+      // colore — 'tipo' non arriva più qui: la porta lo respinge sopra, prima
+      // ancora di guardare la forma del valore (v. CAMPO_TIPO_ESCLUSO).
       if (typeof valore !== 'string') {
         return errore422(`${campo} deve essere testo`, valore)
       }

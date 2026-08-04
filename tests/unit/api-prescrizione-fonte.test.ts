@@ -27,8 +27,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 //  ⑭ `fonte_immagine_id` non-uuid                → 422 (sarebbe 22P02 → 500)
 //  ⑮ `fonte_immagine_id` di un altro laboratorio → 403 · la RPC non parte
 //  ⑯ `fonte_immagine_id` cancellata (soft)       → 403
-//  ⑰ esiti della RPC: ok · non_trovato · fonte_congelata · fonte_tipo_non_valido
-//  ⑱ errore PostgREST · esito sconosciuto        → 500
+//  ⑰ `fonte_immagine_id` di un ALTRO lavoro dello stesso laboratorio → 422
+//     (fix Minor T4: la fonte è la base probatoria della DdC — deve essere
+//     DEL lavoro, non solo del laboratorio) · la RPC non parte
+//  ⑱ esiti della RPC: ok · non_trovato · fonte_congelata · fonte_tipo_non_valido
+//  ⑲ errore PostgREST · esito sconosciuto        → 500
 //
 // 🛑 NON coperte, e con la ragione:
 //  · duplicati/forma dell'UUID oltre la sintassi: l'esistenza e il tenant li
@@ -73,12 +76,19 @@ function richiestaGrezza(testo: string) {
   })
 }
 
+// Registra le colonne chieste al `select`: senza questa spia, un domani che
+// togliesse `lavoro_id` dalla proiezione passerebbe muto — il mock fabbrica
+// comunque la forma che il test gli passa, e `tsc` non vede la query (il
+// client è SENZA il generico `<Database>`, v. il commento nella route).
+const selectMock = vi.fn()
+
 /** select → eq → is → single: la catena del lookup tenant sull'immagine. */
 function immagine(data: unknown) {
   return {
-    select: () => ({
-      eq: () => ({ is: () => ({ single: async () => ({ data, error: null }) }) }),
-    }),
+    select: (colonne: string) => {
+      selectMock(colonne)
+      return { eq: () => ({ is: () => ({ single: async () => ({ data, error: null }) }) }) }
+    },
   }
 }
 
@@ -93,7 +103,11 @@ beforeEach(() => {
   })
   rpcMock.mockResolvedValue({ data: { esito: 'ok' }, error: null })
   fromMock.mockImplementation((t: string) => {
-    if (t === 'lavori_immagini') return immagine({ laboratorio_id: LAB })
+    // `lavoro_id: 'L1'` combacia con `params.id`: di default l'immagine È di
+    // QUESTO lavoro, così i test che non parlano del fix Minor T4 restano
+    // muti su quel controllo (falliscono per la propria ragione, non per una
+    // nuova).
+    if (t === 'lavori_immagini') return immagine({ laboratorio_id: LAB, lavoro_id: 'L1' })
     throw new Error(`Tabella inattesa: ${t}`)
   })
 })
@@ -230,6 +244,25 @@ describe('POST …/prescrizione/fonte — la porta prima del database', () => {
     expect((await POST(richiesta({ fonte_immagine_id: IMG }), params)).status).toBe(403)
     expect(rpcMock).not.toHaveBeenCalled()
   })
+
+  it('⑰ 422 se l’immagine è DI QUESTO LABORATORIO ma di un ALTRO lavoro', async () => {
+    // 🔑 Fix Minor T4 (adjudicazione controllore, accolto): il controllo sul
+    // solo `laboratorio_id` non basta. La fonte è la base probatoria della
+    // Dichiarazione di Conformità — un'immagine caricata su un lavoro diverso
+    // dello STESSO laboratorio non può passare come fonte di QUESTA
+    // prescrizione. `lavoro_id: 'L2'` ≠ `params.id` ('L1').
+    fromMock.mockImplementation(() => immagine({ laboratorio_id: LAB, lavoro_id: 'L2' }))
+    const res = await POST(richiesta({ fonte_immagine_id: IMG }), params)
+    expect(res.status).toBe(422)
+    const body = await res.json()
+    expect(body.errore).toMatch(/lavoro/i)
+    expect(body.valore).toBe(IMG)
+    expect(rpcMock).not.toHaveBeenCalled()
+    // 🔑 Senza questa riga la prova passerebbe anche se la route smettesse di
+    // chiedere `lavoro_id` al database: il mock fabbrica comunque la forma
+    // che gli si passa. Qui si controlla che la COLONNA sia davvero richiesta.
+    expect(selectMock).toHaveBeenCalledWith(expect.stringContaining('lavoro_id'))
+  })
 })
 
 describe('POST …/prescrizione/fonte — la chiamata e gli esiti', () => {
@@ -300,7 +333,7 @@ describe('POST …/prescrizione/fonte — la chiamata e gli esiti', () => {
     expect((await res.json()).esito).toBe('fonte_tipo_non_valido')
   })
 
-  it('⑱ 500 su errore PostgREST o esito sconosciuto — mai ignorati', async () => {
+  it('⑲ 500 su errore PostgREST o esito sconosciuto — mai ignorati', async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: 'boom', code: 'XX000' } })
     expect((await POST(richiesta({ fonte_riferimento: 'x' }), params)).status).toBe(500)
 

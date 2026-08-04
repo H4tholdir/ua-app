@@ -119,16 +119,25 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   const svc = getServiceClient()
 
-  // ── L'immagine è di questo laboratorio? ──────────────────────────────────
+  // ── L'immagine è di questo laboratorio, ED È DI QUESTO LAVORO? ────────────
   // La FK composita `(fonte_immagine_id, laboratorio_id)` morde con un 23503,
   // cioè un 500 illeggibile. Il controllo di appartenenza sta qui, col
   // precedente delle FK del POST /api/lavori (`route.ts:158-174`), che risponde
   // 403. `deleted_at` filtrato per lo stesso motivo: una foto cancellata non è
   // una fonte a cui appoggiare una Dichiarazione.
+  //
+  // 🔑 IL CONTROLLO SUL LABORATORIO NON BASTA (fix Minor T4, 04/08/2026): la
+  //    fonte è la base probatoria della Dichiarazione di Conformità, quindi
+  //    l'immagine deve essere di QUESTO lavoro — non solo di un lavoro
+  //    qualsiasi dello stesso laboratorio. Senza `lavoro_id` nel confronto,
+  //    un'immagine di un ALTRO lavoro dello stesso lab passerebbe come fonte
+  //    di questa prescrizione. Il clone del rifacimento condivide
+  //    `fonte_immagine_id` via RPC (`crea_rifacimento_atomico`), NON via
+  //    questa route: nessun impatto su quel percorso.
   if (immagineId !== null) {
     const { data: img } = await svc
       .from('lavori_immagini')
-      .select('laboratorio_id')
+      .select('laboratorio_id, lavoro_id')
       .eq('id', immagineId)
       .is('deleted_at', null)
       .single()
@@ -136,6 +145,12 @@ export async function POST(req: Request, { params }: RouteContext) {
       return NextResponse.json(
         { errore: 'fonte_immagine_id non appartiene a questo laboratorio' },
         { status: 403 }
+      )
+    }
+    if (img.lavoro_id !== id) {
+      return errore422(
+        'fonte_immagine_id non appartiene a questo lavoro: allega un’immagine caricata su questo lavoro',
+        immagineId
       )
     }
   }

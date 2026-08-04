@@ -15,9 +15,13 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 //  ⑤ chiave ignota                                       → 422 · RPC non parte
 //  ⑥ `campo` assente / non stringa / array               → 422
 //  ⑦ `campo` fuori dizionario ('pippo')                  → 422 · RPC non parte
+//  ⑦-bis `campo: 'tipo'` — è nel dizionario della RPC, ma la ROTTA lo esclude
+//     (D213: la conferma di consegna sovrascrive `contenuto.tipo` da
+//     `lavori.tipo_dispositivo`, incondizionatamente) → 422 con messaggio
+//     dedicato · RPC non parte
 //  ⑧ `valore` — CHIAVE ASSENTE                           → 422 (S6)
 //  ⑨ `valore: null` esplicito                            → 200, rimozione
-//  ⑩ `colore`/`tipo` con valore non stringa              → 422
+//  ⑩ `colore` con valore non stringa                     → 422
 //  ⑪ `elementi` con valore non array                     → 422
 //  ⑫ `elementi` con elementi non interi                  → 422
 //  ⑬ `elementi: []`                                      → 422 (la rimozione è ⑨)
@@ -147,6 +151,20 @@ describe('POST …/prescrizione/typo — la porta prima del database', () => {
     expect(rpcMock).not.toHaveBeenCalled()
   })
 
+  it("⑦-bis 422 su campo: 'tipo' — la rotta lo chiude, il dizionario della RPC resta intatto", async () => {
+    // Adjudicazione controllore (fix Important T4): `lavoro_prescrizione_conferma_consegna`
+    // sovrascrive INCONDIZIONATAMENTE `contenuto.tipo` da `lavori.tipo_dispositivo`
+    // alla conferma — una correzione fatta qui risponderebbe 200 e sparirebbe
+    // in silenzio. Il messaggio deve indicare la via giusta: il lavoro, non la
+    // trascrizione.
+    const res = await POST(conGettone({ campo: 'tipo', valore: 'corona' }), params)
+    expect(res.status).toBe(422)
+    const body = await res.json()
+    expect(body.errore).toMatch(/si corregge sul lavoro/i)
+    expect(body.valore).toBe('tipo')
+    expect(rpcMock).not.toHaveBeenCalled()
+  })
+
   it('⑧ 422 quando la chiave `valore` MANCA: la rimozione è un atto, non un vuoto', async () => {
     // 🔑 S6, ed è la ragione per cui questa prova esiste: `JSON.stringify` fa
     // SPARIRE le chiavi con valore `undefined`. Se la route derivasse la
@@ -166,20 +184,20 @@ describe('POST …/prescrizione/typo — la porta prima del database', () => {
     expect(rpcMock.mock.calls[0][1].p_valore).toBeNull()
   })
 
-  it('⑩ 422 su colore/tipo che non sono testo, e sul testo VUOTO', async () => {
+  it('⑩ 422 su colore che non è testo, e sul testo VUOTO', async () => {
+    // 🔑 'tipo' NON compare più qui: è respinto PRIMA, dall'allowlist di rotta
+    // (⑦-bis) — testarne la forma del valore testerebbe codice che non si
+    // raggiunge mai.
     const corpi = [
       { campo: 'colore', valore: 5 },
       { campo: 'colore', valore: ['A3'] },
       { campo: 'colore', valore: { scala: 'A3' } },
       { campo: 'colore', valore: true },
-      { campo: 'tipo', valore: 5 },
-      { campo: 'tipo', valore: ['corona'] },
       // 🔑 La stringa vuota non è la trascrizione di niente — stessa regola di
       // `componiSnapshot` (che OMETTE la chiave su `''`). Scriverla creerebbe
       // una chiave presente e vuota, cioè un terzo stato fra «trascritto» e
       // «non prescritto». Chi ha svuotato il campo manda `{valore: null}`.
       { campo: 'colore', valore: '' },
-      { campo: 'tipo', valore: '' },
     ]
     for (const corpo of corpi) {
       expect((await POST(conGettone(corpo), params)).status).toBe(422)
