@@ -6142,7 +6142,12 @@ export type Database = {
       has_role_check: { Args: { required_role: string }; Returns: boolean }
       lab_is_accessible: { Args: never; Returns: boolean }
       lavoro_crea_atomico: {
-        Args: { p_denti: Json; p_lab: string; p_lavoro: Json }
+        Args: {
+          p_denti: Json
+          p_lab: string
+          p_lavoro: Json
+          p_prescrizione?: Json
+        }
         Returns: Json
       }
       lavoro_denti_sostituisci_atomica: {
@@ -6151,6 +6156,41 @@ export type Database = {
           p_denti: Json
           p_lab: string
           p_lavoro: string
+        }
+        Returns: Json
+      }
+      lavoro_prescrizione_allega_fonte: {
+        Args: {
+          p_fonte_immagine_id: string
+          p_fonte_riferimento: string
+          p_fonte_tipo: string
+          p_lab: string
+          p_lavoro: string
+        }
+        Returns: Json
+      }
+      lavoro_prescrizione_conferma_consegna: {
+        Args: { p_lab: string; p_lavoro: string; p_utente: string }
+        Returns: Json
+      }
+      lavoro_prescrizione_correggi_typo: {
+        Args: {
+          p_atteso_updated_at: string
+          p_campo: string
+          p_lab: string
+          p_lavoro: string
+          p_valore: Json
+        }
+        Returns: Json
+      }
+      lavoro_prescrizione_registra_divergenza: {
+        Args: {
+          p_campo: string
+          p_lab: string
+          p_lavoro: string
+          p_motivo: string
+          p_nota: string
+          p_utente: string
         }
         Returns: Json
       }
