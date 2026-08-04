@@ -33,7 +33,8 @@
 -- 🔑 ORDINE DELLE GUARDIE: `campo` PRIMA di `motivo`, lo stesso ordine della
 --    route (src/app/api/lavori/[id]/prescrizione/divergenza/route.ts) — con
 --    campo E motivo entrambi sbagliati la risposta è `campo_non_valido` da
---    tutte e due le porte. Provato, non dedotto (collaudo T5, caso S3-d).
+--    tutte e due le porte. Provato, non dedotto (collaudo T5, caso S3-f —
+--    S3-d prova un'altra cosa: che `tipo` resti lecito).
 CREATE OR REPLACE FUNCTION public.lavoro_prescrizione_registra_divergenza(
   p_lab    uuid,
   p_lavoro uuid,

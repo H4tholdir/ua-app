@@ -36,7 +36,7 @@ export type FonteTipo = (typeof FONTE_TIPI)[number]
 // Vincolo in banca dati, DUE volte, e le due si tengono insieme:
 //  · `lavoro_prescrizione_correggi_typo` (`20260804152403:242`) — quale chiave
 //    dello snapshot si può riscrivere;
-//  · `lavoro_prescrizione_registra_divergenza` (`20260804211256:76`, M-T3-1
+//  · `lavoro_prescrizione_registra_divergenza` (`20260804211256:77`, M-T3-1
 //    del 04/08/2026) — su quale campo si può registrare uno scostamento.
 // Entrambe rispondono `campo_non_valido`.
 //
@@ -48,7 +48,7 @@ export type CampoTypo = (typeof CAMPI_TYPO)[number]
 
 // ── I motivi di una divergenza prescritto/eseguito (V9, D212) ──────────────
 // Vincolo in banca dati: `lavoro_prescrizione_registra_divergenza`
-// (`20260804211256:80` — la funzione è stata RICREATA dal Task 5, quindi il
+// (`20260804211256:81` — la funzione è stata RICREATA dal Task 5, quindi il
 // corpo vivo NON è più in 20260804152403) → esito `motivo_non_valido`.
 export const MOTIVI_DIVERGENZA = [
   'richiesta_dentista',

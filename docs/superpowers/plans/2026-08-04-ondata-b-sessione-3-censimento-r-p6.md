@@ -16,10 +16,24 @@ scritto. Ma **due funzioni sono state RICREATE** dal Task 5 nella migration
 vivo non è più in `20260804152403`**. Chi legge una citazione a quel file per una di queste due sta
 guardando un **corpo morto**:
 
-| Funzione | Le citazioni «`20260804152403:…`» qui sotto sono… | Cosa è cambiato |
+🔢 **I numeri di riga di questa tabella sono POST-inserzione**, cioè valgono per il file **con questa
+nota già in testa (righe 10-49)**. 🛑 **Chi appende altro in testa li sposta tutti** — e allora si
+rifà il conto invece di fidarsi: **la maniglia stabile è il TESTO della voce**, `grep -n` su quello.
+*(Prima stesura di questa nota: numeri PRE-inserzione, **sbagliati di −29**, perché le 29 righe della
+nota li avevano spostati tutti; e la correzione stessa, allungando la nota, li ha spostati ancora.
+Verificati col grep, mai con l'aritmetica. Corretti il 4 agosto 2026 — review del Task 5, rilievo giusto.)*
+
+| Funzione | Le citazioni «`…152403:…`» qui sotto sono… | Cosa è cambiato |
 |---|---|---|
-| `lavoro_prescrizione_registra_divergenza` (righe 66, 68, 157, 167, 173, 513, 515, 517, 519) | **SORPASSATE** — vale `20260804211256` | Guardia nuova su `p_campo` → esito **`campo_non_valido`**, valutata **PRIMA** di `p_motivo`. Il rilievo ⑦ della Superficie 2 («*registra_divergenza NON valida p_campo*») **è chiuso**. |
-| `crea_rifacimento_atomico` (righe 54, 197, 537) | **SORPASSATE** — vale `20260804211256` | La colonna-list del clone ora porta **`richiedente_nome` E `istituzione_sanitaria`** (D221). Il rilievo ③ della Superficie 2 e della Superficie 6 («*il clone P37 manca DAVVERO*») **è chiuso per queste due colonne**; `paziente_nome_snapshot` resta scoperto (roadmap riga 12). |
+| `lavoro_prescrizione_registra_divergenza` (righe **109, 111, 200, 210, 216, 416, 467, 556, 558, 560, 562**) | **SORPASSATE** — vale `20260804211256` | Guardia nuova su `p_campo` → esito **`campo_non_valido`**, valutata **PRIMA** di `p_motivo`. Il rilievo ⑦ della Superficie 2 («*registra_divergenza NON valida p_campo*») **è chiuso**. |
+| `crea_rifacimento_atomico` (righe **97, 240, 505, 580**) | **SORPASSATE** — vale `20260804211256` | La colonna-list del clone ora porta **`richiedente_nome` E `istituzione_sanitaria`** (D221). Il rilievo ③ della Superficie 2 e della Superficie 6 («*il clone P37 manca DAVVERO*») **è chiuso per queste due colonne**; `paziente_nome_snapshot` resta scoperto (roadmap riga 12). |
+
+🔎 **Tre voci in più rispetto alla prima stesura (402, 453, 491), e il motivo è una lezione R-P6:**
+il primo censimento cercava `20260804152403` per esteso, e **quelle tre scrivono il numero in forma
+corta** (`migration 152403:303-311`, `migration 152403:411-444`) **o non lo scrivono affatto**
+(`migration :265-314`). Un elenco costruito con un solo modo di scrivere il nome **non è l'elenco**:
+il censimento si fa su **ogni forma dell'identificatore**, comprese le abbreviazioni che un umano
+usa senza pensarci.
 
 ✅ **Restano VERE** tutte le citazioni a `20260804152403` per `lavoro_crea_atomico`,
 `lavoro_prescrizione_allega_fonte`, `lavoro_prescrizione_correggi_typo` e
