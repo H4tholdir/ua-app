@@ -617,6 +617,10 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
                     : rigaColore.valore,
                   trascritto: rigaColore.trascritto,
                   dentista: clienteDisplay(lavoro.cliente),
+                  // Da uno scostamento GIÀ a registro il gesto D212 non si
+                  // ripresenta: la sua domanda («era scritto così?») è già
+                  // stata fatta e risposta. Si va dritti al motivo.
+                  giaDivergente: rigaColore.stato === 'divergente',
                   // 🛑 Il gettone è `lavori.updated_at` COSÌ COM'È — mai
                   //    ricostruito con `new Date()`: `timestamptz` ha i
                   //    microsecondi, `Date` di JS no, e un riparsing renderebbe

@@ -280,7 +280,7 @@ describe('Il gesto D212 — il ramo della divergenza', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('registra la divergenza (campo, motivo, nota) e POI aggiorna il colore vivo — in quest’ordine', async () => {
+  it('scrive il colore vivo (campo, motivo, nota) e POI appende a registro — in quest’ordine', async () => {
     const fetchMock = montaFetch({})
     const { onSalvato } = apriMotivo()
     fireEvent.click(screen.getByRole('button', { name: 'Esigenza tecnica' }))
@@ -295,10 +295,14 @@ describe('Il gesto D212 — il ramo della divergenza', () => {
       motivo: 'esigenza_tecnica',
       nota: 'spessore insufficiente',
     })
-    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
-    // Il registro PRIMA del colore vivo: al contrario, un colore cambiato
-    // senza traccia del perché è il verso peggiore del fallimento.
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/prescrizione/divergenza')
+    expect(patch(fetchMock).length).toBe(1)
+    // 🔴 SPIA SULL'ORDINE, ed è il cuore del Critical: la PATCH è la PRIMA
+    //    chiamata. Al contrario, un append riuscito con la PATCH fallita
+    //    lascerebbe a registro «cambiato per esigenza tecnica» mentre niente è
+    //    cambiato — una voce FALSA su un registro append-only che finisce
+    //    nella Dichiarazione. Una nota mancante si riprova; una nota falsa no.
+    expect((fetchMock.mock.calls[0][1] as { method?: string }).method).toBe('PATCH')
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/prescrizione/divergenza')
     await waitFor(() =>
       expect(onSalvato).toHaveBeenCalledWith({
         divergenza: true,
@@ -329,25 +333,147 @@ describe('Il gesto D212 — il ramo della divergenza', () => {
     expect(corpoDi(chiamate(fetchMock, '/prescrizione/divergenza')[0])).not.toHaveProperty('atteso_updated_at')
   })
 
-  it('divergenza registrata ma colore vivo non scritto: si applica ciò che è AVVENUTO e si dice il resto', async () => {
+  it('colore vivo NON scritto: NIENTE append — il registro non riceve una voce senza il suo fatto', async () => {
     const fetchMock = montaFetch({ patch: { ok: false, status: 500 } })
     const { onSalvato, onErrore } = apriMotivo()
     fireEvent.click(screen.getByRole('button', { name: 'Altro' }))
     fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
-    await waitFor(() => expect(onSalvato).toHaveBeenCalledWith({ divergenza: true }))
-    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('Il cambio è registrato'))
-    expect(patch(fetchMock).length).toBe(1)
+
+    await waitFor(() => expect(onErrore).toHaveBeenCalled())
+    expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(0)
+    expect(onSalvato).not.toHaveBeenCalled()
+    // Il foglio resta aperto sul motivo: il gesto si ripete da lì.
+    expect(screen.getByRole('button', { name: 'Registra il cambio' })).toBeInTheDocument()
   })
 
-  it('la divergenza fallita non tocca il colore vivo e riporta il messaggio della rotta (chiave `errore`)', async () => {
+  it('append fallito DOPO la PATCH: il cambio si applica e il messaggio dice forte che il motivo manca', async () => {
     const fetchMock = montaFetch({
       divergenza: { ok: false, status: 409, body: { errore: 'La trascrizione è congelata', esito: 'congelata' } },
     })
     const { onErrore, onSalvato } = apriMotivo()
     fireEvent.click(screen.getByRole('button', { name: 'Altro' }))
     fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
-    await waitFor(() => expect(onErrore).toHaveBeenCalledWith('La trascrizione è congelata'))
+
+    // Il colore È cambiato: il padre lo deve sapere, e `divergenza` NON parte
+    // (a registro non c'è niente).
+    await waitFor(() =>
+      expect(onSalvato).toHaveBeenCalledWith({
+        colore: { scala: 'vita_classical', codice: 'A3.5' },
+        updatedAt: GETTONE_NUOVO,
+      })
+    )
+    expect(onSalvato).not.toHaveBeenCalledWith(expect.objectContaining({ divergenza: true }))
+    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('il motivo NON è stato registrato'))
+    // …e il messaggio della rotta (chiave `errore`, mai `error`) resta leggibile.
+    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('La trascrizione è congelata'))
+    expect(patch(fetchMock).length).toBe(1)
+    expect(screen.getByRole('button', { name: 'Registra il cambio' })).toBeInTheDocument()
+  })
+
+  // ── (i) Il percorso che produceva la voce falsa più grave ────────────────
+  it('valore FUORI CATALOGO: il ramo divergenza si ferma PRIMA di tutto — nessun append, nessuna PATCH', async () => {
+    const fetchMock = montaFetch({})
+    const { onErrore, onSalvato } = monta()
+    scrivi('A3,5') // la virgola: non è un codice del catalogo
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No: lo stiamo cambiando noi/ }))
+
+    // 🔴 Il difetto chiuso: prima si appendeva «cambiato per motivo X» e SOLO
+    //    DOPO il catalogo annullava la PATCH — registro bugiardo, per sempre.
+    expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(0)
     expect(patch(fetchMock).length).toBe(0)
     expect(onSalvato).not.toHaveBeenCalled()
+    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('non è un codice del catalogo colori'))
+    // Non si passa nemmeno al foglio del motivo: si resta sulla domanda.
+    expect(screen.queryByText('Perché cambia?')).not.toBeInTheDocument()
+    expect(screen.getByText('Era scritto così sulla prescrizione?')).toBeInTheDocument()
+  })
+
+  it('…ma la via TYPO resta libera dal catalogo: la trascrizione è verbatim (D210)', async () => {
+    const fetchMock = montaFetch({})
+    monta()
+    scrivi('A3,5')
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3,5/ }))
+    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/typo').length).toBe(1))
+    expect(corpoDi(chiamate(fetchMock, '/prescrizione/typo')[0]).valore).toBe('A3,5')
+  })
+})
+
+// ── (iii) Da uno stato GIÀ divergente ──────────────────────────────────────
+describe('Da uno stato già divergente: niente D212, dritti al motivo', () => {
+  /** Stato (c): trascritto A3, realizzato A3.5, una divergenza già a registro. */
+  function montaDivergente(over: Partial<Parameters<typeof ModificaColoreSheet>[0]> = {}) {
+    return monta({ valoreIniziale: 'A3.5', trascritto: 'A3', giaDivergente: true, ...over })
+  }
+
+  it('il foglio D212 NON si ripresenta: il suo sottotitolo sarebbe ormai falso', () => {
+    montaFetch({})
+    montaDivergente()
+    scrivi('B2')
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    expect(screen.queryByText('Era scritto così sulla prescrizione?')).not.toBeInTheDocument()
+    expect(screen.getByText('Perché cambia?')).toBeInTheDocument()
+  })
+
+  it('il valore precedente resta LEGGIBILE: il prima→dopo è realizzato-vecchio → nuovo', () => {
+    montaFetch({})
+    montaDivergente()
+    scrivi('B2')
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    // «realizzato», non «trascritto»: il vecchio qui è l'eseguito, non il foglio.
+    expect(screen.getByText('realizzato')).toBeInTheDocument()
+    expect(screen.getByText('nuovo')).toBeInTheDocument()
+    const precedente = screen.getByText('A3.5')
+    expect(precedente.style.textDecoration).toContain('line-through')
+  })
+
+  it('appende una SECONDA voce a registro: la RPC appende a un array, ed è il fatto vero', async () => {
+    const fetchMock = montaFetch({})
+    const { onSalvato } = montaDivergente()
+    scrivi('B2')
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Esigenza tecnica' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
+
+    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(1))
+    expect(corpoDi(chiamate(fetchMock, '/prescrizione/divergenza')[0])).toEqual({
+      campo: 'colore',
+      motivo: 'esigenza_tecnica',
+    })
+    await waitFor(() => expect(onSalvato).toHaveBeenCalledWith(expect.objectContaining({ divergenza: true })))
+  })
+
+  it('tornare al valore PRESCRITTO non è divergere: salvataggio semplice, nessuna seconda voce', async () => {
+    const fetchMock = montaFetch({})
+    const { onSalvato } = montaDivergente()
+    scrivi('A3') // = il trascritto: si rientra nella prescrizione
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+
+    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
+    expect(screen.queryByText('Perché cambia?')).not.toBeInTheDocument()
+    expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(0)
+    await waitFor(() => expect(onSalvato).toHaveBeenCalledWith(expect.not.objectContaining({ divergenza: true })))
+  })
+
+  it('«Torna indietro» riporta al campo del valore, non a un foglio D212 mai visto', () => {
+    montaFetch({})
+    montaDivergente()
+    scrivi('B2')
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Torna indietro' }))
+    expect(screen.getByLabelText('Colore', { selector: 'input' })).toBeInTheDocument()
+    expect(screen.queryByText('Era scritto così sulla prescrizione?')).not.toBeInTheDocument()
+  })
+
+  it('fuori catalogo da stato divergente: bloccato, e senza indicare una via che lì non esiste', () => {
+    const fetchMock = montaFetch({})
+    const { onErrore } = montaDivergente()
+    scrivi('B2,5')
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+    expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(0)
+    expect(patch(fetchMock).length).toBe(0)
+    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('non è un codice del catalogo colori'))
+    expect(onErrore).not.toHaveBeenCalledWith(expect.stringContaining("usa l'altra via"))
   })
 })

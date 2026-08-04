@@ -34,6 +34,23 @@
 // contrario, un fallimento della seconda chiamata lascerebbe il colore
 // cambiato senza nessuna traccia del perché — il verso peggiore.
 //
+// ══ IL REGISTRO NON RICEVE MAI UNA VOCE FALSA (review T7, Critical) ═════════
+// `divergenze` è APPEND-ONLY e finisce nella Dichiarazione di Conformità: una
+// voce sbagliata non si cancella e non si corregge, resta per sempre. Tre
+// percorsi la producevano, e sono chiusi qui — i dettagli stanno accanto al
+// codice di ciascuno:
+//   FIX 1 · valore fuori catalogo → il catalogo si controlla ALL'INGRESSO del
+//           ramo divergenza, prima di ogni scrittura. (Non tocca la via typo:
+//           la trascrizione è verbatim, D210.)
+//   FIX 2 · ordine invertito → PRIMA la PATCH del colore vivo, POI l'append.
+//           Fra un buco rimediabile («manca il motivo, riprova») e una bugia
+//           permanente («cambiato per X» senza nessun cambio) si sceglie il
+//           buco.
+//   FIX 3 · da uno stato GIÀ divergente il gesto D212 non si ripresenta (il
+//           suo sottotitolo sarebbe falso e la via typo lascerebbe orfana la
+//           divergenza vecchia): si va dritti al «Perché cambia?», e una
+//           seconda voce a registro è il fatto vero.
+//
 // ══ IL GETTONE ══════════════════════════════════════════════════════════════
 // 🛑 `atteso_updated_at` è una STRINGA OPACA end-to-end: mai un `new Date()`,
 //    mai un riparsing. `timestamptz` ha i microsecondi, `Date` di JS no: un
@@ -90,6 +107,12 @@ const ETICHETTA_MOTIVO: Record<MotivoDivergenza, string> = {
 
 const MSG_RETE = 'Non è stato possibile salvare. Riprova.'
 
+/** Il colore è cambiato ma il motivo NON è a registro: si dice forte, perché è
+ *  la Dichiarazione a restare senza la spiegazione dello scostamento. Il foglio
+ *  resta aperto sul passo del motivo, così il gesto si ripete da lì. */
+const MSG_MOTIVO_NON_REGISTRATO =
+  'Il cambio è fatto, ma il motivo NON è stato registrato: riprova, o la Dichiarazione resterà senza la spiegazione.'
+
 type Passo = 'valore' | 'gesto' | 'motivo'
 
 /** Che cosa il foglio ha cambiato davvero, per l'aggiornamento ottimistico
@@ -113,6 +136,9 @@ export type DatiColore = {
   trascritto?: string
   /** Come si chiama il dentista, per la frase di provenienza. */
   dentista: string
+  /** Una divergenza sul colore è GIÀ a registro (stato «c» della riga). Da lì
+   *  il gesto D212 NON si ripresenta: v. FIX 3 nel cappello del file. */
+  giaDivergente?: boolean
   /** `lavori.updated_at` — il gettone di partenza. STRINGA, mai una `Date`. */
   updatedAt: string
   onSalvato: (esito: EsitoColore) => void
@@ -134,7 +160,7 @@ export function ModificaColoreSheet(props: {
   titolo: string
   onErrore: (msg: string) => void
 } & DatiColore) {
-  const { aperto, onChiudi, lavoroId, titolo, trascritto, dentista, onSalvato, onErrore } = props
+  const { aperto, onChiudi, lavoroId, titolo, trascritto, dentista, giaDivergente = false, onSalvato, onErrore } = props
 
   const [passo, setPasso] = useState<Passo>('valore')
   const [valore, setValore] = useState(props.valoreIniziale)
@@ -205,21 +231,69 @@ export function ModificaColoreSheet(props: {
       : 'Il colore del lavoro non si è aggiornato. Riprova dalla riga Colore.'
   }
 
+  /**
+   * FIX 1 — **IL CATALOGO SI CONTROLLA PRIMA DI ENTRARE NEL RAMO DIVERGENZA**,
+   * non dopo l'append.
+   *
+   * 🔴 Il difetto che chiude (Critical della review): un valore fuori catalogo
+   *    («A3,5», la virgola) faceva APPENDERE la divergenza e solo dopo
+   *    `scalaDelCodice` annullava la PATCH. Il registro restava a dire
+   *    «*cambiato per esigenza tecnica*» mentre **niente era cambiato**: una
+   *    voce FALSA su un registro append-only che finisce nella Dichiarazione.
+   * 🛑 Vale SOLO per questo ramo: la via typo resta **libera dal catalogo**,
+   *    perché lì si scrive la TRASCRIZIONE, che è verbatim per legge di
+   *    prodotto (D210) — «A3,5» sul foglio è «A3,5» nello snapshot.
+   */
+  function vaiAlMotivo(): void {
+    if (scalaDelCodice(nuovo.trim().toUpperCase()) !== null) {
+      setPasso('motivo')
+      return
+    }
+    onErrore(
+      `«${nuovo}» non è un codice del catalogo colori: il lavoro non può usare questo valore. ` +
+        (giaDivergente
+          ? 'Correggi il valore.'
+          : // La seconda via è sullo schermo solo quando si arriva da D212: da
+            // uno stato già divergente quel foglio non si apre, e indicare una
+            // strada che non c'è sarebbe peggio del silenzio.
+            "Correggi il valore — o, se è quello che c'è scritto sul foglio, usa l'altra via.")
+    )
+  }
+
   // ── Passo 1: il salvataggio del valore ───────────────────────────────────
   async function salvaValore() {
     if (nuovo === '') {
       onErrore('Scrivi un colore, oppure chiudi senza salvare.')
       return
     }
-    // 🔑 Il gesto D212 si apre SOLO se c'è una trascrizione da difendere e il
-    //    valore se ne discosta. Senza snapshot non c'è nessuna domanda da
-    //    fare: è un salvataggio semplice (requisito 3).
     // 🔑 Il confronto è tollerante (trim + maiuscole): il trascritto è come
     //    digitato, il vivo è normalizzato dal catalogo — un confronto stretto
     //    aprirebbe la domanda sul caso NORMALE.
-    if (trascritto !== undefined && !uguagliaColore(nuovo, trascritto)) {
-      setPasso('gesto')
-      return
+    if (trascritto !== undefined) {
+      if (giaDivergente) {
+        // FIX 3 — DA UNO STATO GIÀ DIVERGENTE IL GESTO D212 NON SI RIPRESENTA.
+        // 🔴 Il difetto che chiude: lì il sottotitolo di D212 («*il colore di
+        //    questo lavoro è trascritto dal foglio di X*») sarebbe FALSO — una
+        //    divergenza è già a registro — e la via typo riscriverebbe la
+        //    trascrizione lasciando la vecchia divergenza ORFANA, a puntare a
+        //    una differenza che non esiste più.
+        // Si va dritti al «Perché cambia?»: una SECONDA voce a registro è
+        // legittima (la RPC appende a un array), ed è il fatto vero.
+        // 🔑 Due eccezioni, che sarebbero due voci false:
+        //    · il valore torna a quello PRESCRITTO → non si sta divergendo, si
+        //      sta rientrando: salvataggio semplice, nessuna nuova voce;
+        //    · il valore non è cambiato → non è successo niente.
+        if (!uguagliaColore(nuovo, trascritto) && !uguagliaColore(nuovo, props.valoreIniziale)) {
+          vaiAlMotivo()
+          return
+        }
+      } else if (!uguagliaColore(nuovo, trascritto)) {
+        // Il gesto D212 si apre SOLO se c'è una trascrizione da difendere e il
+        // valore se ne discosta. Senza snapshot non c'è nessuna domanda da
+        // fare: è un salvataggio semplice (requisito 3).
+        setPasso('gesto')
+        return
+      }
     }
     setSalvando(true)
     try {
@@ -290,10 +364,38 @@ export function ModificaColoreSheet(props: {
   }
 
   // ── Via B: «No: lo stiamo cambiando noi» — la divergenza ─────────────────
+  //
+  // FIX 2 — **PRIMA LA PATCH DEL COLORE VIVO, POI L'APPEND A REGISTRO.**
+  // 🔴 L'ordine era invertito, ed era sbagliato. Il criterio non è «quale
+  //    scrittura è più importante», è **quale fallimento si può rimediare**:
+  //    · append riuscito e PATCH fallita → il registro dice «cambiato per il
+  //      motivo X» e NIENTE è cambiato. Una voce **falsa** su un registro
+  //      **append-only** che finisce nella Dichiarazione: non si cancella, non
+  //      si corregge, resta per sempre.
+  //    · PATCH riuscita e append fallito → il colore è cambiato e il motivo
+  //      manca. Una nota mancante **si riprova**, ed è ciò che il messaggio
+  //      chiede di fare, col foglio che resta aperto sul motivo.
+  //    Fra un buco rimediabile e una bugia permanente si sceglie il buco.
+  // 🔑 Coerente con V9 (trasparenza, mai bloccante): non si impedisce il
+  //    cambio perché il motivo non è passato — si dice forte che manca.
   async function registraDivergenza() {
     if (motivo === null) return
     setSalvando(true)
     try {
+      // ① Il colore vivo. Il catalogo è già stato controllato all'ingresso del
+      //    ramo (FIX 1): qui `fuori_catalogo` non dovrebbe più capitare, ma il
+      //    ramo resta — una rete che si toglie perché «non può scattare» è una
+      //    rete che si toglie e basta.
+      const scritto = await scriviColoreVivo(nuovo)
+      if (scritto.esito !== 'ok') {
+        // Nessun append: senza il cambio, una voce a registro sarebbe falsa.
+        // Il foglio resta aperto sul motivo, il gesto si ripete.
+        onErrore(messaggioVivoNonScritto(scritto.esito, nuovo))
+        return
+      }
+
+      // ② Il registro. Da qui in poi il colore È cambiato: qualunque cosa
+      //    succeda, il padre deve saperlo.
       let risposta: Response
       try {
         risposta = await fetch(`/api/lavori/${lavoroId}/prescrizione/divergenza`, {
@@ -311,23 +413,20 @@ export function ModificaColoreSheet(props: {
           }),
         })
       } catch {
-        onErrore(MSG_RETE)
+        onSalvato({ colore: scritto.colore, updatedAt: scritto.updatedAt })
+        onErrore(MSG_MOTIVO_NON_REGISTRATO)
         return
       }
 
       if (!risposta.ok) {
         const corpo = (await risposta.json().catch(() => null)) as { errore?: string } | null
-        onErrore(corpo?.errore ?? MSG_RETE)
+        onSalvato({ colore: scritto.colore, updatedAt: scritto.updatedAt })
+        // Il messaggio della rotta se c'è (dice «congelata», «non trovato»…),
+        // ma sempre insieme al fatto che pesa: il cambio è già avvenuto.
+        onErrore(`${MSG_MOTIVO_NON_REGISTRATO}${corpo?.errore ? ` (${corpo.errore})` : ''}`)
         return
       }
 
-      const scritto = await scriviColoreVivo(nuovo)
-      if (scritto.esito !== 'ok') {
-        onSalvato({ divergenza: true })
-        onErrore(`Il cambio è registrato. ${messaggioVivoNonScritto(scritto.esito, nuovo)}`)
-        onChiudi()
-        return
-      }
       onSalvato({ divergenza: true, colore: scritto.colore, updatedAt: scritto.updatedAt })
       onChiudi()
     } finally {
@@ -390,7 +489,9 @@ export function ModificaColoreSheet(props: {
             nome="No: lo stiamo cambiando noi"
             sotto={`il foglio resta ${trascritto} — la Dichiarazione mostrerà prescritto e realizzato`}
             disabilitata={salvando}
-            onScegli={() => setPasso('motivo')}
+            // FIX 1 — MAI `setPasso('motivo')` nudo: il catalogo si controlla
+            // qui, all'ingresso del ramo, non dopo l'append.
+            onScegli={vaiAlMotivo}
             icona={
               <>
                 <path d="M16 3h5v5" />
@@ -420,6 +521,29 @@ export function ModificaColoreSheet(props: {
             <b style={stileForte}>{nuovo}</b>. Una riga di motivo, e la differenza è coperta.
           </p>
 
+          {/* FIX 3 — arrivando DRITTI qui da uno stato già divergente, il foglio
+              D212 (che è quello che porta il prima→dopo) non si è mai aperto: il
+              valore precedente sparirebbe dalla vista di chi lo sta cambiando.
+              Si ripete qui, e il «prima» è il REALIZZATO vecchio — non il
+              trascritto, che è un'altra cosa e sta già nella riga sopra. */}
+          {giaDivergente && (
+            <div style={stileCambio}>
+              <span>
+                <span style={{ ...stileCambioValore, ...stileCambioPrima }}>
+                  {props.valoreIniziale || '—'}
+                </span>
+                <span style={stileCambioEtichetta}>realizzato</span>
+              </span>
+              <span aria-hidden="true" style={stileCambioFreccia}>
+                →
+              </span>
+              <span>
+                <span style={stileCambioValore}>{nuovo}</span>
+                <span style={stileCambioEtichetta}>nuovo</span>
+              </span>
+            </div>
+          )}
+
           <div style={stileGrigliaPastiglie}>
             {MOTIVI_DIVERGENZA.map((m) => (
               <PastigliaMotivo
@@ -438,7 +562,10 @@ export function ModificaColoreSheet(props: {
             placeholder="es. richiesta al telefono, 4 agosto"
           />
 
-          <TastoSecondario disabled={salvando} onClick={() => setPasso('gesto')}>
+          {/* Si torna DA DOVE SI È ARRIVATI: dal foglio D212 quando c'è passato,
+              dal campo del valore quando lo si è saltato (FIX 3). Rimandare a un
+              foglio mai visto sarebbe una porta che si apre sul niente. */}
+          <TastoSecondario disabled={salvando} onClick={() => setPasso(giaDivergente ? 'valore' : 'gesto')}>
             Torna indietro
           </TastoSecondario>
           <TastoPrimario
