@@ -900,7 +900,7 @@ CREATE TABLE lavori (
   paziente_nome_snapshot TEXT,          -- Snapshot nome al momento creazione
   paziente_nascita_snapshot DATE,
 
-  -- Tipo e descrizione dispositivo (MDR Allegato XIII p.1)
+  -- Tipo e descrizione dispositivo (Allegato XIII MDR)
   tipo_dispositivo  TEXT NOT NULL
                     CHECK (tipo_dispositivo IN (
                       'protesi_fissa', 'protesi_mobile', 'implantologia',
@@ -916,7 +916,7 @@ CREATE TABLE lavori (
   arcata            TEXT CHECK (arcata IN ('superiore','inferiore','entrambe')),
   anamnesi_note     TEXT,               -- Bruxismo, precauzioni, altri dispositivi
 
-  -- MDR — Classificazione (Allegato XIII p.1 — classe rischio)
+  -- MDR — Classificazione (classe di rischio)
   classe_rischio    TEXT NOT NULL DEFAULT 'classe_iia'
                     CHECK (classe_rischio IN ('classe_i','classe_iia','classe_iib','classe_iii')),
   norma_riferimento TEXT,               -- Es. "EN ISO 6872:2015"
