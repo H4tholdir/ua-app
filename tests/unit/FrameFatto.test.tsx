@@ -31,6 +31,11 @@ const LAVORO = { id: 'lav-1', numero_lavoro: '2026/0001' }
 function props(overrides: Partial<Parameters<typeof FrameFatto>[0]> = {}) {
   return {
     lavoro: LAVORO,
+    // Ondata B ③ / T3 — i due grezzi del Passo 3 che la carta «La prescrizione»
+    // racconta. Vuoti nel caso base: la carta mostra allora la sola riga della
+    // fonte (0B-9: mai una riga vuota).
+    elemento: '',
+    colore: '',
     // Task 11: il ramo `'dettagli'` non esiste più — denti e colore nascono
     // dentro la transazione del lavoro e non possono più fallire da soli.
     // Al suo posto `'elementi'`: ciò che la casella «Elemento» conteneva e non
@@ -104,6 +109,136 @@ describe('FrameFatto — card "IL LAVORO"', () => {
   })
 })
 
+// ════════════════════════════════════════════════════════════════════════════
+// T3 (ondata B ③) — LE DUE CARTE (D224)
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Le due carte si nominano dalla loro didascalia: sono `<section>` con
+ *  `aria-labelledby`, quindi `role="region"` con un nome accessibile — così un
+ *  test che cerca «Colore» dice ANCHE in quale delle due carte lo cerca. */
+function carta(nome: 'Il lavoro' | 'La prescrizione') {
+  return within(screen.getByRole('region', { name: nome }))
+}
+
+describe('T3 — carta «Il lavoro»: «Prescritto da» (vincolo 0B-9)', () => {
+  it('richiedenteNome presente → la riga compare, ADIACENTE sotto «Dentista»', () => {
+    renderFatto({ richiedenteNome: 'Dr. Colombo Francesco' })
+    const c = carta('Il lavoro')
+    expect(c.getByText('Prescritto da')).toBeInTheDocument()
+    expect(c.getByText('Dr. Colombo Francesco')).toBeInTheDocument()
+    // L'adiacenza è il vincolo, non la presenza: le chiavi in ordine.
+    const chiavi = c.getAllByText(/^(Dentista|Prescritto da|Lavoro|Paziente|Colore)$/).map((e) => e.textContent)
+    expect(chiavi).toEqual(['Dentista', 'Prescritto da', 'Lavoro', 'Paziente'])
+  })
+
+  it('richiedenteNome assente → NESSUNA riga «Prescritto da» (mai una riga vuota)', () => {
+    renderFatto()
+    expect(screen.queryByText('Prescritto da')).not.toBeInTheDocument()
+    const chiavi = carta('Il lavoro')
+      .getAllByText(/^(Dentista|Prescritto da|Lavoro|Paziente|Colore)$/)
+      .map((e) => e.textContent)
+    expect(chiavi).toEqual(['Dentista', 'Lavoro', 'Paziente'])
+  })
+
+  it('richiedenteNome di soli spazi → riga assente (una riga vuota è comunque vuota)', () => {
+    renderFatto({ richiedenteNome: '   ' })
+    expect(screen.queryByText('Prescritto da')).not.toBeInTheDocument()
+  })
+})
+
+describe('T3 — dove atterra il colore (vincolo 0B-2 + D223)', () => {
+  it('trascritto (coloreOrigine assente) → riga in «La prescrizione», con pastiglia', () => {
+    renderFatto({ colore: 'A3' })
+    const p = carta('La prescrizione')
+    expect(p.getByText('Colore')).toBeInTheDocument()
+    expect(p.getByText('A3')).toBeInTheDocument()
+    expect(p.getAllByText('✓ dalla prescrizione').length).toBeGreaterThan(0)
+    // E NON nella carta del lavoro.
+    expect(carta('Il lavoro').queryByText('Colore')).not.toBeInTheDocument()
+  })
+
+  it("trascritto ma fuori catalogo (accessoriFalliti ['colore']) → la riga RESTA: la trascrizione è scritta lo stesso", () => {
+    // Provato leggendo il server: `componiSnapshot` (componi-snapshot.ts:41)
+    // scrive `contenuto.colore` dal grezzo, `risolviColoreCaso` decide solo il
+    // colore di CASO. Le due strade sono indipendenti.
+    renderFatto({ colore: 'A3,5', accessoriFalliti: ['colore'] })
+    expect(carta('La prescrizione').getByText('A3,5')).toBeInTheDocument()
+  })
+
+  it('sganciato (coloreOrigine «lab») → riga in «Il lavoro» SENZA pastiglia', () => {
+    renderFatto({ colore: 'A3', coloreOrigine: 'lab' })
+    const l = carta('Il lavoro')
+    expect(l.getByText('Colore')).toBeInTheDocument()
+    expect(l.getByText('A3')).toBeInTheDocument()
+    expect(l.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
+    expect(carta('La prescrizione').queryByText('Colore')).not.toBeInTheDocument()
+  })
+
+  it('sganciato E fuori catalogo → NESSUNA riga: non è stato salvato niente, e la carta non lo afferma', () => {
+    renderFatto({ colore: 'A3,5', coloreOrigine: 'lab', accessoriFalliti: ['colore'] })
+    expect(screen.queryByText('Colore')).not.toBeInTheDocument()
+    expect(screen.queryByText('A3,5')).not.toBeInTheDocument()
+  })
+
+  it('colore vuoto → nessuna riga da nessuna delle due parti', () => {
+    renderFatto({ colore: '' })
+    expect(screen.queryByText('Colore')).not.toBeInTheDocument()
+  })
+
+  it('colore di soli spazi → nessuna riga (stesso gate di crea-lavoro.ts:343)', () => {
+    renderFatto({ colore: '   ' })
+    expect(screen.queryByText('Colore')).not.toBeInTheDocument()
+  })
+})
+
+describe('T3 — carta «La prescrizione»: gli elementi (W20)', () => {
+  it('un dente → «dente 26» con la pastiglia di provenienza', () => {
+    renderFatto({ elemento: '2.6' })
+    const p = carta('La prescrizione')
+    expect(p.getByText('Elementi')).toBeInTheDocument()
+    expect(p.getByText('dente 26')).toBeInTheDocument()
+    expect(p.getAllByText('✓ dalla prescrizione').length).toBeGreaterThan(0)
+  })
+
+  it('più denti → plurale e ordine d\'ingresso', () => {
+    renderFatto({ elemento: '2.6, 27 31' })
+    expect(carta('La prescrizione').getByText('denti 26, 27, 31')).toBeInTheDocument()
+  })
+
+  it('casella vuota → nessuna riga «Elementi»', () => {
+    renderFatto({ elemento: '' })
+    expect(screen.queryByText('Elementi')).not.toBeInTheDocument()
+  })
+
+  it('solo roba non riconosciuta → nessuna riga: l’avviso dice già che si è persa', () => {
+    renderFatto({ elemento: 'pippo', accessoriFalliti: ['elementi'] })
+    expect(screen.queryByText('Elementi')).not.toBeInTheDocument()
+    expect(screen.queryByText('pippo')).not.toBeInTheDocument()
+  })
+
+  it('metà buoni e metà no → si mostrano SOLO i denti davvero salvati', () => {
+    renderFatto({ elemento: '2.6 pippo', accessoriFalliti: ['elementi'] })
+    expect(carta('La prescrizione').getByText('dente 26')).toBeInTheDocument()
+    expect(screen.queryByText(/pippo/)).not.toBeInTheDocument()
+  })
+})
+
+describe('T3 — la riga «Foglio del dentista»', () => {
+  it('senza fonte → stato AMBRA «Da allegare»', () => {
+    renderFatto()
+    const p = carta('La prescrizione')
+    expect(p.getByText('Foglio del dentista')).toBeInTheDocument()
+    expect(p.getByText('Da allegare')).toBeInTheDocument()
+    expect(p.queryByText(/Allegata/)).not.toBeInTheDocument()
+  })
+
+  it('la riga fonte c’è SEMPRE, anche a carta altrimenti vuota (è la chiusura della carta)', () => {
+    renderFatto({ elemento: '', colore: '' })
+    expect(screen.getByRole('region', { name: 'La prescrizione' })).toBeInTheDocument()
+    expect(screen.getByText('Foglio del dentista')).toBeInTheDocument()
+  })
+})
+
 describe('FrameFatto — card "CONSEGNA SUGGERITA"', () => {
   it('daStoria:true → "Pronta per <giorno esteso> — di solito ci mettete N giorni." (VERBATIM mockup)', () => {
     renderFatto({ giorni: 6, daStoria: true })
@@ -170,29 +305,21 @@ describe('FrameFatto — card "CONSEGNA SUGGERITA"', () => {
   })
 })
 
-describe('FrameFatto — CTA foto (TastoPrimario, unico rosso del frame)', () => {
-  it('"Fotografa impronta e prescrizione" presente come TastoPrimario', () => {
-    renderFatto()
-    expect(screen.getByRole('button', { name: 'Fotografa impronta e prescrizione' })).toBeInTheDocument()
-  })
-
-  // D97 — il valore è `'prescrizione'`, ed è il valore che questo punto
-  // mandava PRIMA: T11 aveva registrato la perdita («il dettaglio *era la
-  // prescrizione* non è più registrato»), T11-bis l'aveva instradato su
-  // 'altro' come ripiego dichiarato IN ATTESA che la prescrizione diventasse
-  // una categoria. Con D91 lo è.
-  // ⚠️ Il tasto promette due cose («impronta E prescrizione») e il dato ne
-  // registra una: è il modello di D65/D74 — la foto nasce con una categoria e
-  // si corregge dalla scheda. Aprire qui il foglio-categoria sarebbe un cambio
-  // di flusso, e D97 lo lascia fuori esplicitamente.
-  it('selezionare un file → POST /api/lavori/[id]/immagini FormData{file, categoria:"prescrizione"} (valore che isCategoriaFoto accetta), MAI descrizione → avviso "Foto salvata ✓", resta sul Fatto', async () => {
+describe('FrameFatto — la foto dell’impronta (l’input che era «impronta e prescrizione»)', () => {
+  // D97 rivisto da T3 — il tasto prometteva DUE cose («Fotografa impronta e
+  // prescrizione») e il dato ne registrava UNA ('prescrizione'). Dall'ondata B
+  // ③ la prescrizione ha la sua strada (il foglio a2) e questo input torna a
+  // essere quello che dice di essere: l'IMPRONTA. Testo del tasto, etichetta
+  // dell'input e `categoria` cambiano INSIEME — erano tre copie della stessa
+  // promessa, e due erano nascoste.
+  it('selezionare un file → POST /api/lavori/[id]/immagini FormData{file, categoria:"impronta"} (valore che isCategoriaFoto accetta), MAI descrizione → avviso "Foto salvata ✓", resta sul Fatto', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
     m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ immagine: { id: 'img-1' } }) })
 
     renderFatto()
     const user = userEvent.setup()
-    const file = new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
-    const input = screen.getByLabelText(/Carica la foto/i) as HTMLInputElement
+    const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+    const input = screen.getByLabelText("Carica la foto dell'impronta") as HTMLInputElement
     await user.upload(input, file)
 
     await waitFor(() => expect(m).toHaveBeenCalledTimes(1))
@@ -204,12 +331,17 @@ describe('FrameFatto — CTA foto (TastoPrimario, unico rosso del frame)', () =>
     // La prova che vale: il valore mandato PASSEREBBE isCategoriaFoto sulla
     // rotta vera, non solo che la chiave 'categoria' esista.
     expect(isCategoriaFoto(fd.get('categoria'))).toBe(true)
-    expect(fd.get('categoria')).toBe('prescrizione')
+    expect(fd.get('categoria')).toBe('impronta')
     expect(fd.get('descrizione')).toBeNull()
 
     expect(await screen.findByText('Foto salvata ✓')).toBeInTheDocument()
     // Ripetibile: il frame resta il Fatto (titolo ancora presente).
     expect(screen.getByText('Fatto!')).toBeInTheDocument()
+  })
+
+  it('l’input della foto NON è più etichettato «impronta e prescrizione» (la copia nascosta è cambiata con le altre)', () => {
+    renderFatto()
+    expect(screen.queryByLabelText(/impronta e prescrizione/i)).not.toBeInTheDocument()
   })
 
   it('upload fallisce → useAvvisi().errore, resta sul Fatto', async () => {
@@ -218,12 +350,145 @@ describe('FrameFatto — CTA foto (TastoPrimario, unico rosso del frame)', () =>
 
     renderFatto()
     const user = userEvent.setup()
-    const file = new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
-    const input = screen.getByLabelText(/Carica la foto/i) as HTMLInputElement
+    const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+    const input = screen.getByLabelText("Carica la foto dell'impronta") as HTMLInputElement
     await user.upload(input, file)
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByText('Fatto!')).toBeInTheDocument()
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// T3 — IL CTA CHE CAMBIA MESTIERE (+ i link quieti)
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Il tasto rosso, chiunque sia in questo momento. */
+function primario(): HTMLElement {
+  const bottoni = screen.getAllByRole('button')
+  const trovato = bottoni.find((b) => b.className.includes('ds-tasto-primario'))
+  if (!trovato) throw new Error('nessun TastoPrimario nel frame')
+  return trovato
+}
+
+describe('T3 — il CTA senza fonte allegata', () => {
+  it('il rosso è «Allega la prescrizione»', () => {
+    renderFatto()
+    expect(primario()).toHaveTextContent('Allega la prescrizione')
+    expect(screen.queryByRole('button', { name: 'Fotografa impronta e prescrizione' })).not.toBeInTheDocument()
+  })
+
+  it('«Fotografa l’impronta» resta, DECLASSATO a link quieto', () => {
+    renderFatto()
+    const foto = screen.getByRole('button', { name: "Fotografa l'impronta" })
+    expect(foto.className).toContain('ds-link-quieto')
+  })
+
+  it('i due link quieti sono IMPILATI (vincolo 0B-3: mai affiancati stretti), azione prima e uscita dopo', () => {
+    renderFatto()
+    const foto = screen.getByRole('button', { name: "Fotografa l'impronta" })
+    const home = screen.getByRole('button', { name: 'Torna alla home' })
+    const contenitore = foto.parentElement as HTMLElement
+    expect(contenitore).toBe(home.parentElement)
+    expect(contenitore).toHaveStyle({ flexDirection: 'column' })
+    // Ordine: prima l'azione, poi l'uscita.
+    expect(foto.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('il rosso apre il foglio a2 (dialog «La prescrizione del dentista»)', async () => {
+    renderFatto()
+    const user = userEvent.setup()
+    expect(screen.queryByRole('dialog', { name: 'La prescrizione del dentista' })).not.toBeInTheDocument()
+    await user.click(primario())
+    expect(screen.getByRole('dialog', { name: 'La prescrizione del dentista' })).toBeInTheDocument()
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// T3+T9 — IL GIRO INTERO: il foglio riporta la fonte, e la schermata cambia
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Risposta finta della rotta immagini (contratto VERO: `{immagine}`, e in
+ *  errore `{error}` — è l'ALTRA rotta che parla con `{errore}`). */
+function rispostaImmagine(id: string) {
+  return { ok: true, status: 201, json: async () => ({ immagine: { id } }) }
+}
+/** Risposta finta della rotta fonte (contratto VERO: `{fonte}` / `{errore, esito?}`). */
+function rispostaFonte(fonte: Record<string, unknown>) {
+  return { ok: true, status: 200, json: async () => ({ fonte }) }
+}
+
+async function allegaFotoDalFoglio(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(primario())
+  const dialog = screen.getByRole('dialog', { name: 'La prescrizione del dentista' })
+  const input = within(dialog).getByLabelText('Scatta la foto della prescrizione') as HTMLInputElement
+  await user.upload(input, new File(['x'], 'presc.jpg', { type: 'image/jpeg' }))
+}
+
+describe('T3+T9 — fonte CON immagine: la riga inverdisce e il rosso cambia mestiere', () => {
+  it('dopo l’allegato: riga verde «✓ Allegata · foglio a mano» + miniatura, rosso «Fotografa l’impronta»', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce(rispostaImmagine('11111111-2222-3333-4444-555555555555'))
+    m.mockResolvedValueOnce(
+      rispostaFonte({ fonte_tipo: 'foglio', fonte_immagine_id: '11111111-2222-3333-4444-555555555555', fonte_riferimento: null })
+    )
+
+    renderFatto()
+    const user = userEvent.setup()
+    await allegaFotoDalFoglio(user)
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'La prescrizione del dentista' })).not.toBeInTheDocument()
+    )
+    const p = carta('La prescrizione')
+    expect(p.getByText('✓ Allegata · foglio a mano')).toBeInTheDocument()
+    expect(p.queryByText('Da allegare')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'La prescrizione' }).querySelector('.ds-fonte-miniatura')).not.toBeNull()
+    expect(primario()).toHaveTextContent("Fotografa l'impronta")
+  })
+
+  it('con la fonte allegata resta UN SOLO comando «Fotografa l’impronta» (il quieto sparisce)', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce(rispostaImmagine('11111111-2222-3333-4444-555555555555'))
+    m.mockResolvedValueOnce(
+      rispostaFonte({ fonte_tipo: 'foglio', fonte_immagine_id: '11111111-2222-3333-4444-555555555555', fonte_riferimento: null })
+    )
+
+    renderFatto()
+    const user = userEvent.setup()
+    await allegaFotoDalFoglio(user)
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: "Fotografa l'impronta" })).toHaveLength(1))
+    expect(screen.getByRole('button', { name: 'Torna alla home' })).toBeInTheDocument()
+  })
+})
+
+describe('T3 — LA PROMESSA NON INVERDISCE (vincolo 0B-4, MDR)', () => {
+  it('riferimento senza immagine → riga AMBRA e il rosso RESTA «Allega la prescrizione»', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce(
+      rispostaFonte({ fonte_tipo: 'email', fonte_immagine_id: null, fonte_riferimento: 'email del 4 agosto dal Dr. Rossi' })
+    )
+
+    renderFatto()
+    const user = userEvent.setup()
+    await user.click(primario())
+    const dialog = screen.getByRole('dialog', { name: 'La prescrizione del dentista' })
+    await user.click(within(dialog).getByText('Non ce l’ho ancora qui'))
+    await user.click(within(dialog).getByRole('button', { name: 'Per email' }))
+    await user.type(within(dialog).getByLabelText('Da dove arriva?'), 'email del 4 agosto dal Dr. Rossi')
+    await user.click(within(dialog).getByRole('button', { name: 'Conferma' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'La prescrizione del dentista' })).not.toBeInTheDocument()
+    )
+    const p = carta('La prescrizione')
+    expect(p.getByText('Da allegare')).toBeInTheDocument()
+    expect(p.queryByText(/Allegata/)).not.toBeInTheDocument()
+    expect(p.getByText('email del 4 agosto dal Dr. Rossi')).toBeInTheDocument()
+    // 🔑 Il vincolo vero: il CTA non si accontenta di una promessa.
+    expect(primario()).toHaveTextContent('Allega la prescrizione')
+    expect(screen.getByRole('button', { name: "Fotografa l'impronta" }).className).toContain('ds-link-quieto')
   })
 })
 
@@ -297,6 +562,49 @@ describe('FrameFatto — la frase del colore scartato (M2)', () => {
   it('nessun accessorio fallito → NESSUN avviso (il caso normale)', () => {
     renderFatto({ accessoriFalliti: [] })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('T3 — il foglio a2 riparte fresco a ogni apertura (contratto della `key`)', () => {
+  it('entrato nel passo «Non ce l’ho ancora qui», chiuso e riaperto → le tre voci sono di nuovo lì', async () => {
+    renderFatto()
+    const user = userEvent.setup()
+
+    await user.click(primario())
+    let dialog = screen.getByRole('dialog', { name: 'La prescrizione del dentista' })
+    await user.click(within(dialog).getByText('Non ce l’ho ancora qui'))
+    expect(within(dialog).queryByText('Scatta una foto')).not.toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Chiudi' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'La prescrizione del dentista' })).not.toBeInTheDocument()
+    )
+
+    await user.click(primario())
+    dialog = screen.getByRole('dialog', { name: 'La prescrizione del dentista' })
+    expect(within(dialog).getByText('Scatta una foto')).toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: 'Per email' })).not.toBeInTheDocument()
+  })
+})
+
+describe('T3 — le righe condizionali non lasciano buchi nella carta', () => {
+  it('carta «Il lavoro» minima: 3 righe → 2 separatori (un ramo falso non conta come riga)', () => {
+    renderFatto()
+    const regione = screen.getByRole('region', { name: 'Il lavoro' })
+    // Il separatore di CardInfo è un div alto 1.5 con fondo `--line`.
+    const separatori = Array.from(regione.querySelectorAll('div')).filter(
+      (d) => d.style.height === '1.5px' && d.style.background === 'var(--line)'
+    )
+    expect(separatori).toHaveLength(2)
+  })
+
+  it('carta «Il lavoro» piena (5 righe) → 4 separatori', () => {
+    renderFatto({ richiedenteNome: 'Dr. Colombo Francesco', colore: 'A3', coloreOrigine: 'lab' })
+    const regione = screen.getByRole('region', { name: 'Il lavoro' })
+    const separatori = Array.from(regione.querySelectorAll('div')).filter(
+      (d) => d.style.height === '1.5px' && d.style.background === 'var(--line)'
+    )
+    expect(separatori).toHaveLength(4)
   })
 })
 

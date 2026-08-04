@@ -1,13 +1,37 @@
 'use client'
 
-// DS v3 §7.3 (Ondata 2, Task 12) — FrameFatto: il frame «Fatto!» del wizard,
-// il cuore dell'intera Ondata 2. Copy/anatomia VERBATIM da
-// wizard.html:399-440 (FRAME 4): check Ø92 tint verde, titolo 35/800, sub,
-// card «IL LAVORO» (RigaDato Dentista/Lavoro/Paziente), card «CONSEGNA
-// SUGGERITA» (frase RISOLTA — mai una scelta qui, la scelta vive nello sheet
-// «Cambia data», vedi DEVIAZIONE nel mockup su L1 "una cosa alla volta"),
-// UN SOLO TastoPrimario («Fotografa impronta e prescrizione» — l'unico rosso
-// del frame) + LinkQuieto «Torna alla home».
+// DS v3 §7.3 (Ondata 2, Task 12 · rivisto dall'ondata B ③, T3) — FrameFatto:
+// il frame «Fatto!» del wizard. Copy/anatomia da wizard.html:399-440 (FRAME 4):
+// check Ø92 tint verde, titolo 35/800, sub, le carte di riepilogo, il box
+// «CONSEGNA SUGGERITA» (frase RISOLTA — mai una scelta qui, la scelta vive
+// nello sheet «Cambia data», vedi DEVIAZIONE nel mockup su L1 "una cosa alla
+// volta"), UN SOLO TastoPrimario + i link quieti.
+//
+// ── LE DUE CARTE (D224, ondata B ③) ────────────────────────────────────────
+// Fino a ieri il riepilogo era una carta sola, «Il lavoro». Adesso sono due, e
+// la seconda si chiama «La prescrizione» perché risponde a una domanda che
+// prima nessuna schermata poneva: che cosa di questo lavoro viene dal FOGLIO
+// DEL DENTISTA, e che cosa invece l'abbiamo deciso noi. È la stessa distinzione
+// su cui poggia la Dichiarazione di Conformità, e vale la pena vederla il
+// giorno in cui il lavoro nasce, non il giorno in cui si consegna.
+// · «Il lavoro» — Dentista · Prescritto da (solo se c'è) · Lavoro · Paziente ·
+//   Colore SE è una scelta di laboratorio (colore sganciato, nessuna pastiglia).
+// · «La prescrizione» — Elementi e Colore SE trascritti (con la pastiglia
+//   «✓ dalla prescrizione») + la riga «Foglio del dentista», che chiude la
+//   carta dicendo se l'originale è in archivio o manca ancora.
+// Le didascalie stanno FUORI dalle carte (mockup), e ogni carta è una `section`
+// con `aria-labelledby`: chi naviga a voce sente in quale delle due si trova.
+//
+// ── IL ROSSO CAMBIA MESTIERE ───────────────────────────────────────────────
+// Senza il foglio allegato, la cosa più importante che si possa fare da questa
+// schermata è allegarlo: il rosso diventa «Allega la prescrizione» e apre il
+// foglio a2 (`AllegaPrescrizioneSheet`). La foto dell'impronta non sparisce —
+// scende a link quieto, resta a un tap. Con il foglio in archivio il rosso
+// torna «Fotografa l'impronta», e il quieto gemello si toglie di mezzo.
+// 🛑 «In archivio» vuol dire UN'IMMAGINE, non una promessa (vincolo 0B-4):
+//    la terza voce del foglio a2 registra da dove arriverà la prescrizione, e
+//    quella riga resta AMBRA col rosso che continua a chiederla. La
+//    Dichiarazione si appoggia all'originale, e un promemoria non lo è.
 //
 // Nessuna testata-dots (il mockup lo dice esplicitamente): questo frame
 // sostituisce interamente la vista wizard, non è più "un passo fra 3".
@@ -19,14 +43,14 @@
 // avvisa con `useAvvisi().errore` — fail-soft: il lavoro esiste già, manca
 // solo un dettaglio recuperabile dalla scheda.
 //
-// CTA foto: input file nascosto (accept image/*, capture environment — apre
-// la fotocamera su mobile) pilotato dal click del TastoPrimario via ref
-// (niente <label> attorno al tasto fisico: TastoPrimario è un bottone di
-// libreria, non componibile come contenitore di un <input> nascosto).
-// Ripetibile: dopo un upload riuscito il Frame resta il Fatto (nessuna
-// navigazione), coerente con "puoi fotografare più pagine".
+// Foto dell'impronta: input file nascosto (accept image/*, capture environment
+// — apre la fotocamera su mobile) pilotato via ref dal comando di turno, che
+// sia il rosso o il link quieto (niente <label> attorno al tasto fisico:
+// TastoPrimario è un bottone di libreria, non componibile come contenitore di
+// un <input> nascosto). Ripetibile: dopo un upload riuscito il Frame resta il
+// Fatto (nessuna navigazione), coerente con "puoi fotografare più pagine".
 
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
+import { useEffect, useId, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
@@ -34,8 +58,11 @@ import { useAvvisi } from '@/components/ds/Avviso'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
-import type { AccessorioFallito } from '@/lib/wizard/crea-lavoro'
+import { mappaElementi, type AccessorioFallito } from '@/lib/wizard/crea-lavoro'
+import type { ColoreOrigine } from './WizardNuovoLavoro'
 import { CambiaDataSheet } from './CambiaDataSheet'
+import { AllegaPrescrizioneSheet, type FonteAllegata } from './AllegaPrescrizioneSheet'
+import type { FonteTipo } from '@/lib/domain/prescrizione-costanti'
 
 // Duplicati localmente (nota O1b, W7 — non esportati da nessun modulo
 // esistente, vedi ricognizione Task 12): stessa lista di
@@ -109,8 +136,35 @@ function messaggioAccessoriFalliti(accessoriFalliti: AccessorioFallito[]): strin
   return `Non sono riuscita a salvare ${elenco}. ${pronome} aggiungi dalla scheda.`
 }
 
+/** La pastiglia di provenienza (D224): dice che quel dato viene dal foglio del
+ *  dentista, non da una scelta del laboratorio. Una sola costante, così le due
+ *  righe che la portano non possono divergere in una revisione futura. */
+const PASTIGLIA_PRESCRIZIONE = { testo: '✓ dalla prescrizione', tono: 'green' } as const
+
+/** Come si chiama, in italiano da banco, ciascuna delle quattro forme della
+ *  fonte. `Record<FonteTipo, …>` e non un `switch`: una quinta forma aggiunta
+ *  al dizionario SPEGNE la compilazione qui finché non ha il suo nome — la
+ *  stessa rete di `ETICHETTE_ACCESSORIO` qui sopra. */
+const FORMA_FONTE: Record<FonteTipo, string> = {
+  foglio: 'foglio a mano',
+  modulo: 'modulo',
+  email: 'email',
+  piattaforma: 'piattaforma',
+}
+
+/** «dente 26» · «denti 26, 27, 31» — mai «1 elementi». Il singolare e il
+ *  plurale sono la differenza fra una frase scritta da una persona e una
+ *  scritta da un programma. */
+function etichettaDenti(denti: number[]): string {
+  return `${denti.length === 1 ? 'dente' : 'denti'} ${denti.join(', ')}`
+}
+
 export function FrameFatto(props: {
   lavoro: { id: string; numero_lavoro: string }
+  elemento: string
+  colore: string
+  coloreOrigine?: ColoreOrigine
+  richiedenteNome?: string
   accessoriFalliti: AccessorioFallito[]
   dentista: string
   lavoroLabel: string
@@ -122,11 +176,23 @@ export function FrameFatto(props: {
   /** Iniettabile per i test (stesso schema di CampoData.tsx). */
   oggi?: Date
 }) {
-  const { lavoro, accessoriFalliti, dentista, lavoroLabel, pz, giorni, daStoria, dataConsegna, onTornaHome, oggi } = props
+  const {
+    lavoro, elemento, colore, coloreOrigine, richiedenteNome,
+    accessoriFalliti, dentista, lavoroLabel, pz, giorni, daStoria, dataConsegna, onTornaHome, oggi,
+  } = props
   const { avvisa, errore } = useAvvisi()
+
+  const idCartaLavoro = useId()
+  const idCartaPrescrizione = useId()
 
   const [dataAttuale, setDataAttuale] = useState(dataConsegna)
   const [sheetAperto, setSheetAperto] = useState(false)
+  const [foglioFonteAperto, setFoglioFonteAperto] = useState(false)
+  // Stesso contratto della `key` di CambiaDataSheet: il foglio a2 tiene un
+  // passo interno (le tre voci ↔ la promessa) e deve ripartire dalle voci a
+  // ogni apertura, senza un effect di reset.
+  const [chiaveFoglioFonte, setChiaveFoglioFonte] = useState(0)
+  const [fonte, setFonte] = useState<FonteAllegata | null>(null)
   // Contratto di CambiaDataSheet.tsx (vedi JSDoc lì): la key cambia ad ogni
   // apertura così il componente rimonta fresco, ripartendo da `dataAttuale`
   // corrente invece di un residuo dell'apertura precedente — senza bisogno
@@ -139,6 +205,50 @@ export function FrameFatto(props: {
     setChiaveSheet((c) => c + 1)
     setSheetAperto(true)
   }
+
+  function apriFoglioFonte() {
+    setChiaveFoglioFonte((c) => c + 1)
+    setFoglioFonteAperto(true)
+  }
+
+  // ── Che cosa la schermata può AFFERMARE (e che cosa no) ──────────────────
+  // Ogni riga qui sotto è una cosa che è stata davvero scritta in banca dati.
+  // Le condizioni non sono estetica: una riga che compare quando il dato non
+  // c'è è esattamente la bugia che questa ondata esiste per uccidere.
+
+  // I denti sono quelli che il POST ha davvero mandato: si passa dalla STESSA
+  // funzione che ha deciso cosa mandare (`mappaElementi`), non da una seconda
+  // lettura della casella. Ciò che non è stato capito è già raccontato
+  // dall'avviso `accessoriFalliti` e qui NON compare.
+  const dentiPrescritti = mappaElementi(elemento).denti
+
+  const coloreDigitato = colore.trim()
+  const coloreScartato = accessoriFalliti.includes('colore')
+  const coloreSganciato = coloreOrigine === 'lab'
+
+  // TRASCRITTO → carta «La prescrizione», con pastiglia.
+  // 🔑 Resta vero ANCHE se il colore è finito fuori catalogo: la trascrizione e
+  //    il colore di caso sono due strade indipendenti sul server — lo snapshot
+  //    lo compone `componiSnapshot` dal testo grezzo (`componi-snapshot.ts:41`),
+  //    mentre a scartare è `risolviColoreCaso`, che tocca solo `lavori.colore_*`.
+  //    Quello che si perde è il colore del LAVORO, mai la trascrizione.
+  const mostraColoreTrascritto = !coloreSganciato && coloreDigitato !== ''
+
+  // SGANCIATO → carta «Il lavoro», senza pastiglia. Ma se è stato scartato non
+  // è stato salvato NIENTE (nessuna trascrizione, e il codice non è in
+  // catalogo): la riga sparisce, e a raccontare la perdita resta l'avviso —
+  // che dice anche da dove si rimedia.
+  const mostraColoreDiLaboratorio = coloreSganciato && coloreDigitato !== '' && !coloreScartato
+
+  // Nome del prescrittore, ripulito dagli spazi: se resta niente, la riga non
+  // esiste. Un `null` e uno spazio dicono la stessa cosa a chi legge.
+  const richiedentePulito = (richiedenteNome ?? '').trim()
+
+  // 🛑 IL CONFINE MDR (vincolo 0B-4): «verde» vuol dire che l'originale è in
+  //    archivio, e l'originale è un'IMMAGINE. Una fonte col solo riferimento è
+  //    una promessa — si registra, si mostra, ma non inverdisce niente e non
+  //    toglie al rosso il suo mestiere.
+  const fonteConImmagine = fonte?.immagineId != null
 
   // Guardia contro il doppio-invoke di React StrictMode: il ref sopravvive
   // alla cleanup+remount sintetico, quindi il secondo mount lo trova già
@@ -171,18 +281,22 @@ export function FrameFatto(props: {
       // validata con `isCategoriaFoto`), non più `descrizione` — rifiuta con
       // 422 chi manda il campo vecchio.
       //
-      // D97 — il valore è 'prescrizione', ed è quello che questo punto mandava
-      // PRIMA che la categoria diventasse una colonna: T11 aveva registrato la
-      // perdita («il dettaglio *era la prescrizione* non è più registrato da
-      // nessuna parte») e T11-bis l'aveva instradato su 'altro' come ripiego
-      // DICHIARATO, in attesa che la prescrizione avesse una casa. Da D91 ce
-      // l'ha.
-      // ⚠️ Il tasto promette due cose («Fotografa impronta e prescrizione») e
-      // il dato ne registra una. Non è un buco nuovo: è il modello di D65/D74
-      // — la foto NASCE con una categoria e si corregge dopo, e la correzione
-      // c'è già dalla scheda del lavoro. Aprire qui il foglio-categoria
-      // sarebbe un cambio di flusso, e D97 lo lascia fuori esplicitamente.
-      fd.append('categoria', 'prescrizione')
+      // ── D97, CHIUSA DALL'ONDATA B ③ ─────────────────────────────────────
+      // Questo punto ha una storia: T11 aveva registrato la perdita («il
+      // dettaglio *era la prescrizione* non è più registrato da nessuna
+      // parte»), T11-bis l'aveva instradato su 'altro' come ripiego DICHIARATO,
+      // D91 aveva dato una casa alla prescrizione e il valore era diventato
+      // 'prescrizione'. Restava però un difetto che D97 aveva messo agli atti
+      // senza poterlo chiudere: **il tasto prometteva DUE cose («Fotografa
+      // impronta e prescrizione») e il dato ne registrava UNA**.
+      // 🔑 Ora la prescrizione ha una strada sua — il foglio a2, che la carica
+      //    con la SUA categoria e la lega alla riga della fonte. Quindi questo
+      //    input torna a essere quello che dice di essere: l'IMPRONTA.
+      // ⚠️ Le tre copie della promessa cambiano INSIEME, e due erano nascoste:
+      //    il testo del tasto (che si legge), l'`aria-label` dell'input (che si
+      //    ascolta) e questo valore (che si salva). Cambiarne una sola avrebbe
+      //    lasciato in piedi lo stesso difetto, detto più piano.
+      fd.append('categoria', 'impronta')
       const res = await fetch(`/api/lavori/${lavoro.id}/immagini`, {
         method: 'POST',
         credentials: 'same-origin',
@@ -225,14 +339,63 @@ export function FrameFatto(props: {
         <p style={stileSub}>Il lavoro è nato. Lo trovi fra gli «Appena arrivati», da confermare.</p>
       </div>
 
-      <div style={{ marginTop: 24 }}>
-        <p style={stileCardTitolo}>Il lavoro</p>
+      {/* ── Carta ① «Il lavoro» — la caption sta FUORI dalla carta (mockup) ── */}
+      <section aria-labelledby={idCartaLavoro} style={{ marginTop: 24 }}>
+        <p id={idCartaLavoro} style={stileCardTitolo}>Il lavoro</p>
         <CardInfo>
           <RigaDato chiave="Dentista" valore={dentista} />
+          {/* Adiacente a «Dentista», e SOLO se c'è (vincolo 0B-9). */}
+          {richiedentePulito !== '' && <RigaDato chiave="Prescritto da" valore={richiedentePulito} />}
           <RigaDato chiave="Lavoro" valore={lavoroLabel} />
           <RigaDato chiave="Paziente" valore={pz} />
+          {/* Il colore SGANCIATO atterra qui, senza pastiglia: non viene dal
+              foglio del dentista, è una scelta del laboratorio. */}
+          {mostraColoreDiLaboratorio && <RigaDato chiave="Colore" valore={coloreDigitato} />}
         </CardInfo>
-      </div>
+      </section>
+
+      {/* ── Carta ② «La prescrizione» — ciò che viene dal foglio del dentista ── */}
+      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: 16 }}>
+        <p id={idCartaPrescrizione} style={stileCardTitolo}>La prescrizione</p>
+        <CardInfo>
+          {dentiPrescritti.length > 0 && (
+            <RigaDato
+              chiave="Elementi"
+              valore={etichettaDenti(dentiPrescritti)}
+              pastiglia={PASTIGLIA_PRESCRIZIONE}
+            />
+          )}
+          {mostraColoreTrascritto && (
+            <RigaDato chiave="Colore" valore={coloreDigitato} pastiglia={PASTIGLIA_PRESCRIZIONE} />
+          )}
+          <RigaDato
+            chiave="Foglio del dentista"
+            valore={
+              fonteConImmagine ? (
+                <span className="ds-fonte-miniatura" aria-hidden="true" style={stileMiniatura}>
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.7">
+                    <rect x="4" y="2" width="16" height="20" rx="2" />
+                    <line x1="8" y1="7" x2="16" y2="7" />
+                    <line x1="8" y1="11" x2="16" y2="11" />
+                    <line x1="8" y1="15" x2="13" y2="15" />
+                  </svg>
+                </span>
+              ) : fonte ? (
+                fonte.riferimento
+              ) : (
+                <span style={stilePastigliaAmbraSola}>Da allegare</span>
+              )
+            }
+            pastiglia={
+              fonte === null
+                ? undefined
+                : fonteConImmagine
+                  ? { testo: `✓ Allegata · ${FORMA_FONTE[fonte.tipo]}`, tono: 'green' }
+                  : { testo: 'Da allegare', tono: 'amber' }
+            }
+          />
+        </CardInfo>
+      </section>
 
       <div style={{ marginTop: 16 }}>
         <p style={stileCardTitolo}>Consegna suggerita</p>
@@ -246,24 +409,47 @@ export function FrameFatto(props: {
         </div>
       </div>
 
+      {/* ── Il rosso cambia mestiere ─────────────────────────────────────────
+          Senza il foglio allegato l'unica cosa che vale un tasto rosso è il
+          foglio: la foto dell'impronta scende a link quieto e resta a un tap.
+          Con il foglio in archivio, il rosso torna quello di sempre. */}
       <div style={{ marginTop: 26 }}>
-        <TastoPrimario onClick={apriFileInput} disabled={caricandoFoto} motivoDisabilitato="Un attimo…">
-          Fotografa impronta e prescrizione
-        </TastoPrimario>
+        {fonteConImmagine ? (
+          <TastoPrimario onClick={apriFileInput} disabled={caricandoFoto} motivoDisabilitato="Un attimo…">
+            Fotografa l&apos;impronta
+          </TastoPrimario>
+        ) : (
+          <TastoPrimario onClick={apriFoglioFonte} disabled={caricandoFoto} motivoDisabilitato="Un attimo…">
+            Allega la prescrizione
+          </TastoPrimario>
+        )}
       </div>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         capture="environment"
-        aria-label="Carica la foto di impronta e prescrizione"
+        aria-label="Carica la foto dell'impronta"
         onChange={handleFileChange}
         style={stileInputNascosto}
       />
 
-      <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
+      {/* I quieti sono IMPILATI, mai affiancati (vincolo 0B-3): a 390px due
+          bersagli da 44 accostati a 28px di distanza si prendono l'uno per
+          l'altro col pollice. Ordine: prima l'azione, poi l'uscita.
+          ⚠️ Deviazione DICHIARATA dal mockup, che li mette in riga a gap 28. */}
+      <div style={stileQuieti}>
+        {!fonteConImmagine && <LinkQuieto onClick={apriFileInput}>Fotografa l&apos;impronta</LinkQuieto>}
         <LinkQuieto onClick={onTornaHome}>Torna alla home</LinkQuieto>
       </div>
+
+      <AllegaPrescrizioneSheet
+        key={chiaveFoglioFonte}
+        aperto={foglioFonteAperto}
+        onChiudi={() => setFoglioFonteAperto(false)}
+        lavoroId={lavoro.id}
+        onFonte={setFonte}
+      />
 
       <CambiaDataSheet
         key={chiaveSheet}
@@ -356,4 +542,48 @@ const stileInputNascosto: CSSProperties = {
   clip: 'rect(0,0,0,0)',
   whiteSpace: 'nowrap',
   border: 0,
+}
+
+// Mockup `.fonte-mini` — la fonte allegata si vede prima di leggerla: un
+// riquadro 44×44 col glifo del documento. NON è la foto vera (una fonte può
+// essere un PDF, che non ha anteprima), e non deve esserlo: qui basta dire
+// «c'è», il documento si apre dalla scheda.
+const stileMiniatura: CSSProperties = {
+  width: 44,
+  height: 44,
+  flex: 'none',
+  borderRadius: raggio.riga - 6,
+  background: 'var(--bg-deep)',
+  color: 'var(--muted)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  overflow: 'hidden',
+}
+
+// La pastiglia ambra quando è l'UNICA cosa che la riga ha da dire (nessuna
+// fonte ancora): allora sta nel posto del valore, non sotto — è il valore.
+// Stessa materia della pastiglia di `RigaDato` (§5.10, estensione D224).
+const stilePastigliaAmbraSola: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  padding: '5px 11px',
+  borderRadius: raggio.pill,
+  background: 'var(--amber-tint)',
+  color: 'var(--amber)',
+  fontSize: tipografia.size.caption,
+  fontWeight: tipografia.weight.extrabold,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+}
+
+// Vincolo 0B-3 — impilati, con aria fra i due: mai due bersagli da 44 accostati
+// in orizzontale a distanza di pollice.
+const stileQuieti: CSSProperties = {
+  marginTop: 18,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: spazio.sm,
 }

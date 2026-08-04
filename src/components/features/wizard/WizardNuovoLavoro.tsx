@@ -342,6 +342,14 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 type StatoFatto = {
   lavoro: { id: string; numero_lavoro: string }
   accessoriFalliti: AccessorioFallito[]
+  // Ondata B ③ / T3 — i due grezzi del Passo 3, così il «Fatto!» può dire con
+  // le sue due carte che cosa è stato trascritto dalla prescrizione e che cosa
+  // invece è una scelta del laboratorio. Si fotografano QUI, insieme al resto
+  // dell'esito: `azzeraStato()` sgombera la persistenza subito dopo, e leggerli
+  // più tardi da `stato` significherebbe leggerli già puliti.
+  elemento: string
+  colore: string
+  coloreOrigine?: ColoreOrigine
   dentista: string
   lavoroLabel: string
   pz: string
@@ -445,6 +453,9 @@ function CorpoWizard(props: {
     setFatto({
       lavoro: esito.lavoro,
       accessoriFalliti: esito.accessoriFalliti,
+      elemento: stato.elemento,
+      colore: stato.colore,
+      coloreOrigine: stato.coloreOrigine,
       dentista: cliente.label,
       lavoroLabel: descrizioneTipo(tipo),
       pz: stato.pz,
@@ -459,6 +470,13 @@ function CorpoWizard(props: {
       <FrameFatto
         lavoro={fatto.lavoro}
         accessoriFalliti={fatto.accessoriFalliti}
+        elemento={fatto.elemento}
+        colore={fatto.colore}
+        coloreOrigine={fatto.coloreOrigine}
+        // 🚧 `richiedenteNome` NON si passa: il wizard non ha (ancora) una
+        //    casella per il prescrittore — arriva con T10. La riga «Prescritto
+        //    da» del «Fatto!» è già scritta e resta semplicemente assente,
+        //    perché una riga vuota è peggio di una riga che manca (0B-9).
         dentista={fatto.dentista}
         lavoroLabel={fatto.lavoroLabel}
         pz={fatto.pz}

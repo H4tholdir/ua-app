@@ -14,6 +14,12 @@ import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 
 const MASSIMO_RIGHE = 5
 
+/** I due toni ammessi per la pastiglia di una riga (v. `RigaDato.pastiglia`).
+ *  Chiuso apposta: la pastiglia dice PROVENIENZA o STATO, e i due significati
+ *  hanno un colore ciascuno — verde «viene dalla prescrizione / è allegata»,
+ *  ambra «manca ancora qualcosa». Nessun terzo tono senza una decisione. */
+export type TonoPastiglia = 'green' | 'amber'
+
 /**
  * RigaDato — una riga chiave→valore dentro CardInfo (§5.10).
  *
@@ -23,14 +29,25 @@ const MASSIMO_RIGHE = 5
  * `urgente` colora SOLO il valore in `--red` — riservato dal chiamante a una
  * consegna imminente (oggi o entro domani), MAI per altri significati di
  * "importante" (es. non usarlo per un valore economico alto).
+ *
+ * `pastiglia` (ondata B ③, D224 — mockup `2026-08-04-ondata-b3-schermate-vere.html`,
+ * classi `.pill-presc` / `.fonte-stato`): una targhetta sotto il valore, allineata
+ * a destra come lui, che dice DA DOVE viene quel dato o COSA gli manca ancora.
+ * 🔑 Non è mai l'unica fonte del significato (L3): porta sempre la sua parola
+ * accanto al colore, e la riga resta leggibile anche senza tinta.
+ * ⚠️ NIENTE `white-space: nowrap`, benché il mockup ce l'abbia: a text-zoom
+ * 200% (§13.3) una pastiglia che non va a capo esce dalla carta — è la lezione
+ * misurata di D96 su `FoglioCategoria`, e non si ripete qui.
+ * 🚧 In attesa di ratifica in spec §5.10 (T7 dell'ondata B ③).
  */
 export function RigaDato(props: {
   chiave: string
   valore: ReactNode
   sub?: string
   urgente?: boolean
+  pastiglia?: { testo: string; tono: TonoPastiglia }
 }) {
-  const { chiave, valore, sub, urgente = false } = props
+  const { chiave, valore, sub, urgente = false, pastiglia } = props
   return (
     <div
       style={{
@@ -73,6 +90,30 @@ export function RigaDato(props: {
             }}
           >
             {sub}
+          </span>
+        )}
+        {pastiglia && (
+          <span
+            className="ds-riga-pastiglia"
+            style={{
+              marginTop: 5,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 11px',
+              borderRadius: raggio.pill,
+              background: `var(--${pastiglia.tono}-tint)`,
+              color: `var(--${pastiglia.tono})`,
+              fontSize: tipografia.size.caption,
+              fontWeight: tipografia.weight.extrabold,
+              // Passo di tracking del mockup (`.pill-presc`): `tracking` non ha
+              // questo valore, come già per §5.38 in CartaAlbum.
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              textAlign: 'right',
+            }}
+          >
+            {pastiglia.testo}
           </span>
         )}
       </span>

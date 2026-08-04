@@ -65,6 +65,48 @@ describe('RigaDato — riga chiave/valore (§5.10)', () => {
     )
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
+
+  // ── `pastiglia` — estensione D224 (ondata B ③), in attesa di ratifica in
+  //    spec §5.10 con T7. Dice DA DOVE viene il dato o COSA gli manca ancora.
+  it('pastiglia verde → testo e tinta della famiglia green', () => {
+    render(
+      <RigaDato chiave="Colore" valore="A3" pastiglia={{ testo: '✓ dalla prescrizione', tono: 'green' }} />
+    )
+    const p = screen.getByText('✓ dalla prescrizione')
+    expect(p.style.color).toBe('var(--green)')
+    expect(p.style.background).toBe('var(--green-tint)')
+  })
+
+  it('pastiglia ambra → stessa anatomia, famiglia amber', () => {
+    render(<RigaDato chiave="Foglio" valore="Arriva per email" pastiglia={{ testo: 'Da allegare', tono: 'amber' }} />)
+    const p = screen.getByText('Da allegare')
+    expect(p.style.color).toBe('var(--amber)')
+    expect(p.style.background).toBe('var(--amber-tint)')
+  })
+
+  it('senza pastiglia non compare nessuna targhetta', () => {
+    const { container } = render(<RigaDato chiave="Colore" valore="A3" />)
+    expect(container.querySelector('.ds-riga-pastiglia')).toBeNull()
+  })
+
+  // 🔑 Il colore non è mai l'unica fonte del significato (L3): la parola resta
+  //    leggibile anche a tinta ignorata.
+  it('la pastiglia porta SEMPRE la sua parola, non solo la tinta', () => {
+    const { container } = render(
+      <RigaDato chiave="Colore" valore="A3" pastiglia={{ testo: '✓ dalla prescrizione', tono: 'green' }} />
+    )
+    expect(container.querySelector('.ds-riga-pastiglia')?.textContent?.trim()).not.toBe('')
+  })
+
+  // ⚠️ D96 vissuta una volta e non ripetuta: una pastiglia che non va a capo
+  //    esce dalla carta a text-zoom 200% (§13.3). Il mockup ha `nowrap`, qui no.
+  it('la pastiglia NON è `nowrap` (lezione D96 sul text-zoom 200%)', () => {
+    const { container } = render(
+      <RigaDato chiave="Colore" valore="A3" pastiglia={{ testo: '✓ dalla prescrizione', tono: 'green' }} />
+    )
+    const p = container.querySelector('.ds-riga-pastiglia') as HTMLElement
+    expect(p.style.whiteSpace).toBe('')
+  })
 })
 
 describe('CardInfo — card di dati (§5.10)', () => {
