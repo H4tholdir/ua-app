@@ -456,6 +456,33 @@ describe('Da uno stato già divergente: niente D212, dritti al motivo', () => {
     await waitFor(() => expect(onSalvato).toHaveBeenCalledWith(expect.not.objectContaining({ divergenza: true })))
   })
 
+  it('valore INVARIATO non è un evento: niente motivo, nessun append — un cambio mai avvenuto non si registra', async () => {
+    // 🔴 LA QUARTA GUARDIA, e ha la sua prova SOLO qui. La prova gemella
+    //    («tornare al prescritto») corto-circuita sul PRIMO congiunto e non
+    //    tocca mai questo: cancellando `!uguagliaColore(nuovo, valoreIniziale)`
+    //    restava verde tutto quanto.
+    // 🔴 E l'ordine PATCH→append (FIX 2) NON copre questo percorso: la PATCH
+    //    con lo stesso valore risponde 200 tranquillamente, quindi si
+    //    arriverebbe all'append e il registro riceverebbe «cambiato per
+    //    esigenza tecnica» per un cambio che non è mai successo. La stessa
+    //    voce falsa e permanente, da una porta diversa.
+    const fetchMock = montaFetch({})
+    const { onSalvato } = montaDivergente()
+    // Nessuna digitazione: si preme Salva sul valore com'era.
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+
+    expect(screen.queryByText('Perché cambia?')).not.toBeInTheDocument()
+    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
+    expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(0)
+    await waitFor(() =>
+      expect(onSalvato).toHaveBeenCalledWith({
+        colore: { scala: 'vita_classical', codice: 'A3.5' },
+        updatedAt: GETTONE_NUOVO,
+      })
+    )
+    expect(onSalvato).not.toHaveBeenCalledWith(expect.objectContaining({ divergenza: true }))
+  })
+
   it('«Torna indietro» riporta al campo del valore, non a un foglio D212 mai visto', () => {
     montaFetch({})
     montaDivergente()
