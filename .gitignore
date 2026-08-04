@@ -77,7 +77,12 @@ scripts/tmp/
 # si perdono»). Qui ce n'erano già 343 versionati, ognuno forzato a mano contro
 # la regola sopra: un gesto da ricordare a ogni ondata è un gesto che prima o
 # poi salta, e con lui l'anteprima su cui una scelta è stata fatta.
-!docs/design/mockups/screenshots/*.png
+# ⚠️ Corretta il 04/08/2026 (sessione ③): la riga precedente era
+# !docs/design/mockups/screenshots/*.png — `*` NON attraversa le sottocartelle,
+# quindi gli scatti organizzati per ondata (screenshots/<data>-<ondata>/) restavano
+# ignorati e andavano forzati a mano: esattamente il gesto che questa regola
+# voleva eliminare. I 60 della ① erano stati forzati; da qui in poi non serve più.
+!docs/design/mockups/screenshots/**/*.png
 !docs/design/screenshots/**/*.png
 # File di analisi non appartengono al repo
 *-analysis.*

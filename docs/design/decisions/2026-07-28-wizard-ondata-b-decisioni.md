@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantatreesima tornata (D222: le scene a2/C-1 confermate — D220 chiusa, via libera al disegno della ③)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantaquattresima tornata (D223-D225: i mockup delle schermate VERE della ③ scelti — variante B · due carte · tre assetti derivati)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**222 decisioni in ottantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**225 decisioni in ottantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1738,3 +1738,16 @@ fonte, registrata server-side — resta in piedi: cambia la FORMA, non la condiz
 | # | Decisione | Testo/motivo di Francesco | Conseguenza |
 |---|---|---|---|
 | **D222** | ✅ **LE SCENE a2 E C-1 SONO CONFERMATE COME MOSTRATE** — il foglio «Allega la prescrizione» (3 vie: foto · galleria/PDF · «non ce l'ho ancora qui») e i tre bloccanti nuovi del precheck («manca il foglio» · «solo scansione, senza scelta scritta» col rimedio · «in attesa di conferma scritta») | Francesco, il 04/08, sugli scatti rimostrati (390 chiaro/scuro + 1280): «*vanno bene così*» | 🏁 **D220 è CHIUSA**: l'approvazione delle due scene non è più implicita — ha il suo numero. **La sessione ③ ha il via libera sul disegno** (restano le sue precondizioni di processo: le note vincolanti nel piano della ② e il brainstorming della riga 12 se la ③ tocca il rifacimento) |
+
+### Ottantaquattresima tornata — D223-D225: i mockup delle schermate VERE della ③ sono scelti (04/08/2026, sera)
+
+Percorso 0B della ③ compiuto: 11 scene sulle schermate di produzione (file
+`docs/design/mockups/2026-08-04-ondata-b3-schermate-vere.html`, 66 scatti in
+`screenshots/2026-08-04-ondata-b3/`), panel advisor a 3 lenti (banco · MDR · design system)
+PRIMA della scelta, come da Regola Advisor. I testi di D210/D212/D222 riportati invariati.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D223** | ✅ **RIGA «COLORE» CHIUSA NEL PASSO 3 = VARIANTE B «nome asciutto»:** la riga si chiama «Colore», il framing sta nel sottotitolo «come scritto sulla prescrizione · es. A3»; l'etichetta piena di D210 + aiuto + sgancio appaiono all'apertura | Francesco, il 04/08 sera, sugli scatti delle due varianti (panel 2-1 per la B: banco + DS; la lente MDR preferiva la A) | ⚠️ **Vincolo scritto del voto banco:** la B regge SOLO perché lo stato aperto ripete il framing a grandezza piena nel momento della digitazione — se mai il campo diventasse compilabile in-place senza stato aperto, la B va ripensata |
+| **D224** | ✅ **IL «FATTO!» È A DUE CARTE:** «Il lavoro» resta com'è (+ riga «Prescritto da») e «La prescrizione» ha la sua carta (Elementi · Colore con pastiglie «✓ dalla prescrizione» · riga «Foglio del dentista» con lo stato in chiusura) | Francesco, il 04/08 sera, sugli scatti delle due varianti (panel UNANIME 3-0: confronto 1:1 carta-contro-foglio; il confine dello snapshot esiste come struttura, non solo come pastiglia; lo snapshot vuoto resta visibile) | Da specificare nel piano (riserva banco/MDR): dove atterra il colore SGANCIATO («lo scegliamo noi») nel riepilogo — non deve sparire dalla vista di chi l'ha digitato |
+| **D225** | ✅ **VIA LIBERA AI TRE ASSETTI DERIVATI:** ① CTA senza fonte = «Allega la prescrizione» (apre il foglio a2), a fonte allegata torna «Fotografa l'impronta» · ② la scheda guadagna la riga «Colore» con pastiglia di provenienza (innesto del gesto D212 su ModificaRigaSheet) · ③ «Prescritto da» come riga della carta «Il lavoro» | Francesco, il 04/08 sera: «Sì, tutti e tre» | **Le riserve del panel diventano VINCOLI del piano ③** (elenco nella decisione 0B: `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md` §3) — fra cui: più aria/impilamento per i due link quieti del Fatto · la terza voce dell'a2 («non ce l'ho ancora qui») NON inverdisce la pastiglia né riporta il CTA a «Fotografa l'impronta» · la pastiglia sotto il valore va ratificata come estensione di RigaDato nella spec DS (§5.10) e il primario del Fatto emendato in §7.3 · «Prescritto da» senza pastiglia (è identità, non contenuto prescritto; a prescrittore ignoto la riga non compare) · la pastiglia su «Elementi» è coperta da W20 (gli elementi nascono prescritti), non serve una D nuova · gli stati della riga Colore in scheda («lo scegliamo noi» con segnale positivo · post-divergenza con prescritto E realizzato) si specificano nel piano |
