@@ -185,8 +185,10 @@ function RigaOpzionale(props: {
  * Il sottotitolo chiuso per `coloreOrigine==='lab'` ("lo scegliamo noi") non
  * è nel mockup (nessuna scena mostra "chiusa + sganciata"): deriva dalla
  * coda dell'etichetta aperta della scena p3-sganciata, stesso pattern della
- * chiusa in trascrizione (nome + coda del framing) — derivazione dichiarata
- * dal brief del Task 2, non un'invenzione silenziosa.
+ * chiusa in trascrizione (nome + coda del framing) — derivazione dichiarata,
+ * disegno coerente col mockup p3-sganciata, risoluzione del controllore
+ * registrata in `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md`
+ * §4, non testo del brief.
  *
  * 🔑 Vincolo D223 a verbale (riserva del panel, decisione 0B §3.1): la
  * variante B regge SOLO finché lo stato APERTO ripete per intero il framing
