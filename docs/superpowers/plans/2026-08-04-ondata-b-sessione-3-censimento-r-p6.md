@@ -18,6 +18,10 @@ guardando un **corpo morto**:
 
 🔢 **I numeri di riga di questa tabella sono POST-inserzione**, cioè valgono per il file **con questa
 nota già in testa (righe 10-49)**. 🛑 **Chi appende altro in testa li sposta tutti** — e allora si
+> ⚠️ La tabella dei rimandi NON è esaustiva (re-review T5: esistono altre ~7 citazioni in
+> forma corta alle stesse due funzioni, es. righe 424, 428, 493, 495, 497, 595): vale la
+> REGOLA del testo — chi incontra una citazione a 152403 per registra_divergenza o
+> crea_rifacimento_atomico cerca col TESTO, mai col numero, e considera vivo solo 20260804211256.
 rifà il conto invece di fidarsi: **la maniglia stabile è il TESTO della voce**, `grep -n` su quello.
 *(Prima stesura di questa nota: numeri PRE-inserzione, **sbagliati di −29**, perché le 29 righe della
 nota li avevano spostati tutti; e la correzione stessa, allungando la nota, li ha spostati ancora.
@@ -28,7 +32,7 @@ Verificati col grep, mai con l'aritmetica. Corretti il 4 agosto 2026 — review 
 | `lavoro_prescrizione_registra_divergenza` (righe **109, 111, 200, 210, 216, 416, 467, 556, 558, 560, 562**) | **SORPASSATE** — vale `20260804211256` | Guardia nuova su `p_campo` → esito **`campo_non_valido`**, valutata **PRIMA** di `p_motivo`. Il rilievo ⑦ della Superficie 2 («*registra_divergenza NON valida p_campo*») **è chiuso**. |
 | `crea_rifacimento_atomico` (righe **97, 240, 505, 580**) | **SORPASSATE** — vale `20260804211256` | La colonna-list del clone ora porta **`richiedente_nome` E `istituzione_sanitaria`** (D221). Il rilievo ③ della Superficie 2 e della Superficie 6 («*il clone P37 manca DAVVERO*») **è chiuso per queste due colonne**; `paziente_nome_snapshot` resta scoperto (roadmap riga 12). |
 
-🔎 **Tre voci in più rispetto alla prima stesura (402, 453, 491), e il motivo è una lezione R-P6:**
+🔎 **Tre voci in più rispetto alla prima stesura (416, 467, 505 — numeri POST-inserzione, verificati dal revisore del T5), e il motivo è una lezione R-P6:**
 il primo censimento cercava `20260804152403` per esteso, e **quelle tre scrivono il numero in forma
 corta** (`migration 152403:303-311`, `migration 152403:411-444`) **o non lo scrivono affatto**
 (`migration :265-314`). Un elenco costruito con un solo modo di scrivere il nome **non è l'elenco**:
