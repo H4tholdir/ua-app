@@ -1289,9 +1289,15 @@ CREATE POLICY "ddc_laboratorio_select" ON dichiarazioni_conformita
 CREATE POLICY "ddc_laboratorio_insert" ON dichiarazioni_conformita
   FOR INSERT WITH CHECK (laboratorio_id = public.current_lab_id());
 
-CREATE POLICY "ddc_laboratorio_update" ON dichiarazioni_conformita
-  FOR UPDATE USING (laboratorio_id = public.current_lab_id())
-  WITH CHECK (laboratorio_id = public.current_lab_id());
+-- ddc_laboratorio_update RIMOSSA (Ondata B ②, 20260804154232) — l'immutabilità
+-- della DdC era una CONVENZIONE (questa policy UPDATE tenant piena, sopra),
+-- da qui è struttura. Modello: il cancello DPA (dpa_laboratorio, sopra).
+-- Censimento 04/08: zero .update() applicativi su dichiarazioni_conformita in
+-- src/ — l'unico UPDATE legittimo passa da annulla_consegna_atomica
+-- (SECURITY DEFINER, non toccata dalle policy). Rollback: CREATE POLICY
+-- "ddc_laboratorio_update" ON dichiarazioni_conformita FOR UPDATE
+-- USING (laboratorio_id = public.current_lab_id())
+-- WITH CHECK (laboratorio_id = public.current_lab_id());
 
 -- DELETE bloccato per tutti: le DoC non si cancellano mai (MDR 10 anni)
 -- Solo service role può archiviare dopo 10 anni

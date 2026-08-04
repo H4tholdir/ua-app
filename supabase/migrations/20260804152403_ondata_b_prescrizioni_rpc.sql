@@ -494,7 +494,7 @@ $$;
 COMMENT ON FUNCTION public.lavoro_crea_atomico(uuid,jsonb,jsonb,jsonb) IS
   'Crea lavoro + denti + (se trascritta) snapshot prescrizione in una sola transazione (spec §4 rischio R1 + ondata B D214). Il quarto parametro ha DEFAULT NULL: le chiamate a 3 argomenti restano valide. NON verifica che cliente_id/paziente_id/tecnico_id/ciclo_id appartengano a p_lab: quella guardia è nella route.';
 COMMENT ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text) IS
-  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte gia'' presente e'' congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
+  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte già presente è congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
 COMMENT ON FUNCTION public.lavoro_prescrizione_correggi_typo(uuid,uuid,text,jsonb,timestamptz) IS
   'Corregge un typo della trascrizione (elementi/colore/tipo). Gettone di concorrenza su lavori.updated_at (modello lavoro_denti_sostituisci_atomica); jsonb null rimuove la chiave (non era sulla prescrizione). Con DdC attiva: congelata (V8).';
 COMMENT ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,text,text,text,uuid) IS
@@ -502,7 +502,7 @@ COMMENT ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,tex
 COMMENT ON FUNCTION public.lavoro_prescrizione_conferma_consegna(uuid,uuid,uuid) IS
   'Conferma della trascrizione alla consegna (V5): confermata_da/at server-side e chiave tipo copiata da lavori.tipo_dispositivo nello snapshot (D213). Con DdC attiva: congelata (V8).';
 COMMENT ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text) IS
-  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finche'' main la legge in produzione — si toglie nell''ondata (c).';
+  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finché main la legge in produzione — si toglie nell''ondata (c).';
 
 -- ============ Permessi: firme identiche alle definizioni ============
 -- Modello 20260727120300:222-226. MAI GRANT a authenticated (l'hardening di
