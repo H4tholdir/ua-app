@@ -555,6 +555,7 @@ function RenderPasso(props: {
       alias={stato.alias}
       elemento={stato.elemento}
       colore={stato.colore}
+      coloreOrigine={stato.coloreOrigine}
       foto={stato.foto}
       onCambia={onCambiaPaziente}
       onContinua={onContinuaPaziente}

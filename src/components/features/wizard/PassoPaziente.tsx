@@ -1,10 +1,11 @@
 'use client'
 
-// DS v3 §7.3/§5.27/§5.5/§5.3/§5.15 (Ondata 2, Task 11) — PassoPaziente: il
-// Passo 3 del wizard «Nuovo lavoro». Copy VERBATIM da wizard.html:356-388
-// (frame «Passo 3 · paziente»): domanda, hint, CampoTesto «Codice paziente»
-// precompilato + nota GDPR, blocco «Se vuoi, aggiungi» (Elemento/Colore/Nome
-// o alias, ciascuno "Salta"-abile), riga foto impronta dashed, «Continua».
+// DS v3 §7.3/§5.27/§5.5/§5.3 (Ondata 2, Task 11; framing D223 Task 2) —
+// PassoPaziente: il Passo 3 del wizard «Nuovo lavoro». Copy VERBATIM da
+// wizard.html:356-388 (frame «Passo 3 · paziente»): domanda, hint, CampoTesto
+// «Codice paziente» precompilato + nota GDPR, blocco «Se vuoi, aggiungi»
+// (Elemento/Colore/Nome o alias, ciascuno "Salta"-abile), riga foto impronta
+// dashed, «Continua».
 //
 // GDPR (A8, ratificato §2.1): il default paziente resta SOLO il codice
 // PZ-#### proposto da UÀ — nessun nome è mai richiesto. L'alias (riga «Nome o
@@ -18,61 +19,46 @@
 // `onContinua`/`inCreazione` reali (creazione del lavoro) — qui restano
 // contratto puro, consumato da WizardNuovoLavoro con uno stub.
 //
-// PillVoce (§5.15) compila il "campo attivo": di default il Codice paziente,
-// ma se l'odontotecnico ha appena aperto/messo a fuoco Elemento/Colore/Nome o
-// alias, la dettatura va lì — tracciato con `onFocus` sul contenitore di ogni
-// campo (l'evento React è basato su `focusin`, quindi risale dal figlio reale
-// senza bisogno che CampoTesto esponga una prop `onFocus` propria).
+// PillVoce RIMOSSA (Task 2 — §5.15 della spec DS v3 è ABROGATA, D13): con lei
+// sparisce anche il tracciamento del "campo attivo" (`campoAttivo`/`onFocus`
+// per instradare la dettatura) — era codice vivo SOLO per alimentarla, non
+// serve a nient'altro nel file.
+//
+// La riga «Colore» (Task 2, D223 — variante B «nome asciutto»): nome
+// asciutto in stato chiuso, framing pieno di D210 in stato aperto (etichetta
+// + aiuto + sgancio/ritorno su `coloreOrigine`). Vive in `RigaColore` qui
+// sotto, distinta dalla `RigaOpzionale` generica che regge Elemento/Alias —
+// le due righe sorelle non hanno stati di provenienza da raccontare.
 
 import { useId, useState, type ChangeEvent, type CSSProperties } from 'react'
 import { tipografia, raggio, spazio, gradiente } from '@/design-system/v3/tokens'
 import { CampoTesto } from '@/components/ds/Campo'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
-import { PillVoce } from '@/components/ds/PillVoce'
-import type { StatoWizard } from './WizardNuovoLavoro'
-
-type CampoOpzionale = 'elemento' | 'colore' | 'alias'
-type CampoAttivo = 'pz' | CampoOpzionale
+import type { StatoWizard, ColoreOrigine } from './WizardNuovoLavoro'
 
 export function PassoPaziente(props: {
   pz: string
   alias: string
   elemento: string
   colore: string
+  /** OPZIONALE apposta, come `StatoWizard.coloreOrigine` — v. Task 1: assente
+   *  E `'prescrizione'` sono lo stesso significato (D223, "scrivere è
+   *  trascrivere"). */
+  coloreOrigine?: ColoreOrigine
   foto: File | null
   onCambia: (patch: Partial<StatoWizard>) => void
   onContinua: () => void
   inCreazione: boolean
 }) {
-  const { pz, alias, elemento, colore, foto, onCambia, onContinua, inCreazione } = props
-  const [campoAttivo, setCampoAttivo] = useState<CampoAttivo>('pz')
-
-  // Instrada il trascritto di PillVoce verso l'ultimo campo su cui è caduto
-  // il focus (default 'pz' — vedi commento in testa).
-  function pillOnTesto(testo: string) {
-    switch (campoAttivo) {
-      case 'pz':
-        onCambia({ pz: testo })
-        break
-      case 'elemento':
-        onCambia({ elemento: testo })
-        break
-      case 'colore':
-        onCambia({ colore: testo })
-        break
-      case 'alias':
-        onCambia({ alias: testo })
-        break
-    }
-  }
+  const { pz, alias, elemento, colore, coloreOrigine, foto, onCambia, onContinua, inCreazione } = props
 
   return (
     <div>
       <h1 style={stileDomanda}>Chi è il paziente?</h1>
       <p style={stileHint}>Il codice è già pronto. Cambialo solo se serve.</p>
 
-      <div style={stileCampoWrap} onFocus={() => setCampoAttivo('pz')}>
+      <div style={stileCampoWrap}>
         <CampoTesto label="Codice paziente" valore={pz} onCambia={(v) => onCambia({ pz: v })} />
         <p style={stileNota}>UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
       </div>
@@ -85,22 +71,18 @@ export function PassoPaziente(props: {
           esempio="es. 2.6"
           valore={elemento}
           ultima={false}
-          onAttiva={() => setCampoAttivo('elemento')}
           onCambia={(v) => onCambia({ elemento: v })}
         />
-        <RigaOpzionale
-          nome="Colore"
-          esempio="es. A2"
+        <RigaColore
           valore={colore}
-          ultima={false}
-          onAttiva={() => setCampoAttivo('colore')}
+          origine={coloreOrigine}
           onCambia={(v) => onCambia({ colore: v })}
+          onCambiaOrigine={(o) => onCambia({ coloreOrigine: o })}
         />
         <RigaOpzionale
           nome="Nome o alias"
           valore={alias}
           ultima
-          onAttiva={() => setCampoAttivo('alias')}
           onCambia={(v) => onCambia({ alias: v })}
         />
 
@@ -111,11 +93,6 @@ export function PassoPaziente(props: {
         <TastoSecondario onClick={onContinua} disabled={inCreazione}>
           Continua
         </TastoSecondario>
-      </div>
-
-      {/* wizard.html:390 .pv-wrap margin-top:22px — sempre in fondo al passo (§5.15). */}
-      <div style={{ marginTop: 22 }}>
-        <PillVoce onTesto={pillOnTesto} />
       </div>
     </div>
   )
@@ -140,10 +117,9 @@ function RigaOpzionale(props: {
   esempio?: string
   valore: string
   ultima: boolean
-  onAttiva: () => void
   onCambia: (v: string) => void
 }) {
-  const { nome, esempio, valore, ultima, onAttiva, onCambia } = props
+  const { nome, esempio, valore, ultima, onCambia } = props
   const [aperto, setAperto] = useState(valore !== '')
 
   function salta() {
@@ -161,7 +137,7 @@ function RigaOpzionale(props: {
 
   if (aperto) {
     return (
-      <div style={stileRiga} onFocus={onAttiva}>
+      <div style={stileRiga}>
         <div style={{ flex: 1 }}>
           <CampoTesto label={nome} valore={valore} onCambia={onCambia} autoFocus />
         </div>
@@ -172,7 +148,6 @@ function RigaOpzionale(props: {
 
   function apri() {
     setAperto(true)
-    onAttiva()
   }
 
   return (
@@ -186,6 +161,113 @@ function RigaOpzionale(props: {
       <button type="button" className="ds-riga-opzionale-bottone" onClick={apri} style={stileRigaBottone}>
         <span style={stileOpzNome}>{nome}</span>
         {esempio && <span style={stileOpzEsempio}>{esempio}</span>}
+      </button>
+      <LinkQuieto onClick={salta}>Salta</LinkQuieto>
+    </div>
+  )
+}
+
+/**
+ * RigaColore — la riga «Colore» del blocco «Se vuoi, aggiungi» (D223,
+ * variante B «nome asciutto»): chiusa mostra nome + un sottotitolo che
+ * ANTICIPA il framing (chi trascrive vs chi sceglie), aperta ripete il
+ * framing PIENO di D210 (etichetta + aiuto + sgancio/ritorno). Testi
+ * VERBATIM dal mockup `docs/design/mockups/2026-08-04-ondata-b3-schermate-
+ * vere.html` (scene p3-riga-b / p3-aperta / p3-sganciata) — D223 li fissa
+ * alla lettera, non si parafrasano, con UNA sostituzione dichiarata: il
+ * mockup e la riga D223 del verbale scrivono l'esempio come "es. A3"
+ * (valore dimostrativo della scena); qui è "es. A2", per risoluzione
+ * esplicita del controllore in `task-2-brief.md` ("l'esempio resta «es. A2»
+ * come oggi in produzione"). Un futuro confronto codice↔mockup che trova
+ * questa differenza non ha trovato un difetto.
+ *
+ * Il sottotitolo chiuso per `coloreOrigine==='lab'` ("lo scegliamo noi") non
+ * è nel mockup (nessuna scena mostra "chiusa + sganciata"): deriva dalla
+ * coda dell'etichetta aperta della scena p3-sganciata, stesso pattern della
+ * chiusa in trascrizione (nome + coda del framing) — derivazione dichiarata
+ * dal brief del Task 2, non un'invenzione silenziosa.
+ *
+ * 🔑 Vincolo D223 a verbale (riserva del panel, decisione 0B §3.1): la
+ * variante B regge SOLO finché lo stato APERTO ripete per intero il framing
+ * di D210. Se il campo diventasse compilabile IN-PLACE, da chiuso, senza mai
+ * passare per lo stato aperto — questa scelta va RIPENSATA, non solo
+ * aggiustata: il sottotitolo chiuso da solo non è un consenso informato.
+ */
+function RigaColore(props: {
+  valore: string
+  origine: ColoreOrigine | undefined
+  onCambia: (v: string) => void
+  onCambiaOrigine: (origine: ColoreOrigine) => void
+}) {
+  const { valore, origine, onCambia, onCambiaOrigine } = props
+  const [aperto, setAperto] = useState(valore !== '')
+  const sganciato = origine === 'lab'
+
+  function salta() {
+    setAperto(false)
+    onCambia('')
+  }
+
+  function apri() {
+    setAperto(true)
+  }
+
+  if (aperto) {
+    return (
+      <div style={stileRigaColoreAperta}>
+        <style>{`
+          .ds-riga-colore-aiuto b {
+            color: var(--ink);
+            font-weight: 700;
+          }
+        `}</style>
+        <div style={stileRigaColoreApertaTop}>
+          <div style={{ flex: 1 }}>
+            <CampoTesto
+              label={sganciato ? 'Colore — lo scegliamo noi' : 'Colore — come scritto sulla prescrizione'}
+              valore={valore}
+              onCambia={onCambia}
+              autoFocus
+            />
+          </div>
+          <LinkQuieto onClick={salta}>Salta</LinkQuieto>
+        </div>
+        <p className="ds-riga-colore-aiuto" style={stileAiutoColore}>
+          {sganciato ? (
+            <>
+              Scelta del laboratorio: resta <b>fuori</b> dalla Dichiarazione, perché non è sulla prescrizione.
+            </>
+          ) : (
+            <>
+              Quello che scrivi qui vale come <b>trascrizione</b> del foglio del dentista, e finisce così sulla
+              Dichiarazione.
+            </>
+          )}
+        </p>
+        <div style={{ marginTop: 10 }}>
+          <LinkQuieto onClick={() => onCambiaOrigine(sganciato ? 'prescrizione' : 'lab')}>
+            {sganciato
+              ? 'In realtà è sulla prescrizione: torno a trascrivere'
+              : 'Non è sulla prescrizione: lo scegliamo noi'}
+          </LinkQuieto>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={stileRigaColoreChiusa}>
+      <style>{`
+        .ds-riga-opzionale-bottone:focus-visible {
+          outline: 2px solid var(--blue);
+          outline-offset: 2px;
+        }
+      `}</style>
+      <button type="button" className="ds-riga-opzionale-bottone" onClick={apri} style={stileRigaBottone}>
+        <span style={stileOpzNome}>Colore</span>
+        <span style={stileOpzEsempio}>
+          {sganciato ? 'lo scegliamo noi' : 'come scritto sulla prescrizione · es. A2'}
+        </span>
       </button>
       <LinkQuieto onClick={salta}>Salta</LinkQuieto>
     </div>
@@ -328,6 +410,42 @@ const stileOpzEsempio: CSSProperties = {
   fontWeight: tipografia.weight.semibold,
   color: 'var(--faint)',
   marginTop: 1,
+}
+
+// mockup .opz-riga (wizard.html:154-161) — riga chiusa di RigaColore, MAI
+// "ultima" (Colore sta sempre fra Elemento e Nome o alias): border-bottom
+// sempre presente, a differenza di `stileRiga` (locale a RigaOpzionale).
+const stileRigaColoreChiusa: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: spazio.sm,
+  padding: '14px 0',
+  borderBottom: '1.5px solid var(--line)',
+}
+
+// mockup .riga-aperta (2026-08-04-ondata-b3-schermate-vere.html:103) — la
+// riga aperta di RigaColore, a blocco (non flex): campo+Salta in cima, poi
+// aiuto, poi sgancio/ritorno, ciascuno sulla propria riga.
+const stileRigaColoreAperta: CSSProperties = {
+  padding: '14px 0',
+  borderBottom: '1.5px solid var(--line)',
+}
+
+// mockup .riga-aperta-top (stesso file:104) — campo + «Salta» affiancati.
+const stileRigaColoreApertaTop: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: spazio.sm,
+}
+
+// mockup .aiuto (stesso file:92) — 13/regolare muted, margin-top 6; la
+// parola marcata (`<b>`) diventa `--ink`/700 via la regola scoped nel
+// `<style>` di RigaColore (stesso pattern di FoglioConferma.tsx).
+const stileAiutoColore: CSSProperties = {
+  margin: '6px 0 0',
+  fontSize: 13,
+  lineHeight: 1.35,
+  color: 'var(--muted)',
 }
 
 // wizard.html:163-169 .foto-add — H64, dashed 2.5 `gradiente.dashedGuida`

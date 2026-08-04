@@ -1,31 +1,25 @@
 import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PassoPaziente } from '@/components/features/wizard/PassoPaziente'
 import type { StatoWizard } from '@/components/features/wizard/WizardNuovoLavoro'
 
 // Mock minimo del Web Speech API — stesso approccio di PassoTipo.test.tsx /
-// WizardNuovoLavoro.test.tsx.
-type Evento = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
-const istanzeCostruite: MockSpeechRecognition[] = []
+// WizardNuovoLavoro.test.tsx. PillVoce non è più montata in questo passo
+// (Task 2, D13): resta solo per la prova FORTE di assenza qui sotto (§5.15
+// abrogata) — non serve più pilotare `onresult` a mano, quindi né
+// `istanzeCostruite` né un lettore "ultima istanza" sono utili in questo file.
 class MockSpeechRecognition {
   lang = ''
   start = vi.fn()
   stop = vi.fn()
-  onresult: ((evento: Evento) => void) | null = null
+  onresult: ((evento: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null = null
   onerror: (() => void) | null = null
   onend: (() => void) | null = null
-  constructor() {
-    istanzeCostruite.push(this)
-  }
-}
-function ultimaIstanza(): MockSpeechRecognition | null {
-  return istanzeCostruite[istanzeCostruite.length - 1] ?? null
 }
 
 beforeEach(() => {
-  istanzeCostruite.length = 0
   delete (window as unknown as Record<string, unknown>).SpeechRecognition
   delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
 })
@@ -76,7 +70,9 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
     expect(screen.getByText('Elemento')).toBeInTheDocument()
     expect(screen.getByText('es. 2.6')).toBeInTheDocument()
     expect(screen.getByText('Colore')).toBeInTheDocument()
-    expect(screen.getByText('es. A2')).toBeInTheDocument()
+    // variante B (D223): il sottotitolo chiuso porta framing + esempio
+    // insieme, non più un "es. A2" isolato come le altre righe.
+    expect(screen.getByText('come scritto sulla prescrizione · es. A2')).toBeInTheDocument()
     expect(screen.getByText('Nome o alias')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Salta' })).toHaveLength(3)
   })
@@ -114,7 +110,9 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
 
   it('riga già valorizzata (es. tornando indietro) è aperta di default', () => {
     render(<PassoPaziente {...props({ colore: 'A2' })} />)
-    expect(screen.getByLabelText('Colore')).toHaveValue('A2')
+    // D223: la riga aperta porta l'etichetta col framing intero, non più il
+    // solo "Colore" — v. describe dedicato più sotto per gli altri stati.
+    expect(screen.getByLabelText('Colore — come scritto sulla prescrizione')).toHaveValue('A2')
   })
 
   it('riga foto: input file nascosto ma label-associato, accept image/*, capture environment', () => {
@@ -196,36 +194,117 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
     expect(screen.getByRole('button', { name: 'Continua' })).toBeDisabled()
   })
 
-  it('PillVoce presente e di default compila il campo "Codice paziente"', async () => {
-    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
-    const onCambia = vi.fn()
-    render(<PassoPaziente {...props({ pz: '', onCambia })} />)
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
-    const istanza = ultimaIstanza()
-    expect(istanza).not.toBeNull()
-    act(() => {
-      istanza!.onresult?.({ results: [[{ transcript: 'PZ-0500' }]] })
-    })
-    expect(onCambia).toHaveBeenCalledWith({ pz: 'PZ-0500' })
+  // PillVoce RIMOSSA da questo passo (Task 2, D13 — §5.15 abrogata): i due
+  // test che qui verificavano "PillVoce presente e di default compila…" /
+  // "…compila il campo attivo diverso…" sono spariti con lei, non solo il
+  // loro assert positivo — un test che verificasse ancora un mount rimosso
+  // sarebbe un test falso. La prova di RIMOZIONE vive nel describe D223 qui
+  // sotto ("PillVoce assente dal Passo 3").
+})
+
+describe('PassoPaziente — riga «Colore» variante B, framing D223 + sgancio (Task 2)', () => {
+  it('chiusa, coloreOrigine ASSENTE (default trascrizione): nome «Colore» + sottotitolo con framing prescrizione', () => {
+    render(<PassoPaziente {...props()} />)
+    expect(screen.getByText('Colore')).toBeInTheDocument()
+    expect(screen.getByText('come scritto sulla prescrizione · es. A2')).toBeInTheDocument()
   })
 
-  it('PillVoce compila il campo attivo diverso da quello di default dopo un focus esplicito', async () => {
-    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
-    const onCambia = vi.fn()
-    render(<PassoPaziente {...props({ onCambia })} />)
-    const user = userEvent.setup()
-    // Apre la riga Colore e ci fa focus (tap apre + porta il focus per l'autoFocus).
-    await user.click(screen.getByText('Colore'))
-    expect(screen.getByLabelText('Colore')).toHaveFocus()
+  it('chiusa, coloreOrigine="prescrizione" esplicito: stesso sottotitolo del default (D223: assente = trascrizione)', () => {
+    render(<PassoPaziente {...props({ coloreOrigine: 'prescrizione' })} />)
+    expect(screen.getByText('come scritto sulla prescrizione · es. A2')).toBeInTheDocument()
+  })
 
-    await user.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
-    const istanza = ultimaIstanza()
-    act(() => {
-      istanza!.onresult?.({ results: [[{ transcript: 'A2' }]] })
-    })
-    expect(onCambia).toHaveBeenCalledWith({ colore: 'A2' })
-    expect(onCambia).not.toHaveBeenCalledWith({ pz: 'A2' })
+  it('chiusa, coloreOrigine="lab": sottotitolo mostra la scelta di laboratorio, non più la prescrizione', () => {
+    render(<PassoPaziente {...props({ coloreOrigine: 'lab' })} />)
+    expect(screen.getByText('Colore')).toBeInTheDocument()
+    expect(screen.getByText('lo scegliamo noi')).toBeInTheDocument()
+    expect(screen.queryByText('come scritto sulla prescrizione · es. A2')).not.toBeInTheDocument()
+  })
+
+  it('aperta (valore presente), coloreOrigine assente: etichetta + aiuto con «trascrizione» in evidenza + sgancio', () => {
+    render(<PassoPaziente {...props({ colore: 'A2' })} />)
+    expect(screen.getByLabelText('Colore — come scritto sulla prescrizione')).toHaveValue('A2')
+    expect(screen.getByText('trascrizione').tagName).toBe('B')
+    expect(screen.getByText(/Quello che scrivi qui vale come/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' })
+    ).toBeInTheDocument()
+  })
+
+  it('sgancio: click sul LinkQuieto chiama onCambia({ coloreOrigine: "lab" })', async () => {
+    const onCambia = vi.fn()
+    render(<PassoPaziente {...props({ colore: 'A2', onCambia })} />)
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' }))
+    expect(onCambia).toHaveBeenCalledWith({ coloreOrigine: 'lab' })
+  })
+
+  it('aperta, coloreOrigine="lab": etichetta «lo scegliamo noi» + aiuto laboratorio con «fuori» in evidenza + ritorno', () => {
+    render(<PassoPaziente {...props({ colore: 'A2', coloreOrigine: 'lab' })} />)
+    expect(screen.getByLabelText('Colore — lo scegliamo noi')).toHaveValue('A2')
+    expect(screen.getByText('fuori').tagName).toBe('B')
+    expect(
+      screen.getByRole('button', { name: 'In realtà è sulla prescrizione: torno a trascrivere' })
+    ).toBeInTheDocument()
+  })
+
+  it('ritorno: click sul LinkQuieto chiama onCambia({ coloreOrigine: "prescrizione" })', async () => {
+    const onCambia = vi.fn()
+    render(<PassoPaziente {...props({ colore: 'A2', coloreOrigine: 'lab', onCambia })} />)
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'In realtà è sulla prescrizione: torno a trascrivere' }))
+    expect(onCambia).toHaveBeenCalledWith({ coloreOrigine: 'prescrizione' })
+  })
+
+  it('giro di boa reale: chiusa → apri → sgancio → la riga resta APERTA col framing di laboratorio (componente controllato, non solo lo spy su onCambia)', async () => {
+    // I due test "sgancio"/"ritorno" sopra provano solo la CHIAMATA a
+    // onCambia — non che il round-trip funzioni davvero: se il patch si
+    // perdesse per strada, o se `aperto` si richiudesse quando `origine`
+    // cambia (bug plausibile: sono due stati diversi, uno locale uno prop),
+    // quei due test resterebbero verdi lo stesso. Harness stateful (stesso
+    // pattern delle prove sulla foto sopra) che SIMULA il giro di boa vero:
+    // onCambia aggiorna la prop, PassoPaziente la rilegge, si verifica che la
+    // riga sia ancora aperta col framing giusto — non solo che l'evento sia
+    // partito.
+    function Harness() {
+      const [colore, setColore] = useState('')
+      const [coloreOrigine, setColoreOrigine] = useState<StatoWizard['coloreOrigine']>('prescrizione')
+      return (
+        <PassoPaziente
+          {...props({
+            colore,
+            coloreOrigine,
+            onCambia: (patch) => {
+              if ('colore' in patch) setColore(patch.colore ?? '')
+              if ('coloreOrigine' in patch && patch.coloreOrigine) setColoreOrigine(patch.coloreOrigine)
+            },
+          })}
+        />
+      )
+    }
+    render(<Harness />)
+    const user = userEvent.setup()
+    // Chiusa → tap apre la riga (framing prescrizione, la riga era vuota).
+    await user.click(screen.getByText('Colore'))
+    await user.type(screen.getByLabelText('Colore — come scritto sulla prescrizione'), 'A2')
+    // Sgancio: la riga NON si richiude — resta aperta, framing capovolto.
+    await user.click(screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' }))
+    expect(screen.getByLabelText('Colore — lo scegliamo noi')).toHaveValue('A2')
+    expect(
+      screen.getByRole('button', { name: 'In realtà è sulla prescrizione: torno a trascrivere' })
+    ).toBeInTheDocument()
+  })
+
+  it('PillVoce assente dal Passo 3 (§5.15 abrogata, D13): nessun bottone «Dimmelo a voce» ANCHE con la Web Speech API disponibile', () => {
+    // Prova forte, non quella debole "il browser di jsdom non ha l'API": si
+    // inietta il mock (stesso di sopra) PRIMA del render, così se il mount di
+    // PillVoce fosse ancora lì comparirebbe comunque il bottone — l'assenza
+    // qui prova la rimozione del componente, non un caso limite del jsdom.
+    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
+    render(<PassoPaziente {...props()} />)
+    expect(screen.queryByRole('button', { name: /dimmelo a voce/i })).not.toBeInTheDocument()
   })
 })
 
