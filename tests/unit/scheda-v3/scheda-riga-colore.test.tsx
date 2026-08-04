@@ -6,8 +6,8 @@
 // atterrare. Gli stati sono provati uno per uno in
 // `tests/unit/colore-riga-scheda.test.ts`: qui si prova il CABLAGGIO.
 
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -142,5 +142,110 @@ describe('La riga «Colore» nella scheda (D225②)', () => {
     const chiavi = screen.getAllByText(/^(Dentista|Paziente|Colore|Consegna|Tecnico)$/).map((n) => n.textContent)
     expect(chiavi.indexOf('Colore')).toBeGreaterThan(chiavi.indexOf('Paziente'))
     expect(chiavi.indexOf('Colore')).toBeLessThan(chiavi.indexOf('Consegna'))
+  })
+})
+
+// ══ LA GIUNTURA ═══════════════════════════════════════════════════════════
+// I due blocchi qui sopra e `modifica-colore-sheet.test.tsx` provano le DUE
+// METÀ: il foglio chiama `onSalvato` col carico giusto, la riga si disegna
+// giusta a partire dai suoi dati. 🔑 Nessuno dei due prova la CERNIERA —
+// `handleColoreSalvato`, che applica quel carico allo specchio locale. È
+// esattamente lì che vive il requisito «post-divergenza la scheda mostra
+// prescritto E realizzato»: due metà verdi e il cardine mai girato.
+// Qui il giro è INTERO: dalla riga, dentro il foglio, fino alla riga di nuovo.
+describe('Dal foglio alla riga — il giro intero (l’aggiornamento ottimistico)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function fetchDiSuccesso() {
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        url.includes('/prescrizione/typo')
+          ? { updated_at: '2026-08-04T12:00:00.999999+00:00' }
+          : url.includes('/prescrizione/divergenza')
+            ? { divergenze: 1 }
+            : { lavoro: { updated_at: '2026-08-04T12:00:00.999999+00:00' } },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  /** Un lavoro nello stato (a): trascritto A3, vivo A3, pastiglia verde. */
+  function lavoroTrascritto() {
+    return makeLavoro({
+      colore_scala: 'vita_classical',
+      colore_codice: 'A3',
+      prescrizione: presc({ contenuto: { colore: 'A3' } }),
+    })
+  }
+
+  function apriEScrivi(nuovo: string) {
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica colore' }))
+    fireEvent.change(screen.getByLabelText('Colore', { selector: 'input' }), { target: { value: nuovo } })
+    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
+  }
+
+  /** 🔑 SI ASPETTA CHE IL FOGLIO SIA CHIUSO PRIMA DI GUARDARE LA RIGA, e non è
+   *  pignoleria: il foglio D212 dipinge il valore nuovo nel suo prima→dopo,
+   *  quindi un `getByText('A3.5')` sparato mentre è ancora aperto lo trova
+   *  LÌ e passa anche se la riga non si è mossa di un millimetro.
+   *  ⚠️ MISURATO: con questa attesa mancante, la prova della via typo passava
+   *  con la cerniera (`handleColoreSalvato`) resa INERTE — cioè non provava
+   *  niente. È il difetto che il conteggio R-P4 esiste per far vedere. */
+  async function attendiChiusuraFoglio() {
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  }
+
+  it('via DIVERGENZA: la riga passa allo stato (c) e mostra prescritto E realizzato insieme', async () => {
+    fetchDiSuccesso()
+    render(<SchedaLavoroV3 lavoro={lavoroTrascritto()} />)
+    expect(screen.getByText('✓ dalla prescrizione')).toBeInTheDocument()
+
+    apriEScrivi('A3.5')
+    fireEvent.click(screen.getByRole('button', { name: /No: lo stiamo cambiando noi/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Esigenza tecnica' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
+
+    await attendiChiusuraFoglio()
+    // Il realizzato è quello nuovo, il prescritto resta leggibile…
+    expect(screen.getByText('A3.5')).toBeInTheDocument()
+    expect(screen.getByText('prescritto: A3')).toBeInTheDocument()
+    // …e la pastiglia verde SPARISCE: con una divergenza a registro la riga
+    // non può più garantire quella provenienza.
+    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
+  })
+
+  it('via TYPO: trascrizione e colore vivo si muovono INSIEME, quindi la riga resta in (a) col nuovo valore', async () => {
+    fetchDiSuccesso()
+    render(<SchedaLavoroV3 lavoro={lavoroTrascritto()} />)
+
+    apriEScrivi('A3.5')
+    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3\.5/ }))
+
+    await attendiChiusuraFoglio()
+    expect(screen.getByText('A3.5')).toBeInTheDocument()
+    // 🔑 La prova che la via typo scrive ENTRAMBI: se muovesse solo la
+    //    trascrizione, la riga cadrebbe nello stato «scostato» e mostrerebbe
+    //    «prescritto: A3.5» accanto ad «A3» — cioè uno scostamento muto.
+    expect(screen.getByText('✓ dalla prescrizione')).toBeInTheDocument()
+    expect(screen.queryByText(/^prescritto: /)).not.toBeInTheDocument()
+  })
+
+  it('typo riuscito e colore vivo NON scritto: la riga dice il vero — scostato, senza pastiglia verde', async () => {
+    // Il codice col la virgola non è in catalogo: la trascrizione si salva,
+    // il colore vivo no. La riga NON deve fingere che sia andato tutto bene.
+    fetchDiSuccesso()
+    render(<SchedaLavoroV3 lavoro={lavoroTrascritto()} />)
+
+    apriEScrivi('A3,5')
+    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3,5/ }))
+
+    await attendiChiusuraFoglio()
+    expect(screen.getByText('prescritto: A3,5')).toBeInTheDocument()
+    expect(screen.getByText('A3')).toBeInTheDocument()
+    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
   })
 })
