@@ -7,6 +7,35 @@ citare file:righe VERI e di segnalare come SORPRESA ogni contraddizione con le a
 
 ---
 
+## 🔄 NOTA DI SORPASSO — 4 agosto 2026, sera tardi (dopo il Task 5)
+
+🛑 **Il censimento qui sotto NON è stato riscritto** — è la fotografia di com'era il codice alle
+19:15, e riscriverla a posteriori cancellerebbe la prova di cosa si sapeva quando il piano è stato
+scritto. Ma **due funzioni sono state RICREATE** dal Task 5 nella migration
+`20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql`, e da quel momento **il loro corpo
+vivo non è più in `20260804152403`**. Chi legge una citazione a quel file per una di queste due sta
+guardando un **corpo morto**:
+
+| Funzione | Le citazioni «`20260804152403:…`» qui sotto sono… | Cosa è cambiato |
+|---|---|---|
+| `lavoro_prescrizione_registra_divergenza` (righe 66, 68, 157, 167, 173, 513, 515, 517, 519) | **SORPASSATE** — vale `20260804211256` | Guardia nuova su `p_campo` → esito **`campo_non_valido`**, valutata **PRIMA** di `p_motivo`. Il rilievo ⑦ della Superficie 2 («*registra_divergenza NON valida p_campo*») **è chiuso**. |
+| `crea_rifacimento_atomico` (righe 54, 197, 537) | **SORPASSATE** — vale `20260804211256` | La colonna-list del clone ora porta **`richiedente_nome` E `istituzione_sanitaria`** (D221). Il rilievo ③ della Superficie 2 e della Superficie 6 («*il clone P37 manca DAVVERO*») **è chiuso per queste due colonne**; `paziente_nome_snapshot` resta scoperto (roadmap riga 12). |
+
+✅ **Restano VERE** tutte le citazioni a `20260804152403` per `lavoro_crea_atomico`,
+`lavoro_prescrizione_allega_fonte`, `lavoro_prescrizione_correggi_typo` e
+`lavoro_prescrizione_conferma_consegna`: quelle quattro funzioni non sono state toccate.
+
+⚠️ **E una conseguenza nuova, misurata e NON corretta (R-E2):** il clone copia
+`v_lavoro.richiedente_nome` alla lettera, senza `NULLIF`. Un originale con `richiedente_nome = ''`
+— la stringa vuota che `TabDati.tsx:283` scrive davvero, ed è in produzione — **prima** dava un
+rifacimento con `NULL` (e `generate-ddc.ts:146-147` ripiegava sul nome del cliente col `??`),
+**adesso** eredita `''`, il `??` non scatta e la Dichiarazione di Conformità stamperebbe un
+prescrittore **vuoto** mentre il precheck passa. `misurato:` oggi **0 stringhe vuote su 295**, quindi
+niente è rotto ora — ma la strada è aperta. **Il rimedio giusto è a monte, sullo scrittore**, non un
+`NULLIF` dentro la RPC: appartiene a P37 e alla riga 12, non al Task 5.
+
+---
+
 ========================= SUPERFICIE 1 =========================
 SUPERFICIE 1 — Wizard «Nuovo lavoro» lato client+server: stato del wizard (WizardNuovoLavoro/PassoPaziente), orchestrazione creazione (crea-lavoro.ts), esito «Fatto!» (FrameFatto), POST /api/lavori con gate 'prescrizione' (D216) + componiSnapshot + risolviColoreCaso, persistenza 24h (persistenza.ts)
   identificatori: 36 · letture: 11
