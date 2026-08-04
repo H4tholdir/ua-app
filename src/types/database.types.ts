@@ -2469,6 +2469,7 @@ export type Database = {
           impronta_digitale: boolean
           incluso_in_fattura: boolean
           is_rifacimento: boolean
+          istituzione_sanitaria: string | null
           laboratorio_id: string
           listino_id: string | null
           lotto_disinfettante: string | null
@@ -2568,6 +2569,7 @@ export type Database = {
           impronta_digitale?: boolean
           incluso_in_fattura?: boolean
           is_rifacimento?: boolean
+          istituzione_sanitaria?: string | null
           laboratorio_id: string
           listino_id?: string | null
           lotto_disinfettante?: string | null
@@ -2667,6 +2669,7 @@ export type Database = {
           impronta_digitale?: boolean
           incluso_in_fattura?: boolean
           is_rifacimento?: boolean
+          istituzione_sanitaria?: string | null
           laboratorio_id?: string
           listino_id?: string | null
           lotto_disinfettante?: string | null
@@ -3343,6 +3346,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "magazzino_sotto_scorta"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavori_prescrizioni: {
+        Row: {
+          confermata_at: string | null
+          confermata_da: string | null
+          contenuto: Json
+          created_at: string
+          divergenze: Json
+          fonte_immagine_id: string | null
+          fonte_riferimento: string | null
+          fonte_tipo: string | null
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          numero_prescrizione: string | null
+          updated_at: string
+        }
+        Insert: {
+          confermata_at?: string | null
+          confermata_da?: string | null
+          contenuto?: Json
+          created_at?: string
+          divergenze?: Json
+          fonte_immagine_id?: string | null
+          fonte_riferimento?: string | null
+          fonte_tipo?: string | null
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          numero_prescrizione?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confermata_at?: string | null
+          confermata_da?: string | null
+          contenuto?: Json
+          created_at?: string
+          divergenze?: Json
+          fonte_immagine_id?: string | null
+          fonte_riferimento?: string | null
+          fonte_tipo?: string | null
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          numero_prescrizione?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavori_prescrizioni_confermata_da_fkey"
+            columns: ["confermata_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_prescrizioni_fonte_img_fk"
+            columns: ["fonte_immagine_id", "laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_immagini"
+            referencedColumns: ["id", "laboratorio_id"]
+          },
+          {
+            foreignKeyName: "lavori_prescrizioni_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_prescrizioni_lavoro_fk"
+            columns: ["lavoro_id", "laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id", "laboratorio_id"]
           },
         ]
       }
