@@ -176,10 +176,11 @@ function RigaOpzionale(props: {
  * vere.html` (scene p3-riga-b / p3-aperta / p3-sganciata) — D223 li fissa
  * alla lettera, non si parafrasano, con UNA sostituzione dichiarata: il
  * mockup e la riga D223 del verbale scrivono l'esempio come "es. A3"
- * (valore dimostrativo della scena); qui è "es. A2", per risoluzione
- * esplicita del controllore in `task-2-brief.md` ("l'esempio resta «es. A2»
- * come oggi in produzione"). Un futuro confronto codice↔mockup che trova
- * questa differenza non ha trovato un difetto.
+ * (valore dimostrativo della scena); qui è "es. A2", per la risoluzione del
+ * controllore registrata in `docs/design/decisions/2026-08-04-ondata-b3-
+ * schermate-vere.md` §4 ("Valori dimostrativi ≠ testi vincolanti"). Un
+ * futuro confronto codice↔mockup che trova questa differenza non ha trovato
+ * un difetto.
  *
  * Il sottotitolo chiuso per `coloreOrigine==='lab'` ("lo scegliamo noi") non
  * è nel mockup (nessuna scena mostra "chiusa + sganciata"): deriva dalla

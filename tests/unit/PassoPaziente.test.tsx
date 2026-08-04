@@ -315,6 +315,7 @@ type _Contratto = {
   alias: StatoWizard['alias']
   elemento: StatoWizard['elemento']
   colore: StatoWizard['colore']
+  coloreOrigine: StatoWizard['coloreOrigine']
   foto: StatoWizard['foto']
   onCambia: (patch: Partial<StatoWizard>) => void
   onContinua: () => void
