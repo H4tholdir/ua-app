@@ -64,7 +64,45 @@ function soloIstruzioni(sql: string): string {
     .join('\n')
 }
 
-function valori(file: string, regex: RegExp, nome: string): string[] {
+/** La definizione di UNA funzione, dal `CREATE` al prossimo oggetto di primo
+ *  livello.
+ *
+ *  🔴 SERVE, e chiude una trappola che la sola scelta del file NON chiude.
+ *     `p_campo NOT IN (…)` comparirà in DUE funzioni diverse: oggi solo in
+ *     `correggi_typo`, dal Task 5 anche in `registra_divergenza`. Una ricerca
+ *     sul file INTERO prende la prima occorrenza — quindi, il giorno in cui
+ *     `MIGRATION_RPC` si sposta alla migration di T5 (che contiene
+ *     `registra_divergenza` e NON `correggi_typo`), la prova di `CAMPI_TYPO`
+ *     leggerebbe il dizionario della DIVERGENZA e lo chiamerebbe dizionario del
+ *     typo. Oggi i due elenchi coincidono, quindi resterebbe VERDE provando la
+ *     cosa sbagliata — e mentirebbe il giorno in cui divergessero.
+ *  🔑 Legando l'estrazione alla FUNZIONE, quello stesso spostamento fa lanciare
+ *     l'errore qui sotto: rumoroso, che è il modo in cui questa spia deve
+ *     guastarsi (v. testa del file). */
+function corpoFunzione(sql: string, funzione: string): string {
+  const apertura = new RegExp(`CREATE (?:OR REPLACE )?FUNCTION public\\.${funzione}\\(`)
+  const m = apertura.exec(sql)
+  if (!m) {
+    throw new Error(
+      `la funzione ${funzione} non è definita in questo file: la spia non può provare nulla — il puntatore va aggiornato`
+    )
+  }
+  const dopo = sql.slice(m.index + m[0].length)
+  // Le righe del CORPO sono tutte indentate o cominciano con DECLARE/BEGIN/END:
+  // una parola chiave di primo livello a colonna zero è già l'oggetto dopo.
+  const fine = dopo.search(/\n(?:CREATE|COMMENT|REVOKE|GRANT|ALTER|DROP)\b/)
+  return fine === -1 ? dopo : dopo.slice(0, fine)
+}
+
+function valori(file: string, funzione: string, regex: RegExp, nome: string): string[] {
+  const sql = corpoFunzione(soloIstruzioni(readFileSync(file, 'utf-8')), funzione)
+  const m = sql.match(regex)
+  if (!m) throw new Error(`${nome} non trovato in ${funzione} (${file}): la spia non può provare nulla`)
+  return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+}
+
+/** Il CHECK di tabella non sta dentro nessuna funzione: si legge dal file. */
+function valoriDaTabella(file: string, regex: RegExp, nome: string): string[] {
   const sql = soloIstruzioni(readFileSync(file, 'utf-8'))
   const m = sql.match(regex)
   if (!m) throw new Error(`${nome} non trovato in ${file}: la spia non può provare nulla`)
@@ -82,31 +120,54 @@ function coincidono(daSql: string[], daTs: readonly string[]) {
 describe('spia — i dizionari della prescrizione non possono divergere dal database', () => {
   it('FONTE_TIPI = il CHECK della tabella `lavori_prescrizioni`', () => {
     coincidono(
-      valori(MIGRATION_TABELLA, /CHECK \(fonte_tipo IN \(([^)]+)\)\)/, 'CHECK su fonte_tipo'),
+      valoriDaTabella(MIGRATION_TABELLA, /CHECK \(fonte_tipo IN \(([^)]+)\)\)/, 'CHECK su fonte_tipo'),
       FONTE_TIPI
     )
   })
 
   it('FONTE_TIPI = la guardia dentro `lavoro_prescrizione_allega_fonte`', () => {
     coincidono(
-      valori(MIGRATION_RPC, /p_fonte_tipo NOT IN \(([^)]+)\)/, 'guardia p_fonte_tipo'),
+      valori(
+        MIGRATION_RPC,
+        'lavoro_prescrizione_allega_fonte',
+        /p_fonte_tipo NOT IN \(([^)]+)\)/,
+        'guardia p_fonte_tipo'
+      ),
       FONTE_TIPI
     )
   })
 
   it('CAMPI_TYPO = la guardia dentro `lavoro_prescrizione_correggi_typo`', () => {
     coincidono(
-      valori(MIGRATION_RPC, /p_campo NOT IN \(([^)]+)\)/, 'guardia p_campo'),
+      valori(
+        MIGRATION_RPC,
+        'lavoro_prescrizione_correggi_typo',
+        /p_campo NOT IN \(([^)]+)\)/,
+        'guardia p_campo'
+      ),
       CAMPI_TYPO
     )
   })
 
   it('MOTIVI_DIVERGENZA = la guardia dentro `lavoro_prescrizione_registra_divergenza`', () => {
     coincidono(
-      valori(MIGRATION_RPC, /p_motivo NOT IN \(([^)]+)\)/, 'guardia p_motivo'),
+      valori(
+        MIGRATION_RPC,
+        'lavoro_prescrizione_registra_divergenza',
+        /p_motivo NOT IN \(([^)]+)\)/,
+        'guardia p_motivo'
+      ),
       MOTIVI_DIVERGENZA
     )
   })
+
+  // 🔴 T5 aggiunge un `p_campo NOT IN (…)` ANCHE dentro
+  //    `lavoro_prescrizione_registra_divergenza`: quando quella migration
+  //    esiste, qui va aggiunta la sua estrazione — `valori(MIGRATION_T5,
+  //    'lavoro_prescrizione_registra_divergenza', /p_campo NOT IN …/)` contro
+  //    `CAMPI_TYPO`. Finché non c'è, il dizionario del campo della divergenza
+  //    vive SOLO nella route (sonda S3), e lo prova
+  //    `api-prescrizione-divergenza.test.ts`.
 })
 
 describe('le tre guardie di tipo riconoscono i valori e rifiutano tutto il resto', () => {
