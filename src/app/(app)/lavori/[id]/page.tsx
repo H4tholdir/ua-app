@@ -3,6 +3,7 @@ import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLavoroV3'
 import { getSignedUrl } from '@/lib/storage/signed-url'
+import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
@@ -31,6 +32,8 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
       materiali:lavori_materiali(*),
       ddc:dichiarazioni_conformita(*),
+      denti:lavori_denti(*),
+      prescrizione:lavori_prescrizioni(*),
       laboratorio:laboratori(nome, telefono)
     `)
     .eq('id', id)
@@ -55,6 +58,28 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   // (incluso il passaggio a TabDocumenti) vede sempre un oggetto singolo coerente.
   const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
   lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
+
+  // T7 (ondata B ③) — la scheda legge lo SNAPSHOT della prescrizione e il
+  // COLORE VIVO, che è ciò che serve alla riga «Colore» (D225②).
+  //
+  // 🔑 Questa pagina NON passa dalla GET di `/api/lavori/[id]`: fa la sua
+  //    query. I due embed che il Task 6 ha aggiunto alla rotta vanno quindi
+  //    chiesti anche qui, o la scheda resta cieca — è la stessa asimmetria che
+  //    ha tenuto la prescrizione fuori dalla scheda fino a oggi.
+  // 🔑 `denti:lavori_denti(*)` è la STRADA DEL RITORNO del colore: dal Task 10
+  //    `lavori.colore_dente` non ha più scrittori, e il colore vivo si legge
+  //    dalle righe con la precedenza riga→caso di `@/lib/domain/colore-dente`.
+  //    Nessun filtro `deleted_at`: quella colonna su `lavori_denti` non esiste
+  //    (verificato su `database.types.ts`), e la GET della rotta la embedda
+  //    allo stesso modo.
+  // 🔑 `normalizzaPrescrizione` è la stessa funzione della rotta (modulo puro,
+  //    Task 6): normalizza la forma array-vs-oggetto dell'embed E le guardie
+  //    di dominio su `contenuto`/`divergenze`. Copiare qui un accesso diretto
+  //    a `lavoro.prescrizione` sarebbe una seconda lettura dello stesso
+  //    confine esterno, con le guardie in un posto solo.
+  lavoroDettaglio.prescrizione = normalizzaPrescrizione(
+    (lavoro as Record<string, unknown>).prescrizione
+  )
 
   const [signedDdcUrl] = await Promise.all([
     lavoroDettaglio.ddc?.storage_path_pdf

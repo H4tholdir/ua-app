@@ -19,15 +19,22 @@ import { CampoTesto, CampoData } from '@/components/ds/Campo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TileScelta } from '@/components/ds/TileScelta'
 import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
+import { ModificaColoreSheet, type DatiColore } from './ModificaColoreSheet'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 
-type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note'
+// T7 (ondata B ③): `colore` è il quinto campo, e non passa dalla PATCH come
+// gli altri quattro — porta con sé il gesto D212 (typo vs divergenza) e due
+// rotte in più. Per questo il suo ramo vive in `ModificaColoreSheet.tsx` e
+// questo componente gli cede il posto: un `Sheet` solo, mai due in catena
+// (v. il cappello di quel file per il perché non si incatenano).
+type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
 
 const TITOLI: Record<Campo, string> = {
   consegna: 'Data di consegna',
   tecnico: 'Tecnico assegnato',
   dentista: 'Dentista',
   note: 'Note interne',
+  colore: 'Colore',
 }
 
 const MESSAGGIO_ERRORE = 'Non è stato possibile salvare la modifica. Riprova.'
@@ -85,6 +92,10 @@ export function ModificaRigaSheet(props: {
   valoreIniziale: unknown
   onSalvato: (patch: Record<string, unknown>) => void
   onErrore: (msg: string) => void
+  /** Il corredo del ramo «colore» (T7): serve SOLO quando `campo === 'colore'`
+   *  — quel ramo ha bisogno dello snapshot, del gettone di concorrenza e del
+   *  nome del dentista, che gli altri quattro non usano. Assente altrove. */
+  colore?: DatiColore
 }) {
   const { aperto, onChiudi, lavoroId, campo, onSalvato, onErrore } = props
   const [valore, setValore] = useState<unknown>(props.valoreIniziale)
@@ -129,6 +140,25 @@ export function ModificaRigaSheet(props: {
     } finally {
       setSalvando(false)
     }
+  }
+
+  // Il ramo «colore» monta il PROPRIO `Sheet` (titolo che cambia coi tre passi
+  // del gesto D212). Il ritorno anticipato sta DOPO tutti gli hook, e l'ordine
+  // resta stabile perché il chiamante rimonta questo componente a ogni
+  // apertura (`key={campoAttivo}` in `SchedaLavoroV3`): `campo` non cambia mai
+  // sotto la stessa istanza.
+  if (campo === 'colore') {
+    if (!props.colore) return null
+    return (
+      <ModificaColoreSheet
+        aperto={aperto}
+        onChiudi={onChiudi}
+        lavoroId={lavoroId}
+        titolo={TITOLI.colore}
+        onErrore={onErrore}
+        {...props.colore}
+      />
+    )
   }
 
   return (

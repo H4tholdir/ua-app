@@ -69,7 +69,7 @@ import { isCategoriaFoto, type CategoriaFoto } from '@/lib/domain/categorie-foto
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
-import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
+import { CardInfo, RigaDato, type TonoPastiglia } from '@/components/ds/CardInfo'
 import { PillTempo } from '@/components/ds/Pill'
 import { CardFasiV3 } from './CardFasiV3'
 import { RigaLavoroDenti } from './RigaLavoroDenti'
@@ -84,6 +84,8 @@ import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConse
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
+import { derivaRigaColore } from '@/lib/lavori/colore-riga-scheda'
+import type { EsitoColore } from './ModificaColoreSheet'
 import { molla } from '@/design-system/v3/motion'
 import { raggio, sopraFoto, spazio, tipografia } from '@/design-system/v3/tokens'
 import type { LavoroDettaglio, MaterialeIncompletoDettaglio } from '@/types/domain'
@@ -93,7 +95,10 @@ const MOTIVO_LABEL: Record<MaterialeIncompletoDettaglio['motivo'], string> = {
   bom_mancante: 'distinta base (BOM) non definita nel listino',
 }
 
-type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note'
+// T7 (ondata B ③) — `colore` è il quinto campo correggibile dalla scheda.
+// L'elenco vive in DUE posti (anche in `ModificaRigaSheet.tsx`): i due si
+// muovono insieme, o il foglio non sa che cosa rendere.
+type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
 
 const MS_GIORNO = 24 * 60 * 60 * 1000
 
@@ -343,6 +348,10 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         return lavoro.cliente_id ?? ''
       case 'note':
         return lavoro.note_interne ?? ''
+      case 'colore':
+        // Il ramo «colore» non legge `valoreIniziale`: il suo corredo viaggia
+        // intero nella prop `colore` (serve anche il trascritto e il gettone).
+        return undefined
     }
   }
 
@@ -350,6 +359,74 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   const tecnicoTesto = lavoro.tecnico
     ? `${lavoro.tecnico.nome} ${lavoro.tecnico.cognome}`.trim()
     : 'Non assegnato'
+
+  // ══ T7 (ondata B ③) — la riga «Colore» (D225②, vincolo 0B-5) ═════════════
+  // I cinque esiti della riga stanno in `derivaRigaColore` (modulo puro): qui
+  // si passano solo i quattro fatti che li decidono.
+  //
+  // 🔑 `congelata` si legge da `ddc`, e si può: la query di `page.tsx` filtra
+  //    `.neq('ddc.stato','annullata')`, quindi una `ddc` presente È una
+  //    dichiarazione ATTIVA — lo stesso fatto su cui le due rotte della
+  //    prescrizione rispondono `congelata` (v. `correggi_typo`, V8). La riga
+  //    smette allora di offrire il tocco invece di offrirne uno che tornerà
+  //    sempre con un 409: una voce spenta invita comunque.
+  // 🔑 `denti` e `prescrizione` sono EMBED OPZIONALI: `undefined` quando la
+  //    query non li chiede. La derivazione li tratta come «nessun colore» e
+  //    la riga sparisce — mai una riga vuota per un embed dimenticato.
+  const rigaColore = derivaRigaColore({
+    denti: lavoro.denti,
+    caso: { colore_scala: lavoro.colore_scala, colore_codice: lavoro.colore_codice },
+    prescrizione: lavoro.prescrizione,
+    congelata: lavoro.ddc !== null,
+  })
+
+  /**
+   * L'esito del foglio «Colore», applicato allo specchio locale in UN SOLO
+   * `setState`. Ogni chiave è indipendente perché una via può riuscire a metà
+   * (registro scritto, colore vivo no): si applica ciò che è AVVENUTO, non
+   * ciò che si sperava — chi legge la riga subito dopo deve vedere il vero.
+   *
+   * 🛑 `updatedAt` è il gettone di concorrenza: si tiene aggiornato o il gesto
+   *    successivo prenderebbe un 409 immeritato. Stringa opaca, mai una `Date`.
+   */
+  function handleColoreSalvato(esito: EsitoColore) {
+    setLavoroLocale((prev) => {
+      const prossimo: LavoroDettaglio = { ...prev }
+      if (esito.colore) {
+        prossimo.colore_scala = esito.colore.scala
+        prossimo.colore_codice = esito.colore.codice
+      }
+      if (esito.updatedAt) prossimo.updated_at = esito.updatedAt
+      if (esito.trascritto !== undefined && prev.prescrizione) {
+        prossimo.prescrizione = {
+          ...prev.prescrizione,
+          contenuto: { ...prev.prescrizione.contenuto, colore: esito.trascritto },
+        }
+      }
+      if (esito.divergenza && prossimo.prescrizione) {
+        // Voce ottimistica: basta a far passare la riga allo stato
+        // «divergente» (prescritto E realizzato). Il `router.refresh()` qui
+        // sotto rilegge subito quella VERA, con chi e quando dal server.
+        prossimo.prescrizione = {
+          ...prossimo.prescrizione,
+          divergenze: [
+            ...prossimo.prescrizione.divergenze,
+            {
+              campo: 'colore',
+              motivo: 'altro',
+              nota: null,
+              utente_id: null,
+              registrata_at: new Date().toISOString(),
+            },
+          ],
+        }
+      }
+      return prossimo
+    })
+    // Le due rotte della prescrizione scrivono dove lo specchio locale non
+    // arriva (il registro vero, chi e quando): si rilegge il server.
+    if (esito.trascritto !== undefined || esito.divergenza) router.refresh()
+  }
 
   // Dati documenti condivisi: stesso oggetto per il DocumentiSheet (mobile) e
   // per il DocumentiPannello (desktop, ≥1024). La URL firmata è già su
@@ -408,6 +485,34 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
               denti={lavoro.denti_coinvolti ?? []}
               onApri={() => router.push(`/lavori/${lavoro.id}/modifica?tab=clinica`)}
             />
+            {/* Colore (T7, D225②) — fra «Lavoro» e «Consegna», come la scena
+                `scheda-colore` del mockup. Compare solo se un colore esiste
+                davvero (vivo o trascritto); è tappabile solo dove il tocco può
+                atterrare (v. `derivaRigaColore`).
+                ⚠️ RIFERITO, non deciso qui (R-E2): con questa riga la carta
+                arriva a SEI righe e §5.10 ne fissa cinque. `CardInfo` per
+                progetto non ne nasconde nessuna e avvisa solo chi sviluppa —
+                quindi in sviluppo si vedrà l'avviso, ed è giusto che si veda:
+                il mockup approvato (scena 9) mostra sei righe, la spec ne
+                dichiara cinque, e chi scioglie il nodo non è questo task. */}
+            {rigaColore &&
+              (rigaColore.modificabile ? (
+                <RigaEditabile
+                  chiave="Colore"
+                  valore={rigaColore.valore}
+                  sub={rigaColore.sub}
+                  pastiglia={rigaColore.pastiglia}
+                  ariaAzione="Modifica colore"
+                  onApri={() => setCampoAttivo('colore')}
+                />
+              ) : (
+                <RigaDato
+                  chiave="Colore"
+                  valore={rigaColore.valore}
+                  sub={rigaColore.sub}
+                  pastiglia={rigaColore.pastiglia}
+                />
+              ))}
             <RigaEditabile
               chiave="Consegna"
               valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
@@ -501,6 +606,26 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           valoreIniziale={valoreInizialePer(campoAttivo)}
           onSalvato={handleSalvato}
           onErrore={(msg) => errore(msg)}
+          colore={
+            rigaColore
+              ? {
+                  // Il valore VIVO, non quello mostrato: sullo stato
+                  // «divergente» senza colore vivo la riga mostra «—», che nel
+                  // campo di testo sarebbe un valore da cancellare a mano.
+                  valoreIniziale: rigaColore.stato === 'divergente' && rigaColore.valore === '—'
+                    ? ''
+                    : rigaColore.valore,
+                  trascritto: rigaColore.trascritto,
+                  dentista: clienteDisplay(lavoro.cliente),
+                  // 🛑 Il gettone è `lavori.updated_at` COSÌ COM'È — mai
+                  //    ricostruito con `new Date()`: `timestamptz` ha i
+                  //    microsecondi, `Date` di JS no, e un riparsing renderebbe
+                  //    il 409 permanente.
+                  updatedAt: lavoro.updated_at,
+                  onSalvato: handleColoreSalvato,
+                }
+              : undefined
+          }
         />
       )}
 
@@ -860,9 +985,14 @@ function RigaEditabile(props: {
   valore: string
   ariaAzione: string
   urgente?: boolean
+  /** Sottotitolo 14/500 muted sotto il valore (§5.10). T7: è così che la riga
+   *  «Colore» dice «scelto dal laboratorio» o «prescritto: A3». */
+  sub?: string
+  /** Pastiglia di provenienza (§5.10, emendamento 04/08/2026). */
+  pastiglia?: { testo: string; tono: TonoPastiglia }
   onApri: () => void
 }) {
-  const { chiave, valore, ariaAzione, urgente, onApri } = props
+  const { chiave, valore, ariaAzione, urgente, sub, pastiglia, onApri } = props
   return (
     <button
       type="button"
@@ -871,7 +1001,7 @@ function RigaEditabile(props: {
       aria-label={ariaAzione}
       style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
     >
-      <RigaDato chiave={chiave} valore={valore} urgente={urgente} />
+      <RigaDato chiave={chiave} valore={valore} urgente={urgente} sub={sub} pastiglia={pastiglia} />
     </button>
   )
 }

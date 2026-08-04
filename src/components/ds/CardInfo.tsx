@@ -38,7 +38,11 @@ export type TonoPastiglia = 'green' | 'amber'
  * ⚠️ NIENTE `white-space: nowrap`, benché il mockup ce l'abbia: a text-zoom
  * 200% (§13.3) una pastiglia che non va a capo esce dalla carta — è la lezione
  * misurata di D96 su `FoglioCategoria`, e non si ripete qui.
- * 🚧 In attesa di ratifica in spec §5.10 (T7 dell'ondata B ③).
+ * ✅ RATIFICATA in spec §5.10 il 04/08/2026 (T7, emendamento «RigaDato con
+ * pastiglia di provenienza»). La spec dichiara anche la TENUTA SCARSA: la
+ * pastiglia va solo dove la provenienza esiste davvero — colore ed elementi —
+ * mai generalizzata alle altre righe. Dove la provenienza NON c'è si usa
+ * `sub`, che è un segnale positivo quieto e non un'assenza da interpretare.
  */
 export function RigaDato(props: {
   chiave: string
