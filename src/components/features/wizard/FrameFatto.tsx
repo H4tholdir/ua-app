@@ -580,10 +580,16 @@ const stilePastigliaAmbraSola: CSSProperties = {
 
 // Vincolo 0B-3 — impilati, con aria fra i due: mai due bersagli da 44 accostati
 // in orizzontale a distanza di pollice.
+// gap: spazio.xxl (44), NON spazio.sm — LinkQuieto ha hit-box 44px ottenuto con
+// padding verticale 13px + margin negativo -13px uguale e contrario (vedi
+// LinkQuieto.tsx): fra due hit-box consecutivi la distanza reale è
+// gap - 13 (margin del primo) - 13 (margin del secondo) = gap - 26. Con
+// spazio.sm (12) dava -14px (sovrapposizione, il secondo elemento del DOM
+// vince il tap); con spazio.xxl (44) dà 18px d'aria vera.
 const stileQuieti: CSSProperties = {
   marginTop: 18,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: spazio.sm,
+  gap: spazio.xxl,
 }

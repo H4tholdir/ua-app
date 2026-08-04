@@ -115,6 +115,25 @@ async function esitoDichiarato(res: Response): Promise<string | null> {
 const FRASE_CONGELATA =
   'Questa prescrizione è già bloccata dalla Dichiarazione di Conformità. Per cambiarla, annulla prima la Dichiarazione.'
 
+/** Il messaggio per un fallimento della rotta `/immagini` (dialetto `{error}`,
+ *  quella rotta non parla `{errore,esito}` come `fonte/route.ts`).
+ *  🛑 413 e 415 sono raggiungibili dal PICKER STESSO — `accept="image/*"`
+ *  ammette formati che `ALLOWED_MIME` rifiuta (`route.ts:12-19`: solo JPEG,
+ *  PNG, WEBP, GIF, HEIC, PDF — niente TIFF né HEIF), e la soglia dei 20MB
+ *  (`route.ts:81`) non ha alcun controllo lato client. Con la frase generica
+ *  «Riprova», l'utente ripete lo STESSO file e ottiene lo STESSO rifiuto:
+ *  un ciclo chiuso. Queste due frasi dicono cosa cambiare, non solo che è
+ *  fallito. */
+function fraseErroreImmagine(status: number): string {
+  if (status === 413) {
+    return 'Questo file è più grande di 20MB: scegline uno più piccolo.'
+  }
+  if (status === 415) {
+    return 'Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.'
+  }
+  return 'Non sono riuscita a salvare la prescrizione. Riprova.'
+}
+
 export function AllegaPrescrizioneSheet(props: {
   aperto: boolean
   onChiudi: () => void
@@ -206,7 +225,7 @@ export function AllegaPrescrizioneSheet(props: {
         body: fd,
       })
       if (!res.ok) {
-        errore('Non sono riuscita a salvare la prescrizione. Riprova.')
+        errore(fraseErroreImmagine(res.status))
         return
       }
       // 🛑 L'id NON si inventa: senza, la rotta fonte risponderebbe 422 su un

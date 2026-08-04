@@ -391,6 +391,13 @@ describe('T3 — il CTA senza fonte allegata', () => {
     const contenitore = foto.parentElement as HTMLElement
     expect(contenitore).toBe(home.parentElement)
     expect(contenitore).toHaveStyle({ flexDirection: 'column' })
+    // Il gap DEVE essere 44px (spazio.xxl), non un valore qualunque: LinkQuieto
+    // ottiene l'hit-box di 44px con padding verticale 13px + margin -13px
+    // uguale e contrario (si annullano nel layout), quindi fra due hit-box
+    // consecutivi l'aria reale è gap - 26px. Con spazio.sm (12) risultava
+    // -14px — i due bersagli da 44 si SOVRAPPONGONO e il secondo nel DOM
+    // vince il tap; solo spazio.xxl (44) dà i 18px d'aria richiesti.
+    expect(contenitore).toHaveStyle({ gap: '44px' })
     // Ordine: prima l'azione, poi l'uscita.
     expect(foto.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })

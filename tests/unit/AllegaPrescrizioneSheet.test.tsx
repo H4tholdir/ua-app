@@ -328,6 +328,55 @@ describe('T9 — quando qualcosa non riesce', () => {
     expect(onChiudi).not.toHaveBeenCalled()
   })
 
+  // 🔑 413/415 sono raggiungibili DAL PICKER STESSO: `accept="image/*"`
+  // (voce ①) ammette formati che `immagini/route.ts` rifiuta (TIFF, HEIF),
+  // e la soglia dei 20MB non ha alcun controllo lato client. La frase
+  // generica «Riprova» produrrebbe un ciclo chiuso — stesso file, stesso
+  // rifiuto — quindi questi due esiti hanno una frase che dice COSA cambiare.
+  it('upload troppo grande (413) → frase che dice il limite, non "Riprova"', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({
+      ok: false,
+      status: 413,
+      json: async () => ({ error: 'File troppo grande (max 20MB)' }),
+    })
+
+    const { onFonte } = monta()
+    await userEvent
+      .setup()
+      .upload(
+        foglio().getByLabelText('Scatta la foto della prescrizione'),
+        new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
+      )
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText('Questo file è più grande di 20MB: scegline uno più piccolo.')).toBeInTheDocument()
+    expect(onFonte).not.toHaveBeenCalled()
+  })
+
+  it('formato non supportato (415) → frase che dice i formati accettati, non "Riprova"', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({
+      ok: false,
+      status: 415,
+      json: async () => ({ error: 'Tipo file non consentito: image/tiff' }),
+    })
+
+    const { onFonte } = monta()
+    await userEvent
+      .setup()
+      .upload(
+        foglio().getByLabelText('Scatta la foto della prescrizione'),
+        new File(['x'], 'presc.tiff', { type: 'image/tiff' })
+      )
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.getByText('Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.')
+    ).toBeInTheDocument()
+    expect(onFonte).not.toHaveBeenCalled()
+  })
+
   it('foto salvata ma fonte rifiutata → si dice ENTRAMBE le cose (la foto c’è, il collegamento no)', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
     m.mockResolvedValueOnce(okImmagine())

@@ -330,17 +330,29 @@ export async function creaLavoroDaWizard(input: {
   // `route.ts:211-245`). GREZZA (D210): `colore` qui è la variabile COME
   // DIGITATA, non `coloreCodice` — un colore fuori catalogo si scarta dal
   // CASO (sopra) ma resta trascritto (fatto del censimento). La chiave
-  // `prescrizione` parte SOLO se c'è qualcosa da dire: `coloreOrigine`
-  // assente o `'prescrizione'` (D223: scrivere È trascrivere) E il colore non
-  // è vuoto DOPO trim (M-T5-4 — "solo spazi" è trattato come vuoto qui,
-  // gate client-side, indipendente da come il server tratterebbe la stringa
-  // se la ricevesse). `'lab'` = sganciato: niente da trascrivere, anche a
-  // colore compilato — ma `colore_codice` (sopra) viaggia comunque, in
-  // ENTRAMBI gli esiti dello sgancio (task-1-brief.md riga 7).
+  // `prescrizione` parte se c'è ALMENO UNA delle due cose da dire: il colore
+  // trascritto (`coloreOrigine` assente o `'prescrizione'`, D223: scrivere È
+  // trascrivere; `'lab'` = sganciato, niente da trascrivere anche a colore
+  // compilato) E non vuoto DOPO trim (M-T5-4 — "solo spazi" è vuoto qui, gate
+  // client-side); oppure l'elemento — `denti.length > 0` (sopra), cioè la
+  // casella «Elemento» ha prodotto almeno un FDI valido.
+  //
+  // 🔑 Emendamento T1 (review T3+T9, adjudicato dal controllore): PRIMA la
+  // chiave partiva SOLO col colore. Un lavoro con ELEMENTO e senza colore non
+  // mandava `prescrizione` → il gate del server (`route.ts:220-245`) non crea
+  // NESSUNA riga snapshot → `contenuto.elementi` (l'artefatto W20 che la DdC
+  // leggerà, `componi-snapshot.ts:35`) non atterrava mai, anche se i denti
+  // stessi erano nel body (`body.denti`, sopra). `componiSnapshot` compone
+  // `elementi` filtrando `body.denti` per `provenienza==='prescritto'` — NON
+  // dal contenuto di `prescrizione` — quindi quando la chiave parte SOLO per
+  // gli elementi il corpo è `prescrizione: {}`: il gate la accetta (M-T3-3,
+  // `componi-snapshot.ts:39`: `contenuto` non vuoto se `elementi` non vuoto)
+  // e il server prende i denti da dove sono già stati mandati.
   //
   // Il wizard oggi non ha una casella per `numero_prescrizione`: la chiave
   // resta fuori da questo corpo (non si inventa un campo che non esiste).
-  const trascriviPrescrizione = coloreOrigine !== 'lab' && colore.trim() !== ''
+  const coloreTrascritto = coloreOrigine !== 'lab' && colore.trim() !== ''
+  const trascriviPrescrizione = denti.length > 0 || coloreTrascritto
 
   let lavoro: { id: string; numero_lavoro: string }
   let coloreScartato = false
@@ -378,7 +390,10 @@ export async function creaLavoroDaWizard(input: {
             }
           : {}),
         ...(coloreCodice ? { colore_codice: coloreCodice } : {}),
-        ...(trascriviPrescrizione ? { prescrizione: { colore } } : {}),
+        // `{ colore }` solo se il colore è la ragione (o una delle ragioni)
+        // per cui la chiave parte; quando parte SOLO per gli elementi il
+        // corpo è `{}` — v. commento sopra.
+        ...(trascriviPrescrizione ? { prescrizione: coloreTrascritto ? { colore } : {} } : {}),
       }),
     })
     if (!res.ok) return ESITO_BLOCCANTE
