@@ -1,16 +1,17 @@
-# Sessione attiva — 04/08: D208-D215, sessione ① dell'ondata B completa e PUBBLICATA
+# Sessione attiva — chiusura 04/08: sessione ① dell'ondata B completa e pubblicata
 
-🚪 **PUNTO DI RIPRESA:** `docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md`
-(✅ RATIFICATA, D214). ➡️ Sessione ② = migration+RPC; PRIMA `verifica-conteggio-ddc.ts`.
-🚀 **D215 eseguita:** push `d720fc10..0f19275a` · CI verde 8m12s · CD verde · sito 200 su /login.
+🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-04-ondata-b-sessione-1-handoff.md` — la **§0 per prima**.
 
-✅ **Mattina:** D208 (P41 «banco di prova automatico», dopo l'ondata B) · D209 (Q1 default,
-eseguita: npm test = solo unit, provato).
-✅ **Sessione ① ondata B:** esplorazione 6 lettori (spec §4.0 — wizard REALE a 3 passi fissi,
-input foto solo-fotocamera, richiedente_nome mai dal wizard) · 4 mockup, 60 scatti ·
-**le 4 scelte incise (tornata 79):** D210 variante B framing · D211 mini-foglio D1 ·
-D212 gesto ratificato · D213 conferma leggera (due-tempi RESPINTA; V5 intatto).
+🔴 **La §0 in una frase:** il conteggio DdC fresco resta NON misurato ed è il CANCELLO d'apertura
+della sessione ② · due scene mockup (foglio fonte, bloccanti) approvate solo implicitamente ·
+11 ritrovamenti R-E2 censiti (2 schede E4/E5, 9 solo nell'handoff §3-bis; E4 non provata sul DB).
 
-✅ **D214: spec RATIFICATA** — sessione ① completa (spec + mockup + scelte).
-📎 Ritrovamenti R-E2 in scratchpad (`ritrovamenti-r-e2-sessione-spec.md`) → handoff.
-📎 **214 decisioni in 80 tornate**; la prossima è **D215**.
+✅ **Giornata:** D208-D215 (8 decisioni, tornate 78-81) — P41 nata dal betting · Q1 eseguita ·
+spec ondata B **RATIFICATA** (D214) con le 4 scelte (B framing · mini-foglio D1 · gesto ·
+conferma leggera) · **PUBBLICATO** (D215: CI+CD verdi ×2, sito 200).
+
+📌 **Misurato in chiusura** (`verify:full`): tsc 0 · vitest 4542 | 19 (394 file | 3) · build ok,
+rotte invariate (81 — diff su src/ vuoto) · sei guardie verdi · coerenza a 5.
+
+➡️ **PROSSIMO: sessione ② — migration + RPC** (PRIMA `verifica-conteggio-ddc.ts`; FASE 4 coi
+tre registri; GRANDE). 📎 **215 decisioni in 81 tornate**; la prossima è **D216**.

@@ -97,11 +97,12 @@ test — `ua-app/CLAUDE.md` §8). Il 58% di prescrittori sbagliati nei dati di p
 **Igiene mentre si è lì:** i commenti di schema ancora su «Allegato IV» (dossier §7.3) si
 correggono in questa ondata.
 
-## §4 Le superfici UI — 🚧 varianti ai mockup (questa sessione)
+## §4 Le superfici UI — ✅ scelte incise (D210-D213) e ratificate con la spec (D214)
 
-> Regola 0B: mockup HTML in `docs/design/mockups/` → screenshot → scelta di Francesco → SOLO POI
-> questa sezione si riempie con la variante scelta e la spec si ratifica.
-> Vincolo UX del panel: **zero passi nuovi nel wizard, zero tap OBBLIGATORI aggiunti al banco.**
+> Percorso 0B compiuto: mockup → 60 scatti (390/768/1280 × chiaro/scuro) → scelte di Francesco
+> (tornata 79) → ratifica (tornata 80). Fonte di verità visiva: i 4 file
+> `docs/design/mockups/2026-08-04-ondata-b-*.html` + scatti in `screenshots/2026-08-04-ondata-b/`.
+> Vincolo UX del panel, rispettato: **zero passi nuovi nel wizard, zero tap OBBLIGATORI al banco.**
 
 ### §4.0 Lo stato di fatto (esplorazione 04/08 — ogni riga con la sua prova)
 
