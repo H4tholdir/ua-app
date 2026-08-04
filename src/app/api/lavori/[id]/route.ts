@@ -9,6 +9,11 @@ import { triggerPushToUser } from '@/lib/notifications/trigger'
 // Stessa normalizzazione del colore di caso che usa `POST /api/lavori` (Task
 // 11): una sola casa, due chiamanti. Vedi GRUPPO C nella tabella qui sotto.
 import { risolviColoreCaso } from '@/lib/api/colore-caso'
+// La lettura dello snapshot della prescrizione (Task 6, ondata B ③): la GET
+// non aveva alcun embed su `lavori_prescrizioni` — la funzione normalizza la
+// forma array-vs-oggetto che PostgREST restituisce (vedi il commento sopra
+// `GET` più sotto). NON costruisce UI: la scheda (T7) legge da qui.
+import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 
 // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
 const LOCKED_PRICE_FIELDS = [
@@ -23,9 +28,13 @@ const LOCKED_PRICE_FIELDS = [
 // esplicita di campi — MAI blocklist". Qualunque chiave del body non presente
 // qui viene scartata silenziosamente (incluse le relazioni annidate che il
 // GET restituisce via embed PostgREST — appuntamenti, fasi, immagini, cliente,
-// paziente, tecnico, lavorazioni, materiali, ddc — che NON sono colonne dirette
-// della tabella `lavori` e causavano un 500 "column not found" se inoltrate,
-// perché la blocklist precedente non le conosceva.
+// paziente, tecnico, lavorazioni, materiali, ddc, prescrizione (Task 6, ondata
+// B ③) — che NON sono colonne dirette della tabella `lavori` e causavano un
+// 500 "column not found" se inoltrate, perché la blocklist precedente non le
+// conosceva. ⚠️ `denti` manca da questo elenco da prima del Task 6 (embed
+// presente dal Task 10, mai aggiunto qui) — trovato scrivendo questa riga,
+// FUORI dal mandato di T6 (R-E2): riferito in task-6-report.md, non corretto
+// qui.
 //
 // Fonti verificate per ogni campo (grep mirati sul form + su altri caller
 // della stessa route):
@@ -277,6 +286,26 @@ async function notificaAssegnazione(
  * fatturazione, ma non sono più il dato vivo. Chi legge il colore da questa
  * risposta lo prende dalle righe, con la precedenza riga → caso di
  * `src/lib/domain/colore-dente.ts` — mai dalle quattro colonne.
+ *
+ * 🔴 `prescrizione:lavori_prescrizioni(*)` (Task 6, ondata B ③): prima di
+ * questo task la scheda non aveva NESSUNA via di lettura dello snapshot
+ * della prescrizione — il `select('*')` non lo embeddava affatto. S8 ha
+ * provato che la lettura è permessa (RLS per tenant + GRANT SELECT,
+ * 20260804150306:73-80): mancava solo la richiesta dell'embed.
+ * `lavori_prescrizioni` porta `UNIQUE(lavoro_id)` — relazione uno-a-uno per
+ * costruzione — ma la FK usata per l'embed è composita
+ * (lavoro_id, laboratorio_id) e lo UNIQUE non copre la coppia esatta: i tipi
+ * generati marcano la relazione `isOneToOne: false`
+ * (database.types.ts:3421-3426), quindi l'ATTESA è che PostgREST restituisca
+ * questo embed come array, non oggetto singolo (stesso caso già gestito, con
+ * la STESSA riserva, per `ddc` in `lavori/[id]/page.tsx:51-55`: «mai
+ * verificato empiricamente» — qui non lo è stato nemmeno a banco, R-P1:
+ * NON provato, quindi non marcato come fatto). `normalizzaPrescrizione`
+ * (`@/lib/domain/prescrizione-mapper`) per questo normalizza ENTRAMBE le
+ * forme, non solo quella attesa — se PostgREST sorprendesse restituendo un
+ * oggetto singolo, il codice resta corretto lo stesso. Passa dalla stessa
+ * funzione anche il caso «nessuna riga»: `undefined`, mai un oggetto vuoto
+ * (V2).
  */
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
@@ -311,7 +340,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
         fasi:lavori_fasi(*, fase:fasi_produzione(*)),
         materiali:lavori_materiali(*),
         ddc:dichiarazioni_conformita(*),
-        denti:lavori_denti(*)
+        denti:lavori_denti(*),
+        prescrizione:lavori_prescrizioni(*)
       `)
       .eq('id', id)
       .eq('laboratorio_id', labId)
@@ -327,6 +357,11 @@ export async function GET(_req: Request, { params }: RouteContext) {
         { status }
       )
     }
+
+    // Normalizzazione array-vs-oggetto dell'embed (vedi commento sopra) — si
+    // riassegna la proprietà così tutto il resto della risposta vede sempre
+    // un `LavoroPrescrizione` singolo o `undefined`, mai la forma grezza.
+    lavoro.prescrizione = normalizzaPrescrizione(lavoro.prescrizione)
 
     return NextResponse.json({ lavoro })
   })

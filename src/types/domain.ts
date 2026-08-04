@@ -2,6 +2,15 @@
 // Fonte: ANALISI/31_fase2_spec_completo.md §11
 // Aggiornato: 2026-05-14 (patch v1.1: stato ricevuto, tracking spedizioni)
 
+// Le CASE UNICHE dei dizionari chiusi vivono in `src/lib/domain/*` — questo
+// file importa i tipi, non li ridichiara (Task 6, ondata B ③): `fonte_tipo`
+// aveva una QUARTA copia a mano dell'unione prima di questo import, e una
+// copia scritta qui non la vedrebbe la spia di migrazione
+// (`tests/unit/prescrizione-costanti-spia-migration.test.ts`), che sorveglia
+// solo `src/lib/domain/prescrizione-costanti.ts`.
+import type { CategoriaFoto } from '@/lib/domain/categorie-foto'
+import type { CampoTypo, FonteTipo, MotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
+
 // ============================================================
 // LABORATORIO
 // ============================================================
@@ -400,16 +409,40 @@ export interface LavoroDente {
 // `lavoro_prescrizione_*`): la tabella è in REVOKE ALL, service_role compreso.
 // `contenuto`: chiave presente = caratteristica TRASCRITTA (V2, l'assenza è
 // un'informazione); il colore vive lì COME DIGITATO (D210); `tipo` entra SOLO
-// alla conferma di consegna (D213).
+// alla conferma di consegna (D213, copiato da `lavori.tipo_dispositivo` in
+// `lavoro_prescrizione_conferma_consegna`, 20260804152403:357-360).
+export interface PrescrizioneContenuto {
+  /** Denti PRESCRITTI (provenienza 'prescritto', W20) — vedi componiSnapshot. */
+  elementi?: number[];
+  /** COME DIGITATO dall'addetta (D210): mai trim, mai uppercase. */
+  colore?: string;
+  /** Entra SOLO alla conferma di consegna (D213) — mai alla creazione. */
+  tipo?: string;
+}
+
+// Una voce del registro divergenze prescritto/eseguito (V9, D212). Forma
+// fissata dalla RPC `lavoro_prescrizione_registra_divergenza`
+// (jsonb_build_object, migration 20260804211256:85-91) — NON si inventa qui.
+export interface Divergenza {
+  /** Uno dei tre campi correggibili dello snapshot — stesso dizionario di CAMPI_TYPO. */
+  campo: CampoTypo;
+  /** Dizionario chiuso — vedi MOTIVI_DIVERGENZA. */
+  motivo: MotivoDivergenza;
+  nota: string | null;
+  utente_id: string;
+  /** ISO timestamp — `now()` lato RPC. */
+  registrata_at: string;
+}
+
 export interface LavoroPrescrizione {
   id: string;
   laboratorio_id: string;
   lavoro_id: string;
-  contenuto: Record<string, unknown>;
+  contenuto: PrescrizioneContenuto;
   // Il registro delle divergenze (gesto typo-vs-divergenza, spec §4.3):
-  // jsonb '[]' di default; la forma delle voci arriva con la sua ondata.
-  divergenze: unknown[];
-  fonte_tipo: 'foglio' | 'email' | 'modulo' | 'piattaforma' | null;
+  // jsonb '[]' di default.
+  divergenze: Divergenza[];
+  fonte_tipo: FonteTipo | null;
   fonte_immagine_id: string | null;
   fonte_riferimento: string | null;
   // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
@@ -429,6 +462,12 @@ export interface LavoroDettaglio extends Lavoro {
   // (`denti:lavori_denti(*)`). Chi mostra o corregge il colore DEVE chiederlo —
   // guardia in `tests/unit/lavoro-form-colore-idratazione.test.tsx`.
   denti?: LavoroDente[];
+  // Opzionale sullo stesso modello di `denti?` (Task 6, ondata B ③): c'è solo
+  // dove la query chiede l'embed (`prescrizione:lavori_prescrizioni(*)`), ed
+  // è `undefined` — MAI un oggetto vuoto — quando il lavoro non ha ancora una
+  // trascrizione. Normalizzazione della forma array-vs-oggetto dell'embed:
+  // `src/lib/domain/prescrizione-mapper.ts` (`normalizzaPrescrizione`).
+  prescrizione?: LavoroPrescrizione;
   cliente: Cliente;
   paziente: Paziente | null;
   tecnico: Tecnico | null;
@@ -518,7 +557,7 @@ export interface LavoroImmagine {
   data_scatto: string | null;
   /** Categoria fotografica — elenco chiuso, D72. La fonte dei valori è
    *  src/lib/domain/categorie-foto.ts — mai una copia locale. */
-  categoria: string;
+  categoria: CategoriaFoto;
   /** Serve a ordinare DENTRO il gruppo (D71). Esiste in banca dati da sempre
    *  (`002_fase2_schema.sql:254`) ma mancava da questo tipo. */
   created_at: string;
