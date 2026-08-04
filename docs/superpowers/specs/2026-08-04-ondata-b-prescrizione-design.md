@@ -1,6 +1,6 @@
 # Spec ondata B — «La prescrizione la cattura il wizard» (P38 + P37)
 
-**Stato:** 🟡 SCELTE INCISE (D210-D213, 04/08/2026) — in attesa della RATIFICA finale di Francesco.
+**Stato:** ✅ **RATIFICATA da Francesco il 04/08/2026 (D214)** — con le scelte D210-D213 incise.
 **Quando:** 4 agosto 2026 (`provato:` `date` → `Tue Aug 4 08:31 CEST 2026`).
 **Decide:** Francesco Formicola.
 **Nasce da:** D201 (strada B) · D202 (le 4 forme) · D203 (perimetro P38+P37) · D204 (il wizard
