@@ -81,6 +81,7 @@ import {
   MESSAGGIO_FONTE_ALTRO_LAVORO,
   MESSAGGIO_FONTE_FILE_PERSO,
   MESSAGGIO_FONTE_QUESTO_LAVORO,
+  MESSAGGIO_FONTE_VERIFICA_FALLITA,
   MOTIVO_FONTE_IN_USO,
   MOTIVO_FONTE_IN_USO_FILE_PERSO,
 } from '@/lib/domain/immagini-eliminazione-messaggi'
@@ -669,6 +670,38 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
       expect(statoStorage.removeCalls).toHaveLength(1)
       expect(deleteCalls).toHaveLength(1)
     })
+
+    // ── Rilievo del coordinatore (05/08/2026): il pre-check È il mandato, e il
+    // suo error handling ne fa parte. Se la QUERY del pre-check fallisce e la
+    // rotta procede lo stesso, `storage.remove` distrugge il file di una fonte
+    // — esattamente lo scenario che il pre-check esiste per impedire; la rete
+    // 23503 salva la RIGA ma il FILE è già perso. Fail-closed: su errore della
+    // query, 500 SENZA toccare nulla. Precedente in casa sulla stessa forma
+    // (query referenziale su una DELETE): `api/cicli/[id]/route.ts`, il
+    // conteggio dei `lavori` collegati risponde 500 su `countError`.
+    it('la query del pre-check RISPONDE UN ERRORE → 500 onesto, NULLA toccato (fail-closed sul check stesso)', async () => {
+      const { deleteCalls, tracciaInserita } = mockDelete({
+        fonteResult: { data: null, error: { message: 'la connessione al database è caduta durante la SELECT' } },
+      })
+      const res = await DELETE(req('DELETE'), { params })
+      const json = await res.json()
+      expect(res.status).toBe(500)
+      expect(json.error).toBe(MESSAGGIO_FONTE_VERIFICA_FALLITA)
+      // Niente dettaglio grezzo del database verso il client (G9-76).
+      expect(json.error).not.toMatch(/connessione al database/i)
+      // La spia: NÉ storage.remove NÉ la mutazione sono mai state chiamate.
+      expect(statoStorage.removeCalls).toHaveLength(0)
+      expect(deleteCalls).toHaveLength(0)
+      expect(tracciaInserita).toHaveLength(0)
+    })
+
+    it('la query del pre-check risponde un errore: la spia sull\'ORDINE si ferma a "precheck", niente altro parte', async () => {
+      mockDelete({
+        fonteResult: { data: null, error: { message: 'timeout' } },
+      })
+      await DELETE(req('DELETE'), { params })
+      expect(statoStorage.ordine).toEqual(['precheck'])
+    })
   })
 
   // ── Forme d'ingresso del DELETE, enumerate PRIMA delle asserzioni (R-P4) ──
@@ -689,6 +722,11 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   //    questo lavoro» · la query non filtra su lavoro_id · l'ordine
   //    precheck→file→riga · 23503 sulla `.delete()` (corsa) → 409 onesto,
   //    file già perso, nessun dettaglio grezzo del DB
+  //  • T8 (rilievo del coordinatore, 05/08/2026): la query del pre-check
+  //    risponde `{ data: null, error: {...} }` (un errore INFRA sulla
+  //    SELECT, non «nessuna riga») → 500 fail-closed, NÉ storage.remove NÉ
+  //    `.delete()` vengono chiamati — v. describe dedicato, con prova di
+  //    mutazione sul check (verbale sotto)
   // NON COPERTE, dichiarate invece che ignorate in silenzio:
   //  • «corpo non-JSON»: il DELETE non legge un body — forma non applicabile.
   //  • storage.remove risponde `{ data: [], error: null }` perché il file non
@@ -698,16 +736,6 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   //  • `storage_path` NULL o vuoto sulla riga: la colonna è `NOT NULL` in banca
   //    dati (`002_fase2_schema.sql`) e il POST la scrive sempre — sarebbe una
   //    prova su uno stato che lo schema esclude, non su un ingresso.
-  //  • T8: la query del pre-check risponde `{ data: null, error: {...} }` (un
-  //    errore INFRA sulla SELECT, non «nessuna riga»): il codice non legge
-  //    `error` su questa query e tratta `data` falsy come «non è una fonte»,
-  //    proseguendo verso `storage.remove`. Fail-open sul pre-check, ma NON
-  //    fail-open sul dato: se l'immagine è davvero una fonte, la `.delete()`
-  //    successiva la ferma comunque con la mappatura 23503 (cintura e
-  //    bretelle, provata sopra) — col file però già perso, come dichiara il
-  //    suo messaggio. Riferito (R-E2): fuori dal mandato di T8, che chiede il
-  //    pre-check sul CASO NORMALE, non la resilienza della query stessa a un
-  //    guasto infrastrutturale.
 
   // ── Verbale delle MUTAZIONI (T4, Passo 6, 30/07/2026) ──
   // Una prova che nessuna mutazione riesce a uccidere è decorativa. Le tre
@@ -747,6 +775,17 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   //     aspetta `['precheck','file','riga']` e trova `['file','precheck',
   //     'riga']`). Nessuna delle quattro sopravvive alla mutazione: la spia
   //     morde davvero, non solo sulla carta.
+  //
+  //  2. Rilievo del coordinatore (05/08/2026): il pre-check non controllava il
+  //     PROPRIO `error` — se la query su `lavori_prescrizioni` falliva,
+  //     `righeFonte` restava `undefined`/falsy e la rotta trattava «non so» come
+  //     «non è una fonte», proseguendo su `storage.remove`. TOLTO il fail-closed
+  //     (`if (erroreFonte) {...}` sostituito da `void erroreFonte`, codice VERO,
+  //     poi ripristinato) → **2 falliti su 73**: ESATTAMENTE le due prove nuove
+  //     («la query risponde un errore → 500 onesto, NULLA toccato» e «la spia
+  //     sull'ordine si ferma a precheck»). Nessuna delle prove preesistenti si è
+  //     mossa: la mutazione non tocca il caso normale, solo quello nuovo — ed è
+  //     proprio quello che la spia doveva sorvegliare.
 })
 
 // ============================================================

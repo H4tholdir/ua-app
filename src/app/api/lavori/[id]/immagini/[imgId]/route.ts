@@ -8,6 +8,7 @@ import {
   MESSAGGIO_FONTE_ALTRO_LAVORO,
   MESSAGGIO_FONTE_FILE_PERSO,
   MESSAGGIO_FONTE_QUESTO_LAVORO,
+  MESSAGGIO_FONTE_VERIFICA_FALLITA,
   MOTIVO_FONTE_IN_USO,
   MOTIVO_FONTE_IN_USO_FILE_PERSO,
 } from '@/lib/domain/immagini-eliminazione-messaggi'
@@ -227,11 +228,26 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   // 🔑 `laboratorio_id` resta nel filtro per lo stesso motivo della FK
   //    composita che lo impone in banca dati: difesa in profondità, anche se
   //    `imgId` è già stato scoperto di questo laboratorio al punto 1.
-  const { data: righeFonte } = await svc
+  const { data: righeFonte, error: erroreFonte } = await svc
     .from('lavori_prescrizioni')
     .select('lavoro_id')
     .eq('fonte_immagine_id', imgId)
     .eq('laboratorio_id', laboratorio_id)
+
+  // Fail-closed sul PRE-CHECK stesso (rilievo del coordinatore, 05/08/2026):
+  // se questa query fallisce non si sa se l'immagine è una fonte — e un «non
+  // lo so» che prosegue verso `storage.remove` è esattamente lo scenario che
+  // il pre-check esiste per impedire. Precedente in casa sulla stessa forma
+  // (query referenziale su una DELETE): `api/cicli/[id]/route.ts`, il
+  // conteggio dei `lavori` collegati risponde 500 su `countError` invece di
+  // trattarlo come «zero righe» e procedere.
+  if (erroreFonte) {
+    console.error(
+      'DELETE /api/lavori/[id]/immagini/[imgId] — pre-check fonte fallito, non si tocca nulla:',
+      erroreFonte.message
+    )
+    return NextResponse.json({ error: MESSAGGIO_FONTE_VERIFICA_FALLITA }, { status: 500 })
+  }
 
   if (righeFonte && righeFonte.length > 0) {
     // Riporta la VERITÀ: se la riga trovata è di QUESTO lavoro (caso comune —

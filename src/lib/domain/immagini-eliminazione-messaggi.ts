@@ -40,3 +40,14 @@ export const MESSAGGIO_FONTE_ALTRO_LAVORO =
  *  perso davvero e il messaggio non lo nasconde. */
 export const MESSAGGIO_FONTE_FILE_PERSO =
   'Il file è già stato tolto dall’archivio, ma il riferimento non si può cancellare: nel frattempo è diventato la fonte di una prescrizione. La foto risulta persa — serve l’intervento di un tecnico.'
+
+/** Fail-closed sulla query del pre-check stesso (rilievo del coordinatore,
+ *  05/08/2026): se la SELECT su `lavori_prescrizioni` risponde un errore, non
+ *  si sa se l'immagine è una fonte o no — e proseguire su un «non lo so»
+ *  vorrebbe dire rischiare `storage.remove` proprio sul caso che il pre-check
+ *  esiste per fermare. Stesso principio già in casa su una query referenziale
+ *  di un'altra DELETE: `api/cicli/[id]/route.ts` (il conteggio `lavori` che
+ *  blocca la cancellazione del ciclo) risponde 500 SENZA proseguire se
+ *  `countError` è valorizzato, invece di trattare l'errore come «zero righe». */
+export const MESSAGGIO_FONTE_VERIFICA_FALLITA =
+  'Non sono riuscita a verificare se la foto è la fonte di una prescrizione: non la tocco — riprova.'
