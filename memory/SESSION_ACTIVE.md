@@ -1,7 +1,8 @@
-# Sessione attiva — 04/08: D208-D214, spec ondata B RATIFICATA (sessione ① completa)
+# Sessione attiva — 04/08: D208-D215, sessione ① dell'ondata B completa e PUBBLICATA
 
 🚪 **PUNTO DI RIPRESA:** `docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md`
 (✅ RATIFICATA, D214). ➡️ Sessione ② = migration+RPC; PRIMA `verifica-conteggio-ddc.ts`.
+🚀 **D215 eseguita:** push `d720fc10..0f19275a` · CI verde 8m12s · CD verde · sito 200 su /login.
 
 ✅ **Mattina:** D208 (P41 «banco di prova automatico», dopo l'ondata B) · D209 (Q1 default,
 eseguita: npm test = solo unit, provato).
