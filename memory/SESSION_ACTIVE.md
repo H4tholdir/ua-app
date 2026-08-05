@@ -1,25 +1,22 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/ROADMAP-UFFICIALE.md`** — la tabella delle righe aperte è la
-fonte; il racconto di questa sessione sta in `memory/MEMORY.md`, righe (156) e (157).
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-05-prescrittore-e-ordine-handoff.md`** — la §0 per prima.
 
-🚀 **PUBBLICATO E VERIFICATO SUL SITO VERO (D243):** la correzione del **prescrittore vuoto** è
-online (`c9408d99..800a7c0c` · CI verde · CD verde · 200/307). `provato:` PATCH di produzione con
-**soli spazi** → in banca dati `null`; controllo positivo `'  Dott. Bianchi  '` → `"Dott. Bianchi"`.
-Baseline ripristinata. La Dichiarazione di Conformità non può più uscire senza il nome
-del medico, e la stessa regola vale per il **buono di consegna** — secondo lettore trovato col
-censimento. `provato:` 299 lavori e 6 dichiarazioni emesse, **zero** col nome vuoto: nessun documento
-vecchio da riparare.
+🚀 **DUE RILASCI IN PRODUZIONE oggi pomeriggio, tutti e due verificati sul sito vero.** ① La
+**Dichiarazione di Conformità non può più uscire senza il nome del prescrittore** (D242-D243): la
+stringa vuota si ferma al confine di scrittura e la regola di «vuoto» è una sola per il controllo di
+consegna e per i due documenti. ② La pila **«APPENA ARRIVATI» si ordina per ARRIVO** (D244), il più
+recente in cima — e a parità di data l'ordine non è più arbitrario.
 
-✅ **D244 — «APPENA ARRIVATI» si ordina per ARRIVO**, il più recente in cima (prima: per data di
-consegna, con un lavoro di maggio in testa). Le altre tre pile non cambiano: parlano di scadenze.
-Chiuso anche l'ordine **arbitrario** a parità di chiave. ⛔ **Ramo `ordine-per-arrivo`, NON
-pubblicato.** `vitest` **4983 | 19** · `verify:full` uscita 0.
+🔴 **LA §0 IN UNA FRASE — sette cose non fatte, e la prima è una regola saltata DUE volte:** il
+**gate estetico L2** non è stato fatto neanche oggi (e oggi si aggiunge la domanda se valga anche
+quando cambia il contenuto e non l'aspetto) · nessuna **FASE 9 a schermo** su entrambe le modifiche ·
+manca la prova della foto **dalla LIBRERIA** dell'iPhone (quella dalla fotocamera è fatta: arriva
+`image/jpeg`) · `CRON_SECRET` non verificabile da qui · nessuna misura su **rete mobile vera** · la
+carta di caricamento fallito **ancora non si può togliere** · e **perché il telefono dicesse 12 non è
+misurato** (il service worker è escluso dal suo stesso codice).
 
-🍏 **Formato Apple (riga 16):** la foto **dalla fotocamera** arriva in `image/jpeg` — misurato sui
-byte. ⏳ **Resta da provare la foto presa dalla LIBRERIA** — «il telefono adesso non l'ho tra le mani».
-
-📌 **Il 13 contro 12:** il sito vero risponde 13 in entrambi i posti. Perché il telefono dicesse 12
-**non è misurato**: il service worker è escluso dal suo codice, resta il ridisegno lato client.
+📌 MISURATO IN CHIUSURA (`npm run verify:full`, uscita 0): tsc 0 · eslint 0 · vitest **4983 passate |
+19 saltate** (418 file) · build ok · sei guardie verdi. `main` allineato a `origin/main`, 0 in attesa.
 
 📎 **244 decisioni in 93 tornate; la prossima è D245.**
