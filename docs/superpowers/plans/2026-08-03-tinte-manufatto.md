@@ -1141,3 +1141,53 @@ e **tre verdi che non erano verdi**.
 
 📌 **Esito dell'applicazione:** `resina_ortodontica 17` · `sport 17` · **5 righe senza pallino**
 (trasparente ×2, glitter ×3, come vuole D114) · `tsc --noEmit` **0 errori** dopo la FASE 6b.
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 2 (05/08/2026, 17:48)
+
+### 🔴 P2-① — Quattro prove su sette del Passo 3 avrebbero toccato ZERO righe
+
+Le sonde ② ④ ⑤ ⑥ del Passo 3 filtrano su `tipo_dispositivo='bite_splint'`. `provato:`
+`SELECT tipo_dispositivo, count(*) FROM lavori GROUP BY 1` → **`bite_splint` NON compare**:
+protesi_fissa 193 · provvisorio 56 · altro 24 · implantologia 16 · protesi_mobile 4 · scheletrato 2 ·
+cad_cam 2 · riparazione 1 · **ortodonzia 1**. Zero bite.
+
+Un `UPDATE … WHERE tipo_dispositivo='bite_splint'` su zero righe **riesce**: nessun vincolo viene
+esercitato e la sonda stampa un verde. **Quattro prove su sette sarebbero state verdi senza provare
+niente** — compreso il **controllo positivo ⑥**, cioè proprio quello che esiste per accorgersi di un
+vincolo che rifiuta tutto.
+➡️ **Rimedio:** dentro la transazione annullata si porta **una riga vera a `bite_splint`**
+(`UPDATE lavori SET tipo_dispositivo='bite_splint' WHERE id = (SELECT id … 'protesi_fissa' … LIMIT 1)`),
+poi si provano i vincoli su quella. Tutto muore col `ROLLBACK`.
+🔑 **La riga da tenere: una prova che non tocca righe non è una prova che passa, è una prova che non è
+avvenuta.** Il conteggio delle righe toccate va letto, non dato per scontato.
+
+### 🟡 P2-② — Il piano provava UN SOLO LATO della coppia e UN SOLO controllo positivo
+
+La sonda ④ prova `SET tinta_famiglia='sport'` senza codice, ma **non** il lato opposto
+(`SET tinta_codice='rosso'` senza famiglia); e il controllo positivo ⑥ prova solo `sport` su `bite_splint`,
+mai `resina_ortodontica` su `ortodonzia`. Un vincolo può essere sbilanciato e passare lo stesso.
+➡️ Aggiunte entrambe. `provato:` il lato mancante della coppia scatta su `lavori_tinta_coppia_ck`, e il
+secondo positivo (`resina_ortodontica`+`glitter_oro` su un lavoro `ortodonzia`) **passa**.
+
+### 📌 `UPDATE … LIMIT 1` non esiste in Postgres
+
+Il piano lo segnalava come dubbio: è confermato, si usa la forma
+`WHERE id = (SELECT id FROM lavori WHERE … LIMIT 1)`.
+
+**Esito vero delle otto sonde** (transazione annullata, con i tre vincoli creati dentro):
+
+| prova | esito | vincolo |
+|---|---|---|
+| `sport` su un lavoro **ortodonzia** | ❌ rifiutata | `lavori_tinta_tipo_ck` |
+| `resina_ortodontica` su un lavoro **bite_splint** | ❌ rifiutata | `lavori_tinta_tipo_ck` |
+| `sport` su una **protesi fissa** | ❌ rifiutata | `lavori_tinta_tipo_ck` |
+| mezza coppia — **solo famiglia** | ❌ rifiutata | `lavori_tinta_coppia_ck` |
+| mezza coppia — **solo codice** 🆕 | ❌ rifiutata | `lavori_tinta_coppia_ck` |
+| tinta inesistente (`rosa_fluo`) | ❌ rifiutata | `lavori_tinta_fk` |
+| **positivo A**: `sport`+`rosso` su bite_splint | ✅ 1 riga, riletta | — |
+| **positivo B** 🆕: `resina_ortodontica`+`glitter_oro` su ortodonzia | ✅ 1 riga, riletta | — |
+| **positivo C**: `NULL` su protesi fissa | ✅ ammesso, 299 righe a NULL | D113 |
+
+📌 **Dopo l'applicazione:** due colonne `text` nullable, tre vincoli presenti
+(`lavori_tinta_coppia_ck`, `lavori_tinta_fk`, `lavori_tinta_tipo_ck`), **0 lavori con tinta** —
+la colonna nasce vuota ovunque, come previsto. `tsc --noEmit` **0 errori** dopo la FASE 6b.

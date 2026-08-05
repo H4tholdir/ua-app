@@ -2510,6 +2510,8 @@ export type Database = {
           stato_fisico: string | null
           tecnica_colore: string | null
           tecnico_id: string | null
+          tinta_codice: string | null
+          tinta_famiglia: string | null
           tipo_arco: string | null
           tipo_dispositivo: string
           tipo_impronte: string | null
@@ -2610,6 +2612,8 @@ export type Database = {
           stato_fisico?: string | null
           tecnica_colore?: string | null
           tecnico_id?: string | null
+          tinta_codice?: string | null
+          tinta_famiglia?: string | null
           tipo_arco?: string | null
           tipo_dispositivo: string
           tipo_impronte?: string | null
@@ -2710,6 +2714,8 @@ export type Database = {
           stato_fisico?: string | null
           tecnica_colore?: string | null
           tecnico_id?: string | null
+          tinta_codice?: string | null
+          tinta_famiglia?: string | null
           tipo_arco?: string | null
           tipo_dispositivo?: string
           tipo_impronte?: string | null
@@ -2786,6 +2792,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tecnici"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_tinta_fk"
+            columns: ["tinta_famiglia", "tinta_codice"]
+            isOneToOne: false
+            referencedRelation: "tinte_manufatto"
+            referencedColumns: ["famiglia", "codice"]
           },
         ]
       }
