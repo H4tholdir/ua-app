@@ -30,6 +30,12 @@ declare -a SKIP_LIST=(
   # Parola d'ordine interna nell'header `x-internal-secret` (riga 19). Un header personalizzato
   # NON è impostabile da un form cross-site: la richiesta ostile non parte proprio.
   "src/app/api/internal/pec-verify/route.ts"
+  # Stessa ragione, e una in più: il mietitore degli orfani (T6) è chiamato da un
+  # PIANIFICATORE, non da un browser — non esiste una sessione da cavalcare. Porta il
+  # segreto in `Authorization: Bearer` (la forma di Vercel Cron) o in `x-internal-secret`,
+  # confrontato a tempo costante, e se il segreto NON è configurato risponde 503 invece di
+  # aprirsi. Un `isSameOrigin` qui non proteggerebbe da niente: bloccherebbe solo il cron.
+  "src/app/api/internal/orfani-storage/route.ts"
   # Superficie PUBBLICA per progetto (v. intestazione del file): nessuna sessione da cavalcare,
   # l'autorizzazione è il `portale_token` del cliente, non il cookie dell'utente.
   "src/app/api/portale/richiedi/route.ts"

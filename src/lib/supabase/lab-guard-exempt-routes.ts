@@ -31,6 +31,12 @@ export const LAB_GUARD_EXEMPT_ROUTES = [
   'app/api/portale/[token]/lavori/[lavoro_id]/[documento]/route.ts',
   // Callback interna autenticata da x-internal-secret (confronto constant-time)
   'app/api/internal/pec-verify/route.ts',
+  // Mietitore degli orfani (T6): gira da un PIANIFICATORE, senza sessione e
+  // senza laboratorio — passa su TUTTI i laboratori per definizione, quindi non
+  // c'è un `lab` di cui verificare lo stato. La sua serratura è il segreto in
+  // header, confrontato a tempo costante, e senza segreto configurato la rotta
+  // risponde 503 invece di aprirsi.
+  'app/api/internal/orfani-storage/route.ts',
   // Export GDPR/portabilità: canale in-band ratificato, resta aperto
   'app/api/fatture/export/route.ts',
   'app/api/lavori/export/route.ts',
