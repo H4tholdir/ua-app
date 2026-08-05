@@ -1447,10 +1447,10 @@ trovata solo la rete intera** — che è il motivo per cui la FASE 7 la chiede.
 lavoro di oggi** (⑨: un tipo inventato non scrive niente — era verde anche prima, perché la validazione B2
 esisteva già).
 
-📌 **Esito:** `vitest tests/unit/tinte-patch.test.ts` → **9 su 9** · `verify:full` uscita **0**
+📌 **Esito:** `vitest tests/unit/tinte-patch.test.ts` → **10 su 10** (la ⑤-bis aggiunta in revisione: il ramo D117 dal verso con una famiglia DIVERSA, non solo verso un tipo senza famiglia) · `verify:full` uscita **0**
 (⚠️ letta correttamente: la prima misura di stasera leggeva l'uscita di `tail` dietro una pipe, non quella
 di `npm` — `verify:full` concatena con `&&`, quindi un rosso ferma la catena) · rete intera
-**5011 passate | 19 saltate** (421 file | 3 saltati), da **5002 | 19** su 420 → **+9 prove, +1 file**.
+**5012 passate | 19 saltate** (421 file | 3 saltati), da **5002 | 19** su 420 → **+10 prove, +1 file**.
 
 ### 📮 Fuori mandato — RIFERITO, non corretto (R-E2)
 

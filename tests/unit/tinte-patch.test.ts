@@ -135,6 +135,21 @@ describe('PATCH /api/lavori/[id] — la tinta del manufatto', () => {
     expect(await res.json()).not.toHaveProperty('tinta_rimossa')
   })
 
+  // 🆕 NON nel piano — ed è l'ULTIMA asimmetria rimasta del ramo D117. La ⑤
+  //    prova il passaggio verso un tipo SENZA famiglia (una corona: la risposta
+  //    è `null`); questa prova il passaggio verso un tipo con una famiglia
+  //    DIVERSA, dove il confronto è fra due stringhe vere. Sono due versi della
+  //    stessa regola, e in quest'ondata il verso non provato ha ceduto tre volte.
+  it('⑤-bis D117 dall’altro verso: resina su ortodonzia che diventa un bite → si toglie lo stesso', async () => {
+    riga.tipo_dispositivo = 'ortodonzia'
+    riga.tinta_famiglia = 'resina_ortodontica'
+    riga.tinta_codice = 'rosa'
+    const res = await patch({ tipo_dispositivo: 'bite_splint' })
+    expect(res.status).toBe(200)
+    expect(updatePayload).toMatchObject({ tinta_famiglia: null, tinta_codice: null })
+    expect(await res.json()).toHaveProperty('tinta_rimossa', { famiglia: 'resina_ortodontica', codice: 'rosa' })
+  })
+
   // 🆕 NON nel piano. È il percorso «l'utente cancella la tinta»: deve azzerare
   //    SENZA suonare l'allarme. Un avviso che compare quando non serve si
   //    impara a ignorare, e allora smette di avvisare.
