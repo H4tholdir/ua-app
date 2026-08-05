@@ -11,8 +11,26 @@ import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 // (`prescrizione/fonte/route.ts:78`) rifiuta con 422 chi manda altro.
 import { isFonteTipo } from '@/lib/domain/prescrizione-costanti'
 
+// T4 — la prescrizione non passa più da una POST multipart: va dritta al
+// magazzino col caricamento firmato. ⚖️ E NON si comprime mai (D237): è il
+// documento su cui si appoggia la Dichiarazione di Conformità.
+const { caricaMock } = vi.hoisted(() => ({ caricaMock: vi.fn() }))
+vi.mock('@/lib/storage/carica-diretto-client', async (originale) => {
+  const vero = await originale<typeof import('@/lib/storage/carica-diretto-client')>()
+  return { caricaImmagineDiretta: caricaMock, ErroreCaricamento: vero.ErroreCaricamento }
+})
+
 vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
 vi.mock('@/design-system/v3/haptic', () => ({ vibra: vi.fn() }))
+
+import { ErroreCaricamento } from '@/lib/storage/carica-diretto-client'
+
+/** Un File di peso dichiarato: allocare 62MB per una prova è tempo buttato. */
+function fileDaByte(nome: string, tipo: string, byte: number): File {
+  const f = new File(['x'], nome, { type: tipo })
+  Object.defineProperty(f, 'size', { value: byte, configurable: true })
+  return f
+}
 
 const LAVORO_ID = 'lav-1'
 const IMG_ID = '11111111-2222-3333-4444-555555555555'
@@ -38,16 +56,17 @@ function foglio() {
   return within(screen.getByRole('dialog', { name: 'La prescrizione del dentista' }))
 }
 
-/** `{immagine}` in successo, `{error}` in errore — contratto VERO della rotta
- *  immagini, che NON è quello della rotta fonte (`{errore, esito?}`). */
-function okImmagine(id = IMG_ID) {
-  return { ok: true, status: 201, json: async () => ({ immagine: { id } }) }
-}
+// 📌 `okImmagine` è USCITA con T4: la rotta immagini non è più nel cammino di
+//    questo foglio — il file va dritto al magazzino e la riga la scrive la
+//    conferma. Restano solo le risposte della rotta FONTE, che parla un altro
+//    dialetto (`{errore, esito?}`, non `{error}`).
 function okFonte(fonte: Record<string, unknown>) {
   return { ok: true, status: 200, json: async () => ({ fonte }) }
 }
 
 beforeEach(() => {
+  caricaMock.mockClear()
+  caricaMock.mockResolvedValue({ id: IMG_ID })
   vi.stubGlobal('fetch', vi.fn())
 })
 afterEach(() => {
@@ -125,9 +144,8 @@ describe('T9 ① — «Scatta una foto»', () => {
     expect(spia).toHaveBeenCalled()
   })
 
-  it('foto scelta → POST immagini {categoria:"prescrizione"} POI POST fonte {fonte_tipo:"foglio", fonte_immagine_id}', async () => {
+  it('foto scelta → caricamento diretto {categoria:"prescrizione"} POI POST fonte {fonte_tipo:"foglio", fonte_immagine_id}', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce(okImmagine())
     m.mockResolvedValueOnce(okFonte({ fonte_tipo: 'foglio', fonte_immagine_id: IMG_ID, fonte_riferimento: null }))
 
     const { onFonte, onChiudi } = monta()
@@ -135,16 +153,17 @@ describe('T9 ① — «Scatta una foto»', () => {
     const file = new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
     await user.upload(foglio().getByLabelText('Scatta la foto della prescrizione'), file)
 
-    await waitFor(() => expect(m).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(m).toHaveBeenCalledTimes(1))
 
-    const [urlImg, optImg] = m.mock.calls[0]
-    expect(urlImg).toBe(`/api/lavori/${LAVORO_ID}/immagini`)
-    const fd = optImg.body as FormData
-    expect(fd.get('file')).toBe(file)
-    expect(isCategoriaFoto(fd.get('categoria'))).toBe(true)
-    expect(fd.get('categoria')).toBe('prescrizione')
+    // Il file va dritto al magazzino (T4), non più in multipart alla funzione.
+    expect(caricaMock).toHaveBeenCalledTimes(1)
+    const args = caricaMock.mock.calls[0][0]
+    expect(args.file).toBe(file)
+    expect(args.lavoroId).toBe(LAVORO_ID)
+    expect(isCategoriaFoto(args.categoria)).toBe(true)
+    expect(args.categoria).toBe('prescrizione')
 
-    const [urlFonte, optFonte] = m.mock.calls[1]
+    const [urlFonte, optFonte] = m.mock.calls[0]
     expect(urlFonte).toBe(`/api/lavori/${LAVORO_ID}/prescrizione/fonte`)
     expect(optFonte.method).toBe('POST')
     const corpo = JSON.parse(optFonte.body as string)
@@ -172,7 +191,6 @@ describe('T9 ② — «Dalla galleria o un PDF»', () => {
 
   it('un’immagine → fonte_tipo "foglio"', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce(okImmagine())
     m.mockResolvedValueOnce(okFonte({ fonte_tipo: 'foglio', fonte_immagine_id: IMG_ID, fonte_riferimento: null }))
 
     monta()
@@ -183,13 +201,12 @@ describe('T9 ② — «Dalla galleria o un PDF»', () => {
         new File(['x'], 'foto.png', { type: 'image/png' })
       )
 
-    await waitFor(() => expect(m).toHaveBeenCalledTimes(2))
-    expect(JSON.parse(m.mock.calls[1][1].body as string).fonte_tipo).toBe('foglio')
+    await waitFor(() => expect(m).toHaveBeenCalledTimes(1))
+    expect(JSON.parse(m.mock.calls[0][1].body as string).fonte_tipo).toBe('foglio')
   })
 
   it('un PDF → fonte_tipo "modulo" (il tipo si deduce dal gesto, mai da una domanda)', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce(okImmagine())
     m.mockResolvedValueOnce(okFonte({ fonte_tipo: 'modulo', fonte_immagine_id: IMG_ID, fonte_riferimento: null }))
 
     const { onFonte } = monta()
@@ -200,8 +217,8 @@ describe('T9 ② — «Dalla galleria o un PDF»', () => {
         new File(['x'], 'modulo.pdf', { type: 'application/pdf' })
       )
 
-    await waitFor(() => expect(m).toHaveBeenCalledTimes(2))
-    const corpo = JSON.parse(m.mock.calls[1][1].body as string)
+    await waitFor(() => expect(m).toHaveBeenCalledTimes(1))
+    const corpo = JSON.parse(m.mock.calls[0][1].body as string)
     expect(corpo.fonte_tipo).toBe('modulo')
     expect(isFonteTipo(corpo.fonte_tipo)).toBe(true)
     await waitFor(() => expect(onFonte).toHaveBeenCalledWith({ tipo: 'modulo', immagineId: IMG_ID, riferimento: null }))
@@ -311,7 +328,7 @@ describe('T9 ③ — «Non ce l’ho ancora qui»', () => {
 describe('T9 — quando qualcosa non riesce', () => {
   it('upload fallito → frase piana, il foglio RESTA aperto, nessuna chiamata alla fonte', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'boom' }) })
+    caricaMock.mockRejectedValueOnce(new ErroreCaricamento('Il caricamento non è riuscito.', 500))
 
     const { onChiudi, onFonte } = monta()
     await userEvent
@@ -323,7 +340,11 @@ describe('T9 — quando qualcosa non riesce', () => {
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByText('Non sono riuscita a salvare la prescrizione. Riprova.')).toBeInTheDocument()
-    expect(m).toHaveBeenCalledTimes(1)
+    // 🔑 NESSUNA chiamata alla rotta della fonte: se il file non è salito, un
+    //    collegamento a un'immagine che non esiste sarebbe una riga che punta
+    //    al nulla. Prima il caricamento era una fetch e questa era «1»; ora è
+    //    il modulo del caricamento diretto, e la fetch resta a zero.
+    expect(m).not.toHaveBeenCalled()
     expect(onFonte).not.toHaveBeenCalled()
     expect(onChiudi).not.toHaveBeenCalled()
   })
@@ -340,12 +361,7 @@ describe('T9 — quando qualcosa non riesce', () => {
   //    non superava. Adesso il controllo scatta prima di partire (test sotto)
   //    e questo 413 è solo la rete, con il numero VERO.
   it('413 dal server → la frase porta il limite vero, mai il vecchio 20MB', async () => {
-    const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce({
-      ok: false,
-      status: 413,
-      json: async () => ({ error: 'File troppo grande (max 20MB)' }),
-    })
+    caricaMock.mockRejectedValueOnce(new ErroreCaricamento('File troppo grande', 413))
 
     const { onFonte } = monta()
     await userEvent
@@ -356,7 +372,7 @@ describe('T9 — quando qualcosa non riesce', () => {
       )
 
     const avviso = await screen.findByRole('alert')
-    expect(avviso).toHaveTextContent('Questo file supera il massimo di 4MB: scegline uno più leggero.')
+    expect(avviso).toHaveTextContent('Questo file supera il massimo di 50MB: scegline uno più leggero.')
     expect(avviso).not.toHaveTextContent(/20MB/)
     expect(onFonte).not.toHaveBeenCalled()
   })
@@ -372,21 +388,17 @@ describe('T9 — quando qualcosa non riesce', () => {
       .setup()
       .upload(
         foglio().getByLabelText('Scatta la foto della prescrizione'),
-        new File([new Uint8Array(6 * 1024 * 1024)], 'presc.jpg', { type: 'image/jpeg' })
+        fileDaByte('presc.jpg', 'image/jpeg', 62 * 1024 * 1024)
       )
     const avviso = await screen.findByRole('alert')
-    expect(avviso).toHaveTextContent(/6,0 MB/)
-    expect(avviso).toHaveTextContent(/4MB/)
+    expect(avviso).toHaveTextContent(/62,0 MB/)
+    expect(avviso).toHaveTextContent(/50MB/)
     expect(m).not.toHaveBeenCalled()
+    expect(caricaMock).not.toHaveBeenCalled()
   })
 
   it('formato non supportato (415) → frase che dice i formati accettati, non "Riprova"', async () => {
-    const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce({
-      ok: false,
-      status: 415,
-      json: async () => ({ error: 'Tipo file non consentito: image/tiff' }),
-    })
+    caricaMock.mockRejectedValueOnce(new ErroreCaricamento('Tipo file non consentito: image/tiff', 415))
 
     const { onFonte } = monta()
     await userEvent
@@ -405,7 +417,6 @@ describe('T9 — quando qualcosa non riesce', () => {
 
   it('foto salvata ma fonte rifiutata → si dice ENTRAMBE le cose (la foto c’è, il collegamento no)', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce(okImmagine())
     m.mockResolvedValueOnce({
       ok: false,
       status: 422,
@@ -490,9 +501,13 @@ describe('T9 — quando qualcosa non riesce', () => {
     expect(onChiudi).not.toHaveBeenCalled()
   })
 
-  it('la rotta immagini risponde 201 ma senza id → non si inventa un uuid, si dice che non è riuscita', async () => {
+  it('il caricamento non restituisce una riga → non si inventa un uuid, si dice che non è riuscita', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({}) })
+    // 🔑 Il modulo del caricamento solleva già se la conferma non torna con
+    //    l'immagine: qui si prova che il foglio NON prosegue lo stesso — senza,
+    //    la rotta fonte riceverebbe un uuid inventato e risponderebbe 422 con
+    //    un errore che non spiega niente.
+    caricaMock.mockRejectedValueOnce(new ErroreCaricamento('Risposta del server non valida.'))
 
     const { onFonte } = monta()
     await userEvent
@@ -503,7 +518,7 @@ describe('T9 — quando qualcosa non riesce', () => {
       )
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
-    expect(m).toHaveBeenCalledTimes(1)
+    expect(m).not.toHaveBeenCalled()
     expect(onFonte).not.toHaveBeenCalled()
   })
 })

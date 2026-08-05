@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import type { LavoroImmagine } from '@/types/domain'
 import { comprimiSePossibile } from '@/lib/storage/compressione-immagine'
 import { troppoGrande } from '@/lib/storage/limite-caricamento'
+import { caricaImmagineDiretta } from '@/lib/storage/carica-diretto-client'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
 // `suona` non si importa più qui: il suono dell'errore lo fa `errore()` del DS
 // (§5.18) — averlo in due posti darebbe due suoni sullo stesso fatto.
@@ -196,7 +197,9 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
     anteprime: [],
   })
 
-  // Upload singolo file con XHR (per progress)
+  // Il caricamento, ora in tre passi: permesso → byte al magazzino → conferma.
+  // 🔑 I byte NON passano più dalla funzione, ed è tutta la differenza: lì il
+  //    tetto è ~4,2MB e non si compra, qui è quello del magazzino (50MB).
   const uploadFile = useCallback(
     async (file: File, localId: string, categoria: CategoriaFoto) => {
       try {
@@ -214,62 +217,36 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         //    Senza, un modulo scansionato da 6MB partiva, la piattaforma lo
         //    tagliava prima dell'applicazione (~4,2MB), la risposta non era
         //    JSON e l'utente leggeva «Upload fallito: 413».
+        // 📌 Il tetto ora è quello del corridoio DIRETTO (50MB, il limite vero
+        //    del bucket): da qui i byte non passano più dalla funzione. Il
+        //    server lo riapplica comunque — due volte, perché il controllo del
+        //    client serve a non spendere byte, non a proteggere.
         const natura = fileToUpload.type.startsWith('image/') ? 'immagine' : 'documento'
-        const tropo = troppoGrande(fileToUpload, { natura })
+        const tropo = troppoGrande(fileToUpload, { natura, corridoio: 'diretto' })
         if (tropo) {
           throw new Error(tropo)
         }
 
-        const formData = new FormData()
-        formData.append('file', fileToUpload)
-        formData.append('categoria', categoria)
-
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest()
-
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const pct = Math.min(Math.round((e.loaded / e.total) * 100), 99)
-              setFotoLocali((prev) =>
-                prev.map((f) => (f.id === localId ? { ...f, progress: pct } : f))
-              )
-            }
-          }
-
-          xhr.onload = async () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const json = JSON.parse(xhr.responseText)
-                if (json.immagine) {
-                  onAdd(json.immagine as LavoroImmagine)
-                  // La foto locale sparisce: quella vera arriva già dentro
-                  // `immagini` (via `onAdd`), e tenerle entrambe raddoppierebbe
-                  // sia il conteggio sia il render.
-                  setFotoLocali((prev) => {
-                    const locale = prev.find((f) => f.id === localId)
-                    if (locale) URL.revokeObjectURL(locale.previewUrl)
-                    return prev.filter((f) => f.id !== localId)
-                  })
-                  vibra('success')
-                }
-                resolve()
-              } catch {
-                reject(new Error('Risposta non valida'))
-              }
-            } else {
-              try {
-                const json = JSON.parse(xhr.responseText)
-                reject(new Error(json.error ?? `Upload fallito: ${xhr.status}`))
-              } catch {
-                reject(new Error(`Upload fallito: ${xhr.status}`))
-              }
-            }
-          }
-
-          xhr.onerror = () => reject(new Error('Errore di rete'))
-          xhr.open('POST', `/api/lavori/${lavoro_id}/immagini`)
-          xhr.send(formData)
+        const immagine = await caricaImmagineDiretta({
+          lavoroId: lavoro_id,
+          file: fileToUpload,
+          categoria,
+          onProgress: (percento) => {
+            setFotoLocali((prev) =>
+              prev.map((f) => (f.id === localId ? { ...f, progress: percento } : f))
+            )
+          },
         })
+
+        onAdd(immagine)
+        // La foto locale sparisce: quella vera arriva già dentro `immagini`
+        // (via `onAdd`), e tenerle entrambe raddoppierebbe conteggio e render.
+        setFotoLocali((prev) => {
+          const locale = prev.find((f) => f.id === localId)
+          if (locale) URL.revokeObjectURL(locale.previewUrl)
+          return prev.filter((f) => f.id !== localId)
+        })
+        vibra('success')
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Upload fallito'
         setFotoLocali((prev) =>

@@ -53,6 +53,11 @@ vi.mock('browser-image-compression', () => ({
   default: comprimiMock,
 }))
 
+const { caricaMock } = vi.hoisted(() => ({ caricaMock: vi.fn() }))
+vi.mock('@/lib/storage/carica-diretto-client', () => ({
+  caricaImmagineDiretta: caricaMock,
+}))
+
 // ─── Mock: haptic/sound v3 — stessa convenzione di FoglioCategoria.test.tsx ─
 const vibraMock = vi.fn()
 const suonaMock = vi.fn()
@@ -114,56 +119,34 @@ vi.mock('@/components/ds/FoglioCategoria', () => ({
 import { TabImmagini } from '@/components/features/lavori/form/TabImmagini'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 
-// ─── FakeXHR — XMLHttpRequest non esiste altrimenti in jsdom per l'upload ──
-class FakeXHR {
-  static instances: FakeXHR[] = []
-  upload: { onprogress: ((e: ProgressEvent) => void) | null } = { onprogress: null }
-  onload: (() => void | Promise<void>) | null = null
-  onerror: (() => void) | null = null
-  status = 0
-  responseText = ''
-  method = ''
-  url = ''
-  body: FormData | null = null
+// ─── Il doppio del caricamento diretto (T4) ─────────────────────────────────
+// 🔑 Da T4 questo componente non parla più con `POST …/immagini` via XHR: usa
+//    `caricaImmagineDiretta`, che fa i tre passi (permesso → byte al magazzino
+//    → conferma) ed è provata a sé in `carica-diretto-client.test.ts`, contro
+//    una forma di richiesta MISURATA sul magazzino vero. Qui si mocka per
+//    isolare il comportamento del COMPONENTE: che cosa manda, che cosa mostra
+//    mentre aspetta, e che cosa fa quando arriva un no.
+// Ogni chiamata resta SOSPESA finché la prova non decide come va a finire —
+// è il modo di provare gli stati intermedi (avanzamento, errore su una foto
+// sola fra tre).
+interface CaricamentoSospeso {
+  args: { lavoroId: string; file: File; categoria: string; onProgress?: (n: number) => void }
+  risolvi: (img: LavoroImmagine) => void
+  rifiuta: (e: Error) => void
+}
+const sospesi: CaricamentoSospeso[] = []
 
-  constructor() {
-    FakeXHR.instances.push(this)
-  }
-  open(method: string, url: string) {
-    this.method = method
-    this.url = url
-  }
-  send(body: FormData) {
-    this.body = body
-  }
+function ultimoCaricamento(): CaricamentoSospeso {
+  const c = sospesi[sospesi.length - 1]
+  if (!c) throw new Error('nessun caricamento avviato: il file non è mai partito')
+  return c
 }
 
-function ultimaXHR(): FakeXHR {
-  const x = FakeXHR.instances[FakeXHR.instances.length - 1]
-  if (!x) throw new Error('nessuna XHR registrata: l\'upload non è partito')
-  return x
+async function simulaSuccesso(c: CaricamentoSospeso, immagine: LavoroImmagine) {
+  await act(async () => { c.risolvi(immagine) })
 }
-
-async function simulaSuccesso(xhr: FakeXHR, immagine: LavoroImmagine) {
-  await act(async () => {
-    xhr.status = 201
-    xhr.responseText = JSON.stringify({ immagine })
-    await xhr.onload?.()
-  })
-}
-
-async function simulaErrore(xhr: FakeXHR, status: number, error: string) {
-  await act(async () => {
-    xhr.status = status
-    xhr.responseText = JSON.stringify({ error })
-    await xhr.onload?.()
-  })
-}
-
-async function simulaErroreRete(xhr: FakeXHR) {
-  await act(async () => {
-    xhr.onerror?.()
-  })
+async function simulaErrore(c: CaricamentoSospeso, messaggio: string) {
+  await act(async () => { c.rifiuta(new Error(messaggio)) })
 }
 
 function immagineDb(overrides: Partial<LavoroImmagine> = {}): LavoroImmagine {
@@ -236,13 +219,16 @@ function fileDaByte(nome: string, tipo: string, byte: number): File {
 const MB = 1024 * 1024
 
 beforeEach(() => {
-  FakeXHR.instances = []
+  sospesi.length = 0
+  caricaMock.mockClear()
+  caricaMock.mockImplementation((args: CaricamentoSospeso['args']) =>
+    new Promise<LavoroImmagine>((risolvi, rifiuta) => { sospesi.push({ args, risolvi, rifiuta }) })
+  )
   foglioCalls.length = 0
   vibraMock.mockClear()
   suonaMock.mockClear()
   comprimiMock.mockClear()
   comprimiMock.mockImplementation(async (file: File) => file)
-  vi.stubGlobal('XMLHttpRequest', FakeXHR)
   // jsdom non implementa affatto questi due (verificato: `undefined`, non un
   // no-op) — senza lo stub `handleFiles` esplode sul PRIMO file.
   vi.stubGlobal('URL', Object.assign(URL, {
@@ -264,7 +250,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       const { container } = render(<Harness />)
       await utente.upload(inputGalleria(container), [])
       expect(screen.queryByRole('dialog')).toBeNull()
-      expect(FakeXHR.instances).toHaveLength(0)
+      expect(sospesi).toHaveLength(0)
     })
 
     it('una foto sola: il foglio chiede quante=1', async () => {
@@ -288,9 +274,9 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
 
       await utente.click(screen.getByText('scegli-colore'))
 
-      expect(FakeXHR.instances).toHaveLength(2)
-      expect(FakeXHR.instances[0].body?.get('categoria')).toBe('colore')
-      expect(FakeXHR.instances[1].body?.get('categoria')).toBe('colore')
+      expect(sospesi).toHaveLength(2)
+      expect(sospesi[0].args.categoria).toBe('colore')
+      expect(sospesi[1].args.categoria).toBe('colore')
     })
 
     it('un PDF: si rende come tessera documento, MAI un <img> — in upload e da banca dati', async () => {
@@ -308,7 +294,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       // (il locale è sparito, la tessera viene da `storage_path` che finisce
       // per `.pdf`).
       await simulaSuccesso(
-        ultimaXHR(),
+        ultimoCaricamento(),
         immagineDb({ storage_path: 'lab-1/lavori/lav-1/9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d.pdf', nome_file: 'referto.pdf', categoria: 'colore' })
       )
       expect(container.querySelectorAll('img')).toHaveLength(0)
@@ -322,7 +308,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), file)
       await utente.click(screen.getByText('scegli-colore'))
 
-      await simulaErrore(ultimaXHR(), 415, 'Tipo file non consentito: image/jpeg')
+      await simulaErrore(ultimoCaricamento(), 'Tipo file non consentito: image/jpeg')
 
       expect(screen.getByRole('alert')).toBeTruthy()
       expect(vibraMock).toHaveBeenCalledWith('error')
@@ -344,7 +330,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), file)
       await utente.click(screen.getByText('scegli-colore'))
 
-      await simulaErroreRete(ultimaXHR())
+      await simulaErrore(ultimoCaricamento(), 'Errore di rete durante il caricamento.')
 
       expect(screen.getByRole('alert')).toBeTruthy()
       expect(vibraMock).toHaveBeenCalledWith('error')
@@ -357,23 +343,27 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), file)
       await utente.click(screen.getByText('esci-senza-scegliere'))
 
-      expect(FakeXHR.instances).toHaveLength(1)
-      expect(FakeXHR.instances[0].body?.get('categoria')).toBe('altro')
+      expect(sospesi).toHaveLength(1)
+      expect(sospesi[0].args.categoria).toBe('altro')
     })
   })
 
   // ══ D81 — IL CAMPO SPEDITO ═══════════════════════════════════════════════
   describe('il campo spedito alla POST', () => {
-    it('porta `categoria`, MAI `descrizione` — ogni caricamento riceveva 422 fino a qui', async () => {
+    it('porta `categoria` scelta dall\'utente, e il lavoro giusto', async () => {
+      // 🔑 Nel corridoio vecchio questo era un campo del FormData, e per un
+      //    periodo il componente spediva `descrizione` al posto di `categoria`:
+      //    OGNI caricamento riceveva 422. Ora è un argomento di funzione, che
+      //    il compilatore stesso protegge — ma l'asserzione resta, perché il
+      //    VALORE (quello che l'utente ha scelto) nessun compilatore lo vede.
       const utente = userEvent.setup()
       const { container } = render(<Harness />)
       const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
       await utente.upload(inputGalleria(container), file)
       await utente.click(screen.getByText('scegli-rx'))
 
-      const body = ultimaXHR().body
-      expect(body?.get('categoria')).toBe('rx')
-      expect(body?.get('descrizione')).toBeNull()
+      expect(sospesi[0].args.categoria).toBe('rx')
+      expect(sospesi[0].args.lavoroId).toBe('lav-1')
     })
   })
 
@@ -387,7 +377,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), file)
       await utente.click(screen.getByText('scegli-colore'))
 
-      await simulaSuccesso(ultimaXHR(), immagineDb({ nome_file: 'foto.jpg' }))
+      await simulaSuccesso(ultimoCaricamento(), immagineDb({ nome_file: 'foto.jpg' }))
 
       expect(onAddSpy).toHaveBeenCalledTimes(1)
       // Un solo <img> nell'intero componente: non uno locale + uno da DB.
@@ -412,9 +402,9 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), files)
       await utente.click(screen.getByText('scegli-colore'))
 
-      expect(FakeXHR.instances).toHaveLength(3)
-      for (const xhr of FakeXHR.instances) {
-        await simulaSuccesso(xhr, immagineDb())
+      expect(sospesi).toHaveLength(3)
+      for (const c of [...sospesi]) {
+        await simulaSuccesso(c, immagineDb())
       }
 
       expect(screen.queryByRole('button', { name: /vista lista|vista griglia/i })).toBeNull()
@@ -488,31 +478,38 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
   // continuare) · immagine che resta sopra anche dopo · più file di cui uno
   // solo troppo pesante.
   describe('il peso si controlla PRIMA di spendere un byte', () => {
-    it('un PDF da 6MB non parte affatto, e la frase dice il peso vero', async () => {
+    it('un PDF da 62MB non parte affatto, e la frase dice il peso vero', async () => {
+      // 📌 Il numero è cambiato con T4, e il cambiamento È il lavoro: prima il
+      //    tetto era 4MB (il muro della piattaforma), ora è quello del
+      //    magazzino. Un modulo scansionato da 6MB — il caso che generava
+      //    «Upload fallito: 413» — oggi passa: c'è una prova apposta, qui sotto.
       const utente = userEvent.setup()
       const { container } = render(<Harness />)
-      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 6 * MB))
+      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 62 * MB))
       await utente.click(screen.getByText('scegli-altro'))
 
       // Nessun viaggio: il file non è mai partito.
-      expect(FakeXHR.instances).toHaveLength(0)
+      expect(sospesi).toHaveLength(0)
 
       // E la frase si LEGGE — non è solo un aria-label su un triangolino.
       const avviso = await screen.findByRole('alert')
-      expect(avviso.textContent).toContain('6,0 MB')
-      expect(avviso.textContent).toContain('4MB')
+      expect(avviso.textContent).toContain('62,0 MB')
+      expect(avviso.textContent).toContain('50MB')
       // 🛑 A un PDF non si dice «scattala di nuovo»: non c'è niente da riscattare.
       expect(avviso.textContent).not.toContain('scattala')
       expect(vibraMock).toHaveBeenCalledWith('error')
     })
 
-    it('un PDF sotto il limite parte come sempre', async () => {
+    it('🔑 IL CASO CHE HA GENERATO TUTTO: un modulo scansionato da 6MB ORA PASSA', async () => {
+      // Prima di oggi: partiva, la piattaforma lo tagliava a metà strada, la
+      // risposta non era JSON, e l'utente leggeva «Upload fallito: 413».
       const utente = userEvent.setup()
       const { container } = render(<Harness />)
-      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 2 * MB))
+      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 6 * MB))
       await utente.click(screen.getByText('scegli-altro'))
 
-      expect(FakeXHR.instances).toHaveLength(1)
+      expect(sospesi).toHaveLength(1)
+      expect(screen.queryByRole('alert')).toBeNull()
     })
 
     it('NON-REGRESSIONE: una foto da 6MB che la compressione porta a 0,4MB parte lo stesso', async () => {
@@ -527,7 +524,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.upload(inputGalleria(container), fileDaByte('foto.jpg', 'image/jpeg', 6 * MB))
       await utente.click(screen.getByText('scegli-impronta'))
 
-      expect(FakeXHR.instances).toHaveLength(1)
+      expect(sospesi).toHaveLength(1)
       expect(screen.queryByRole('alert')).toBeNull()
     })
 
@@ -536,14 +533,14 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       const { container } = render(<Harness />)
       // La libreria ha un tetto ma non lo garantisce: se non riesce a
       // scendere restituisce ciò che ha ottenuto.
-      comprimiMock.mockResolvedValueOnce(fileDaByte('enorme.jpg', 'image/jpeg', 5 * MB))
+      comprimiMock.mockResolvedValueOnce(fileDaByte('enorme.jpg', 'image/jpeg', 55 * MB))
 
-      await utente.upload(inputGalleria(container), fileDaByte('enorme.jpg', 'image/jpeg', 9 * MB))
+      await utente.upload(inputGalleria(container), fileDaByte('enorme.jpg', 'image/jpeg', 90 * MB))
       await utente.click(screen.getByText('scegli-impronta'))
 
-      expect(FakeXHR.instances).toHaveLength(0)
+      expect(sospesi).toHaveLength(0)
       const avviso = await screen.findByRole('alert')
-      expect(avviso.textContent).toContain('5,0 MB')
+      expect(avviso.textContent).toContain('55,0 MB')
     })
 
     it('fra tre file, solo quello troppo pesante si ferma: gli altri due partono', async () => {
@@ -553,12 +550,12 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
 
       await utente.upload(inputGalleria(container), [
         fileDaByte('a.pdf', 'application/pdf', 1 * MB),
-        fileDaByte('troppo.pdf', 'application/pdf', 7 * MB),
+        fileDaByte('troppo.pdf', 'application/pdf', 70 * MB),
         fileDaByte('c.pdf', 'application/pdf', 1 * MB),
       ])
       await utente.click(screen.getByText('scegli-altro'))
 
-      expect(FakeXHR.instances).toHaveLength(2)
+      expect(sospesi).toHaveLength(2)
       const avviso = await screen.findByRole('alert')
       // La frase dice DI QUALE file parla: con tre carte uguali, senza il nome
       // l'utente non sa quale togliere.
@@ -596,7 +593,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       await utente.click(screen.getByText('scegli-altro'))
 
       expect(comprimiMock).not.toHaveBeenCalled()
-      expect(FakeXHR.instances).toHaveLength(1)
+      expect(sospesi).toHaveLength(1)
     })
   })
 

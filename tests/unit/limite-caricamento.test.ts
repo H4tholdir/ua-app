@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_DIRETTO_BYTES,
+  MAX_UPLOAD_DIRETTO_ETICHETTA,
   MAX_UPLOAD_ETICHETTA,
   pesoLeggibile,
   troppoGrande,
@@ -72,6 +74,42 @@ describe('il limite di caricamento (M3-T39-6)', () => {
     it('un documento sotto il limite passa comunque: la natura cambia la frase, mai la soglia', () => {
       expect(troppoGrande({ size: MAX_UPLOAD_BYTES }, { natura: 'documento' })).toBeNull()
       expect(troppoGrande({ size: MAX_UPLOAD_BYTES + 1 }, { natura: 'documento' })).not.toBeNull()
+    })
+  })
+
+  // ══ I DUE CORRIDOI (T5) ═══════════════════════════════════════════════════
+  // 🛑 I tetti sono due e non diventeranno uno: il file che passa dalla
+  // funzione trova il muro della piattaforma (~4,2MB, non comprabile), quello
+  // che va dritto al magazzino trova solo il tetto del bucket. Un numero solo
+  // per due strade diverse è esattamente il difetto del 05/08 (20MB dichiarati
+  // contro 4,2 veri), e non si ripete.
+  describe('i due corridoi hanno due tetti', () => {
+    const DODICI_MB = 12 * 1024 * 1024
+
+    it('12MB: la funzione lo rifiuta, il corridoio diretto lo accetta', () => {
+      expect(troppoGrande({ size: DODICI_MB })).not.toBeNull()
+      expect(troppoGrande({ size: DODICI_MB }, { corridoio: 'diretto' })).toBeNull()
+    })
+
+    it('il tetto del corridoio diretto è quello VERO del bucket, misurato', () => {
+      // `SELECT file_size_limit FROM storage.buckets WHERE id='documenti'`
+      //   → 52428800. Se il nostro controllo fosse più largo, il rifiuto
+      //   arriverebbe alla FINE di un caricamento da decine di MB.
+      expect(MAX_UPLOAD_DIRETTO_BYTES).toBe(52428800)
+      expect(`${MAX_UPLOAD_DIRETTO_BYTES / (1024 * 1024)}MB`).toBe(MAX_UPLOAD_DIRETTO_ETICHETTA)
+    })
+
+    it('oltre 50MB nemmeno il corridoio diretto passa, e la frase dice 50MB', () => {
+      const frase = troppoGrande({ size: 62 * 1024 * 1024 }, { corridoio: 'diretto' })
+      expect(frase).toContain('62,0 MB')
+      expect(frase).toContain('50MB')
+      expect(frase).not.toContain('4MB')
+    })
+
+    it('🛑 senza dire il corridoio vale il tetto PIÙ STRETTO — si sbaglia dalla parte giusta', () => {
+      // Dimenticare il parametro deve dare «rifiuta un file che sarebbe
+      // passato», mai «lascia partire un file che verrà tagliato a metà».
+      expect(troppoGrande({ size: DODICI_MB })).not.toBeNull()
     })
   })
 })

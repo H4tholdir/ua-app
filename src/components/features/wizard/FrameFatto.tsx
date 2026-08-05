@@ -59,6 +59,7 @@ import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 import { troppoGrande } from '@/lib/storage/limite-caricamento'
+import { caricaImmagineDiretta, ErroreCaricamento } from '@/lib/storage/carica-diretto-client'
 import { mappaElementi, type AccessorioFallito } from '@/lib/wizard/crea-lavoro'
 import type { ColoreOrigine } from './WizardNuovoLavoro'
 import { CambiaDataSheet } from './CambiaDataSheet'
@@ -300,15 +301,16 @@ export function FrameFatto(props: {
     // risponde un 413 grezzo che qui diventava «Non sono riuscita a salvare la
     // foto. Riprova.» — un ciclo chiuso: riprovare con lo stesso file dà lo
     // stesso esito. Si controlla prima, e si dice cosa cambiare.
-    const tropo = troppoGrande(file)
+    // 📌 Il tetto ora è quello del corridoio DIRETTO (50MB, il limite vero del
+    //    magazzino): da T4 i byte non passano più dalla funzione, e il muro dei
+    //    ~4,2MB della piattaforma non li incontra nemmeno.
+    const tropo = troppoGrande(file, { corridoio: 'diretto' })
     if (tropo) {
       errore(tropo)
       return
     }
     setCaricandoFoto(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
       // La rotta pretende `categoria` (una delle sette di `categorie-foto.ts`,
       // validata con `isCategoriaFoto`), non più `descrizione` — rifiuta con
       // 422 chi manda il campo vecchio.
@@ -328,26 +330,22 @@ export function FrameFatto(props: {
       //    il testo del tasto (che si legge), l'`aria-label` dell'input (che si
       //    ascolta) e questo valore (che si salva). Cambiarne una sola avrebbe
       //    lasciato in piedi lo stesso difetto, detto più piano.
-      fd.append('categoria', 'impronta')
-      const res = await fetch(`/api/lavori/${lavoro.id}/immagini`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body: fd,
+      await caricaImmagineDiretta({
+        lavoroId: lavoro.id,
+        file,
+        categoria: 'impronta',
       })
-      if (!res.ok) {
-        // Rete: se il 413 arriva lo stesso (il limite è sul CORPO, e il
-        // multipart aggiunge il suo), non si dice «riprova» su un file che
-        // verrà rifiutato identico.
-        errore(
-          res.status === 413
-            ? 'Questa foto è troppo pesante per essere caricata: scattala di nuovo più da vicino, o scegline una più leggera.'
-            : 'Non sono riuscita a salvare la foto. Riprova.'
-        )
-      } else {
-        avvisa('Foto salvata ✓')
-      }
-    } catch {
-      errore('Non sono riuscita a salvare la foto. Riprova.')
+      avvisa('Foto salvata ✓')
+    } catch (err) {
+      // 🔑 La frase del server, quando c'è, dice cosa cambiare («pesa 62,0 MB e
+      //    il massimo è 50MB»); la generica dice solo che è andata male. Il
+      //    modulo del caricamento porta già quella del server dentro
+      //    `ErroreCaricamento`.
+      errore(
+        err instanceof ErroreCaricamento
+          ? err.message
+          : 'Non sono riuscita a salvare la foto. Riprova.'
+      )
     } finally {
       setCaricandoFoto(false)
     }

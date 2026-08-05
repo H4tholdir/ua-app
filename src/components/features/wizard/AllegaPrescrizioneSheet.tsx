@@ -60,7 +60,8 @@ import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { CampoTesto } from '@/components/ds/Campo'
 import { useAvvisi } from '@/components/ds/Avviso'
-import { MAX_UPLOAD_ETICHETTA, troppoGrande } from '@/lib/storage/limite-caricamento'
+import { MAX_UPLOAD_DIRETTO_ETICHETTA, troppoGrande } from '@/lib/storage/limite-caricamento'
+import { caricaImmagineDiretta, ErroreCaricamento } from '@/lib/storage/carica-diretto-client'
 import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
 // 🛑 Il dizionario si IMPORTA, mai si riscrive: è la stessa costante che la
 // rotta usa per rifiutare con 422 (`fonte/route.ts:78`), ed è sorvegliata
@@ -134,7 +135,7 @@ function fraseErroreImmagine(status: number): string {
     //    foto da 6MB leggeva un numero che il suo file non superava, e riprovava
     //    con lo stesso file. Ora il controllo scatta PRIMA di partire e questa
     //    frase è solo la rete: la si legge se il 413 arriva lo stesso.
-    return `Questo file supera il massimo di ${MAX_UPLOAD_ETICHETTA}: scegline uno più leggero.`
+    return `Questo file supera il massimo di ${MAX_UPLOAD_DIRETTO_ETICHETTA}: scegline uno più leggero.`
   }
   if (status === 415) {
     return 'Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.'
@@ -223,39 +224,37 @@ export function AllegaPrescrizioneSheet(props: {
     // Prima di spendere un byte: oltre il limite la richiesta non arriva nemmeno
     // all'applicazione, e su rete mobile l'utente avrebbe aspettato decine di
     // secondi per un rifiuto già deciso in partenza.
-    const tropo = troppoGrande(file)
+    // 📌 Tetto del corridoio DIRETTO (50MB): da T4 i byte vanno dritti al
+    //    magazzino. ⚖️ E questo file **non si comprime mai** (D237): è il
+    //    documento su cui si appoggia la Dichiarazione di Conformità.
+    const tropo = troppoGrande(file, { corridoio: 'diretto' })
     if (tropo) {
       errore(tropo)
       return
     }
     setInCorso(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
       // D91/D97 — la prescrizione ha la sua categoria da quando è una colonna:
       // qui non è un ripiego, è letteralmente ciò che la foto ritrae.
-      fd.append('categoria', 'prescrizione')
-      const res = await fetch(`/api/lavori/${lavoroId}/immagini`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body: fd,
-      })
-      if (!res.ok) {
-        errore(fraseErroreImmagine(res.status))
-        return
-      }
       // 🛑 L'id NON si inventa: senza, la rotta fonte risponderebbe 422 su un
-      //    uuid malformato (`fonte/route.ts:90`) e l'utente leggerebbe un
-      //    errore che non spiega niente. Meglio fermarsi qui e dirlo.
-      let immagineId: string | null = null
+      //    uuid malformato e l'utente leggerebbe un errore che non spiega
+      //    niente. Il modulo del caricamento solleva se la riga non torna.
+      let immagineId: string
       try {
-        const dati = (await res.json()) as { immagine?: { id?: unknown } } | null
-        if (typeof dati?.immagine?.id === 'string') immagineId = dati.immagine.id
-      } catch {
-        immagineId = null
-      }
-      if (!immagineId) {
-        errore('Non sono riuscita a salvare la prescrizione. Riprova.')
+        const immagine = await caricaImmagineDiretta({
+          lavoroId,
+          file,
+          categoria: 'prescrizione',
+        })
+        immagineId = immagine.id
+      } catch (err) {
+        errore(
+          err instanceof ErroreCaricamento && err.stato
+            ? fraseErroreImmagine(err.stato)
+            : err instanceof ErroreCaricamento
+              ? err.message
+              : 'Non sono riuscita a salvare la prescrizione. Riprova.'
+        )
         return
       }
 

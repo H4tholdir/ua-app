@@ -95,6 +95,20 @@ export function pesoLeggibile(byte: number): string {
 export type NaturaFile = 'immagine' | 'documento'
 
 /**
+ * Per quale strada passa questo file (T5).
+ *
+ * 🛑 **Il parametro esiste perché i tetti sono due, e non diventeranno uno.**
+ *    `funzione` = il file passa dalla funzione e trova il tetto della
+ *    piattaforma (~4,2 MB, non comprabile). `diretto` = il file va dritto al
+ *    magazzino e trova solo il tetto del bucket (50 MB).
+ *    Chi chiama **deve dire da dove passa**: il valore predefinito è
+ *    `funzione`, cioè il più stretto — se un giorno qualcuno dimenticasse di
+ *    dichiararlo, l'errore sarebbe «rifiuta un file che sarebbe passato», mai
+ *    «lascia partire un file che verrà tagliato a metà strada».
+ */
+export type Corridoio = 'funzione' | 'diretto'
+
+/**
  * Il controllo PRIMA di partire: se il file è troppo grande restituisce la frase
  * da mostrare, altrimenti `null`.
  *
@@ -110,10 +124,14 @@ export type NaturaFile = 'immagine' | 'documento'
  */
 export function troppoGrande(
   file: { size: number },
-  opzioni?: { natura?: NaturaFile },
+  opzioni?: { natura?: NaturaFile; corridoio?: Corridoio },
 ): string | null {
-  if (file.size <= MAX_UPLOAD_BYTES) return null
-  const peso = `${pesoLeggibile(file.size)} e il massimo è ${MAX_UPLOAD_ETICHETTA}`
+  const diretto = opzioni?.corridoio === 'diretto'
+  const tetto = diretto ? MAX_UPLOAD_DIRETTO_BYTES : MAX_UPLOAD_BYTES
+  const etichetta = diretto ? MAX_UPLOAD_DIRETTO_ETICHETTA : MAX_UPLOAD_ETICHETTA
+
+  if (file.size <= tetto) return null
+  const peso = `${pesoLeggibile(file.size)} e il massimo è ${etichetta}`
   if (opzioni?.natura === 'documento') {
     return `Questo documento pesa ${peso}: allegane uno più leggero.`
   }

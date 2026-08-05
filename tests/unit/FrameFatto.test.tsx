@@ -11,6 +11,16 @@ import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
+// T4 — il caricamento non è più una POST multipart da qui: passa dal modulo
+// del caricamento diretto (permesso → byte al magazzino → conferma), provato a
+// sé contro una forma di richiesta MISURATA sul magazzino vero. Qui si mocka
+// per isolare il comportamento del COMPONENTE.
+const { caricaMock } = vi.hoisted(() => ({ caricaMock: vi.fn() }))
+vi.mock('@/lib/storage/carica-diretto-client', async (originale) => {
+  const vero = await originale<typeof import('@/lib/storage/carica-diretto-client')>()
+  return { caricaImmagineDiretta: caricaMock, ErroreCaricamento: vero.ErroreCaricamento }
+})
+
 vi.mock('@/design-system/v3/sound', () => ({
   suona: (nome: string) => suonaMock(nome),
 }))
@@ -65,6 +75,8 @@ function renderFatto(overrides: Partial<Parameters<typeof FrameFatto>[0]> = {}) 
 beforeEach(() => {
   suonaMock.mockClear()
   vibraMock.mockClear()
+  caricaMock.mockClear()
+  caricaMock.mockResolvedValue({ id: 'img-default' })
   vi.stubGlobal('fetch', vi.fn())
 })
 afterEach(() => {
@@ -312,9 +324,8 @@ describe('FrameFatto — la foto dell’impronta (l’input che era «impronta e
   // essere quello che dice di essere: l'IMPRONTA. Testo del tasto, etichetta
   // dell'input e `categoria` cambiano INSIEME — erano tre copie della stessa
   // promessa, e due erano nascoste.
-  it('selezionare un file → POST /api/lavori/[id]/immagini FormData{file, categoria:"impronta"} (valore che isCategoriaFoto accetta), MAI descrizione → avviso "Foto salvata ✓", resta sul Fatto', async () => {
-    const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ immagine: { id: 'img-1' } }) })
+  it('selezionare un file → caricamento diretto con categoria "impronta" (valore che isCategoriaFoto accetta) → avviso "Foto salvata ✓", resta sul Fatto', async () => {
+    caricaMock.mockResolvedValueOnce({ id: 'img-1' })
 
     renderFatto()
     const user = userEvent.setup()
@@ -322,17 +333,14 @@ describe('FrameFatto — la foto dell’impronta (l’input che era «impronta e
     const input = screen.getByLabelText("Carica la foto dell'impronta") as HTMLInputElement
     await user.upload(input, file)
 
-    await waitFor(() => expect(m).toHaveBeenCalledTimes(1))
-    const [url, opt] = m.mock.calls[0]
-    expect(url).toBe('/api/lavori/lav-1/immagini')
-    expect(opt.method).toBe('POST')
-    const fd = opt.body as FormData
-    expect(fd.get('file')).toBe(file)
+    await waitFor(() => expect(caricaMock).toHaveBeenCalledTimes(1))
+    const args = caricaMock.mock.calls[0][0]
+    expect(args.lavoroId).toBe('lav-1')
+    expect(args.file).toBe(file)
     // La prova che vale: il valore mandato PASSEREBBE isCategoriaFoto sulla
     // rotta vera, non solo che la chiave 'categoria' esista.
-    expect(isCategoriaFoto(fd.get('categoria'))).toBe(true)
-    expect(fd.get('categoria')).toBe('impronta')
-    expect(fd.get('descrizione')).toBeNull()
+    expect(isCategoriaFoto(args.categoria)).toBe(true)
+    expect(args.categoria).toBe('impronta')
 
     expect(await screen.findByText('Foto salvata ✓')).toBeInTheDocument()
     // Ripetibile: il frame resta il Fatto (titolo ancora presente).
@@ -345,8 +353,7 @@ describe('FrameFatto — la foto dell’impronta (l’input che era «impronta e
   })
 
   it('upload fallisce → useAvvisi().errore, resta sul Fatto', async () => {
-    const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'boom' }) })
+    caricaMock.mockRejectedValueOnce(new Error('boom'))
 
     renderFatto()
     const user = userEvent.setup()
@@ -415,11 +422,8 @@ describe('T3 — il CTA senza fonte allegata', () => {
 // T3+T9 — IL GIRO INTERO: il foglio riporta la fonte, e la schermata cambia
 // ════════════════════════════════════════════════════════════════════════════
 
-/** Risposta finta della rotta immagini (contratto VERO: `{immagine}`, e in
- *  errore `{error}` — è l'ALTRA rotta che parla con `{errore}`). */
-function rispostaImmagine(id: string) {
-  return { ok: true, status: 201, json: async () => ({ immagine: { id } }) }
-}
+// 📌 La risposta finta della rotta immagini è USCITA con T4: da qui il file va
+//    dritto al magazzino, e la sola `fetch` rimasta è quella della fonte.
 /** Risposta finta della rotta fonte (contratto VERO: `{fonte}` / `{errore, esito?}`). */
 function rispostaFonte(fonte: Record<string, unknown>) {
   return { ok: true, status: 200, json: async () => ({ fonte }) }
@@ -435,7 +439,9 @@ async function allegaFotoDalFoglio(user: ReturnType<typeof userEvent.setup>) {
 describe('T3+T9 — fonte CON immagine: la riga inverdisce e il rosso cambia mestiere', () => {
   it('dopo l’allegato: riga verde «✓ Allegata · foglio a mano» + miniatura, rosso «Fotografa l’impronta»', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce(rispostaImmagine('11111111-2222-3333-4444-555555555555'))
+    // Il caricamento non passa più da `fetch`: la prima risposta finta serviva
+    // alla rotta immagini, che qui non viene più chiamata.
+    caricaMock.mockResolvedValueOnce({ id: '11111111-2222-3333-4444-555555555555' })
     m.mockResolvedValueOnce(
       rispostaFonte({ fonte_tipo: 'foglio', fonte_immagine_id: '11111111-2222-3333-4444-555555555555', fonte_riferimento: null })
     )
@@ -456,7 +462,9 @@ describe('T3+T9 — fonte CON immagine: la riga inverdisce e il rosso cambia mes
 
   it('con la fonte allegata resta UN SOLO comando «Fotografa l’impronta» (il quieto sparisce)', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
-    m.mockResolvedValueOnce(rispostaImmagine('11111111-2222-3333-4444-555555555555'))
+    // Il caricamento non passa più da `fetch`: la prima risposta finta serviva
+    // alla rotta immagini, che qui non viene più chiamata.
+    caricaMock.mockResolvedValueOnce({ id: '11111111-2222-3333-4444-555555555555' })
     m.mockResolvedValueOnce(
       rispostaFonte({ fonte_tipo: 'foglio', fonte_immagine_id: '11111111-2222-3333-4444-555555555555', fonte_riferimento: null })
     )
@@ -670,14 +678,18 @@ describe('FrameFatto — la foto troppo pesante non parte (M3-T39-6)', () => {
     fetchSpy.mockClear()
     renderFatto()
     const input = screen.getByLabelText("Carica la foto dell'impronta") as HTMLInputElement
-    // 6 MB: misura ordinaria per un telefono di oggi.
-    const grande = new File([new Uint8Array(6 * 1024 * 1024)], 'impronta.jpg', { type: 'image/jpeg' })
+    // 📌 62 MB: da T4 il tetto è quello del MAGAZZINO (50MB), non più il muro
+    //    della piattaforma. Una foto da 6MB — che prima non partiva — oggi
+    //    passa, ed è il senso di tutto il lavoro.
+    const grande = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(grande, 'size', { value: 62 * 1024 * 1024, configurable: true })
     await userEvent.setup().upload(input, grande)
     const avviso = await screen.findByRole('alert')
-    expect(avviso).toHaveTextContent(/6,0 MB/)
-    expect(avviso).toHaveTextContent(/4MB/)
+    expect(avviso).toHaveTextContent(/62,0 MB/)
+    expect(avviso).toHaveTextContent(/50MB/)
     // 🛑 Il numero vecchio era una bugia: non deve ricomparire da nessuna parte.
     expect(avviso).not.toHaveTextContent(/20MB/)
+    expect(caricaMock).not.toHaveBeenCalled()
     expect(fetchSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('/immagini'),
       expect.anything()
