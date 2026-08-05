@@ -94,6 +94,10 @@ export const LAVORO_FIXTURE: LavoroDettaglio = {
   // (nessun `as unknown as`), quindi le dichiara entrambe.
   colore_scala: null,
   colore_codice: null,
+  // D42 — la coppia della tinta del manufatto. Nulla qui: questo lavoro di
+  // prova è una corona, e una corona non ha tinta.
+  tinta_famiglia: null,
+  tinta_codice: null,
   effetti_speciali: null,
   tecnica_colore: null,
   colorazione_esterna: null,

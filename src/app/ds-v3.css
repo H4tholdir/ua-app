@@ -1804,3 +1804,25 @@
   --elv: var(--card);
   --line: var(--faint);
 }
+
+/* ── D42 Task 7 (D247) — la tavolozza delle tinte del manufatto ──────────────
+   Geometria dal mockup approvato (D119), `docs/design/mockups/
+   2026-08-03-tinte-manufatto-due-tavolozze.html:104-105`: due colonne a 390,
+   TRE da 768. Sta qui e non inline perché una media query inline non esiste.
+   🔴 `grid-auto-rows` NON è un dettaglio, ed è stato trovato GUARDANDO LO
+   SCATTO, non prevedendolo: con l'altezza libera «Glitter multicolore» va a
+   capo e quella sola pastiglia diventa più alta, sfasando tutta la riga. Con
+   righe ad altezza fissa la griglia resta pari e il nome lungo si dispone su
+   due righe DENTRO la stessa altezza.
+   🔑 Lo scope `[data-ds="v3"]` copre anche il foglietto: `Sheet` è portalato su
+   `document.body` ma porta con sé `data-ds="v3"` (eccezione sanzionata,
+   `ds/Sheet.tsx:391`). */
+[data-ds="v3"] .ds-tavolozza-tinte {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  grid-auto-rows: 60px;
+}
+@media (min-width: 768px) {
+  [data-ds="v3"] .ds-tavolozza-tinte { grid-template-columns: 1fr 1fr 1fr; }
+}

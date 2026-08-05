@@ -10,6 +10,12 @@
 // solo `src/lib/domain/prescrizione-costanti.ts`.
 import type { CategoriaFoto } from '@/lib/domain/categorie-foto'
 import type { CampoTypo, FonteTipo, MotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
+// D42 — stessa ragione: la forma di una tinta si scrive in un posto solo.
+// ⚠️ `lib/domain/tinta.ts` importa `TipoDispositivo` da qui: è un rimando
+// circolare di SOLI TIPI, che TypeScript cancella in compilazione (nessun
+// modulo si tira dietro l'altro a runtime). Copiare qui la forma sarebbe la
+// duplicazione che il censimento della riga 22 ha appena finito di contare.
+import type { TintaManufatto, TintaScelta } from '@/lib/domain/tinta'
 
 // ============================================================
 // LABORATORIO
@@ -299,6 +305,15 @@ export interface Lavoro {
   // riga → caso di `src/lib/domain/colore-dente.ts`.
   colore_scala: string | null;
   colore_codice: string | null;
+  // D42 — la tinta del manufatto NON dentale (resina ortodontica, sport): la
+  // coppia stabile, che è ciò che resta scritto sul lavoro e conservato. Il
+  // `nome` mostrato e l'`hex` del pallino NON vivono qui — stanno nel catalogo
+  // `tinte_manufatto` e li risolve chi rende la schermata (`caricaTinteScheda`),
+  // così rinominare un'etichetta non invalida i lavori che l'avevano scelta.
+  // Vincoli in `20260805174500_lavori_tinta.sql`: coppia intera o niente, FK
+  // composita sul catalogo, famiglia coerente col tipo di dispositivo.
+  tinta_famiglia: string | null;
+  tinta_codice: string | null;
   effetti_speciali: string | null;
   tecnica_colore: string | null;
   colorazione_esterna: string | null;
@@ -519,6 +534,13 @@ export interface LavoroDettaglio extends Lavoro {
   materiali: LavoroMateriale[];
   ddc: DichiarazioneConformita | null;
   laboratorio: Pick<Laboratorio, 'nome' | 'telefono'> | null;
+  // D42 Task 7 — la tinta RISOLTA col catalogo, e le voci fra cui scegliere.
+  // Opzionali sullo stesso modello di `denti?`/`prescrizione?`: ci sono solo
+  // dove chi rende la schermata le ha chieste (`caricaTinteScheda`). Assenti =
+  // la riga non compare e la tavolozza non si apre — mai una riga vuota per una
+  // lettura dimenticata.
+  tinta?: TintaScelta | null;
+  tinteDisponibili?: TintaManufatto[];
 }
 
 // ============================================================

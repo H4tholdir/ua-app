@@ -1062,6 +1062,11 @@ affatto** (non «— »: una riga vuota su una scheda è rumore).
 🆕 **QUINTO caso, la guardia negativa che serve a non fare rumore:** risposta **senza** `tinta_scartata`
 → **nessun avviso**. Senza questa, una prova sul caso positivo passerebbe anche con un avviso che si
 accende sempre.
+🆕 **SESTO caso (dal punto 1 della revisione qui sotto):** con `tinta_scartata: true` lo specchio locale
+**non** riceve la tinta chiesta — si asserisce che `onSalvato` **non** è stato chiamato, non solo che
+l'avviso c'è.
+🆕 **SETTIMO caso (dal punto 2):** scelta una tinta **diversa**, la riga mostra il **nome nuovo** — non il
+nome vecchio accanto al codice nuovo.
 ⚠️ **E una prova sul non-danno:** gli altri quattro campi (consegna · tecnico · dentista · note) passano
 dalla stessa `salva()` — dopo la modifica devono continuare a chiamare `onSalvato` e a chiudere il
 foglietto **esattamente come prima**.
@@ -1114,7 +1119,33 @@ server (Passo 1), e una seconda strada di lettura è una seconda verità.
 
 Oggi `salva()` guarda `res.ok` e passa al padre il patch **chiesto**. Cambia in: legge il corpo JSON, e
 se porta `tinta_scartata: true` chiama `onErrore(...)` con la frase che dice **che cosa non è stato
-registrato** — poi si comporta come sempre per il resto.
+registrato**.
+
+🔴 **DUE DIFETTI DI QUESTA STESURA, trovati in revisione PRIMA di scrivere il codice — la prima
+versione del Passo 3-ter diceva «poi si comporta come sempre per il resto», e sarebbe stato sbagliato:**
+
+1. **Su `tinta_scartata` NON si applica lo specchio ottimistico.** `salva()` chiama `onSalvato(patch)` col
+   patch **chiesto**, e `handleSalvato` fa `{...prev, ...patch}`: la riga mostrerebbe la tinta **come
+   salvata** mentre in banca dati è `null`, con l'avviso d'errore sopra. Due cose che si contraddicono
+   sulla stessa schermata. ➡️ Su scarto: **avviso, nessun merge, il foglietto NON si chiude** (l'utente è
+   già lì e può riprovare). 🔑 La regola era già scritta **diciotto righe più in là**, in
+   `handleColoreSalvato`: «*si applica ciò che è AVVENUTO, non ciò che si sperava*». **Va asserita in una
+   prova, non lasciata in un commento.**
+2. **Su salvataggio RIUSCITO, `nome` e `hex` restano quelli vecchi.** La riga rende dal `{nome, hex}`
+   risolti **dal server**, ma il patch porta solo `tinta_famiglia`/`tinta_codice`: un merge grezzo
+   mostrerebbe **il nome vecchio accanto al codice nuovo**. ➡️ **Scelta: il foglietto passa su l'esito
+   già risolto** (`{famiglia, codice, nome, hex}`) — la tavolozza quei due valori **ce li ha già**, li ha
+   appena disegnati. **Non** si usa `router.refresh()`: sarebbe un giro al server per un dato che è già
+   in mano al client, e la riga resterebbe vecchia per tutta la durata del giro.
+   ⚙️ **Come:** `salva(corpoDaMandare, patchLocale = corpoDaMandare)` — gli altri quattro campi non
+   passano il secondo argomento e **non cambiano di una riga**.
+
+⚠️ **Terzo punto, NON un difetto ma una scelta che è di Francesco — riferito, non deciso qui:** «Nessuna
+tinta» dal foglietto porta a `(null, null)` (D113), e **la riga sparisce** (Passo 2, caso 3). Una riga che
+sparisce *per un gesto fatto dentro di lei* non è la stessa cosa di una riga mai comparsa: da lì in poi la
+tinta si rimette **solo** dalla pagina di modifica. 📌 **Si costruisce come scritto** — il gemello
+«Colore» ha esattamente la stessa forma di visibilità, quindi è il precedente, non una deviazione — **e la
+domanda va a Francesco in chat**, perché costa una frase adesso e un rifacimento dopo il T8.
 🛑 **Vincolo di non-regressione, esplicito perché è la parte che può rompere qualcosa di vivo:** gli altri
 quattro campi non cambiano comportamento. Un corpo non-JSON (o vuoto) **non** deve far fallire il
 salvataggio: si ignora, non si esplode — `res.json()` su un corpo vuoto **lancia**.

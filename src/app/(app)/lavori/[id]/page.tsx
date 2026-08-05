@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLavoroV3'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
+import { caricaTinteScheda } from '@/lib/lavori/tinta-scheda'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
@@ -80,6 +81,26 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   lavoroDettaglio.prescrizione = normalizzaPrescrizione(
     (lavoro as Record<string, unknown>).prescrizione
   )
+
+  // D42 Task 7 (D247) — la tinta del manufatto, risolta col catalogo QUI.
+  //
+  // 🔑 `nome` e `hex` non vivono su `lavori`: lì c'è solo la coppia stabile
+  //    (famiglia, codice), perché rinominare un'etichetta non deve invalidare i
+  //    lavori che l'avevano scelta. Chi rende la schermata li risolve.
+  // 🛑 La scheda NON interroga il catalogo dal client, e nemmeno il foglietto:
+  //    le voci per la tavolozza (D247: la tinta si corregge sulla scheda)
+  //    viaggiano da qui, dall'alto. Una seconda strada di lettura sarebbe una
+  //    seconda verità.
+  // 📮 AL TASK 8: `lavori/[id]/modifica/page.tsx` — che dichiara di replicare
+  //    «FEDELMENTE il pattern dati» di questa pagina — chiama LA STESSA
+  //    funzione, non ne scrive un'altra.
+  const tinte = await caricaTinteScheda(svc, {
+    tipo_dispositivo: lavoroDettaglio.tipo_dispositivo,
+    tinta_famiglia: lavoroDettaglio.tinta_famiglia,
+    tinta_codice: lavoroDettaglio.tinta_codice,
+  })
+  lavoroDettaglio.tinta = tinte.scelta
+  lavoroDettaglio.tinteDisponibili = tinte.disponibili
 
   const [signedDdcUrl] = await Promise.all([
     lavoroDettaglio.ddc?.storage_path_pdf

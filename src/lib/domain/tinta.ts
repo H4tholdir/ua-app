@@ -25,6 +25,12 @@ export type TintaManufatto = {
   hex: string | null
 }
 
+/** La tinta di un lavoro, già risolta col catalogo: la coppia stabile che sta
+ *  su `lavori` PIÙ l'etichetta e il pallino, che stanno solo in catalogo.
+ *  🔑 Vive qui, nel dominio puro, e non accanto alla funzione che la carica: la
+ *  usa anche `types/domain.ts`, che non deve tirarsi dietro un modulo server. */
+export type TintaScelta = { famiglia: string; codice: string; nome: string; hex: string | null }
+
 const PER_MACRO: Partial<Record<TipoDispositivo, FamigliaTinta>> = {
   ortodonzia: 'resina_ortodontica',
   bite_splint: 'sport',

@@ -20,6 +20,8 @@ import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TileScelta } from '@/components/ds/TileScelta'
 import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
 import { ModificaColoreSheet, type DatiColore } from './ModificaColoreSheet'
+import { TavolozzaTinte, type CoppiaTinta } from '@/components/features/lavori/TavolozzaTinte'
+import type { TintaManufatto } from '@/lib/domain/tinta'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 
 // T7 (ondata B ③): `colore` è il quinto campo, e non passa dalla PATCH come
@@ -49,7 +51,7 @@ import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
  * dargli un titolo. Precedente ricalcato: `type DatiColore`, esportato da
  * `./ModificaColoreSheet` e importato qui sopra.
  */
-export type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
+export type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore' | 'tinta'
 
 const TITOLI: Record<Campo, string> = {
   consegna: 'Data di consegna',
@@ -57,9 +59,18 @@ const TITOLI: Record<Campo, string> = {
   dentista: 'Dentista',
   note: 'Note interne',
   colore: 'Colore',
+  tinta: 'Tinta',
 }
 
 const MESSAGGIO_ERRORE = 'Non è stato possibile salvare la modifica. Riprova.'
+
+// D251 — la tinta chiesta e NON registrata. La frase dice che cosa non c'è,
+// perché «errore» non basta: chi deve correggere deve sapere COSA correggere.
+// 🔑 Passa da `onErrore` (e non da un avviso quieto) di proposito: il rischio da
+//    coprire è che l'utente legga «salvato» su un dato che non c'è, e l'avviso
+//    normale è muto per progetto (`ds/Avviso.tsx` — «l'avviso normale resta muto»).
+const MESSAGGIO_TINTA_SCARTATA =
+  'La tinta non è stata registrata. Riprova, oppure controlla che sia adatta a questo tipo di lavoro.'
 
 /** Forma di `valoreIniziale`/stato interno per `campo="consegna"` — rispecchia
  * di proposito i nomi delle colonne DB (`data_consegna_prevista`,
@@ -118,6 +129,11 @@ export function ModificaRigaSheet(props: {
    *  — quel ramo ha bisogno dello snapshot, del gettone di concorrenza e del
    *  nome del dentista, che gli altri quattro non usano. Assente altrove. */
   colore?: DatiColore
+  /** Il corredo del ramo «tinta» (D42 T7, D247): le voci del catalogo — che
+   *  arrivano dall'alto, lette dal server — e quella scelta ora. 🛑 Il foglietto
+   *  NON interroga il catalogo: una seconda strada di lettura sarebbe una
+   *  seconda verità. */
+  tinta?: { disponibili: readonly TintaManufatto[]; scelta: CoppiaTinta }
 }) {
   const { aperto, onChiudi, lavoroId, campo, onSalvato, onErrore } = props
   const [valore, setValore] = useState<unknown>(props.valoreIniziale)
@@ -143,7 +159,27 @@ export function ModificaRigaSheet(props: {
     }
   }, [aperto, campo])
 
-  async function salva(patch: Record<string, unknown>) {
+  /**
+   * L'unica via verso il backend, condivisa da tutti i rami.
+   *
+   * @param patch ciò che si manda al server — SOLO chiavi in `PATCHABLE_FIELDS`,
+   *   perché quelle fuori allowlist vengono scartate **senza errore**.
+   * @param patchLocale ciò che si applica allo specchio della scheda. Di norma
+   *   coincide col patch; il ramo «tinta» passa qualcosa di più (il nome e il
+   *   pallino, che su `lavori` non esistono — li risolve il catalogo). Gli altri
+   *   quattro rami non lo passano e si comportano esattamente come prima.
+   */
+  // ⚠️ La firma sta su tre righe per una ragione MECCANICA, non di stile: con i
+  // due generic sulla stessa riga, il `>` del primo e il `<` del secondo
+  // racchiudono la parola «Record», che è nell'elenco delle parole del software
+  // vietate nella UI — e `check-ds-compliance.sh` ferma il commit. È un falso
+  // positivo della stessa famiglia già dichiarata in quello script (i cast
+  // `as X<…>`), non una copy vietata. Spezzare la riga costa nulla; ammorbidire
+  // la guardia costerebbe la guardia.
+  async function salva(
+    patch: Record<string, unknown>,
+    patchLocale?: Record<string, unknown>
+  ) {
     setSalvando(true)
     try {
       const res = await fetch(`/api/lavori/${lavoroId}`, {
@@ -155,7 +191,26 @@ export function ModificaRigaSheet(props: {
         onErrore(MESSAGGIO_ERRORE)
         return
       }
-      onSalvato(patch)
+      // D251 — si legge ciò che il server ha FATTO, non ciò che gli è stato
+      // chiesto. La lettura è DIFENSIVA e non può rompere un salvataggio
+      // riuscito: `res.json()` lancia su un corpo vuoto, e un corpo illeggibile
+      // non toglie nulla a una scrittura andata a buon fine.
+      let risposta: Record<string, unknown> = {}
+      try {
+        risposta = (await res.json()) as Record<string, unknown>
+      } catch {
+        risposta = {}
+      }
+      if (risposta.tinta_scartata === true) {
+        // 🛑 Nessuno specchio ottimistico e nessuna chiusura: la tinta NON è
+        //    stata salvata. Applicare il patch qui mostrerebbe la tinta come
+        //    registrata con l'avviso d'errore sopra — due cose che si
+        //    contraddicono. La regola è quella di `handleColoreSalvato`: si
+        //    applica ciò che è avvenuto, non ciò che si sperava.
+        onErrore(MESSAGGIO_TINTA_SCARTATA)
+        return
+      }
+      onSalvato(patchLocale ?? patch)
       onChiudi()
     } catch {
       onErrore(MESSAGGIO_ERRORE)
@@ -220,6 +275,29 @@ export function ModificaRigaSheet(props: {
             />
           ))}
         </div>
+      )}
+
+      {/* D42 T7 (D247) — la tinta si corregge QUI, senza cambiare pagina.
+          La tavolozza è la stessa della pagina di modifica (T8): un componente
+          solo, importato da due posti. */}
+      {campo === 'tinta' && props.tinta && (
+        <TavolozzaTinte
+          tinte={props.tinta.disponibili}
+          scelta={props.tinta.scelta}
+          onScegli={(t) =>
+            salva(
+              // Al server SOLO le due chiavi in allowlist.
+              { tinta_famiglia: t?.famiglia ?? null, tinta_codice: t?.codice ?? null },
+              // Allo specchio locale anche il nome e il pallino: senza, la riga
+              // della scheda mostrerebbe il nome VECCHIO accanto al codice nuovo.
+              {
+                tinta_famiglia: t?.famiglia ?? null,
+                tinta_codice: t?.codice ?? null,
+                tinta: t ? { famiglia: t.famiglia, codice: t.codice, nome: t.nome, hex: t.hex } : null,
+              }
+            )
+          }
+        />
       )}
 
       {campo === 'dentista' && (

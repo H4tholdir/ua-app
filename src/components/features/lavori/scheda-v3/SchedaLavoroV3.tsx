@@ -46,7 +46,7 @@
 // del blocco `NotaLaboratorio` sotto. Nessuna misattribuzione qui: è proprio
 // il testo scritto dal dentista.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
@@ -393,6 +393,10 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         // Il ramo «colore» non legge `valoreIniziale`: il suo corredo viaggia
         // intero nella prop `colore` (serve anche il trascritto e il gettone).
         return undefined
+      case 'tinta':
+        // Come il colore: il corredo del ramo «tinta» viaggia nella sua prop
+        // (servono le voci del catalogo, non un valore solo).
+        return undefined
     }
   }
 
@@ -420,6 +424,48 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
     prescrizione: lavoro.prescrizione,
     congelata: lavoro.ddc !== null,
   })
+
+  // ══ D42 Task 7 — la riga «Tinta» (D247) ═════════════════════════════════
+  //
+  // 🔑 Nessun modulo di derivazione come per il colore: gli stati qui sono DUE
+  //    (c'è / non c'è) più il congelamento, e la tinta non ha né provenienza né
+  //    divergenza — inventare un `derivaRigaTinta` per due rami sarebbe
+  //    impalcatura. Se un giorno arrivassero gli stati intermedi, il posto è
+  //    accanto a `derivaRigaColore` (`lib/lavori/colore-riga-scheda.ts`).
+  // 🛑 `nome` e `hex` NON stanno su `lavori`: li risolve il server col catalogo
+  //    (`caricaTinteScheda`) e arrivano già pronti su `lavoro.tinta`. La scheda
+  //    non interroga il catalogo dal client.
+  // 🔑 `congelata` come per il colore: una DdC presente è una dichiarazione
+  //    ATTIVA (la query filtra le annullate), e da lì in poi il dato è chiuso —
+  //    la riga smette di offrire il tocco invece di offrirne uno che tornerà 409.
+  const rigaTinta = lavoro.tinta
+    ? {
+        modificabile: lavoro.ddc === null,
+        valore: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: spazio.s }}>
+            {/* 🔵 D114 — il pallino c'è solo dove è onesto: su «Trasparente» e
+                sui glitter `hex` è NULL in catalogo. Il nome c'è sempre, quindi
+                il colore non è mai l'unica fonte d'informazione.
+                ⚠️ `background` porta UN DATO, non un colore di marca: la regola
+                «mai hex inline» riguarda i colori del sistema grafico. */}
+            {lavoro.tinta.hex ? (
+              <span
+                data-pallino-tinta
+                aria-hidden
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: raggio.pill,
+                  background: lavoro.tinta.hex,
+                  boxShadow: 'inset 0 0 0 1px var(--line)',
+                }}
+              />
+            ) : null}
+            {lavoro.tinta.nome}
+          </span>
+        ),
+      }
+    : null
 
   /**
    * L'esito del foglio «Colore», applicato allo specchio locale in UN SOLO
@@ -553,6 +599,25 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
                   pastiglia={rigaColore.pastiglia}
                 />
               ))}
+            {/* Tinta (D42 T7, D247) — subito sotto il gemello «Colore», perché
+                sono la stessa domanda su due materiali diversi. Compare SOLO
+                se una tinta c'è davvero: una riga vuota su una scheda è rumore.
+                🔄 D247 — NON è muta: si preme e apre il foglietto QUI, come la
+                riga «Colore». Una tinta ferma accanto a un colore che si preme
+                sarebbe l'unica riga morta della carta, e il rischio non è che
+                l'utente non sappia come fare — è che provi, non succeda niente,
+                e concluda che l'app è rotta. */}
+            {rigaTinta &&
+              (rigaTinta.modificabile ? (
+                <RigaEditabile
+                  chiave="Tinta"
+                  valore={rigaTinta.valore}
+                  ariaAzione="Modifica tinta"
+                  onApri={() => setCampoAttivo('tinta')}
+                />
+              ) : (
+                <RigaDato chiave="Tinta" valore={rigaTinta.valore} />
+              ))}
             <RigaEditabile
               chiave="Consegna"
               valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
@@ -667,6 +732,16 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
                   //    il 409 permanente.
                   updatedAt: lavoro.updated_at,
                   onSalvato: handleColoreSalvato,
+                }
+              : undefined
+          }
+          tinta={
+            lavoro.tinteDisponibili && lavoro.tinteDisponibili.length > 0
+              ? {
+                  disponibili: lavoro.tinteDisponibili,
+                  scelta: lavoro.tinta
+                    ? { famiglia: lavoro.tinta.famiglia, codice: lavoro.tinta.codice }
+                    : null,
                 }
               : undefined
           }
@@ -1026,7 +1101,11 @@ function AvvisoTracciabilita(props: { dettaglio: MaterialeIncompletoDettaglio[] 
  */
 function RigaEditabile(props: {
   chiave: string
-  valore: string
+  /** `ReactNode` e non `string` (D42 T7): la riga «Tinta» porta un pallino
+   *  accanto al nome, e `RigaDato.valore` — dove questo finisce — è già un
+   *  `ReactNode` (`ds/CardInfo.tsx:56`). Le altre righe passano una stringa e
+   *  non cambiano di una virgola. */
+  valore: ReactNode
   ariaAzione: string
   urgente?: boolean
   /** Sottotitolo 14/500 muted sotto il valore (§5.10). T7: è così che la riga
