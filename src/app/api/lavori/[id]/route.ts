@@ -486,10 +486,24 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // la scheda le NOMINA — anche per azzerarle: quel caso torna leggibile e deve
   // tornare vero. La condizione sta di là, in `useLavoroForm.ts`
   // (`coloreDelleRighe`), ed è la stessa con cui `idrataColoreScheda` lo rilegge.
+  let coloreScartato = false
   if ('colore_scala' in payload || 'colore_codice' in payload) {
     const colore = await risolviColoreCaso(svc, payload.colore_scala, payload.colore_codice)
     payload.colore_scala = colore.colore_scala
     payload.colore_codice = colore.colore_codice
+    // ✅ D248 (05/08/2026) — il rilievo M2 del 28/07 è servito QUI, dove
+    // mancava. `risolviColoreCaso` produce `scartato` da luglio con la sua
+    // ragione scritta — «*"si perde il colore, mai il lavoro" giustifica il NON
+    // far fallire; NON giustifica il non dirlo*» — il POST lo rimanda e il
+    // wizard lo mostra; **questa rotta lo riceveva e lo buttava via**.
+    // ⚠️ ONESTÀ SULL'ESPOSIZIONE, misurata: oggi i due client conosciuti non
+    // riescono a innescarlo (la pagina di modifica toglie il colore dal corpo,
+    // `useLavoroForm.ts:325`; il foglio della scheda verifica col catalogo di lì
+    // prima di mandare). Non si ripara un danno visibile: si toglie una
+    // garanzia dal client, dove il cappello di `colore-caso.ts` dice da luglio
+    // che non può stare — «i client saranno più d'uno», e lo specchio dei 48
+    // codici che vive nel client **è** un secondo elenco che può divergere.
+    coloreScartato = colore.scartato
   }
 
   // Validazione enum tipo_dispositivo (B2): solo se il campo è presente nel payload
@@ -634,9 +648,16 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // compaiono SOLO quando c'è qualcosa da dire — `tinta_rimossa` quando il
   // cambio di tipo ha tolto una tinta che c'era, `tinta_scartata` quando una
   // tinta era stata chiesta e non si è potuta registrare.
+  // ⚠️ FORMA DICHIARATA, perché differisce da quella del POST e la differenza
+  // non deve sembrare una svista: qui i campi compaiono **solo quando c'è
+  // qualcosa da dire**, mentre `POST /api/lavori` manda `colore_scartato` a
+  // ogni creazione (anche `false`). Il POST non si tocca — è pubblicato e ha un
+  // lettore che si aspetta quella forma (`crea-lavoro.ts`). Chi legge di qui usi
+  // `=== true`, non la presenza della chiave.
   return NextResponse.json({
     lavoro,
     ...(tintaRimossa ? { tinta_rimossa: tintaRimossa } : {}),
     ...(tintaScartata ? { tinta_scartata: true } : {}),
+    ...(coloreScartato ? { colore_scartato: true } : {}),
   })
 }

@@ -70,10 +70,17 @@
 // catalogo, la PATCH NON parte e lo si DICE.
 // 🛑 La trascrizione invece si salva com'è, sempre: è testo del medico (D210),
 //    non un valore di catalogo. Le due cose hanno regole diverse apposta.
-// ⚠️ Rilievo riferito, NON corretto qui (R-E2): la PATCH scarta il colore in
-//    silenzio: `risolviColoreCaso` restituisce `scartato` e la rotta non lo
-//    legge né lo rimanda. Il controllo di qui è una rete del client, non la
-//    chiusura del buco.
+// ✅ RILIEVO CHIUSO il 05/08/2026 (D248), e vale la pena sapere come è finita:
+//    diceva «*la PATCH scarta il colore in silenzio: `risolviColoreCaso`
+//    restituisce `scartato` e la rotta non lo legge né lo rimanda; il controllo
+//    di qui è una rete del client, non la chiusura del buco*». Ora la rotta lo
+//    rimanda — `colore_scartato: true`, e **solo** quando c'è qualcosa da dire
+//    (`api/lavori/[id]/route.ts`).
+// 🔑 Il controllo di QUESTO file resta, ed è giusto che resti: evita un giro di
+//    rete inutile e dà la risposta subito, sul posto. Ma **non è più l'unica
+//    difesa** — che era il punto del rilievo: una garanzia che vive solo nel
+//    client non è una garanzia, e `scalaDelCodice` è un secondo elenco dei 48
+//    codici, quindi una cosa che può divergere dal catalogo.
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
