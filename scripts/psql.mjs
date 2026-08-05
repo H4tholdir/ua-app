@@ -36,7 +36,37 @@ if (!arg) {
 }
 const sql = arg === '-c' ? process.argv[3] : readFileSync(arg, 'utf8')
 
-const client = new pg.Client({ connectionString: leggiUrl(), ssl: { rejectUnauthorized: false } })
+/**
+ * 🔐 IL CIFRARIO, e la scelta è DICHIARATA invece che silenziosa (rilievo di
+ * revisione, 05/08/2026).
+ *
+ * `provato:` con la verifica piena (`ssl: true`) la connessione **fallisce**:
+ *   Error: self-signed certificate in certificate chain (SELF_SIGNED_CERT_IN_CHAIN)
+ * perché il pooler di Supabase (`…pooler.supabase.com:6543`) presenta un
+ * certificato firmato da una CA propria, non da una radice pubblica.
+ *
+ * 🛑 Spegnere la verifica NON è gratis: il traffico resta cifrato, ma **non si
+ * verifica più con CHI** si sta parlando — e nella stringa di connessione
+ * viaggia la password del database. Su una rete non fidata è la differenza fra
+ * «illeggibile» e «illeggibile da tutti tranne chi si è messo in mezzo».
+ *
+ * ➡️ Quindi: se `PGSSLROOTCERT` indica il certificato della CA di Supabase, si
+ * verifica per davvero. Altrimenti si prosegue senza verifica **e lo si dice a
+ * voce alta su stderr**, perché un indebolimento invisibile è quello che poi
+ * nessuno ricorda di avere.
+ */
+function opzioniTls() {
+  const ca = process.env.PGSSLROOTCERT
+  if (ca) return { ca: readFileSync(ca, 'utf8'), rejectUnauthorized: true }
+  console.error(
+    '⚠️  TLS senza verifica del certificato (il pooler Supabase è autofirmato).\n' +
+      '   Il traffico è cifrato ma l\'identità del server NON è verificata.\n' +
+      '   Per verificarla: PGSSLROOTCERT=/percorso/supabase-ca.crt node scripts/psql.mjs …'
+  )
+  return { rejectUnauthorized: false }
+}
+
+const client = new pg.Client({ connectionString: leggiUrl(), ssl: opzioniTls() })
 await client.connect()
 
 let uscita = 0
