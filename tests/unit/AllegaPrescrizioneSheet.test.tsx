@@ -410,7 +410,10 @@ describe('T9 — quando qualcosa non riesce', () => {
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(
-      screen.getByText('Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.')
+      // 🔴 HEIC è USCITO dall'elenco il 05/08: il bucket non lo accetta
+      //    (misurato), e dichiararlo faceva arrivare il rifiuto DOPO aver
+      //    speso i byte — fino a 50MB, col caricamento diretto.
+      screen.getByText('Formato non supportato: usa JPG, PNG, WEBP, GIF o PDF.')
     ).toBeInTheDocument()
     expect(onFonte).not.toHaveBeenCalled()
   })

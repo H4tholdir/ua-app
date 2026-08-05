@@ -8,22 +8,32 @@
  *    ammesso da una strada e rifiutato dall'altra — e nessuno se ne
  *    accorgerebbe finché non capita a un utente, sul secondo dei due.
  *
- * 🟡 SI SA CHE `image/heic` È DISALLINEATO COL BUCKET, ed è la **voce 16** di
- *    roadmap, non una svista: `allowed_mime_types` del bucket `documenti` non
- *    lo contiene (misurato), quindi un HEIC supera questo controllo e viene
- *    rifiutato dopo, dal magazzino, con una frase generica. È il formato
- *    predefinito della fotocamera iPhone. ⚠️ La strada coerente con D237 è
- *    **accettarlo nel bucket**, non convertirlo nel browser — ma la prova su un
- *    iPhone vero viene prima del rimedio, ed è la prova che manca.
+ * 🔴 `image/heic` È USCITO DA QUESTA LISTA IL 05/08/2026, e non è un ripensamento
+ *    di gusto: **il magazzino non lo accetta.**
+ *    `provato:` i tipi ammessi dal bucket `documenti`, letti dal vivo →
+ *    `["application/pdf","image/jpeg","image/png","image/webp","image/gif"]`.
+ *    Finché il file passava dalla funzione, dichiararlo ammesso costava un
+ *    viaggio da ≤4MB e un rifiuto tardivo. Col **caricamento diretto** costa un
+ *    viaggio da **fino a 50MB su rete mobile**, che finisce con un errore dello
+ *    Storage che non è nemmeno JSON.
+ *    🛑 E cade sulla superficie peggiore: la **prescrizione non si comprime**
+ *    (D237), quindi il file dell'iPhone arriva com'è — HEIC. Con la lista
+ *    allineata, quel rifiuto arriva **subito**, alla scelta del file, con la
+ *    frase che dice quali formati usare.
+ *    ➡️ **Questa è la toppa, non la decisione.** La scelta vera della voce 16 —
+ *    aggiungere `image/heic` ai tipi del bucket, oppure rifiutarlo al selettore
+ *    — resta a Francesco e viene **dopo la prova su un iPhone vero**. Il giorno
+ *    in cui il bucket lo accetterà, questa riga torna: la guardia
+ *    `scripts/guardia-tipi-bucket.mjs` verifica che le due liste combacino, in
+ *    entrambe le direzioni.
  */
 export const ALLOWED_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
-  'image/heic': 'heic',
   'application/pdf': 'pdf',
 }
 
 /** I tipi, detti come li direbbe una persona: per la frase del 415. */
-export const TIPI_AMMESSI_ETICHETTA = 'JPG, PNG, WEBP, GIF, HEIC o PDF'
+export const TIPI_AMMESSI_ETICHETTA = 'JPG, PNG, WEBP, GIF o PDF'

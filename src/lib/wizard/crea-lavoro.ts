@@ -48,6 +48,7 @@
 // `toISOString().split('T')[0]`, che usa il fuso UTC).
 
 import { trovaTipo, labelTipo } from '@/lib/domain/tipi-lavoro'
+import { caricaImmagineDiretta } from '@/lib/storage/carica-diretto-client'
 import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
 import type { TipoScelto, ColoreOrigine } from '@/components/features/wizard/WizardNuovoLavoro'
 import type { TipoDispositivo, ClasseRischio } from '@/types/domain'
@@ -450,17 +451,16 @@ export async function creaLavoroDaWizard(input: {
   // quindi il valore è una delle categorie ratificate, non un ripiego.
   // 🔑 D97 lo lascia a 'impronta': l'ambiguità «impronta o prescrizione?» è
   //    dell'ALTRO punto (FrameFatto), non di questo.
+  // 📌 T4 (05/08/2026) — anche questa foto va DRITTA al magazzino: i client del
+  //    caricamento erano QUATTRO, non tre come diceva il piano (censimento
+  //    rifatto sul codice, non sull'elenco). Lasciata qui, sarebbe rimasta sola
+  //    sul corridoio da 4MB mentre le altre tre passavano — e T7, togliendo la
+  //    vecchia rotta, l'avrebbe rotta in silenzio.
+  // 🔑 Resta ACCESSORIA: se fallisce, il lavoro è già creato e lo si dice
+  //    («accessoriFalliti»), non si annulla niente.
   if (foto) {
     try {
-      const fd = new FormData()
-      fd.append('file', foto)
-      fd.append('categoria', 'impronta')
-      const res = await fetch(`/api/lavori/${lavoro.id}/immagini`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body: fd,
-      })
-      if (!res.ok) accessoriFalliti.push('foto')
+      await caricaImmagineDiretta({ lavoroId: lavoro.id, file: foto, categoria: 'impronta' })
     } catch {
       accessoriFalliti.push('foto')
     }

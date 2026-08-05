@@ -14,8 +14,20 @@ import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
 // l'elenco: così la prova regge anche quando le categorie cambiano (D91: sette).
 import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 
+// T4 (05/08/2026) — la foto non passa più dalla funzione: va DRITTA al
+// magazzino. 🔎 Questo era il QUARTO client del caricamento, e il piano ne
+// dichiarava tre: senza il censimento rifatto sul codice sarebbe rimasto solo
+// sul corridoio da 4MB, e T7 — togliendo la vecchia rotta — l'avrebbe rotto in
+// silenzio.
+const { caricaMock } = vi.hoisted(() => ({ caricaMock: vi.fn() }))
+vi.mock('@/lib/storage/carica-diretto-client', () => ({
+  caricaImmagineDiretta: caricaMock,
+}))
+
 // Stesso pattern di mock fetch sequenziale di WizardNuovoLavoro.test.tsx (Task 9).
 beforeEach(() => {
+  caricaMock.mockReset()
+  caricaMock.mockResolvedValue({ id: 'img-default' })
   vi.stubGlobal('fetch', vi.fn())
 })
 afterEach(() => {
@@ -252,12 +264,12 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
   // con 422. La foto qui è quella dell'impronta (`PassoPaziente.tsx` — «Aggiungi
   // la foto dell'impronta»), quindi il valore giusto è letteralmente
   // 'impronta', una delle categorie ratificate in `categorie-foto.ts`.
-  it('foto presente → POST immagini FormData{file, categoria:"impronta"} (valore che isCategoriaFoto accetta), MAI descrizione', async () => {
+  it('foto presente → caricamento diretto con categoria:"impronta" (valore che isCategoriaFoto accetta)', async () => {
     const m = mockFetch()
+    caricaMock.mockResolvedValueOnce({ id: 'img-1' })
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-5' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-5', numero_lavoro: '2026/0005' } }))
-    m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-1' } }))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
     const esito = await creaLavoroDaWizard({
@@ -273,30 +285,29 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(m).toHaveBeenCalledTimes(4)
+    // Tre fetch (pazienti · paziente · lavoro): la quarta non c'è più, la foto
+    // non passa da qui.
+    expect(m).toHaveBeenCalledTimes(3)
     expect(esito.accessoriFalliti).toEqual([])
 
-    const [urlImg, optImg] = m.mock.calls[3]
-    expect(urlImg).toBe('/api/lavori/lav-5/immagini')
-    expect(optImg.method).toBe('POST')
-    const fd = optImg.body as FormData
-    expect(fd instanceof FormData).toBe(true)
-    expect(fd.get('file')).toBe(file)
+    expect(caricaMock).toHaveBeenCalledTimes(1)
+    const args = caricaMock.mock.calls[0][0]
+    expect(args.lavoroId).toBe('lav-5')
+    expect(args.file).toBe(file)
     // La prova che vale: il valore mandato PASSEREBBE isCategoriaFoto sulla
     // rotta vera, non solo che la chiave 'categoria' esista.
-    expect(isCategoriaFoto(fd.get('categoria'))).toBe(true)
-    expect(fd.get('categoria')).toBe('impronta')
-    expect(fd.get('descrizione')).toBeNull()
+    expect(isCategoriaFoto(args.categoria)).toBe(true)
+    expect(args.categoria).toBe('impronta')
   })
 
   // Adeguato al Task 11 per la stessa ragione del caso qui sopra: i passi sono
   // 4, non 5. La foto è l'UNICO accessorio rimasto, e resta l'ultima chiamata.
-  it('elemento/colore E foto presenti → 4 fetch, la foto ultima e nessuna PATCH in mezzo', async () => {
+  it('elemento/colore E foto presenti → 3 fetch + il caricamento diretto, e nessuna PATCH in mezzo', async () => {
     const m = mockFetch()
+    caricaMock.mockResolvedValueOnce({ id: 'img-2' })
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-6' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-6', numero_lavoro: '2026/0006' } }))
-    m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-2' } }))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
     const esito = await creaLavoroDaWizard({
@@ -312,10 +323,12 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(m).toHaveBeenCalledTimes(4)
+    expect(m).toHaveBeenCalledTimes(3)
     expect(esito.accessoriFalliti).toEqual([])
     expect(m.mock.calls.some((c) => c[1]?.method === 'PATCH')).toBe(false)
-    expect(m.mock.calls[3][0]).toBe('/api/lavori/lav-6/immagini')
+    // La foto resta l'ULTIMA cosa che accade, e ora non è più una fetch.
+    expect(caricaMock).toHaveBeenCalledTimes(1)
+    expect(caricaMock.mock.calls[0][0].lavoroId).toBe('lav-6')
   })
 
   it('né elemento né colore né foto → nessuna chiamata oltre POST lavori (3 fetch)', async () => {
@@ -349,7 +362,7 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-8' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-8', numero_lavoro: '2026/0008' } }))
-    m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-3' } }))
+    caricaMock.mockResolvedValueOnce({ id: 'img-3' })
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
     const esito = await creaLavoroDaWizard({
@@ -365,7 +378,9 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(m).toHaveBeenCalledTimes(4)
+    // Tre fetch: la foto non è più una di loro.
+    expect(m).toHaveBeenCalledTimes(3)
+    expect(caricaMock).toHaveBeenCalledTimes(1)
     expect(esito.lavoro).toEqual({ id: 'lav-8', numero_lavoro: '2026/0008' })
     expect(esito.accessoriFalliti).toEqual(['elementi'])
   })
@@ -375,7 +390,7 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-10' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-10', numero_lavoro: '2026/0010' } }))
-    m.mockResolvedValueOnce(jsonFail(500))
+    caricaMock.mockRejectedValueOnce(new Error('Il caricamento non è riuscito.'))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
     const esito = await creaLavoroDaWizard({
@@ -402,7 +417,7 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-11' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-11', numero_lavoro: '2026/0011' } }))
-    m.mockResolvedValueOnce(jsonFail(500))
+    caricaMock.mockRejectedValueOnce(new Error('Il caricamento non è riuscito.'))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
     const esito = await creaLavoroDaWizard({
@@ -761,7 +776,7 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
     m.mockResolvedValueOnce(
       jsonOk(201, { lavoro: { id: 'lav-19', numero_lavoro: '2026/0019' }, colore_scartato: true })
     )
-    m.mockResolvedValueOnce(jsonFail(500))
+    caricaMock.mockRejectedValueOnce(new Error('Il caricamento non è riuscito.'))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
     const esito = await creaLavoroDaWizard({

@@ -62,6 +62,7 @@ import { CampoTesto } from '@/components/ds/Campo'
 import { useAvvisi } from '@/components/ds/Avviso'
 import { MAX_UPLOAD_DIRETTO_ETICHETTA, troppoGrande } from '@/lib/storage/limite-caricamento'
 import { caricaImmagineDiretta, ErroreCaricamento } from '@/lib/storage/carica-diretto-client'
+import { TIPI_AMMESSI_ETICHETTA } from '@/lib/storage/tipi-immagine'
 import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
 // 🛑 Il dizionario si IMPORTA, mai si riscrive: è la stessa costante che la
 // rotta usa per rifiutare con 422 (`fonte/route.ts:78`), ed è sorvegliata
@@ -121,7 +122,7 @@ const FRASE_CONGELATA =
  *  quella rotta non parla `{errore,esito}` come `fonte/route.ts`).
  *  🛑 413 e 415 sono raggiungibili dal PICKER STESSO — `accept="image/*"`
  *  ammette formati che `ALLOWED_MIME` rifiuta (`route.ts:12-19`: solo JPEG,
- *  PNG, WEBP, GIF, HEIC, PDF — niente TIFF né HEIF), e la soglia di peso
+ *  PNG, WEBP, GIF, PDF — niente TIFF, HEIF né HEIC), e la soglia di peso
  *  (`limite-caricamento.ts`) ~~non ha alcun controllo lato client~~ ora ce l'ha,
  *  ed è quello che si legge per primo. Con la frase generica
  *  «Riprova», l'utente ripete lo STESSO file e ottiene lo STESSO rifiuto:
@@ -138,7 +139,11 @@ function fraseErroreImmagine(status: number): string {
     return `Questo file supera il massimo di ${MAX_UPLOAD_DIRETTO_ETICHETTA}: scegline uno più leggero.`
   }
   if (status === 415) {
-    return 'Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.'
+    // 🔑 L'elenco NON si riscrive a mano: viene da `tipi-immagine.ts`, che è
+    //    lo stesso che il server applica. Riscriverlo qui vorrebbe dire due
+    //    liste che possono scostarsi — ed è precisamente il difetto che il
+    //    05/08 ha fatto uscire HEIC (dichiarato da noi, rifiutato dal bucket).
+    return `Formato non supportato: usa ${TIPI_AMMESSI_ETICHETTA}.`
   }
   return 'Non sono riuscita a salvare la prescrizione. Riprova.'
 }
