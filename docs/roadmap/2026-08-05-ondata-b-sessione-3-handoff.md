@@ -1,50 +1,59 @@
-# Handoff — Sessione ③ dell'ondata B: wizard + scheda, CODICE COMPLETO E COLLAUDATO, NON MERGIATO
+# Handoff — Sessione ③ dell'ondata B: wizard + scheda, GATE L2 FATTO, RESTA IL MERGE
 
-**Per:** Francesco, e per la sessione che eseguirà il gate L2 e (dopo l'ok) il merge.
-**Quando:** 5 agosto 2026, notte (giro end-to-end e review finale chiusi dopo la mezzanotte).
-**Stato:** ramo `ondata-b-sessione-3` = `e34dc71d` (29 commit da `cabfd3f0`) · albero pulito ·
-**NIENTE È PUBBLICATO**: su `main` restano **3 commit locali** di questa sessione (mockup D223-D225 ·
-recupero scatti P30/ondata-a · piano ③) e il ramo intero — 32 commit totali — attende l'ok.
-**Review finale di ramo (modello capace): READY TO MERGE, zero Critical/Important** ·
-**giro end-to-end 8/8** (il PRIMO mai percorso — `lavori_prescrizioni` 0→1→0, baseline esatta).
-📌 MISURATO IN CHIUSURA (`provato:` `npm run verify:full` rilanciato al `/chiudi`): tsc 0 ·
-eslint 0 · vitest **4854 passate | 19 saltate** (409 file | 3 saltati) · build ok · sei guardie
-verdi · verifica «full» registrata.
+**Per:** Francesco, e per la sessione che eseguirà il merge e aprirà la ④.
+**Quando:** 5 agosto 2026 — codice e giro chiusi di notte; **gate L2 eseguito la mattina**
+(`provato:` `date` → 05/08/2026, 06:25 CEST all'apertura).
+**Stato:** ramo `ondata-b-sessione-3` · albero pulito ·
+**NIENTE È PUBBLICATO**: su `main` restano **3 commit locali** e il ramo intero attende l'ok.
+**Review finale di ramo: READY TO MERGE, zero Critical/Important** · **giro end-to-end 8/8** ·
+**GATE ESTETICO L2 (FASE 9b): FATTO** — 18 ❌ trovati, **13 chiusi**, 5 deferiti col motivo.
+📌 MISURATO DOPO I FIX (`provato:` `npm run verify:full`): tsc 0 · eslint 0 · vitest
+**4857 passate | 19 saltate** (409 file | 3 saltati) · build ok · sei guardie verdi.
+⚠️ **La review finale di ramo PRECEDE questi fix:** copre `cabfd3f0..b983870e`, e i due commit
+del gate (`f584393a` codice · `a4a2f4cc` documenti) sono **dopo**. Prima del merge va rivisto
+**il delta**, non tutto il ramo.
 
 ---
 
-## 0. 🔴 CIÒ CHE NON È STATO FATTO, E VA FATTO PRIMA DEL MERGE
+## 0. 🔴 CIÒ CHE RESTA DA FARE
 
-### ① Il GATE ESTETICO L2 (FASE 9b) non è stato eseguito — e ha in pancia OTTO decisioni di Francesco
-Gli scatti ci sono (60 del giro in `docs/design/screenshots/2026-08-05-ondata-b3-giro/` + i 66 dei
-mockup), la checklist L2 NON è stata percorsa. REGOLA ZERO: mai mergiare UI nuova senza L2.
-**Le decisioni in lista per Francesco** (dal triage della review finale):
-1. La voce ③ del foglio a2 («Non ce l'ho ancora qui»): pastiglie email/piattaforma + riferimento
-   facoltativo — risoluzione del controllore MAI vista da Francesco.
-2. La rimozione di PillVoce dal Passo 3 (obbligo di spec D13 — ma i mockup D223 la mostravano).
-3. «Salta» dopo lo sgancio riapre «lo scegliamo noi» da vuota (M3-T2-3).
-4. Una fonte si sostituisce ma non si azzera mai (M3-T4-2).
-5. §5.10: 5 righe massime vs le 6 della card approvata — nodo APERTO scritto nella spec (M3-T7-5).
-6. Upload senza avanzamento su rete mobile + testo M2 che contraddice la carta (M3-T39-4/7).
-7. **G2 — P37 di fatto DORMIENTE:** il foglio «Chi ha prescritto?» chiede un'entità CON almeno un
-   collega; nel dataset TUTTI i 18 clienti-entità sono mono-medico → il foglio non sale mai e
-   `richiedente_nome` non nasce mai dal wizard. Candidata: auto-cattura per studio mono-medico
-   (zero domande E il nome arriva). Con la D211 degradata (niente «ultimo prescrittore» — serve
-   una via server, M3-T10-1) è la decisione più pesante della lista.
-8. Il back del telefono sul foglio P37 AVANZA il wizard (M3-T10-2, contro la direttiva permanente;
-   fix in Sheet.tsx) + WATCH: «Torna alla home» sopra la piega a 390 col gap 44.
+### ① Il MERGE e la pubblicazione — li autorizza Francesco, e sono l'unica cosa che manca
+Ordine: merge fast-forward su `main` → push → CI verde → smoke su uachelab.com →
+**check M3-T39-6** (una foto grande sul deployment vivo: la frase «più grande di 20MB»
+presuppone che il limite della piattaforma non sia più basso — provabile solo lì) → BP-1 finale.
 
-### ② Merge e pubblicazione NON fatti — li autorizza Francesco (dopo il gate L2)
-### ③ M3-T39-6 è provabile SOLO dopo il deploy
-La frase «più grande di 20MB» presuppone che il limite body della piattaforma Vercel non sia più
-basso: una foto grande sul deployment vivo lo prova in un minuto. Check post-deploy.
-### ④ Il banco in DEV non collauda il foglio P37 (G1)
+### ② Le OTTO domande del gate HANNO RISPOSTA — D226-D234, tornata 85
+Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`. In una riga ciascuna:
+**D228** il Passo 3 non si tocca (va al rifacimento del wizard, e con lui M3-T2-3 e il target di
+«Salta») · **D226** la terza voce dell'a2 resta com'è — e ora ha il suo scatto · **D227** niente
+PillVoce · **D229** la fonte si sostituisce mai si azzera, **e il lavoro si consegna anche senza
+la foto** (misurato: non è fra gli 8 elementi dell'Allegato XIII, nessun cancello la guarda) ·
+**D230** §5.10 sale a sei righe · **D231** testo ora, avanzamento upload nella ④ · **D232**
+auto-cattura del prescrittore: **sostanza decisa, meccanismo alla ④** · **D233** back del telefono
+alla ④ + «Fatto!» compattato · **D234** un errore non si tronca più.
+
+### ③ 🛑 UN PERCORSO APERTO OGGI, che nessuna delle otto chiude: la DdC col prescrittore VUOTO
+Condizione **unanime** dei tre advisor del panel D232, e **indipendente** dall'auto-cattura:
+`TabDati.tsx:283` scrive `richiedente_nome: ''`, `precheck.ts:22-25` passa lo stesso e
+`generate-ddc.ts:146` usa `??` — che su una stringa vuota **non ripiega**. Esito: un documento a
+valore legale può uscire **senza il nome del prescrittore, col precheck verde**. Zero occorrenze
+oggi; il percorso c'è. Si chiude **a monte** (`''`→`null` al confine di POST/PATCH) nella ④,
+**prima o insieme** all'auto-cattura.
+
+### ④ I 5 ❌ deferiti dal gate, con la loro destinazione
+① target di «Salta» ~33×44 (`LinkQuieto` non si estende in orizzontale) → **debito del DS**, non
+si tocca a fine ramo: vive su ogni superficie v3 · ② M3-T2-3 (sgancio + «Salta») → rifacimento
+del wizard (D228) · ③ il back del telefono su P37 → **primo compito della ④** (`Sheet.tsx`, base
+di ogni overlay: la sua rete `scripts/guardia-navigazione-overlay.mjs` è **manuale**, vuole l'app
+accesa e una fixture apposta, e G1 impedisce di provarlo in `npm run dev`) · ④ avanzamento
+dell'upload (D231②) · ⑤ il «Fatto!» resta **più alto di uno schermo a 390**: il compattamento ha
+tolto 30px misurati (1093 → 1063, piega a 844), ma per andare sotto servirebbe toccare il cerchio
+Ø92 (verbatim del mockup) o il gap 44 fra i quieti (**vincolo di sicurezza** 0B-3) — due cose che
+costano una decisione, non un ritocco.
+
+### ⑤ Il collaudo di P37 si fa SOLO su build di produzione (G1) — invariato
 In `npm run dev` StrictMode rimonta lo Sheet e l'entry di storia si mangia il foglio (~80ms).
-**In build di produzione NON succede — provato** (il giro è stato fatto su `npm run start`, porta
-3020). Chi collauda P37 usa la build, o paga un'ora a cercare un fantasma.
-### ⑤ Il verbale è fermo a D225 (tornata 84) — GIUSTO così
-Nessuna decisione nuova di Francesco in questo tratto: le adjudicazioni del controllore vivono
-nella decisione 0B, nel ledger e qui. Le OTTO decisioni della §0① genereranno D226+ al gate.
+**In build di produzione NON succede — provato.** Banco: `npm run build && PORT=3020 npm run start`.
 
 ## 1. Che cosa è successo (in tabella)
 
