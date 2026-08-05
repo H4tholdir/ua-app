@@ -947,8 +947,20 @@ il rifacimento perdeva denti e colore.
 > ⚠️ **I due modi convivono già e NON si confondono:** il foglietto sul posto (`setCampoAttivo`) e il salto
 > di pagina (`router.push`). **D247 sceglie il primo.**
 >
-> 📮 **RITROVAMENTO FUORI MANDATO, riferito e NON corretto qui (R-E2), ma l'esecutore del T7 deve saperlo:**
-> l'elenco dei campi correggibili sul posto è **scritto due volte** —
+> ✅ **RITROVAMENTO FUORI MANDATO — RIFERITO, POI CHIUSO SU AUTORIZZAZIONE DI FRANCESCO** (05/08, 19:25:
+> «*si sistemalo adesso*»). Fatto **in un salvataggio suo, PRIMA del T7**, come dice la riga in fondo a
+> questo blocco: rimettere in ordine e aggiungere un campo sono due lavori, e mescolati non si sa quale
+> dei due ha rotto cosa. **L'esecutore del T7 trova già una definizione sola** (`provato:`
+> `grep -rn "type Campo = " src/` → **1**, era 2) — `export type Campo` in `ModificaRigaSheet.tsx`,
+> importata da `SchedaLavoroV3.tsx:76`.
+> ✅ **Prova di efficacia, non dedotta:** aggiungendo `'tinta'` al punto unico, `tsc` dà **un solo errore, e
+> è quello utile** — `TS2741`, «*Property 'tinta' is missing … but required in type `Record<Campo,
+> string>`*», cioè «dài un titolo al campo nuovo». Il `TS2719` di disallineamento **non può più esistere:
+> non ci sono più due tipi da disallineare.** `verify:full` uscita **0**; prove **invariate** (76/76 sui
+> componenti toccati, rete intera **5002 | 19** su 420, identica alla baseline presa prima di toccare).
+>
+> 📜 **Il testo del ritrovamento, tenuto perché la misura vale oltre il caso:**
+> l'elenco dei campi correggibili sul posto era **scritto due volte** —
 > `SchedaLavoroV3.tsx:101` e `ModificaRigaSheet.tsx:30`, identici:
 > `type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'`.
 > **Aggiungere `'tinta'` vuol dire toccarne DUE.** `provato:` `grep -rn "type Campo = " src/` → **2 hit**.
@@ -972,10 +984,15 @@ il rifacimento perdeva denti e colore.
 > 📌 **E la duplicazione è DICHIARATA, non distratta:** `SchedaLavoroV3.tsx:99-100` porta il commento
 > «*L'elenco vive in DUE posti … i due si muovono insieme, o il foglio non sa che cosa rendere*». Qualcuno
 > l'ha vista, l'ha scritta, e non l'ha chiusa. ⚠️ Nessuna ragione tecnica la regge: i due file stanno nella
-> **stessa cartella** e `ModificaRigaSheet.tsx:22` importa già da `./ModificaColoreSheet`. La cura è
-> **esportare il tipo da chi lo rende e importarlo in chi lo chiama** — due righe.
-> ➡️ **Da fare PRIMA del T7 e in un salvataggio suo**, non dentro: rimettere in ordine e aggiungere un
-> campo sono due lavori, e mescolati non si sa quale dei due ha rotto cosa.
+> **stessa cartella** e `ModificaRigaSheet.tsx:22` importa già da `./ModificaColoreSheet`. La cura era
+> **esportare il tipo da chi lo rende e importarlo in chi lo chiama** — due righe. ✅ **FATTA** (v. sopra).
+>
+> 🔑 **La lezione che vale oltre il caso, ed è nuova rispetto a quelle di ieri: una protezione che nasce
+> per rimbalzo non è una protezione, è una coincidenza in servizio permanente.** `TITOLI` non è lì per
+> difendere l'allineamento dei due elenchi: difende sé stesso, e per fortuna quel giorno bastava. È la
+> variante «passiva» dell'interruttore che c'è e non fa niente (P4-④): lì un osservatore che nessuno
+> leggeva, qui un guardiano che nessuno aveva assunto. ➡️ **Quando una rete regge, si chiede sempre
+> PERCHÉ regge** — se la risposta non nomina la cosa che deve difendere, non è una rete.
 >
 > 🛑 **E vale la regola degli overlay v3:** da dentro un foglietto non si naviga con `router.push` nudo —
 > se il T7 dovesse mai navigare, si usa `useNavigaDaOverlay` (`src/components/ds/useNavigaDaOverlay.ts`).
