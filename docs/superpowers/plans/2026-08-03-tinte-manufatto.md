@@ -1580,3 +1580,87 @@ La risposta della PATCH può portare **due campi in più**, e compaiono solo qua
 - `tinta_scartata: true` — una tinta era stata chiesta e **non** si è potuta registrare.
 🛑 **Se nessuna delle due superfici li legge, sono due campi morti** e il T5 avrà costruito ciò che oggi ha
 criticato. La forma da usare è quella già viva per gli avvisi della scheda.
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 7 (05/08/2026, 23:25)
+
+### 🔴 P7-① — Il piano non prevedeva la TAVOLOZZA sulla scheda, e con D247 serve
+
+Il Task 7 «Interfacce» diceva: «*Consuma `tinta_famiglia`/`tinta_codice`; il `nome` e l'`hex` vanno letti
+dal catalogo lato server*» — cioè **la sola riga scelta**. Ma D247 mette la correzione **sulla scheda**, e
+una tavolozza ha bisogno di **tutte e 17** le voci della famiglia. Il piano non lo diceva da nessuna parte.
+
+**Due strade, e la scelta poggia su un fatto letto, non su un gusto:**
+
+| strada | esito |
+|---|---|
+| una rotta `/api/tinte?famiglia=…`, chiesta dal foglietto all'apertura | ❌ **seconda strada per lo stesso dato**: il T8 avrebbe poi dovuto sceglierne una |
+| l'elenco passato **dall'alto**, dal componente server | ✅ **una strada sola** |
+
+🔑 **Il fatto che ha deciso:** `lavori/[id]/modifica/page.tsx` è **anch'essa un componente server**, e
+dichiara nel proprio cappello di replicare «*FEDELMENTE il pattern dati*» di `lavori/[id]/page.tsx`.
+Quindi una funzione sola (`src/lib/lavori/tinta-scheda.ts`) serve **entrambe** le superfici, e il T8 la
+importa invece di riscriverla. `provato:` il precedente più vicino nel file — il ramo «tecnico», che fa
+`fetch('/api/tecnici')` all'apertura — esiste, ma è di un dato che **non** è già in mano al server.
+
+### ✅ P7-② — Il permesso di leggere il catalogo, provato invece che assunto
+
+`provato:` `node scripts/psql.mjs -c "SELECT has_table_privilege(…)"` →
+`authenticated` **true** · `anon` **false** · **34 righe** · `relrowsecurity` **false**.
+🔑 Senza RLS **gli unici a difendere il catalogo sono i GRANT**, ed è la ragione per cui questa riga è
+stata provata prima di scrivere: una policy mancante avrebbe fatto tornare `nome`/`hex` vuoti, e la riga
+sarebbe **sparita in silenzio** invece di dare errore.
+📌 La pagina usa il client di **servizio**, quindi il permesso che conta davvero è quello di
+`service_role`, esplicito nella migration del T1.
+
+### 🔴 P7-③ — Due difetti della MIA stesura del piano, trovati in revisione PRIMA di scrivere il codice
+
+La prima versione del Passo 3-ter diceva che su `tinta_scartata` si avvisa «*poi si comporta come sempre
+per il resto*». **Sarebbe stato sbagliato due volte:**
+1. `salva()` avrebbe comunque chiamato `onSalvato(patch)` col patch **chiesto**, e `handleSalvato` fa
+   `{...prev, ...patch}`: la riga avrebbe mostrato la tinta **come salvata** mentre in banca dati è nulla,
+   **con l'avviso d'errore sopra**. La regola giusta era già scritta diciotto righe più in là
+   (`handleColoreSalvato`: «*si applica ciò che è AVVENUTO, non ciò che si sperava*»).
+2. Su salvataggio **riuscito**, il patch porta solo la coppia: la riga avrebbe mostrato **il nome vecchio
+   accanto al codice nuovo**, perché `nome` e `hex` non vivono su `lavori`.
+➡️ Chiusi entrambi **prima di scrivere**, e **asseriti**: `salva(corpo, patchLocale?)`, dove il ramo tinta
+passa anche `{nome, hex}` che la tavolozza ha appena disegnato. Gli altri quattro rami non passano il
+secondo argomento e non cambiano di una riga.
+
+### 🟠 P7-④ — La guardia del dizionario si accende su DUE generic nella stessa riga
+
+`check-ds-compliance.sh` ha fermato il commit su
+`async function salva(patch: Record<string, unknown>, patchLocale?: Record<string, unknown>)`.
+**Non è la parola «salva»:** è che il `>` del primo generic e il `<` del secondo **racchiudono la parola
+«Record»**, che sta nell'elenco delle parole del software vietate nella UI.
+➡️ **Firma spezzata su tre righe, guardia intatta.** 🛑 La scelta opposta — allargare il filtro — era
+esplicitamente sconsigliata dallo script stesso: «*mai ammorbidire la parola per tutti gli altri*».
+📮 **Riferito (R-E2), non corretto qui:** il commento dello script documenta la famiglia dei falsi
+positivi da generic **solo per i cast `as X<…>`**. Questa è una seconda forma, e chi la incontra senza
+saperlo perde tempo. Vale una riga nel commento, in una passata che tocchi quello script.
+
+### 📊 R-P4 — i conteggi, uno per file di prova
+
+| prove | accese contro l'abbozzo inerte | le verdi, e perché |
+|---|---|---|
+| `tinta-scheda.test.ts` (8) | **5 su 8** | tre **guardie negative** (chiedono un'assenza, e l'abbozzo risponde «niente» a tutto) |
+| `TavolozzaTinte.test.tsx` (7) | **6 su 7** | una: «catalogo vuoto → nessun bottone» |
+| `ModificaRigaSheet.test.tsx` (+7) | **7 su 7** | — (le 5 preesistenti restano verdi: sono la **prova di non-danno**) |
+| `scheda-riga-tinta.test.tsx` (6) | **5 su 6** | una: «senza tinta la riga non compare» |
+
+⚠️ **Le guardie negative NON sono state riscritte per farle accendere** — sarebbe fingere. Stessa scelta
+dichiarata nel T3 e nel T4.
+🔑 **La forma d'input che ha guidato il codice più di tutte:** *corpo non-JSON*. Le prove degli altri
+quattro campi rispondono `{ ok: true }` **senza `json()`**: una lettura obbligatoria della risposta le
+avrebbe rotte tutte — è la lezione ④ del 05/08 (venti prove rotte da tre colonne aggiunte). La lettura è
+**difensiva** e la rete intera è stata lanciata, non le tre prove sorelle scelte a mano.
+
+### 🛑 P7-⑤ — Il collaudo a schermo del T7 NON è possibile finché non c'è il T8
+
+`provato:` **0 lavori con tinta** in banca dati, e con il solo T7 **non esiste alcun modo dall'interfaccia
+di metterne una**: la riga compare solo se una tinta c'è già, e il campo sulla pagina di modifica è il T8.
+Per vedere la schermata stasera servirebbe una **scrittura diretta in banca dati** (`UPDATE lavori SET
+tinta_…`) — chiesta e **bloccata dal classificatore dei comandi**, quindi non fatta.
+➡️ **Il collaudo dal vivo resta dov'era: al T9**, come il piano prevede, e lì sarà anche più vero perché
+passerà dal **percorso dell'utente** invece che da una riga scritta a mano.
+📌 **Fino ad allora, ciò che è provato è ciò che dicono le prove** — 28 nuove — e la riga «funziona in
+produzione» non si scrive.
