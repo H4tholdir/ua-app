@@ -659,3 +659,28 @@ describe('FrameFatto — la frase del colore non contraddice la carta (D231①)'
     expect(avviso).toHaveTextContent(/trascritto dal foglio/)
   })
 })
+
+// M3-T39-6 (chiuso il 05/08/2026 misurando sul deployment vivo) — una foto oltre
+// il limite non parte nemmeno: la piattaforma la taglierebbe prima di arrivare
+// all'applicazione, e su rete mobile l'utente avrebbe aspettato decine di secondi
+// per un rifiuto già deciso. La frase dice il peso vero e cosa fare.
+describe('FrameFatto — la foto troppo pesante non parte (M3-T39-6)', () => {
+  it('oltre il limite: avvisa col peso vero e NON chiama la rotta', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    fetchSpy.mockClear()
+    renderFatto()
+    const input = screen.getByLabelText("Carica la foto dell'impronta") as HTMLInputElement
+    // 6 MB: misura ordinaria per un telefono di oggi.
+    const grande = new File([new Uint8Array(6 * 1024 * 1024)], 'impronta.jpg', { type: 'image/jpeg' })
+    await userEvent.setup().upload(input, grande)
+    const avviso = await screen.findByRole('alert')
+    expect(avviso).toHaveTextContent(/6,0 MB/)
+    expect(avviso).toHaveTextContent(/4MB/)
+    // 🛑 Il numero vecchio era una bugia: non deve ricomparire da nessuna parte.
+    expect(avviso).not.toHaveTextContent(/20MB/)
+    expect(fetchSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('/immagini'),
+      expect.anything()
+    )
+  })
+})

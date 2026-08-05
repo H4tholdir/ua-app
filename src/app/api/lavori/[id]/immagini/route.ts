@@ -5,6 +5,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { uploadToStorage } from '@/lib/storage/upload'
 import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_ETICHETTA } from '@/lib/storage/limite-caricamento'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -77,9 +78,18 @@ export async function POST(req: Request, { params }: RouteContext) {
     )
   }
 
-  // Limite dimensione: 20MB
-  if (file.size > 20 * 1024 * 1024) {
-    return NextResponse.json({ error: 'File troppo grande (max 20MB)' }, { status: 413 })
+  // Limite dimensione — il numero e la sua ragione vivono in UN posto solo
+  // (`limite-caricamento.ts`): la coppia precedente diceva 20MB qui e «20MB»
+  // all'utente, d'accordo fra loro e sbagliate entrambe, perché la piattaforma
+  // taglia a ~4,2MB PRIMA di arrivare qui (misurato sul deployment vivo).
+  // ⚠️ Questo controllo resta utile anche se la piattaforma taglia prima: è la
+  //    rete per ogni altro ambiente di esecuzione (banco locale, prova, un
+  //    domani un runtime diverso) e per un client che non controlli da sé.
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: `File troppo grande (max ${MAX_UPLOAD_ETICHETTA})` },
+      { status: 413 }
+    )
   }
 
   // La categoria si chiede allo SCATTO (D65) e arriva col caricamento.

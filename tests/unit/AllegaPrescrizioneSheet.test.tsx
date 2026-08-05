@@ -329,11 +329,17 @@ describe('T9 — quando qualcosa non riesce', () => {
   })
 
   // 🔑 413/415 sono raggiungibili DAL PICKER STESSO: `accept="image/*"`
-  // (voce ①) ammette formati che `immagini/route.ts` rifiuta (TIFF, HEIF),
-  // e la soglia dei 20MB non ha alcun controllo lato client. La frase
-  // generica «Riprova» produrrebbe un ciclo chiuso — stesso file, stesso
-  // rifiuto — quindi questi due esiti hanno una frase che dice COSA cambiare.
-  it('upload troppo grande (413) → frase che dice il limite, non "Riprova"', async () => {
+  // (voce ①) ammette formati che `immagini/route.ts` rifiuta (TIFF, HEIF).
+  // La frase generica «Riprova» produrrebbe un ciclo chiuso — stesso file,
+  // stesso rifiuto — quindi questi esiti dicono COSA cambiare.
+  //
+  // 🔴 M3-T39-6, misurato sul deployment vivo il 05/08/2026: la frase diceva
+  //    «più grande di 20MB» e NON era vera per nessun file. La piattaforma
+  //    taglia a ~4,2MB PRIMA dell'applicazione (401 a 4,10MB · 413 a 4,30MB),
+  //    quindi chi caricava una foto da 6MB leggeva un limite che il suo file
+  //    non superava. Adesso il controllo scatta prima di partire (test sotto)
+  //    e questo 413 è solo la rete, con il numero VERO.
+  it('413 dal server → la frase porta il limite vero, mai il vecchio 20MB', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
     m.mockResolvedValueOnce({
       ok: false,
@@ -349,9 +355,29 @@ describe('T9 — quando qualcosa non riesce', () => {
         new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
       )
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText('Questo file è più grande di 20MB: scegline uno più piccolo.')).toBeInTheDocument()
+    const avviso = await screen.findByRole('alert')
+    expect(avviso).toHaveTextContent('Questo file supera il massimo di 4MB: scegline uno più leggero.')
+    expect(avviso).not.toHaveTextContent(/20MB/)
     expect(onFonte).not.toHaveBeenCalled()
+  })
+
+  // Il caso che conta davvero: oltre il limite non si parte nemmeno. Su rete
+  // mobile aspettare il viaggio significa decine di secondi per un rifiuto già
+  // deciso in partenza — e la richiesta non arriverebbe comunque all'app.
+  it('file oltre il limite → avvisa col peso VERO e non chiama nessuna rotta', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockClear()
+    monta()
+    await userEvent
+      .setup()
+      .upload(
+        foglio().getByLabelText('Scatta la foto della prescrizione'),
+        new File([new Uint8Array(6 * 1024 * 1024)], 'presc.jpg', { type: 'image/jpeg' })
+      )
+    const avviso = await screen.findByRole('alert')
+    expect(avviso).toHaveTextContent(/6,0 MB/)
+    expect(avviso).toHaveTextContent(/4MB/)
+    expect(m).not.toHaveBeenCalled()
   })
 
   it('formato non supportato (415) → frase che dice i formati accettati, non "Riprova"', async () => {

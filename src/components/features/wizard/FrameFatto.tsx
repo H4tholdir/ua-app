@@ -58,6 +58,7 @@ import { useAvvisi } from '@/components/ds/Avviso'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
+import { troppoGrande } from '@/lib/storage/limite-caricamento'
 import { mappaElementi, type AccessorioFallito } from '@/lib/wizard/crea-lavoro'
 import type { ColoreOrigine } from './WizardNuovoLavoro'
 import { CambiaDataSheet } from './CambiaDataSheet'
@@ -295,6 +296,15 @@ export function FrameFatto(props: {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    // Oltre il limite la piattaforma taglia PRIMA dell'applicazione e la rotta
+    // risponde un 413 grezzo che qui diventava «Non sono riuscita a salvare la
+    // foto. Riprova.» — un ciclo chiuso: riprovare con lo stesso file dà lo
+    // stesso esito. Si controlla prima, e si dice cosa cambiare.
+    const tropo = troppoGrande(file)
+    if (tropo) {
+      errore(tropo)
+      return
+    }
     setCaricandoFoto(true)
     try {
       const fd = new FormData()
@@ -325,7 +335,14 @@ export function FrameFatto(props: {
         body: fd,
       })
       if (!res.ok) {
-        errore('Non sono riuscita a salvare la foto. Riprova.')
+        // Rete: se il 413 arriva lo stesso (il limite è sul CORPO, e il
+        // multipart aggiunge il suo), non si dice «riprova» su un file che
+        // verrà rifiutato identico.
+        errore(
+          res.status === 413
+            ? 'Questa foto è troppo pesante per essere caricata: scattala di nuovo più da vicino, o scegline una più leggera.'
+            : 'Non sono riuscita a salvare la foto. Riprova.'
+        )
       } else {
         avvisa('Foto salvata ✓')
       }

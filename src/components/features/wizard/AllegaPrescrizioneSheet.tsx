@@ -60,6 +60,7 @@ import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { CampoTesto } from '@/components/ds/Campo'
 import { useAvvisi } from '@/components/ds/Avviso'
+import { MAX_UPLOAD_ETICHETTA, troppoGrande } from '@/lib/storage/limite-caricamento'
 import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
 // 🛑 Il dizionario si IMPORTA, mai si riscrive: è la stessa costante che la
 // rotta usa per rifiutare con 422 (`fonte/route.ts:78`), ed è sorvegliata
@@ -119,14 +120,21 @@ const FRASE_CONGELATA =
  *  quella rotta non parla `{errore,esito}` come `fonte/route.ts`).
  *  🛑 413 e 415 sono raggiungibili dal PICKER STESSO — `accept="image/*"`
  *  ammette formati che `ALLOWED_MIME` rifiuta (`route.ts:12-19`: solo JPEG,
- *  PNG, WEBP, GIF, HEIC, PDF — niente TIFF né HEIF), e la soglia dei 20MB
- *  (`route.ts:81`) non ha alcun controllo lato client. Con la frase generica
+ *  PNG, WEBP, GIF, HEIC, PDF — niente TIFF né HEIF), e la soglia di peso
+ *  (`limite-caricamento.ts`) ~~non ha alcun controllo lato client~~ ora ce l'ha,
+ *  ed è quello che si legge per primo. Con la frase generica
  *  «Riprova», l'utente ripete lo STESSO file e ottiene lo STESSO rifiuto:
  *  un ciclo chiuso. Queste due frasi dicono cosa cambiare, non solo che è
  *  fallito. */
 function fraseErroreImmagine(status: number): string {
   if (status === 413) {
-    return 'Questo file è più grande di 20MB: scegline uno più piccolo.'
+    // 🔴 Diceva «più grande di 20MB», e per nessun file era vero: la piattaforma
+    //    taglia a ~4,2MB PRIMA dell'applicazione (misurato sul deployment vivo
+    //    il 05/08/2026 — v. `limite-caricamento.ts`). Chi arrivava qui con una
+    //    foto da 6MB leggeva un numero che il suo file non superava, e riprovava
+    //    con lo stesso file. Ora il controllo scatta PRIMA di partire e questa
+    //    frase è solo la rete: la si legge se il 413 arriva lo stesso.
+    return `Questo file supera il massimo di ${MAX_UPLOAD_ETICHETTA}: scegline uno più leggero.`
   }
   if (status === 415) {
     return 'Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.'
@@ -212,6 +220,14 @@ export function AllegaPrescrizioneSheet(props: {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || inCorso) return
+    // Prima di spendere un byte: oltre il limite la richiesta non arriva nemmeno
+    // all'applicazione, e su rete mobile l'utente avrebbe aspettato decine di
+    // secondi per un rifiuto già deciso in partenza.
+    const tropo = troppoGrande(file)
+    if (tropo) {
+      errore(tropo)
+      return
+    }
     setInCorso(true)
     try {
       const fd = new FormData()
