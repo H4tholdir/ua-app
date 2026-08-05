@@ -951,9 +951,31 @@ il rifacimento perdeva denti e colore.
 > l'elenco dei campi correggibili sul posto è **scritto due volte** —
 > `SchedaLavoroV3.tsx:101` e `ModificaRigaSheet.tsx:30`, identici:
 > `type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'`.
-> **Aggiungere `'tinta'` vuol dire toccarne DUE**, e una sola delle due non dà errore di compilazione da
-> tutti e due i lati: è la stessa classe di difetto che questo progetto combatte (due copie della stessa
-> regola, una che si aggiorna e l'altra no). `provato:` `grep -rn "type Campo = " src/` → **2 hit**.
+> **Aggiungere `'tinta'` vuol dire toccarne DUE.** `provato:` `grep -rn "type Campo = " src/` → **2 hit**.
+>
+> 🔬 **MISURATO nelle due direzioni il 05/08 alle 19:10** (la prima stesura di questa riga diceva che «una
+> sola delle due non dà errore da tutti e due i lati»: **impreciso**, ed è stato corretto sull'esito vero).
+> `provato:` aggiungendo `'tinta'` a un file solo e lanciando `tsc --noEmit`, poi ripristinando:
+>
+> | dove aggiungo `'tinta'` | esito | chi protesta |
+> |---|---|---|
+> | **solo** `SchedaLavoroV3.tsx:101` (chi chiama) | ❌ `TS2719` — «*Type 'Campo' is not assignable to type 'Campo'. **Two different types with this name exist, but they are unrelated**.*» | il **collegamento**: è il compilatore che descrive il difetto con parole sue |
+> | **solo** `ModificaRigaSheet.tsx:30` (chi rende) | ❌ `TS2741` — «*Property 'tinta' is missing in type … but required in type `Record<Campo, string>`*» | ⚠️ **la tabella `TITOLI`, non il collegamento** |
+>
+> 🔑 **La riga da tenere: la seconda protesta è un COLPO DI FORTUNA, non una rete.** Arriva da
+> `TITOLI: Record<Campo, string>` (`ModificaRigaSheet.tsx:32`), che per costruzione esige una chiave per
+> ogni campo. Basterebbe un `Partial<Record<…>>`, o una tabella dei titoli scritta altrove, e l'aggiunta
+> nel solo file che rende **passerebbe in silenzio**: un ramo capace di gestire la tinta che **nessun
+> chiamante può raggiungere**. La protezione c'è **per come è fatta un'altra cosa**, non perché qualcuno
+> l'abbia messa lì a difendere questo.
+>
+> 📌 **E la duplicazione è DICHIARATA, non distratta:** `SchedaLavoroV3.tsx:99-100` porta il commento
+> «*L'elenco vive in DUE posti … i due si muovono insieme, o il foglio non sa che cosa rendere*». Qualcuno
+> l'ha vista, l'ha scritta, e non l'ha chiusa. ⚠️ Nessuna ragione tecnica la regge: i due file stanno nella
+> **stessa cartella** e `ModificaRigaSheet.tsx:22` importa già da `./ModificaColoreSheet`. La cura è
+> **esportare il tipo da chi lo rende e importarlo in chi lo chiama** — due righe.
+> ➡️ **Da fare PRIMA del T7 e in un salvataggio suo**, non dentro: rimettere in ordine e aggiungere un
+> campo sono due lavori, e mescolati non si sa quale dei due ha rotto cosa.
 >
 > 🛑 **E vale la regola degli overlay v3:** da dentro un foglietto non si naviga con `router.push` nudo —
 > se il T7 dovesse mai navigare, si usa `useNavigaDaOverlay` (`src/components/ds/useNavigaDaOverlay.ts`).
