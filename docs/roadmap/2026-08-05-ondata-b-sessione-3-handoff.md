@@ -53,15 +53,32 @@ costano una decisione, non un ritocco.
 
 
 ### ⑥ Due residui dichiarati, non «corretti»
-- **`progressivi_anno('lavoro', 2026)` è a 15.** Il giro del gate ha consumato 0013/0014/0015 e
+- **`progressivi_anno('lavoro', 2026)` è a 16.** Il giro del gate ha consumato 0013/0014/0015 e il
+  riscatto post-revisione 0016 e
   il contatore **non torna indietro** (è un contatore memorizzato, non un `max()` — G5 del giro
   precedente, che l'aveva già portato a 12). I conteggi delle tabelle sono alla **baseline esatta**
   e nessuna riga coi nostri id sopravvive: manca un numero nella serie, non un dato. Riavvolgerlo
   sarebbe una scrittura che nessuno ha chiesto.
-- **Sei scatti precedono di poco il compattamento.** `fatto-fonte-verde-*` (6 file) è stato preso
-  **prima** dei −30px di D233①, mentre `fatto-due-carte-*` è **dopo**: la stessa schermata compare
-  quindi in due spaziature. Differenza di soli margini, nessun altro scarto — ma scritta qui,
-  perché in questo repo un PNG che sembra lo stato corrente e non lo è è già costato due volte.
+- ✅ **Scatti allineati.** `fatto-due-carte-*` e `fatto-fonte-verde-*` sono stati **entrambi
+  rifatti dopo la revisione del delta**: mostrano le spaziature definitive (in griglia §4.2), non
+  quelle della prima stesura del compattamento.
+
+
+### ⑦ 🔎 RIFERITI dalla revisione del delta — fuori dai 12 file, NON corretti (R-E2)
+- 🛑 **QUARTA e QUINTA replica del difetto dark «faccia `--card` dentro un pannello `--card`», e
+  sono peggiori delle tre chiuse:** `TileScelta.tsx:75,88-89` (montata in `ModificaRigaSheet.tsx:194`,
+  il foglio **gemello** di quello corretto oggi) e `RigaCerca.tsx:33,45-46` (in
+  `CatalogoTipiSheet.tsx:101`). Entrambe hanno `border: 'none'` — quindi in scuro **spariscono del
+  tutto**, mentre `.ds-via-d212` almeno conservava il suo bordo. È **visibile oggi in produzione**.
+  🔑 La prova che il pattern era già noto: `.ds-parete-cerca` **ha** la sua regola dark
+  (`ds-v3.css:1049-1051`); il componente DS `.ds-riga-cerca` no.
+- **Due reti meccaniche mancano, e sono proprio quelle che avrebbero preso i difetti di oggi:**
+  ① l'unico controllo automatico di contrasto (`tests/unit/ds-v3/tokens.test.ts:29-35`) enumera solo
+  `card` e `bg` come fondi — **mai `bgDeep`, `elv`, né il token `faint`**: il difetto AA chiuso oggi
+  non aveva nessuna guardia, e non ce l'ha nemmeno adesso per la prossima volta;
+  ② **nessuna guardia sulla griglia delle spaziature §4.2** (`check-ds-compliance.sh` controlla
+  colori, gold-come-testo, shadow e hex, non i passi) — è il motivo per cui la prima stesura del
+  compattamento ha potuto introdurre 18 e 14 senza che nulla suonasse.
 
 ### ⑤ Il collaudo di P37 si fa SOLO su build di produzione (G1) — invariato
 In `npm run dev` StrictMode rimonta lo Sheet e l'entry di storia si mangia il foglio (~80ms).

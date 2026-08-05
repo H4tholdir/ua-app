@@ -362,7 +362,7 @@ export function FrameFatto(props: {
       </div>
 
       {/* ── Carta ① «Il lavoro» — la caption sta FUORI dalla carta (mockup) ── */}
-      <section aria-labelledby={idCartaLavoro} style={{ marginTop: 18 }}>
+      <section aria-labelledby={idCartaLavoro} style={{ marginTop: spazio.ml }}>
         <p id={idCartaLavoro} style={stileCardTitolo}>Il lavoro</p>
         <CardInfo>
           <RigaDato chiave="Dentista" valore={dentista} />
@@ -377,7 +377,7 @@ export function FrameFatto(props: {
       </section>
 
       {/* ── Carta ② «La prescrizione» — ciò che viene dal foglio del dentista ── */}
-      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: 14 }}>
+      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: spazio.sm }}>
         <p id={idCartaPrescrizione} style={stileCardTitolo}>La prescrizione</p>
         <CardInfo>
           {dentiPrescritti.length > 0 && (
@@ -419,7 +419,7 @@ export function FrameFatto(props: {
         </CardInfo>
       </section>
 
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: spazio.sm }}>
         <p style={stileCardTitolo}>Consegna suggerita</p>
         <div style={stileConsegnaBox}>
           <p style={stileFrase}>
@@ -435,7 +435,7 @@ export function FrameFatto(props: {
           Senza il foglio allegato l'unica cosa che vale un tasto rosso è il
           foglio: la foto dell'impronta scende a link quieto e resta a un tap.
           Con il foglio in archivio, il rosso torna quello di sempre. */}
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: spazio.ml }}>
         {fonteConImmagine ? (
           <TastoPrimario onClick={apriFileInput} disabled={caricandoFoto} motivoDisabilitato="Un attimo…">
             Fotografa l&apos;impronta
@@ -488,6 +488,9 @@ export function FrameFatto(props: {
 }
 
 // D233① «compattiamo» (Francesco, gate L2 05/08) — gli spazi neutri si stringono.
+// ⚠️ Ogni passo qui sotto sta sulla griglia §4.2 (4/8/12/16/20/24/32/44): 18 e
+//    14 NON ci sono, e 14 è ammesso solo sul regime viewport ≤700px — la prima
+//    stesura di questo compattamento li aveva usati, e la revisione li ha presi.
 // 🛑 NON si tocca: il cerchio Ø92 (valore verbatim del mockup approvato) né il
 //    gap 44 fra i due link quieti, che è un vincolo di SICUREZZA del pollice
 //    (0B-3: sotto quella misura le due aree da 44px si sovrappongono e il tap
@@ -498,8 +501,8 @@ const stileHead: CSSProperties = {
   flexDirection: 'column',
   alignItems: 'center',
   textAlign: 'center',
-  gap: 12,
-  marginTop: 4,
+  gap: spazio.sm,
+  marginTop: spazio.xs,
 }
 
 // wizard.html:179 .fatto-check — Ø92, tint verde.
@@ -615,7 +618,17 @@ const stilePastigliaAmbraSola: CSSProperties = {
 // spazio.sm (12) dava -14px (sovrapposizione, il secondo elemento del DOM
 // vince il tap); con spazio.xxl (44) dà 18px d'aria vera.
 const stileQuieti: CSSProperties = {
-  marginTop: 14,
+  // 🛑 20, e NON meno — trovato dalla revisione del gate L2, 05/08. `LinkQuieto`
+  //    compra la sua hit-box da 44px con `padding 13px 0` + `margin -13px 0`:
+  //    quel −13 risale DENTRO questo marginTop (i margini di un flex item non
+  //    collassano), quindi l'aria vera fra l'area toccabile del rosso e quella
+  //    del primo quieto è `marginTop − 13`. Con 14 faceva **1px**: un pollice
+  //    2px basso sul rosso «Allega la prescrizione» apriva la fotocamera, o —
+  //    a fonte allegata — se ne andava dalla schermata con «Torna alla home».
+  //    È la stessa aritmetica che il blocco 🛑 sopra `stileHead` protegge fra i
+  //    DUE quieti, e il compattamento l'aveva rotta dall'altro lato. Con 20 fa
+  //    7px, più di prima (erano 5), ed è un passo di griglia §4.2.
+  marginTop: spazio.ml,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',

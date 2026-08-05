@@ -303,6 +303,17 @@ const contenitoreStile = {
   maxWidth: 480,
   padding: `0 ${spazio.l}px`,
   pointerEvents: 'none' as const,
+  // Tetto d'altezza — conseguenza diretta di D234 (revisione del gate L2, 05/08).
+  // Gli errori non spariscono da soli, non hanno un limite di numero e `errore()`
+  // non deduplica: quattro tentativi falliti sulla stessa foto impilano quattro
+  // card, e senza il taglio a due righe le card sono più alte. Misurato a 390:
+  // il messaggio più lungo esistente (195 caratteri, `MESSAGGIO_FONTE_FILE_PERSO`)
+  // occupa ~219px, e alla quarta il «Chiudi» dell'ultima — che è l'UNICA via di
+  // uscita di un errore — finiva sotto la piega. Con questo tetto la pila
+  // scorre invece di sfondare: `top` è già `spazio.l`, quindi si sottrae due
+  // volte per lasciare la stessa aria in fondo.
+  maxHeight: `calc(100dvh - ${spazio.l * 2}px)`,
+  overflowY: 'auto' as const,
   // Esplicito e non solo "assenza di regola" (fix QA live Francesco round 2,
   // difesa in profondità oltre alla rimozione di `background` dalla regola
   // scope in ds-v3.css): il contenitore porta `data-ds="v3"` per i token, MA

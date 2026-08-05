@@ -134,9 +134,10 @@ export function RigaDato(props: {
 
 /**
  * CardInfo — card di dati di sola lettura (§5.10): card 22 (`raggio.tile`),
- * padding 4/20, raccoglie fino a 5 `RigaDato` con un separatore 1.5 `--line`
- * tra una riga e l'altra (mai dopo l'ultima). Oltre le 5 righe di legge non
- * le nasconde — avvisa solo in dev (§5.10 non è applicabile a runtime).
+ * padding 4/20, raccoglie fino a 6 `RigaDato` (D230, 05/08/2026 — erano 5) con
+ * un separatore 1.5 `--line` tra una riga e l'altra (mai dopo l'ultima). Oltre
+ * le 6 righe di legge non le nasconde — avvisa solo in dev (§5.10 non è
+ * applicabile a runtime).
  */
 export function CardInfo(props: { children: ReactNode }) {
   const { children } = props

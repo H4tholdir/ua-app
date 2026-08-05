@@ -669,8 +669,16 @@ function Via(props: {
           </span>
           <span
             style={{
-              // 13.5 era fuori scala §4.1 (label 13, poi 15.5): gate L2 05/08.
-              fontSize: tipografia.size.label,
+              // 13.5 e NON `tipografia.size.label` (13) — corretto dalla revisione
+              // del gate L2, 05/08. Il numero era quasi giusto, il RUOLO no:
+              // §4.1 definisce `label` come etichetta MAIUSCOLA 800/+0.16em, e
+              // questa è una sotto-riga descrittiva minuscola in semibold. Il
+              // 13.5 non è un valore inventato: è quello che le anatomie §5.41
+              // e §5.42 usano per questo stesso ruolo (`FoglioCategoria.tsx:403`
+              // lo rende così), e che il gemello `AllegaPrescrizioneSheet` porta.
+              // ⚠️ Il difetto vero è che la scala §4.1 non ha un gradino per
+              //    questo ruolo — riferito, non risolvibile qui.
+              fontSize: 13.5,
               display: 'block',
               fontWeight: tipografia.weight.semibold,
               color: 'var(--muted)',
@@ -771,7 +779,12 @@ const stileCambioPrima = {
 const stileCambioFreccia = {
   fontSize: tipografia.size.body,
   fontWeight: tipografia.weight.extrabold,
-  color: 'var(--faint)',
+  // `--muted` come l'etichetta accanto: la freccia vive nella STESSA scatola
+  // `--bg-deep`, dove `--faint` misura 4,17:1 (sotto AA in chiaro). È
+  // `aria-hidden` e quindi decorativa — difendibile lasciarla lì — ma la
+  // ragione scritta venti righe più sotto vale identica anche per lei, e una
+  // regola applicata a metà è una regola che la prossima revisione riapre.
+  color: 'var(--muted)',
 } as const
 
 // Gate L2 del 05/08 — DUE correzioni sulla stessa etichetta (TRASCRITTO/NUOVO):

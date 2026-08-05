@@ -511,12 +511,11 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
                 `scheda-colore` del mockup. Compare solo se un colore esiste
                 davvero (vivo o trascritto); è tappabile solo dove il tocco può
                 atterrare (v. `derivaRigaColore`).
-                ⚠️ RIFERITO, non deciso qui (R-E2): con questa riga la carta
-                arriva a SEI righe e §5.10 ne fissa cinque. `CardInfo` per
-                progetto non ne nasconde nessuna e avvisa solo chi sviluppa —
-                quindi in sviluppo si vedrà l'avviso, ed è giusto che si veda:
-                il mockup approvato (scena 9) mostra sei righe, la spec ne
-                dichiara cinque, e chi scioglie il nodo non è questo task. */}
+                ✅ NODO SCIOLTO — D230 (gate L2, 05/08/2026). Con questa riga la
+                carta arriva a SEI righe: §5.10 ne fissava cinque, e ha vinto la
+                carta che Francesco ha approvato (D225②) invece della regola
+                scritta prima di vederla. La spec è emendata e l'avviso di
+                sviluppo che questa carta stampava a ogni render non c'è più. */}
             {rigaColore &&
               (rigaColore.modificabile ? (
                 <RigaEditabile

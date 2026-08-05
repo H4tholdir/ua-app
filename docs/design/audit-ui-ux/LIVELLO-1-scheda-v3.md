@@ -41,7 +41,7 @@ Passare la [checklist](./CHECKLIST-DS-V3-UI-UX.md) su **3 viewport × 2 temi** p
 3. **`:focus-visible` assente** sui bottoni inline-styled v3 (NotaLaboratorio, righe, voci menu) — outline nativo presente ma non lo stile v3 (BACKLOG O6f).
 4. **`aria-label="Modifica scadenza"`** sulla riga consegna: divergenza WCAG label-in-name (test-driven per non collidere con CONSEGNA). Valutare «Modifica consegna» + query test più specifica (BACKLOG O6f).
 5. **Empty-note-add:** dalla scheda non si può aggiungere la *prima* nota (la card appare solo se `note_interne` presente) — manca affordance empty-state (BACKLOG O6d).
-6. **CardInfo >5 righe:** warning dev quando un ciclo ha 6-8 fasi (CardInfo pensata per ≤5 righe); valutare presentazione fasi quando numerose (BACKLOG O6c/§5.10).
+6. ~~**CardInfo >5 righe:**~~ 🔄 **AGGIORNATA — D230 (05/08/2026): il massimo di legge è SEI**, non cinque (la carta «Il lavoro» approvata da Francesco ne ha sei). Resta vero il resto della voce: l'avviso di sviluppo scatta ora a **7+**, quindi un ciclo con 7-8 fasi lo fa ancora scattare, e la presentazione delle fasi quando sono numerose è ancora da valutare (BACKLOG O6c/§5.10).
 7. **RifacimentoButton** riusato porta token/stile DS-v2 in superficie v3 → incoerenza estetica (BACKLOG O6e).
 
 ## 4. Processo (rifinitura, non nuova UI)
