@@ -6270,6 +6270,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      storage_lab_del_percorso: { Args: { nome: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       upsert_pec_vault_secret: {
         Args: { p_lab_id: string; p_password: string }
