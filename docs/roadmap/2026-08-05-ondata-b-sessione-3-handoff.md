@@ -2,10 +2,14 @@
 
 **Per:** Francesco, e per la sessione che eseguirà il gate L2 e (dopo l'ok) il merge.
 **Quando:** 5 agosto 2026, notte (giro end-to-end e review finale chiusi dopo la mezzanotte).
-**Stato:** ramo `ondata-b-sessione-3` = `b983870e` + i commit di chiusura · 28+ commit da `cabfd3f0` ·
-**review finale di ramo (modello capace): READY TO MERGE, zero Critical/Important** · FASE 7
-`verify:full` VERDE (tsc 0 · suite intera verde · build ok · 6 guardie) · **giro end-to-end 8/8**
-(il PRIMO mai percorso — `lavori_prescrizioni` 0→1→0, baseline esatta) · main NON toccato.
+**Stato:** ramo `ondata-b-sessione-3` = `e34dc71d` (29 commit da `cabfd3f0`) · albero pulito ·
+**NIENTE È PUBBLICATO**: su `main` restano **3 commit locali** di questa sessione (mockup D223-D225 ·
+recupero scatti P30/ondata-a · piano ③) e il ramo intero — 32 commit totali — attende l'ok.
+**Review finale di ramo (modello capace): READY TO MERGE, zero Critical/Important** ·
+**giro end-to-end 8/8** (il PRIMO mai percorso — `lavori_prescrizioni` 0→1→0, baseline esatta).
+📌 MISURATO IN CHIUSURA (`provato:` `npm run verify:full` rilanciato al `/chiudi`): tsc 0 ·
+eslint 0 · vitest **4854 passate | 19 saltate** (409 file | 3 saltati) · build ok · sei guardie
+verdi · verifica «full» registrata.
 
 ---
 
