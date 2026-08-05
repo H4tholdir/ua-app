@@ -5,6 +5,7 @@ import { getSignedUrl } from '@/lib/storage/signed-url'
 import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
 import { BackHeaderModifica } from './BackHeaderModifica'
 import { risolviTab } from '@/lib/lavori/risolvi-tab'
+import { caricaTinteScheda } from '@/lib/lavori/tinta-scheda'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 // ⚠️ `denti:lavori_denti(*)` NON è un di più: dal Task 10 le quattro colonne
@@ -75,6 +76,18 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
   // cardinalità inferita.
   const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
   lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
+
+  // D42 T8 — le tinte per il campo della tab Clinica. 🔑 È LA STESSA funzione
+  // che usa la scheda (`lavori/[id]/page.tsx`), non una copia: questa pagina
+  // dichiara in testa di replicare «FEDELMENTE il pattern dati» dell'altra, e
+  // due letture divergenti dello stesso catalogo sarebbero due verità.
+  const tinte = await caricaTinteScheda(svc, {
+    tipo_dispositivo: lavoroDettaglio.tipo_dispositivo,
+    tinta_famiglia: lavoroDettaglio.tinta_famiglia,
+    tinta_codice: lavoroDettaglio.tinta_codice,
+  })
+  lavoroDettaglio.tinta = tinte.scelta
+  lavoroDettaglio.tinteDisponibili = tinte.disponibili
 
   if (lavoroDettaglio.ddc?.storage_path_pdf) {
     const signedDdcUrl = await getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)

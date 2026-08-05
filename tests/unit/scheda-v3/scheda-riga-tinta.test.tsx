@@ -55,10 +55,30 @@ function conTinta(hex: string | null = '#D90012') {
   } as Partial<LavoroDettaglio>)
 }
 
-describe('La riga «Tinta» nella scheda (D247)', () => {
-  it('senza tinta la riga NON compare affatto — non una riga vuota', () => {
-    render(<SchedaLavoroV3 lavoro={makeLavoro()} />)
+describe('La riga «Tinta» nella scheda (D247 · D253)', () => {
+  it('su un lavoro che NON ammette una tinta la riga non compare affatto', () => {
+    // Una corona: `caricaTinteScheda` non interroga nemmeno il catalogo, quindi
+    // `tinteDisponibili` è vuoto. Mostrare «Nessuna» qui sarebbe offrire un
+    // gesto che non ha esito.
+    render(<SchedaLavoroV3 lavoro={makeLavoro({ tipo_dispositivo: 'protesi_fissa' } as Partial<LavoroDettaglio>)} />)
     expect(screen.queryByText('Tinta')).not.toBeInTheDocument()
+  })
+
+  it('su un lavoro che AMMETTE una tinta ma non ne ha, la riga RESTA e dice «Nessuna» (D253)', () => {
+    // 🔑 Francesco, il 05/08: una riga che sparisce non dice «non c'è tinta»,
+    //    dice NIENTE — e chi guarda non sa se il dato manchi o se quel lavoro
+    //    non lo preveda. Qui la riga è insieme l'informazione e la via per
+    //    cambiarla.
+    render(<SchedaLavoroV3 lavoro={makeLavoro({ tinteDisponibili: TINTE_SPORT } as Partial<LavoroDettaglio>)} />)
+    expect(screen.getByText('Tinta')).toBeInTheDocument()
+    expect(screen.getByText('Nessuna')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Modifica tinta' })).toBeInTheDocument()
+  })
+
+  it('e da quella riga vuota si apre comunque la tavolozza', () => {
+    render(<SchedaLavoroV3 lavoro={makeLavoro({ tinteDisponibili: TINTE_SPORT } as Partial<LavoroDettaglio>)} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica tinta' }))
+    expect(screen.getByRole('button', { name: 'Rosso' })).toBeInTheDocument()
   })
 
   it('con una tinta mostra il NOME, e si PREME (D247: non è muta)', () => {

@@ -446,6 +446,17 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   // 🔑 `congelata` come per il colore: una DdC presente è una dichiarazione
   //    ATTIVA (la query filtra le annullate), e da lì in poi il dato è chiuso —
   //    la riga smette di offrire il tocco invece di offrirne uno che tornerà 409.
+  // 🔄 D253 (05/08/2026) — LA RIGA NON SPARISCE. Su un lavoro che ammette una
+  //    tinta la riga c'è SEMPRE: se la tinta manca dice «Nessuna» e si preme
+  //    lo stesso. Francesco: una riga che sparisce non dice «non c'è tinta»,
+  //    dice NIENTE — e chi guarda non sa se il dato manchi o se quel lavoro non
+  //    lo preveda. 🔑 «Ammette una tinta» = il catalogo ha risposto con delle
+  //    voci, cioè `famigliaDiMacro(tipo) !== null`: la stessa regola del vincolo
+  //    `lavori_tinta_tipo_ck`, decisa una volta sola lato server.
+  //    ⚠️ Il gemello «Colore» NON fa ancora così: gli manca il dato per sapere
+  //    se un lavoro preveda un colore (l'id fine del tipo non è persistito), e
+  //    la cura è D254, agganciata all'ondata del wizard.
+  const ammetteTinta = (lavoro.tinteDisponibili?.length ?? 0) > 0
   const rigaTinta = lavoro.tinta
     ? {
         modificabile: lavoro.ddc === null,
@@ -473,7 +484,9 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           </span>
         ),
       }
-    : null
+    : ammetteTinta
+      ? { modificabile: lavoro.ddc === null, valore: 'Nessuna' }
+      : null
 
   /**
    * L'esito del foglio «Colore», applicato allo specchio locale in UN SOLO

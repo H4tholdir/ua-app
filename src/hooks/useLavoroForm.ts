@@ -219,6 +219,12 @@ interface UseLavoroFormReturn {
   saving: boolean
   saved: boolean
   saveError: string | null
+  /** D42 T8 (D251 · D248) — quello che il SERVER ha fatto e che il corpo della
+   *  risposta dichiara: una tinta tolta col cambio di tipo (D117), una tinta o
+   *  un colore chiesti e non registrabili. Non sono errori di salvataggio — il
+   *  salvataggio è riuscito — quindi non passano da `saveError`, che accenderebbe
+   *  «riprova» su un gesto andato a buon fine. Vuoto quando non c'è nulla da dire. */
+  avvisi: string[]
   isDirty: boolean
 }
 
@@ -227,7 +233,19 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [avvisi, setAvvisi] = useState<string[]>([])
   const [isDirty, setIsDirty] = useState(false)
+
+  // 🛑 LA TINTA COM'ERA QUANDO LA PAGINA È NATA — serve a sapere se l'utente
+  //    l'ha davvero cambiata. Senza, il corpo della PATCH la nomina SEMPRE
+  //    (`{ ...data }`) e il ramo D117 della rotta — «al cambio di tipo la tinta
+  //    si toglie E LO DICHIARA» — diventa irraggiungibile: chi cambia il tipo si
+  //    sente dire «non sono riuscita a registrare la tinta che hai chiesto»,
+  //    cioè un invito a riprovare un gesto che non ha mai fatto. (P8-①)
+  const tintaIniziale = useRef({
+    famiglia: initial.tinta_famiglia ?? null,
+    codice: initial.tinta_codice ?? null,
+  })
 
   // Track whether data has been touched since last successful save
   // Ref is used for autosave timer to avoid stale closure; state is for UI
@@ -313,6 +331,23 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
         delete patchBody[campo]
       }
 
+      // ═══ LA TINTA VIAGGIA SOLO SE È STATA CAMBIATA (P8-①) ═══════════════
+      // Stessa disciplina di `numero_cassetta` e dei sette denti/colore qui
+      // sopra, per una ragione diversa e più sottile: non è che la chiave venga
+      // scartata dal server — è in allowlist e verrebbe accettata — ma la sua
+      // sola PRESENZA dirotta la rotta sul ramo «l'utente ha chiesto una tinta»,
+      // rendendo irraggiungibile quello di D117 («il cambio di tipo l'ha tolta»).
+      // I due rami dicono all'utente due cose diverse, e una delle due sarebbe
+      // falsa. 🔑 Si confronta col valore di PARTENZA, non con `null`: cancellare
+      // una tinta («Nessuna») è un cambiamento e deve viaggiare.
+      const tintaCambiata =
+        (data.tinta_famiglia ?? null) !== tintaIniziale.current.famiglia ||
+        (data.tinta_codice ?? null) !== tintaIniziale.current.codice
+      if (!tintaCambiata) {
+        delete patchBody.tinta_famiglia
+        delete patchBody.tinta_codice
+      }
+
       // ═══ IL COLORE DI CASO — l'altra destinazione, e una sola alla volta ═══
       // Task 12-bis. `{ ...data }` porta con sé la coppia COM'È NEL DATABASE, e
       // sarebbe quella sbagliata due volte: stantia rispetto a ciò che l'utente
@@ -359,8 +394,39 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
       // lo restituisce nella select. Senza questo riallineamento basterebbe un
       // salvataggio di soli campi ordinari per far prendere un 409 fasullo al
       // PRIMO salvataggio clinico successivo.
-      const { lavoro: salvato } = await res.json().catch(() => ({ lavoro: null }))
+      const corpo = await res.json().catch(() => ({ lavoro: null }))
+      const salvato = corpo?.lavoro
       if (salvato?.updated_at) setData((prev) => ({ ...prev, updated_at: salvato.updated_at }))
+
+      // ═══ QUELLO CHE IL SERVER HA FATTO, E CHE QUALCUNO DEVE LEGGERE ═══════
+      // D251 (tinta) e D248 (colore): tre campi additivi che compaiono solo
+      // quando c'è qualcosa da dire. Fino a qui NESSUNA superficie li leggeva —
+      // e un campo senza lettore è l'interruttore che c'è e non fa niente.
+      // 🛑 Non passano da `saveError`: il salvataggio è RIUSCITO, e accendere
+      //    «riprova» su un gesto andato a buon fine manda l'utente a ripetere
+      //    all'infinito una cosa già fatta.
+      const nuoviAvvisi: string[] = []
+      if (corpo?.tinta_rimossa) {
+        nuoviAvvisi.push(
+          'Ho tolto la tinta: questo tipo di lavoro non la prevede. Puoi sceglierne una nuova se il tipo la ammette.'
+        )
+      }
+      if (corpo?.tinta_scartata) {
+        nuoviAvvisi.push('La tinta che hai scelto non è stata registrata: controlla che sia adatta a questo tipo di lavoro.')
+      }
+      if (corpo?.colore_scartato) {
+        nuoviAvvisi.push('Il colore che hai scritto non è stato registrato: non è fra quelli del catalogo.')
+      }
+      setAvvisi(nuoviAvvisi)
+
+      // La tinta appena salvata diventa il nuovo punto di partenza, o il
+      // salvataggio successivo la manderebbe di nuovo credendola cambiata.
+      if (tintaCambiata) {
+        tintaIniziale.current = {
+          famiglia: data.tinta_famiglia ?? null,
+          codice: data.tinta_codice ?? null,
+        }
+      }
 
       isDirtyRef.current = false
       setIsDirty(false)
@@ -417,5 +483,5 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
     }
   }, [])
 
-  return { data, update, save, saving, saved, saveError, isDirty }
+  return { data, update, save, saving, saved, saveError, avvisi, isDirty }
 }

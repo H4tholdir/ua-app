@@ -1678,3 +1678,38 @@ gemello **ha lo stesso vuoto**.
 all'altra creerebbe **due comportamenti diversi per lo stesso problema** — la classe di difetto che
 quest'ondata combatte, e la stessa ragione per cui i due rilievi §0④ si chiudono insieme nel T8.
 ➡️ **Va al gate estetico L2 del T9**, che guarda quella carta, e si decide **per entrambe le righe**.
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 8 (05/08/2026, 23:52)
+
+### 🔴 P8-① — La pagina di modifica manda GIÀ la tinta a ogni salvataggio, e questo DISARMA D117
+
+Il Passo 1 chiedeva di aprire `useLavoroForm.ts` — l'unico file dichiarato **NON letto** dal piano — e di
+**fermarsi e riferire** se la forma trovata contraddicesse il task. **La contraddice.**
+
+`provato:` `src/hooks/useLavoroForm.ts:297` → `const patchBody: Partial<Lavoro> = { ...data }`, cioè
+**tutto lo stato del form**, meno tre esclusioni esplicite (`numero_cassetta`, i sette
+`CAMPI_DENTI_COLORE`, e la coppia del colore di caso). `data` nasce dal lavoro caricato con `select *`,
+quindi **contiene già `tinta_famiglia` e `tinta_codice`**.
+
+🔴 **La conseguenza, e non è teorica:** il corpo della PATCH **nomina sempre la tinta**. Nella rotta questo
+fa entrare **sempre** il primo ramo (`if ('tinta_famiglia' in payload …)`) e rende **irraggiungibile** il
+secondo — quello di **D117**, che al cambio di tipo toglie la tinta *e lo dichiara* (`tinta_rimossa`).
+
+| gesto dell'utente | cosa succede oggi | cosa dovrebbe succedere |
+|---|---|---|
+| cambia il tipo di lavoro da «bite» a «corona», senza toccare la tinta | il body porta la tinta vecchia → `risolviTinta` la scarta perché la macro nuova non l'ammette → risposta **`tinta_scartata: true`** | **`tinta_rimossa`** — «ti ho tolto la tinta perché hai cambiato tipo» |
+
+🔑 **Perché è un difetto e non una sfumatura:** i due messaggi dicono cose diverse a chi lavora.
+«**Non sono riuscita a registrare la tinta che hai chiesto**» invita a riprovare — ma l'utente **non ha
+chiesto niente**: ha cambiato il tipo. «**Ti ho tolto la tinta**» è la verità, ed è la frase che D117
+esiste per poter dire. Con la prima, chi legge riprova e riprova, e non funzionerà mai.
+
+🔒 **Oggi è INERTE** — `provato:` 0 lavori con tinta — e diventa vivo **nel momento esatto in cui il T8
+mette il campo in pagina**. Cioè: è un difetto che questo task **creerebbe**, non uno che trova.
+
+➡️ **Si chiude QUI, alla sorgente:** la tinta esce dal `{ ...data }` come già fanno denti, colore e
+`numero_cassetta`, e viaggia **solo quando l'utente l'ha davvero cambiata**. È la disciplina che quel file
+si è già dato tre volte, con la ragione scritta: «*se partissero nella PATCH, l'utente leggerebbe «Salvato»
+su un dato che non c'è*».
+📌 **E il ramo D117 smette di essere codice morto:** oggi, con la tinta sempre nominata, **non poteva
+essere raggiunto da nessuna delle due superfici**.

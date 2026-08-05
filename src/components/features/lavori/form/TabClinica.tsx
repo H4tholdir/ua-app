@@ -3,6 +3,8 @@
 import type { Lavoro } from '@/types/domain'
 import { inputBase, labelStyle, fieldStyle, sectionSeparator, sectionTitle } from './styles'
 import { OdontogrammaFDI } from '../../odontogramma/OdontogrammaFDI'
+import { TavolozzaTinte } from '../TavolozzaTinte'
+import { famigliaDiMacro, type TintaManufatto } from '@/lib/domain/tinta'
 
 // ─── Scala VITA completa ────────────────────────────────────
 const VITA_SCALE = [
@@ -16,9 +18,13 @@ const VITA_SCALE = [
 interface TabClinicaProps {
   data: Partial<Lavoro>
   onChange: (u: Partial<Lavoro>) => void
+  /** D42 T8 — le tinte del catalogo, caricate DAL SERVER dalla pagina (la stessa
+   *  `caricaTinteScheda` che serve la scheda). Assenti o vuote = nessuna
+   *  tavolozza: questo componente non interroga niente. */
+  tinte?: readonly TintaManufatto[]
 }
 
-export function TabClinica({ data, onChange }: TabClinicaProps) {
+export function TabClinica({ data, onChange , tinte }: TabClinicaProps) {
   return (
     <div>
       {/* ═══ ODONTOGRAMMA ══════════════════════════════════════ */}
@@ -127,6 +133,36 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
             </select>
           </div>
         </div>
+
+        {/* ═══ D42 T8 — LA TINTA DEL MANUFATTO (D247 · D113) ═══════════════
+            Compare SOLO dove il tipo di lavoro la prevede — `famigliaDiMacro`
+            è la stessa regola del vincolo `lavori_tinta_tipo_ck`, quindi la
+            schermata e il database dicono la stessa cosa.
+            🛑 Le voci arrivano dall'alto (`caricaTinteScheda`, lato server):
+            se il catalogo non ha risposto, `tinte` è vuoto e la tavolozza non
+            compare — meglio niente che una griglia con la sola via di uscita.
+            🔑 La tavolozza è LA STESSA del foglietto della scheda: scriverne
+            una seconda qui sarebbe la copia libera numero sette del censimento
+            della riga 22, fatta col censimento aperto sul tavolo. */}
+        {famigliaDiMacro(data.tipo_dispositivo ?? '') !== null && tinte && tinte.length > 0 && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Tinta del manufatto</label>
+            <TavolozzaTinte
+              tinte={tinte}
+              scelta={
+                data.tinta_famiglia && data.tinta_codice
+                  ? { famiglia: data.tinta_famiglia, codice: data.tinta_codice }
+                  : null
+              }
+              onScegli={(t) =>
+                // 🛑 Le due chiavi INSIEME, sempre: `lavori_tinta_coppia_ck`
+                //    pretende «entrambe o nessuna», e mandarne una sola
+                //    azzererebbe una tinta valida senza dichiararlo.
+                onChange({ tinta_famiglia: t?.famiglia ?? null, tinta_codice: t?.codice ?? null })
+              }
+            />
+          </div>
+        )}
 
         {/* Effetti speciali */}
         <div style={fieldStyle}>

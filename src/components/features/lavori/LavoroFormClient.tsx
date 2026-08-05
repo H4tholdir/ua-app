@@ -76,7 +76,7 @@ function LavoroFormClientCorpo({
   }
 
   // Stato form campi Lavoro (colonne tabella)
-  const { data, update, save, saving, saved, saveError, isDirty } = useLavoroForm(lavoroIdratato)
+  const { data, update, save, saving, saved, saveError, avvisi, isDirty } = useLavoroForm(lavoroIdratato)
 
   // Stato relazioni join — separate dal hook (non sono colonne di lavori)
   const [lavorazioni, setLavorazioni] = useState<LavoroLavorazione[]>(
@@ -190,7 +190,7 @@ function LavoroFormClientCorpo({
               )
 
             case 'clinica':
-              return <TabClinica data={data} onChange={update} />
+              return <TabClinica data={data} onChange={update} tinte={lavoro.tinteDisponibili} />
 
             case 'produzione':
               return (
@@ -414,6 +414,39 @@ function LavoroFormClientCorpo({
           >
             {saveError}
           </p>
+        )}
+
+        {/* D42 T8 (D251 · D248) — QUELLO CHE IL SERVER HA FATTO, detto a parole.
+            Tre casi, tutti additivi e tutti su un salvataggio RIUSCITO: la tinta
+            tolta dal cambio di tipo (D117), la tinta o il colore chiesti e non
+            registrabili.
+            🛑 Riquadro DISTINTO da quello rosso dell'errore, e non è cosmesi: il
+            salvataggio è andato a buon fine, e vestirlo da errore manderebbe
+            l'utente a ripetere un gesto già riuscito. Tono ambra = «guarda, è
+            successo qualcosa», non «hai sbagliato».
+            🔑 `role="status"` e non `role="alert"`: non interrompe, si legge. */}
+        {avvisi.length > 0 && (
+          <div
+            role="status"
+            style={{
+              position: 'absolute',
+              bottom: saveError ? '132px' : '72px',
+              left: '20px',
+              right: '20px',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              background: 'rgba(212,168,67,0.10)',
+              border: '1px solid rgba(212,168,67,0.35)',
+              color: 'var(--ink, #1A1A1A)',
+              fontFamily: 'var(--font-v3, sans-serif)',
+              fontSize: '13px',
+              lineHeight: 1.5,
+            }}
+          >
+            {avvisi.map((a) => (
+              <p key={a} style={{ margin: 0 }}>{a}</p>
+            ))}
+          </div>
         )}
 
         {/* Pulsante Documenti MDR */}
