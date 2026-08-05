@@ -241,10 +241,17 @@ export async function creaLavoroDaWizard(input: {
   // foglio (D223: scrivere È trascrivere); 'lab' = sganciato, scelta di
   // laboratorio, quindi NIENTE da trascrivere anche se `colore` è compilato.
   coloreOrigine?: ColoreOrigine
+  // P37 (ondata B ②, Task 10) — «Chi ha prescritto?» (D211): la persona che ha
+  // prescritto e, se del caso (D206), la ragione sociale dello studio. Stringhe
+  // SEMPRE (mai `undefined`): "nessun prescrittore" è '', stesso pattern di
+  // `alias`/`elemento`/`colore` qui sopra. Il server accetta già le due chiavi
+  // (route.ts:273-278) — qui si decide SOLO se mandarle (mai `''`, v. sotto).
+  richiedenteNome: string
+  istituzioneSanitaria: string
   foto: File | null
   dataConsegna: Date
 }): Promise<EsitoCreazione> {
-  const { cliente, tipo, pz, alias, elemento, colore, coloreOrigine, foto, dataConsegna } = input
+  const { cliente, tipo, pz, alias, elemento, colore, coloreOrigine, richiedenteNome, istituzioneSanitaria, foto, dataConsegna } = input
 
   // Passi 1-2: risolvi (o crea) il paziente. Qualunque fallimento qui è
   // BLOCCANTE (spec §7: il paziente fa parte del percorso primario) — nessun
@@ -354,6 +361,17 @@ export async function creaLavoroDaWizard(input: {
   const coloreTrascritto = coloreOrigine !== 'lab' && colore.trim() !== ''
   const trascriviPrescrizione = denti.length > 0 || coloreTrascritto
 
+  // 🛑 MAI `richiedente_nome: ''` (P37, Task 10) — la rotta scrive
+  // `body.richiedente_nome ?? null` (route.ts:273): SOLO `null`/assente fa
+  // scattare il ripiego sul nome del cliente in `generate-ddc.ts:146`
+  // (`lavoro.richiedente_nome ?? cliente.cognome+nome`, un `??`, non un `||`).
+  // Una stringa vuota `''` NON è null: sopravvivrebbe al `??` e la
+  // Dichiarazione di Conformità uscirebbe con un prescrittore VUOTO invece del
+  // cliente. Trim, poi ometti la chiave — stesso pattern di `colore_codice`/
+  // `denti` qui sotto: chi non ha nulla da dire non manda la chiave.
+  const richiedenteTrim = richiedenteNome.trim()
+  const istituzioneTrim = istituzioneSanitaria.trim()
+
   let lavoro: { id: string; numero_lavoro: string }
   let coloreScartato = false
   try {
@@ -368,6 +386,8 @@ export async function creaLavoroDaWizard(input: {
         descrizione: corpo.descrizione,
         data_consegna_prevista: isoDataLocale(dataConsegna),
         classe_rischio: corpo.classe_rischio,
+        ...(richiedenteTrim ? { richiedente_nome: richiedenteTrim } : {}),
+        ...(istituzioneTrim ? { istituzione_sanitaria: istituzioneTrim } : {}),
         // Chiavi OMESSE quando non c'è nulla da dire: `denti: null` sarebbe un
         // 422 («presente ma non è una lista»), e una lista vuota un viaggio a
         // vuoto. Chi non ha denti da mandare non manda la chiave.

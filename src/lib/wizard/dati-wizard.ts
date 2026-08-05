@@ -4,7 +4,22 @@ import { inizioGiorno, aggiungiGiorni } from '@/lib/date/giorni'
 import { TIPI_LAVORO, labelTipo, CANONICI_DAY1 } from '@/lib/domain/tipi-lavoro'
 import { fetchCampioniConsegna, calcolaGiorniPerTipo } from '@/lib/lavori/tempi-medi'
 
-export type DentistaWizard = { id: string; label: string; count30: number }
+export type DentistaWizard = {
+  id: string
+  label: string
+  count30: number
+  /**
+   * OPZIONALE (Task 10, Ondata B ②/P37): il codice reale (`aggregaDatiWizard`
+   * sotto) lo valorizza SEMPRE — è opzionale nel TIPO solo per non forzare
+   * ogni fixture di test esistente (nessuna delle quali tocca il gate del
+   * mini-foglio «Chi ha prescritto?») a portarlo. `null`/assente = dottore
+   * singolo (D196): il Passo 1 non fa MAI la `GET /studio-members` per lui —
+   * non solo perché la risposta sarebbe `[]` (route.ts:41-43, `studio_nome`
+   * nullo → array vuoto), ma perché quella chiamata di rete in più non deve
+   * esistere per il caso comune.
+   */
+  studioNome?: string | null
+}
 export type DatiWizard = {
   dentisti: DentistaWizard[]
   frequenzeTipi: Record<string, number>
@@ -102,6 +117,7 @@ export function aggregaDatiWizard(
       id: c.id,
       label: c.studio_nome ?? `Dr. ${c.cognome}`,
       count30: countPerCliente.get(c.id) ?? 0,
+      studioNome: c.studio_nome,
     }))
     .sort((a, b) => b.count30 - a.count30 || a.label.localeCompare(b.label))
 

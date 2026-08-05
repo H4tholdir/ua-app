@@ -83,6 +83,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -136,6 +138,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: 'Mario R.',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -163,6 +167,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -186,6 +192,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -218,6 +226,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '2.6, 2.7  3.1',
       colore: 'A2',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -257,6 +267,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -294,6 +306,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '2.6',
       colore: 'A2',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -317,6 +331,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -343,6 +359,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: 'incisivo',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -367,6 +385,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -392,6 +412,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: 'boh',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -410,6 +432,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -429,6 +453,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -449,6 +475,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -471,6 +499,8 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       alias: '',
       elemento: '2.6',
       colore: 'A2',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -519,6 +549,8 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () 
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -539,6 +571,8 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () 
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -559,6 +593,8 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () 
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -594,6 +630,8 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () 
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -618,6 +656,8 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () 
       alias: '',
       elemento: '',
       colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -651,6 +691,8 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
       // La digitazione vera del banco: virgola invece del punto. «A3,5» non è in
       // catalogo (verificato sul database il 28/07/2026), «A3.5» sì.
       colore: 'A3,5',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -677,6 +719,8 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
       alias: '',
       elemento: '',
       colore: 'A3.5',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -699,6 +743,8 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
       alias: '',
       elemento: '',
       colore: 'A2',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: null,
       dataConsegna: DATA_CONSEGNA,
     })
@@ -725,11 +771,94 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
       alias: '',
       elemento: 'boh',
       colore: 'ZZ9',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
 
     expect(esito.lavoro).toEqual({ id: 'lav-19', numero_lavoro: '2026/0019' })
     expect(esito.accessoriFalliti).toEqual(['elementi', 'colore', 'foto'])
+  })
+})
+
+// Task 10 (P37/D211, ondata B ②) — «Chi ha prescritto?»: `richiedenteNome`/
+// `istituzioneSanitaria` sono SEMPRE stringhe (mai `undefined`, v. firma di
+// `creaLavoroDaWizard`), ma il corpo del POST le OMETTE quando vuote — MAI
+// `richiedente_nome: ''`. La rotta scrive `body.richiedente_nome ?? null`
+// (route.ts:273) e `generate-ddc.ts:146` ripiega sul cliente con `??`, non
+// `||`: una stringa vuota sopravviverebbe al `??` e la Dichiarazione di
+// Conformità uscirebbe con un prescrittore VUOTO invece del cliente.
+describe('creaLavoroDaWizard — richiedente_nome/istituzione_sanitaria (Task 10, P37)', () => {
+  it('entrambi valorizzati → entrambi nel corpo del POST, trimmati', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-20' } }))
+    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-20', numero_lavoro: '2026/0020' } }))
+
+    await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0020',
+      alias: '',
+      elemento: '',
+      colore: '',
+      richiedenteNome: '  Bianchi Marta  ',
+      istituzioneSanitaria: '  Studio Bianchi  ',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    const corpo = JSON.parse(m.mock.calls[2][1].body)
+    expect(corpo.richiedente_nome).toBe('Bianchi Marta')
+    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
+  })
+
+  it('entrambi assenti (stringa vuota) → NESSUNA delle due chiavi nel corpo (MAI \'\')', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-21' } }))
+    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-21', numero_lavoro: '2026/0021' } }))
+
+    await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0021',
+      alias: '',
+      elemento: '',
+      colore: '',
+      richiedenteNome: '',
+      istituzioneSanitaria: '',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    const corpo = JSON.parse(m.mock.calls[2][1].body)
+    expect(corpo).not.toHaveProperty('richiedente_nome')
+    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
+  })
+
+  it('solo spazi → trattato come vuoto, chiave omessa (stesso principio di M-T5-4)', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-22' } }))
+    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-22', numero_lavoro: '2026/0022' } }))
+
+    await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0022',
+      alias: '',
+      elemento: '',
+      colore: '',
+      richiedenteNome: '   ',
+      istituzioneSanitaria: '   ',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    const corpo = JSON.parse(m.mock.calls[2][1].body)
+    expect(corpo).not.toHaveProperty('richiedente_nome')
+    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
   })
 })

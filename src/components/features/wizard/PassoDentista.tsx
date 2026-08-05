@@ -33,7 +33,7 @@ const MAX_TILE = 4
 
 export function PassoDentista(props: {
   dentisti: DentistaWizard[]
-  onScegli: (d: { id: string; label: string }) => void
+  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
   onNuovoDentista: () => void
 }) {
   const { dentisti, onScegli, onNuovoDentista } = props
@@ -56,7 +56,7 @@ export function PassoDentista(props: {
         nome={d.label}
         sotto={`${d.count30} lavori · 30gg`}
         avatar={d.label}
-        onClick={() => onScegli({ id: d.id, label: d.label })}
+        onClick={() => onScegli({ id: d.id, label: d.label, studioNome: d.studioNome ?? null })}
       />
     )
   }

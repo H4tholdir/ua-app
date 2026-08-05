@@ -28,6 +28,15 @@ export type StatoSalvato = {
    * (v. `ColoreOrigine` in WizardNuovoLavoro.tsx).
    */
   coloreOrigine?: StatoWizard['coloreOrigine']
+  /**
+   * OPZIONALI (Task 10, Ondata B ②/P37): stesso principio di `coloreOrigine`
+   * qui sopra — i salvataggi `v: 1` scritti prima di questo task non hanno
+   * queste due chiavi, `v` non cambia (additivo). Assenti = "nessun
+   * prescrittore scelto", stessa semantica di una stringa vuota — il
+   * consumatore (`WizardNuovoLavoro.riprendi`) coalesce con `?? ''`.
+   */
+  richiedenteNome?: StatoWizard['richiedenteNome']
+  istituzioneSanitaria?: StatoWizard['istituzioneSanitaria']
 }
 
 export const CHIAVE_WIZARD = 'ua:wizard-lavoro:v1'

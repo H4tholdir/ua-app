@@ -112,7 +112,9 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
     fireEvent.change(screen.getByLabelText('Studio'), { target: { value: 'Studio Rossi' } })
     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
 
-    await waitFor(() => expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi' }))
+    await waitFor(() =>
+      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi', studioNome: 'Studio Rossi' })
+    )
     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
       method: 'POST',
       credentials: 'same-origin',
@@ -139,7 +141,9 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
     fireEvent.change(screen.getByLabelText('Cognome'), { target: { value: 'Bianchi' } })
     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
 
-    await waitFor(() => expect(onCreato).toHaveBeenCalledWith({ id: 'cli-2', label: 'Dr. Bianchi' }))
+    await waitFor(() =>
+      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-2', label: 'Dr. Bianchi', studioNome: null })
+    )
     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
       method: 'POST',
       credentials: 'same-origin',

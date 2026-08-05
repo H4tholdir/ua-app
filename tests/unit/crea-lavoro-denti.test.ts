@@ -65,6 +65,8 @@ async function crea(patch: { elemento?: string; colore?: string; foto?: File | n
     alias: '',
     elemento: '',
     colore: '',
+    richiedenteNome: '',
+    istituzioneSanitaria: '',
     foto: null,
     dataConsegna: DATA_CONSEGNA,
     ...patch,

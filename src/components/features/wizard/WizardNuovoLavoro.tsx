@@ -33,6 +33,7 @@ import { PassoDentista } from './PassoDentista'
 import { PassoTipo } from './PassoTipo'
 import { PassoPaziente } from './PassoPaziente'
 import { NuovoDentistaSheet } from './NuovoDentistaSheet'
+import { ChiHaPrescrittoSheet, type MembroStudio } from './ChiHaPrescrittoSheet'
 import { RipresaSheet } from './RipresaSheet'
 import { FrameFatto } from './FrameFatto'
 import {
@@ -70,6 +71,14 @@ export type StatoWizard = {
   colore: string
   /** OPZIONALE apposta: i salvataggi `v: 1` scritti prima del Task 1 non lo hanno — v. persistenza.ts. */
   coloreOrigine?: ColoreOrigine
+  // P37 (ondata B ②, Task 10, D211) — «Chi ha prescritto?»: la persona che ha
+  // prescritto e, se del caso (D206), la ragione sociale dello studio.
+  // STRINGHE SEMPRE (mai `undefined`): "nessun prescrittore" è '', stesso
+  // pattern di `pz`/`alias`/`elemento`/`colore` qui sopra — a differenza di
+  // `coloreOrigine` non c'è un valore di riposo diverso da "vuoto" da
+  // rappresentare con l'assenza della chiave.
+  richiedenteNome: string
+  istituzioneSanitaria: string
   foto: File | null
 }
 
@@ -82,6 +91,8 @@ const STATO_INIZIALE: StatoWizard = {
   elemento: '',
   colore: '',
   coloreOrigine: 'prescrizione',
+  richiedenteNome: '',
+  istituzioneSanitaria: '',
   foto: null,
 }
 
@@ -112,6 +123,22 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // avanza subito al Passo 2, e lo sheet deve chiudersi nello stesso istante
   // senza un frame intermedio in cui esiste ma è "orfano" del Passo 1.
   const [sheetDentistaAperto, setSheetDentistaAperto] = useState(false)
+
+  // Task 10 (P37/D211): stato del mini-foglio «Chi ha prescritto?».
+  // `clientePendente` è il cliente-entità già tappato ma non ancora "commesso"
+  // in `stato.cliente` — resta pendente finché l'odontotecnico non sceglie un
+  // medico, aggiunge un collega, o chiude il foglio (in ognuno dei tre casi si
+  // avanza comunque al Passo 2, v. `avanzaConCliente` sotto: MAI bloccante,
+  // W22). `mediciPendenti` è la risposta GIÀ CARICATA di `studio-members`
+  // (fatto 14, array nudo) — il foglio stesso non fa rete, la decide questo
+  // componente PRIMA di aprirlo (v. `caricaStudioEApri`). `chiavePrescrittore`
+  // rimonta il foglio ad ogni apertura (stesso pattern `chiaveSheet` di
+  // FrameFatto.tsx), così il suo stato interno («È un altro» + i due campi)
+  // riparte pulito senza un effect di reset.
+  const [clientePendente, setClientePendente] = useState<{ id: string; label: string } | null>(null)
+  const [mediciPendenti, setMediciPendenti] = useState<MembroStudio[]>([])
+  const [sheetPrescrittoreAperto, setSheetPrescrittoreAperto] = useState(false)
+  const [chiavePrescrittore, setChiavePrescrittore] = useState(0)
 
   // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
   // componente è il root client SEMPRE montato di `/lavori/nuovo` e renderizza
@@ -187,6 +214,8 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       elemento: stato.elemento,
       colore: stato.colore,
       coloreOrigine: stato.coloreOrigine,
+      richiedenteNome: stato.richiedenteNome,
+      istituzioneSanitaria: stato.istituzioneSanitaria,
     })
   }, [pronto, stato, contesto.userId, contesto.labId])
 
@@ -203,6 +232,12 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       elemento: statoSalvato.elemento,
       colore: statoSalvato.colore,
       coloreOrigine: statoSalvato.coloreOrigine,
+      // `?? ''` (Task 10): i salvataggi `v: 1` scritti prima di questo task
+      // non hanno queste due chiavi — senza il coalesce, `stato.richiedenteNome`
+      // (tipizzato `string`, MAI opzionale) diventerebbe `undefined` e il primo
+      // `.trim()` a valle (`crea-lavoro.ts`) esploderebbe con un TypeError.
+      richiedenteNome: statoSalvato.richiedenteNome ?? '',
+      istituzioneSanitaria: statoSalvato.istituzioneSanitaria ?? '',
       foto: null,
     })
     setSheetRipresaAperto(false)
@@ -244,17 +279,99 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
     setStato((s) => ({ ...s, passo: (s.passo - 1) as StatoWizard['passo'] }))
   }, [stato.passo, router])
 
-  const sceltaDentista = useCallback((cliente: { id: string; label: string }) => {
-    interazioneAvvenutaRef.current = true
-    setDirezione('avanti')
-    setStato((s) => ({ ...s, cliente, passo: 2 }))
-  }, [])
+  // Il punto UNICO che commette un cliente in `stato.cliente` e avanza al
+  // Passo 2 (Task 10): sia il percorso "dottore singolo, nessuna domanda"
+  // (D196) sia i tre esiti del mini-foglio (scelto un medico, aggiunto un
+  // collega, chiuso senza scegliere — W22, MAI bloccante) passano da qui,
+  // così direzione/coreografia/persistenza restano un'unica fonte di verità.
+  // `richiedenteNome`/`istituzioneSanitaria` sono SEMPRE passati espliciti
+  // (mai un default implicito): un giro "indietro poi un altro dentista" non
+  // deve mai ereditare il prescrittore del giro precedente.
+  const avanzaConCliente = useCallback(
+    (cliente: { id: string; label: string }, richiedenteNome: string, istituzioneSanitaria: string) => {
+      interazioneAvvenutaRef.current = true
+      setDirezione('avanti')
+      setStato((s) => ({ ...s, cliente, richiedenteNome, istituzioneSanitaria, passo: 2 }))
+    },
+    []
+  )
+
+  // Task 10 (P37/D211) — carica gli altri medici dello studio PRIMA di aprire
+  // il foglio: un foglio che ne elenca zero sarebbe la riga vuota che 0B-9
+  // vieta, quindi uno "studio di uno solo" (nessun collega trovato) si
+  // comporta esattamente come un dottore singolo — e il ripiego server-side
+  // sul nome del cliente (`generate-ddc.ts:146`) è già la risposta corretta
+  // in quel caso, perché quel cliente-riga porta comunque il nome della
+  // persona. Fail-open sul GET (stesso schema di TabDati.tsx e
+  // NuovoDentistaSheet): un guasto di rete qui non deve MAI bloccare la
+  // scelta del dentista già fatta — degrada silenziosamente a "nessun
+  // collega trovato".
+  const caricaStudioEApri = useCallback(
+    async (cliente: { id: string; label: string }) => {
+      let medici: MembroStudio[] = []
+      try {
+        const res = await fetch(`/api/clienti/${cliente.id}/studio-members`, { credentials: 'same-origin' })
+        const dati: unknown = res.ok ? await res.json() : []
+        medici = Array.isArray(dati) ? (dati as MembroStudio[]) : []
+      } catch {
+        medici = []
+      }
+      if (medici.length === 0) {
+        avanzaConCliente(cliente, '', '')
+        return
+      }
+      setClientePendente(cliente)
+      setMediciPendenti(medici)
+      setChiavePrescrittore((c) => c + 1)
+      setSheetPrescrittoreAperto(true)
+    },
+    [avanzaConCliente]
+  )
+
+  // Il gate "è un'entità?" (D196: SOLO se il cliente ha `studio_nome`).
+  // Dottore singolo → invariato, sincrono, ZERO rete in più (v. commento su
+  // `DentistaWizard.studioNome`). Entità → `caricaStudioEApri` sopra decide
+  // se il foglio vale la pena di aprirsi.
+  const sceltaDentista = useCallback(
+    (cliente: { id: string; label: string; studioNome: string | null }) => {
+      if (!cliente.studioNome) {
+        avanzaConCliente({ id: cliente.id, label: cliente.label }, '', '')
+        return
+      }
+      void caricaStudioEApri({ id: cliente.id, label: cliente.label })
+    },
+    [avanzaConCliente, caricaStudioEApri]
+  )
+
+  // Scelto un medico esistente, o appena aggiunto («È un altro») — i due
+  // esiti "positivi" del foglio condividono lo stesso commit.
+  const scelgoPrescrittore = useCallback(
+    (richiedenteNome: string, istituzioneSanitaria: string) => {
+      if (!clientePendente) return
+      setSheetPrescrittoreAperto(false)
+      avanzaConCliente(clientePendente, richiedenteNome, istituzioneSanitaria)
+      setClientePendente(null)
+    },
+    [clientePendente, avanzaConCliente]
+  )
+
+  // Chiusura del foglio SENZA scegliere (scrim/Esc/swipe/«Chiudi» — tutte le
+  // vie di fuga di Sheet.tsx instradano su questo `onChiudi`, W22: MAI
+  // bloccante). Il cliente-entità già tappato resta comunque commesso, senza
+  // prescrittore — "come oggi" (contesto del brief, punto 7).
+  const chiudiSheetPrescrittore = useCallback(() => {
+    setSheetPrescrittoreAperto(false)
+    if (clientePendente) {
+      avanzaConCliente(clientePendente, '', '')
+      setClientePendente(null)
+    }
+  }, [clientePendente, avanzaConCliente])
 
   // CONTRATTO Task 9: `NuovoDentistaSheet.onCreato` chiama questa — riusa
   // `sceltaDentista` (stesso percorso di selezione di un tile esistente),
-  // così direzione/coreografia restano un'unica fonte di verità.
+  // così direzione/coreografia/gate-entità restano un'unica fonte di verità.
   const dentistaCreato = useCallback(
-    (cliente: { id: string; label: string }) => {
+    (cliente: { id: string; label: string; studioNome: string | null }) => {
       setSheetDentistaAperto(false)
       sceltaDentista(cliente)
     },
@@ -326,6 +443,13 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
           onChiudi={() => setSheetDentistaAperto(false)}
           onCreato={dentistaCreato}
         />
+        <ChiHaPrescrittoSheet
+          key={chiavePrescrittore}
+          aperto={sheetPrescrittoreAperto}
+          medici={mediciPendenti}
+          onScelto={scelgoPrescrittore}
+          onChiudi={chiudiSheetPrescrittore}
+        />
         <RipresaSheet
           aperto={sheetRipresaAperto}
           stato={statoSalvato}
@@ -350,6 +474,12 @@ type StatoFatto = {
   elemento: string
   colore: string
   coloreOrigine?: ColoreOrigine
+  // P37 (ondata B ②, Task 10) — la persona che ha prescritto, se scelta nel
+  // mini-foglio «Chi ha prescritto?» — stringa vuota se assente (stesso
+  // pattern di `StatoWizard.richiedenteNome`, mai `undefined`). `FrameFatto`
+  // la accetta già come prop OPZIONALE (`richiedenteNome?`, ondata B ③/T3):
+  // qui è sempre passata, la riga «Prescritto da» sparisce da sola quando è ''.
+  richiedenteNome: string
   dentista: string
   lavoroLabel: string
   pz: string
@@ -373,7 +503,7 @@ function CorpoWizard(props: {
   direzione: 'avanti' | 'indietro'
   reduced: boolean
   vaIndietro: () => void
-  sceltaDentista: (d: { id: string; label: string }) => void
+  sceltaDentista: (d: { id: string; label: string; studioNome: string | null }) => void
   apriSheetDentista: () => void
   sceltaTipo: (t: TipoScelto) => void
   cambiaPaziente: (patch: Partial<StatoWizard>) => void
@@ -402,6 +532,8 @@ function CorpoWizard(props: {
       elemento: stato.elemento,
       colore: stato.colore,
       coloreOrigine: stato.coloreOrigine,
+      richiedenteNome: stato.richiedenteNome,
+      istituzioneSanitaria: stato.istituzioneSanitaria,
       foto: stato.foto,
       dataConsegna,
     })
@@ -456,6 +588,7 @@ function CorpoWizard(props: {
       elemento: stato.elemento,
       colore: stato.colore,
       coloreOrigine: stato.coloreOrigine,
+      richiedenteNome: stato.richiedenteNome,
       dentista: cliente.label,
       lavoroLabel: descrizioneTipo(tipo),
       pz: stato.pz,
@@ -473,10 +606,11 @@ function CorpoWizard(props: {
         elemento={fatto.elemento}
         colore={fatto.colore}
         coloreOrigine={fatto.coloreOrigine}
-        // 🚧 `richiedenteNome` NON si passa: il wizard non ha (ancora) una
-        //    casella per il prescrittore — arriva con T10. La riga «Prescritto
-        //    da» del «Fatto!» è già scritta e resta semplicemente assente,
-        //    perché una riga vuota è peggio di una riga che manca (0B-9).
+        // Task 10 (P37) — chiude il 🚧 lasciato dalla ondata B ③/T3: il
+        // wizard ora HA una via per il prescrittore (il mini-foglio «Chi ha
+        // prescritto?»). Stringa vuota quando assente — `FrameFatto` nasconde
+        // da sola la riga «Prescritto da» in quel caso (0B-9).
+        richiedenteNome={fatto.richiedenteNome}
         dentista={fatto.dentista}
         lavoroLabel={fatto.lavoroLabel}
         pz={fatto.pz}
@@ -535,7 +669,7 @@ function CorpoWizard(props: {
 function RenderPasso(props: {
   stato: StatoWizard
   dati: DatiWizard
-  onScegli: (d: { id: string; label: string }) => void
+  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
   onNuovoDentista: () => void
   onScegliTipo: (t: TipoScelto) => void
   onCambiaPaziente: (patch: Partial<StatoWizard>) => void

@@ -82,3 +82,28 @@ describe('persistenza wizard — salvaStato/leggiStato/azzeraStato (Task 13, spe
     expect(() => azzeraStato()).not.toThrow()
   })
 })
+
+// Task 10 (P37/D211) — `richiedenteNome`/`istituzioneSanitaria`: OPZIONALI
+// (stesso principio di `coloreOrigine`, Task 1), `v: 1` invariato.
+describe('persistenza wizard — richiedenteNome/istituzioneSanitaria (Task 10)', () => {
+  it('roundtrip CON i due campi valorizzati', () => {
+    const s = statoBase({ richiedenteNome: 'Bianchi Marta', istituzioneSanitaria: 'Studio Bianchi' })
+    salvaStato(s)
+    expect(leggiStato('u1', 'lab1', ORA + 1000)).toEqual(s)
+  })
+
+  // Un salvataggio `v: 1` scritto PRIMA di questo task non ha queste due
+  // chiavi — additivo, `v` non cambia. `leggiStato` non le inventa: il
+  // risultato le porta semplicemente assenti, ed è compito del CONSUMATORE
+  // (`WizardNuovoLavoro.riprendi`, coperto in WizardNuovoLavoro.test.tsx)
+  // coalescerle a `''` prima di scriverle in `StatoWizard` (tipizzato
+  // sempre-stringa, mai opzionale).
+  it('un salvataggio SENZA le due chiavi (formato pre-Task-10) resta leggibile, chiavi assenti', () => {
+    const vecchio = statoBase()
+    window.localStorage.setItem(CHIAVE_WIZARD, JSON.stringify(vecchio))
+    const letto = leggiStato('u1', 'lab1', ORA + 1000)
+    expect(letto).not.toBeNull()
+    expect(letto!.richiedenteNome).toBeUndefined()
+    expect(letto!.istituzioneSanitaria).toBeUndefined()
+  })
+})

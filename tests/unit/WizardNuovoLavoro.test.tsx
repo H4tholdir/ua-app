@@ -226,6 +226,312 @@ describe('WizardNuovoLavoro — wiring NuovoDentistaSheet (Task 9, A7)', () => {
   })
 })
 
+// Task 10 (P37/D211, ondata B ②) — il mini-foglio «Chi ha prescritto?».
+// Fixture SEPARATA da `DENTISTI`/`DATI` (usati da decine di altri test in
+// questo file): niente `studioNome` sugli esistenti, per non introdurre una
+// `GET /studio-members` in test che oggi non la stubbano (v. avviso R-E1 —
+// la rete in più deve esistere SOLO dove il tile tappato è un'entità).
+describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37/D211)', () => {
+  const MEDICI = [
+    { id: 'm1', nome: 'Francesco', cognome: 'Colombo', studio_nome: 'Studio Bianchi' },
+    { id: 'm2', nome: 'Marta', cognome: 'Bianchi', studio_nome: 'Studio Bianchi' },
+  ]
+
+  const DENTISTI_STUDIO = [
+    { id: '1', label: 'Dr. Esposito', count30: 12, studioNome: null },
+    { id: '2', label: 'Studio Bianchi', count30: 8, studioNome: 'Studio Bianchi' },
+    { id: '3', label: 'Dr. Russo', count30: 5, studioNome: null },
+    { id: '4', label: 'Studio Solo', count30: 2, studioNome: 'Studio Solo' },
+  ]
+
+  const DATI_STUDIO: DatiWizard = {
+    ...DATI,
+    dentisti: DENTISTI_STUDIO,
+    topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
+    frequenzeTipi: { corona_zirconia: 9 },
+    giorniPerTipo: { corona_zirconia: { giorni: 6, daStoria: true } },
+  }
+
+  /** Router URL→risposta: le nuove chiamate (studio-members, POST clienti
+   *  del "È un altro") si distinguono dalla sequenza pazienti/lavori già
+   *  nota (Task 12) per URL/metodo, non per ordine — più leggibile di una
+   *  coda `mockResolvedValueOnce` quando i percorsi possono intrecciarsi. */
+  function routerFetch(opts: { members?: unknown; nuovoCliente?: unknown } = {}) {
+    const { members = [], nuovoCliente } = opts
+    return vi.fn((url: string, init?: RequestInit) => {
+      const metodo = init?.method ?? 'GET'
+      if (url.includes('/studio-members')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => members })
+      }
+      if (url.includes('/api/clienti') && metodo === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 201,
+          json: async () => nuovoCliente ?? { cliente: { id: 'x', nome: 'X', cognome: 'Y', studio_nome: null } },
+        })
+      }
+      if (url.includes('/api/pazienti') && metodo === 'GET') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
+      }
+      if (url.includes('/api/pazienti') && metodo === 'POST') {
+        return Promise.resolve({ ok: true, status: 201, json: async () => ({ paziente: { id: 'pz-1' } }) })
+      }
+      if (url.includes('/api/lavori') && metodo === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 201,
+          json: async () => ({ lavoro: { id: 'lav-1', numero_lavoro: '2026/0001' } }),
+        })
+      }
+      throw new Error(`fetch non gestito nel test: ${metodo} ${url}`)
+    })
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function corpoPostLavori(m: ReturnType<typeof vi.fn>) {
+    const chiamata = m.mock.calls.find(([url, init]) => url.includes('/api/lavori') && init?.method === 'POST')
+    return JSON.parse((chiamata![1] as RequestInit).body as string)
+  }
+
+  it('dottore singolo: NESSUN foglio, NESSUNA GET studio-members, avanza subito (D196)', async () => {
+    const m = routerFetch()
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Chi ha prescritto?' })).not.toBeInTheDocument()
+    expect(m).not.toHaveBeenCalled()
+  })
+
+  it('studio con più medici: il foglio sale, elenca i medici trovati', async () => {
+    vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    expect(within(dialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
+    // Il Passo 1 resta VISIBILE dietro il foglio (overlay, non un passo nuovo — vincolo di ondata).
+    expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
+  })
+
+  it('studio "di uno solo" (studio_nome compilato, ZERO colleghi) → nessun foglio, si comporta come dottore singolo', async () => {
+    vi.stubGlobal('fetch', routerFetch({ members: [] }))
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Solo/ }))
+
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+    expect(screen.queryByRole('dialog', { name: 'Chi ha prescritto?' })).not.toBeInTheDocument()
+  })
+
+  it('scelta di un medico → il POST /api/lavori porta richiedente_nome E istituzione_sanitaria, «Fatto!» mostra «Prescritto da»', async () => {
+    const m = routerFetch({ members: MEDICI })
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    await user.click(within(dialog).getByRole('button', { name: /Bianchi Marta/ }))
+
+    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+    const corpo = await corpoPostLavori(m)
+    expect(corpo.richiedente_nome).toBe('Bianchi Marta')
+    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
+
+    const cartaLavoro = within(screen.getByRole('region', { name: 'Il lavoro' }))
+    expect(cartaLavoro.getByText('Prescritto da')).toBeInTheDocument()
+    expect(cartaLavoro.getByText('Bianchi Marta')).toBeInTheDocument()
+  })
+
+  // Verifica advisor (pre-commit): `scelgoPrescrittore` chiude sia `setSheetPrescrittoreAperto(false)`
+  // sia `setClientePendente(null)` nello STESSO handler — un `onChiudi` "in coda" (Esc/scrim/exit
+  // animato dell'AnimatePresence) che catturasse una closure PRE-null di `clientePendente`
+  // sovrascriverebbe il prescrittore appena scelto con `''`. `aperto` passa a `false` nello stesso
+  // aggiornamento batched: l'effect Esc di Sheet.tsx dipende da `[aperto, ...]` e ritorna subito se
+  // `!aperto`, quindi il listener è già rimosso — ma qui si prova il comportamento REALE, non la
+  // lettura del codice.
+  it('scelta di un medico, poi Esc: il prescrittore NON viene sovrascritto dalla chiusura in coda', async () => {
+    const m = routerFetch({ members: MEDICI })
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    await user.click(within(dialog).getByRole('button', { name: /Bianchi Marta/ }))
+    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
+
+    // Il foglio è chiuso (aperto=false) ma può restare nel DOM per l'uscita
+    // animata (AnimatePresence, §8.2.2) — un Esc qui non deve avere alcun
+    // effetto sul prescrittore già commesso.
+    await user.keyboard('{Escape}')
+
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+    const corpo = await corpoPostLavori(m)
+    expect(corpo.richiedente_nome).toBe('Bianchi Marta')
+    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
+  })
+
+  // Verifica advisor (pre-commit): `key={chiavePrescrittore}` rimonta il foglio ad ogni apertura —
+  // qui si esercita il SECONDO giro nella STESSA sessione montata (indietro, poi lo stesso tile di
+  // nuovo), non uno smontaggio+render fresco come nel test di reset in ChiHaPrescrittoSheet.test.tsx.
+  it('si può riaprire il foglio una seconda volta nella stessa sessione (indietro, poi lo stesso tile)', async () => {
+    const m = routerFetch({ members: MEDICI })
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+    const primoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    await user.click(within(primoDialog).getByRole('button', { name: 'Chiudi' }))
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+    expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+    const secondoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    expect(within(secondoDialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
+
+    // Esc funziona ancora sul foglio rimontato (la registrazione overlay-stack
+    // di Sheet.tsx non è rimasta "appesa" al giro precedente).
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+  })
+
+  it('«Chiudi» il foglio SENZA scegliere → avanza comunque (W22, MAI bloccante), nessun prescrittore nel POST', async () => {
+    const m = routerFetch({ members: MEDICI })
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Chiudi' }))
+
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+    const corpo = await corpoPostLavori(m)
+    expect(corpo).not.toHaveProperty('richiedente_nome')
+    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
+    expect(screen.queryByText('Prescritto da')).not.toBeInTheDocument()
+  })
+
+  it('«È un altro»: crea un collega nello studio e lo usa come prescrittore', async () => {
+    const m = routerFetch({
+      members: MEDICI,
+      nuovoCliente: { cliente: { id: 'nuovo-9', nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' } },
+    })
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    await user.click(within(dialog).getByRole('button', { name: /È un altro/ }))
+    await user.type(within(dialog).getByLabelText('Nome'), 'Luca')
+    await user.type(within(dialog).getByLabelText('Cognome'), 'Verdi')
+    await user.click(within(dialog).getByRole('button', { name: /aggiungi allo studio/i }))
+
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+    expect(
+      m.mock.calls.some(([url, init]) => url === '/api/clienti' && init?.method === 'POST')
+    ).toBe(true)
+    const corpoPost = JSON.parse(
+      (m.mock.calls.find(([url, init]) => url === '/api/clienti' && init?.method === 'POST')![1] as RequestInit)
+        .body as string
+    )
+    expect(corpoPost).toEqual({ nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' })
+
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+    const corpoLavoro = await corpoPostLavori(m)
+    expect(corpoLavoro.richiedente_nome).toBe('Verdi Luca')
+  })
+
+  // Trappola nota (fatto 3 del censimento, stessa classe di `coloreOrigine`,
+  // WizardNuovoLavoro.test.tsx:512): `salvaStato` (l'effect) e `riprendi`
+  // ENUMERANO le chiavi a mano — un test a livello di `persistenza.ts` non lo
+  // scoprirebbe (quelle funzioni sono un passthrough generico). Riprendi → un
+  // vero avanzamento → localStorage copre ENTRAMBE le metà in un colpo solo.
+  it('richiedenteNome/istituzioneSanitaria sopravvivono al giro Riprendi → un vero avanzamento → salvaStato', async () => {
+    vi.stubGlobal('fetch', routerFetch())
+    window.localStorage.setItem(
+      CHIAVE_WIZARD,
+      JSON.stringify({
+        v: 1,
+        salvatoA: Date.now() - 1000,
+        userId: CONTESTO.userId,
+        labId: CONTESTO.labId,
+        passo: 3,
+        cliente: { id: '2', label: 'Studio Bianchi' },
+        tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
+        pz: 'PZ-9999',
+        alias: '',
+        elemento: '',
+        colore: '',
+        richiedenteNome: 'Bianchi Marta',
+        istituzioneSanitaria: 'Studio Bianchi',
+      } satisfies StatoSalvato)
+    )
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Riprendi' }))
+    await waitFor(() => expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+
+    await waitFor(() => {
+      const salvato = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato | null
+      expect(salvato).not.toBeNull()
+      expect(salvato!.richiedenteNome).toBe('Bianchi Marta')
+      expect(salvato!.istituzioneSanitaria).toBe('Studio Bianchi')
+    })
+  })
+
+  // Un salvataggio SCRITTO PRIMA di questo task non ha le due chiavi — additivo,
+  // `v` resta 1 (v. persistenza.ts). `riprendi()` deve coalescerle a '' senza
+  // esplodere: senza `?? ''` il primo `.trim()` a valle (crea-lavoro.ts) sarebbe
+  // un TypeError su `undefined`.
+  it('Riprendi da un salvataggio SENZA richiedenteNome/istituzioneSanitaria (formato pre-Task-10) non esplode', async () => {
+    vi.stubGlobal('fetch', routerFetch())
+    window.localStorage.setItem(
+      CHIAVE_WIZARD,
+      JSON.stringify({
+        v: 1,
+        salvatoA: Date.now() - 1000,
+        userId: CONTESTO.userId,
+        labId: CONTESTO.labId,
+        passo: 3,
+        cliente: { id: '1', label: 'Dr. Esposito' },
+        tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
+        pz: 'PZ-9998',
+        alias: '',
+        elemento: '',
+        colore: '',
+        // richiedenteNome/istituzioneSanitaria ASSENTI apposta.
+      })
+    )
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Riprendi' }))
+    await waitFor(() => expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument())
+  })
+})
+
 describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione → Frame Fatto (Task 12)', () => {
   const DATI_TASK12: DatiWizard = {
     ...DATI,

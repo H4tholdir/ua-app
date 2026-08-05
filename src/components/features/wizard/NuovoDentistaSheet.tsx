@@ -42,7 +42,14 @@ type ClienteCreato = { id: string; nome: string; cognome: string; studio_nome: s
 export function NuovoDentistaSheet(props: {
   aperto: boolean
   onChiudi: () => void
-  onCreato: (d: { id: string; label: string }) => void
+  // `studioNome` (Task 10, P37): il PASSTHROUGH grezzo di `studio_nome` così
+  // com'è tornato dal server — MAI ridotto a booleano né ricavato dal
+  // `label` qui sotto (label collassa già su studio_nome quando presente,
+  // ma quella coincidenza non è la fonte di verità: v. commento in
+  // ChiHaPrescrittoSheet.tsx). Permette a `WizardNuovoLavoro.sceltaDentista`
+  // di applicare lo STESSO gate "è un'entità?" a un dentista appena creato
+  // qui e a un dentista scelto dalla griglia del Passo 1 (dati-wizard.ts).
+  onCreato: (d: { id: string; label: string; studioNome: string | null }) => void
 }) {
   const { aperto, onChiudi, onCreato } = props
   const { errore } = useAvvisi()
@@ -102,7 +109,7 @@ export function NuovoDentistaSheet(props: {
       const dati = (await res.json()) as { cliente: ClienteCreato }
       const label = dati.cliente.studio_nome ?? `Dr. ${dati.cliente.cognome}`
       resetForm()
-      onCreato({ id: dati.cliente.id, label })
+      onCreato({ id: dati.cliente.id, label, studioNome: dati.cliente.studio_nome })
     } catch {
       errore('Non sono riuscita a creare il dentista. Riprova.')
       setInvio(false)

@@ -74,6 +74,8 @@ async function crea(patch: {
     alias: '',
     elemento: '',
     colore: '',
+    richiedenteNome: '',
+    istituzioneSanitaria: '',
     foto: null,
     dataConsegna: DATA_CONSEGNA,
     ...patch,

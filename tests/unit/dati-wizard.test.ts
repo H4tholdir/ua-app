@@ -68,6 +68,16 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
     expect(r.dentisti.find((d) => d.id === 'c2')!.label).toBe('Dr. Bianchi')
   })
 
+  // Task 10 (P37/D211) — il gate del mini-foglio «Chi ha prescritto?» in
+  // WizardNuovoLavoro legge `studioNome`, PASSTHROUGH grezzo di `studio_nome`
+  // (mai derivato da `label`, che collassa sulla stessa stringa ma non È la
+  // fonte di verità).
+  it('studioNome: passthrough grezzo di studio_nome (mai derivato da label)', () => {
+    const r = aggregaDatiWizard(clienti, [], [], OGGI)
+    expect(r.dentisti.find((d) => d.id === 'c1')!.studioNome).toBe('Studio Esposito')
+    expect(r.dentisti.find((d) => d.id === 'c2')!.studioNome).toBeNull()
+  })
+
   it('dentisti: TUTTI i clienti, anche con count30 zero', () => {
     const r = aggregaDatiWizard(clienti, [], [], OGGI)
     expect(r.dentisti).toHaveLength(3)
@@ -255,7 +265,7 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
       pazienti: [{ data: [{ codice_paziente: 'PZ-0010' }], error: null }],
     })
     const r: DatiWizard = await getDatiWizard(svc, 'lab-1', OGGI)
-    expect(r.dentisti).toEqual([{ id: 'c1', label: 'Studio Esposito', count30: 1 }])
+    expect(r.dentisti).toEqual([{ id: 'c1', label: 'Studio Esposito', count30: 1, studioNome: 'Studio Esposito' }])
     expect(r.frequenzeTipi.corona_zirconia).toBe(1)
     expect(r.prossimoPz).toBe('PZ-0011')
     expect(r.giorniPerTipo.corona_zirconia).toEqual({ giorni: 5, daStoria: false }) // nessuno storico → fallback tassonomia
