@@ -371,6 +371,14 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   }
 
   // Aggiornamento ottimistico: scalari nel merge locale, FK via router.refresh.
+  //
+  // 🔑 PERCHÉ LA TINTA NON RICHIEDE IL GIRO AL SERVER, benché arrivi da un
+  //    catalogo come le due FK qui sotto: il foglietto passa già l'esito
+  //    RISOLTO (`tinta: {nome, hex}`), quindi lo specchio locale è completo. E
+  //    `tinteDisponibili` non va rilette perché la famiglia dipende dal
+  //    `tipo_dispositivo`, che da questo foglietto non si tocca: le voci della
+  //    tavolozza non possono cambiare per effetto di questo gesto. Se un domani
+  //    il tipo diventasse correggibile da qui, questa riga smette di valere.
   function handleSalvato(patch: Record<string, unknown>) {
     setLavoroLocale((prev) => ({ ...prev, ...patch }))
     if ('cliente_id' in patch || 'tecnico_id' in patch) router.refresh()

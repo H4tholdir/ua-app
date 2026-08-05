@@ -1664,3 +1664,17 @@ tinta_…`) — chiesta e **bloccata dal classificatore dei comandi**, quindi no
 passerà dal **percorso dell'utente** invece che da una riga scritta a mano.
 📌 **Fino ad allora, ciò che è provato è ciò che dicono le prove** — 28 nuove — e la riga «funziona in
 produzione» non si scrive.
+
+### 📮 P7-⑥ — Al GATE L2 del T9: una riga congelata non dice PERCHÉ non si preme
+
+Trovato in revisione di chiusura del T7. Su un lavoro con la DdC emessa la riga «Tinta» smette di essere
+premibile — giusto, è la regola del gemello — ma **a schermo diventa indistinguibile da una riga normale
+meno l'invito**: nessuna parola dice all'utente che quel dato è chiuso perché la dichiarazione è uscita.
+🔎 **Verificato prima di proporre una correzione, e l'esito ha cambiato la conclusione:** `provato:`
+`derivaRigaColore` (`src/lib/lavori/colore-riga-scheda.ts:135,149,171`) — i suoi sottotitoli dicono la
+**provenienza** («scelto dal laboratorio», «prescritto: A3»), **nessuno dice il congelamento**. Quindi il
+gemello **ha lo stesso vuoto**.
+🛑 **Per questo NON è stato corretto sulla sola tinta:** aggiungere la spiegazione a una riga e non
+all'altra creerebbe **due comportamenti diversi per lo stesso problema** — la classe di difetto che
+quest'ondata combatte, e la stessa ragione per cui i due rilievi §0④ si chiudono insieme nel T8.
+➡️ **Va al gate estetico L2 del T9**, che guarda quella carta, e si decide **per entrambe le righe**.
