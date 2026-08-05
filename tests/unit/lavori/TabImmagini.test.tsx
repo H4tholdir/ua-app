@@ -42,8 +42,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { LavoroImmagine } from '@/types/domain'
 
 // ─── Mock: compressione immagine (Web Worker/canvas non esistono in jsdom) ──
+// Il doppio è pilotabile per prova: `comprimiMock.mockResolvedValueOnce(...)`
+// per dire che cosa la libreria restituisce. Il default resta «restituisce
+// quello che ha ricevuto», che è ciò che tutte le prove preesistenti danno per
+// buono.
+const { comprimiMock } = vi.hoisted(() => ({
+  comprimiMock: vi.fn(async (file: File) => file),
+}))
 vi.mock('browser-image-compression', () => ({
-  default: vi.fn(async (file: File) => file),
+  default: comprimiMock,
 }))
 
 // ─── Mock: haptic/sound v3 — stessa convenzione di FoglioCategoria.test.tsx ─
@@ -211,11 +218,22 @@ function inputCamera(container: HTMLElement): HTMLInputElement {
   return container.querySelector('input[capture="environment"]') as HTMLInputElement
 }
 
+/** Un File di peso dichiarato — allocare davvero 6MB per prova è tempo buttato. */
+function fileDaByte(nome: string, tipo: string, byte: number): File {
+  const f = new File(['x'], nome, { type: tipo })
+  Object.defineProperty(f, 'size', { value: byte, configurable: true })
+  return f
+}
+
+const MB = 1024 * 1024
+
 beforeEach(() => {
   FakeXHR.instances = []
   foglioCalls.length = 0
   vibraMock.mockClear()
   suonaMock.mockClear()
+  comprimiMock.mockClear()
+  comprimiMock.mockImplementation(async (file: File) => file)
   vi.stubGlobal('XMLHttpRequest', FakeXHR)
   // jsdom non implementa affatto questi due (verificato: `undefined`, non un
   // no-op) — senza lo stub `handleFiles` esplode sul PRIMO file.
@@ -435,6 +453,130 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       const select = container.querySelector('select') as HTMLSelectElement
       expect(within(select).getByText('Radiografia').getAttribute('value')).toBe('rx')
       expect(select.value).toBe('rx')
+    })
+  })
+
+  // ══ IL PESO — il difetto vivo del 05/08/2026 (handoff §0②b) ═════════════
+  // Fino a qui questa superficie non aveva ALCUN controllo di peso
+  // (`grep -c troppoGrande` → 0): è il TERZO percorso di caricamento, e il
+  // modulo del limite dichiarava di coprirne due. Un modulo scansionato da 6MB
+  // partiva, la piattaforma lo tagliava PRIMA dell'applicazione, la risposta
+  // non era JSON e l'utente leggeva «Upload fallito: 413».
+  //
+  // Forme d'ingresso (R-P4): PDF sopra il limite · PDF sotto · immagine grande
+  // che la compressione porta sotto (NON-REGRESSIONE: oggi funziona e deve
+  // continuare) · immagine che resta sopra anche dopo · più file di cui uno
+  // solo troppo pesante.
+  describe('il peso si controlla PRIMA di spendere un byte', () => {
+    it('un PDF da 6MB non parte affatto, e la frase dice il peso vero', async () => {
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 6 * MB))
+      await utente.click(screen.getByText('scegli-altro'))
+
+      // Nessun viaggio: il file non è mai partito.
+      expect(FakeXHR.instances).toHaveLength(0)
+
+      // E la frase si LEGGE — non è solo un aria-label su un triangolino.
+      const avviso = await screen.findByRole('alert')
+      expect(avviso.textContent).toContain('6,0 MB')
+      expect(avviso.textContent).toContain('4MB')
+      // 🛑 A un PDF non si dice «scattala di nuovo»: non c'è niente da riscattare.
+      expect(avviso.textContent).not.toContain('scattala')
+      expect(vibraMock).toHaveBeenCalledWith('error')
+    })
+
+    it('un PDF sotto il limite parte come sempre', async () => {
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 2 * MB))
+      await utente.click(screen.getByText('scegli-altro'))
+
+      expect(FakeXHR.instances).toHaveLength(1)
+    })
+
+    it('NON-REGRESSIONE: una foto da 6MB che la compressione porta a 0,4MB parte lo stesso', async () => {
+      // 🔑 È la ragione per cui il controllo sta DOPO la compressione e non
+      // prima: un telefono di oggi fa foto da 6MB, e comprimerle è esattamente
+      // ciò che le fa passare. Un controllo messo a monte le rifiuterebbe
+      // tutte — rompendo una funzione che oggi lavora.
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      comprimiMock.mockResolvedValueOnce(fileDaByte('foto.jpg', 'image/jpeg', 400 * 1024))
+
+      await utente.upload(inputGalleria(container), fileDaByte('foto.jpg', 'image/jpeg', 6 * MB))
+      await utente.click(screen.getByText('scegli-impronta'))
+
+      expect(FakeXHR.instances).toHaveLength(1)
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('una foto che resta sopra il limite ANCHE dopo la compressione non parte, e lo dice', async () => {
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      // La libreria ha un tetto ma non lo garantisce: se non riesce a
+      // scendere restituisce ciò che ha ottenuto.
+      comprimiMock.mockResolvedValueOnce(fileDaByte('enorme.jpg', 'image/jpeg', 5 * MB))
+
+      await utente.upload(inputGalleria(container), fileDaByte('enorme.jpg', 'image/jpeg', 9 * MB))
+      await utente.click(screen.getByText('scegli-impronta'))
+
+      expect(FakeXHR.instances).toHaveLength(0)
+      const avviso = await screen.findByRole('alert')
+      expect(avviso.textContent).toContain('5,0 MB')
+    })
+
+    it('fra tre file, solo quello troppo pesante si ferma: gli altri due partono', async () => {
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      comprimiMock.mockImplementation(async (file: File) => file)
+
+      await utente.upload(inputGalleria(container), [
+        fileDaByte('a.pdf', 'application/pdf', 1 * MB),
+        fileDaByte('troppo.pdf', 'application/pdf', 7 * MB),
+        fileDaByte('c.pdf', 'application/pdf', 1 * MB),
+      ])
+      await utente.click(screen.getByText('scegli-altro'))
+
+      expect(FakeXHR.instances).toHaveLength(2)
+      const avviso = await screen.findByRole('alert')
+      // La frase dice DI QUALE file parla: con tre carte uguali, senza il nome
+      // l'utente non sa quale togliere.
+      expect(avviso.textContent).toContain('troppo.pdf')
+    })
+  })
+
+  // ══ IL FORMATO — il difetto vivo (a): WebP non può avere il colore pieno ══
+  describe('la compressione chiede JPEG, mai WebP (D237②)', () => {
+    it('spia sulle opzioni passate alla libreria: `image/jpeg`, e nessun «webp» nel file', async () => {
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      await utente.upload(inputGalleria(container), fileDaByte('foto.jpg', 'image/jpeg', 900 * 1024))
+      await utente.click(screen.getByText('scegli-impronta'))
+
+      expect(comprimiMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ fileType: 'image/jpeg' })
+      )
+
+      // 🛑 E la compressione NON si richiama più da qui a mano: passa dal
+      // modulo che controlla anche cosa è tornato indietro. Una spia sulla
+      // stringa «image/webp» non servirebbe — la trova anche in un commento
+      // che ne racconta la storia; questa guarda la dipendenza, che è
+      // l'invariante vero: chi reintroducesse una compressione locale
+      // reintrodurrebbe anche il silenzio su Safari.
+      const src = readFileSync('src/components/features/lavori/form/TabImmagini.tsx', 'utf-8')
+      expect(src).not.toMatch(/from\s+['"]browser-image-compression['"]/)
+    })
+
+    it('il PDF non passa MAI dalla compressione (D237: i PDF non si comprimono in nessun caso)', async () => {
+      const utente = userEvent.setup()
+      const { container } = render(<Harness />)
+      await utente.upload(inputGalleria(container), fileDaByte('modulo.pdf', 'application/pdf', 1 * MB))
+      await utente.click(screen.getByText('scegli-altro'))
+
+      expect(comprimiMock).not.toHaveBeenCalled()
+      expect(FakeXHR.instances).toHaveLength(1)
     })
   })
 

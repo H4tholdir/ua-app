@@ -62,6 +62,18 @@ export function pesoLeggibile(byte: number): string {
 }
 
 /**
+ * Che cosa ha allegato l'utente, per il solo scopo di sceglierne il NOME nella
+ * frase. 🛑 Non cambia la soglia — quella è una sola, ed è della piattaforma.
+ *
+ * 🔑 Perché serve: il terzo percorso di caricamento (la scheda del lavoro,
+ *    `TabImmagini`) accetta anche i PDF, che per D237 non si comprimono mai.
+ *    Dire «questa IMMAGINE pesa…» e «scattala di nuovo più da vicino» a chi ha
+ *    allegato un modulo scansionato è un consiglio impossibile da eseguire: non
+ *    c'è niente da riscattare, e chi legge resta senza una mossa da fare.
+ */
+export type NaturaFile = 'immagine' | 'documento'
+
+/**
  * Il controllo PRIMA di partire: se il file è troppo grande restituisce la frase
  * da mostrare, altrimenti `null`.
  *
@@ -75,7 +87,14 @@ export function pesoLeggibile(byte: number): string {
  *    6,3 MB» è verificabile da chi legge — apre la galleria e ritrova quel
  *    numero — mentre «è troppo grande» lo lascia a indovinare quanto.
  */
-export function troppoGrande(file: { size: number }): string | null {
+export function troppoGrande(
+  file: { size: number },
+  opzioni?: { natura?: NaturaFile },
+): string | null {
   if (file.size <= MAX_UPLOAD_BYTES) return null
-  return `Questa immagine pesa ${pesoLeggibile(file.size)} e il massimo è ${MAX_UPLOAD_ETICHETTA}: scattala di nuovo più da vicino, o scegline una più leggera.`
+  const peso = `${pesoLeggibile(file.size)} e il massimo è ${MAX_UPLOAD_ETICHETTA}`
+  if (opzioni?.natura === 'documento') {
+    return `Questo documento pesa ${peso}: allegane uno più leggero.`
+  }
+  return `Questa immagine pesa ${peso}: scattala di nuovo più da vicino, o scegline una più leggera.`
 }

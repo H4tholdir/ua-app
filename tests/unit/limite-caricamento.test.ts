@@ -47,4 +47,31 @@ describe('il limite di caricamento (M3-T39-6)', () => {
     // Mai «0 KB» per un file che esiste: chi lo legge penserebbe a un guasto.
     expect(pesoLeggibile(1)).toBe('1 KB')
   })
+
+  // ══ La frase parla della cosa GIUSTA (05/08/2026) ═══════════════════════
+  // Il terzo percorso di caricamento (`TabImmagini`, la scheda del lavoro)
+  // accetta anche i PDF, che non si comprimono. Dire a chi allega un modulo
+  // scansionato «questa IMMAGINE pesa…» e «scattala di nuovo più da vicino» è
+  // un consiglio impossibile da seguire: non c'è niente da riscattare.
+  describe('la frase si adatta a ciò che l\'utente ha davvero allegato', () => {
+    it('per un\'immagine resta quella di prima, consiglio compreso', () => {
+      const frase = troppoGrande({ size: 6.3 * 1024 * 1024 })
+      expect(frase).toContain('immagine')
+      expect(frase).toContain('scattala di nuovo')
+    })
+
+    it('per un documento NON dice «immagine» e NON dice «scattala di nuovo»', () => {
+      const frase = troppoGrande({ size: 6.3 * 1024 * 1024 }, { natura: 'documento' })
+      expect(frase).not.toBeNull()
+      expect(frase).toContain('6,3 MB')
+      expect(frase).toContain('4MB')
+      expect(frase).not.toContain('immagine')
+      expect(frase).not.toContain('scattala')
+    })
+
+    it('un documento sotto il limite passa comunque: la natura cambia la frase, mai la soglia', () => {
+      expect(troppoGrande({ size: MAX_UPLOAD_BYTES }, { natura: 'documento' })).toBeNull()
+      expect(troppoGrande({ size: MAX_UPLOAD_BYTES + 1 }, { natura: 'documento' })).not.toBeNull()
+    })
+  })
 })

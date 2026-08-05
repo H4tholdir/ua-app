@@ -2,8 +2,9 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import imageCompression from 'browser-image-compression'
 import type { LavoroImmagine } from '@/types/domain'
+import { comprimiSePossibile } from '@/lib/storage/compressione-immagine'
+import { troppoGrande } from '@/lib/storage/limite-caricamento'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
 import { vibra } from '@/design-system/v3/haptic'
 import { suona } from '@/design-system/v3/sound'
@@ -21,14 +22,15 @@ interface FotoLocale {
   error: string | null
 }
 
-// ─── Opzioni compressione ───────────────────────────────────────────
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.4,
-  maxWidthOrHeight: 1920,
-  useWebWorker: true,
-  fileType: 'image/webp' as const,
-  initialQuality: 0.85,
-}
+// ─── Compressione ───────────────────────────────────────────────────
+// 🔴 Le opzioni stavano qui e chiedevano `image/webp`. Sono uscite il
+//    05/08/2026 in `@/lib/storage/compressione-immagine` con la loro ragione:
+//    WebP con perdita **non può** avere il colore pieno (è nella specifica del
+//    codec), e su Safari/iPhone quella conversione **non avveniva affatto** —
+//    tornava un PNG in silenzio, e per rientrare nel tetto la libreria tagliava
+//    risoluzione. Ora si chiede JPEG e si CONTROLLA che cosa è tornato.
+//    Destinazione dell'identificatore (R-P6): `COMPRESSION_OPTIONS` →
+//    `OPZIONI_COMPRESSIONE` in quel modulo, unico posto in cui vive.
 
 // ─── Progress ring SVG ──────────────────────────────────────────────
 function ProgressRing({ progress }: { progress: number }) {
@@ -188,10 +190,24 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
   const uploadFile = useCallback(
     async (file: File, localId: string, categoria: CategoriaFoto) => {
       try {
-        // Compressione solo per immagini
-        let fileToUpload = file
-        if (file.type.startsWith('image/')) {
-          fileToUpload = await imageCompression(file, COMPRESSION_OPTIONS)
+        // La compressione tocca solo le immagini (D237: i PDF non si comprimono
+        // in nessun caso), e non finge mai: se torna un formato diverso da
+        // quello chiesto, spedisce il più leggero fra i due invece di credere
+        // che la conversione sia avvenuta.
+        const { file: fileToUpload } = await comprimiSePossibile(file)
+
+        // 🔴 IL CONTROLLO CHE MANCAVA — e sta QUI, dopo la compressione, non
+        //    prima. Un telefono di oggi fa foto da 6MB: comprimerle è
+        //    esattamente ciò che le fa passare, e un controllo messo a monte le
+        //    rifiuterebbe tutte, rompendo una funzione che oggi lavora. Ciò che
+        //    conta è il peso di quello che PARTE DAVVERO.
+        //    Senza, un modulo scansionato da 6MB partiva, la piattaforma lo
+        //    tagliava prima dell'applicazione (~4,2MB), la risposta non era
+        //    JSON e l'utente leggeva «Upload fallito: 413».
+        const natura = fileToUpload.type.startsWith('image/') ? 'immagine' : 'documento'
+        const tropo = troppoGrande(fileToUpload, { natura })
+        if (tropo) {
+          throw new Error(tropo)
         }
 
         const formData = new FormData()
@@ -367,6 +383,10 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
 
   // Unisce immagini già caricate + locali in progress
   const foteDaRenderizzare = fotoLocali
+
+  // I file che si sono fermati, con la loro frase: il riquadro sotto la griglia
+  // li elenca per nome.
+  const fotoInErrore = fotoLocali.filter((f) => f.error)
 
   return (
     <div>
@@ -574,7 +594,13 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                   </div>
                 )}
 
-                {/* Errore overlay */}
+                {/* Errore: qui resta il SEGNO (rosso, visibile a colpo d'occhio
+                    su quale carta), mentre la FRASE si legge nel riquadro sotto
+                    la griglia. 🔑 Prima il testo viveva solo in un `aria-label`
+                    e chi guardava lo schermo vedeva un triangolino muto: sapeva
+                    che qualcosa era andato storto, non che cosa fare. Il ruolo
+                    `alert` è passato al riquadro, che porta le parole — averlo
+                    in due posti annuncerebbe due volte la stessa cosa. */}
                 {foto.error && (
                   <div
                     style={{
@@ -587,8 +613,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                       borderRadius: listaVista ? undefined : '10px',
                       padding: listaVista ? undefined : '4px',
                     }}
-                    role="alert"
-                    aria-label={`Errore upload: ${foto.error}`}
+                    aria-hidden="true"
                   >
                     <span
                       style={{
@@ -606,6 +631,40 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
               </motion.div>
             ))}
           </AnimatePresence>
+        </div>
+      )}
+
+      {/* ─── Le frasi degli errori — si LEGGONO ──────────────────────
+          Una riga per file fallito, col suo NOME: con tre carte uguali in
+          griglia, «pesa 6,0 MB» senza il nome non dice quale togliere. */}
+      {fotoInErrore.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            background: 'var(--sfc, #E4DFD9)',
+            borderLeft: '3px solid var(--primary, #D90012)',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            marginBottom: '20px',
+          }}
+        >
+          {fotoInErrore.map((foto) => (
+            <p
+              key={foto.id}
+              style={{
+                fontFamily: 'var(--font-v3, sans-serif)',
+                fontSize: '13px',
+                lineHeight: 1.45,
+                color: 'var(--t1, #1C1916)',
+                margin: 0,
+              }}
+            >
+              <span style={{ fontWeight: 700 }}>{foto.nomeFile}</span> — {foto.error}
+            </p>
+          ))}
         </div>
       )}
 
