@@ -1,50 +1,31 @@
 # Sessione attiva — UÀ
 
-🏁 **IL PIANO È COMPLETO: T1-T7.** Nessun compito aperto.
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`** — che
-ora si legge come **verbale di ciò che è stato fatto**, non come lista di compiti: sono tutti
-eseguiti. Ciò che resta è **la PUBBLICAZIONE** (la autorizza Francesco) e, prima, se si vuole, un
-giro dal vivo sul banco.
+🚀 **IL CARICAMENTO DIRETTO È IN PRODUZIONE.** Piano `2026-08-05-caricamento-diretto-storage.md`
+completo (T1-T7), pubblicato con fast-forward di 24 commit, CI e CD verdi.
 
-**Il caricamento diretto è FATTO e IN USO.** I file non passano più dalla funzione:
-il muro dei ~4,2MB non lo incontrano nemmeno, il tetto è quello del magazzino (50MB).
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/ROADMAP-UFFICIALE.md`** — nessun compito aperto sul caricamento.
 
-- **D238** — i due difetti vivi chiusi: via il **WebP → JPEG** e si **controlla il tipo ricevuto**
-  (su Safari/iPhone la conversione non avveniva e tornava un PNG in silenzio); **controllo di peso**
-  in `TabImmagini`, **dopo** la compressione.
-- **D239** — il §4 del piano dava per aperte D236 e D237, già decise: allineato.
-- **L'errore si dice con l'Avviso §5.18**, non con un riquadro inventato (Francesco: «*stile AI
-  slop, usiamo le regole del nostro design system*»).
-- **T1** — percorso `<laboratorio_id>/lavori/<lavoro_id>/<uuid>.<ext>`, 5 file spostati e verificati.
-- **T2** — la policy **nega** invece di esplodere; erano **OTTO**, non quattro.
-- **T3** — le due rotte, con **C1** (nove forme di percorso rifiutate) e **C2** (peso e tipo letti
-  dal magazzino).
-- **T4+T5** — i client passano al corridoio nuovo, e i tetti si sdoppiano per corridoio.
-- **T6** — il mietitore degli orfani: rotta interna + Vercel Cron (4:20 di notte). 🛑 `pg_cron` non
-  bastava: `pg_net` non è installato, e un `DELETE` su `storage.objects` lascerebbe i **byte** dov'erano.
-- **T7** (D240) — via la vecchia rotta e `uploadToStorage`.
+**Cosa è cambiato per chi usa l'app:** i file non passano più dalla funzione, vanno **dritti al
+magazzino**. Il tetto è **50MB** invece di ~4,2. Provato sul sito vero: un PDF da **6,1MB** si
+carica (firma 200 · byte 200 · conferma 201 · riga nel recinto).
 
-🔎 **Il revisore ha trovato TRE cose, tutte fondate, tutte chiuse:**
-① i client erano **QUATTRO** (`crea-lavoro.ts`), non tre: sarebbe rimasto solo sul corridoio vecchio
-e T7 l'avrebbe rotto in silenzio · ② **HEIC era diventato una regressione mia**: il bucket non lo
-accetta (misurato) e col corridoio diretto il rifiuto costava un viaggio da 50MB su rete mobile,
-proprio sulla prescrizione che non si comprime — tolto dall'elenco, più una **guardia** che
-confronta le due liste in entrambe le direzioni · ③ T6 non era rimandabile al dopo-merge (la
-promessa del DPA ai clienti).
+🔴 **Il rilascio ha chiuso un difetto VIVO che nessuno sapeva di avere (D241):** la migration di
+D236 era stata applicata al database alle 09:59 **senza pubblicare il codice**, quindi da stamattina
+ogni caricamento di foto in produzione falliva e lasciava un file orfano (prova: due file alle 11:23
+e 11:24 sul lavoro 2026/0017, cancellati su autorizzazione di Francesco).
+🔑 **La regola che ne esce:** una migration che **toglie** qualcosa si applica **dopo** aver
+pubblicato il codice che smette di usarla. Fra i due istanti c'è una finestra che **nessuna prova
+automatica vede**, perché in locale i due pezzi sono sempre allineati.
 
-🔓 **NESSUNA VARIABILE NUOVA DA CREARE** (domanda di Francesco, verificata): `INTERNAL_SECRET`
-esiste già — la usa `internal/pec-verify` — e il mietitore la accetta. `CRON_SECRET` serve **solo**
-perché Vercel Cron firma da sé le chiamate pianificate unicamente con quel nome: chi vuole il cron
-automatico la definisce, anche con lo stesso valore. Senza, il cron fallisce **visibilmente**.
+⚠️ **Aperte e dichiarate:**
+- la prova su un **iPhone vero** (HEIC): da lì dipende la scelta della riga 16 di roadmap — accettarlo nel
+  bucket o rifiutarlo al selettore. Oggi è **fuori** dall'elenco, e una guardia
+  (`scripts/guardia-tipi-bucket.mjs`) tiene allineate le due liste;
+- **`CRON_SECRET`** su Vercel, se si vuole il mietitore automatico delle 4:20 (`INTERNAL_SECRET`
+  esiste già e basta per chiamarlo a mano);
+- 🔴 la **DdC col prescrittore vuoto**, indipendente da tutto il resto.
 
-📌 **Misurato** (`npm run verify:full`): tsc 0 · eslint 0 · vitest **4976 passate | 19 saltate**
-(415 file) · build ok · sei guardie verdi. Ramo `fix-limite-caricamento`, **22 commit non
-pubblicati**. 📌 Le prove in meno rispetto al giro precedente sono quelle della rotta tolta:
-sparivano con lei, non sono state disattivate.
-⚠️ **La prova che manca:** il comportamento su un **iPhone vero** (formato HEIC).
+📌 **Misurato** (`npm run verify:full` prima del rilascio): tsc 0 · eslint 0 · vitest **4944 passate
+| 19 saltate** (415 file) · build ok · sei guardie verdi.
 
-➡️ **PROSSIMO: la pubblicazione.** ⚠️ **D240 — il rischio accettato:** UÀ è una PWA, e la vecchia
-rotta è uscita in questo stesso rilascio; chi ha la pagina aperta **nel momento** della
-pubblicazione troverebbe una porta chiusa su un caricamento (si chiude ricaricando).
-
-📎 **240 decisioni in 90 tornate; la prossima è D241.**
+📎 **241 decisioni in 91 tornate; la prossima è D242.**

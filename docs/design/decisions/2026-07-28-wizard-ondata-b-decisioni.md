@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla novantesima tornata (D240: il caricamento diretto è COMPLETO, T1-T7)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla novantunesima tornata (D241: PUBBLICATO — e il rilascio ha chiuso un difetto vivo)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**240 decisioni in novanta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**241 decisioni in novantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1863,3 +1863,19 @@ c'è nessuna variabile nuova da creare. 📌 `CRON_SECRET` resta utile per **un 
 Vercel**: il suo pianificatore firma da sé le chiamate **solo** se quella variabile è definita —
 anche con lo stesso valore dell'altra. Senza, il cron notturno chiama senza intestazione e la rotta
 rifiuta, **visibilmente**.
+
+---
+
+### Novantunesima tornata — D241: si pubblica, e il difetto vivo si chiude col rilascio (05/08/2026)
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D241** | ✅ **SI PUBBLICA SUBITO** — e le due foto orfane si **cancellano** | Francesco, il 05/08: «*pubblica, per quelle due foto, cancellale pure erano di pura prova*» | 🔴 **Il rilascio era anche la CURA di un difetto vivo, trovato per caso ripulendo il banco:** la migration di **D236** (via la colonna `url`) era stata applicata al database vivo alle **09:59**, ma **il codice che l'accompagna non era mai stato pubblicato**. Da quel momento la rotta in produzione scriveva in una colonna **che non esiste più**: ogni caricamento di foto falliva, e lasciava un file orfano. 📌 **La prova, non l'ipotesi:** due file arrivati alle **11:23:45** e **11:24:04** sotto `lavori/6ed28bfe-…/`, senza riga che li nominasse, sul lavoro **2026/0017** creato alle 11:23:44 dall'app vera. ✅ **FATTO:** fast-forward `132d39e2..0d6d7979` (24 commit) · **CI verde** (7m) · **CD «Deploy to Production» verde** (3m) · sito **200** su `/login`, **307** sulla radice. ✅ **Check post-deploy fatto sul SITO VERO** (la lezione di stamattina: un check che «conferma una frase» va fatto lo stesso): PDF da **6,1MB** caricato dalla scheda → firma **200**, byte al magazzino **200**, conferma **201**, riga scritta col percorso nel recinto, file da **6.400.688 byte**. Prova rimossa, banco alla baseline (5 righe). ✅ Le due rotte nuove rispondono **401** senza sessione; la vecchia dà **404**: è uscita davvero |
+
+🔑 **La lezione, e vale oltre questo caso: una migration applicata al database vive SUBITO, il codice
+che la accompagna no.** Fra i due istanti c'è una finestra in cui la produzione parla con uno schema
+che non esiste più — e nessuna prova automatica la vede, perché in locale i due pezzi sono sempre
+allineati. Qui la finestra è durata **quasi due ore** e ha rotto una funzione principale.
+➡️ **Regola operativa che ne esce:** una migration che **toglie** qualcosa si applica **dopo** aver
+pubblicato il codice che smette di usarla, mai prima. Se l'ordine si inverte per necessità, la
+finestra va dichiarata e chiusa **nello stesso turno**.
