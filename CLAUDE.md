@@ -559,7 +559,10 @@ d'accesso monouso**, che nasce dalle stesse credenziali ma **non richiede di dig
 campo** — cosa che Claude non fa in nessun caso — e aggira il limite di tentativi ravvicinati:
 
 ```
-npx tsx scripts/tmp/link-accesso.ts <email> <percorso>   # → /auth/callback?token_hash=…&type=magiclink
+npx tsx scripts/link-accesso.ts [email] [percorso]   # → /auth/callback?token_hash=…&type=magiclink
+# ⚠️ 05/08/2026: era `scripts/tmp/link-accesso.ts` — cartella IGNORATA da git, quindi una
+# direttiva permanente che rimandava a un file che nessuna macchina nuova avrebbe avuto.
+# Ora sta sotto git. L'email si può omettere: ripiega su TEST_EMAIL di .env.local.
 ```
 
 Ricetta: `admin.generateLink({type:'magiclink'})` con la chiave di servizio → `hashed_token` →
