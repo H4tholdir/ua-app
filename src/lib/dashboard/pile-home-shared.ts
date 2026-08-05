@@ -190,8 +190,16 @@ function costruisciStriscia(liste: Record<Pila, Interno[]>, oggi: Date): DatiPil
     }) ?? null
   const provaRientroOggi = provaOggi ? provaOggi.numero : null
 
-  const vecchio =
-    liste.blu.find((x) => oggi.getTime() - new Date(x._raw.created_at).getTime() > MS_GIORNO) ?? null
+  // D244 — si cerca il PIÙ VECCHIO che aspetta, esplicitamente. 🔑 Prima
+  // bastava un `find` sulla lista, perché l'ordine per consegna metteva davanti
+  // i più urgenti; da quando la blu è ordinata per arrivo il primo della lista è
+  // il più NUOVO, e un `find` avrebbe nominato il lavoro sbagliato — la striscia
+  // dice «aspetta da…», quindi deve parlare di chi aspetta da più tempo.
+  let vecchio: Interno | null = null
+  for (const x of liste.blu) {
+    if (oggi.getTime() - new Date(x._raw.created_at).getTime() <= MS_GIORNO) continue
+    if (!vecchio || new Date(x._raw.created_at).getTime() < new Date(vecchio._raw.created_at).getTime()) vecchio = x
+  }
   const arrivoVecchio = vecchio ? vecchio.numero : null
 
   const giorniFermo = (x: Interno) => Math.floor((oggi.getTime() - new Date(x._raw.updated_at).getTime()) / MS_GIORNO)
@@ -206,6 +214,18 @@ function costruisciStriscia(liste: Record<Pila, Interno[]>, oggi: Date): DatiPil
   const prossimaOra = primaOraRossa ? formattaOraHHmm(primaOraRossa.consegna.ora) : null
 
   return { ritardoPiuGrave, consegnaOggiNonPronta, provaRientroOggi, arrivoVecchio, fermo, consegneOggiTotali, prossimaOra }
+}
+
+/** D244 — l'ordine della pila blu: il più recente in cima, per ISTANTE d'arrivo. */
+function confrontaArrivo(a: Interno, b: Interno): number {
+  return new Date(b._raw.created_at).getTime() - new Date(a._raw.created_at).getTime()
+}
+
+/** Il criterio di spareggio, dichiarato: il numero del lavoro. Serve solo a
+ *  rendere l'ordine RIPETIBILE quando la chiave principale pareggia — non
+ *  esprime nessuna preferenza, e infatti nessuna schermata lo racconta. */
+function spareggioNumero(a: Interno, b: Interno): number {
+  return a.numero < b.numero ? -1 : a.numero > b.numero ? 1 : 0
 }
 
 export function mapPileHome(rows: RawLavoroPila[], oggi: Date): PileHome {
@@ -230,10 +250,25 @@ export function mapPileHome(rows: RawLavoroPila[], oggi: Date): PileHome {
     })
   }
   for (const pila of Object.keys(liste) as Pila[]) {
-    liste[pila].sort((a, b) => confrontaUrgenza(
-      { urgenza: a._u, data: a.consegna.data, ora: a.consegna.ora },
-      { urgenza: b._u, data: b.consegna.data, ora: b.consegna.ora },
-    ))
+    // D244 — la BLU si ordina per ARRIVO (il più recente in cima), le altre tre
+    // per CONSEGNA. 🔑 Non è un capriccio: rossa, ambra e viola parlano di
+    // scadenze, e lì «il più vicino a scadere in cima» è l'ordine giusto; la
+    // blu parla di arrivi, e ordinarla per consegna metteva in testa un lavoro
+    // di maggio e in fondo quelli entrati oggi — il nome della pila prometteva
+    // una cosa e la lista ne faceva un'altra (Francesco, 05/08/2026).
+    // 🛑 Il `|| spareggio` non è una rifinitura: senza, a parità di chiave il
+    // confronto torna 0 e resta l'ordine in cui il database ha restituito le
+    // righe — che non ha `ORDER BY` (`pile-home.ts:22-31`) e non è stabile fra
+    // due letture. Lo stesso elenco poteva presentarsi in ordine diverso a due
+    // aperture di seguito.
+    liste[pila].sort((a, b) =>
+      pila === 'blu'
+        ? confrontaArrivo(a, b) || spareggioNumero(b, a) // in cima il più recente: anche il numero scende
+        : confrontaUrgenza(
+            { urgenza: a._u, data: a.consegna.data, ora: a.consegna.ora },
+            { urgenza: b._u, data: b.consegna.data, ora: b.consegna.ora },
+          ) || spareggioNumero(a, b),
+    )
   }
   return { liste: pulisci(liste), sub: costruisciSub(liste, oggi), striscia: costruisciStriscia(liste, oggi) }
 }

@@ -205,13 +205,19 @@ describe('rami prose scoperti (O1a) — pillFase 0-branch, sub ambra/viola/blu',
     expect(subMorph('viola', pile, OGGI)).toBe('1 lavoro · in prova')
   })
 
-  it('sub blu: 4 arrivi → «n.A, n.B e altri 2 da confermare»', () => {
+  // 🔄 ATTESA CAMBIATA DA D244 (05/08/2026), e il cambiamento è la decisione,
+  // non una regressione: la frase nomina **i primi due della pila**, e da oggi
+  // la pila blu è ordinata per ARRIVO (il più recente in cima) invece che per
+  // data di consegna. Prima usciva «n.170, n.171» — i due più VECCHI — perché
+  // le loro consegne erano le più vicine. Su una pila che si chiama «appena
+  // arrivati», nominare i due appena arrivati è ciò che il nome promette.
+  it('sub blu: 4 arrivi → «n.A, n.B e altri 2 da confermare» (i due più RECENTI, D244)', () => {
     const pile = mapPileHome([
       raw({ id: 'b1', numero_lavoro: '170', stato: 'ricevuto', data_consegna_prevista: '2026-07-22', ora_consegna: null, created_at: '2026-07-09T06:00:00Z' }),
       raw({ id: 'b2', numero_lavoro: '171', stato: 'ricevuto', data_consegna_prevista: '2026-07-23', ora_consegna: null, created_at: '2026-07-09T07:00:00Z' }),
       raw({ id: 'b3', numero_lavoro: '172', stato: 'ricevuto', data_consegna_prevista: '2026-07-24', ora_consegna: null, created_at: '2026-07-09T08:00:00Z' }),
       raw({ id: 'b4', numero_lavoro: '173', stato: 'ricevuto', data_consegna_prevista: '2026-07-25', ora_consegna: null, created_at: '2026-07-09T09:00:00Z' }),
     ], OGGI)
-    expect(pile.sub.blu).toBe('n.170, n.171 e altri 2 da confermare')
+    expect(pile.sub.blu).toBe('n.173, n.172 e altri 2 da confermare')
   })
 })
