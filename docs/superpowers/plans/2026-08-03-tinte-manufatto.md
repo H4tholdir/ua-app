@@ -930,7 +930,41 @@ il rifacimento perdeva denti e colore.
 
 ---
 
-# Task 7 — La riga sulla scheda (sola lettura)
+# Task 7 — La riga sulla scheda (~~sola lettura~~ **si preme e si corregge lì — D247**)
+
+> 🔄 **EMENDATO il 05/08/2026, 19:00 — D247.** Questo task era scritto **muto** («sola lettura», `RigaDato`)
+> perché così diceva la spec, e il piano stesso lo dichiarava fra le sue **domande aperte** (la n° 2):
+> «*se in collaudo risulta frustrante, è un emendamento di una riga*». **La domanda è stata portata a
+> Francesco prima del collaudo, e ha scelto: la riga si preme e apre il foglietto SULLA SCHEDA**, come fa
+> oggi la riga «Colore» — non si cambia pagina.
+>
+> 🔎 **Il fatto misurato che ha spostato la scelta, e non stava in nessun documento:** la carta «Lavoro»
+> ha **sei righe, e QUATTRO si premono** (`provato:` `SchedaLavoroV3.tsx:522` Dentista · `:538-555` Colore
+> (editabile quando la modifica è possibile) · `:556` Consegna · `:563` Tecnico), più la riga dei denti che
+> **salta alla pagina di modifica** (`:527`). Una tinta muta sarebbe stata **l'unica riga ferma accanto al
+> suo gemello che si preme**.
+>
+> ⚠️ **I due modi convivono già e NON si confondono:** il foglietto sul posto (`setCampoAttivo`) e il salto
+> di pagina (`router.push`). **D247 sceglie il primo.**
+>
+> 📮 **RITROVAMENTO FUORI MANDATO, riferito e NON corretto qui (R-E2), ma l'esecutore del T7 deve saperlo:**
+> l'elenco dei campi correggibili sul posto è **scritto due volte** —
+> `SchedaLavoroV3.tsx:101` e `ModificaRigaSheet.tsx:30`, identici:
+> `type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'`.
+> **Aggiungere `'tinta'` vuol dire toccarne DUE**, e una sola delle due non dà errore di compilazione da
+> tutti e due i lati: è la stessa classe di difetto che questo progetto combatte (due copie della stessa
+> regola, una che si aggiorna e l'altra no). `provato:` `grep -rn "type Campo = " src/` → **2 hit**.
+>
+> 🛑 **E vale la regola degli overlay v3:** da dentro un foglietto non si naviga con `router.push` nudo —
+> se il T7 dovesse mai navigare, si usa `useNavigaDaOverlay` (`src/components/ds/useNavigaDaOverlay.ts`).
+>
+> ➡️ **Cosa cambia nei passi qui sotto:** il Passo 3 **non** rende `RigaDato` ma lo schema di `rigaColore`
+> (`RigaEditabile` quando la tinta è correggibile → `onApri={() => setCampoAttivo('tinta')}`); serve un
+> ramo `'tinta'` in `ModificaRigaSheet` con **la tavolozza** (la stessa del T8: **è il prezzo dichiarato di
+> D247**, e non è terreno nuovo — `ModificaColoreSheet.tsx` è il precedente da ricalcare). La prova
+> «nessuna tinta → la riga non compare affatto» **resta valida e invariata**.
+> ⚠️ **Il gate estetico L2 diventa dovuto su questa superficie** (D245: cambia l'aspetto della carta), ed
+> era già previsto dal T9.
 
 **File**
 - Modifica: `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` — dentro `<CardInfo>` (`:403-419`)
@@ -1061,9 +1095,14 @@ l'avviso compaia e la tinta sia sparita**. 390 · 768 · 1280, chiaro e scuro.
    stanza condannata; e agganciare la macchina «solo un po'» costa comunque pallini a numero variabile,
    bozza a versione nuova — con un'etichetta **diversa da `v:2`, già prenotata** dalla spec (b) §7 —,
    testi della ripresa riscritti e il punto in cui nasce il lavoro spostato **due volte**.
-2. 🟡 **La scheda: riga muta o riga che porta alla modifica?** `RigaLavoroDenti` usa già il secondo
-   pattern. Il Task 7 la fa **muta** come dice la spec; se in collaudo risulta frustrante, è un
-   emendamento di una riga.
+2. ✅ **CHIUSA da D247 (05/08/2026, 19:00) — «si preme, e si corregge lì».** ~~La scheda: riga muta o riga
+   che porta alla modifica? Il Task 7 la fa muta come dice la spec; se in collaudo risulta frustrante, è un
+   emendamento di una riga.~~ **Non si è aspettato il collaudo: la domanda è stata portata a Francesco**,
+   spiegandogli prima che cosa volesse dire «muta», e ha scelto il **foglietto sulla scheda** (né muta, né
+   salto di pagina). Il Task 7 è **emendato in testa**; il prezzo — la tavolozza in due posti — è
+   dichiarato lì. Verbale: **novantaseiesima tornata**.
+   🔑 **Perché non ha aspettato:** una riga muta scritta e poi cambiata in collaudo è lavoro fatto due
+   volte; e la domanda era già passata **due sessioni** senza arrivare a chi doveva rispondere.
 3. 🟡 **`useLavoroForm.ts` non è stato letto.** È dichiarato, ed è l'innesco del primo passo del Task 8.
 
 ## Ritrovamenti preesistenti da NON correggere qui (R-E2)
