@@ -496,13 +496,22 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     // ragione scritta — «*"si perde il colore, mai il lavoro" giustifica il NON
     // far fallire; NON giustifica il non dirlo*» — il POST lo rimanda e il
     // wizard lo mostra; **questa rotta lo riceveva e lo buttava via**.
-    // ⚠️ ONESTÀ SULL'ESPOSIZIONE, misurata: oggi i due client conosciuti non
-    // riescono a innescarlo (la pagina di modifica toglie il colore dal corpo,
-    // `useLavoroForm.ts:325`; il foglio della scheda verifica col catalogo di lì
-    // prima di mandare). Non si ripara un danno visibile: si toglie una
-    // garanzia dal client, dove il cappello di `colore-caso.ts` dice da luglio
-    // che non può stare — «i client saranno più d'uno», e lo specchio dei 48
-    // codici che vive nel client **è** un secondo elenco che può divergere.
+    // ⚠️ ONESTÀ SULL'ESPOSIZIONE — e questo blocco è già stato riscritto UNA
+    // VOLTA perché diceva il falso (revisione di ramo, 05/08/2026). Diceva che
+    // «la pagina di modifica toglie il colore dal corpo (`useLavoroForm.ts:325`)»:
+    // **`:325-326` lo tolgono, ma `:340-341` lo RIMETTONO** ogni volta che
+    // nessun dente porta colore. Quel client il colore lo manda eccome.
+    // ✅ La conclusione regge lo stesso, per un motivo diverso e misurato: quel
+    // campo è una TENDINA di 19 codici (`TabClinica.tsx:8-14`), tutti e 19
+    // presenti in `colori_dentali`; e il foglio della scheda verifica col
+    // catalogo prima di mandare. Quindi oggi lo scarto non è raggiungibile.
+    // 🔴 IL GIORNO IN CUI LO DIVENTA, dichiarato perché non colga di sorpresa:
+    // basta allargare le scale ammesse o rendere quel campo testo libero — e
+    // allora `colore_scartato` serve davvero, ma **nessuno lo legge ancora**.
+    // 🔑 Il senso resta quello: non si ripara un danno visibile oggi, si toglie
+    // una garanzia dal client, dove il cappello di `colore-caso.ts` dice da
+    // luglio che non può stare — «i client saranno più d'uno», e lo specchio dei
+    // 48 codici che vive nel client **è** un secondo elenco che può divergere.
     coloreScartato = colore.scartato
   }
 
@@ -541,6 +550,18 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   let tintaRimossa: { famiglia: string; codice: string } | null = null
   let tintaScartata = false
 
+  // ⚠️ RILIEVO DELLA REVISIONE DI RAMO (Minore, 05/08/2026) — dichiarato, NON
+  // corretto, e la ragione conta: questo `if` entra su **una qualsiasi** delle
+  // due chiavi, mentre il contratto scritto sopra dice «insieme o nessuna».
+  // Un corpo col solo `tinta_famiglia` risolve a `NESSUNA_TINTA` e quindi
+  // **azzera una tinta valida senza dichiararlo** (`scartata: false`).
+  // 🔒 Perché non lo si tocca alla vigilia di un rilascio: oggi è
+  // **irraggiungibile** (nessuna superficie manda ancora la tinta — le
+  // superfici sono i T7-T8), e la forma è **identica al gemello del colore di
+  // caso**, che si comporta così da luglio. Cambiarla qui, e non lì, creerebbe
+  // due regole diverse per lo stesso problema — la classe di difetto che
+  // quest'ondata combatte. ➡️ Si chiude nel T8, insieme alla tavolozza, o in
+  // una passata che allinea **entrambi**.
   if ('tinta_famiglia' in payload || 'tinta_codice' in payload) {
     const tinta = await risolviTinta(svc, payload.tinta_famiglia, payload.tinta_codice, macroDopo)
     payload.tinta_famiglia = tinta.tinta_famiglia

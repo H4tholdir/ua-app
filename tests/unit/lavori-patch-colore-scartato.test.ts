@@ -9,16 +9,21 @@
 //    riceveva e lo buttava via.** Il rilievo era pure già annotato in
 //    `ModificaColoreSheet.tsx` e mai chiuso.
 //
-// ⚠️ ONESTÀ SULL'ESPOSIZIONE, misurata prima di scrivere: oggi i due client
-//    conosciuti NON riescono a innescarlo — la pagina di modifica toglie il
-//    colore dal corpo (`useLavoroForm.ts:325`, i sette campi passano da una
-//    rotta dedicata) e il foglio della scheda verifica col catalogo di lì
-//    (`scalaDelCodice`) prima di mandare. Quindi non si sta riparando un danno
-//    visibile oggi: si sta togliendo una garanzia dal client, dove non può
-//    stare. Il cappello di `colore-caso.ts` lo dice da luglio — «una garanzia
-//    che vivesse solo nel client non sarebbe una garanzia: i client saranno più
-//    d'uno» — e lo specchio dei 48 codici che vive nel client È un secondo
-//    elenco che può divergere dal catalogo.
+// ⚠️ ONESTÀ SULL'ESPOSIZIONE — corretta dalla revisione di ramo (05/08/2026),
+//    perché la prima stesura nominava una protezione che NON esiste. Diceva:
+//    «la pagina di modifica toglie il colore dal corpo (`useLavoroForm.ts:325`)».
+//    **Falso:** `:325-326` lo tolgono e `:340-341` lo RIMETTONO ogni volta che
+//    nessun dente porta colore. Quel client il colore lo manda.
+// ✅ Che oggi lo scarto non sia raggiungibile resta VERO, per un motivo diverso
+//    e misurato: quel campo è una TENDINA di 19 codici (`TabClinica.tsx:8-14`),
+//    tutti presenti in `colori_dentali`, e il foglio della scheda verifica col
+//    catalogo prima di mandare.
+// 🔴 Diventa raggiungibile il giorno in cui si allargano le scale ammesse o quel
+//    campo torna testo libero — e allora `colore_scartato` serve davvero.
+// 🔑 Il senso della correzione non cambia: si toglie una garanzia dal client,
+//    dove il cappello di `colore-caso.ts` dice da luglio che non può stare —
+//    «i client saranno più d'uno» — e lo specchio dei 48 codici che vive nel
+//    client È un secondo elenco che può divergere dal catalogo.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const { mockGetUser, mockFrom } = vi.hoisted(() => ({ mockGetUser: vi.fn(), mockFrom: vi.fn() }))
