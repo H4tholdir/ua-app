@@ -25,10 +25,24 @@
  *    nome. 4MB tondi stanno sotto quel margine con un po' d'aria, e sono un numero
  *    che si può dire a voce.
  *
+ * 🛑 IL LIMITE NON È NOSTRO, E NON SI COMPRA. È il tetto sul corpo di una funzione
+ *    Vercel: **4,5 MB**, dichiarato in `vercel.com/docs/functions/limitations`
+ *    («*the maximum payload size for the request body … is 4.5 MB*»), **uguale su
+ *    Hobby, Pro ed Enterprise** — cambiano memoria, durata e concorrenza, non
+ *    questo. Non esiste un'impostazione da alzare, né in `vercel.json` né nel
+ *    pannello: passare a un piano superiore non sposta di un byte.
+ *
+ * 🔑 E il collo di bottiglia è SOLO il corridoio, non il magazzino: il bucket
+ *    `documenti` accetta già **50 MB** per file (misurato:
+ *    `SELECT file_size_limit FROM storage.buckets WHERE id='documenti'` → 52428800).
+ *    È il passaggio dalla funzione a stringere, non la destinazione.
+ *
  * ⚠️ Questo NON è il modo giusto di risolverlo, è il modo onesto di dirlo. La cura
  *    vera è non far passare il file dalla funzione: un caricamento firmato diretto
- *    allo storage aggira del tutto il limite e regge le foto grandi. Voce di
- *    roadmap dedicata — qui si chiude solo la bugia.
+ *    allo storage (`createSignedUploadUrl`, che la libreria in casa già offre)
+ *    aggira del tutto il tetto e arriva ai 50 MB che il magazzino già concede —
+ *    è anche ciò che Vercel stessa raccomanda. Voce **15** di roadmap: qui si
+ *    chiude solo la bugia.
  */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 
