@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { timingSafeEqual } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 
 /**
  * `POST /api/internal/orfani-storage` — il mietitore dei file senza riga.
@@ -35,26 +35,39 @@ import { timingSafeEqual } from 'node:crypto'
 const BUCKET = 'documenti'
 const ORE_DI_GRAZIA = 24
 
-/** Confronto a tempo costante: un `===` su un segreto perde informazione a ogni
- *  carattere. Stesso trattamento di `internal/pec-verify`. */
+/** Confronto a tempo costante, sull'IMPRONTA e non sul testo: un `===` su un
+ *  segreto perde informazione a ogni carattere, e `timingSafeEqual` su valori di
+ *  lunghezza diversa solleva. Stesso trattamento di `internal/pec-verify`. */
 function segretoValido(ricevuto: string | null, atteso: string): boolean {
   if (!ricevuto) return false
-  const a = Buffer.from(ricevuto)
-  const b = Buffer.from(atteso)
-  if (a.length !== b.length) return false
+  const a = createHash('sha256').update(ricevuto).digest()
+  const b = createHash('sha256').update(atteso).digest()
   return timingSafeEqual(a, b)
 }
 
 export async function POST(req: Request) {
-  const atteso = process.env.CRON_SECRET
-  if (!atteso) {
-    console.error('[orfani-storage] CRON_SECRET non configurato: la rotta resta chiusa')
+  // 🔑 DUE NOMI, e la ragione è di Vercel, non nostra. `INTERNAL_SECRET` è il
+  //    segreto già in casa (lo usa `internal/pec-verify`, quindi è già
+  //    configurato ovunque serva): con quello la rotta si può chiamare subito,
+  //    a mano o da qualunque pianificatore. `CRON_SECRET` è il nome che **Vercel
+  //    Cron** usa per firmare da sé le chiamate pianificate: se non è definita,
+  //    Vercel chiama senza intestazione e la rotta — giustamente — rifiuta.
+  //    Chi vuole il cron automatico definisce `CRON_SECRET`, anche con lo
+  //    stesso valore dell'altro.
+  const attesi = [process.env.CRON_SECRET, process.env.INTERNAL_SECRET].filter(
+    (s): s is string => Boolean(s),
+  )
+  if (attesi.length === 0) {
+    console.error(
+      '[orfani-storage] né CRON_SECRET né INTERNAL_SECRET configurati: la rotta resta chiusa',
+    )
     return NextResponse.json({ error: 'Non configurato' }, { status: 503 })
   }
 
   const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? null
   const interno = req.headers.get('x-internal-secret')
-  if (!segretoValido(bearer, atteso) && !segretoValido(interno, atteso)) {
+  const passa = attesi.some((a) => segretoValido(bearer, a) || segretoValido(interno, a))
+  if (!passa) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 

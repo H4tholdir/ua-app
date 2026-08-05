@@ -67,6 +67,7 @@ function righe(percorsi: string[]) {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv('CRON_SECRET', SEGRETO)
+  vi.stubEnv('INTERNAL_SECRET', '')
   mockRemove.mockResolvedValue({ data: [], error: null })
   righe([])
   magazzino([])
@@ -76,8 +77,9 @@ afterEach(() => {
 })
 
 describe('mietitore — la serratura', () => {
-  it('🛑 segreto NON configurato → 503, e non tocca NIENTE (mai una porta socchiusa)', async () => {
+  it('🛑 NESSUN segreto configurato → 503, e non tocca NIENTE (mai una porta socchiusa)', async () => {
     vi.stubEnv('CRON_SECRET', '')
+    vi.stubEnv('INTERNAL_SECRET', '')
     const res = await POST(conSegreto())
     expect(res.status).toBe(503)
     expect(mockList).not.toHaveBeenCalled()
@@ -98,6 +100,17 @@ describe('mietitore — la serratura', () => {
   it('accetta anche `x-internal-secret` (la forma già in casa)', async () => {
     const res = await POST(richiesta({ 'x-internal-secret': SEGRETO }))
     expect(res.status).toBe(200)
+  })
+
+  it('🔑 basta INTERNAL_SECRET, che nel progetto esiste già: CRON_SECRET serve solo a Vercel Cron', async () => {
+    // Vercel firma da sé le chiamate pianificate SOLO se `CRON_SECRET` è
+    // definita; con l'altro segreto la rotta è comunque chiamabile a mano o da
+    // qualunque pianificatore. Due nomi, un solo cancello.
+    vi.stubEnv('CRON_SECRET', '')
+    vi.stubEnv('INTERNAL_SECRET', SEGRETO)
+    expect((await POST(richiesta({ 'x-internal-secret': SEGRETO }))).status).toBe(200)
+    expect((await POST(conSegreto())).status).toBe(200)
+    expect((await POST(richiesta({ 'x-internal-secret': 'sbagliato' }))).status).toBe(401)
   })
 })
 
