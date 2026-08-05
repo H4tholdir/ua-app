@@ -1383,3 +1383,89 @@ Il terzo argomento di `risolviTinta` è la **categoria grossa** (`lavori.tipo_di
 decide da sola quale famiglia è ammessa. **La PATCH deve leggerla dalla riga in banca dati, mai dal body:**
 se la prendesse dal corpo della richiesta, un client potrebbe dichiarare `bite_splint` su una corona e la
 guardia si aprirebbe da sola — resterebbe solo il CHECK, cioè un 500 invece di uno scarto dichiarato.
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 5 (05/08/2026, 19:57)
+
+### 🔴 P5-① — Il piano avvertiva del ramo morto, e il ramo morto c'era
+
+`existing` leggeva **tre colonne**: `incluso_in_fattura, tecnico_id, numero_lavoro`. Il piano lo dichiarava
+da verificare («*se non lo fa, il ramo (b) è codice morto che passa i test coi finti*»), e la verifica dice
+che **mancavano tutte e tre quelle che servono**. Le conseguenze, se non lette:
+
+| senza | effetto |
+|---|---|
+| `tipo_dispositivo` | `macroDopo` è `undefined` **ogni volta che il body non cambia il tipo**, e `famigliaDiMacro` risponde `null` a ciò che non conosce → **OGNI correzione di tinta scartata**, sempre |
+| `tinta_famiglia` / `tinta_codice` | il ramo D117 non trova mai una tinta da togliere → **codice morto**, verde coi finti |
+
+➡️ Aggiunte alla `select`, **e con una prova che guarda le colonne CHIESTE**, non quelle risposte
+(`tinte-patch.test.ts` prova ②): un finto generoso terrebbe verde un ramo morto in produzione. È la stessa
+forma della spia del T4 e dell'`UPDATE` su zero righe del T2.
+📌 **E il piano lo aveva scritto giusto:** «aprire, non presumere». Una riga d'avvertimento che qualcuno
+poteva saltare — l'ha salvata il fatto che R-P2 obbliga ad aprire il file.
+
+### 🔴 P5-② — Il piano buttava via `scartata`, cioè quello che il T4 aveva costruito apposta
+
+Il blocco del piano usa `tinta.tinta_famiglia` e `tinta.tinta_codice` e **ignora `tinta.scartata`** — il
+campo che il T4 ha fatto nascere per la ragione scritta nel suo cappello: «*si corregge dalla scheda vale
+solo se chi deve correggere sa di doverlo fare*». Sarebbe stato **P4-④ un piano più su**: un interruttore
+che c'è e non fa niente, stavolta costruito ieri e spento oggi.
+➡️ Aggiunto `tinta_scartata` alla risposta, **additivo**, accanto a `tinta_rimossa` e con la stessa forma.
+🛑 **E con la destinazione SCRITTA, o sarebbe un altro campo che nessuno legge:** lo leggono il **foglietto
+della scheda (T7, D247)** e **la pagina di modifica (T8)**, e mostrano che la tinta chiesta non si è potuta
+registrare. **Un campo più un lettore dichiarato non è un interruttore inerte; un campo da solo sì.**
+
+### 🟠 P5-③ — Una correzione a me stesso: «la posizione è portante» NON era vero
+
+La prima stesura del commento accanto al blocco diceva che la sua posizione **dopo** la validazione di
+`tipo_dispositivo` fosse **portante**, e che spostarla riaprisse un buco.
+`provato:` **spostando il blocco prima della validazione, tutte e nove le prove restano verdi.** Il motivo:
+`famigliaDiMacro` conosce **solo** `ortodonzia` e `bite_splint`, entrambe dentro `MACRO_SLUGS` — un tipo
+inventato cade sul `null` e la tinta viene scartata comunque.
+➡️ Il commento ora dice il vero: l'ordine è **preferibile** (non si spende una query per una richiesta che
+sta per essere rifiutata, e si ragiona su un valore verificato) ma **non è una difesa**; tornerebbe a
+contare solo se `famigliaDiMacro` imparasse una macro che `MACRO_SLUGS` non ha — e **quel giorno non
+arriverebbe in silenzio**, perché la prova «ogni tipo con `prevedeColore` libero sta sotto una macro con
+famiglia» (T3) si accende da sé.
+🔑 **La riga da tenere: un commento che promette una garanzia è un'affermazione, e vale la regola delle
+altre — o porta la prova, o si riscrive più modesto.** Una falsa sicurezza scritta nel codice è peggio del
+silenzio: il prossimo la legge e non controlla.
+
+### 🟡 P5-④ — Regressione causata e chiusa: due finti erano diventati un CALCO della `select`
+
+Aggiungere tre colonne ha reso rosse **20 prove in 2 file**
+(`lavori-id-route.test.ts`, `api-lavori-tipo-validazione.test.ts`): i loro finti riconoscevano la prima
+`select` confrontando la **stringa esatta**, quindi al primo campo in più cadevano nel ramo della select
+finale — `TypeError: … .is is not a function`.
+➡️ Ora riconoscono **una colonna** (`cols.includes('incluso_in_fattura')`): l'intenzione, non l'ortografia.
+📌 **Il verde mirato non basta:** le tre prove sorelle che avevo scelto a mano erano tutte verdi. **L'ha
+trovata solo la rete intera** — che è il motivo per cui la FASE 7 la chiede.
+
+### 📊 R-P4 — il conteggio
+
+**7 asserzioni su 9** si accendono contro il codice di prima. Le due verdi sono dichiarate nel file: una
+**guardia negativa** (⑥: la tinta compatibile non si tocca) e una prova che **misura l'ordine, non il
+lavoro di oggi** (⑨: un tipo inventato non scrive niente — era verde anche prima, perché la validazione B2
+esisteva già).
+
+📌 **Esito:** `vitest tests/unit/tinte-patch.test.ts` → **9 su 9** · `verify:full` uscita **0**
+(⚠️ letta correttamente: la prima misura di stasera leggeva l'uscita di `tail` dietro una pipe, non quella
+di `npm` — `verify:full` concatena con `&&`, quindi un rosso ferma la catena) · rete intera
+**5011 passate | 19 saltate** (421 file | 3 saltati), da **5002 | 19** su 420 → **+9 prove, +1 file**.
+
+### 📮 Fuori mandato — RIFERITO, non corretto (R-E2)
+
+**`risolviColoreCaso` produce `scartato` e la PATCH lo butta via** (`src/app/api/lavori/[id]/route.ts:468-472`
+nella numerazione di prima del T5): il campo esiste dal 28/07 col suo motivo scritto — rilievo **M2** della
+revisione pre-merge, «*si perde il colore, mai il lavoro» giustifica il NON far fallire; NON giustifica il
+non dirlo*» — e **nessun chiamante lo riceve**. È lo stesso difetto che il T5 ha appena chiuso per la
+tinta, sul gemello, **in produzione**.
+🛑 **Non toccato qui:** è fuori dal mandato del T5 ed è un percorso vivo. ➡️ Sta bene accanto alla **riga 22**
+di roadmap (le liste scritte due volte): stessa famiglia — *una cosa costruita e mai collegata*.
+
+### 📮 Al Task 7 e al Task 8 — quello che la PATCH ora dice, e che qualcuno deve leggere
+
+La risposta della PATCH può portare **due campi in più**, e compaiono solo quando c'è qualcosa da dire:
+- `tinta_rimossa: { famiglia, codice }` — il cambio di tipo ha tolto una tinta che c'era (**D117**);
+- `tinta_scartata: true` — una tinta era stata chiesta e **non** si è potuta registrare.
+🛑 **Se nessuna delle due superfici li legge, sono due campi morti** e il T5 avrà costruito ciò che oggi ha
+criticato. La forma da usare è quella già viva per gli avvisi della scheda.
