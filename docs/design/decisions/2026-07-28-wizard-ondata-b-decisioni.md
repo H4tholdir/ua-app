@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla novantaduesima tornata (D242: il prescrittore vuoto si chiude al confine)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla novantatreesima tornata (D243-D244: pubblicato, e la pila blu torna a voler dire «arrivati»)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**242 decisioni in novantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**244 decisioni in novantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1897,3 +1897,14 @@ carattere cambiato nel lettore: è togliere la seconda ortografia dove il dato e
 commento che la spiegava per intero (`crea-lavoro.ts:365-368`) — ma l'aveva evitata **per sé**,
 lasciando la strada aperta a ogni altro scrittore. **Un difetto capito e schivato in un punto solo
 torna dal punto che nessuno ha guardato.**
+
+---
+
+### Novantatreesima tornata — D243 · D244: si pubblica, e «appena arrivati» torna a voler dire arrivati (05/08/2026)
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D243** | ✅ **SI PUBBLICA la correzione del prescrittore vuoto (D242)** | Francesco, il 05/08: «*pubblica pure*» | Fast-forward `c9408d99..800a7c0c` su `main`, 4 salvataggi. 🔑 **Perché la domanda andava fatta e non data per scontata:** finché il ramo resta fermo il difetto **è vivo in produzione** — «provato e verde» e «risolto per chi usa l'app» sono due fatti diversi, e in mezzo c'è una pubblicazione che solo Francesco autorizza |
+| **D244** | ✅ **La pila «APPENA ARRIVATI» si ordina per ARRIVO — il più recente in cima** | Francesco, il 05/08, dopo aver guardato la pila vera dal telefono: «*nei lavori appena arrivati il loro ordine non lo capisco*», e sulla scelta fra le tre forme proposte: «*l'ordine mettilo per arrivo*» | 🔴 **Il difetto era una scelta mai discussa, non un errore di calcolo:** la blu era ordinata per **data di consegna** come le altre tre, quindi in cima stava un lavoro arrivato il **21 maggio** (consegna scaduta da mesi) e i quattro entrati quel giorno finivano **in fondo**. 🛑 **Le altre TRE pile non cambiano, ed è il punto:** rossa, ambra e viola parlano di **scadenze** — lì «il più vicino a scadere in cima» è l'ordine giusto; solo la blu parla di **arrivi**. ⚖️ **E si chiude anche il secondo difetto, che valeva per tutte:** a parità di chiave il confronto tornava `0` e la query di casa **non ha alcun `ORDER BY`** — restava l'ordine in cui il database capitava di restituire le righe, **non stabile fra due letture**. Ora il criterio di spareggio è dichiarato (il numero del lavoro), con una prova che legge le stesse righe **al contrario** e pretende lo stesso esito. 📌 **Una conseguenza gestita invece che subita:** la striscia cercava «il lavoro che aspetta da più tempo» col primo della lista — giusto finché la testa era il più urgente, **sbagliato** ora che la testa è il più nuovo: ora il più vecchio si cerca apposta. `provato:` RED **6 asserzioni su 7** prima del codice · GREEN `vitest` **4983 \| 19** (418 file) · `verify:full` uscita **0** |
+
+📌 **Una domanda che resta aperta, e non per dimenticanza:** la prova con una foto presa **dalla libreria** dell'iPhone invece che dalla fotocamera (riga 16 di roadmap) — Francesco il 05/08: «*il telefono adesso non l'ho tra le mani*». È l'ultimo caso scoperto sul formato Apple, e costa trenta secondi al primo momento buono.
