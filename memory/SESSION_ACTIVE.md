@@ -1,7 +1,9 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `memory/MEMORY.md`, la riga (156).** Il ramo **`prescrittore-vuoto`**
-(`2f45e8a0`, 1 salvataggio) è **pronto e NON pubblicato**: il merge lo autorizza Francesco.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/ROADMAP-UFFICIALE.md`** — la tabella delle righe aperte è la
+fonte; il racconto di questa sessione sta in `memory/MEMORY.md`, riga (156). Il ramo
+**`prescrittore-vuoto`** (`2f45e8a0` + `afcfe5ef`) è **pronto e NON pubblicato**: il merge lo
+autorizza Francesco.
 
 ✅ **D242 — la DdC non esce più senza il nome del prescrittore.** La stringa vuota si ferma **al
 confine di scrittura** (POST e PATCH) e la regola di «vuoto» è **una sola** per il controllo di
