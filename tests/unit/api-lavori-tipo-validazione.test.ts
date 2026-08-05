@@ -144,7 +144,11 @@ describe('PATCH /api/lavori/[id] — validazione enum tipo_dispositivo (B2)', ()
       if (table === 'lavori') {
         return {
           select: (cols: string) => {
-            if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
+            // 🔑 Si riconosce da UNA colonna, non dalla stringa intera: col
+            //    confronto esatto questo finto era un calco della `select`, e
+            //    all'aggiunta delle colonne della tinta (D42 T5) cadeva nel
+            //    ramo sbagliato. Riconoscere l'intenzione, non l'ortografia.
+            if (cols.includes('incluso_in_fattura')) {
               return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false, tecnico_id: null, numero_lavoro: 'L-001' }, error: null }) }) }) }) }
             }
             return { eq: () => ({ eq: () => ({ single: async () => ({ data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' }, error: null }) }) }) }

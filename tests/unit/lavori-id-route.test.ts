@@ -87,7 +87,13 @@ function buildMockFrom(opts: {
       return {
         select: (cols: string) => {
           // Prima select: pre-check incluso_in_fattura + tecnico_id/numero_lavoro
-          if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
+          // (+ tipo_dispositivo e la coppia della tinta, dal Task 5 di D42).
+          // 🔑 Si riconosce da UNA colonna, non dalla stringa intera: il
+          //    confronto con la stringa esatta rendeva questo finto un
+          //    calco della `select`, e all'aggiunta di tre colonne cadeva nel
+          //    ramo sbagliato — 18 prove rosse per una virgola. Riconoscere
+          //    l'intenzione, non l'ortografia.
+          if (cols.includes('incluso_in_fattura')) {
             return {
               eq: () => ({
                 eq: () => ({

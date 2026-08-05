@@ -10,6 +10,11 @@ import { triggerPushToUser } from '@/lib/notifications/trigger'
 // Stessa normalizzazione del colore di caso che usa `POST /api/lavori` (Task
 // 11): una sola casa, due chiamanti. Vedi GRUPPO C nella tabella qui sotto.
 import { risolviColoreCaso } from '@/lib/api/colore-caso'
+// La tinta del manufatto (D42, Task 4-5): stessa forma del colore di caso, ma
+// un catalogo diverso e una regola in più — la famiglia ammessa la decide il
+// TIPO del lavoro. Vedi GRUPPO D nella tabella qui sotto.
+import { risolviTinta } from '@/lib/api/tinta'
+import { famigliaDiMacro } from '@/lib/domain/tinta'
 // La lettura dello snapshot della prescrizione (Task 6, ondata B ③): la GET
 // non aveva alcun embed su `lavori_prescrizioni` — la funzione normalizza la
 // forma array-vs-oggetto che PostgREST restituisce (vedi il commento sopra
@@ -227,6 +232,13 @@ export const PATCHABLE_FIELDS = [
   // la PATCH le riscrive entrambe con la coppia normalizzata sul catalogo.
   'colore_scala',
   'colore_codice',
+  // GRUPPO D (D42) — la tinta del manufatto, per i tre tipi che hanno un colore
+  // NON dentale. Come il GRUPPO C, nessun valore di queste due chiavi arriva
+  // all'UPDATE così com'è: il blocco «LA TINTA DEL MANUFATTO» dentro la PATCH le
+  // riscrive con la coppia normalizzata sul catalogo, e le azzera se il tipo
+  // cambia e non le compete più (D117).
+  'tinta_famiglia',
+  'tinta_codice',
   ...LOCKED_PRICE_FIELDS,
 ] as const
 
@@ -418,9 +430,18 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   // Verifica se il lavoro è già incluso in fattura — legge anche tecnico_id/numero_lavoro
   // per la notifica push su riassegnazione (A1, vedi notificaAssegnazione sopra).
+  //
+  // 🛑 LE TRE COLONNE DELLA TINTA NON SONO DECORO (D42, Task 5). Senza
+  // `tipo_dispositivo` il blocco più sotto calcolerebbe `macroDopo` a
+  // `undefined` ogni volta che il body NON cambia il tipo — e `famigliaDiMacro`
+  // risponde `null` a tutto ciò che non conosce, quindi OGNI correzione di
+  // tinta verrebbe scartata. Senza `tinta_famiglia`/`tinta_codice`, il ramo
+  // D117 non troverebbe mai una tinta da togliere: sarebbe **codice morto che
+  // passa i test coi finti**. Chi tocca questa riga guardi la prova ② di
+  // `tests/unit/tinte-patch.test.ts`, che controlla le colonne CHIESTE.
   const { data: existing } = await svc
     .from('lavori')
-    .select('incluso_in_fattura, tecnico_id, numero_lavoro')
+    .select('incluso_in_fattura, tecnico_id, numero_lavoro, tipo_dispositivo, tinta_famiglia, tinta_codice')
     .eq('id', id)
     .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
@@ -474,6 +495,56 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // Validazione enum tipo_dispositivo (B2): solo se il campo è presente nel payload
   if (payload.tipo_dispositivo !== undefined && !(MACRO_SLUGS as string[]).includes(payload.tipo_dispositivo as string)) {
     return NextResponse.json({ error: 'tipo_dispositivo non valido' }, { status: 422 })
+  }
+
+  // ═══ LA TINTA DEL MANUFATTO (D42) ══════════════════════════════════════════
+  // Due cose in un blocco solo, perché dipendono dallo stesso fatto — quale tipo
+  // avrà il lavoro DOPO questo salvataggio:
+  //   (a) se il body porta una tinta, si normalizza sul catalogo;
+  //   (b) D117 — se il tipo cambia e la tinta presente non gli compete più, la si
+  //       TOGLIE e LO SI DICHIARA. Il salvataggio riesce: `tipo_dispositivo` è
+  //       già correggibile, e senza questo trattamento il CHECK
+  //       `lavori_tinta_tipo_ck` farebbe fallire una correzione legittima con un
+  //       errore grezzo del database. 🛑 Togliere sì, in silenzio mai.
+  //
+  // 🔎 PERCHÉ `macroDopo` PUÒ VENIRE DAL BODY, e fin dove arriva la garanzia —
+  // scritto così perché la prima stesura diceva di più di quanto fosse vero.
+  // Il valore è lecito perché finisce nella STESSA scrittura: è davvero il tipo
+  // che il lavoro avrà. Sta DOPO la validazione `MACRO_SLUGS` per due ragioni
+  // oneste — non si spende una query sul catalogo per una richiesta che sta per
+  // essere rifiutata, e si ragiona su un valore verificato.
+  // ⚠️ MA NON È UNA DIFESA, e dirlo tale sarebbe una falsa sicurezza:
+  // `provato:` spostando questo blocco PRIMA della validazione, **tutte e nove
+  // le prove restano verdi**. Il motivo è che `famigliaDiMacro` risponde `null`
+  // a ogni nome che non conosce, e conosce **solo** `ortodonzia` e
+  // `bite_splint` — entrambi dentro `MACRO_SLUGS`: un tipo inventato cade lì e
+  // la tinta viene scartata comunque.
+  // 🔴 L'ordine tornerebbe a contare il giorno in cui `famigliaDiMacro`
+  // imparasse una macro che `MACRO_SLUGS` non ha. Oggi non può succedere in
+  // silenzio: la prova «OGNI tipo con prevedeColore libero sta sotto una macro
+  // che ha una famiglia» (`tests/unit/tinta-dominio.test.ts`) si accende da sé.
+  const macroDopo = (payload.tipo_dispositivo ?? existing.tipo_dispositivo) as string
+  let tintaRimossa: { famiglia: string; codice: string } | null = null
+  let tintaScartata = false
+
+  if ('tinta_famiglia' in payload || 'tinta_codice' in payload) {
+    const tinta = await risolviTinta(svc, payload.tinta_famiglia, payload.tinta_codice, macroDopo)
+    payload.tinta_famiglia = tinta.tinta_famiglia
+    payload.tinta_codice = tinta.tinta_codice
+    // 🔑 `scartata` distingue «l'utente ha cancellato la tinta» (nessun avviso:
+    // era un'intenzione) da «la tinta chiesta non si è potuta registrare» (che
+    // va detto, o «si corregge dalla scheda» non vale — chi deve correggere non
+    // sa di doverlo fare). Il campo lo produce `risolviTinta`; qui viaggia fino
+    // alla risposta. ⚠️ Destinazione dichiarata: lo leggono il foglietto della
+    // scheda (T7, D247) e la pagina di modifica (T8) — un campo senza un lettore
+    // scritto è un interruttore che non fa niente.
+    tintaScartata = tinta.scartata
+  } else if (existing.tinta_famiglia && famigliaDiMacro(macroDopo) !== existing.tinta_famiglia) {
+    // Il body non nomina la tinta, ma il tipo cambia e la tinta esistente non
+    // c'entra più: la si toglie NELLA STESSA scrittura.
+    tintaRimossa = { famiglia: existing.tinta_famiglia as string, codice: existing.tinta_codice as string }
+    payload.tinta_famiglia = null
+    payload.tinta_codice = null
   }
 
   // Se incluso in fattura: rimuovi i campi prezzo dal payload per protezione
@@ -559,5 +630,13 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     )
   }
 
-  return NextResponse.json({ lavoro })
+  // Additivo (D42): nessun client esistente si accorge dei due campi in più, e
+  // compaiono SOLO quando c'è qualcosa da dire — `tinta_rimossa` quando il
+  // cambio di tipo ha tolto una tinta che c'era, `tinta_scartata` quando una
+  // tinta era stata chiesta e non si è potuta registrare.
+  return NextResponse.json({
+    lavoro,
+    ...(tintaRimossa ? { tinta_rimossa: tintaRimossa } : {}),
+    ...(tintaScartata ? { tinta_scartata: true } : {}),
+  })
 }
