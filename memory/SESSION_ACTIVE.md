@@ -1,8 +1,7 @@
-# Sessione attiva — 04/08/2026 sera
+# Sessione attiva — chiusura 05/08/2026 notte
 
-🚪 **PUNTO DI RIPRESA:** `docs/superpowers/plans/2026-08-04-ondata-b-sessione-3-wizard-scheda.md`
-(FASE 4 compiuta: 11 compiti, tre registri, sonda 8/8).
+🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-05-ondata-b-sessione-3-handoff.md` (la §0 per prima).
 
-**Fatto oggi (sera):** mockup schermate vere scelti (D223-D225, tornata 84) · censimento R-P6
-(6 superfici) · sonda R-P1 8/8 (gettone = stringa opaca!) · piano ③ scritto.
-**Prossimo:** FASE 5 branch `ondata-b-sessione-3` + esecuzione R-E1 (T1-T11).
+**Stato:** sessione ③ COMPLETA sul ramo `ondata-b-sessione-3` (READY TO MERGE, giro 8/8, 60
+scatti). NON mergiata: attende gate L2 (8 decisioni di Francesco, §0① dell'handoff) + suo ok.
+**Ledger:** `.superpowers/sdd/progress.md` · **Prossimo D:** D226.
