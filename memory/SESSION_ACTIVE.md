@@ -21,8 +21,11 @@ automatica vede**, perché in locale i due pezzi sono sempre allineati.
 - la prova su un **iPhone vero** (HEIC): da lì dipende la scelta della riga 16 di roadmap — accettarlo nel
   bucket o rifiutarlo al selettore. Oggi è **fuori** dall'elenco, e una guardia
   (`scripts/guardia-tipi-bucket.mjs`) tiene allineate le due liste;
-- **`CRON_SECRET`** su Vercel, se si vuole il mietitore automatico delle 4:20 (`INTERNAL_SECRET`
-  esiste già e basta per chiamarlo a mano);
+- **`CRON_SECRET`** su Vercel, **solo** se si vuole il mietitore **automatico** delle 4:20.
+  ✅ **Provato in produzione il 05/08:** il mietitore **gira e funziona** — `INTERNAL_SECRET` è già
+  configurato su Vercel ed è lo stesso di `.env.local` (risposta `{"esaminati":5,"tolti":0,
+  "ancoraGiovani":0}`). Quindi si può già lanciare a mano quando si vuole; `CRON_SECRET` serve
+  soltanto perché **Vercel Cron firma da sé le chiamate unicamente con quel nome**;
 - 🔴 la **DdC col prescrittore vuoto**, indipendente da tutto il resto.
 
 📌 **Misurato** (`npm run verify:full` prima del rilascio): tsc 0 · eslint 0 · vitest **4944 passate
