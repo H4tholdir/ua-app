@@ -1,34 +1,31 @@
 # Sessione attiva — UÀ
 
-🚀 **IL CARICAMENTO DIRETTO È IN PRODUZIONE.** Piano `2026-08-05-caricamento-diretto-storage.md`
-completo (T1-T7), pubblicato con fast-forward di 24 commit, CI e CD verdi.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-05-caricamento-diretto-handoff.md`** — la §0 per prima.
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/ROADMAP-UFFICIALE.md`** — nessun compito aperto sul caricamento.
+🚀 **Il caricamento diretto è IN PRODUZIONE** (piano T1-T7 completo, D235-D241). I file non passano
+più dalla funzione: vanno **dritti al magazzino**, tetto **50MB** invece di ~4,2. Provato sul sito
+vero con un PDF da **6,1MB**, e provato dall'utente vero (due foto dal telefono alle 12:33/12:34 UTC,
+che hanno la riga).
 
-**Cosa è cambiato per chi usa l'app:** i file non passano più dalla funzione, vanno **dritti al
-magazzino**. Il tetto è **50MB** invece di ~4,2. Provato sul sito vero: un PDF da **6,1MB** si
-carica (firma 200 · byte 200 · conferma 201 · riga nel recinto).
+🔴 **LA §0 IN UNA FRASE: il GATE ESTETICO L2 NON è stato fatto** e il codice con UI toccata è già in
+produzione (al suo posto c'è un mockup approvato, che è un'anteprima del componente, non un audit
+della schermata) · manca la **prova su un iPhone vero**, da cui dipende la scelta della riga 16 (HEIC)
+· `CRON_SECRET` è stata aggiunta ma **non verificabile da qui**: si conferma su Vercel → Cron Jobs
+(piano Hobby: l'orario ha **±1 ora**, quindi fra le 4:20 e le 5:19) · nessuna misura su **rete mobile
+vera**, e ora i file arrivano a 50MB senza ripresa · una carta di caricamento fallito **non si può
+togliere** dalla schermata.
 
-🔴 **Il rilascio ha chiuso un difetto VIVO che nessuno sapeva di avere (D241):** la migration di
-D236 era stata applicata al database alle 09:59 **senza pubblicare il codice**, quindi da stamattina
-ogni caricamento di foto in produzione falliva e lasciava un file orfano (prova: due file alle 11:23
-e 11:24 sul lavoro 2026/0017, cancellati su autorizzazione di Francesco).
-🔑 **La regola che ne esce:** una migration che **toglie** qualcosa si applica **dopo** aver
-pubblicato il codice che smette di usarla. Fra i due istanti c'è una finestra che **nessuna prova
-automatica vede**, perché in locale i due pezzi sono sempre allineati.
+🔑 **La lezione della giornata, e vale oltre questo caso:** una migration applicata al database vive
+**subito**, il codice che l'accompagna no — fra i due istanti c'è una finestra che **nessuna prova
+automatica vede**. Qui è durata due ore e **ha rotto il caricamento foto in produzione** (D241).
+➡️ Ciò che **toglie** qualcosa si applica **dopo** aver pubblicato il codice che smette di usarlo.
 
-⚠️ **Aperte e dichiarate:**
-- la prova su un **iPhone vero** (HEIC): da lì dipende la scelta della riga 16 di roadmap — accettarlo nel
-  bucket o rifiutarlo al selettore. Oggi è **fuori** dall'elenco, e una guardia
-  (`scripts/guardia-tipi-bucket.mjs`) tiene allineate le due liste;
-- **`CRON_SECRET`** su Vercel, **solo** se si vuole il mietitore **automatico** delle 4:20.
-  ✅ **Provato in produzione il 05/08:** il mietitore **gira e funziona** — `INTERNAL_SECRET` è già
-  configurato su Vercel ed è lo stesso di `.env.local` (risposta `{"esaminati":5,"tolti":0,
-  "ancoraGiovani":0}`). Quindi si può già lanciare a mano quando si vuole; `CRON_SECRET` serve
-  soltanto perché **Vercel Cron firma da sé le chiamate unicamente con quel nome**;
-- 🔴 la **DdC col prescrittore vuoto**, indipendente da tutto il resto.
+📌 **Misurato in chiusura** (`npm run verify:full`): tsc 0 · eslint 0 · vitest **4944 passate | 19
+saltate** (415 file) · build ok · sei guardie verdi. `main` allineato a `origin/main`, 0 in attesa;
+ramo `fix-limite-caricamento` cancellato dopo il merge.
 
-📌 **Misurato** (`npm run verify:full` prima del rilascio): tsc 0 · eslint 0 · vitest **4944 passate
-| 19 saltate** (415 file) · build ok · sei guardie verdi.
+➡️ **Prima cosa:** la **DdC che può uscire senza il nome del prescrittore** — verificato oggi riga per
+riga (`TabDati.tsx:283` scrive `''` · `precheck.ts:23` ripiega sul cliente e passa · ma
+`generate-ddc.ts:146` usa `??`, che su stringa vuota **non** ripiega → il documento esce vuoto).
 
 📎 **241 decisioni in 91 tornate; la prossima è D242.**
