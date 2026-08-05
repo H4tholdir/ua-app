@@ -1191,3 +1191,33 @@ Il piano lo segnalava come dubbio: è confermato, si usa la forma
 📌 **Dopo l'applicazione:** due colonne `text` nullable, tre vincoli presenti
 (`lavori_tinta_coppia_ck`, `lavori_tinta_fk`, `lavori_tinta_tipo_ck`), **0 lavori con tinta** —
 la colonna nasce vuota ovunque, come previsto. `tsc --noEmit` **0 errori** dopo la FASE 6b.
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 3 (05/08/2026, 17:52)
+
+### 📊 R-P4 — il conteggio, e la prova VACUA che ha scoperto
+
+**Prima misura: 5 asserzioni su 8** si accendono contro l'abbozzo inerte. Tre restano verdi, e non sono
+tutte uguali:
+
+- **Due sono guardie NEGATIVE** («nessun tipo *catalogo* sotto una macro con tinte», «una famiglia
+  inventata non ha macro»): chiedono che la risposta sia `null`, e l'abbozzo risponde `null` a tutto.
+  **Non si riscrivono per farle accendere — sarebbe fingere.** Il loro valore è contro una regressione
+  futura. Dichiarate con un commento nel file di prova, non nascoste.
+- **La terza era VACUA, ed è un difetto vero della prova:** «le due funzioni si chiudono l'una
+  sull'altra» cicla su `FAMIGLIE_TINTA`, che nell'abbozzo è **vuoto** → il corpo del ciclo **non gira
+  neanche una volta** e la prova passa senza aver verificato niente.
+  ➡️ Corretta con `expect(FAMIGLIE_TINTA.length).toBe(2)` prima del ciclo.
+  🔑 **Un ciclo su un elenco vuoto non è una prova che passa: è una prova che non c'è.** È la stessa
+  forma del difetto del Task 2 (un `UPDATE` su zero righe), trovata in un linguaggio diverso.
+
+**Seconda misura, dopo la correzione: 6 su 8.**
+
+### 🆕 Tre prove che il piano non aveva
+
+Aggiunte perché il piano copriva solo il lato positivo della corrispondenza: ① una famiglia inventata
+(e la stringa vuota) non ha alcuna macro; ② il giro di ritorno famiglia → macro → stessa famiglia;
+③ l'elenco **atteso** dei tre tipi con `prevedeColore: 'libero'` (`placca_espansione`,
+`apparecchio_funzionale`, `paradenti`), censito a mano su `tipi-lavoro.ts` e **non** copiato dal codice —
+se un tipo entra o esce, la prova se ne accorge.
+
+📌 **Esito:** `vitest tests/unit/tinta-dominio.test.ts` → **8 passate su 8** · `tsc --noEmit` **0 errori**.
