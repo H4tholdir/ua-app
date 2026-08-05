@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantacinquesima tornata (D226-D234: il GATE ESTETICO L2 della ③ — il Passo 3 fermato al rifacimento, la fonte non azzerabile, l'auto-cattura del prescrittore, il messaggio d'errore che non si tronca)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantaseiesima tornata (D235: il caricamento si rifà alla radice — caricamento firmato diretto, foto E pdf)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**234 decisioni in ottantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**235 decisioni in ottantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1773,3 +1773,24 @@ Panel advisor a 3 lenti (UX banco · normativa MDR · architettura dati) su G2 P
 | **D232** | ✅ **AUTO-CATTURA DEL PRESCRITTORE PER STUDIO MONO-MEDICO (G2)** — se in archivio quello studio ha **un solo** medico, quel nome si prende da solo, senza domanda | Francesco, il 05/08: «*ok, ma immagino che se esista un solo medico prescrittore in scheda, debba essere inserito quello in automatico, uno dei principi di UÀ, semplificare il lavoro al massimo*» | Panel 3 lenti: **opzione B — auto-cattura VISIBILE e correggibile** (2 su 3; il terzo converge sull'esito e diverge sul meccanismo: derivare alla lettura invece che scrivere il campo). **La sostanza è decisa, il meccanismo NO: va alla ④** con il suo piano. ⚠️ **Condizione UNANIME dei tre advisor, indipendente da questa D e già viva oggi:** `TabDati.tsx:283` scrive `richiedente_nome: ''`, `precheck.ts:22-25` passa lo stesso e `generate-ddc.ts:146` usa `??` (una stringa vuota NON ripiega) → **una DdC può stampare il prescrittore VUOTO col precheck verde**. 0 occorrenze oggi, percorso APERTO: si chiude a monte (`''`→`null` al confine di POST/PATCH) **prima o insieme** all'auto-cattura |
 | **D233** | ✅ **«CORREGGIAMO E COMPATTIAMO»** — il back del telefono sul foglio P37 si corregge, e la schermata «Fatto!» si compatta | Francesco, il 05/08, sulla domanda 8 | ① **Compattamento «Fatto!» ORA**, e con esso il ❌ più grosso dell'audit: il ramo `fatto` di `WizardNuovoLavoro.tsx:639-661` rende `FrameFatto` **nudo, senza `colonnaStile`** → carte da bordo a bordo a 390 e tasto rosso incollato a sinistra a 768/1280 mentre il titolo è centrato. **Sette ❌ su 18 vengono da qui**, ed è una divergenza da D224: si ripristina la colonna che Francesco ha approvato; ② **back del telefono → PRIMO COMPITO DELLA ④**: il rimedio sta in `Sheet.tsx` (base di ogni overlay v3) e la sua rete — `scripts/guardia-navigazione-overlay.mjs` — **è manuale**, vuole l'app accesa e una fixture preparata, e G1 impedisce di provarlo in `npm run dev`. Non si tocca la base di tutti gli overlay a fine di un ramo già revisionato: si fa per primo, con la guardia |
 | **D234** | ✅ **UN MESSAGGIO D'ERRORE NON SI TRONCA PIÙ** — nato da una segnalazione di Francesco sullo scatto | Francesco, il 05/08, guardando `errore-fonte-in-uso`: «*il banner di avviso che è presente in questo mockup non è leggibile per intero*» | `Avviso.tsx:193-197` taglia **ogni** testo a 2 righe: del 409 si legge «*…di questo lavoro — no…*» e la parte che spiega **perché** non si può eliminare sparisce. Il clamp resta sui **successi** (effimeri, brevi) e cade sugli **errori** (persistenti, con «Chiudi»): un errore che non dice cosa è successo non è un errore, è un lampeggio. Coerente col vincolo già ratificato «mai un'ellissi a metà» del verbale Cassetta. ⚠️ **Tocca il DS intero**, non solo le superfici della ③ |
+
+### Ottantaseiesima tornata — D235: il caricamento si risolve alla radice, foto E pdf (05/08/2026)
+
+Nata dal check post-deploy M3-T39-6 (v. tornata 85): il limite dichiarato era 20MB, quello vero
+~4,2MB, e la frase all'utente mentiva. Francesco ha respinto il cerotto — «*non perdiamo tempo
+con i fix etc etc, ma risolviamo direttamente*» — e poi, alla domanda se il perimetro fosse le
+foto o i PDF (riserva C8 del panel), ha chiuso: «*risolviamo tutto, sia foto che pdf*».
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D235** | ✅ **IL CARICAMENTO SI RIFÀ ALLA RADICE — caricamento firmato diretto allo storage, per FOTO E PDF insieme** | Francesco, il 05/08: «*non perdiamo tempo con i fix etc etc, ma risolviamo direttamente*» e, sul perimetro, «*risolviamo tutto, sia foto che pdf*» | ⛔ **Il fix intermedio (`835bf916`, la frase col numero vero) NON si pubblica da solo**: resta nel ramo come base — il modulo del limite serve comunque — e va in produzione insieme alla soluzione. 📌 **Il perimetro è entrambe le cose, e sono due lavori diversi:** ① la **compressione** delle foto nei due percorsi del wizard (`FrameFatto`, `AllegaPrescrizioneSheet`), che oggi mandano il file grezzo mentre `TabImmagini` comprime già a 0,4MB — chiude il caso «foto» a costo di sicurezza zero; ② il **caricamento firmato diretto**, che è l'unico modo per i **PDF** (non si comprimono come immagini) e per conservare l'originale a piena qualità. 🔑 **Le due motivazioni restano separate nel verbale** perché il prezzo è diverso: la ② costa le condizioni di sicurezza del panel, la ① no. 🛑 **E il lavoro vero non è «alzare il limite»:** il panel ha trovato che le foto dei lavori vivono in un percorso che **nessuna policy di isolamento copre** (`lavori/<id>/…` invece di `<laboratorio_id>/…`), e che la policy su un percorso simile **non nega: va in errore** (`'lavori'::uuid` → 22P02). Rimettere le foto dentro il recinto è la parte che non si può saltare |
+
+**Misure R-P1 già in mano (sonda `scripts/tmp/sonda-upload-firmato.mjs`, eseguita sul progetto vivo,
+cartella `__sonda__/` ripulita da sé — 6 su 6 + la settima):**
+`S1` la chiave di servizio firma ✅ · `S2` la chiave anonima **NON** può firmare («*new row violates
+row-level security policy*») ✅ · `S3` col permesso il browser carica davvero ✅ · `S4` **il percorso è
+INCHIODATO nel permesso** — riusarlo altrove dà «*Invalid signature*» ✅ · `S5` il permesso non si
+riusa sullo stesso percorso ✅ · `S6` il magazzino rifiuta un tipo fuori elenco anche per via firmata
+(«*mime type image/heic is not supported*») ✅ · `S7` **il permesso dura 7200 secondi = 2 ore**, letta
+la scadenza dentro il permesso stesso — scioglie il conflitto fra il docblock della libreria («2 ore»)
+e il valore predefinito del servizio (60 secondi), che erano due schermate diverse.
