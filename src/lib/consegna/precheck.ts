@@ -1,4 +1,5 @@
 import type { LavoroDettaglio, ConsegnaPrecheckResult } from '@/types/domain'
+import { nomePrescrittore } from './prescrittore'
 
 /**
  * Verifica lato client gli 8 elementi obbligatori Allegato XIII MDR 2017/745.
@@ -19,10 +20,14 @@ export function precheckMDR(lavoro: LavoroDettaglio): ConsegnaPrecheckResult {
   const errori: ConsegnaPrecheckResult['errori'] = []
 
   // Elemento 3 — Prescrittore
-  const haPrescrittore =
-    (lavoro.richiedente_nome && lavoro.richiedente_nome.trim().length > 0) ||
-    (lavoro.cliente &&
-      (lavoro.cliente.cognome?.trim() || lavoro.cliente.nome?.trim()))
+  // D242: la regola di «vuoto» è UNA e vive in `nomePrescrittore`, la stessa
+  // che usano i due documenti. Prima questo controllo misurava il testo
+  // trimmato e i documenti no: il controllo diceva verde e la Dichiarazione
+  // usciva senza il nome del medico.
+  const haPrescrittore = nomePrescrittore(
+    lavoro.richiedente_nome,
+    `${lavoro.cliente?.cognome ?? ''} ${lavoro.cliente?.nome ?? ''}`,
+  ) !== null
 
   if (!haPrescrittore) {
     errori.push({

@@ -48,4 +48,27 @@ describe('BuonoTemplate — audit di completezza (nessun vincolo normativo MDR)'
     // estratto dal PDF renderizzato è "NOTA DEL DENTISTA" (non "Nota del dentista")
     expect(testo).toContain('DENTISTA')
   }, 30_000)
+
+  // D242 — il SECONDO lettore dello stesso difetto, trovato col censimento e
+  // non nominato dall'handoff: `BuonoTemplate.tsx:312` ripiegava con `??`,
+  // quindi un `richiedente_nome` vuoto stampava una riga «Richiedente» BIANCA
+  // sul foglio che accompagna il lavoro fuori dal laboratorio.
+  // 🔑 Lo studio ha un nome DIVERSO dalla persona apposta: senza questo, il
+  // blocco «Cliente» stamperebbe comunque «Mario Rossi» e la prova passerebbe
+  // anche col difetto vivo — una prova che non può fallire non prova niente.
+  it('D242 — richiedente_nome vuoto: il buono stampa il nome del cliente, non una riga bianca', async () => {
+    const lavoro = {
+      ...LAVORO_FIXTURE,
+      richiedente_nome: '   ',
+      cliente: { ...LAVORO_FIXTURE.cliente, studio_nome: 'Studio Dentistico Alfa' },
+    }
+    const element = createElement(BuonoTemplate, { lavoro, lab: LAB_FIXTURE, numeroBuono: 'BUO-2026-0001' })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    expect(result.text).toContain('Studio Dentistico Alfa')
+    expect(result.text).toContain('Mario Rossi')
+  }, 30_000)
 })

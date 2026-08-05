@@ -8,6 +8,7 @@ import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 import { isPublicStorageUrl } from '@/lib/utils/storage-url'
 import { annoRoma } from '@/lib/utils/data-roma'
+import { nomePrescrittore } from '@/lib/consegna/prescrittore'
 
 // A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
 // decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
@@ -143,8 +144,17 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     fabbricante_piva: (lab.partita_iva ?? '') as string,
     fabbricante_itca: (lab.codice_itca ?? null) as string | null,
     luogo_emissione: (lab.citta ?? 'Italia') as string,
-    prescrittore_nome: lavoro.richiedente_nome
-      ?? `${lavoro.cliente.cognome} ${lavoro.cliente.nome}`.trim(),
+    // D242 — il ripiego sul cliente vale con la STESSA regola del precheck.
+    // 🛑 Qui c'era `lavoro.richiedente_nome ?? …`: un `??` ripiega solo su
+    // `null`, quindi una stringa vuota (o di soli spazi) lo superava intatta e
+    // il §3 del documento usciva senza il nome del medico — col controllo di
+    // consegna VERDE, perché quello misura il testo trimmato. Due idee diverse
+    // di «vuoto» nello stesso flusso: ora sono la stessa, e sta in un posto solo.
+    prescrittore_nome:
+      nomePrescrittore(
+        lavoro.richiedente_nome,
+        `${lavoro.cliente.cognome} ${lavoro.cliente.nome}`,
+      ) ?? '',
     prescrizione_id: lavoro.numero_prescrizione ?? null,
     // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
     paziente_nome: lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '',

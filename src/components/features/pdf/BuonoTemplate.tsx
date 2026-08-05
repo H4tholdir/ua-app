@@ -5,6 +5,7 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 import { dataItalianaBreve } from '@/lib/utils/data-roma'
+import { nomePrescrittore } from '@/lib/consegna/prescrittore'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -309,7 +310,10 @@ export function BuonoTemplate({ lavoro, lab, numeroBuono }: BuonoTemplateProps) 
           <View style={styles.datiSection}>
             <Text style={styles.datiLabel}>Richiedente</Text>
             <Text style={styles.datiValueBold}>
-              {lavoro.richiedente_nome ?? `${cliente.nome} ${cliente.cognome}`.trim()}
+              {/* D242 — stesso ripiego della DdC, stessa regola di «vuoto»:
+                  con `??` un nome di soli spazi lasciava questa riga BIANCA
+                  sul foglio che accompagna il lavoro fuori dal laboratorio. */}
+              {nomePrescrittore(lavoro.richiedente_nome, `${cliente.nome} ${cliente.cognome}`) ?? '—'}
             </Text>
           </View>
           <View style={styles.datiSection}>

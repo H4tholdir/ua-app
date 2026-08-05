@@ -4,6 +4,7 @@ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { testoVivoDaCorpo } from '@/lib/utils/testo'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 import { triggerPushToUser } from '@/lib/notifications/trigger'
 // Stessa normalizzazione del colore di caso che usa `POST /api/lavori` (Task
@@ -229,6 +230,25 @@ export const PATCHABLE_FIELDS = [
   ...LOCKED_PRICE_FIELDS,
 ] as const
 
+/**
+ * D242 — i campi di testo che NON accettano una stringa vuota come valore.
+ *
+ * 🔑 Perché servono, e perché sono proprio questi due. `richiedente_nome` ha
+ * due scrittori che possono mandare `''`: il gettone «+ Nuovo» della scheda
+ * (`TabDati.tsx:283`) e chiunque chiami l'API. Una stringa vuota è la SECONDA
+ * ortografia di «non c'è», e i documenti che escono dal laboratorio ne
+ * conoscono una sola (`null`): il ripiego sul nome del cliente non scattava e
+ * la Dichiarazione di Conformità usciva senza il nome del medico, col
+ * controllo di consegna verde. Si normalizza QUI, al confine, così la
+ * schermata resta libera di scrivere come le viene comodo.
+ * 📌 `istituzione_sanitaria` è il campo gemello (P37): oggi nessun documento
+ * lo stampa, sta qui come prevenzione dichiarata per l'ondata che lo stamperà.
+ */
+const CAMPI_TESTO_NORMALIZZATI: ReadonlySet<string> = new Set([
+  'richiedente_nome',
+  'istituzione_sanitaria',
+])
+
 type RouteContext = { params: Promise<{ id: string }> }
 
 /**
@@ -417,7 +437,9 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   const payload: Record<string, unknown> = {}
   for (const field of PATCHABLE_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
-      payload[field] = body[field]
+      payload[field] = CAMPI_TESTO_NORMALIZZATI.has(field)
+        ? testoVivoDaCorpo(body[field])
+        : body[field]
     }
   }
 

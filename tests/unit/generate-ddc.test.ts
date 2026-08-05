@@ -372,6 +372,60 @@ describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () =>
   })
 })
 
+describe('D242 — la DdC NON esce senza il nome del prescrittore (Allegato XIII, elemento 3)', () => {
+  // 🔴 IL FATTO: `generate-ddc.ts:146` ripiegava sul cliente con `??`, che
+  //    prende SOLO `null`. Una stringa vuota — scritta dal gettone «+ Nuovo»
+  //    della scheda (`TabDati.tsx:283`) — la superava intatta, e il §3 del
+  //    documento stampava un trattino al posto del nome del medico. Il
+  //    controllo di consegna diceva VERDE, perché `precheck.ts:22-25` misura il
+  //    testo TRIMMATO e ripiegava sul cliente: due idee diverse di «vuoto»
+  //    nello stesso flusso di consegna (`orchestrate.ts:226` chiama il
+  //    precheck, `:269` genera la DdC).
+  // 🛑 `'   '` è il caso che un `||` da solo NON avrebbe preso: tre spazi sono
+  //    truthy, e `TabDati.tsx:311` li salva davvero (`e.target.value || null`).
+  // 📌 `template_version` resta `ddc-v1` (D105): il modello non cambia di una
+  //    riga, cambia QUALE dato ci finisce dentro per una classe di input che
+  //    prima usciva sbagliata. Le dichiarazioni già emesse sono fotografie
+  //    immutabili e non vengono toccate — `provato:` 6 in archivio, 0 con
+  //    prescrittore vuoto (scripts/tmp/censisci-prescrittore-vuoto.ts).
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+    mockTables(LAB_FIXTURE)
+  })
+
+  it('🔴 richiedente_nome vuoto → il documento porta il nome del CLIENTE, non il vuoto', async () => {
+    await generateDdC({ ...LAVORO_FIXTURE, richiedente_nome: '' })
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrittore_nome: 'Rossi Mario' })
+    )
+  })
+
+  it('🔴 richiedente_nome di soli spazi → stesso ripiego (il caso che `||` non prende)', async () => {
+    await generateDdC({ ...LAVORO_FIXTURE, richiedente_nome: '   ' })
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrittore_nome: 'Rossi Mario' })
+    )
+  })
+
+  it('controllo positivo: un prescrittore vero NON viene sostituito dal cliente', async () => {
+    await generateDdC({ ...LAVORO_FIXTURE, richiedente_nome: 'Dott. Bianchi' })
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrittore_nome: 'Dott. Bianchi' })
+    )
+  })
+
+  it('richiedente_nome null (il caso di sempre) continua a ripiegare sul cliente', async () => {
+    await generateDdC({ ...LAVORO_FIXTURE, richiedente_nome: null })
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrittore_nome: 'Rossi Mario' })
+    )
+  })
+})
+
 describe('numero DDC a capodanno (fix date fiscali 20/07)', () => {
   afterEach(() => { vi.useRealTimers() })
   it('23:30 UTC del 31/12 → DDC-2027-0001 e serie ddc con anno 2027 coerente', async () => {

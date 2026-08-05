@@ -5,6 +5,7 @@ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { testoVivoDaCorpo } from '@/lib/utils/testo'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 // La validazione dei denti è UNA SOLA e vive in `lib/domain`: la chiamano
@@ -270,12 +271,18 @@ export async function POST(req: Request) {
         descrizione: body.descrizione,
         data_consegna_prevista: body.data_consegna_prevista,
         ora_consegna: body.ora_consegna ?? null,
-        richiedente_nome: body.richiedente_nome ?? null,
-        // P37 (ondata B ②): l'istituzione sanitaria del prescrittore. Il
-        // `?? null` è il pattern di ogni facoltativo qui sopra: per la RPC
-        // `p_lavoro->>'istituzione_sanitaria'` la chiave a null e la chiave
+        // D242 — `''` non entra: è la SECONDA ortografia di «non c'è», e i
+        // documenti ne conoscono una sola (`null`). Chi manda una stringa
+        // vuota, o di soli spazi, sta dicendo «nessun prescrittore»: si scrive
+        // così sulla riga, e il ripiego sul cliente scatta come deve.
+        richiedente_nome: testoVivoDaCorpo(body.richiedente_nome),
+        // P37 (ondata B ②): l'istituzione sanitaria del prescrittore. Per la
+        // RPC `p_lavoro->>'istituzione_sanitaria'` la chiave a null e la chiave
         // assente sono lo stesso SQL NULL.
-        istituzione_sanitaria: body.istituzione_sanitaria ?? null,
+        // 📌 D242 — stessa normalizzazione del campo gemello qui sopra. Oggi
+        // nessun documento la legge: questa è prevenzione dichiarata, perché
+        // l'ondata che la stamperà troverebbe la stessa trappola.
+        istituzione_sanitaria: testoVivoDaCorpo(body.istituzione_sanitaria),
         priorita: body.priorita ?? 'normale',
         dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
         note_interne: body.note_interne ?? null,
