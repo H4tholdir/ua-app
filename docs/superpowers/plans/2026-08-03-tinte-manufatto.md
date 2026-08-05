@@ -1713,3 +1713,23 @@ si è già dato tre volte, con la ragione scritta: «*se partissero nella PATCH,
 su un dato che non c'è*».
 📌 **E il ramo D117 smette di essere codice morto:** oggi, con la tinta sempre nominata, **non poteva
 essere raggiunto da nessuna delle due superfici**.
+
+### 📌 Stato del Task 8 alla chiusura della sessione (05/08/2026, 23:59)
+
+| blocco | esito |
+|---|---|
+| **P8-①** — la tinta viaggia solo se cambiata | ✅ chiuso, con la prova che il ramo D117 torna raggiungibile |
+| **I tre campi che nessuno leggeva** (`tinta_rimossa` · `tinta_scartata` · `colore_scartato`) | ✅ hanno un lettore: riquadro **distinto** da quello dell'errore, perché il salvataggio è riuscito |
+| **Il campo in `TabClinica`** | ✅ con la **stessa** tavolozza del foglietto (una sola, importata da due posti) |
+| **D253 sulla scheda** (la riga dice «Nessuna» e si preme) | ✅ per la **tinta**; per il **colore** aspetta **D254** |
+| 🔴 **I due rilievi §0④ della revisione di ramo** | ❌ **NON chiusi** — v. qui sotto |
+| 🔴 **Collaudo a schermo** | ❌ **non fatto** (al T9, come da piano) |
+
+🛑 **PERCHÉ I DUE RILIEVI NON SONO STATI CHIUSI, e non è stanchezza:** la loro cura è «insieme al
+gemello del colore», e leggendo `useLavoroForm` è emerso un fatto che **cambia la domanda**: per il
+colore, **mezza coppia è il caso NORMALE e voluto** — il form manda `colore_codice` e **toglie apposta**
+`colore_scala`, perché la scala la deduce il server dal catalogo (`useLavoroForm.ts`, blocco «IL COLORE
+DI CASO»). Per la tinta, invece, mezza coppia è un corpo malformato.
+➡️ **Quindi «forma identica al gemello» — la frase su cui poggiava la decisione di chiuderli insieme —
+va RIVERIFICATA prima di scrivere una regola sola per due casi che potrebbero non essere lo stesso caso.**
+È esattamente il tipo di verifica che non si fa all'una di notte su una rotta viva in produzione.
