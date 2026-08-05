@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla novantunesima tornata (D241: PUBBLICATO — e il rilascio ha chiuso un difetto vivo)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla novantaduesima tornata (D242: il prescrittore vuoto si chiude al confine)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**241 decisioni in novantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**242 decisioni in novantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1879,3 +1879,21 @@ allineati. Qui la finestra è durata **quasi due ore** e ha rotto una funzione p
 ➡️ **Regola operativa che ne esce:** una migration che **toglie** qualcosa si applica **dopo** aver
 pubblicato il codice che smette di usarla, mai prima. Se l'ordine si inverte per necessità, la
 finestra va dichiarata e chiusa **nello stesso turno**.
+
+---
+
+### Novantaduesima tornata — D242: il prescrittore vuoto si chiude al confine (05/08/2026)
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D242** | ✅ **La stringa vuota NON entra in banca dati come nome del prescrittore: si normalizza al confine di scrittura (POST + PATCH), e la regola di «vuoto» diventa UNA SOLA per il controllo di consegna e per i due documenti** | Francesco, il 05/08, sul punto di ripresa: «*procedi come meglio credi*» — delega esplicita. La riga sta qui perché §0A-bis vale anche per le scelte delegate: una decisione tecnica che non è scritta è una decisione che la sessione dopo rifà, o disfa | 🔴 **Il difetto era già censito**, come sotto-punto di **P37** («*un difetto RAGGIUNGIBILE A UN CLIC*»): il gettone «+ Nuovo» scriveva `''`, e `generate-ddc.ts` ripiegava con `??`, che sulla stringa vuota non scatta → **Dichiarazione di Conformità senza il nome del medico, col controllo di consegna verde**. ✅ **Chiuso.** 🔑 **Tre scelte dentro la decisione, tutte con la loro ragione:** ① **si corregge al confine, non nella schermata** — `null` è già inerte in `TabDati` (`:242` confronta `=== chipLabel`, `:310` fa `?? ''`), e toccare l'interfaccia aprirebbe il **gate estetico L2** su un rilascio che non ne ha bisogno (la §0① dell'handoff ne porta già uno non pagato); ② **entra anche il BUONO DI CONSEGNA** — `BuonoTemplate.tsx:312` aveva lo stesso `??` ed è un foglio che esce dal laboratorio: trovato col censimento, non nominato dal punto di ripresa; ③ **`istituzione_sanitaria` viaggia col gemello** — oggi nessun documento la stampa, è prevenzione dichiarata per l'ondata che la stamperà. 🛑 **`||` da solo NON bastava, ed è il motivo del modulo condiviso:** `'   '` è truthy e `TabDati.tsx:311` lo salva davvero — con un `||` il documento sarebbe uscito ancora vuoto, col controllo ancora verde. 📌 **`template_version` resta `ddc-v1` (D105):** il modello non cambia, cambia quale dato ci finisce per una classe di input che prima usciva sbagliata; le dichiarazioni già emesse sono fotografie immutabili e non si toccano. `provato:` **299 lavori, 0 con nome vuoto · 6 dichiarazioni emesse, 0 con prescrittore vuoto** — il percorso era aperto e mai percorso, quindi **nessun documento da riparare e nessuna riemissione da decidere**. `provato:` RED **11 prove accese** prima del codice, R-P4 con abbozzo inerte **7 asserzioni su 14**, GREEN **vitest 4976 | 19** (417 file) · `verify:full` uscita **0** |
+
+🔑 **La riga da tenere, e non è sul prescrittore:** un dato che ammette **due ortografie per «non c'è»**
+(`null` e `''`) rompe **il lettore, non lo scrittore** — e lo rompe in silenzio, perché ogni lettore
+sceglie da sé quale delle due conosce. Il precheck ne conosceva due, i due documenti una sola: lo
+stesso flusso di consegna diceva «va bene» e stampava un foglio senza nome. **La cura non è un
+carattere cambiato nel lettore: è togliere la seconda ortografia dove il dato entra.**
+📌 **Ed era la seconda volta:** il wizard aveva già evitato la trappola nel Task 10 di P37, con un
+commento che la spiegava per intero (`crea-lavoro.ts:365-368`) — ma l'aveva evitata **per sé**,
+lasciando la strada aperta a ogni altro scrittore. **Un difetto capito e schivato in un punto solo
+torna dal punto che nessuno ha guardato.**

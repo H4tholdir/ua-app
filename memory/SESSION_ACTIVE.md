@@ -1,31 +1,21 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-05-caricamento-diretto-handoff.md`** — la §0 per prima.
+🚪 **PUNTO DI RIPRESA: `memory/MEMORY.md`, la riga (156).** Il ramo **`prescrittore-vuoto`**
+(`2f45e8a0`, 1 salvataggio) è **pronto e NON pubblicato**: il merge lo autorizza Francesco.
 
-🚀 **Il caricamento diretto è IN PRODUZIONE** (piano T1-T7 completo, D235-D241). I file non passano
-più dalla funzione: vanno **dritti al magazzino**, tetto **50MB** invece di ~4,2. Provato sul sito
-vero con un PDF da **6,1MB**, e provato dall'utente vero (due foto dal telefono alle 12:33/12:34 UTC,
-che hanno la riga).
+✅ **D242 — la DdC non esce più senza il nome del prescrittore.** La stringa vuota si ferma **al
+confine di scrittura** (POST e PATCH) e la regola di «vuoto» è **una sola** per il controllo di
+consegna e per i due documenti. Il censimento ha trovato un **secondo lettore** che il punto di
+ripresa non nominava — il **buono di consegna** — e che `||` da solo **non bastava** (`'   '` è
+truthy). `provato:` 299 lavori e 6 dichiarazioni emesse, **zero** col nome vuoto: nessun documento
+da riparare. `vitest` **4976 | 19** · `verify:full` uscita 0.
 
-🔴 **LA §0 IN UNA FRASE: il GATE ESTETICO L2 NON è stato fatto** e il codice con UI toccata è già in
-produzione (al suo posto c'è un mockup approvato, che è un'anteprima del componente, non un audit
-della schermata) · manca la **prova su un iPhone vero**, da cui dipende la scelta della riga 16 (HEIC)
-· `CRON_SECRET` è stata aggiunta ma **non verificabile da qui**: si conferma su Vercel → Cron Jobs
-(piano Hobby: l'orario ha **±1 ora**, quindi fra le 4:20 e le 5:19) · nessuna misura su **rete mobile
-vera**, e ora i file arrivano a 50MB senza ripresa · una carta di caricamento fallito **non si può
-togliere** dalla schermata.
+🍏 **Prova iPhone FATTA (riga 16):** foto dalla fotocamera → il magazzino ha registrato
+**`image/jpeg`** (2,06 e 2,55 MB) sui lavori 2026/0019 e 0020. Safari converte: **l'HEIC non ci
+arriva**. Scoperti: la foto **dalla libreria** e i browser non-Safari su iOS.
 
-🔑 **La lezione della giornata, e vale oltre questo caso:** una migration applicata al database vive
-**subito**, il codice che l'accompagna no — fra i due istanti c'è una finestra che **nessuna prova
-automatica vede**. Qui è durata due ore e **ha rotto il caricamento foto in produzione** (D241).
-➡️ Ciò che **toglie** qualcosa si applica **dopo** aver pubblicato il codice che smette di usarlo.
+🆕 **Riga 18 di roadmap:** «appena arrivati» è ordinata per **data di consegna**, non per arrivo — e
+a parità di data l'ordine è **arbitrario** (nessun criterio di spareggio). Il **13 contro 12** non è
+un errore di calcolo: il sito vero risponde 13 in entrambi i posti, il 12 era un disegno vecchio.
 
-📌 **Misurato in chiusura** (`npm run verify:full`): tsc 0 · eslint 0 · vitest **4944 passate | 19
-saltate** (415 file) · build ok · sei guardie verdi. `main` allineato a `origin/main`, 0 in attesa;
-ramo `fix-limite-caricamento` cancellato dopo il merge.
-
-➡️ **Prima cosa:** la **DdC che può uscire senza il nome del prescrittore** — verificato oggi riga per
-riga (`TabDati.tsx:283` scrive `''` · `precheck.ts:23` ripiega sul cliente e passa · ma
-`generate-ddc.ts:146` usa `??`, che su stringa vuota **non** ripiega → il documento esce vuoto).
-
-📎 **241 decisioni in 91 tornate; la prossima è D242.**
+📎 **242 decisioni in 92 tornate; la prossima è D243.**
