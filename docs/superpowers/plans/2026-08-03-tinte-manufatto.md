@@ -1221,3 +1221,71 @@ Aggiunte perché il piano copriva solo il lato positivo della corrispondenza: �
 se un tipo entra o esce, la prova se ne accorge.
 
 📌 **Esito:** `vitest tests/unit/tinta-dominio.test.ts` → **8 passate su 8** · `tsc --noEmit` **0 errori**.
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 4 (05/08/2026, 18:40)
+
+### 🔴 P4-① — Il piano puliva UN SOLO LATO, e il lato scoperto premiava il dato più rotto
+
+Il Passo 1 del Task 4 elenca fra le forme d'input «*tipo sbagliato (numero, oggetto, array) → **scartata =
+true** — qualcosa era stato chiesto*». **L'implementazione del Passo 5 applica quella guardia al solo
+`codiceGrezzo`.** Per `famigliaGrezza` il controllo è `typeof famigliaGrezza === 'string'` dentro un
+ternario: quando fallisce si cade nel ramo «non indicata» e la famiglia viene **dedotta dalla macro, in
+silenzio**.
+
+🔑 **Perché non è un cavillo, ed è la ragione per cui è stato chiuso invece che dichiarato:** ne usciva
+un'asimmetria rovesciata. Con `codice='rosso'` su un `bite_splint`:
+
+| famiglia in arrivo | esito col piano | giudizio |
+|---|---|---|
+| `'resina_ortodontica'` (stringa, sbagliata per quella macro) | **scartata** | giusto |
+| `42` · `{…}` · `['sport']` (non è nemmeno una stringa) | **accettata**, famiglia dedotta | ⚠️ un dato *palesemente* rotto trattato meglio di uno *solo* sbagliato |
+
+➡️ **Chiuso dentro il mandato** (il file È il task), con la regola già scritta nel gemello:
+«*se un domani un codice comparisse in due scale, `trovate.length !== 1` lo scarta invece di tirare a
+indovinare*» (`colore-caso.ts:63-70`). `undefined`/`null` restano «non indicata» e si deducono; **qualsiasi
+altro tipo scarta**. Ragione incollata nel codice, non solo qui.
+📌 È **la stessa forma di P2-②** («il piano provava un solo lato della coppia»), ricomparsa in un altro
+linguaggio due task dopo. Se una regola ha due versi, i versi da provare sono due.
+
+### 🔴 P4-② — Una prova del piano passava PER IL MOTIVO SBAGLIATO
+
+```ts
+it('scarta una famiglia che non c’entra con la macro', …
+  risolviTinta(svcFinto(CATALOGO_SPORT), 'resina_ortodontica', 'rosa', 'bite_splint')
+```
+
+`'rosa'` **non sta in `CATALOGO_SPORT`**: la chiamata torna `scartata: true` anche se la regola
+famiglia↔macro non esistesse affatto. La prova **non sa distinguere le due vie di rifiuto** — è la terza
+comparsa in quest'ondata della prova che sembra verde e non ha verificato niente (un `UPDATE` su zero righe
+nel T2, un ciclo su elenco vuoto nel T3).
+➡️ **Resa discriminante col meccanismo, non col valore:** il disaccordo di famiglia esce **prima** della
+query, quindi il finto client porta una **spia** e la prova asserisce `spia.consultato === 0` — *il catalogo
+non è stato nemmeno interrogato*. Il codice usato è ora `'rosso'`, che **esiste** nel catalogo di prova: se
+il rifiuto non arrivasse da quella regola, la tinta si salverebbe e la prova si accenderebbe.
+📌 La stessa spia rende **positive** le due prove gemelle: `scarta un codice inesistente` asserisce
+`consultato === 1` (è il catalogo a dire di no) e `una corona non ha tinta` asserisce `consultato === 0`.
+
+### 🟡 P4-③ — Tre tipi sbagliati nominati, uno solo provato
+
+Il Passo 1 nomina «numero, oggetto, array» e il Passo 2 prova solo `42`. R-P4 chiede che ogni forma
+d'input censita abbia il suo caso **o** il suo «non coperta, perché».
+➡️ Coperte tutte e tre, su **entrambi** i lati (codice e famiglia): sei casi in due cicli.
+
+### 📊 R-P4 — il conteggio
+
+**9 asserzioni su 11** si accendono contro l'abbozzo inerte (`provato:`
+`vitest run tests/unit/tinta-risolvi.test.ts` → `11 tests | 9 failed`).
+Le due verdi sono **guardie negative** — chiedono `NESSUNA_TINTA` e l'abbozzo risponde `NESSUNA_TINTA` a
+tutto: non si riscrivono per farle accendere, sarebbe fingere. Dichiarate con un commento nel file, come
+nel T3.
+
+📌 **Esito:** `vitest tests/unit/tinta-risolvi.test.ts` → **11 passate su 11** · `tsc --noEmit` **0 errori** ·
+`eslint` sui due file **0** · rete intera **5002 passate | 19 saltate** (420 file | 3 saltati), da
+**4991 | 19** su 419 → **+11 prove, +1 file**, nessuna regressione.
+
+### 📮 Da riferire al Task 5 (R-E2 — si riferisce, non si corregge qui)
+
+Il terzo argomento di `risolviTinta` è la **categoria grossa** (`lavori.tipo_dispositivo`, 10 valori), e
+decide da sola quale famiglia è ammessa. **La PATCH deve leggerla dalla riga in banca dati, mai dal body:**
+se la prendesse dal corpo della richiesta, un client potrebbe dichiarare `bite_splint` su una corona e la
+guardia si aprirebbe da sola — resterebbe solo il CHECK, cioè un 500 invece di uno scarto dichiarato.
