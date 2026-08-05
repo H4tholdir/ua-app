@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantasettesima tornata (D236: via la colonna `url`, inerte e pericolosa)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantottesima tornata (D237: la prescrizione non si comprime — e il caricamento diretto diventa obbligatorio)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**236 decisioni in ottantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**237 decisioni in ottantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1808,3 +1808,28 @@ casa (`src/lib/pdf/typed-service-client.ts`, usato dai generatori PDF) e la sua 
 che il fix strutturale del client condiviso (147 file) è fuori scope. **La rete qui è il test**
 (`lavori-id-immagini-route.test.ts`, che asserisce le chiavi vere del payload) — ed è la ragione per
 cui quel test esiste, scritta nel suo commento fin da R27.
+
+### Ottantottesima tornata — D237: la prescrizione non si comprime (05/08/2026)
+
+Nata dalla domanda di Francesco «*ma non possiamo comprimere senza perdere qualità? non ci sono
+sistemi del genere?*» e dalla ricerca che ne è seguita:
+`docs/roadmap/2026-08-05-ricerca-compressione-senza-perdita.md` (tre filoni, fonti primarie, misure
+eseguite). La riserva C8 del panel di D235 — «*il problema sono le foto o i PDF?*» — si chiude qui.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D237** | ✅ **LA FOTO/PDF DELLA PRESCRIZIONE NON SI COMPRIME. Le impronte sì.** | Francesco, il 05/08, sulla raccomandazione motivata: «*confermo, procedi*» | 📌 **Tre fatti misurati la reggono:** ① il guadagno vero **non esiste** — la tecnica che darebbe il 20% conservando l'identità del file (ricompressione JPEG) **non gira in un browser**: delle tre implementazioni una è archiviata, una in sola conservazione, l'ultima è un progetto da 2 stelle; quella usabile dà il **7%**, e **zero** su una foto già passata da WhatsApp; ② **non c'è risoluzione da regalare**: un A4 fotografato con un telefono da 12 MP è a **~280-320 dpi** effettivi, **sotto** i 600 dpi che un archivio pubblico chiede per un manoscritto conservato 10 anni; ③ comprimere nel browser **azzera i metadati** (data di scatto, orientamento) e **forza il dimezzamento del colore**, che è proprio ciò che danneggia di più il tratto colorato — e le prescrizioni si scrivono a penna blu. ⚖️ **Vincolo italiano (AgID, All. 2 §2.6.5):** il JPEG **nativo** di telefono o scanner è ammesso in conservazione, ma «*sono esclusi i riversamenti di immagini in formati che aggiungono (o cambiano) algoritmi di compressione*» — e §3.3.6 impone, per il lossy, di **misurare e documentare l'informazione persa**. 🛑 **Regola senza eccezioni:** mai far passare una prescrizione da JBIG2 a dizionario, da MRC o da Ghostscript |
+
+**Le tre conseguenze operative, che cambiano il piano di D235:**
+1. 🔴 **Il caricamento diretto diventa OBBLIGATORIO, non un'ottimizzazione:** se la prescrizione non
+   si può ridurre, l'unico modo di farla arrivare è non farla passare dalla funzione. Il piano
+   `2026-08-05-caricamento-diretto-storage.md` sale di priorità.
+2. 🛑 **Via il WebP dalla compressione delle impronte.** WebP con perdita è **obbligato** al colore
+   dimezzato (RFC 6386, FAQ Google, MDN): non è un'impostazione, è nella specifica del codec. Si passa
+   a **JPEG con colore pieno**. ⚠️ E su **Safari/iPhone quella conversione non avviene affatto** —
+   il browser restituisce **un PNG senza dire niente**, la libreria non controlla mai cosa ha
+   ricevuto, e per rientrare nel suo tetto di peso **taglia la risoluzione**.
+3. 🟡 **HEIC (riga 16 di roadmap) va deciso con la testa di questa D:** siccome la prescrizione NON
+   passa dal browser per essere convertita, la strada coerente è **accettare HEIC nel bucket**, non
+   convertirlo — la conversione via browser è esattamente il percorso che questa decisione esclude.
+   ⚠️ Resta da provare su un iPhone vero (la prova viene prima del rimedio).
