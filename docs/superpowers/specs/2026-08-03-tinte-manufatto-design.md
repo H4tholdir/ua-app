@@ -1,7 +1,18 @@
 # Spec — D42, le tinte del manufatto
 
 **Stato:** ratificata da Francesco in sessione (D42 · **D109-D118**) · 🔄 **§5 emendata da D121 (03/08/2026):
-il passo del wizard esce da questa ondata, restano due superfici**
+il passo del wizard esce da questa ondata, restano due superfici** ·
+🚀 **ESEGUITA PARZIALE — IN PRODUZIONE dal 05/08/2026 (sera):** merge fast-forward `c6446d98..0cba8dba`.
+**Costruito e pubblicato (6 task su 9):** il catalogo `tinte_manufatto` (34 righe, chiuso ad `anon`) ·
+le due colonne su `lavori` coi **tre vincoli** · il dominio famiglia↔categoria grossa ·
+`risolviTinta` (normalizzazione server-side) · la **PATCH** con D117 (al cambio di tipo la tinta si toglie
+**e lo dichiara**) · il **rifacimento** che clona la tinta.
+🛑 **RIMASTO FUORI, e senza di questo la funzione NON è usabile da nessuno:** **T7** la riga sulla scheda
+(emendata da **D247**: si preme e apre il foglietto, non è muta) · **T8** il campo sulla pagina di modifica
+con la tavolozza · **T9** chiusura, collaudo e gate estetico. ➡️ **Oggi in produzione la tinta è INERTE:
+nessuna superficie la mostra e nessuna la scrive** (`provato:` 0 lavori con tinta). Il T7 nasce da una
+**branch nuova su `main`**.
+🔄 **§5 ulteriormente emendata da D247 (05/08/2026):** la riga sulla scheda **non è in sola lettura**.
 **Verbale:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, tornate **35**, **36** e **38**
 **Dimensione:** **GRANDE, con migration** → percorso BP-2 pieno (`ua-app/CLAUDE.md` §0C)
 **Precede:** i mockup (§0B) → il piano (`writing-plans`, con R-P1 · R-P2 · R-P6) → il ramo
