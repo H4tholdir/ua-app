@@ -1005,12 +1005,45 @@ il rifacimento perdeva denti e colore.
 > ⚠️ **Il gate estetico L2 diventa dovuto su questa superficie** (D245: cambia l'aspetto della carta), ed
 > era già previsto dal T9.
 
+> ---
+>
+> 🔄 **EMENDATO UNA SECONDA VOLTA il 05/08/2026, 22:54 — D251: il T7 legge `tinta_scartata`.**
+> Il T5 ha fatto in modo che la risposta della PATCH porti due campi nuovi, e **nessuna superficie li
+> legge**. Francesco ha ratificato la divisione: **`tinta_scartata` al T7** (il foglietto della scheda),
+> **`tinta_rimossa` al T8** (la pagina di modifica, l'unica da cui si cambia il tipo). Senza questo
+> emendamento il codice relativo sarebbe arrivato **fuori dai registri R-P1/R-P4**.
+>
+> ✅ **PROVE D'AMBIENTE, fatte PRIMA di scrivere (R-P1) — le tre assunzioni su cui poggia il task:**
+>
+> | assunzione | `provato:` | esito |
+> |---|---|---|
+> | il foglietto della scheda salva **dalla PATCH** (senza, `tinta_scartata` non arriva mai qui) | lettura di `ModificaRigaSheet.tsx:146-165` | ✅ `fetch('/api/lavori/${lavoroId}', { method: 'PATCH' })` — **regge** |
+> | la pagina può leggere il catalogo **col client dell'utente** | `node scripts/psql.mjs -c "SELECT has_table_privilege('authenticated','tinte_manufatto','SELECT') …"` | ✅ `authenticated`=**true** · `anon`=**false** · **34** righe · RLS **off** (`relrowsecurity=false`), quindi contano i soli GRANT |
+> | esiste già una forma viva per «dire una cosa all'utente» sulla scheda | `SchedaLavoroV3.tsx:157` + `components/ds/Avviso.tsx:45-57` | ✅ `useAvvisi()` → `avvisa` (muto) e `errore` (con suono e vibrazione) |
+>
+> 🔑 **Si usa `errore(...)`, non `avvisa(...)`, ed è una scelta motivata:** il rischio da coprire è che
+> l'utente **legga «Salvato» su un dato che non c'è** (direttiva del 27/07). L'avviso normale è **muto per
+> progetto** (`Avviso.tsx:87` — «*l'unico suono di questo componente: l'avviso normale resta muto*»),
+> quindi non basta a fermare qualcuno che sta già chiudendo il foglietto.
+> ⚠️ **Oggi lo scarto è quasi irraggiungibile dalla scheda** — la tavolozza propone solo codici del
+> catalogo — ma «quasi» non è «mai»: una corsa (il tipo cambiato altrove nel frattempo) lo produce, ed è
+> esattamente il caso in cui l'utente **non** deve credere di aver salvato.
+> 🛑 **`salva()` oggi BUTTA VIA il corpo della risposta** (`ModificaRigaSheet.tsx:154-158`: guarda
+> `res.ok` e chiama `onSalvato(patch)` col patch **chiesto**, non con ciò che il server ha **fatto**).
+> Il T7 deve leggerlo — ed è la stessa forma di difetto che l'ondata combatte, quindi il cambiamento va
+> fatto **senza rompere gli altri quattro campi** che oggi passano di lì.
+
 **File**
-- Modifica: `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` — dentro `<CardInfo>` (`:403-419`)
+- Modifica: `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` — dentro `<CardInfo>` (`:521-564`)
+- Modifica: `src/components/features/lavori/scheda-v3/ModificaRigaSheet.tsx` — il tipo `Campo`, `TITOLI`,
+  il ramo `'tinta'` con la tavolozza, la lettura della risposta in `salva()`
+- Modifica: `src/app/(app)/lavori/[id]/page.tsx` — la lettura del catalogo lato server
+- 🆕 Crea: la tavolozza condivisa col T8 (**il prezzo dichiarato di D247**), e le sue prove
 
 **Interfacce**
 - Consuma: `lavoro.tinta_famiglia`, `lavoro.tinta_codice`; il `nome` e l'`hex` vanno letti dal catalogo
   **lato server** e passati giù — 🛑 **la scheda non interroga il catalogo dal client.**
+- Produce: `tinta_scartata` letto dalla risposta della PATCH → `errore(...)` (D251).
 
 - [ ] **Passo 1 — Decidere DOVE nasce il dato, aprendo il file**
 
@@ -1024,7 +1057,19 @@ Tre casi: tinta con pallino → la riga mostra nome **e** pastiglia colorata · 
 (`hex` nullo) → mostra **solo il nome**, nessun cerchietto · nessuna tinta → **la riga non compare
 affatto** (non «— »: una riga vuota su una scheda è rumore).
 
-- [ ] **Passo 3 — Il componente**, dentro `<CardInfo>` dopo `RigaLavoroDenti`:
+🆕 **QUARTO caso, da D251:** la PATCH risponde `tinta_scartata: true` → **la superficie lo dice**
+(`errore(...)`), e il foglietto **non** si comporta come se avesse salvato.
+🆕 **QUINTO caso, la guardia negativa che serve a non fare rumore:** risposta **senza** `tinta_scartata`
+→ **nessun avviso**. Senza questa, una prova sul caso positivo passerebbe anche con un avviso che si
+accende sempre.
+⚠️ **E una prova sul non-danno:** gli altri quattro campi (consegna · tecnico · dentista · note) passano
+dalla stessa `salva()` — dopo la modifica devono continuare a chiamare `onSalvato` e a chiudere il
+foglietto **esattamente come prima**.
+
+- [ ] **Passo 3 — Il componente**, dentro `<CardInfo>` dopo `RigaLavoroDenti`.
+🔄 **D247: NON `RigaDato` muta.** Si ricalca lo schema di `rigaColore` (`SchedaLavoroV3.tsx:538-555`):
+`RigaEditabile` con `onApri={() => setCampoAttivo('tinta')}` quando la correzione è possibile, `RigaDato`
+altrimenti. Il corpo del `valore` resta quello qui sotto (pallino + nome):
 
 ```tsx
 {tinta ? (
@@ -1053,7 +1098,33 @@ che riguarda i colori del sistema grafico. Scriverlo nel commento, o il prossimo
 🛑 **Il colore non è mai l'unica fonte d'informazione:** il nome c'è sempre, ed è per questo che la riga
 funziona anche senza pallino.
 
-- [ ] **Passo 4 — Eseguire, salvare.**
+- [ ] **Passo 3-bis (D247) — Il ramo `'tinta'` nel foglietto**
+
+`ModificaRigaSheet.tsx`: `'tinta'` entra nel tipo `Campo` (**una riga sola**, l'elenco è unificato dal
+05/08) e in `TITOLI` — che lo **obbliga** a portare un titolo. Il ramo rende la tavolozza; la scelta
+manda `{ tinta_famiglia, tinta_codice }` alla `salva()` già esistente, «Nessuna tinta» manda
+`{ tinta_famiglia: null, tinta_codice: null }` (D113).
+🛑 **La tavolozza è UNA e vive fuori dai due chiamanti** (foglietto e pagina di modifica): è il prezzo
+dichiarato di D247, e scriverla due volte sarebbe **la settima copia libera** del censimento della riga 22
+— fatta con quel censimento aperto sul tavolo.
+⚠️ **Le voci del catalogo arrivano dall'alto, mai da una fetch del foglietto:** la scheda le ha già dal
+server (Passo 1), e una seconda strada di lettura è una seconda verità.
+
+- [ ] **Passo 3-ter (D251) — `salva()` legge ciò che il server ha FATTO**
+
+Oggi `salva()` guarda `res.ok` e passa al padre il patch **chiesto**. Cambia in: legge il corpo JSON, e
+se porta `tinta_scartata: true` chiama `onErrore(...)` con la frase che dice **che cosa non è stato
+registrato** — poi si comporta come sempre per il resto.
+🛑 **Vincolo di non-regressione, esplicito perché è la parte che può rompere qualcosa di vivo:** gli altri
+quattro campi non cambiano comportamento. Un corpo non-JSON (o vuoto) **non** deve far fallire il
+salvataggio: si ignora, non si esplode — `res.json()` su un corpo vuoto **lancia**.
+📮 **`tinta_rimossa` NON si legge qui** (D251): dal foglietto della scheda il tipo di lavoro non si
+cambia, quindi quel campo **non può nascere** su questa superficie. Va al T8, ed è scritto lì.
+
+- [ ] **Passo 4 — Eseguire, salvare.** ⛔ **R-P4:** dopo il primo rosso, abbozzo inerte e si **CONTA**
+quante asserzioni si accendono (`N su M`, il numero si scrive). Forme d'input da censire prima delle
+asserzioni: risposta **senza** i campi nuovi · con `tinta_scartata: true` · con `tinta_scartata: false` ·
+**corpo non-JSON** · tinta con `hex` · tinta con `hex` nullo · nessuna tinta.
 
 ---
 
