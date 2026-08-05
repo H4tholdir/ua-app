@@ -51,6 +51,18 @@ tolto 30px misurati (1093 → 1063, piega a 844), ma per andare sotto servirebbe
 Ø92 (verbatim del mockup) o il gap 44 fra i quieti (**vincolo di sicurezza** 0B-3) — due cose che
 costano una decisione, non un ritocco.
 
+
+### ⑥ Due residui dichiarati, non «corretti»
+- **`progressivi_anno('lavoro', 2026)` è a 15.** Il giro del gate ha consumato 0013/0014/0015 e
+  il contatore **non torna indietro** (è un contatore memorizzato, non un `max()` — G5 del giro
+  precedente, che l'aveva già portato a 12). I conteggi delle tabelle sono alla **baseline esatta**
+  e nessuna riga coi nostri id sopravvive: manca un numero nella serie, non un dato. Riavvolgerlo
+  sarebbe una scrittura che nessuno ha chiesto.
+- **Sei scatti precedono di poco il compattamento.** `fatto-fonte-verde-*` (6 file) è stato preso
+  **prima** dei −30px di D233①, mentre `fatto-due-carte-*` è **dopo**: la stessa schermata compare
+  quindi in due spaziature. Differenza di soli margini, nessun altro scarto — ma scritta qui,
+  perché in questo repo un PNG che sembra lo stato corrente e non lo è è già costato due volte.
+
 ### ⑤ Il collaudo di P37 si fa SOLO su build di produzione (G1) — invariato
 In `npm run dev` StrictMode rimonta lo Sheet e l'entry di storia si mangia il foglio (~80ms).
 **In build di produzione NON succede — provato.** Banco: `npm run build && PORT=3020 npm run start`.
