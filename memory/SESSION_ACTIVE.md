@@ -1,9 +1,12 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`, da T7**
-— che però **è una scelta di Francesco**, non un compito meccanico (v. in fondo).
+🏁 **IL PIANO È COMPLETO: T1-T7.** Nessun compito aperto.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`** — che
+ora si legge come **verbale di ciò che è stato fatto**, non come lista di compiti: sono tutti
+eseguiti. Ciò che resta è **la PUBBLICAZIONE** (la autorizza Francesco) e, prima, se si vuole, un
+giro dal vivo sul banco.
 
-**Il caricamento diretto è FATTO e IN USO: T1-T6 su T7.** I file non passano più dalla funzione:
+**Il caricamento diretto è FATTO e IN USO.** I file non passano più dalla funzione:
 il muro dei ~4,2MB non lo incontrano nemmeno, il tetto è quello del magazzino (50MB).
 
 - **D238** — i due difetti vivi chiusi: via il **WebP → JPEG** e si **controlla il tipo ricevuto**
@@ -17,7 +20,9 @@ il muro dei ~4,2MB non lo incontrano nemmeno, il tetto è quello del magazzino (
 - **T3** — le due rotte, con **C1** (nove forme di percorso rifiutate) e **C2** (peso e tipo letti
   dal magazzino).
 - **T4+T5** — i client passano al corridoio nuovo, e i tetti si sdoppiano per corridoio.
-- **T6** — il mietitore degli orfani: rotta interna + Vercel Cron (4:20 di notte).
+- **T6** — il mietitore degli orfani: rotta interna + Vercel Cron (4:20 di notte). 🛑 `pg_cron` non
+  bastava: `pg_net` non è installato, e un `DELETE` su `storage.objects` lascerebbe i **byte** dov'erano.
+- **T7** (D240) — via la vecchia rotta e `uploadToStorage`.
 
 🔎 **Il revisore ha trovato TRE cose, tutte fondate, tutte chiuse:**
 ① i client erano **QUATTRO** (`crea-lavoro.ts`), non tre: sarebbe rimasto solo sul corridoio vecchio
@@ -27,20 +32,19 @@ proprio sulla prescrizione che non si comprime — tolto dall'elenco, più una *
 confronta le due liste in entrambe le direzioni · ③ T6 non era rimandabile al dopo-merge (la
 promessa del DPA ai clienti).
 
-⚠️ **UNA COSA SERVE DA FRANCESCO PRIMA DELLA PUBBLICAZIONE:** la variabile **`CRON_SECRET`** su
-Vercel. Senza, il mietitore risponde 503 e il cron fallisce — di proposito: una porta senza
-serratura non si lascia socchiusa.
+🔓 **NESSUNA VARIABILE NUOVA DA CREARE** (domanda di Francesco, verificata): `INTERNAL_SECRET`
+esiste già — la usa `internal/pec-verify` — e il mietitore la accetta. `CRON_SECRET` serve **solo**
+perché Vercel Cron firma da sé le chiamate pianificate unicamente con quel nome: chi vuole il cron
+automatico la definisce, anche con lo stesso valore. Senza, il cron fallisce **visibilmente**.
 
 📌 **Misurato** (`npm run verify:full`): tsc 0 · eslint 0 · vitest **4976 passate | 19 saltate**
-(416 file) · build ok · sei guardie verdi. Ramo `fix-limite-caricamento`, **20 commit non
-pubblicati**.
+(415 file) · build ok · sei guardie verdi. Ramo `fix-limite-caricamento`, **22 commit non
+pubblicati**. 📌 Le prove in meno rispetto al giro precedente sono quelle della rotta tolta:
+sparivano con lei, non sono state disattivate.
 ⚠️ **La prova che manca:** il comportamento su un **iPhone vero** (formato HEIC).
 
-➡️ **T7 — togliere la vecchia rotta — È UNA SCELTA:** i quattro client sono passati e
-`uploadToStorage` ha un solo chiamante (quella rotta), quindi tecnicamente si può togliere subito.
-🛑 Ma questa è una **PWA**: chi ha la pagina aperta durante la pubblicazione ha ancora il codice
-vecchio in mano, e un caricamento senza ricaricare la pagina troverebbe un 404. Le due strade:
-toglierla **ora** (semplice, rischio piccolo e circoscritto al momento del rilascio) o **al
-rilascio successivo** (la rotta resta viva e inutilizzata per qualche giorno).
+➡️ **PROSSIMO: la pubblicazione.** ⚠️ **D240 — il rischio accettato:** UÀ è una PWA, e la vecchia
+rotta è uscita in questo stesso rilascio; chi ha la pagina aperta **nel momento** della
+pubblicazione troverebbe una porta chiusa su un caricamento (si chiude ricaricando).
 
-📎 **239 decisioni in 89 tornate; la prossima è D240.**
+📎 **240 decisioni in 90 tornate; la prossima è D241.**
