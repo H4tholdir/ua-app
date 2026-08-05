@@ -1071,3 +1071,73 @@ l'avviso compaia e la tinta sia sparita**. 390 · 768 · 1280, chiaro e scuro.
 - La tendina del colore dentale offre **19 codici su 48** (`TabClinica.tsx:8-14`).
 - L'impalcatura dei passi adattivi **non è agganciata a niente**: la usano solo i suoi test.
 - Nel wizard il colore è ancora **testo libero** (`PassoPaziente.tsx:41-42`).
+
+---
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 1 (05/08/2026, 17:40)
+
+> Registrati qui e non corretti di nascosto (R-E2). Chi esegue i task successivi li legge **prima** di
+> fidarsi del testo del piano: i tre sono difetti **del piano**, non del codice.
+
+### 🔴 P1-① — Il piano avrebbe creato un catalogo SCRIVIBILE DA CHIUNQUE
+
+Il blocco SQL del **Passo 2** non conteneva **né `REVOKE` né `GRANT`**. Il Passo 1 dava per scontato che
+una tabella senza `laboratorio_id` e senza RLS fosse «leggibile dal client anonimo come `colori_dentali`»:
+**due affermazioni, tutte e due false.**
+
+`provato:` su transazione **annullata**, creando una tabella usa-e-getta in `public` e leggendone i grant:
+
+```
+anon          → DELETE · INSERT · REFERENCES · SELECT · TRIGGER · TRUNCATE · UPDATE
+authenticated → (gli stessi sette)
+service_role  → (gli stessi sette)
+```
+
+I privilegi predefiniti del progetto (`pg_default_acl`) concedono **`arwdDxtm`** — cioè **tutto** — a
+`anon`, `authenticated` e `service_role` su **ogni** tabella nuova di `public`. E `tinte_manufatto` per
+progetto **non ha RLS**: senza i `GRANT` giusti, l'unica barriera non esiste. Un visitatore con la chiave
+pubblica — che viaggia nel bundle del browser — avrebbe potuto **inserire, modificare, cancellare e
+troncare** il catalogo che decide la tinta di un dispositivo su misura.
+
+`provato:` il gemello `colori_dentali` **non concede niente ad `anon`**: solo `authenticated=SELECT` e
+`service_role=SELECT`, e le due righe che lo fanno stanno in `20260727120000_lavori_denti.sql:64-65`.
+
+➡️ **Corretto dentro il mandato del Task 1** (la migration È il task): le due righe sono nel file, ricalcate
+dal gemello e non reinventate. `provato:` dopo `db push`, i grant di `tinte_manufatto` sono
+`authenticated=SELECT` · `service_role=SELECT` · `postgres` tutto, **niente `anon`**, e `relrowsecurity=false`.
+
+🔑 **La riga da tenere: «senza RLS» non vuol dire «pubblica in lettura», vuol dire «protetta dai soli
+GRANT».** Il piano ha confuso le due cose, e la confusione produceva una tabella aperta in scrittura.
+
+### 🟠 P1-② — Il nome della migration era ANTERIORE all'ultima applicata
+
+Il piano diceva `20260803140000_tinte_manufatto.sql`. `provato:`
+`SELECT version FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 1` →
+**`20260805113700`**. Una migration con un numero più basso è **fuori ordine**.
+➡️ Il file porta l'orologio (**D155**): `20260805174000_tinte_manufatto.sql`.
+⚠️ **Vale per i Task 2 e 6**, che nel piano portano nomi della stessa serie: vanno rinumerati anche loro.
+
+### 🟡 P1-③ — Il Passo 3 non prova quello che dice, se eseguito com'è scritto
+
+Le quattro sonde sono scritte come `BEGIN; … ROLLBACK;` separati, ma la tabella viene creata **dentro** la
+prima transazione: annullata quella, le successive non hanno su cosa lavorare. E in una sola transazione il
+primo `INSERT` che fallisce **annulla tutto il resto** (`current transaction is aborted, commands ignored`)
+— `provato:` al primo tentativo, otto istruzioni su undici ignorate, con tre vincoli mai messi alla prova
+e **tre verdi che non erano verdi**.
+➡️ Si usano i **punti di ripristino** (`SAVEPOINT` + `ROLLBACK TO`) dentro un'unica transazione.
+
+**Esito vero delle sonde, dopo la correzione** — ogni vincolo col valore che DEVE essere rifiutato:
+
+| prova | esito | vincolo |
+|---|---|---|
+| famiglia `'pippo'` | ❌ rifiutata | `tinte_manufatto_famiglia_ck` |
+| codice `'Rosso Scuro'` (maiuscole + spazio) | ❌ rifiutata | `tinte_manufatto_codice_ck` |
+| hex `'rosso'` | ❌ rifiutata | `tinte_manufatto_hex_ck` |
+| codice di **1** carattere | ❌ rifiutata | `tinte_manufatto_codice_ck` (il minimo è dove dice) |
+| codice di **2** caratteri | ✅ accettata | il limite non è più stretto del dichiarato |
+| **controllo positivo**: riga valida | ✅ accettata, `count = 1` | — |
+| doppione stessa famiglia+codice | ❌ rifiutata | `tinte_manufatto_pkey` |
+| stesso codice in **famiglia diversa** | ✅ accettata | la chiave è composita, come deve |
+
+📌 **Esito dell'applicazione:** `resina_ortodontica 17` · `sport 17` · **5 righe senza pallino**
+(trasparente ×2, glitter ×3, come vuole D114) · `tsc --noEmit` **0 errori** dopo la FASE 6b.

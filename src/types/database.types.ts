@@ -5682,6 +5682,30 @@ export type Database = {
           },
         ]
       }
+      tinte_manufatto: {
+        Row: {
+          codice: string
+          famiglia: string
+          hex: string | null
+          nome: string
+          ordine: number
+        }
+        Insert: {
+          codice: string
+          famiglia: string
+          hex?: string | null
+          nome: string
+          ordine: number
+        }
+        Update: {
+          codice?: string
+          famiglia?: string
+          hex?: string | null
+          nome?: string
+          ordine?: number
+        }
+        Relationships: []
+      }
       utenti: {
         Row: {
           attivo: boolean
