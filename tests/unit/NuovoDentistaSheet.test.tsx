@@ -113,7 +113,13 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
 
     await waitFor(() =>
-      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi', studioNome: 'Studio Rossi' })
+      expect(onCreato).toHaveBeenCalledWith({
+        id: 'cli-1',
+        label: 'Studio Rossi',
+        nome: 'Mario',
+        cognome: 'Rossi',
+        studioNome: 'Studio Rossi',
+      })
     )
     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
       method: 'POST',
@@ -142,7 +148,13 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
 
     await waitFor(() =>
-      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-2', label: 'Dr. Bianchi', studioNome: null })
+      expect(onCreato).toHaveBeenCalledWith({
+        id: 'cli-2',
+        label: 'Dr. Bianchi',
+        nome: 'Luca',
+        cognome: 'Bianchi',
+        studioNome: null,
+      })
     )
     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
       method: 'POST',

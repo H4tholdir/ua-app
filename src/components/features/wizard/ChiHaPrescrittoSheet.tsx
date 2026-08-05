@@ -31,12 +31,23 @@
 // generate-ddc.ts:146 — l'unico dato che quel cliente porta È il nome della
 // persona, quindi il ripiego è già la risposta corretta).
 //
+// IL CLIENTE TOCCATO (fix-review CRITICAL 1): `GET /studio-members` esclude
+// per costruzione il cliente il cui tile è stato tappato (`.neq('id', id)`,
+// route.ts:50) — senza intervento, chi tocca la riga di un medico non
+// potrebbe MAI offrire SE STESSO come prescrittore. Il chiamante lo
+// ANTEPONE a `medici` (`WizardNuovoLavoro.caricaStudioEApri`): `medici[0]`
+// è quindi SEMPRE il cliente toccato quando il foglio arriva ad aprirsi.
+// Questo componente non lo sa e non gli serve saperlo — tratta ogni riga
+// allo stesso modo (v. punto 1 sopra), e proprio per questo il conteggio
+// del sottotitolo (`medici.length`) diventa quello vero.
+//
 // STUDIO_NOME AUTORITATIVO: si legge da `medici[0].studio_nome` (il valore
 // grezzo della riga DB), MAI da un'etichetta derivata altrove (es. il
 // `label` del tile del Passo 1, che potrebbe un giorno guadagnare una
 // decorazione e disallinearsi silenziosamente dalla ragione sociale vera).
 // Tutti i membri restituiti hanno lo STESSO `studio_nome` per costruzione
-// della query (`route.ts:50`: `.eq('studio_nome', cliente.studio_nome)`).
+// (la query di `route.ts:50` per gli "altri", l'assegnazione diretta del
+// chiamante per il cliente anteposto).
 //
 // «È un altro»: fallback DICHIARATO (non il pattern NuovoDentistaSheet
 // riusato as-is) — quel componente calcola `label = studio_nome ?? Dr.
@@ -117,6 +128,17 @@ export function ChiHaPrescrittoSheet(props: {
     onScelto(nomeCompleto(m), studioNome)
   }
 
+  // MINOR 7 (fix-review): «È un altro» torna una porta A DOPPIO SENSO — si
+  // esce dal mini-form senza creare nulla e senza chiudere il foglio.
+  // `vincolo` si azzera (un errore mostrato prima di uscire non deve
+  // ricomparire "stantio" se si rientra); nome/cognome digitati RESTANO
+  // (nessuna ragione di buttare via ciò che si è già scritto, nel caso si
+  // torni qui una seconda volta).
+  function tornaAllElenco() {
+    setVincolo(null)
+    setModoAggiungi(false)
+  }
+
   async function aggiungi() {
     const nomeOk = nome.trim()
     const cognomeOk = cognome.trim()
@@ -168,13 +190,27 @@ export function ChiHaPrescrittoSheet(props: {
           <TastoPrimario onClick={aggiungi} disabled={invio} motivoDisabilitato="Un attimo…">
             Aggiungi allo studio
           </TastoPrimario>
+          {/* MINOR 7 (fix-review): senza questo, «È un altro» era una porta a
+              senso unico — chi lo apriva per sbaglio (o cambia idea) non
+              poteva più tornare a scegliere dalla lista senza chiudere
+              l'intero foglio. `LinkQuieto`, non un tasto fisico: è una via
+              di fuga (§5.5), non un'azione che conta. */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <LinkQuieto onClick={tornaAllElenco}>Torna all&apos;elenco</LinkQuieto>
+          </div>
         </>
       ) : (
         <>
           <p style={stileSotto}>{sottotitolo}</p>
           <div>
             {medici.map((m) => (
-              <button key={m.id} type="button" onClick={() => scegli(m)} style={stileMedico}>
+              // IMPORTANT 3 (fix-review) — `ds-medico-riga` è la classe-aggancio
+              // per il rimedio ratificato al gate L2 (22/07/2026, ds-v3.css:90-94):
+              // in dark, faccia `--card` + `--sh-press: none` dentro un pannello
+              // anch'esso `--card` rendeva la riga invisibile (restava solo il
+              // testo) — stesso difetto già chiuso per `.ds-chip-scelta`/
+              // `.ds-tasto-tondo`, qui esteso alle righe di questo foglio.
+              <button key={m.id} type="button" onClick={() => scegli(m)} className="ds-medico-riga" style={stileMedico}>
                 <Avatar nome={nomeCompleto(m)} diametro={46} />
                 <span style={stileMedicoNome}>{nomeCompleto(m)}</span>
               </button>

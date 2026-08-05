@@ -19,6 +19,19 @@ export type DentistaWizard = {
    * esistere per il caso comune.
    */
   studioNome?: string | null
+  /**
+   * OPZIONALI (fix-review Task 10, CRITICAL 1): nome/cognome GREZZI del
+   * cliente-riga. Servono a costruire «Cognome Nome» del dentista TOCCATO
+   * quando `WizardNuovoLavoro.caricaStudioEApri` lo antepone come prima riga
+   * del mini-foglio «Chi ha prescritto?» — senza di loro chi tocca la riga
+   * di un medico non potrebbe MAI scegliere SE STESSO come prescrittore,
+   * perché `GET /studio-members` lo esclude per costruzione
+   * (`.neq('id', id)`, route.ts:50). Opzionali nel TIPO per lo stesso
+   * motivo di `studioNome` sopra (fixture di test esistenti che non toccano
+   * il mini-foglio non li portano); `aggregaDatiWizard` li valorizza SEMPRE.
+   */
+  nome?: string
+  cognome?: string
 }
 export type DatiWizard = {
   dentisti: DentistaWizard[]
@@ -28,9 +41,12 @@ export type DatiWizard = {
   giorniPerTipo: Record<string, { giorni: number; daStoria: boolean }>
 }
 
-// `nome` NON è nella select: la label wizard usa solo studio_nome/cognome
-// ('Dr. Cognome'), diversamente da pile-home che mostra 'Nome Cognome'.
-type RawCliente = { id: string; cognome: string; studio_nome: string | null }
+// `nome` È nella select (fix-review Task 10, CRITICAL 1: prima non c'era —
+// la label wizard usa solo studio_nome/cognome, 'Dr. Cognome', diversamente
+// da pile-home che mostra 'Nome Cognome' — ma il mini-foglio «Chi ha
+// prescritto?» ne ha bisogno per anteporre il cliente toccato, v. commento
+// su `DentistaWizard.nome` sopra).
+type RawCliente = { id: string; nome: string; cognome: string; studio_nome: string | null }
 type RawLavoro30 = { cliente_id: string; descrizione: string; data_ingresso: string }
 type RawPaziente = { codice_paziente: string | null }
 
@@ -118,6 +134,8 @@ export function aggregaDatiWizard(
       label: c.studio_nome ?? `Dr. ${c.cognome}`,
       count30: countPerCliente.get(c.id) ?? 0,
       studioNome: c.studio_nome,
+      nome: c.nome,
+      cognome: c.cognome,
     }))
     .sort((a, b) => b.count30 - a.count30 || a.label.localeCompare(b.label))
 
@@ -162,7 +180,7 @@ export async function getDatiWizard(svc: SupabaseClient, labId: string, oggi: Da
   const cutoff = isoDataLocale(aggiungiGiorni(inizioGiorno(oggi), -30))
 
   const [clientiRes, lavoriRes, pazientiRes, campioni] = await Promise.all([
-    svc.from('clienti').select('id, cognome, studio_nome').eq('laboratorio_id', labId).is('deleted_at', null),
+    svc.from('clienti').select('id, nome, cognome, studio_nome').eq('laboratorio_id', labId).is('deleted_at', null),
     svc.from('lavori').select('cliente_id, descrizione, data_ingresso').eq('laboratorio_id', labId).is('deleted_at', null).gte('data_ingresso', cutoff),
     // `ilike '%PZ-%'`, non `like 'PZ-%'`, per due motivi distinti: (a) senza
     // case-insensitive un `pz-0043` non viene nemmeno letto; (b) senza togliere

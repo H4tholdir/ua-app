@@ -232,16 +232,27 @@ describe('WizardNuovoLavoro — wiring NuovoDentistaSheet (Task 9, A7)', () => {
 // `GET /studio-members` in test che oggi non la stubbano (v. avviso R-E1 —
 // la rete in più deve esistere SOLO dove il tile tappato è un'entità).
 describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37/D211)', () => {
+  // IMPORTANT 5 (fix-review) — questa fixture rispecchia la rotta VERA:
+  // `GET /api/clienti/[id]/studio-members` ESCLUDE il cliente toccato
+  // (`.neq('id', id)`, route.ts:50). Il tile "Studio Bianchi" del Passo 1
+  // (id '2' sotto) È la riga clienti di Bianchi Marta (nome/cognome sotto):
+  // la SUA risposta studio-members non può contenere se stessa. `MEDICI`
+  // elenca solo i suoi COLLEGHI — Bianchi Marta arriva nel foglio ANTEPOSTA
+  // dal client (CRITICAL 1), mai da questa lista. Prima del fix-review
+  // questa fixture includeva erroneamente Bianchi Marta fra i "colleghi
+  // trovati", un percorso che la rotta vera non può produrre — è il
+  // meccanismo che ha lasciato passare il difetto CRITICAL 1 (il foglio non
+  // poteva mai offrire il medico appena toccato).
   const MEDICI = [
     { id: 'm1', nome: 'Francesco', cognome: 'Colombo', studio_nome: 'Studio Bianchi' },
-    { id: 'm2', nome: 'Marta', cognome: 'Bianchi', studio_nome: 'Studio Bianchi' },
+    { id: 'm3', nome: 'Anna', cognome: 'Ferri', studio_nome: 'Studio Bianchi' },
   ]
 
   const DENTISTI_STUDIO = [
-    { id: '1', label: 'Dr. Esposito', count30: 12, studioNome: null },
-    { id: '2', label: 'Studio Bianchi', count30: 8, studioNome: 'Studio Bianchi' },
-    { id: '3', label: 'Dr. Russo', count30: 5, studioNome: null },
-    { id: '4', label: 'Studio Solo', count30: 2, studioNome: 'Studio Solo' },
+    { id: '1', label: 'Dr. Esposito', count30: 12, studioNome: null, nome: 'Marco', cognome: 'Esposito' },
+    { id: '2', label: 'Studio Bianchi', count30: 8, studioNome: 'Studio Bianchi', nome: 'Marta', cognome: 'Bianchi' },
+    { id: '3', label: 'Dr. Russo', count30: 5, studioNome: null, nome: 'Luca', cognome: 'Russo' },
+    { id: '4', label: 'Studio Solo', count30: 2, studioNome: 'Studio Solo', nome: 'Elena', cognome: 'Neri' },
   ]
 
   const DATI_STUDIO: DatiWizard = {
@@ -313,18 +324,77 @@ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37
 
     const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
     expect(within(dialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Ferri Anna/ })).toBeInTheDocument()
+    // Bianchi Marta è il cliente TOCCATO — non è nella risposta mock di
+    // `studio-members` (v. commento sulla fixture MEDICI sopra), eppure
+    // compare: è il client (CRITICAL 1) ad anteporla.
     expect(within(dialog).getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
     // Il Passo 1 resta VISIBILE dietro il foglio (overlay, non un passo nuovo — vincolo di ondata).
     expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
   })
 
-  it('studio "di uno solo" (studio_nome compilato, ZERO colleghi) → nessun foglio, si comporta come dottore singolo', async () => {
+  // CRITICAL 1 + 1b (fix-review): il cliente toccato è la PRIMA riga (non una
+  // qualunque), e il sottotitolo conta tutti e tre — prima del fix contava
+  // solo i 2 "colleghi" restituiti da studio-members, sottostimando di uno.
+  it('CRITICAL 1: il cliente toccato (Bianchi Marta) è la PRIMA riga del foglio, prima dei colleghi', async () => {
+    vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    // `getAllByRole` ritorna in ordine DOM (ordine di apparizione nel
+    // markup) — il `textContent` include anche le iniziali dell'Avatar
+    // (`aria-hidden`, ma non tolte dal testo del bottone), quindi si
+    // confronta con `toContain`, non un'uguaglianza esatta sul nome.
+    const righe = within(dialog).getAllByRole('button', {
+      name: /^(Bianchi Marta|Colombo Francesco|Ferri Anna)$/,
+    })
+    expect(righe).toHaveLength(3)
+    expect(righe[0].textContent).toContain('Bianchi Marta')
+    expect(righe[1].textContent).toContain('Colombo Francesco')
+    expect(righe[2].textContent).toContain('Ferri Anna')
+  })
+
+  it('1b: il sottotitolo conta il TOTALE (toccato + colleghi), non solo i colleghi restituiti da studio-members', async () => {
+    vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+    // MEDICI (mock) ne ha 2 ("colleghi") + il toccato (Bianchi Marta) = 3 —
+    // il conteggio SBAGLIATO pre-fix sarebbe stato "2 medici".
+    expect(within(dialog).getByText(/Studio Bianchi risultano 3 medici/)).toBeInTheDocument()
+  })
+
+  it('studio "di uno solo" (studio_nome compilato, ZERO colleghi) → nessun foglio, si comporta come dottore singolo per il PRESCRITTORE', async () => {
     vi.stubGlobal('fetch', routerFetch({ members: [] }))
     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
     await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Solo/ }))
 
     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
     expect(screen.queryByRole('dialog', { name: 'Chi ha prescritto?' })).not.toBeInTheDocument()
+  })
+
+  // IMPORTANT 2 (fix-review): l'istituzione è nota comunque — D206, "vera
+  // anche senza una persona scelta". Prima del fix `cliente.studioNome`
+  // veniva scartato prima di raggiungere questo ramo (il chiamante passava
+  // solo `{id, label}` a `caricaStudioEApri`), e istituzione_sanitaria
+  // restava sempre assente anche quando era un fatto già noto.
+  it('IMPORTANT 2: studio "di uno solo" → istituzione_sanitaria parte comunque nel POST (D206), richiedente_nome resta assente', async () => {
+    const m = routerFetch({ members: [] })
+    vi.stubGlobal('fetch', m)
+    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /^Studio Solo/ }))
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+
+    const corpo = await corpoPostLavori(m)
+    expect(corpo).not.toHaveProperty('richiedente_nome')
+    expect(corpo.istituzione_sanitaria).toBe('Studio Solo')
   })
 
   it('scelta di un medico → il POST /api/lavori porta richiedente_nome E istituzione_sanitaria, «Fatto!» mostra «Prescritto da»', async () => {
@@ -402,6 +472,9 @@ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37
     await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
     const secondoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
     expect(within(secondoDialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
+    // Il cliente toccato (CRITICAL 1) è anteposto anche al SECONDO giro, non
+    // solo al primo.
+    expect(within(secondoDialog).getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
 
     // Esc funziona ancora sul foglio rimontato (la registrazione overlay-stack
     // di Sheet.tsx non è rimasta "appesa" al giro precedente).
@@ -409,7 +482,12 @@ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37
     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
   })
 
-  it('«Chiudi» il foglio SENZA scegliere → avanza comunque (W22, MAI bloccante), nessun prescrittore nel POST', async () => {
+  // IMPORTANT 2 (fix-review): «Chiudi» senza scegliere lascia `richiedente_nome`
+  // assente (nessuna persona indicata) MA `istituzione_sanitaria` parte
+  // comunque — `mediciPendenti[0]` è SEMPRE il cliente toccato (CRITICAL 1),
+  // la sua `studio_nome` è un fatto noto indipendentemente dalla scelta del
+  // prescrittore (D206). Prima del fix ENTRAMBI i campi restavano assenti.
+  it('«Chiudi» il foglio SENZA scegliere → avanza comunque (W22, MAI bloccante); richiedente assente MA istituzione nota parte nel POST', async () => {
     const m = routerFetch({ members: MEDICI })
     vi.stubGlobal('fetch', m)
     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
@@ -426,7 +504,7 @@ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37
     await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
     const corpo = await corpoPostLavori(m)
     expect(corpo).not.toHaveProperty('richiedente_nome')
-    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
+    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
     expect(screen.queryByText('Prescritto da')).not.toBeInTheDocument()
   })
 

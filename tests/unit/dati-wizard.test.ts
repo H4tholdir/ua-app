@@ -57,9 +57,9 @@ function svcRouter(routing: Record<string, Array<{ data: unknown; error: unknown
 
 describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
   const clienti = [
-    { id: 'c1', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
-    { id: 'c2', cognome: 'Bianchi', studio_nome: null },
-    { id: 'c3', cognome: 'Verdi', studio_nome: null },
+    { id: 'c1', nome: 'Marco', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
+    { id: 'c2', nome: 'Anna', cognome: 'Bianchi', studio_nome: null },
+    { id: 'c3', nome: 'Luigi', cognome: 'Verdi', studio_nome: null },
   ]
 
   it('label dentista: studio_nome se presente, altrimenti "Dr. Cognome"', () => {
@@ -76,6 +76,16 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
     const r = aggregaDatiWizard(clienti, [], [], OGGI)
     expect(r.dentisti.find((d) => d.id === 'c1')!.studioNome).toBe('Studio Esposito')
     expect(r.dentisti.find((d) => d.id === 'c2')!.studioNome).toBeNull()
+  })
+
+  // Fix-review Task 10 (CRITICAL 1) — nome/cognome grezzi, necessari a
+  // `WizardNuovoLavoro.caricaStudioEApri` per anteporre il cliente TOCCATO
+  // come prima riga del mini-foglio «Chi ha prescritto?».
+  it('nome/cognome: passthrough grezzo (necessari per anteporre il cliente toccato nel mini-foglio)', () => {
+    const r = aggregaDatiWizard(clienti, [], [], OGGI)
+    const c1 = r.dentisti.find((d) => d.id === 'c1')!
+    expect(c1.nome).toBe('Marco')
+    expect(c1.cognome).toBe('Esposito')
   })
 
   it('dentisti: TUTTI i clienti, anche con count30 zero', () => {
@@ -109,8 +119,8 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
 
   it('dentisti a pari count30: tie-break su label asc', () => {
     const soloClienti = [
-      { id: 'x1', cognome: 'Zeta', studio_nome: null }, // label 'Dr. Zeta'
-      { id: 'x2', cognome: 'Alfa', studio_nome: null }, // label 'Dr. Alfa'
+      { id: 'x1', nome: 'Zoe', cognome: 'Zeta', studio_nome: null }, // label 'Dr. Zeta'
+      { id: 'x2', nome: 'Aldo', cognome: 'Alfa', studio_nome: null }, // label 'Dr. Alfa'
     ]
     const r = aggregaDatiWizard(soloClienti, [], [], OGGI)
     expect(r.dentisti.map((d) => d.label)).toEqual(['Dr. Alfa', 'Dr. Zeta'])
@@ -253,7 +263,7 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
 })
 
 describe('getDatiWizard — wiring Supabase + fail-closed', () => {
-  const clientiData = [{ id: 'c1', cognome: 'Esposito', studio_nome: 'Studio Esposito' }]
+  const clientiData = [{ id: 'c1', nome: 'Marco', cognome: 'Esposito', studio_nome: 'Studio Esposito' }]
 
   it('compone dentisti/frequenzeTipi/topTipi/prossimoPz/giorniPerTipo dalle query', async () => {
     const { svc } = svcRouter({
@@ -265,7 +275,9 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
       pazienti: [{ data: [{ codice_paziente: 'PZ-0010' }], error: null }],
     })
     const r: DatiWizard = await getDatiWizard(svc, 'lab-1', OGGI)
-    expect(r.dentisti).toEqual([{ id: 'c1', label: 'Studio Esposito', count30: 1, studioNome: 'Studio Esposito' }])
+    expect(r.dentisti).toEqual([
+      { id: 'c1', label: 'Studio Esposito', count30: 1, studioNome: 'Studio Esposito', nome: 'Marco', cognome: 'Esposito' },
+    ])
     expect(r.frequenzeTipi.corona_zirconia).toBe(1)
     expect(r.prossimoPz).toBe('PZ-0011')
     expect(r.giorniPerTipo.corona_zirconia).toEqual({ giorni: 5, daStoria: false }) // nessuno storico → fallback tassonomia

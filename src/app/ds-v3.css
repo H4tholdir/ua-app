@@ -92,6 +92,15 @@
   --card: var(--elv);
   --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
 }
+/* Fix-review Task 10 (IMPORTANT 3, stesso difetto del gate L2 qui sopra —
+   `--card` + `--sh-press: none` dentro un pannello anch'esso `--card`,
+   riga invisibile in dark) esteso alle righe medico di
+   ChiHaPrescrittoSheet.tsx (`.ds-medico-riga`, mini-foglio «Chi ha
+   prescritto?»): stesso rimedio, stessa forma di regola. */
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-medico-riga {
+  --card: var(--elv);
+  --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
+}
 
 /* D9a (FIX-F, QA device #1, 2026-07-24) — il grabber (Sheet.tsx) resta visivamente 36×4: questo
    ::before invisibile allarga solo l'AREA DI PRESA (dove `onPointerDown` avvia il drag via

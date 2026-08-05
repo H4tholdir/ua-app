@@ -52,6 +52,20 @@ describe('ChiHaPrescrittoSheet (Task 10, P37/D211)', () => {
     expect(screen.getByText(/Studio Bianchi risultano 3 medici/)).toBeInTheDocument()
   })
 
+  // IMPORTANT 3 (fix-review) — la classe-aggancio per il rimedio dark del
+  // gate L2 (ds-v3.css: `.ds-sheet .ds-medico-riga` rimappa `--card`/
+  // `--sh-press` su `--elv`/hairline, altrimenti la riga È invisibile in
+  // dark: stessa faccia del pannello, ombra `none`). jsdom non calcola il
+  // CSS in cascata da un foglio esterno, quindi qui si prova solo che la
+  // classe-aggancio sia PRESENTE — la regola stessa vive in ds-v3.css ed è
+  // verificata leggendo il file, non a runtime.
+  it('ogni riga medico porta la classe-aggancio "ds-medico-riga" (rimedio dark, gate L2)', () => {
+    renderSheet()
+    expect(screen.getByRole('button', { name: /Colombo Francesco/ })).toHaveClass('ds-medico-riga')
+    expect(screen.getByRole('button', { name: /Bianchi Marta/ })).toHaveClass('ds-medico-riga')
+    expect(screen.getByRole('button', { name: /Ferri Anna/ })).toHaveClass('ds-medico-riga')
+  })
+
   it('sottotitolo: singolare quando c\'è un solo medico', () => {
     renderSheet({ medici: [MEDICI[0]] })
     expect(screen.getByText(/Studio Bianchi risulta un medico/)).toBeInTheDocument()
@@ -86,6 +100,29 @@ describe('ChiHaPrescrittoSheet (Task 10, P37/D211)', () => {
     expect(screen.getByLabelText('Nome')).toBeInTheDocument()
     expect(screen.getByLabelText('Cognome')).toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  // MINOR 7 (fix-review): «È un altro» era una porta a senso unico.
+  it('«È un altro» → «Torna all\'elenco» torna alla lista, NIENTE rete, il testo digitato resta se si riapre', async () => {
+    const { onScelto, onChiudi } = renderSheet()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /È un altro/ }))
+    await user.type(screen.getByLabelText('Nome'), 'Luca')
+    await user.type(screen.getByLabelText('Cognome'), 'Verdi')
+
+    await user.click(screen.getByRole('button', { name: "Torna all'elenco" }))
+
+    // Di nuovo la lista, nessuna chiamata di rete, il foglio resta aperto.
+    expect(screen.getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalled()
+    expect(onScelto).not.toHaveBeenCalled()
+    expect(onChiudi).not.toHaveBeenCalled()
+
+    // Riaprendo «È un altro», ciò che era stato digitato è ancora lì.
+    await user.click(screen.getByRole('button', { name: /È un altro/ }))
+    expect(screen.getByLabelText('Nome')).toHaveValue('Luca')
+    expect(screen.getByLabelText('Cognome')).toHaveValue('Verdi')
   })
 
   it('«È un altro» → submit con nome/cognome vuoti NON chiama fetch, mostra il vincolo', async () => {

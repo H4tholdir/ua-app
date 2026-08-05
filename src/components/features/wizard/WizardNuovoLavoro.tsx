@@ -306,22 +306,45 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // NuovoDentistaSheet): un guasto di rete qui non deve MAI bloccare la
   // scelta del dentista già fatta — degrada silenziosamente a "nessun
   // collega trovato".
+  //
+  // CRITICAL 1 (fix-review): `GET /studio-members` ESCLUDE per costruzione
+  // il cliente TOCCATO (`.neq('id', id)`, route.ts:50) — senza anteporlo
+  // qui, chi tocca la riga di un medico non potrebbe MAI scegliere SE
+  // STESSO come prescrittore: con due colleghi, chi tocca la riga di Marta
+  // vedrebbe solo Colombo, e l'unica via visibile sarebbe «È un altro» →
+  // una riga `clienti` DUPLICATA. Il cliente toccato entra come PRIMA riga
+  // (`nomeCompleto`/`ChiHaPrescrittoSheet.tsx` gli dà lo stesso trattamento
+  // di ogni altro medico — nessuna evidenza speciale, v. quel file), «Cognome
+  // Nome» coerente col ripiego DdC. Questo corregge anche 1b: il sottotitolo
+  // del foglio conta `medici.length`, che ora include il toccato — prima
+  // sottostimava di uno.
   const caricaStudioEApri = useCallback(
-    async (cliente: { id: string; label: string }) => {
-      let medici: MembroStudio[] = []
+    async (cliente: { id: string; label: string; nome: string; cognome: string; studioNome: string }) => {
+      let altri: MembroStudio[] = []
       try {
         const res = await fetch(`/api/clienti/${cliente.id}/studio-members`, { credentials: 'same-origin' })
         const dati: unknown = res.ok ? await res.json() : []
-        medici = Array.isArray(dati) ? (dati as MembroStudio[]) : []
+        altri = Array.isArray(dati) ? (dati as MembroStudio[]) : []
       } catch {
-        medici = []
+        altri = []
       }
-      if (medici.length === 0) {
-        avanzaConCliente(cliente, '', '')
+      if (altri.length === 0) {
+        // IMPORTANT 2 (fix-review): `studioNome` è già in mano qui — D206,
+        // l'istituzione è vera anche SENZA una persona scelta (il foglio non
+        // apre nemmeno, ma lo studio del cliente toccato resta un fatto
+        // noto). Solo `richiedente_nome` resta vuoto: nessuna persona è
+        // stata indicata.
+        avanzaConCliente({ id: cliente.id, label: cliente.label }, '', cliente.studioNome)
         return
       }
-      setClientePendente(cliente)
-      setMediciPendenti(medici)
+      const toccato: MembroStudio = {
+        id: cliente.id,
+        nome: cliente.nome,
+        cognome: cliente.cognome,
+        studio_nome: cliente.studioNome,
+      }
+      setClientePendente({ id: cliente.id, label: cliente.label })
+      setMediciPendenti([toccato, ...altri])
       setChiavePrescrittore((c) => c + 1)
       setSheetPrescrittoreAperto(true)
     },
@@ -330,15 +353,24 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 
   // Il gate "è un'entità?" (D196: SOLO se il cliente ha `studio_nome`).
   // Dottore singolo → invariato, sincrono, ZERO rete in più (v. commento su
-  // `DentistaWizard.studioNome`). Entità → `caricaStudioEApri` sopra decide
-  // se il foglio vale la pena di aprirsi.
+  // `DentistaWizard.studioNome`) — QUI, e solo qui, entrambi i campi restano
+  // '' (nessuno studio, niente da dire). Entità → `caricaStudioEApri` sopra
+  // decide se il foglio vale la pena di aprirsi. TS narrows `cliente.studioNome`
+  // a `string` dopo il ritorno anticipato: il parametro di `caricaStudioEApri`
+  // può quindi pretenderlo non-null.
   const sceltaDentista = useCallback(
-    (cliente: { id: string; label: string; studioNome: string | null }) => {
+    (cliente: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => {
       if (!cliente.studioNome) {
         avanzaConCliente({ id: cliente.id, label: cliente.label }, '', '')
         return
       }
-      void caricaStudioEApri({ id: cliente.id, label: cliente.label })
+      void caricaStudioEApri({
+        id: cliente.id,
+        label: cliente.label,
+        nome: cliente.nome,
+        cognome: cliente.cognome,
+        studioNome: cliente.studioNome,
+      })
     },
     [avanzaConCliente, caricaStudioEApri]
   )
@@ -359,19 +391,25 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // vie di fuga di Sheet.tsx instradano su questo `onChiudi`, W22: MAI
   // bloccante). Il cliente-entità già tappato resta comunque commesso, senza
   // prescrittore — "come oggi" (contesto del brief, punto 7).
+  //
+  // IMPORTANT 2 (fix-review): l'istituzione parte comunque. `mediciPendenti[0]`
+  // è SEMPRE il cliente toccato quando il foglio è arrivato ad aprirsi
+  // (CRITICAL 1, anteposto in `caricaStudioEApri`) — la sua `studio_nome` è
+  // nota anche se nessun prescrittore è stato scelto (D206: l'istituzione è
+  // vera a prescindere dalla persona).
   const chiudiSheetPrescrittore = useCallback(() => {
     setSheetPrescrittoreAperto(false)
     if (clientePendente) {
-      avanzaConCliente(clientePendente, '', '')
+      avanzaConCliente(clientePendente, '', mediciPendenti[0]?.studio_nome ?? '')
       setClientePendente(null)
     }
-  }, [clientePendente, avanzaConCliente])
+  }, [clientePendente, mediciPendenti, avanzaConCliente])
 
   // CONTRATTO Task 9: `NuovoDentistaSheet.onCreato` chiama questa — riusa
   // `sceltaDentista` (stesso percorso di selezione di un tile esistente),
   // così direzione/coreografia/gate-entità restano un'unica fonte di verità.
   const dentistaCreato = useCallback(
-    (cliente: { id: string; label: string; studioNome: string | null }) => {
+    (cliente: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => {
       setSheetDentistaAperto(false)
       sceltaDentista(cliente)
     },
@@ -503,7 +541,7 @@ function CorpoWizard(props: {
   direzione: 'avanti' | 'indietro'
   reduced: boolean
   vaIndietro: () => void
-  sceltaDentista: (d: { id: string; label: string; studioNome: string | null }) => void
+  sceltaDentista: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
   apriSheetDentista: () => void
   sceltaTipo: (t: TipoScelto) => void
   cambiaPaziente: (patch: Partial<StatoWizard>) => void
@@ -669,7 +707,7 @@ function CorpoWizard(props: {
 function RenderPasso(props: {
   stato: StatoWizard
   dati: DatiWizard
-  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
+  onScegli: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
   onNuovoDentista: () => void
   onScegliTipo: (t: TipoScelto) => void
   onCambiaPaziente: (patch: Partial<StatoWizard>) => void

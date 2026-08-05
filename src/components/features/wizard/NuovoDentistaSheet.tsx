@@ -49,7 +49,12 @@ export function NuovoDentistaSheet(props: {
   // ChiHaPrescrittoSheet.tsx). Permette a `WizardNuovoLavoro.sceltaDentista`
   // di applicare lo STESSO gate "è un'entità?" a un dentista appena creato
   // qui e a un dentista scelto dalla griglia del Passo 1 (dati-wizard.ts).
-  onCreato: (d: { id: string; label: string; studioNome: string | null }) => void
+  // `nome`/`cognome` (fix-review Task 10, CRITICAL 1): passthrough grezzo,
+  // stesso motivo — servono ad anteporre il dentista appena creato come
+  // prima riga del mini-foglio se risultasse un'entità con colleghi (caso
+  // limite: si crea un dentista con "Studio" compilato uguale a uno
+  // esistente).
+  onCreato: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
 }) {
   const { aperto, onChiudi, onCreato } = props
   const { errore } = useAvvisi()
@@ -109,7 +114,13 @@ export function NuovoDentistaSheet(props: {
       const dati = (await res.json()) as { cliente: ClienteCreato }
       const label = dati.cliente.studio_nome ?? `Dr. ${dati.cliente.cognome}`
       resetForm()
-      onCreato({ id: dati.cliente.id, label, studioNome: dati.cliente.studio_nome })
+      onCreato({
+        id: dati.cliente.id,
+        label,
+        nome: dati.cliente.nome,
+        cognome: dati.cliente.cognome,
+        studioNome: dati.cliente.studio_nome,
+      })
     } catch {
       errore('Non sono riuscita a creare il dentista. Riprova.')
       setInvio(false)
