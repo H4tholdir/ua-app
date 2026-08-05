@@ -4,51 +4,68 @@
 <meta charset="utf-8">
 <title>UÀ — L'avviso di peso nella scheda del lavoro (05/08/2026)</title>
 <style>
-/* Token VERI, copiati da src/app/globals.css (righe 72-85 chiaro, 184-193 scuro).
-   Nessun colore inventato: il riquadro riusa solo variabili già in uso in
-   TabImmagini.tsx. */
+/* 🛑 SECONDA VERSIONE. La prima aveva un riquadro inventato: fondo `--sfc`,
+   filetto rosso a sinistra, raggio 10. Francesco l'ha respinto — «stile AI
+   slop, usiamo le regole del nostro design system» — e aveva ragione: la
+   pagina `/lavori/[id]/modifica` monta `data-ds="v3"`, quindi i componenti si
+   prendono da `src/components/ds/`, non si disegnano a mano (regola di
+   convivenza DS v3 §14).
+   Qui sotto c'è l'AVVISO §5.18, replicato coi suoi token veri
+   (`src/design-system/v3/tokens.ts` + `src/app/ds-v3.css`) per l'anteprima:
+   nel codice è il componente vero, non questa copia. */
 :root {
-  --bg: #F4F0E7; --sfc: #E4DFD9; --elv: #EDEDEA;
-  --t1: #1C1916; --t2: #4A3D33; --primary: #D90012;
+  --bg: #F4F0E7; --card: #FFFEFA; --elv: var(--card);
+  --ink: #1D1913; --muted: #6E6457;
+  --red: #D90012; --red-tint: #FBEDEC;
+  --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
   --font-v3: 'DM Sans', system-ui, sans-serif;
 }
 .scuro {
-  --bg: #171411; --sfc: #232018; --elv: #2C2A27;
-  --t1: #F0EDE8; --t2: #B9B2A7; --primary: #E8001A;
+  --bg: #171411; --card: #211D18; --elv: #2B2620;
+  --ink: #F2EEE7; --muted: #A69B8C;
+  --red: #FF3B44; --red-tint: rgba(255,59,68,.14);
+  --sh-card: none;
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: var(--font-v3); background: #8A8A8A; padding: 24px; }
 .riga { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 28px; }
 .etichetta { font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .06em;
   text-transform: uppercase; margin: 0 0 8px; }
-.schermo { background: var(--bg); border-radius: 18px; padding: 16px; overflow: hidden; }
+.nota { font-size: 12px; color: #fff; margin: 6px 0 0; max-width: 420px; line-height: 1.5; }
+.schermo { background: var(--bg); border-radius: 18px; padding: 16px; overflow: hidden;
+  position: relative; }
 .w390 { width: 390px; } .w768 { width: 768px; } .w1280 { width: 1280px; }
 
-/* ── I pezzi, identici al componente ─────────────────────────── */
-.griglia { display: grid; gap: 8px; margin-bottom: 20px; }
+/* ── Il contenuto della scheda, per contesto ─────────────────── */
+.griglia { display: grid; gap: 8px; }
 .g390 { grid-template-columns: repeat(3, 1fr); }
 .g768 { grid-template-columns: repeat(4, 1fr); }
 .g1280 { grid-template-columns: repeat(5, 1fr); }
 .carta { position: relative; border-radius: 10px; overflow: hidden; height: 100px;
-  background: var(--elv); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04); }
+  background: var(--elv); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
 .doc { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 4px; background: var(--sfc); padding: 8px; }
-.doc .nome { font-size: 10px; font-weight: 600; color: var(--t2); text-align: center;
+  justify-content: center; gap: 4px; background: var(--card); padding: 8px; }
+.doc .nome { font-size: 10px; font-weight: 600; color: var(--muted); text-align: center;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.velo-errore { position: absolute; inset: 0; display: flex; align-items: center;
+.velo { position: absolute; inset: 0; display: flex; align-items: center;
   justify-content: center; background: rgba(217,0,18,.72); border-radius: 10px; }
-.velo-errore span { font-size: 11px; font-weight: 700; color: #fff; }
+.velo span { font-size: 11px; font-weight: 700; color: #fff; }
+.vuota { background: #C9C2B8; } .scuro .vuota { background: #3A3630; }
 
-/* IL RIQUADRO — è la parte nuova */
-.avviso { display: flex; flex-direction: column; gap: 6px; background: var(--sfc);
-  border-left: 3px solid var(--primary); border-radius: 10px; padding: 12px 14px;
-  margin-bottom: 20px; }
-.avviso p { font-size: 13px; line-height: 1.45; color: var(--t1); margin: 0; }
-.avviso b { font-weight: 700; }
-
-/* Il PRIMA — com'è oggi in produzione */
-.prima { opacity: 1; }
-.nota { font-size: 12px; color: #fff; margin: 6px 0 0; max-width: 390px; line-height: 1.5; }
+/* ── L'AVVISO §5.18, coi token veri ──────────────────────────── */
+.contenitore { position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 480px;
+  padding: 0 24px; }
+.avviso { display: flex; align-items: flex-start; gap: 8px; padding: 16px;
+  border-radius: 18px; background: var(--card); box-shadow: var(--sh-card); }
+.icona { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--red-tint); color: var(--red);
+  font-size: 13px; font-weight: 800; }
+.testo { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.testo p { font-size: 15.5px; font-weight: 700; color: var(--ink); margin: 0; line-height: 1.35; }
+.chiudi { font-size: 14.5px; font-weight: 600; color: var(--muted); text-decoration: underline;
+  text-underline-offset: 3px; background: none; border: none; cursor: pointer;
+  align-self: flex-start; padding: 0; }
 </style>
 </head>
 <body>
@@ -56,102 +73,141 @@ body { margin: 0; font-family: var(--font-v3); background: #8A8A8A; padding: 24p
 <div class="riga">
   <div>
     <p class="etichetta">Oggi in produzione · 390 · chiaro</p>
-    <div class="schermo w390 prima">
-      <div class="griglia g390">
-        <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
-        <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">tac.pdf</span></div></div>
-        <div class="carta" style="background:#C9C2B8"></div>
-      </div>
-    </div>
-    <p class="nota">Il file è partito lo stesso, la piattaforma l'ha tagliato, e sotto il
-      triangolino l'unica frase disponibile era «Upload fallito: 413».</p>
-  </div>
-
-  <div>
-    <p class="etichetta">Nuovo · 390 · chiaro</p>
     <div class="schermo w390">
       <div class="griglia g390">
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
+          <div class="velo"><span>⚠</span></div></div>
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">tac.pdf</span></div></div>
-        <div class="carta" style="background:#C9C2B8"></div>
-      </div>
-      <div class="avviso">
-        <p><b>modulo.pdf</b> — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+        <div class="carta vuota"></div>
       </div>
     </div>
-    <p class="nota">Il file non parte affatto, e la frase dice il peso vero, il limite vero
-      e una mossa eseguibile.</p>
+    <p class="nota">Il file parte lo stesso, la piattaforma lo taglia, e sotto il triangolino
+      l'unica frase disponibile è «Upload fallito: 413». Il triangolino non ha nemmeno un testo
+      leggibile: la spiegazione esiste solo per i lettori di schermo.</p>
+  </div>
+
+  <div>
+    <p class="etichetta">Nuovo · 390 · chiaro · Avviso §5.18</p>
+    <div class="schermo w390" style="padding-bottom:120px">
+      <div class="griglia g390">
+        <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
+          <div class="velo"><span>⚠</span></div></div>
+        <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">tac.pdf</span></div></div>
+        <div class="carta vuota"></div>
+      </div>
+      <div class="contenitore">
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>modulo.pdf — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="nota">Il file non parte affatto. L'avviso è quello del sistema: non sparisce da solo
+      (è un errore), porta il suo «Chiudi», e la frase non viene mai troncata.</p>
   </div>
 
   <div>
     <p class="etichetta">Nuovo · 390 · scuro</p>
-    <div class="schermo w390 scuro">
+    <div class="schermo w390 scuro" style="padding-bottom:120px">
       <div class="griglia g390">
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
+          <div class="velo"><span>⚠</span></div></div>
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">tac.pdf</span></div></div>
-        <div class="carta" style="background:#3A3630"></div>
+        <div class="carta vuota"></div>
       </div>
-      <div class="avviso">
-        <p><b>modulo.pdf</b> — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+      <div class="contenitore">
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>modulo.pdf — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
       </div>
     </div>
+    <p class="nota">In scuro la carta è più chiara del fondo e l'ombra sparisce, come vuole §3.2.</p>
   </div>
 </div>
 
 <div class="riga">
   <div>
     <p class="etichetta">Nuovo · 768 · chiaro · due file fermi su tre</p>
-    <div class="schermo w768">
+    <div class="schermo w768" style="padding-bottom:190px">
       <div class="griglia g768">
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
-        <div class="carta" style="background:#C9C2B8"></div>
+          <div class="velo"><span>⚠</span></div></div>
+        <div class="carta vuota"></div>
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">tac-lato.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
-        <div class="carta" style="background:#C9C2B8"></div>
+          <div class="velo"><span>⚠</span></div></div>
+        <div class="carta vuota"></div>
       </div>
-      <div class="avviso">
-        <p><b>modulo.pdf</b> — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
-        <p><b>tac-lato.pdf</b> — Questo documento pesa 7,4 MB e il massimo è 4MB: allegane uno più leggero.</p>
+      <div class="contenitore">
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>modulo.pdf — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>tac-lato.pdf — Questo documento pesa 7,4 MB e il massimo è 4MB: allegane uno più leggero.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
       </div>
     </div>
-    <p class="nota">Col nome davanti si sa quale togliere: tre carte in griglia si assomigliano tutte.</p>
+    <p class="nota">Il nome apre la frase: con più riquadri uguali in griglia, «pesa 6,0 MB» da solo
+      non dice quale togliere. La pila ha un tetto d'altezza e scorre (D234), così il «Chiudi»
+      dell'ultimo non finisce mai sotto la piega.</p>
   </div>
 
   <div>
     <p class="etichetta">Nuovo · 768 · scuro · una foto, non un documento</p>
-    <div class="schermo w768 scuro">
+    <div class="schermo w768 scuro" style="padding-bottom:130px">
       <div class="griglia g768">
-        <div class="carta" style="background:#3A3630"><div class="velo-errore"><span>⚠</span></div></div>
-        <div class="carta" style="background:#3A3630"></div>
-        <div class="carta" style="background:#3A3630"></div>
-        <div class="carta" style="background:#3A3630"></div>
+        <div class="carta vuota"><div class="velo"><span>⚠</span></div></div>
+        <div class="carta vuota"></div>
+        <div class="carta vuota"></div>
+        <div class="carta vuota"></div>
       </div>
-      <div class="avviso">
-        <p><b>impronta-sup.jpg</b> — Questa immagine pesa 5,0 MB e il massimo è 4MB: scattala di nuovo più da vicino, o scegline una più leggera.</p>
+      <div class="contenitore">
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>impronta-sup.jpg — Questa immagine pesa 5,0 MB e il massimo è 4MB: scattala di nuovo più da vicino, o scegline una più leggera.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
       </div>
     </div>
-    <p class="nota">A una foto si può dire «scattala di nuovo». A un PDF no: non c'è niente da riscattare.</p>
+    <p class="nota">A una foto si può dire «scattala di nuovo». A un PDF no: non c'è niente da
+      riscattare, e infatti la frase cambia.</p>
   </div>
 </div>
 
 <div class="riga">
   <div>
     <p class="etichetta">Nuovo · 1280 · chiaro</p>
-    <div class="schermo w1280">
+    <div class="schermo w1280" style="padding-bottom:130px">
       <div class="griglia g1280">
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
-        <div class="carta" style="background:#C9C2B8"></div>
-        <div class="carta" style="background:#C9C2B8"></div>
-        <div class="carta" style="background:#C9C2B8"></div>
-        <div class="carta" style="background:#C9C2B8"></div>
+          <div class="velo"><span>⚠</span></div></div>
+        <div class="carta vuota"></div><div class="carta vuota"></div>
+        <div class="carta vuota"></div><div class="carta vuota"></div>
       </div>
-      <div class="avviso">
-        <p><b>modulo.pdf</b> — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+      <div class="contenitore">
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>modulo.pdf — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -160,17 +216,21 @@ body { margin: 0; font-family: var(--font-v3); background: #8A8A8A; padding: 24p
 <div class="riga">
   <div>
     <p class="etichetta">Nuovo · 1280 · scuro</p>
-    <div class="schermo w1280 scuro">
+    <div class="schermo w1280 scuro" style="padding-bottom:130px">
       <div class="griglia g1280">
         <div class="carta"><div class="doc"><span style="font-size:28px">📄</span><span class="nome">modulo.pdf</span></div>
-          <div class="velo-errore"><span>⚠</span></div></div>
-        <div class="carta" style="background:#3A3630"></div>
-        <div class="carta" style="background:#3A3630"></div>
-        <div class="carta" style="background:#3A3630"></div>
-        <div class="carta" style="background:#3A3630"></div>
+          <div class="velo"><span>⚠</span></div></div>
+        <div class="carta vuota"></div><div class="carta vuota"></div>
+        <div class="carta vuota"></div><div class="carta vuota"></div>
       </div>
-      <div class="avviso">
-        <p><b>modulo.pdf</b> — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+      <div class="contenitore">
+        <div class="avviso">
+          <span class="icona">!</span>
+          <div class="testo">
+            <p>modulo.pdf — Questo documento pesa 6,0 MB e il massimo è 4MB: allegane uno più leggero.</p>
+            <button class="chiudi">Chiudi</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

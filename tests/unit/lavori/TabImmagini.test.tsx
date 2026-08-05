@@ -112,6 +112,7 @@ vi.mock('@/components/ds/FoglioCategoria', () => ({
 }))
 
 import { TabImmagini } from '@/components/features/lavori/form/TabImmagini'
+import { AvvisiProvider } from '@/components/ds/Avviso'
 
 // ─── FakeXHR — XMLHttpRequest non esiste altrimenti in jsdom per l'upload ──
 class FakeXHR {
@@ -195,19 +196,25 @@ function mockMatchMedia(matches: boolean) {
   })) as unknown as typeof window.matchMedia
 }
 
-// ─── Harness — replica il chiamante reale (`LavoroFormClient.tsx:128-130`):
-//     `immagini` vive nello STATO DEL GENITORE, `onAdd` lo accresce. ────────
+// ─── Harness — replica il chiamante reale (`LavoroFormClient`):
+//     `immagini` vive nello STATO DEL GENITORE, `onAdd` lo accresce, e il
+//     tutto sta dentro `AvvisiProvider` — che il form monta per davvero
+//     (auto-avvolgimento, stesso pattern di `SchedaLavoroV3`). 🛑 Il provider
+//     NON è un dettaglio del test: `useAvvisi()` fuori dal suo contesto
+//     LANCIA, quindi montarlo qui è replicare il chiamante, non aggirarlo.
 function Harness({ onAddSpy }: { onAddSpy?: (img: LavoroImmagine) => void }) {
   const [immagini, setImmagini] = useState<LavoroImmagine[]>([])
   return (
-    <TabImmagini
-      immagini={immagini}
-      lavoro_id="lav-1"
-      onAdd={(img) => {
-        onAddSpy?.(img)
-        setImmagini((prev) => [...prev, img])
-      }}
-    />
+    <AvvisiProvider>
+      <TabImmagini
+        immagini={immagini}
+        lavoro_id="lav-1"
+        onAdd={(img) => {
+          onAddSpy?.(img)
+          setImmagini((prev) => [...prev, img])
+        }}
+      />
+    </AvvisiProvider>
   )
 }
 
@@ -319,6 +326,14 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       expect(screen.getByRole('alert')).toBeTruthy()
       expect(vibraMock).toHaveBeenCalledWith('error')
       expect(suonaMock).toHaveBeenCalledWith('errore')
+
+      // 🛑 UNA volta sola. Il suono dell'errore lo fa `errore()` del DS
+      // (§5.18): finché il 05/08/2026 questo componente lo suonava anche da
+      // sé, e le due sorgenti insieme darebbero due suoni sullo stesso fatto —
+      // la classe di difetto «due posti che fanno la stessa cosa», che qui si
+      // sentirebbe letteralmente.
+      expect(suonaMock.mock.calls.filter((c) => c[0] === 'errore')).toHaveLength(1)
+      expect(vibraMock.mock.calls.filter((c) => c[0] === 'error')).toHaveLength(1)
     })
 
     it('la rete fallisce (xhr.onerror): stesso trattamento d\'errore', async () => {
@@ -421,11 +436,13 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       vi.stubGlobal('fetch', fetchMock)
 
       const { container } = render(
-        <TabImmagini
-          immagini={[immagineDb({ id: 'img-9', categoria: 'impronta', nome_file: 'a.jpg' })]}
-          lavoro_id="lav-1"
-          onAdd={() => {}}
-        />
+        <AvvisiProvider>
+          <TabImmagini
+            immagini={[immagineDb({ id: 'img-9', categoria: 'impronta', nome_file: 'a.jpg' })]}
+            lavoro_id="lav-1"
+            onAdd={() => {}}
+          />
+        </AvvisiProvider>
       )
       const select = container.querySelector('select') as HTMLSelectElement
       const utente = userEvent.setup()
@@ -442,13 +459,15 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
 
     it('legge `img.categoria`, non `img.descrizione` (D81)', () => {
       const { container } = render(
-        <TabImmagini
-          immagini={[
-            immagineDb({ id: 'img-1', categoria: 'rx', descrizione: 'nota libera irrilevante' }),
-          ]}
-          lavoro_id="lav-1"
-          onAdd={() => {}}
-        />
+        <AvvisiProvider>
+          <TabImmagini
+            immagini={[
+              immagineDb({ id: 'img-1', categoria: 'rx', descrizione: 'nota libera irrilevante' }),
+            ]}
+            lavoro_id="lav-1"
+            onAdd={() => {}}
+          />
+        </AvvisiProvider>
       )
       const select = container.querySelector('select') as HTMLSelectElement
       expect(within(select).getByText('Radiografia').getAttribute('value')).toBe('rx')

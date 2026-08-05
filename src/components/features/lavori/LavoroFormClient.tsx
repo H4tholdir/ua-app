@@ -22,6 +22,7 @@ import { TabAccettazione } from './form/TabAccettazione'
 import { TabProve } from './TabProve'
 import { PacchettoConsegnaSheet } from './PacchettoConsegnaSheet'
 import { SegnalaProblemaSheet } from './SegnalaProblemaSheet'
+import { AvvisiProvider } from '@/components/ds/Avviso'
 
 interface LavoroFormClientProps {
   lavoro: LavoroDettaglio
@@ -30,7 +31,23 @@ interface LavoroFormClientProps {
   bridged?: boolean
 }
 
-export function LavoroFormClient({
+/**
+ * `AvvisiProvider` **NON** è montato nel layout `(app)` — solo catalogo e wizard
+ * lo montano — e questo form è renderizzato da solo anche nelle prove. Quindi si
+ * auto-avvolge, **stesso pattern di `SchedaLavoroV3`** (che lo documenta in
+ * testa al suo file): il Corpo consuma `useAvvisi()` per gli errori (L6).
+ * Serve a `TabImmagini`, dove un caricamento rifiutato deve dire **cosa** è
+ * successo e **cosa fare** — prima quella frase esisteva ma non si leggeva.
+ */
+export function LavoroFormClient(props: LavoroFormClientProps) {
+  return (
+    <AvvisiProvider>
+      <LavoroFormClientCorpo {...props} />
+    </AvvisiProvider>
+  )
+}
+
+function LavoroFormClientCorpo({
   lavoro,
   ruolo,
   defaultTab,

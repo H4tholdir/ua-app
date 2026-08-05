@@ -6,11 +6,13 @@ import type { LavoroImmagine } from '@/types/domain'
 import { comprimiSePossibile } from '@/lib/storage/compressione-immagine'
 import { troppoGrande } from '@/lib/storage/limite-caricamento'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
+// `suona` non si importa più qui: il suono dell'errore lo fa `errore()` del DS
+// (§5.18) — averlo in due posti darebbe due suoni sullo stesso fatto.
 import { vibra } from '@/design-system/v3/haptic'
-import { suona } from '@/design-system/v3/sound'
 import { raisedShadow } from './styles'
 import { CATEGORIE_FOTO, type CategoriaFoto } from '@/lib/domain/categorie-foto'
 import { FoglioCategoria } from '@/components/ds/FoglioCategoria'
+import { useAvvisi } from '@/components/ds/Avviso'
 
 // ─── Stato locale per upload ottimistico ────────────────────────────
 interface FotoLocale {
@@ -145,6 +147,14 @@ interface SheetCategoriaState {
 export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
   const reduced = useReducedMotion()
   const spring = molla.snappy
+  // §5.18 — la frase dell'errore si dice con l'Avviso del DS, l'unica notifica
+  // non bloccante del sistema. 🔑 Prima viveva SOLO in un `aria-label` sulla
+  // carta, e a schermo restava un triangolino rosso muto: si sapeva che
+  // qualcosa era andato storto, non che cosa fare. L'Avviso di tipo errore non
+  // sparisce da solo e porta il suo «Chiudi» (via di fuga L6) — che è
+  // esattamente il contratto giusto qui: un caricamento fallito richiede una
+  // mossa, non un lampeggio.
+  const { errore: avvisaErrore } = useAvvisi()
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
@@ -265,11 +275,15 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         setFotoLocali((prev) =>
           prev.map((f) => (f.id === localId ? { ...f, error: msg, progress: 0 } : f))
         )
-        vibra('error')
-        suona('errore')
+        // Il NOME del file sta nella frase: con più carte uguali in griglia,
+        // «pesa 6,0 MB» senza il nome non dice quale togliere.
+        // 🛑 Suono e vibrazione NON si ripetono qui: `errore()` del DS li fa
+        //    già suonare lui (§5.18, `Avviso.tsx`) — chiamarli anche di qua
+        //    darebbe due suoni sullo stesso fatto.
+        avvisaErrore(`${file.name} — ${msg}`)
       }
     },
-    [lavoro_id, onAdd]
+    [lavoro_id, onAdd, avvisaErrore]
   )
 
   // Gestione files selezionati (camera o galleria): crea le carte ottimistiche
@@ -383,10 +397,6 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
 
   // Unisce immagini già caricate + locali in progress
   const foteDaRenderizzare = fotoLocali
-
-  // I file che si sono fermati, con la loro frase: il riquadro sotto la griglia
-  // li elenca per nome.
-  const fotoInErrore = fotoLocali.filter((f) => f.error)
 
   return (
     <div>
@@ -634,39 +644,6 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         </div>
       )}
 
-      {/* ─── Le frasi degli errori — si LEGGONO ──────────────────────
-          Una riga per file fallito, col suo NOME: con tre carte uguali in
-          griglia, «pesa 6,0 MB» senza il nome non dice quale togliere. */}
-      {fotoInErrore.length > 0 && (
-        <div
-          role="alert"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            background: 'var(--sfc, #E4DFD9)',
-            borderLeft: '3px solid var(--primary, #D90012)',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            marginBottom: '20px',
-          }}
-        >
-          {fotoInErrore.map((foto) => (
-            <p
-              key={foto.id}
-              style={{
-                fontFamily: 'var(--font-v3, sans-serif)',
-                fontSize: '13px',
-                lineHeight: 1.45,
-                color: 'var(--t1, #1C1916)',
-                margin: 0,
-              }}
-            >
-              <span style={{ fontWeight: 700 }}>{foto.nomeFile}</span> — {foto.error}
-            </p>
-          ))}
-        </div>
-      )}
 
       {/* ─── Immagini già caricate (da DB) ──────────────────────── */}
       {immagini.length > 0 ? (
