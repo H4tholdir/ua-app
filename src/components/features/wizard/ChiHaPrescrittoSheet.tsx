@@ -210,7 +210,12 @@ export function ChiHaPrescrittoSheet(props: {
               // anch'esso `--card` rendeva la riga invisibile (restava solo il
               // testo) — stesso difetto già chiuso per `.ds-chip-scelta`/
               // `.ds-tasto-tondo`, qui esteso alle righe di questo foglio.
-              <button key={m.id} type="button" onClick={() => scegli(m)} className="ds-medico-riga" style={stileMedico}>
+              // `ds-tap-v3` = l'anello di messa a fuoco del DS (D4): senza,
+              // navigando da tastiera queste righe avevano il solo outline
+              // nativo del browser. Il polish D4 l'aveva esteso alle «voci
+              // degli sheet» — queste sono nate dopo e ne erano rimaste fuori
+              // (gate L2 del 05/08).
+              <button key={m.id} type="button" onClick={() => scegli(m)} className="ds-medico-riga ds-tap-v3" style={stileMedico}>
                 <Avatar nome={nomeCompleto(m)} diametro={46} />
                 <span style={stileMedicoNome}>{nomeCompleto(m)}</span>
               </button>

@@ -5,14 +5,21 @@
 // mai da sola se è urgente: `urgente` lo decide il chiamante SOLO per una
 // consegna imminente (oggi o domani) — mai per altri significati generici di
 // "importante". CardInfo inserisce il separatore tra le righe (mai dopo
-// l'ultima) e avvisa in dev se il chiamante supera le 5 righe di legge: non
+// l'ultima) e avvisa in dev se il chiamante supera le 6 righe di legge (D230,
+// era 5 fino al gate L2 del 05/08/2026 — v. la costante sotto): non
 // le nasconde mai, la regola di prodotto non è applicabile a runtime (come
 // TastoPrimario §5.1 — mostra sempre, avvisa solo chi sviluppa).
 
 import { Children, Fragment, useEffect, type ReactNode } from 'react'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 
-const MASSIMO_RIGHE = 5
+// D230 (05/08/2026) — SEI, non cinque. La carta «Il lavoro» della scheda che
+// Francesco ha approvato (D225②) ne porta sei: dentista · paziente · lavoro ·
+// colore · consegna · tecnico. Fino a oggi §5.10 ne dichiarava cinque e il
+// nodo era APERTO nella spec: ogni render della scheda in sviluppo stampava un
+// avviso in attesa di questa decisione. Ha vinto la carta scelta, non la regola
+// scritta prima di vederla.
+const MASSIMO_RIGHE = 6
 
 /** I due toni ammessi per la pastiglia di una riga (v. `RigaDato.pastiglia`).
  *  Chiuso apposta: la pastiglia dice PROVENIENZA o STATO, e i due significati

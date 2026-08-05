@@ -637,26 +637,33 @@ function CorpoWizard(props: {
   }, [stato, dati.giorniPerTipo, errore])
 
   if (fatto) {
+    // Il «Fatto!» vive nella STESSA colonna dei passi (gate L2 del 05/08, D233①):
+    // senza questo wrapper le carte andavano da bordo a bordo — a 390 senza il
+    // respiro laterale, a 768/1280 stirate a tutta pagina col rosso incollato a
+    // sinistra (TastoPrimario è maxWidth 480 senza margin auto) mentre la testata
+    // restava centrata. Due assi diversi nella stessa schermata.
     return (
-      <FrameFatto
-        lavoro={fatto.lavoro}
-        accessoriFalliti={fatto.accessoriFalliti}
-        elemento={fatto.elemento}
-        colore={fatto.colore}
-        coloreOrigine={fatto.coloreOrigine}
-        // Task 10 (P37) — chiude il 🚧 lasciato dalla ondata B ③/T3: il
-        // wizard ora HA una via per il prescrittore (il mini-foglio «Chi ha
-        // prescritto?»). Stringa vuota quando assente — `FrameFatto` nasconde
-        // da sola la riga «Prescritto da» in quel caso (0B-9).
-        richiedenteNome={fatto.richiedenteNome}
-        dentista={fatto.dentista}
-        lavoroLabel={fatto.lavoroLabel}
-        pz={fatto.pz}
-        giorni={fatto.giorni}
-        daStoria={fatto.daStoria}
-        dataConsegna={fatto.dataConsegna}
-        onTornaHome={onTornaHome}
-      />
+      <div style={colonnaStile}>
+        <FrameFatto
+          lavoro={fatto.lavoro}
+          accessoriFalliti={fatto.accessoriFalliti}
+          elemento={fatto.elemento}
+          colore={fatto.colore}
+          coloreOrigine={fatto.coloreOrigine}
+          // Task 10 (P37) — chiude il 🚧 lasciato dalla ondata B ③/T3: il
+          // wizard ora HA una via per il prescrittore (il mini-foglio «Chi ha
+          // prescritto?»). Stringa vuota quando assente — `FrameFatto` nasconde
+          // da sola la riga «Prescritto da» in quel caso (0B-9).
+          richiedenteNome={fatto.richiedenteNome}
+          dentista={fatto.dentista}
+          lavoroLabel={fatto.lavoroLabel}
+          pz={fatto.pz}
+          giorni={fatto.giorni}
+          daStoria={fatto.daStoria}
+          dataConsegna={fatto.dataConsegna}
+          onTornaHome={onTornaHome}
+        />
+      </div>
     )
   }
 

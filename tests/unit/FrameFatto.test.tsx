@@ -623,3 +623,39 @@ describe('FrameFatto — "Torna alla home"', () => {
     expect(onTornaHome).toHaveBeenCalledTimes(1)
   })
 })
+
+// D231① (gate L2 del 05/08, rilievo M3-T39-7) — l'avviso non può CONTRADDIRE la
+// carta che gli sta sotto. Quando il codice digitato non è in catalogo ma la
+// trascrizione è stata scritta lo stesso (le due strade sono indipendenti sul
+// server: `componiSnapshot` vs `risolviColoreCaso`), la carta «La prescrizione»
+// mostra il colore con la pastiglia «✓ dalla prescrizione» — e la vecchia frase
+// diceva «Non sono riuscita a salvare il colore». Delle due una è falsa, e a
+// essere falsa era la frase: il colore del LAVORO non si è potuto applicare, la
+// trascrizione del foglio c'è.
+describe('FrameFatto — la frase del colore non contraddice la carta (D231①)', () => {
+  it('trascrizione salva + colore fuori catalogo → dice che il colore è trascritto, non che è perduto', async () => {
+    renderFatto({ colore: 'A3,5', accessoriFalliti: ['colore'] })
+    const avviso = await screen.findByRole('alert')
+    // La riga con la pastiglia c'è: è quello che la frase non deve smentire.
+    expect(carta('La prescrizione').getByText('A3,5')).toBeInTheDocument()
+    expect(avviso).toHaveTextContent(/trascritto dal foglio/)
+    expect(avviso).not.toHaveTextContent(/Non sono riuscita a salvare il colore/)
+  })
+
+  it('sganciato + fuori catalogo → NIENTE è stato salvato: resta la frase storica', async () => {
+    // Qui la carta non mostra nulla (test sopra), quindi nessuna contraddizione:
+    // la perdita è vera e la frase deve continuare a dirla.
+    renderFatto({ colore: 'A3,5', coloreOrigine: 'lab', accessoriFalliti: ['colore'] })
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Non sono riuscita a salvare il colore. Lo aggiungi dalla scheda.'
+    )
+  })
+
+  it('elementi persi + colore trascritto → due frasi distinte, nessuna delle due falsa', async () => {
+    renderFatto({ colore: 'A3,5', elemento: 'pippo', accessoriFalliti: ['elementi', 'colore'] })
+    const avviso = await screen.findByRole('alert')
+    // Gli elementi sono persi davvero → frase storica, ma SENZA il colore dentro.
+    expect(avviso).toHaveTextContent('Non sono riuscita a salvare gli elementi. Li aggiungi dalla scheda.')
+    expect(avviso).toHaveTextContent(/trascritto dal foglio/)
+  })
+})

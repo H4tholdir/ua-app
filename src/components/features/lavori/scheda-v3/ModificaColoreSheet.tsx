@@ -90,6 +90,7 @@ import { scalaDelCodice } from '@/lib/domain/colore-dente'
 import { uguagliaColore } from '@/lib/lavori/colore-riga-scheda'
 import { MOTIVI_DIVERGENZA, type MotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
 import { molla } from '@/design-system/v3/motion'
+import { vibra } from '@/design-system/v3/haptic'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 
 /** Le quattro pastiglie del motivo, testi VERBATIM dal mockup
@@ -559,7 +560,11 @@ export function ModificaColoreSheet(props: {
             label="Nota (se serve)"
             valore={nota}
             onCambia={setNota}
-            placeholder="es. richiesta al telefono, 4 agosto"
+            // Gate L2 05/08 — a 390 il testo d'esempio precedente («es. richiesta
+            // al telefono, 4 agosto») veniva tagliato a metà glifo, senza ellissi
+            // né sfumatura: un esempio che finisce dentro una lettera si legge
+            // come un guasto. Più corto, ci sta intero.
+            placeholder="es. richiesta al telefono"
           />
 
           {/* Si torna DA DOVE SI È ARRIVATI: dal foglio D212 quando c'è passato,
@@ -664,8 +669,9 @@ function Via(props: {
           </span>
           <span
             style={{
+              // 13.5 era fuori scala §4.1 (label 13, poi 15.5): gate L2 05/08.
+              fontSize: tipografia.size.label,
               display: 'block',
-              fontSize: 13.5,
               fontWeight: tipografia.weight.semibold,
               color: 'var(--muted)',
               marginTop: 2,
@@ -696,7 +702,14 @@ function PastigliaMotivo(props: { testo: string; scelta: boolean; onScegli: () =
         type="button"
         className="ds-pastiglia-motivo ds-tap-v3"
         aria-pressed={scelta}
-        onClick={onScegli}
+        // Gate L2 05/08 — la pastiglia dichiara di specchiare FoglioCategoria
+        // §5.41 (FoglioCategoria.tsx:227) e ChipScelta, che vibrano a ogni
+        // selezione: stessa anatomia, stesso feedback. Solo `vibra`, mai
+        // `suona`: è una scelta fra opzioni esistenti, non una cosa che nasce.
+        onClick={() => {
+          vibra('selection')
+          onScegli()
+        }}
         whileTap={{ scale: 0.97 }}
         transition={molla.press}
         style={{
@@ -719,9 +732,11 @@ function PastigliaMotivo(props: { testo: string; scelta: boolean; onScegli: () =
   )
 }
 
+// 14.5 era fuori dalla scala chiusa §4.1 (fra 13 e 15.5 non c'è nulla): il ruolo
+// è quello della didascalia di foglio, che il sistema serve a 15.5 (gate L2 05/08).
 const stileSotto = {
   margin: 0,
-  fontSize: 14.5,
+  fontSize: tipografia.size.callout,
   fontWeight: tipografia.weight.semibold,
   color: 'var(--muted)',
   lineHeight: 1.45,
@@ -759,15 +774,22 @@ const stileCambioFreccia = {
   color: 'var(--faint)',
 } as const
 
+// Gate L2 del 05/08 — DUE correzioni sulla stessa etichetta (TRASCRITTO/NUOVO):
+// ① 11.5 stava SOTTO il minimo della scala §4.1 (caption 12.5) — stesso difetto
+//    che D87 aveva già corretto su FoglioCategoria;
+// ② `--faint` su `--bg-deep` misura 4,17:1, sotto AA. Il fix di `--faint` della
+//    rev. 3.1 era stato verificato su `--bg` (4,56 ✓) ma non su `--bg-deep`:
+//    stesso buco che D193 ha chiuso in dark enumerando i fondi. Qui si sposta
+//    l'etichetta su `--muted` invece di ritoccare il token, che vive ovunque.
 const stileCambioEtichetta = {
   display: 'block',
   textAlign: 'center',
   marginTop: 3,
-  fontSize: 11.5,
+  fontSize: tipografia.size.caption,
   fontWeight: tipografia.weight.extrabold,
   textTransform: 'uppercase',
   letterSpacing: '0.1em',
-  color: 'var(--faint)',
+  color: 'var(--muted)',
 } as const
 
 const stileGrigliaPastiglie = {

@@ -341,7 +341,11 @@ export function AllegaPrescrizioneSheet(props: {
             label="Da dove arriva?"
             valore={testo}
             onCambia={setTesto}
-            placeholder="es. email del 4 agosto dal Dr. Rossi"
+            // Gate L2 05/08 — misurato allo scatto a 390: il testo d'esempio
+            // finiva tagliato dentro il nome («dal Dr. Ros»), senza ellissi né
+            // sfumatura. Stesso difetto del placeholder del foglio motivo, e
+            // stessa cura: più corto, così ci sta intero sullo schermo stretto.
+            placeholder="es. email del 4 agosto"
             aiuto="Facoltativo: serve solo a te, per ritrovarla."
           />
           {/* Conferma = TastoSecondario, MAI un secondo rosso: l'unico rosso è

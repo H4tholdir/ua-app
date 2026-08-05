@@ -190,10 +190,23 @@ function CorpoAvviso(props: { voce: VoceAvviso; onRimuovi: (id: number) => void 
             fontWeight: tipografia.weight.bold,
             color: 'var(--ink)',
             margin: 0,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
+            // D234 (gate L2, 05/08) — il taglio a 2 righe vale per i SUCCESSI,
+            // mai per gli errori. Un successo è effimero (sparisce da solo dopo
+            // 4s) e la sua frase è breve: due righe bastano. Un errore RESTA
+            // finché non lo chiudi, e il suo contratto è dire «cosa non è
+            // riuscito + cosa fare» (in testa a questo file): del 409 sulla
+            // foto-fonte si leggeva solo «…di questo lavoro — no…», cioè
+            // esattamente la metà che spiega perché. Un errore troncato non è
+            // un errore, è un lampeggio. Coerente col vincolo già ratificato
+            // «mai un'ellissi a metà» del verbale Cassetta.
+            ...(voce.tipo === 'errore'
+              ? {}
+              : {
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical' as const,
+                  overflow: 'hidden',
+                }),
           }}
         >
           {voce.testo}

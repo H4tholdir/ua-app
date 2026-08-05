@@ -284,6 +284,13 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         //    si ricade sul generico invece di un errore non gestito.
         if (res.status === 409) {
           const corpo = (await res.json().catch(() => ({}))) as { error?: string }
+          // Gate L2 del 05/08 — il foglio di conferma si CHIUDE sul 409. Restare
+          // aperto significherebbe offrire un ELIMINA rosso pienamente armato su
+          // un'azione che, come dice il commento qui sopra, non può riuscire
+          // finché la foto resta collegata: il messaggio spiega perché no, e il
+          // tasto accanto continua a dire di sì. Il visore invece resta aperto —
+          // la foto c'è ancora, ed è giusto vederla.
+          setConfermaAperta(false)
           errore(corpo?.error || 'Non sono riuscita a eliminare la foto. Riprova.')
           return
         }

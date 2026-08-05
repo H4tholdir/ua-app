@@ -96,8 +96,16 @@
    `--card` + `--sh-press: none` dentro un pannello anch'esso `--card`,
    riga invisibile in dark) esteso alle righe medico di
    ChiHaPrescrittoSheet.tsx (`.ds-medico-riga`, mini-foglio «Chi ha
-   prescritto?»): stesso rimedio, stessa forma di regola. */
-[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-medico-riga {
+   prescritto?»): stesso rimedio, stessa forma di regola.
+   🔁 TERZA volta, gate L2 del 05/08: le due vie del foglio D212
+   (`.ds-via-d212`, «avevo copiato male» / «lo stiamo cambiando noi») avevano
+   lo stesso difetto — interno `#211D18` su pannello `#211D18`, misurato allo
+   scatto. Una superficie premibile in dark deve AFFIORARE (spec §3.2), e a
+   distinguerla restava il solo bordo. Che il rimedio sia alla terza replica
+   dice che il difetto non è del componente ma del pattern: ogni premibile
+   dentro uno sheet lo eredita. */
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-medico-riga,
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-via-d212 {
   --card: var(--elv);
   --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
 }

@@ -129,11 +129,33 @@ function elenca(pezzi: string[]): string {
  * la direttiva «ogni campo del lavoro si corregge, fino alla consegna» la
  * garantisce.
  */
-function messaggioAccessoriFalliti(accessoriFalliti: AccessorioFallito[]): string {
-  const elenco = elenca(accessoriFalliti.map((a) => ETICHETTE_ACCESSORIO[a]))
-  const pronome =
-    accessoriFalliti.length === 1 ? PRONOME_SINGOLO[accessoriFalliti[0]] : 'Li'
-  return `Non sono riuscita a salvare ${elenco}. ${pronome} aggiungi dalla scheda.`
+function messaggioAccessoriFalliti(
+  accessoriFalliti: AccessorioFallito[],
+  // D231① (gate L2 05/08, rilievo M3-T39-7): vero quando la carta «La
+  // prescrizione» sta MOSTRANDO il colore con la pastiglia «✓ dalla
+  // prescrizione». In quel caso il colore non è perduto — è perduto il colore
+  // del LAVORO (il codice non è in catalogo), mentre la trascrizione del foglio
+  // è scritta. Dire «non sono riuscita a salvare il colore» sopra una carta che
+  // lo mostra è una frase falsa, e chi la legge crede alla frase.
+  coloreTrascrittoSalvo = false,
+): string {
+  const coloreSoloDaApplicare = coloreTrascrittoSalvo && accessoriFalliti.includes('colore')
+  const persiDavvero = coloreSoloDaApplicare
+    ? accessoriFalliti.filter((a) => a !== 'colore')
+    : accessoriFalliti
+
+  const frasi: string[] = []
+  if (persiDavvero.length > 0) {
+    const elenco = elenca(persiDavvero.map((a) => ETICHETTE_ACCESSORIO[a]))
+    const pronome = persiDavvero.length === 1 ? PRONOME_SINGOLO[persiDavvero[0]] : 'Li'
+    frasi.push(`Non sono riuscita a salvare ${elenco}. ${pronome} aggiungi dalla scheda.`)
+  }
+  if (coloreSoloDaApplicare) {
+    frasi.push(
+      "Il colore l'ho trascritto dal foglio, ma non l'ho potuto applicare al lavoro: lo scegli dalla scheda.",
+    )
+  }
+  return frasi.join(' ')
 }
 
 /** La pastiglia di provenienza (D224): dice che quel dato viene dal foglio del
@@ -260,7 +282,7 @@ export function FrameFatto(props: {
     suona('fatta')
     vibra('success')
     if (accessoriFalliti.length > 0) {
-      errore(messaggioAccessoriFalliti(accessoriFalliti))
+      errore(messaggioAccessoriFalliti(accessoriFalliti, mostraColoreTrascritto))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -340,7 +362,7 @@ export function FrameFatto(props: {
       </div>
 
       {/* ── Carta ① «Il lavoro» — la caption sta FUORI dalla carta (mockup) ── */}
-      <section aria-labelledby={idCartaLavoro} style={{ marginTop: 24 }}>
+      <section aria-labelledby={idCartaLavoro} style={{ marginTop: 18 }}>
         <p id={idCartaLavoro} style={stileCardTitolo}>Il lavoro</p>
         <CardInfo>
           <RigaDato chiave="Dentista" valore={dentista} />
@@ -355,7 +377,7 @@ export function FrameFatto(props: {
       </section>
 
       {/* ── Carta ② «La prescrizione» — ciò che viene dal foglio del dentista ── */}
-      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: 16 }}>
+      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: 14 }}>
         <p id={idCartaPrescrizione} style={stileCardTitolo}>La prescrizione</p>
         <CardInfo>
           {dentiPrescritti.length > 0 && (
@@ -397,7 +419,7 @@ export function FrameFatto(props: {
         </CardInfo>
       </section>
 
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 14 }}>
         <p style={stileCardTitolo}>Consegna suggerita</p>
         <div style={stileConsegnaBox}>
           <p style={stileFrase}>
@@ -413,7 +435,7 @@ export function FrameFatto(props: {
           Senza il foglio allegato l'unica cosa che vale un tasto rosso è il
           foglio: la foto dell'impronta scende a link quieto e resta a un tap.
           Con il foglio in archivio, il rosso torna quello di sempre. */}
-      <div style={{ marginTop: 26 }}>
+      <div style={{ marginTop: 20 }}>
         {fonteConImmagine ? (
           <TastoPrimario onClick={apriFileInput} disabled={caricandoFoto} motivoDisabilitato="Un attimo…">
             Fotografa l&apos;impronta
@@ -465,13 +487,19 @@ export function FrameFatto(props: {
   )
 }
 
+// D233① «compattiamo» (Francesco, gate L2 05/08) — gli spazi neutri si stringono.
+// 🛑 NON si tocca: il cerchio Ø92 (valore verbatim del mockup approvato) né il
+//    gap 44 fra i due link quieti, che è un vincolo di SICUREZZA del pollice
+//    (0B-3: sotto quella misura le due aree da 44px si sovrappongono e il tap
+//    finisce sul bersaglio sbagliato). Sono le due sole leve capaci di
+//    recuperare molto, ed entrambe costerebbero una decisione, non un ritocco.
 const stileHead: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   textAlign: 'center',
-  gap: 14,
-  marginTop: 10,
+  gap: 12,
+  marginTop: 4,
 }
 
 // wizard.html:179 .fatto-check — Ø92, tint verde.
@@ -587,7 +615,7 @@ const stilePastigliaAmbraSola: CSSProperties = {
 // spazio.sm (12) dava -14px (sovrapposizione, il secondo elemento del DOM
 // vince il tap); con spazio.xxl (44) dà 18px d'aria vera.
 const stileQuieti: CSSProperties = {
-  marginTop: 18,
+  marginTop: 14,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',

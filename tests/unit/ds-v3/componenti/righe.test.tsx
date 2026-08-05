@@ -139,22 +139,11 @@ describe('CardInfo — card di dati (§5.10)', () => {
     expect(separatori.length).toBe(2) // 3 righe → 2 separatori, mai dopo l'ultima
   })
 
-  it('con 5 RigheDato (massimo di legge) nessun console.warn', () => {
-    vi.stubEnv('NODE_ENV', 'development')
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    render(
-      <CardInfo>
-        <RigaDato chiave="A" valore="1" />
-        <RigaDato chiave="B" valore="2" />
-        <RigaDato chiave="C" valore="3" />
-        <RigaDato chiave="D" valore="4" />
-        <RigaDato chiave="E" valore="5" />
-      </CardInfo>
-    )
-    expect(warnSpy).not.toHaveBeenCalled()
-  })
-
-  it('con più di 5 RigheDato → console.warn in dev, ma le righe restano tutte visibili (mai nascoste)', () => {
+  // D230 (05/08/2026) — il massimo di legge è passato da 5 a 6: la carta «Il
+  // lavoro» approvata da Francesco (D225②) ne ha sei, e il conflitto §5.10 era
+  // dichiaratamente APERTO nella spec. La carta VERA della scheda è quindi il
+  // caso al limite, non un caso oltre il limite.
+  it('con 6 RigheDato (massimo di legge, D230) nessun console.warn', () => {
     vi.stubEnv('NODE_ENV', 'development')
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     render(
@@ -167,8 +156,25 @@ describe('CardInfo — card di dati (§5.10)', () => {
         <RigaDato chiave="F" valore="6" />
       </CardInfo>
     )
+    expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it('con più di 6 RigheDato → console.warn in dev, ma le righe restano tutte visibili (mai nascoste)', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(
+      <CardInfo>
+        <RigaDato chiave="A" valore="1" />
+        <RigaDato chiave="B" valore="2" />
+        <RigaDato chiave="C" valore="3" />
+        <RigaDato chiave="D" valore="4" />
+        <RigaDato chiave="E" valore="5" />
+        <RigaDato chiave="F" valore="6" />
+        <RigaDato chiave="G" valore="7" />
+      </CardInfo>
+    )
     expect(warnSpy).toHaveBeenCalled()
-    expect(screen.getByText('F')).toBeInTheDocument()
+    expect(screen.getByText('G')).toBeInTheDocument()
   })
 })
 
