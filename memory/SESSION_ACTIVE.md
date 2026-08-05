@@ -1,22 +1,19 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-05-prescrittore-e-ordine-handoff.md`** — la §0 per prima.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-03-tinte-manufatto.md`** — **riga 6** di roadmap, ondata «le tinte del manufatto». Ramo `tinte-manufatto` nel repo principale (🛑 mai un worktree). **3 task su 9 fatti e salvati**, il prossimo è il **Task 4** (`risolviTinta`, la normalizzazione server-side).
 
-🚀 **DUE RILASCI IN PRODUZIONE oggi pomeriggio, tutti e due verificati sul sito vero.** ① La
-**Dichiarazione di Conformità non può più uscire senza il nome del prescrittore** (D242-D243): la
-stringa vuota si ferma al confine di scrittura e la regola di «vuoto» è una sola per il controllo di
-consegna e per i due documenti. ② La pila **«APPENA ARRIVATI» si ordina per ARRIVO** (D244), il più
-recente in cima — e a parità di data l'ordine non è più arbitrario.
+🔎 **LEGGERE PRIMA DI FIDARSI DEL PIANO:** in fondo al piano ci sono i **RITROVAMENTI ESEGUENDO** dei Task 1-2-3 — **cinque difetti del piano**, uno grave.
+- **T1:** il piano avrebbe creato un catalogo **scrivibile e troncabile da chiunque abbia la chiave pubblica** (nessun `REVOKE`/`GRANT`, e i privilegi predefiniti danno tutto ad `anon`). Corretto ricalcando `colori_dentali`.
+- **T2:** quattro sonde su sette avrebbero toccato **zero righe** (`bite_splint` non esiste in banca dati) → verdi senza provare niente.
+- **T3:** una prova era **vacua** (ciclo su elenco vuoto). R-P4: **5 su 8**, poi **6 su 8** dopo la correzione.
+- **Trasversale:** i nomi di migration del piano sono **anteriori** all'ultima applicata → si usa l'orologio (D155). Vale anche per il Task 6.
 
-🔴 **LA §0 IN UNA FRASE — sette cose non fatte, e la prima è una regola saltata DUE volte:** il
-**gate estetico L2** non è stato fatto neanche oggi (e oggi si aggiunge la domanda se valga anche
-quando cambia il contenuto e non l'aspetto) · nessuna **FASE 9 a schermo** su entrambe le modifiche ·
-manca la prova della foto **dalla LIBRERIA** dell'iPhone (quella dalla fotocamera è fatta: arriva
-`image/jpeg`) · `CRON_SECRET` non verificabile da qui · nessuna misura su **rete mobile vera** · la
-carta di caricamento fallito **ancora non si può togliere** · e **perché il telefono dicesse 12 non è
-misurato** (il service worker è escluso dal suo stesso codice).
+📌 **MISURATO ORA** (`npm run verify:fast`): tsc 0 · eslint 0 · **vitest 4991 passate** (419 file). Due migration applicate al database vero: `tinte_manufatto` (34 righe) e le due colonne su `lavori` coi tre vincoli.
 
-📌 MISURATO IN CHIUSURA (`npm run verify:full`, uscita 0): tsc 0 · eslint 0 · vitest **4983 passate |
-19 saltate** (418 file) · build ok · sei guardie verdi. `main` allineato a `origin/main`, 0 in attesa.
+🛑 **D246 — la scheda «Foto» SI RIFÀ e si migra a v3: NON si ripara.** Le righe **19-20-21** di roadmap restano ma sono **requisiti della migrazione**, non lavoro da fare. Sopravvivono solo ① la pila d'avvisi in `position:fixed` (`ds/Avviso.tsx:294-316`), difetto **di sistema** senza urgenza, e ② la targa tagliata a metà nella frase di casa.
 
-📎 **244 decisioni in 93 tornate; la prossima è D245.**
+⚖️ **D245 — il gate L2 è dovuto quando cambia l'ASPETTO, non il solo CONTENUTO** (allora vale la FASE 9). Referto del gate arretrato: `docs/design/audit-ui-ux/LIVELLO-2-2026-08-05-caricamento-e-frasi-errore-ESITI.md`.
+
+⛔ **Nulla è stato pubblicato:** 3 salvataggi sul ramo `tinte-manufatto`, `main` intatto.
+
+📎 **246 decisioni in 95 tornate; la prossima è D247.**

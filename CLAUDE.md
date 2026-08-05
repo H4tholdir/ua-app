@@ -134,12 +134,27 @@ FASE 9  → QA BROWSER: Playwright 390/768/1280px (light + dark)
             ⚠️ Diceva «/gstack qa»: gstack è stato RIMOSSO dal progetto il 28/07/2026 e quel
                comando non esiste più. Si usa la skill `webapp-testing` o gli strumenti
                `preview_*`/`mcp__plugin_playwright_*` direttamente.
-FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata con UI, PRIMA del merge):
+FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata che cambia l'ASPETTO di
+            una superficie, PRIMA del merge — D245, 05/08/2026):
             micro-audit UI/UX della SOLA superficie dell'ondata contro
             docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md (12 sezioni ×
             390/768/1280 × light/dark); ogni ❌ risolto o deferito con motivo;
             screenshot before/after in docs/design/screenshots/<data>-<sup>/.
             Framework: docs/design/audit-ui-ux/README.md (Livello 2).
+            ⚖️ D245 — IL CONFINE, e si guarda IL CODICE TOCCATO, non l'effetto
+            percepito: token, classi, stili, spaziature, testi visibili o
+            struttura del markup → è ASPETTO, il gate è dovuto. Solo QUALI dati
+            e IN QUALE ORDINE arrivano a una superficie già disegnata → è
+            CONTENUTO, il gate NON è dovuto. 🛑 Ma la FASE 9 resta OBBLIGATORIA
+            anche lì: cambiare un ordine può portare in cima una riga più lunga,
+            un numero a due cifre, un titolo che va a capo — il gate L2 guarda
+            com'è fatta la schermata, la FASE 9 che il contenuto nuovo ci stia
+            dentro. Le due non si coprono a vicenda. ⚠️ IN DUBBIO SI FA IL GATE
+            (fail-closed come R-P1). Il fatto che l'ha generata: il gate era
+            stato saltato DUE giorni di fila, e la seconda volta la scelta era
+            stata dichiarata invece che nascosta — ma la regola non distingueva,
+            quindi ogni sessione decideva a naso. Verbale: la novantaquattresima
+            tornata di docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md
 FASE 10 → DEPLOY: merge → push → attendi CI verde → verifica uachelab.com
 FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
 ```
@@ -152,7 +167,7 @@ Ogni **decisione significativa** (architetturale, di design, di priorità/roadma
 - MAI saltare FASE 6b se hai scritto o modificato una migration in questa sessione
 - MAI dichiarare "fatto" senza aver eseguito FASE 7 con output reale
 - MAI deployare con CI rosso
-- MAI mergere una superficie UI nuova/modificata senza il GATE ESTETICO L2 (FASE 9b); ogni piano `writing-plans` di un'ondata con UI DEVE includerlo come step finale
+- MAI mergere una superficie di cui è cambiato l'**ASPETTO** senza il GATE ESTETICO L2 (FASE 9b, confine in **D245**); ogni piano `writing-plans` di un'ondata che tocca l'aspetto DEVE includerlo come step finale. 🛑 Se cambia il solo **CONTENUTO**, il gate non è dovuto ma **la FASE 9 sì** — e «non dovuto» non vuol dire «niente prova a schermo»
 - MAI far uscire un piano dalla FASE 4 senza **registro delle prove** (R-P1) e **censimento degli identificatori** (R-P6): un blocco senza marchio è NON provato, un nome tolto da un'allowlist senza destinazione è un dato che smetterà di salvarsi in silenzio
 - MAI un esecutore su due task; MAI correggere di nascosto un difetto trovato fuori dal proprio mandato — si riferisce (R-E1 / R-E2)
 - SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
