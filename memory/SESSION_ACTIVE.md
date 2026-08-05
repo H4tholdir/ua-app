@@ -18,6 +18,7 @@ arriva**. Scoperti: la foto **dalla libreria** e i browser non-Safari su iOS.
 
 🆕 **Riga 18 di roadmap:** «appena arrivati» è ordinata per **data di consegna**, non per arrivo — e
 a parità di data l'ordine è **arbitrario** (nessun criterio di spareggio). Il **13 contro 12** non è
-un errore di calcolo: il sito vero risponde 13 in entrambi i posti, il 12 era un disegno vecchio.
+un errore di calcolo: il sito vero risponde 13 in entrambi i posti. **Perché il telefono dicesse 12
+non è misurato** — il service worker è escluso dal suo codice, resta il ridisegno lato client.
 
 📎 **242 decisioni in 92 tornate; la prossima è D243.**

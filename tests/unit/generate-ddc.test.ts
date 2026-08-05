@@ -387,7 +387,9 @@ describe('D242 — la DdC NON esce senza il nome del prescrittore (Allegato XIII
   //    riga, cambia QUALE dato ci finisce dentro per una classe di input che
   //    prima usciva sbagliata. Le dichiarazioni già emesse sono fotografie
   //    immutabili e non vengono toccate — `provato:` 6 in archivio, 0 con
-  //    prescrittore vuoto (scripts/tmp/censisci-prescrittore-vuoto.ts).
+  //    prescrittore vuoto (lettura diretta di `dichiarazioni_conformita`
+  //    filtrando `prescrittore_nome.trim() === ''`; lo script sta in
+  //    `scripts/tmp/`, che NON è versionato: la misura è qui, non lì).
   beforeEach(() => {
     vi.clearAllMocks()
     mockInsert.mockResolvedValue({ error: null })
