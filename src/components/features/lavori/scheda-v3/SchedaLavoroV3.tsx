@@ -73,7 +73,7 @@ import { CardInfo, RigaDato, type TonoPastiglia } from '@/components/ds/CardInfo
 import { PillTempo } from '@/components/ds/Pill'
 import { CardFasiV3 } from './CardFasiV3'
 import { RigaLavoroDenti } from './RigaLavoroDenti'
-import { ModificaRigaSheet } from './ModificaRigaSheet'
+import { ModificaRigaSheet, type Campo } from './ModificaRigaSheet'
 import { MenuSchedaSheet } from './MenuSchedaSheet'
 import { DocumentiSheet } from './DocumentiSheet'
 import { DocumentiPannello } from './DocumentiPannello'
@@ -95,10 +95,10 @@ const MOTIVO_LABEL: Record<MaterialeIncompletoDettaglio['motivo'], string> = {
   bom_mancante: 'distinta base (BOM) non definita nel listino',
 }
 
-// T7 (ondata B ③) — `colore` è il quinto campo correggibile dalla scheda.
-// L'elenco vive in DUE posti (anche in `ModificaRigaSheet.tsx`): i due si
-// muovono insieme, o il foglio non sa che cosa rendere.
-type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
+// 🔄 05/08/2026 — l'elenco dei campi correggibili dal foglietto NON vive più
+// qui: era ricopiato, e la copia è stata tolta. Ora si importa da chi lo rende
+// (v. il cappello di `Campo` in `ModificaRigaSheet.tsx` per il perché è lui il
+// proprietario, e per che cosa proteggeva davvero la copia).
 
 const MS_GIORNO = 24 * 60 * 60 * 1000
 

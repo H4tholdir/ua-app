@@ -27,7 +27,29 @@ import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 // rotte in più. Per questo il suo ramo vive in `ModificaColoreSheet.tsx` e
 // questo componente gli cede il posto: un `Sheet` solo, mai due in catena
 // (v. il cappello di quel file per il perché non si incatenano).
-type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
+/**
+ * I campi che si correggono dal foglietto, SENZA uscire dalla scheda.
+ *
+ * 🔑 QUI, E SOLO QUI (05/08/2026). Fino a oggi questo elenco era ricopiato
+ * anche in `SchedaLavoroV3.tsx`, con un commento che la duplicazione la
+ * dichiarava («i due si muovono insieme, o il foglio non sa che cosa rendere»)
+ * senza chiuderla. È esportato perché **chi rende i campi è il proprietario
+ * naturale dell'elenco**: `TITOLI` qui sotto è un `Record<Campo, string>`, e
+ * un campo senza titolo non è un campo. Il chiamante lo importa.
+ *
+ * ⚠️ COSA PROTEGGEVA DAVVERO LA COPIA, misurato prima di toglierla: aggiungere
+ * un campo al SOLO file che chiama dava `TS2719` («*two different types with
+ * this name exist, but they are unrelated*»); aggiungerlo al SOLO file che
+ * rende NON rompeva il collegamento — 5 valori restano un sottoinsieme di 6 —
+ * e la protesta arrivava per rimbalzo da `TITOLI`. Cioè: **la rete era un
+ * effetto collaterale di come è fatta un'altra cosa.** Bastava un
+ * `Partial<Record<…>>` e un ramo irraggiungibile sarebbe passato in silenzio.
+ *
+ * ➡️ Chi aggiunge un campo tocca **questa riga sola**, e `TITOLI` lo obbliga a
+ * dargli un titolo. Precedente ricalcato: `type DatiColore`, esportato da
+ * `./ModificaColoreSheet` e importato qui sopra.
+ */
+export type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
 
 const TITOLI: Record<Campo, string> = {
   consegna: 'Data di consegna',
