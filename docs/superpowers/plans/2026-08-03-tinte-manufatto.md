@@ -1271,6 +1271,22 @@ Il Passo 1 nomina «numero, oggetto, array» e il Passo 2 prova solo `42`. R-P4 
 d'input censita abbia il suo caso **o** il suo «non coperta, perché».
 ➡️ Coperte tutte e tre, su **entrambi** i lati (codice e famiglia): sei casi in due cicli.
 
+### 🟠 P4-④ — La spia aveva un occhio che nessuno leggeva (trovato in revisione, chiuso)
+
+Il finto client registrava anche **il nome della tabella interrogata**, e **nessuna prova lo asseriva**: se
+`risolviTinta` avesse chiesto `colori_dentali` invece di `tinte_manufatto`, **tutte e undici le prove
+sarebbero rimaste verdi**. È la lezione ④ del 05/08 — «*un interruttore che c'è e non fa niente è peggio di
+uno che manca*» (`immagini.length === 1 ? 'foto' : 'foto'`) — e la stessa famiglia della guardia sugli
+overlay che stava scritta e non era agganciata a nulla.
+➡️ Chiuso con `expect(spia.tabella).toBe('tinte_manufatto')` nella prova positiva.
+✅ **E la riga nuova è stata provata falsificabile**, invece di essere data per buona: `provato:` puntando
+di proposito l'implementazione a `colori_dentali` → `1 failed | 10 passed`,
+`AssertionError: expected 'colori_dentali' to be 'tinte_manufatto'`. File ripristinato (`git diff --stat`
+vuoto) e verde di nuovo a 11/11.
+📌 Nello stesso passaggio: la normalizzazione era provata **solo sul codice**. Ora la prova manda
+`'  SPORT '` **e** `'  ROSSO '` — una maiuscola di troppo sulla famiglia avrebbe fatto scartare una tinta
+buona.
+
 ### 📊 R-P4 — il conteggio
 
 **9 asserzioni su 11** si accendono contro l'abbozzo inerte (`provato:`

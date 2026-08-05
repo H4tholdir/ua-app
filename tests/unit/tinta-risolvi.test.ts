@@ -66,10 +66,18 @@ describe('risolviTinta — la tinta del manufatto, normalizzata e confrontata co
     }
   })
 
-  it('normalizza maiuscole e spazi', async () => {
-    const { svc } = svcFinto(CATALOGO_SPORT)
-    const r = await risolviTinta(svc, 'sport', '  ROSSO ', 'bite_splint')
+  it('normalizza maiuscole e spazi — su TUTTI E DUE i lati, e chiede al catalogo giusto', async () => {
+    const { svc, spia } = svcFinto(CATALOGO_SPORT)
+    // 🆕 il piano normalizzava (e provava) il solo codice: `'  SPORT '` deve
+    //    arrivare a combaciare con la famiglia ammessa, o una maiuscola di
+    //    troppo farebbe scartare una tinta buona. Stesso ragionamento di P4-①.
+    const r = await risolviTinta(svc, '  SPORT ', '  ROSSO ', 'bite_splint')
     expect(r).toEqual({ tinta_famiglia: 'sport', tinta_codice: 'rosso', scartata: false })
+    // 🛑 SENZA QUESTA RIGA la spia sarebbe un osservatore che nessuno legge: se
+    //    la funzione interrogasse `colori_dentali` invece del catalogo delle
+    //    tinte, tutte e undici le prove resterebbero verdi. Un interruttore che
+    //    c'è e non fa niente è peggio di uno che manca (lezione del 05/08).
+    expect(spia.tabella).toBe('tinte_manufatto')
   })
 
   it('deduce la famiglia dalla macro quando non è indicata', async () => {
