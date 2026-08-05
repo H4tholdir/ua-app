@@ -7,18 +7,16 @@ import { uploadToStorage } from '@/lib/storage/upload'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_ETICHETTA } from '@/lib/storage/limite-caricamento'
+import { ALLOWED_MIME } from '@/lib/storage/tipi-immagine'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-// Estensioni consentite
-const ALLOWED_MIME: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png':  'png',
-  'image/webp': 'webp',
-  'image/gif':  'gif',
-  'image/heic': 'heic',
-  'application/pdf': 'pdf',
-}
+// 📌 L'elenco è USCITO da qui il 05/08/2026 (T3): da quando i corridoi sono due
+//    — questa rotta e quella del caricamento firmato — vive in
+//    `@/lib/storage/tipi-immagine`, e lo leggono entrambe. Due copie che si
+//    scostano vorrebbero dire un file ammesso da una strada e rifiutato
+//    dall'altra. Destinazione dell'identificatore (R-P6): `ALLOWED_MIME` →
+//    `tipi-immagine.ts`, invariato nel contenuto.
 
 export async function POST(req: Request, { params }: RouteContext) {
   const { id: lavoro_id } = await params

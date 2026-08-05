@@ -52,6 +52,27 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
  *  mentendo a entrambe le estremità. */
 export const MAX_UPLOAD_ETICHETTA = '4MB'
 
+/**
+ * ═══ IL SECONDO TETTO — il corridoio diretto (T3, 05/08/2026) ═══════════════
+ *
+ * 🛑 I TETTI RESTANO DUE, E NON DIVENTERANNO MAI UNO. Sono due corridoi con due
+ *    vincoli diversi: il file che passa dalla funzione trova il tetto della
+ *    piattaforma (~4,2 MB, non comprabile); il file che va **dritto al
+ *    magazzino** trova solo il tetto del bucket. Un numero solo per due
+ *    corridoi diversi tornerebbe a mentire su uno dei due — che è esattamente
+ *    il difetto del 05/08 (20 MB dichiarati contro 4,2 veri), e non si ripete.
+ *
+ * 📌 `provato:` `SELECT file_size_limit FROM storage.buckets WHERE id='documenti'`
+ *    → **52428800** (50 MiB). Il numero qui sotto è QUELLO, non uno più
+ *    generoso: se il nostro controllo fosse più largo del bucket, il rifiuto
+ *    arriverebbe alla fine di un caricamento da decine di MB su rete mobile —
+ *    cioè nel momento peggiore possibile.
+ */
+export const MAX_UPLOAD_DIRETTO_BYTES = 50 * 1024 * 1024
+
+/** «50MB» — stessa coppia numero/parola dell'altro corridoio, stessa ragione. */
+export const MAX_UPLOAD_DIRETTO_ETICHETTA = '50MB'
+
 /** Quanto pesa, detto come lo direbbe una persona: «6,3 MB», «820 KB». */
 export function pesoLeggibile(byte: number): string {
   if (byte >= 1024 * 1024) {
