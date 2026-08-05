@@ -591,7 +591,15 @@ export interface LavoroImmagine {
   id: string;
   laboratorio_id: string;
   lavoro_id: string;
-  url: string;
+  /** L'indirizzo per MOSTRARE la foto — **non è una colonna** (D236,
+   *  05/08/2026: `lavori_immagini.url` è stata tolta, conteneva una URL
+   *  «pubblica» su un bucket privato che non ha mai funzionato).
+   *  Si firma al momento e vive solo in memoria: la popolano le due pagine
+   *  che rendono le foto (`lavori/[id]/page.tsx`, `.../modifica/page.tsx`)
+   *  e la risposta della rotta di caricamento, per la foto appena salita.
+   *  🛑 Opzionale apposta: chi legge una riga senza passare da lì NON ha una
+   *     URL, e deve accorgersene dal tipo invece che da un'immagine rotta. */
+  url?: string;
   storage_path: string;
   nome_file: string | null;
   descrizione: string | null;

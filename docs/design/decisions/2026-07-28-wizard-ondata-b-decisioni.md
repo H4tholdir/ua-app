@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantaseiesima tornata (D235: il caricamento si rifà alla radice — caricamento firmato diretto, foto E pdf)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantasettesima tornata (D236: via la colonna `url`, inerte e pericolosa)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**235 decisioni in ottantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**236 decisioni in ottantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1794,3 +1794,17 @@ riusa sullo stesso percorso ✅ · `S6` il magazzino rifiuta un tipo fuori elenc
 («*mime type image/heic is not supported*») ✅ · `S7` **il permesso dura 7200 secondi = 2 ore**, letta
 la scadenza dentro il permesso stesso — scioglie il conflitto fra il docblock della libreria («2 ore»)
 e il valore predefinito del servizio (60 secondi), che erano due schermate diverse.
+
+### Ottantasettesima tornata — D236: via la colonna `url` (05/08/2026)
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D236** | ✅ **`lavori_immagini.url` SI TOGLIE** (non «si rende opzionale») | Francesco, il 05/08: «*togli la colonna url*» | ✅ **FATTA** — migration `20260805100000_lavori_immagini_via_url_inerte.sql`, applicata al DB vivo, tipi rigenerati (FASE 6b). 📌 **Misurato PRIMA di toccare:** 5 righe su 5 portavano una URL `/object/public/…` su un bucket `public = false` — **nessuna ha mai funzionato**. 🔑 **Non era pulizia:** è la riga **R20** del censimento dei rischi. Una colonna che si chiama `url` e contiene un indirizzo pubblico è l'invito scritto alla correzione che distrugge tutto («*le foto non si vedono? rendiamo pubblico il bucket*») — e questo progetto un bucket pubblico ce l'ha davvero (`brand`), con cui confonderla. Tolta la colonna, la tentazione non ha più dove nascere. `uploadToStorage` non costruisce più alcuna URL; la rotta ne **firma** una per la risposta (la foto appena caricata deve vedersi subito) ma **non la salva**. Il campo `LavoroImmagine.url` diventa **opzionale**, e il compilatore ha subito indicato tre punti in cui una foto poteva arrivare a schermo senza indirizzo: l'album ora scarta le non mostrabili **dicendolo** in sviluppo, invece di rendere una miniatura rotta |
+
+🔎 **Ritrovamento fuori mandato (R-E2), riferito e NON corretto:** la rotta delle immagini usa
+`getServiceClient()`, che **non porta il generic `<Database>`** — per questo `tsc` è rimasto verde
+mentre la rotta scriveva ancora in una colonna appena cancellata. Il cast tipizzato esiste già in
+casa (`src/lib/pdf/typed-service-client.ts`, usato dai generatori PDF) e la sua intestazione dichiara
+che il fix strutturale del client condiviso (147 file) è fuori scope. **La rete qui è il test**
+(`lavori-id-immagini-route.test.ts`, che asserisce le chiavi vere del payload) — ed è la ragione per
+cui quel test esiste, scritta nel suo commento fin da R27.

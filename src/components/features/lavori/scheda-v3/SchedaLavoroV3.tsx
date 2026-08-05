@@ -46,7 +46,7 @@
 // del blocco `NotaLaboratorio` sotto. Nessuna misattribuzione qui: è proprio
 // il testo scritto dal dentista.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
@@ -240,7 +240,26 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   const ancoraConfermaRef = useRef<HTMLElement | null>(null)
   const ancoraCategoriaRef = useRef<HTMLElement | null>(null)
 
-  const fotoAlbum = lavoro.immagini ?? []
+  // D236 — l'album mostra SOLO le foto che hanno un indirizzo con cui mostrarle.
+  // 🔑 Da quando `url` non è più una colonna, il tipo dice la verità: la firma
+  //    la mette chi rende la pagina (`lavori/[id]/page.tsx:91`), e una riga che
+  //    non ci è passata NON ha una URL. Prima il campo era `string` sempre, e una
+  //    firma fallita arrivava qui come stringa vuota o vecchia: una miniatura
+  //    rotta, indistinguibile da una foto persa.
+  // 🛑 Lo scarto non è silenzioso: in sviluppo lo si dice, perché una foto che
+  //    sparisce dall'album senza un perché è esattamente il difetto che questo
+  //    controllo esiste per non nascondere.
+  const fotoAlbum = useMemo(() => {
+    const tutte = lavoro.immagini ?? []
+    const mostrabili = tutte.filter((f): f is typeof f & { url: string } => typeof f.url === 'string' && f.url !== '')
+    if (mostrabili.length !== tutte.length && process.env.NODE_ENV !== 'production') {
+      console.warn(
+        `[SchedaLavoroV3] ${tutte.length - mostrabili.length} foto senza URL firmata: non sono mostrabili. ` +
+          'Chi rende la pagina deve firmarle (v. page.tsx) — la riga esiste, manca il modo di vederla.'
+      )
+    }
+    return mostrabili
+  }, [lavoro.immagini])
   const fotoVisore = visoreIndice !== null ? fotoAlbum[visoreIndice] : undefined
   const fotoCategoria = categoriaIndice !== null ? fotoAlbum[categoriaIndice] : undefined
   // 🛑 Il server risponde 409 su lavoro consegnato (`[imgId]/route.ts:200`).
@@ -570,7 +589,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
               apre il foglio della categoria. I quattro strati NON stanno qui
               dentro — si montano fratelli, in coda al componente (§1.5). */}
           <CartaAlbum
-            foto={lavoro.immagini}
+            foto={fotoAlbum}
             indiceAperto={visoreIndice ?? undefined}
             onApri={(i) => {
               catturaAncora(ancoraVisoreRef)

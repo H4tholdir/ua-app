@@ -58,6 +58,16 @@ vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: mockIsSameOrigin }))
 //    di riga e diventa un'asserzione — su un 422 questa finta non deve essere
 //    stata chiamata NEMMENO UNA VOLTA.
 vi.mock('@/lib/storage/upload', () => ({ uploadToStorage: mockUpload }))
+// D236 — la rotta firma una URL per la RISPOSTA (la foto appena caricata deve
+// vedersi subito) ma non la salva più: la colonna `url` non esiste.
+// 🔑 La finta restituisce una URL FIRMATA, non una `/object/public/…`: se un
+//    giorno il codice tornasse a costruire un indirizzo pubblico, il test che
+//    controlla la forma se ne accorgerebbe invece di specchiare l'errore.
+vi.mock('@/lib/storage/signed-url', () => ({
+  getSignedUrl: vi.fn(async (_c: unknown, _b: string, path: string) =>
+    `https://storage.example/object/sign/documenti/${path}?token=finto`
+  ),
+}))
 
 import { POST } from '@/app/api/lavori/[id]/immagini/route'
 
@@ -223,16 +233,35 @@ describe('POST /api/lavori/[id]/immagini — la categoria (T3)', () => {
 
     const payload = insertCalls[0] as Record<string, unknown>
     expect(Object.keys(payload).sort()).toEqual([
-      'categoria', 'descrizione', 'laboratorio_id', 'lavoro_id', 'nome_file', 'ordine', 'storage_path', 'url',
+      'categoria', 'descrizione', 'laboratorio_id', 'lavoro_id', 'nome_file', 'ordine', 'storage_path',
     ])
     expect(payload).not.toHaveProperty('tipo')
+    // D236 (05/08/2026) — `url` è stata TOLTA dalla tabella: era NOT NULL e
+    // conteneva una URL «pubblica» su un bucket privato, cioè un indirizzo che
+    // non ha mai funzionato (misurato: 5 righe su 5). Se ricomparisse nel
+    // payload, il database risponderebbe 500 in produzione — e su questa rotta
+    // NESSUN compilatore lo direbbe, perché usa il client non tipizzato.
+    expect(payload).not.toHaveProperty('url')
     expect(payload.laboratorio_id).toBe(LAB_ID)
     expect(payload.lavoro_id).toBe(LAVORO_ID)
     expect(payload.categoria).toBe('rx')
     expect(payload.descrizione).toBe('nota libera')
-    expect(payload.url).toBe(URL_FINTA)
     expect(payload.nome_file).toBe('foto.jpg')
     expect(String(payload.storage_path)).toMatch(/^lavori\/lavoro-1\/\d+\.jpg$/)
+  })
+
+  // D236 — la foto appena caricata deve comunque VEDERSI: `TabImmagini` la
+  // mostra da `json.immagine.url` (`TabImmagini.tsx:218` → `onAdd`). Tolta la
+  // colonna, quella URL non viene più dalla banca dati: la rotta ne firma una
+  // al momento, valida un'ora. È l'unica forma che può funzionare su un bucket
+  // privato — e quella salvata prima, «pubblica», non funzionava affatto.
+  it('la risposta porta una URL FIRMATA per la foto appena caricata, non una pubblica', async () => {
+    mockPost()
+    const res = await POST(richiesta([['file', fileValido()], ['categoria', 'rx']]), { params })
+    expect(res.status).toBe(201)
+    const corpo = (await res.json()) as { immagine: Record<string, unknown> }
+    expect(typeof corpo.immagine.url).toBe('string')
+    expect(String(corpo.immagine.url)).not.toContain('/object/public/')
   })
 
   it('descrizione assente → null nel payload, e NON viene riempita con la categoria (D73)', async () => {

@@ -4,6 +4,7 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { uploadToStorage } from '@/lib/storage/upload'
+import { getSignedUrl } from '@/lib/storage/signed-url'
 import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_ETICHETTA } from '@/lib/storage/limite-caricamento'
 
@@ -119,11 +120,10 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   // Upload su Storage
   const path = `lavori/${lavoro_id}/${Date.now()}.${ext}`
-  let url: string
 
   try {
     const arrayBuffer = await file.arrayBuffer()
-    url = await uploadToStorage(svc, 'documenti', path, arrayBuffer, contentType)
+    await uploadToStorage(svc, 'documenti', path, arrayBuffer, contentType)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Upload fallito'
     return NextResponse.json({ error: msg }, { status: 500 })
@@ -136,7 +136,6 @@ export async function POST(req: Request, { params }: RouteContext) {
       laboratorio_id,
       lavoro_id,
       storage_path: path,
-      url,
       nome_file: file.name || null,
       descrizione: descrizioneValue,
       categoria,
@@ -154,5 +153,13 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Non è stato possibile salvare la foto' }, { status: 500 })
   }
 
-  return NextResponse.json({ immagine }, { status: 201 })
+  // D236 — la foto appena caricata deve VEDERSI subito: `TabImmagini` la mostra
+  // da `json.immagine.url` senza ricaricare la pagina. Tolta la colonna, quella
+  // URL non viene più dalla banca dati — si firma qui, con la stessa durata che
+  // usa la scheda (`lavori/[id]/page.tsx:90`).
+  // 🔑 Non si SALVA: una URL firmata scade, e una salvata sarebbe la stessa
+  //    bugia di prima con un'altra faccia. Va nella RISPOSTA, non nella riga.
+  const urlFirmata = await getSignedUrl(svc, 'documenti', path, 3600)
+
+  return NextResponse.json({ immagine: { ...immagine, url: urlFirmata } }, { status: 201 })
 }

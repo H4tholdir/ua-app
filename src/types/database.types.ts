@@ -3062,7 +3062,6 @@ export type Database = {
           nome_file: string | null
           ordine: number
           storage_path: string
-          url: string
         }
         Insert: {
           categoria: string
@@ -3076,7 +3075,6 @@ export type Database = {
           nome_file?: string | null
           ordine?: number
           storage_path: string
-          url: string
         }
         Update: {
           categoria?: string
@@ -3090,7 +3088,6 @@ export type Database = {
           nome_file?: string | null
           ordine?: number
           storage_path?: string
-          url?: string
         }
         Relationships: [
           {
