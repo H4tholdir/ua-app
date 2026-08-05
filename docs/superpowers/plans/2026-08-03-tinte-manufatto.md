@@ -1142,7 +1142,16 @@ l'avviso compaia e la tinta sia sparita**. 390 · 768 · 1280, chiaro e scuro.
    dichiarato lì. Verbale: **novantaseiesima tornata**.
    🔑 **Perché non ha aspettato:** una riga muta scritta e poi cambiata in collaudo è lavoro fatto due
    volte; e la domanda era già passata **due sessioni** senza arrivare a chi doveva rispondere.
-3. 🟡 **`useLavoroForm.ts` non è stato letto.** È dichiarato, ed è l'innesco del primo passo del Task 8.
+3. ✅ **LETTO il 05/08/2026 (sera), e ha già dato un frutto.** ~~`useLavoroForm.ts` non è stato letto.~~
+   Aperto lavorando a **D248**, e il primo fatto che ne è uscito **contraddiceva** ciò che si credeva:
+   `:325-326` tolgono il colore dal corpo della PATCH, ma **`:340-341` lo RIMETTONO** quando nessun dente
+   porta colore. Chi avesse dato per buono il solo `delete` avrebbe scritto — e per un'ora ha scritto — che
+   quel client «non manda il colore». **Lo manda.**
+   📌 **Per il Task 8, che è chi lo eredita:** i sette campi di denti/colore **non passano dalla PATCH** ma
+   da una rotta dedicata (`CAMPI_DENTI_COLORE`), e il caso viene riscritto solo quando
+   `coloreDelleRighe(data) === null`. Il campo della tinta dovrà scegliere **da quale delle due strade**
+   viaggia, e la scelta non è ovvia: la tinta **non** è per-dente, quindi assomiglia più al caso che alle
+   righe. **Non deciso: lo decide il T8, aprendo il file.**
 
 ## Ritrovamenti preesistenti da NON correggere qui (R-E2)
 

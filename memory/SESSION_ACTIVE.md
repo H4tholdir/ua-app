@@ -1,13 +1,20 @@
-# Sessione attiva — UÀ
+# Sessione attiva — punto di ripresa
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-05-gate-l2-e-tinte-handoff.md`** — la §0 per prima.
+🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/roadmap/2026-08-05-tinte-in-produzione-handoff.md` — **la §0 per prima**.
 
-🔴 **LA §0 IN UNA FRASE — sei cose non fatte:** il gate estetico L2 sulle **due superfici del wizard** (si raggiungono solo creando sei lavori veri) · l'ordine della pila blu a **1280** non provato (la casa desktop è un'altra composizione) · **sei task su nove** dell'ondata tinte da fare, il prossimo è il **Task 4** · le **due migration sono nel database VERO mentre il ramo non è unito** (additivo e inerte: 0 lavori con tinta) · **tre «da decidere» del piano ancora aperti**, uno mai portato a Francesco (la riga della tinta sulla scheda: muta o che porta alla modifica) · e restano da ieri la **foto dalla libreria** dell'iPhone, **`CRON_SECRET`** su Vercel, la **rete mobile vera**, il **12 contro 13** non misurato.
+**Stato (05/08/2026, 22:30):** `main` = `453d7735`, **pubblicato**, 0 in attesa, albero pulito.
+🚀 **T1-T6 dell'ondata «tinte» sono IN PRODUZIONE** (merge `c6446d98..0cba8dba`), CI e rilascio verdi.
 
-🔨 **STATO: ramo `tinte-manufatto`, 4 salvataggi, NON pubblicato.** `main` intatto e allineato a `origin/main`. ✅ **T1** catalogo `tinte_manufatto` (34 righe) · **T2** le due colonne su `lavori` coi tre vincoli · **T3** il dominio (8 prove). 🔎 **Prima di fidarsi del piano si leggono i «RITROVAMENTI ESEGUENDO» in fondo al piano: CINQUE difetti, uno grave** — avrebbe creato un catalogo **scrivibile e troncabile da chiunque abbia la chiave pubblica**.
+🔴 **La §0 in una frase — sei cose non fatte:** **T7-T8-T9 mancano** e senza di loro la tinta in produzione
+è **inerte** (`provato:` 0 lavori con tinta, nessuna superficie la mostra) · il **gate L2 sulle due
+superfici del wizard** è arretrato da tre giorni · l'**ordine a 1280** non è provato · **due rilievi della
+revisione** aperti di proposito, da chiudere **insieme** nel T8 · la **riga 22** aperta e non iniziata ·
+e l'igiene: `.superpowers/sdd/` non archiviata, 25 rami locali.
 
-⚖️ **D245** — il gate L2 è dovuto quando cambia l'**ASPETTO**, non il solo **CONTENUTO** (lì vale la FASE 9). **D246** — la scheda «Foto» **si rifà e si migra a v3**: le righe 19-21 di roadmap non sono lavoro da fare, sono **requisiti della migrazione**.
+📌 **Misurato in chiusura:** `verify:full` **uscita 0** · tsc 0 · eslint 0 · build ok · sette guardie verdi ·
+`vitest` **5016 passate | 19 saltate** (422 file | 3 saltati). Ieri: 4991|19 su 419.
 
-📌 **MISURATO IN CHIUSURA:** `verify:full` uscita **0** · tsc 0 · eslint 0 · build ok · sei guardie verdi · `vitest` **4991 passate | 19 saltate** (419 file | 3 saltati).
+➡️ **Prima cosa:** il **Task 7** (la riga della tinta sulla scheda, **emendata da D247**: si preme e apre il
+foglietto sulla scheda). 🛑 **Da una branch NUOVA su `main`** — `tinte-manufatto` è assorbito.
 
-📎 **246 decisioni in 95 tornate; la prossima è D247.**
+📎 250 decisioni in 98 tornate; la prossima è **D251**.
