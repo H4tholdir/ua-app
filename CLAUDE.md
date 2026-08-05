@@ -241,14 +241,54 @@ eseguito**, con in più il difetto di sembrare prosa.
 
 ---
 
-## 0D. Come parlare con Francesco (ratificata 23/07/2026 — OGNI messaggio in chat)
+## 0D. Come parlare con Francesco (ratificata 23/07/2026 · **FORMA fissata da D250, 05/08/2026**)
 
-Linguaggio piano, zero tecnicismi non spiegati: ogni concetto tecnico si racconta prima con
-parole comuni o un'analogia concreta, poi (se serve) col suo nome tecnico. Struttura a racconto
-(problema → perché → cosa ho fatto → cosa cambia per te), mai elenchi di sigle/hash/file come
-frase principale. Dettaglio tecnico solo in un breve blocco finale dichiarato. Il registro
-tecnico pieno resta in commit, codice, docs e diagnosi. Testo completo della direttiva:
-`../CLAUDE.md` §7 («Come parlare con Francesco»).
+🛑 **Questa sezione è AUTOSUFFICIENTE, e deve restarlo.** `../CLAUDE.md` §7 porta il testo storico
+della direttiva del 23/07 ma **vive fuori dal repository git** (`git check-ignore` non lo copre: è
+proprio fuori dall'albero) — quindi non sopravvive a un cambio di macchina. Se le due divergono,
+**vale questa**.
+
+### La lingua (23/07/2026, invariata)
+
+Linguaggio piano, zero tecnicismi non spiegati: ogni concetto tecnico si racconta prima con parole
+comuni o un'analogia concreta, poi (se serve) col suo nome tecnico. Mai elenchi di sigle, hash o
+nomi di file come frase principale. Il registro tecnico pieno resta in commit, codice, `docs/` e
+diagnosi — quelli sono per il repo, non per la chat.
+
+### La FORMA — D250, provata prima di essere fissata
+
+**Il fatto che l'ha generata:** Francesco, il 05/08: «*impostiamo un modo di rispondermi, globale, e
+mantenuto stabile nel progetto, più sintetico e conciso, meno prolisso, non per questo deve saltare
+informazioni, ma organizzate meglio e che mi permetta in meno tempo di comprendere tutto*». Tre
+formati sono stati messi a confronto **sullo stesso contenuto** (il Task 5) e usati per quattro
+messaggi veri prima della ratifica: ha vinto il **B**, «tabella prima».
+
+**Lo scheletro, in quest'ordine:**
+
+1. **Una tabella compatta in cima** — 3-6 righe, due colonne, `| cosa | esito |`. Ci vanno lo stato,
+   i numeri misurati, e ciò che è in corso. Serve a dare il colpo d'occhio in cinque secondi.
+2. **Due o tre blocchi di prosa**, ognuno con un titoletto — **solo per ciò che merita una frase
+   intera**: un difetto trovato, una correzione a sé stessi, una scoperta che cambia le cose. Se non
+   merita un titoletto, va in tabella.
+3. **In chiusura, ciò che aspetta Francesco**: decisioni, autorizzazioni, scelte. Se non aspetta
+   niente, si scrive «niente aspetta te».
+
+**Le regole che la reggono, e che sono il motivo per cui la forma funziona:**
+- 🛑 **Concisione NON vuol dire meno informazione: vuol dire meno RILETTURA.** Nessun fatto misurato
+  si toglie — si sposta in tabella. Se una cosa non entra in nessuno dei tre posti, quella cosa non
+  andava detta.
+- 🔴 **La gerarchia è il punto.** Una regressione e un dettaglio minore non possono occupare lo
+  stesso spazio: era il difetto del formato «densità massima», scartato per questo.
+- **Si apre da ciò che è andato storto**, non dalla funzione nuova. Un errore raccontato per primo
+  costa meno di un errore trovato in fondo.
+- **Le correzioni a sé stessi si scrivono per intero e senza attenuanti** — sono la parte più utile
+  di un resoconto, e nasconderle è il modo più veloce di perdere fiducia.
+- **Il dettaglio tecnico**, se serve, sta in **un solo blocco finale dichiarato** (`<sub>`), mai
+  sparso nel testo.
+- ⚠️ **La forma NON si applica alle risposte brevi** (una domanda, una conferma): una tabella per
+  dire «fatto» è un modulo, non una risposta.
+
+📌 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, **novantottesima tornata**.
 
 ---
 
