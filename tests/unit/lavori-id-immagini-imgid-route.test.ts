@@ -143,7 +143,10 @@ const LAB_ID = 'lab-1'
 const LAVORO_ID = 'lavoro-1'
 const IMG_ID = 'img-1'
 // Stessa forma che scrive il POST (`immagini/route.ts:111`): `lavori/<id>/<ms>.<ext>`.
-const STORAGE_PATH = 'lavori/lavoro-1/1719000000000.webp'
+// T1 (05/08/2026): il percorso sta nel RECINTO — prima cartella = laboratorio.
+// La forma vecchia (`lavori/<lavoro>/<orologio>.webp`) non è più prodotta da
+// nessuno scrittore: tenerla come fixture descriverebbe un mondo che non c'è.
+const STORAGE_PATH = 'lab-1/lavori/lavoro-1/3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.webp'
 const params = Promise.resolve({ id: LAVORO_ID, imgId: IMG_ID })
 
 const CONTEXT = {

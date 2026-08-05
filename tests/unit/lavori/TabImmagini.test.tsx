@@ -172,7 +172,8 @@ function immagineDb(overrides: Partial<LavoroImmagine> = {}): LavoroImmagine {
     laboratorio_id: 'lab-1',
     lavoro_id: 'lav-1',
     url: 'https://storage.esempio/immagine.webp',
-    storage_path: 'lavori/lav-1/123.webp',
+    // T1 (05/08/2026): prima cartella = laboratorio (il recinto).
+    storage_path: 'lab-1/lavori/lav-1/3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.jpg',
     nome_file: 'immagine.webp',
     descrizione: null,
     data_scatto: null,
@@ -308,7 +309,7 @@ describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un
       // per `.pdf`).
       await simulaSuccesso(
         ultimaXHR(),
-        immagineDb({ storage_path: 'lavori/lav-1/999.pdf', nome_file: 'referto.pdf', categoria: 'colore' })
+        immagineDb({ storage_path: 'lab-1/lavori/lav-1/9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d.pdf', nome_file: 'referto.pdf', categoria: 'colore' })
       )
       expect(container.querySelectorAll('img')).toHaveLength(0)
       expect(screen.getByRole('img', { name: /Documento: referto\.pdf/ })).toBeTruthy()

@@ -74,7 +74,7 @@ import { POST } from '@/app/api/lavori/[id]/immagini/route'
 const LAB_ID = 'lab-1'
 const LAVORO_ID = 'lavoro-1'
 const params = Promise.resolve({ id: LAVORO_ID })
-const URL_FINTA = 'https://storage.example/lavori/lavoro-1/1.jpg'
+const URL_FINTA = 'https://storage.example/lab-1/lavori/lavoro-1/1.jpg'
 
 const CONTEXT = {
   userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
@@ -247,7 +247,9 @@ describe('POST /api/lavori/[id]/immagini — la categoria (T3)', () => {
     expect(payload.categoria).toBe('rx')
     expect(payload.descrizione).toBe('nota libera')
     expect(payload.nome_file).toBe('foto.jpg')
-    expect(String(payload.storage_path)).toMatch(/^lavori\/lavoro-1\/\d+\.jpg$/)
+    expect(String(payload.storage_path)).toMatch(
+      /^lab-1\/lavori\/lavoro-1\/[0-9a-f-]{36}\.jpg$/
+    )
   })
 
   // D236 — la foto appena caricata deve comunque VEDERSI: `TabImmagini` la
@@ -282,6 +284,72 @@ describe('POST /api/lavori/[id]/immagini — la categoria (T3)', () => {
 // ============================================================
 // (B) R28 / G9 — il messaggio del database non esce dal server
 // ============================================================
+// ============================================================
+// (A-bis) T1 — IL PERCORSO ENTRA NEL RECINTO
+// ============================================================
+// 🔴 Fino al 05/08/2026 le foto stavano sotto `lavori/<lavoro_id>/…`, cioè
+//    FUORI dal recinto: le quattro policy di isolamento del bucket `documenti`
+//    vogliono il LABORATORIO come prima cartella, e su un percorso che comincia
+//    per `lavori` la policy **non nega — va in ERRORE**
+//    (`(storage.foldername(…))[1]::uuid` → 22P02 «invalid input syntax for type
+//    uuid: "lavori"`). Oggi quella mina dorme, perché ogni scrittura e ogni
+//    lettura passa dal client di servizio, che salta le policy. Il caricamento
+//    diretto porta il browser dentro quel corridoio, ed è lì che esplode.
+//
+// 🛑 E il laboratorio nel percorso viene dalla SESSIONE, mai dal client: è la
+//    stessa ragione per cui la conferma di T3 non accetterà un percorso dal
+//    corpo della richiesta (condizione C1 del piano). Un percorso scelto da
+//    fuori è una lettura arbitraria fra laboratori.
+describe('POST /api/lavori/[id]/immagini — T1: il percorso sta nel recinto', () => {
+  it('il percorso comincia col laboratorio della SESSIONE, non con «lavori»', async () => {
+    const { insertCalls } = mockPost()
+    await POST(
+      richiesta([['file', fileValido()], ['categoria', 'impronta']]) as Request,
+      { params }
+    )
+
+    const path = String((insertCalls[0] as Record<string, unknown>).storage_path)
+    expect(path.startsWith(`${LAB_ID}/`)).toBe(true)
+    // 🛑 La prima cartella dev'essere castabile a uuid: è ciò che la policy fa,
+    //    ed è ciò che oggi la manda in errore invece che in un diniego.
+    expect(path.split('/')[0]).not.toBe('lavori')
+  })
+
+  it('il nome del file è un UUID, non l\'orologio (R23: due scatti nello stesso millisecondo)', async () => {
+    const { insertCalls } = mockPost()
+    await POST(
+      richiesta([['file', fileValido()], ['categoria', 'impronta']]) as Request,
+      { params }
+    )
+    const nome = String((insertCalls[0] as Record<string, unknown>).storage_path).split('/').pop()
+    expect(nome).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$/)
+    // Un timestamp da solo non passerebbe la riga sopra, ma lo diciamo anche
+    // esplicitamente: è il difetto che questa prova chiude.
+    expect(nome).not.toMatch(/^\d+\./)
+  })
+
+  it('due caricamenti di fila NON collidono — nemmeno se avvengono insieme', async () => {
+    const { insertCalls } = mockPost()
+    await POST(richiesta([['file', fileValido()], ['categoria', 'impronta']]) as Request, { params })
+    await POST(richiesta([['file', fileValido()], ['categoria', 'impronta']]) as Request, { params })
+
+    const primo = String((insertCalls[0] as Record<string, unknown>).storage_path)
+    const secondo = String((insertCalls[1] as Record<string, unknown>).storage_path)
+    expect(primo).not.toBe(secondo)
+  })
+
+  it('il percorso passato allo Storage è LO STESSO che finisce in riga — mai due verità', async () => {
+    const { insertCalls } = mockPost()
+    await POST(richiesta([['file', fileValido()], ['categoria', 'impronta']]) as Request, { params })
+
+    const pathInRiga = String((insertCalls[0] as Record<string, unknown>).storage_path)
+    // uploadToStorage(svc, bucket, path, …) — il terzo argomento
+    expect(mockUpload).toHaveBeenCalledWith(
+      expect.anything(), 'documenti', pathInRiga, expect.anything(), 'image/jpeg'
+    )
+  })
+})
+
 describe('POST /api/lavori/[id]/immagini — G9 (R28)', () => {
   it('errore DB nell\'insert → 500 con messaggio NOSTRO, mai insertError.message grezzo', async () => {
     mockPost({

@@ -118,8 +118,25 @@ export async function POST(req: Request, { params }: RouteContext) {
   const descrizione = formData.get('descrizione')
   const descrizioneValue = typeof descrizione === 'string' && descrizione ? descrizione : null
 
-  // Upload su Storage
-  const path = `lavori/${lavoro_id}/${Date.now()}.${ext}`
+  // ═══ IL PERCORSO STA NEL RECINTO (T1, 05/08/2026) ════════════════════════
+  // 🔴 Era `lavori/<lavoro_id>/<Date.now()>.<ext>`, cioè FUORI dal recinto. Le
+  //    quattro policy di isolamento del bucket `documenti` vogliono il
+  //    LABORATORIO come prima cartella — i documenti generati (DdC, buoni, DPA,
+  //    ricevute) lo rispettano, le foto dei lavori no.
+  // 🛑 E su un percorso che comincia per `lavori` la policy **non nega: va in
+  //    ERRORE** (`provato:` `SELECT (storage.foldername('lavori/…'))[1]::uuid`
+  //    → `22P02 invalid input syntax for type uuid: "lavori"`). Oggi quella
+  //    mina dorme perché ogni scrittura e ogni lettura passa dal client di
+  //    servizio, che salta le policy; il caricamento diretto porterà il browser
+  //    dentro quel corridoio, ed è esattamente lì che esplode.
+  // 🔑 `laboratorio_id` viene dalla SESSIONE (`getFreshLabContext`), mai dal
+  //    client: è la stessa ragione della condizione C1 del piano — un percorso
+  //    scelto da fuori sarebbe una lettura arbitraria fra laboratori.
+  // 🔑 E il nome è un UUID, non l'orologio: `Date.now()` dà lo stesso valore a
+  //    due scatti nello stesso millisecondo (R23), e con `upsert: false`
+  //    (`upload.ts`) il secondo caricamento fallirebbe — o, peggio, con upsert
+  //    acceso sovrascriverebbe la foto di prima.
+  const path = `${laboratorio_id}/lavori/${lavoro_id}/${crypto.randomUUID()}.${ext}`
 
   try {
     const arrayBuffer = await file.arrayBuffer()
