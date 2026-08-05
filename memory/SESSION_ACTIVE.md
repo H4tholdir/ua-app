@@ -1,6 +1,6 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`, da T3.**
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`, da T4.**
 (L'handoff `docs/roadmap/2026-08-05-caricamento-handoff.md` resta valido **tolta la sua §0②**, fatta.)
 
 **Fatto oggi, in ordine:**
@@ -32,10 +32,19 @@
 
 ⛔ **Non pubblicato:** il ramo `fix-limite-caricamento` esce **con** la soluzione (D235).
 
-➡️ **Prossimo: T3 — i due endpoint** (`…/immagini/firma` e `…/immagini/conferma`), con le due
-condizioni non negoziabili del §2: **C1** la conferma NON accetta un percorso dal client (lo
-ricalcola dalla sessione) — senza, è lettura arbitraria fra laboratori; **C2** la conferma **prova
-che il file c'è** (`storage.remove` su chiave inesistente non dà errore). Entrambi vanno aggiunti a
-`scripts/check-csrf.sh`, e serve un limite di frequenza sulla firma.
+- **T3** (`7e0652a0`): le due rotte ci sono. **C1** provata con **nove** forme di percorso rifiutate
+  (altro laboratorio · altro lavoro · risalita di cartella · nome non-uuid · estensione fuori
+  elenco…); **C2** provata (file assente → nessuna riga; peso e tipo si leggono dal magazzino).
+  Limite di frequenza sulla firma: 120 immagini/ora per laboratorio.
+  🛑 **Due difetti del piano, riferiti:** ① «su qualunque rifiuto, `remove` del percorso» sarebbe
+  un'**arma** se applicato al percorso ricevuto (farebbe cancellare a noi il documento di un altro
+  laboratorio): si toglie **solo** ciò che è già passato da C1 · ② «aggiungere le rotte a
+  `check-csrf.sh`» non serve — la guardia è a scoperta automatica dal 28/07 (verificato che si
+  accende davvero: rossa con una rotta scoperta, verde tolta).
+  ⚠️ **Nessun client le usa ancora**: è T4.
+
+➡️ **Prossimo: T4 — i tre client** (`FrameFatto` · `AllegaPrescrizioneSheet` · `TabImmagini`) al
+corridoio nuovo: firma → `uploadToSignedUrl` → conferma. L'avanzamento si prende dall'XHR già in
+casa. Poi T5 (costanti per corridoio), T6 (mietitore degli orfani), T7 (via la vecchia rotta).
 
 📎 **239 decisioni in 89 tornate; la prossima è D240.**
