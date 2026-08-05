@@ -108,14 +108,26 @@ un'invocazione e vale 4MB; domani una richiesta da 200 byte autorizza 50MB scrit
 esiste un meccanismo generico in casa — la forma da riusare è quella di `api/portale/richiedi`.
 
 ### T4 — I tre client (sono TRE, non due)
-`FrameFatto` · `AllegaPrescrizioneSheet` · **`TabImmagini`** — quest'ultimo è il difetto vivo che il
-panel ha trovato: **non ha alcun controllo di peso**, accetta PDF e **salta la compressione per i
-non-immagine**. Un modulo scansionato da 6MB dalla scheda oggi prende il 413 grezzo, `responseText`
-non è JSON, e l'utente legge «**Upload fallito: 413**».
-L'avanzamento si prende dall'XHR già in casa (`TabImmagini.tsx:204-212`), non si reinventa.
-📌 **Compressione:** `TabImmagini` comprime a 0,4MB **e converte in webp** — non è solo un
-rimpicciolimento, è **l'unico normalizzatore di formato** su quella superficie. È per questo che
-il difetto HEIC vive proprio sul percorso della prescrizione, che non comprime.
+`FrameFatto` · `AllegaPrescrizioneSheet` · **`TabImmagini`**.
+L'avanzamento si prende dall'XHR già in casa (`TabImmagini.tsx`, gestore `upload.onprogress`), non
+si reinventa.
+
+✅ **Aggiornato il 05/08 ore 11:20 — i due difetti vivi di `TabImmagini` sono CHIUSI** (commit
+`f5f80b8e`, prima di T1, per scelta di Francesco). Quindi T4 **non li trova più**, e in cambio
+trova roba da riusare:
+- il controllo di peso ora c'è, e sta **dopo** la compressione (prima rifiuterebbe le foto da 6MB
+  che oggi passano — c'è una prova di non-regressione dedicata). Per il corridoio diretto cambia il
+  **tetto**, non il punto in cui si controlla;
+- `troppoGrande` prende la **natura** del file (`immagine` | `documento`): a un PDF non si dice
+  «scattala di nuovo più da vicino». La soglia resta una sola — è quella che T5 sdoppia per
+  corridoio, non la frase;
+- la frase d'errore **si legge**: il riquadro sotto la griglia porta le parole e il nome del file
+  (prima il testo viveva solo in un `aria-label`, e a schermo restava un triangolino muto).
+
+📌 **Compressione:** vive in `src/lib/storage/compressione-immagine.ts`, chiede **JPEG** (non più
+webp) e **controlla il tipo ricevuto**. È **l'unico normalizzatore di formato** su quella
+superficie — ed è per questo che il difetto HEIC vive proprio sul percorso della prescrizione, che
+per D237 **non comprime**.
 
 ### T5 — Le costanti di peso si SDOPPIANO (censimento R-P6, non un ritocco)
 `MAX_UPLOAD_BYTES` **non diventa 50MB**: restano due tetti con due ragioni scritte — **4MB** per ciò
@@ -126,10 +138,11 @@ che passa ancora dalla funzione, **~50MB** per il corridoio diretto. È la lezio
 |---|---|---|
 | `MAX_UPLOAD_BYTES` | `limite-caricamento.ts`, `immagini/route.ts` | resta 4MB — corridoio funzione |
 | `MAX_UPLOAD_ETICHETTA` | idem + `AllegaPrescrizioneSheet` | segue il tetto del suo corridoio |
-| `troppoGrande` | `FrameFatto`, `AllegaPrescrizioneSheet` | parametrizzata sul corridoio |
+| `troppoGrande` | `FrameFatto`, `AllegaPrescrizioneSheet`, **`TabImmagini`** | parametrizzata sul corridoio |
 | `fraseErroreImmagine` (ramo 413) | `AllegaPrescrizioneSheet` | idem |
 | **frase 413 scritta a mano** | `FrameFatto` | 🛑 **non porta numero: un grep sulla costante NON la trova** |
-| *(assente)* | `TabImmagini` | **manca del tutto** — v. T4 |
+| `NaturaFile` (`immagine`\|`documento`) | `limite-caricamento.ts`, `TabImmagini` | resta: sceglie il **nome** nella frase, mai la soglia |
+| `OPZIONI_COMPRESSIONE` · `FORMATO_COMPRESSIONE` | `compressione-immagine.ts` | `maxSizeMB` **sale** col corridoio diretto (oggi 0,4MB per non avvicinare il tetto della funzione) |
 
 ### T6 — Il mietitore degli orfani
 Il file atterra prima della riga: se il browser non conferma (rete persa, scheda chiusa, ascensore),
@@ -149,22 +162,36 @@ passo dichiarato. `uploadToStorage` muore con lei (`provato:` un solo chiamante)
 
 ---
 
-## 4. 🟡 Le due decisioni che restano a Francesco
+## 4. ✅ Le due decisioni: ENTRAMBE PRESE (aggiornato il 05/08/2026, ore 11:20)
 
-**① La prescrizione si comprime?** Comprimere riduce la qualità di un documento su cui si appoggia
-la Dichiarazione di Conformità, e che va conservato per anni. **La scelta ha una conseguenza
-meccanica obbligata**, e sono tre prodotti diversi:
-- **si comprime** → il problema HEIC sparisce da sé (la conversione normalizza il formato), ma un
-  foglio scritto a mano fitto potrebbe diventare meno leggibile;
-- **non si comprime** → allora *bisogna* scegliere per HEIC: il bucket lo accetta (e servono
-  anteprima e visore che lo mostrino), oppure il client lo **converte** senza ricomprimere (cosa
-  diversa dal comprimere), oppure il selettore lo rifiuta in partenza dicendolo.
-🛑 **I PDF non si comprimono in nessun caso** — ed è la classe che oggi non passa.
+⚠️ **Questo paragrafo chiedeva due risposte a Francesco. Le ha date tutte e due nelle ore
+successive alla scrittura del piano, e il paragrafo è rimasto indietro.** Chi esegue non deve
+fermarsi ad aspettare: qui sotto c'è ciò che è stato deciso, con la tornata che lo dice.
 
-**② `lavori_immagini.url`** è `NOT NULL` ed è **inerte**: tutte le righe portano una URL pubblica su
-un bucket privato, e ogni lettore la **sovrascrive** con una firmata prima di mostrarla. Il suo unico
-effetto reale è costringere ogni scrittore a inventare un valore. Si rende opzionale (non rompe
-niente) o si toglie (più onesto)?
+**① La prescrizione si comprime? → NO. Le impronte sì. — D237, tornata 88.**
+Francesco, sulla raccomandazione motivata: «*confermo, procedi*». Tre fatti misurati la reggono
+(ricerca `docs/roadmap/2026-08-05-ricerca-compressione-senza-perdita.md`): il guadagno vero **non
+esiste** nel browser (7%, e **zero** su una foto già passata da WhatsApp) · **non c'è risoluzione da
+regalare** (un A4 da telefono è a ~280-320 dpi effettivi, sotto i 600 che un archivio pubblico
+chiede) · comprimere nel browser **azzera i metadati** e **forza il colore dimezzato**, che è ciò
+che danneggia di più il tratto colorato — e le prescrizioni si scrivono a penna blu.
+🛑 **I PDF non si comprimono in nessun caso.**
+
+**Le tre conseguenze che ricadono su questo piano:**
+- 🔴 **Il caricamento diretto è OBBLIGATORIO, non un'ottimizzazione:** se la prescrizione non si può
+  ridurre, l'unico modo di farla arrivare è non farla passare dalla funzione.
+- ✅ **Via il WebP — FATTO il 05/08** (commit `f5f80b8e`): `src/lib/storage/compressione-immagine.ts`
+  chiede **JPEG**, conserva l'EXIF e **controlla il tipo ricevuto**. Vale per T4: la compressione non
+  si riscrive, si riusa.
+- 🟡 **HEIC (voce 16):** la strada coerente con D237 è **accettarlo nel bucket**, non convertirlo —
+  la conversione via browser è esattamente il percorso che quella decisione esclude. ⚠️ La prova su
+  un **iPhone vero** viene prima del rimedio.
+
+**② `lavori_immagini.url` → SI TOGLIE. — D236, tornata 87. ✅ GIÀ FATTA.**
+Migration `20260805100000_lavori_immagini_via_url_inerte.sql` applicata al DB vivo, tipi rigenerati.
+Misurato prima di toccare: 5 righe su 5 portavano una URL `/object/public/…` su un bucket privato —
+**nessuna ha mai funzionato**. `LavoroImmagine.url` è ora **opzionale**: chi scrive la conferma di T3
+**non deve inventarle un valore**.
 
 ---
 

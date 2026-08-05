@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato all'ottantottesima tornata (D237: la prescrizione non si comprime — e il caricamento diretto diventa obbligatorio)** ·
+**Data:** 28 luglio 2026 · **aggiornato all'ottantanovesima tornata (D238-D239: i due difetti vivi chiusi prima del piano, e il piano allineato)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**237 decisioni in ottantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**239 decisioni in ottantanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1833,3 +1833,15 @@ eseguite). La riserva C8 del panel di D235 — «*il problema sono le foto o i P
    passa dal browser per essere convertita, la strada coerente è **accettare HEIC nel bucket**, non
    convertirlo — la conversione via browser è esattamente il percorso che questa decisione esclude.
    ⚠️ Resta da provare su un iPhone vero (la prova viene prima del rimedio).
+
+---
+
+### Ottantanovesima tornata — D238-D239: i difetti vivi prima del piano, e il piano si allinea (05/08/2026)
+
+Aperta all'avvio della sessione del caricamento, sul riepilogo di ripresa (BP-0). Due scelte, tutte
+e due di Francesco, tutte e due scritte **nello stesso turno** in cui sono state prese (§0A-bis).
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D238** | ✅ **PRIMA i due difetti vivi della scheda, POI T1 — e tutto resta nel ramo** | Francesco, il 05/08, scegliendo fra tre ordini possibili: «*Difetti, poi T1 — tutto nel ramo*» | 📌 **Conferma D235, non la deroga:** i due difetti erano candidati a una pubblicazione a sé (colpiscono **oggi** chi carica da iPhone), e la strada scelta è quella che li fa uscire **insieme** alla soluzione del caricamento diretto. Costo accettato: restano vivi ancora qualche giorno. Guadagno: una sola verifica, una sola pubblicazione, e nessun ramo parallelo da riconciliare. ✅ **FATTI** nel commit `f5f80b8e`: il formato passa a **JPEG** e si **controlla che cosa la libreria ha restituito** (era il buco silenzioso su Safari); il **peso** si controlla **dopo** la compressione — a monte rifiuterebbe le foto da 6MB che oggi passano, e c'è una prova di non-regressione che lo inchioda. 🔑 **Trovato strada facendo, e chiuso:** la frase d'errore esisteva ma **non si leggeva** — viveva in un `aria-label` e a schermo restava un triangolino rosso muto. Ora il ruolo `alert` sta su un riquadro che porta le parole e **il nome del file** (con tre carte uguali in griglia, «pesa 6,0 MB» senza il nome non dice quale togliere) |
+| **D239** | ✅ **Un piano superato dai fatti si CORREGGE, non si tramanda** | Francesco, il 05/08, sulla segnalazione che il §4 del piano dava per aperte due decisioni già prese: «*Sì, correggilo subito*» | 📌 **Il fatto che l'ha generata:** il piano del caricamento è stato scritto la mattina del 05/08 e nelle ore successive **D236** (via la colonna `url`) e **D237** (la prescrizione non si comprime) hanno risposto a **entrambe** le domande che il suo §4 lasciava aperte. Chi avesse eseguito T1 leggendo quel paragrafo si sarebbe fermato ad aspettare risposte **che c'erano già**. 🔑 **Perché è più di una svista di scrittura:** un piano non è un documento, è **codice non ancora eseguito** — con in più il difetto di sembrare prosa. Una riga stantia dentro un piano non fa rumore, e viene creduta. Aggiornati §4 (le due decisioni, con la tornata che le dice), **T4** (i difetti che non troverà più, e ciò che invece può riusare) e la tabella del censimento di **T5** (i due identificatori nuovi, con la loro destinazione) |

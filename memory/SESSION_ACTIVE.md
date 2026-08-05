@@ -1,21 +1,23 @@
 # Sessione attiva — UÀ
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-05-caricamento-handoff.md`** — la §0 per prima.
+🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`, da T1.**
+(L'handoff `docs/roadmap/2026-08-05-caricamento-handoff.md` resta valido **tolta la sua §0②**, che
+è fatta.)
 
-**§0 in una frase:** la sessione ③ è **in produzione** (CI+CD verdi), ma il check post-deploy ha
-trovato un difetto vivo — il limite di caricamento diceva 20 MB contro i **~4,2 MB veri** — e da lì
-è nato un cantiere: **il piano del caricamento diretto è scritto (T1-T7) e NON eseguito**, e restano
-**due difetti vivi in produzione** (comprimiamo in WebP, che per specifica non può avere il colore
-pieno e su iPhone non viene nemmeno prodotto; `TabImmagini` non ha alcun controllo di peso).
+**Fatto oggi (D238, commit `f5f80b8e`):** i due difetti vivi del caricamento sono chiusi. Il formato
+passa da **WebP a JPEG** — su Safari/iPhone il WebP non veniva prodotto affatto e tornava un PNG in
+silenzio, e la libreria tagliava risoluzione — e ora si **controlla che tipo è tornato**.
+`TabImmagini` ha il **controllo di peso**, messo **dopo** la compressione (a monte rifiuterebbe le
+foto da 6MB che oggi passano). La frase d'errore ora **si legge**: prima era un triangolino muto.
+**D239:** il §4 del piano dava per aperte D236 e D237, già decise — allineato.
 
-**Stato:** ramo `fix-limite-caricamento`, **8 commit non su `main`** · `main` pubblicato e allineato
-a `origin/main` · il fix del limite **non si pubblica da solo** (D235: va in produzione con la
-soluzione).
+📌 **Misurato** (`npm run verify:full`): tsc 0 · eslint 0 · vitest **4888 passate | 19 saltate**
+(412 file) · build ok · sei guardie verdi.
+⚠️ **La prova che manca:** il comportamento su un **iPhone vero**.
 
-📌 **Misurato in chiusura** (`npm run verify:full`): tsc 0 · eslint 0 · vitest **4868 passate | 19
-saltate** (411 file) · build ok · sei guardie verdi.
+⛔ **Non pubblicato:** il ramo `fix-limite-caricamento` esce **con** la soluzione (D235).
 
-➡️ **Prima cosa:** i due difetti vivi della §0②, poi T1 del piano
-`docs/superpowers/plans/2026-08-05-caricamento-diretto-storage.md`.
+➡️ **Prima cosa: T1**, dopo le due condizioni non negoziabili del §2 del piano (C1 il percorso lo
+ricalcola il server; C2 la conferma prova che il file c'è).
 
-📎 **237 decisioni in 88 tornate; la prossima è D238.**
+📎 **239 decisioni in 89 tornate; la prossima è D240.**
