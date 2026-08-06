@@ -1,33 +1,26 @@
 # Sessione attiva — punto di ripresa
 
-🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/roadmap/2026-08-06-tinte-t7-t8-handoff.md` — **la §0 per prima**.
+🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/design/screenshots/2026-08-06-tinte/README.md` — **la §2 per prima** (il difetto trovato dal collaudo).
 
-**Stato (06/08/2026, 08:20):** ramo **`tinta-scheda-t7`**, albero pulito, ⛔ **NON pubblicato**
-(l'hash e il numero di salvataggi si leggono con `git log`, non da qui: un documento non può citare il
-proprio salvataggio). `main` = `affec7ae` — in produzione solo **T1-T6**.
+**Stato (06/08/2026, 10:05):** ramo **`tinta-scheda-t7`**, ⛔ **NON pubblicato** (hash e numero di
+salvataggi si leggono con `git log`). `main` = `affec7ae` — in produzione solo **T1-T6**.
 
-🔴 **La §0 in una frase — cinque cose non fatte:** **un rilievo su due resta aperto**, e non per stanchezza
-(la premessa «forma identica al gemello del colore» **è dubbia**: per il colore mezza coppia è il caso
-NORMALE e voluto, quindi va riverificata prima di scrivere una regola sola) · il **collaudo a schermo non è
-mai stato fatto**, e da adesso **è possibile** perché il campo esiste · il **gate estetico L2 è dovuto su
-DUE superfici** e non c'è nessuno scatto · **D253 sul colore è sospesa** fino a D254 · igiene: **32 rami
-locali**, `.superpowers/sdd/` mai archiviata.
+✅ **Fatto oggi:** **D260** — il rilievo aperto (`route.ts:553`) è **chiuso su entrambi i gemelli**. La
+premessa che l'handoff aveva messo in dubbio **reggeva**, per il verso opposto: le mezze coppie sono due
+e vanno al contrario, il dubbio guardava quella sbagliata. Una regola sola: comanda il **codice**, la
+chiave secondaria orfana si butta dal corpo e la coppia salvata non si tocca.
 
-✅ **Fatto:** **T7** intero · **T8 a metà** (campo in pagina, i tre lettori, D253 sulla tinta) · **P8-①**,
-un difetto che il T8 stesso avrebbe creato (il form nominava sempre la tinta e rendeva irraggiungibile il
-ramo D117) · **D251-D254** a verbale.
+🔬 **Collaudo a schermo FATTO** (§0②, il primo mai fatto sulle tinte): tinta messa dall'app → riletta
+**dalla banca dati** → vista sulla scheda → cambio di tipo con l'avviso «ti ho tolto la tinta». Il ramo
+**D117 si è acceso per la prima volta**. «Glitter multicolore» **non sfasa la riga**.
 
-📌 **Misurato in chiusura:** `verify:full` **uscita 0** · tsc 0 · eslint 0 · build ok · sette guardie verdi ·
-`vitest` **5057 passate | 19 saltate** (427 file | 3 saltati). Ieri sera: 5016|19 su 422.
+🔴 **Difetto trovato e RIFERITO, non corretto (R-E2):** l'avviso è `position:absolute` e **copre il campo
+«Priorità»** (`LavoroFormClient.tsx:428-450`; misurato: etichetta coperta per intero). Preesistente. Cambia
+l'aspetto → si apre col suo **gate L2**. **Aspetta una decisione di Francesco.**
 
-➡️ **Prima cosa:** riverificare se tinta e colore siano **lo stesso caso**, poi il **collaudo a schermo**.
+🟡 **Restano:** il **gate estetico L2** su due superfici (3 viewport × 2 temi — il collaudo ne copre 1×1 e
+**non lo sostituisce**) · **T9** poi il merge · gate L2 arretrato del wizard · igiene (32 rami,
+`.superpowers/sdd/`) e **riordino memoria** (D257) **dopo T8/T9**.
 
-🧭 **06/08 mattina — audit del processo, D256-D259 (centotreesima tornata):** i **panel restano** (D256) ·
-**riordino della memoria approvato** (D257, ondata dedicata **DOPO T8/T9** — voce ⑥ FASE 1 in roadmap) ·
-il **diario resta vivo** in `memory/diario/` (D258) · **percorso Piccola alleggerito GIÀ in vigore**
-(D259, `ua-app/CLAUDE.md` §0C). Referto: `docs/processes/2026-08-06-audit-processo-referto.md`.
-
-📎 259 decisioni in centotré tornate; la prossima è **D260**.
-
-⌨️ **D255:** `/chiudi` è ora un **comando vero** (puntatore alla skill). Se la barra non risponde, il
-collegamento nella cartella superiore va rifatto — due righe in `CLAUDE.md` §0E.
+📌 **Misurato:** `verify:full` **uscita 0** · **5064 passate | 19 saltate** (428 file).
+📎 260 decisioni in centoquattro tornate; la prossima è **D261**.

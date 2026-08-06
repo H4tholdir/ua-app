@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotreesima tornata (D256-D259: l'audit del processo — i panel restano, la memoria si riordina)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquattresima tornata (D260: la chiave secondaria orfana non è una richiesta — una regola sola per i due gemelli)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**259 decisioni in centotré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**260 decisioni in centoquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -1985,3 +1985,42 @@ D256 per prima: cancella lavoro proposto (§0A-bis).
 | **D257** | ✅ **IL RIORDINO DELLA MEMORIA È APPROVATO** — le raccomandazioni 1-8 del referto: MEMORY.md torna fotografia ≤30KB · lo stato ha UNA casa (handoff §0; SESSION_ACTIVE puro puntatore; la testata ROADMAP smette di ristatare; il contatore decisioni vive solo nel registro) · mini-audit «dichiarato vs codice» dentro `/chiudi` · strati fermi a maggio marchiati «non verificato» (domains/, graphify, ruolo di claude-mem dichiarato) · ROADMAP spacchettata per genere · registro decisioni con indice · tetti di dimensione meccanici in `/chiudi` · CLAUDE.md radice versionato col pattern D255 | Francesco, il 06/08: «*allora sono d'accordo con tutto*» | 🗓️ **Ondata dedicata, si apre alla chiusura dell'ondata tinte (T8/T9)** — non scavalca il lavoro a metà sul ramo `tinta-scheda-t7`; voce ⑥ della FASE 1 in roadmap (smistamento D145: il costo della memoria si paga a OGNI sessione di FASE 1, rimandarlo costa di più che farlo). 🛑 **Niente si cancella:** ogni voce storica resta nel repo, cambia solo l'indirizzo. La guardia-coerenza si estende al nuovo territorio PRIMA dello spostamento e si prova alla R-P1 (rompere apposta un rimando) |
 | **D258** | 📔 **IL DIARIO RESTA VIVO — emenda la raccomandazione 1:** le voci narrative NON diventano archivio morto. Continuano a essere scritte a ogni chiusura, come **diario del progetto giorno per giorno**, in `memory/diario/` (un file al mese), **a lato** del percorso di avvio e consultabile in qualsiasi momento | Francesco, il 06/08: «*il cosiddetto diario della memoria invece di archiviarlo e basta, manteniamolo attivo per quello che è, come un diario di tutto il nostro progetto giorno per giorno, da tenere a lato e consultabile in qualsiasi momento*» | 🔑 **Cambia la destinazione, non il gesto:** la voce si scrive già oggi a ogni chiusura — cambierà solo il file che la riceve. Il diario ha già reso servizio documentato (la lettura normativa giusta del 29/07 è stata ritrovata in un verbale; la genesi delle regole vive lì): tenerlo vivo costa zero rispetto a oggi, **purché fuori dal percorso obbligatorio di avvio**. MEMORY.md resta la fotografia ≤30KB (D257); il diario è la cronaca, greppabile e indicizzata anche da claude-mem |
 | **D259** | ⚡ **PERCORSO «PICCOLA» ALLEGGERITO, in vigore da subito** — per change di 1-3 file FUORI dai domini critici: FASE 2 (brainstorming) facoltativa · FASE 8 con UNA sola review · FASE 9 ridotta a un giro sul viewport primario 390px (light+dark) quando una superficie è toccata. **Restano piene: FASE 3** (è il cancello che accerta il dominio critico) **· TDD (FASE 6) · FASE 7 · BP-1.** L'override dominio critico **prevale sempre** | Francesco, il 06/08: «*sono d'accordo con tutto*» (la proposta era dichiarata «da sottoporre a ratifica» nel referto, raccomandazione 9) | ➡️ **Propagata dove la regola vive:** `ua-app/CLAUDE.md` §0C, blocco sotto la tabella di selezione orchestratore. 🔑 Il costo che chiude: rapporto rituale/lavoro fino a 5:1 sui fix da minuti. 🛑 Ciò che NON cambia: RLS/Stripe/FatturaPA/auth/migrations → percorso GRANDE automatico, come sempre; e «non dovuto il gate» non vuol dire «niente prova a schermo» — la FASE 9 ridotta resta una prova vera |
+
+---
+
+### Centoquattresima tornata — D260: la chiave secondaria orfana non è una richiesta, ed è UNA regola per due casi (06/08/2026, 09:58)
+
+**Nasce da:** la §0① dell'handoff `docs/roadmap/2026-08-06-tinte-t7-t8-handoff.md`, che chiedeva di
+**riverificare una premessa** prima di scrivere la regola: il rilievo di ramo del 05/08 (`route.ts:553`)
+era stato rinviato «insieme al gemello del colore» perché *«la forma è identica al gemello»*, e l'handoff
+aveva messo quella frase in dubbio notando che **per il colore mezza coppia è il caso NORMALE e voluto**.
+🔑 **La riverifica ha ribaltato il dubbio, non il rilievo:** il dubbio era rivolto alla **metà sbagliata**.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D260** | ✅ **UNA REGOLA SOLA PER I DUE GEMELLI: è il CODICE a comandare.** Le mezze coppie sono **due** e vanno al contrario. *Codice senza la chiave secondaria* → caso **normale e voluto in entrambi** (la scala la deduce il catalogo, `colore-caso.ts:89-98`; la famiglia la deduce il tipo del lavoro, `tinta.ts:94-97`). *Chiave secondaria senza il codice* → **azzeramento muto in entrambi** (`colore-caso.ts:82-83` e `tinta.ts:67-69` sono la stessa guardia). Quindi la premessa «forma identica al gemello» **REGGEVA**, per il verso opposto a quello scritto, e il rilievo si chiude **su colore e tinta nella stessa passata** | Francesco, il 06/08: «*sì procedi, e poi fai il collaudo a schermo*» (sulla proposta che dichiarava: «se dici sì, questa reversione di premessa diventa D260») | Salvataggio `8730ea6d`. La chiave orfana si **butta dal corpo** e la coppia salvata **non si tocca**; nessun avviso, perché senza codice non c'era richiesta — è il contratto già scritto nei cappelli dei due risolutori, non uno nuovo. 🛑 **E si toglie PRIMA della catena, non in un ramo `else if`**: altrimenti un cambio di tipo accompagnato da una famiglia orfana **salterebbe il ramo D117** e la tinta sparirebbe in silenzio — lo stesso difetto spostato di due righe (prova ⑥ di `tests/unit/lavori-patch-mezza-coppia.test.ts`) |
+
+**🔑 La lezione, ed è il pezzo durevole — vale più della correzione.**
+**Una premessa messa in dubbio va verificata come la decisione che regge, e il dubbio stesso va verificato.**
+L'handoff aveva fatto la cosa giusta a fermarsi; ma aveva controllato il lato «codice senza scala» **solo
+per il colore**, e da lì aveva concluso un'asimmetria che non c'era. Bastava fare la stessa lettura sulla
+tinta — dodici righe più in là — per vedere che anche lì la famiglia si deduce.
+➡️ **Chi sospende una decisione scrive ANCHE la lettura che chiuderebbe il sospetto**, o il sospetto si
+tramanda come se fosse un fatto.
+
+**🛑 Il difetto che la forma sbagliata avrebbe creato, e che è stato evitato per un soffio.** Restringere
+la condizione d'ingresso **e basta** avrebbe lasciato la chiave orfana nel corpo: quella sarebbe arrivata
+all'UPDATE e avrebbe violato `lavori_tinta_coppia_ck` / `lavori_colore_caso_coppia_ck` → **500**, e con
+lui **ogni altra correzione dello stesso salvataggio**. Cioè: un azzeramento silenzioso trasformato nel
+danno esatto che «*si perde il colore, mai il lavoro*» esiste per impedire. **Peggio del difetto di
+partenza.**
+
+**⚠️ Onestà sull'esposizione, dichiarata perché non sembri più di quel che è:** **nessuna superficie può
+produrre la mezza coppia orfana oggi** (`useLavoroForm.ts:343-349` e `:360-376` mandano o niente, o il
+solo codice, o la coppia intera; `ModificaColoreSheet.tsx:208-218` verifica il catalogo prima di partire).
+È **indurimento del confine** — «i client saranno più d'uno» — **non una falla viva**.
+
+**📌 Correzione di un documento, non di codice:** il commento di `route.ts` dichiarava «*le due chiavi si
+scrivono sempre INSIEME o nessuna delle due*», in **contraddizione** col contratto di `colore-caso.ts:63-70`,
+che ammette apposta il codice senza la scala. **Due contratti diversi scritti nello stesso repository**, ed
+è dalla frase sbagliata che il rilievo era nato. Corretta nello stesso salvataggio.
