@@ -329,25 +329,43 @@ describe.skipIf(skipIntegrationTests)('eventi_qualita + valutazioni_evento — c
           `INSERT INTO clienti (id, laboratorio_id, nome, cognome)
            VALUES ($1, $2, 'Studio', 'Prova D274')`, [clienteId, labB]
         )
-        const { rows: [lavoro] } = await client.query(
-          `INSERT INTO lavori (laboratorio_id, numero_lavoro, cliente_id, tipo_dispositivo,
-                               descrizione, data_consegna_prevista)
-           VALUES ($1, 'D274-001', $2, 'protesi_fissa', 'lavoro di prova D274', current_date)
-           RETURNING id`, [labB, clienteId]
-        )
-        const eventoId = await creaEvento(client, labB, lavoro.id)
+        const creaLavoro = async (numero: string) => {
+          const { rows: [l] } = await client.query(
+            `INSERT INTO lavori (laboratorio_id, numero_lavoro, cliente_id, tipo_dispositivo,
+                                 descrizione, data_consegna_prevista)
+             VALUES ($1, $2, $3, 'protesi_fissa', 'lavoro di prova D274', current_date)
+             RETURNING id`, [labB, numero, clienteId]
+          )
+          return l.id as string
+        }
+        const lavoroOrig = await creaLavoro('D274-001')
+        const lavoroNuovo = await creaLavoro('D274-002')
+        const eventoId = await creaEvento(client, labB, lavoroOrig)
         await client.query(
           `INSERT INTO valutazioni_evento (laboratorio_id, evento_id, esito, giustificazione)
            VALUES ($1, $2, 'nessuna_azione', 'prova D274')`, [labB, eventoId]
+        )
+        // 🔑 Il rifacimento agganciato all'evento NON è decorativo: è il TERZO vincolo
+        // d'ordine (lavori_rifacimenti.evento_id → eventi_qualita, composita NO ACTION).
+        // Senza questa riga, spostare le due cancellazioni nuove SOPRA quella dei
+        // rifacimenti lascerebbe la suite verde — e questa famiglia di difetti ha già
+        // morso tre volte sulla stessa funzione (cassette, denti, eventi).
+        await client.query(
+          `INSERT INTO lavori_rifacimenti
+             (laboratorio_id, lavoro_originale_id, lavoro_nuovo_id, motivo, evento_id)
+           VALUES ($1, $2, $3, 'altro', $4)`,
+          [labB, lavoroOrig, lavoroNuovo, eventoId]
         )
 
         const { rows: [esito] } = await client.query(
           `SELECT public.admin_delete_laboratorio($1) AS r`, [labB]
         )
         expect(esito.r.ok).toBe(true)
-        // I conteggi devono NOMINARE le due tabelle: se sparissero dall'elenco,
-        // la funzione tornerebbe a fallire senza che nessuna asserzione se ne accorga.
-        expect(esito.r.deleted).toMatchObject({ eventi_qualita: 1, valutazioni_evento: 1 })
+        // I conteggi devono NOMINARE le tabelle: se sparissero dall'elenco, la funzione
+        // tornerebbe a fallire senza che nessuna asserzione se ne accorga.
+        expect(esito.r.deleted).toMatchObject({
+          eventi_qualita: 1, valutazioni_evento: 1, lavori_rifacimenti: 1, lavori: 2,
+        })
       })
     })
 
