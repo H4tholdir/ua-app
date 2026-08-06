@@ -326,6 +326,20 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     expect(res.status).toBe(422)
   })
 
+  it('motivo_libero di tipo sbagliato (numero) → 422', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ motivo_libero: 42 })), paramsLavoro())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+  })
+
+  it('note di tipo sbagliato (oggetto) → 422', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ note: { testo: 'ciao' } })), paramsLavoro())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+  })
+
   it('origine_informazione fuori vocabolario → 422', async () => {
     bancoEvento()
     const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ origine_informazione: 'passaparola' })), paramsLavoro())
@@ -634,6 +648,13 @@ describe('POST /api/eventi-qualita/[id]/valutazioni — deposita il GIUDIZIO, no
     bancoValutazione()
     const res = await POST_VALUTAZIONE(req(URL_VALUTAZIONE, { esito: ['reclamo'] }), paramsEvento())
     expect(res.status).toBe(422)
+  })
+
+  it('giustificazione di tipo sbagliato (numero) → 422', async () => {
+    const banco = bancoValutazione()
+    const res = await POST_VALUTAZIONE(req(URL_VALUTAZIONE, { esito: 'reclamo', giustificazione: 7 }), paramsEvento())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
   })
 
   it('id di path non UUID → 404 e nessuna query', async () => {
