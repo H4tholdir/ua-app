@@ -707,3 +707,70 @@ rilettura del piano l'avrebbe trovato: i due difetti erano visibili solo **confr
 ciò che il progetto aveva già imparato**. ➡️ Prima di scrivere un oggetto di database in un piano, si
 cerca il precedente **per comportamento** («chi altro in questo repo protegge un riferimento fra
 tenant?»), **non per nome**.
+
+---
+
+## ⚖️ D273-D275 — cosa cambia nel piano (centodecima tornata, 06/08/2026 17:03)
+
+Il terzo ritrovamento aperto («va deciso se anche il **fatto** debba diventare non modificabile») è
+stato portato a un **panel di tre advisor con mandato di smontare la proposta**. Esiti: normativo
+«regge con condizioni» · database «regge con condizioni, il punto 2 non è realizzabile come scritto» ·
+prodotto 🔴 **«il punto 1 così com'è NON regge»**.
+
+### Il ritrovamento 3 è CHIUSO da D273 — ma non nella forma in cui era stato posto
+
+| Era | È diventato |
+|---|---|
+| «il fatto diventa non modificabile?» | **No: si RITIRA.** Un evento non si cancella mai in modo definitivo, ma si ritira **dichiarando il motivo**, uscendo da elenchi **e conteggi** — modello già in casa: `incidenti_mdr` (`002_fase2_schema.sql:420-425` · `psur/route.ts:156-157`) |
+| «bloccare l'`UPDATE`?» | **Mai.** `UPDATE` resta aperto (D262), con la traccia ridotta all'osso |
+| «segnalare quando la correzione arriva sotto un giudizio» | ⛔ **FUORI da quest'ondata.** L'avviso non ha il gesto che lo risolve: la riclassificazione **non è fra i nove compiti** e i suoi pezzi sono rotti a metà (ritrovamenti 1 e 2) |
+
+🛑 **IL VINCOLO CHE NASCE DA QUI, e vale per chiunque tocchi queste tabelle:** il `REVOKE DELETE` su
+`eventi_qualita` **non si scrive da solo**. Va nella stessa migration del ritiro morbido. Da solo
+tiene dentro i conteggi ogni riga nata da un tocco sbagliato, e quei conteggi finiscono nel rapporto
+periodico dovuto per legge (`psur/route.ts:190`). ➡️ **In `tests/integration/eventi-qualita-schema.rpc.test.ts`
+c'è una SENTINELLA** che oggi asserisce che il `DELETE` è ancora concesso: quando arriva il ritiro,
+quella prova **si capovolge**, non si cancella.
+
+### Compiti che cambiano
+
+- **🆕 Compito nuovo — «l'evento si ritira»:** colonne di ritiro con motivo obbligatorio · `REVOKE DELETE`
+  (insieme, mai prima) · esclusione da elenchi e conteggi · eccezione non trattabile: un evento che ha
+  **già prodotto un atto verso l'esterno** (dichiarazione riemessa, segnalazione, avviso al medico)
+  **non si ritira, si supera**.
+- **Task 6 — due correzioni da minuti, e nascono da un conto che non torna.** La spec dichiara il costo
+  di D269 come «due tap invece di uno» (righe 54 e 346). Misurato: per un tasto premuto per sbaglio
+  servono **quattro domande obbligatorie** (`20260806140823:10-25`, tutte `NOT NULL`) **più una
+  giustificazione scritta a mano** per confermare «nessuna azione» (`:47-49`). ➡️ ① la giustificazione
+  **nasce precompilata** col «perché» che la derivazione ha già scritto; ② il motivo
+  `errore_registrazione` **non chiede** origine, momento della conoscenza, stato del dispositivo e
+  potenziale di danno.
+- **Nessun controllo di ruolo si introduce** (D275): rientrare in un lavoro consegnato resta alla
+  portata di tutti, come lo è già annullare la consegna oggi. ⏸️ Rimandata, non chiusa.
+
+### ✅ D274 — i due difetti VIVI, chiusi in `20260806170700_d274_difetti_vivi_intervento.sql`
+
+1. **`admin_delete_laboratorio` non nominava le due tabelle nuove** e `eventi_qualita_lavoro_fk` è
+   `NO ACTION` → la cancellazione di un tenant **abortiva**. `provato:` `SQLSTATE 23503` prima della
+   correzione, in transazione annullata. **Latente** (0 righe), sarebbe scattato al primo laboratorio vero.
+   ⚠️ È **lo stesso passo falso già documentato tre righe sopra** nella stessa funzione (21/07 cassette,
+   27/07 denti): il commento c'era, la lezione no.
+2. **`TRUNCATE` era rimasto concesso** su `valutazioni_evento` → il commento «la garanzia la dà il
+   DATABASE» (`20260806140823:78`) era **falso**. `provato:` `SET LOCAL ROLE authenticated; TRUNCATE` →
+   **riuscito**. Chiuso con `REVOKE ALL` + `GRANT SELECT, INSERT` (forma di casa,
+   `20260721090000:122-139`); su `eventi_qualita` si revoca **solo `TRUNCATE`**, per non rischiare di
+   sbagliare il `GRANT` di ritorno su `UPDATE` e rompere D262 nella migration che lo cita.
+
+### 🟠 Aperti dopo il panel, riferiti e NON toccati (R-E2)
+
+1. **`audit_log` è svuotabile** da un utente autenticato (`provato:` `TRUNCATE` riuscito), e **1.644
+   righe su 1.645 non sanno chi ha fatto la modifica** — l'app parla al database con un'identità di
+   servizio. ➡️ Una memoria delle correzioni costruita lì **nascerebbe cieca**: il «chi» va messo nella
+   riga, come `emesso_da` (`20260804120000:47-59`). Non toccato: serve la sua decisione.
+2. **`valutazione_supera()`** non pretende un successore e non registra chi/quando → un evento può
+   restare **senza alcun giudizio vivo**.
+3. **La spec §6 e questo piano (righe 391-392) derivano `errore_registrazione` in due punti diversi**
+   dell'ordine dei test. Vince il codice, ma il documento **ratificato** dice un'altra cosa.
+4. **`psur/route.ts:190`** continua a dichiarare `totale_reclami: 0` per costruzione.
+5. La policy `FOR ALL` su `eventi_qualita` annuncerà una porta murata quando arriverà il `REVOKE DELETE`:
+   va spezzata in `SELECT` + `INSERT` + `UPDATE` **nello stesso compito del ritiro**.

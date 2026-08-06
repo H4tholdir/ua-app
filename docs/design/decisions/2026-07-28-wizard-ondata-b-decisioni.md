@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centonovesima tornata (D271-D272: la certificazione diventa un dato, e una norma letta alla lettera stava per creare un cantiere inutile)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centodecima tornata (D273-D275: il divieto di cancellare, da solo, non protegge un registro — lo sporca)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**272 decisioni in centonove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**275 decisioni in centodieci tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2242,3 +2242,66 @@ vero del laboratorio, **ne sta creando uno**.
 sopravvive all'architettura che lo giustificava (i 10 minuti); al pomeriggio si stava per **crearne
 uno nuovo** dello stesso genere, partendo però da una fonte autorevole invece che da una costante
 dimenticata. **La provenienza nobile di un vincolo non lo rende utile.**
+
+---
+
+### Centodecima tornata — D273-D275: il panel ha rifatto la proposta invece di approvarla, e il divieto di cancellare da solo era un generatore di numeri falsi (06/08/2026, 17:03)
+
+**Nasce da:** il terzo dei quattro ritrovamenti aperti del Task 1 — l'unico che aspettava una decisione
+di Francesco: se anche `eventi_qualita`, il **fatto**, debba diventare non modificabile.
+**Misurato prima di decidere, sul database vivo:** `eventi_qualita` ha `UPDATE=true` e `DELETE=true`
+per `anon`, `authenticated` e `service_role`; `valutazioni_evento` li ha **tutti e tre a false**. Il
+ritrovamento non era teorico.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D273** | 🔑 **UN EVENTO DI QUALITÀ NON SI CANCELLA MAI IN MODO DEFINITIVO, MA SI RITIRA DICHIARANDO IL MOTIVO — e si corregge sempre.** Francesco: «*sì ratifica D273*» | Tre pezzi: ① **niente `DELETE`** dal database (né `TRUNCATE`); ② **ritiro morbido con motivo obbligatorio**, che toglie l'evento dagli elenchi **e dai conteggi**, sul modello già in casa di `incidenti_mdr` (`002_fase2_schema.sql:420-425` · `psur/route.ts:156-157`); ③ `UPDATE` **resta aperto** (D262) con la traccia ridotta all'osso: chi ha creato, chi ha ritirato, quando è stato corretto. 🛑 **Unica eccezione, e non è trattabile:** un evento che ha **già prodotto un atto verso l'esterno** (dichiarazione riemessa, segnalazione al Ministero, avviso al medico) **non si ritira, si supera** — quello è l'unico blocco che D262 ammette, perché è di legge. ⛔ **L'avviso «il giudizio poggia su una descrizione cambiata» ESCE da quest'ondata**: rientra insieme alla riclassificazione |
+| **D274** | ✅ **I DUE DIFETTI VIVI SI CHIUDONO SUBITO**, benché fuori dal mandato dell'ondata. Francesco: «*chiudi subito i due difetti vivi*» | ① `admin_delete_laboratorio` **non nomina** le due tabelle nuove e `eventi_qualita_lavoro_fk` è `NO ACTION` → la cancellazione di un tenant **aborta** al primo laboratorio con un evento; ② **`TRUNCATE` era rimasto concesso** su `valutazioni_evento`, quindi il commento «la garanzia la dà il DATABASE» (`20260806140823:78`) era **falso** |
+| **D275** | 🔓 **RIENTRARE IN UN LAVORO CONSEGNATO RESTA ALLA PORTATA DI TUTTI — nessun controllo di ruolo.** Francesco: «*di tutti, poi in futuro se dovrò eseguire qualche modifica a riguardo ci torneremo, per adesso va bene così*» | La domanda non era mai stata posta: con la finestra dei dieci minuti che sparisce (D269), lo stesso gesto annulla **una dichiarazione a valore legale, per sempre, su qualunque lavoro**. Oggi annullare la consegna non ha già alcun controllo di ruolo (`api/lavori/[id]/annulla-consegna/route.ts`), e **si sceglie di non introdurne uno**. ⏸️ **Rimandata, non chiusa:** si riapre se e quando servirà |
+
+**🔑 LA LEZIONE — IL DIVIETO DI CANCELLARE, DA SOLO, NON PROTEGGE UN REGISTRO: LO SPORCA.**
+La proposta portata al panel era «non si cancella, ma chi sbaglia dichiara l'errore», e sembrava
+elegante. Due advisor su tre ci sono arrivati per strade diverse: un evento nato da un dito scivolato
+che non si può togliere **resta per sempre dentro i conteggi**, e quei conteggi finiscono nel rapporto
+periodico dovuto per legge (`psur/route.ts:190`, che quest'ondata deve finalmente alimentare).
+➡️ **Vietare la cancellazione senza dare un modo di dire «questa riga non doveva esistere» costruisce
+un generatore di numeri falsi dentro un documento di sistema qualità.**
+
+**⚠️ E il costo cadeva tutto sull'errore di digitazione, cioè sul caso che Francesco ha dichiarato
+NORMALE.** Oggi chi preme «consegnato» per sbaglio ha un tasto «Annulla»: **un tocco**
+(`AnnullaConsegnaBanner.tsx:144-167`). Dopo l'ondata deve aprire «Devo intervenire», scegliere il
+motivo e rispondere a **quattro domande obbligatorie** — da chi ha saputo, quando, dov'era il
+dispositivo, che danno può fare — che per un tasto premuto per sbaglio **non vogliono dire niente**; e
+per confermare «nessuna azione» il database **pretende una giustificazione scritta a mano**
+(`20260806140823:47-49`). La spec dichiara il costo di D269 come «**due tap invece di uno**»
+(spec righe 54 e 346): **quel conto non torna, e non tornava già prima di D273.**
+➡️ **Due correzioni da minuti entrano nel Task 6:** la giustificazione di «nessuna azione» **nasce
+precompilata** col «perché» che la derivazione ha già scritto, e il motivo «ho registrato per sbaglio»
+**non chiede** origine, momento della conoscenza, stato del dispositivo e potenziale di danno.
+
+**🔑 LA REGOLA CHE MANCAVA, e non era stata scritta da nessuno.** La direttiva permanente dice che ogni
+campo si corregge **fino alla consegna** — ma un evento di qualità **nasce dopo la consegna**, quindi
+quella regola non lo copriva. Il principio, spogliato del caso particolare, è un altro:
+
+> **Un dato si corregge liberamente finché non è uscito dal laboratorio dentro un documento. Da lì in
+> poi non si congela: si corregge per sovrapposizione.**
+> Applicato all'evento: *si corregge sempre. Prima che sia uscito, la correzione è diretta; dopo, è per
+> sovrapposizione — come il giudizio. Non si cancella niente, e non si congela niente.*
+
+🛑 **Perché il GIUDIZIO non può essere il confine:** è un atto **interno**, e per progetto è
+**superabile** (D270). Se un atto interno congelasse un fatto, avremmo una regola **più severa** di
+quella data per il lavoro stesso — dove portare a `pronto` non congela niente e congela solo l'uscita.
+
+**📌 Il panel, e come ha lavorato.** Tre advisor con mandato esplicito di **smontare**, non di
+approvare (Regola Advisor, 17/07). Esiti: **normativo** «regge con condizioni» (8 condizioni) ·
+**database/sicurezza** «regge con condizioni» (10 difetti, 3 Critici) · **prodotto** 🔴 **«il punto 1
+così com'è NON regge»**. I due difetti vivi di D274 **non erano nella proposta**: sono usciti cercando
+dove si rompeva. ✅ **Riverificati uno per uno da chi riferisce**, non presi sulla parola degli advisor.
+
+**🟠 Aperti e NON chiusi da questa tornata** (riferiti, R-E2): `audit_log` è **svuotabile** da un
+utente autenticato e **1.644 righe su 1.645 non sanno chi ha fatto la modifica** (l'app parla al
+database con un'identità di servizio) — quindi una memoria delle correzioni costruita lì nascerebbe
+cieca · `valutazione_supera()` non pretende un successore e non registra chi/quando · la spec §6 e il
+piano (righe 391-392) **derivano `errore_registrazione` in due punti diversi** dell'ordine dei test:
+vince il codice, ma il documento **ratificato** dice un'altra cosa · `psur/route.ts:190` continua a
+dichiarare `totale_reclami: 0` per costruzione.

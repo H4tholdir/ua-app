@@ -312,6 +312,112 @@ describe.skipIf(skipIntegrationTests)('eventi_qualita + valutazioni_evento — c
     })
   })
 
+  // ── D274 — i due difetti VIVI trovati dal panel su D273 ─────────────────
+  // Nessuno dei due era nella proposta: sono usciti cercando dove si rompeva.
+  // Entrambi erano LATENTI — le tabelle hanno 0 righe — cioè sarebbero scattati
+  // al primo laboratorio vero, quando costano un incidente invece di niente.
+  describe('D274 — i difetti che il panel ha trovato fuori dalla proposta', () => {
+    it('① cancellare un laboratorio che ha registrato un evento arriva in fondo', async () => {
+      // PRIMA della migration 20260806170700 questa falliva con
+      // SQLSTATE 23503 «violates foreign key constraint eventi_qualita_lavoro_fk»:
+      // admin_delete_laboratorio elenca le tabelle a mano e le due nuove non c'erano.
+      // Tutto dentro la transazione annullata: il laboratorio di prova nasce e muore qui.
+      await withRollback(async (client) => {
+        const labB = await creaLaboratorioB(client)
+        const clienteId = randomUUID()
+        await client.query(
+          `INSERT INTO clienti (id, laboratorio_id, nome, cognome)
+           VALUES ($1, $2, 'Studio', 'Prova D274')`, [clienteId, labB]
+        )
+        const { rows: [lavoro] } = await client.query(
+          `INSERT INTO lavori (laboratorio_id, numero_lavoro, cliente_id, tipo_dispositivo,
+                               descrizione, data_consegna_prevista)
+           VALUES ($1, 'D274-001', $2, 'protesi_fissa', 'lavoro di prova D274', current_date)
+           RETURNING id`, [labB, clienteId]
+        )
+        const eventoId = await creaEvento(client, labB, lavoro.id)
+        await client.query(
+          `INSERT INTO valutazioni_evento (laboratorio_id, evento_id, esito, giustificazione)
+           VALUES ($1, $2, 'nessuna_azione', 'prova D274')`, [labB, eventoId]
+        )
+
+        const { rows: [esito] } = await client.query(
+          `SELECT public.admin_delete_laboratorio($1) AS r`, [labB]
+        )
+        expect(esito.r.ok).toBe(true)
+        // I conteggi devono NOMINARE le due tabelle: se sparissero dall'elenco,
+        // la funzione tornerebbe a fallire senza che nessuna asserzione se ne accorga.
+        expect(esito.r.deleted).toMatchObject({ eventi_qualita: 1, valutazioni_evento: 1 })
+      })
+    })
+
+    it('② TRUNCATE su valutazioni_evento è rifiutato — la frase «la garanzia la dà il DATABASE» ora è vera', async () => {
+      // PRIMA della migration questo TRUNCATE RIUSCIVA: UPDATE e DELETE erano
+      // revocati, TRUNCATE no — e TRUNCATE ignora la RLS, quindi svuotava la
+      // tabella di TUTTI i laboratori insieme.
+      await withRollback(async (client) => {
+        for (const ruolo of ['anon', 'authenticated', 'service_role']) {
+          await client.query(`SET LOCAL ROLE ${ruolo}`)
+          const errore = await attesoRifiuto(client, `TRUNCATE valutazioni_evento come ${ruolo}`, () =>
+            client.query('TRUNCATE public.valutazioni_evento')
+          )
+          expect(errore).toMatch(/permission denied/i)
+          await client.query('RESET ROLE')
+        }
+      })
+    })
+
+    it('② TRUNCATE su eventi_qualita è rifiutato', async () => {
+      await withRollback(async (client) => {
+        for (const ruolo of ['anon', 'authenticated', 'service_role']) {
+          await client.query(`SET LOCAL ROLE ${ruolo}`)
+          const errore = await attesoRifiuto(client, `TRUNCATE eventi_qualita come ${ruolo}`, () =>
+            client.query('TRUNCATE public.eventi_qualita')
+          )
+          expect(errore).toMatch(/permission denied/i)
+          await client.query('RESET ROLE')
+        }
+      })
+    })
+
+    it('② il REVOKE ALL non ha portato via SELECT e INSERT, e non ha ridato UPDATE né DELETE', async () => {
+      // La prova che il `GRANT` di ritorno è esatto: `has_table_privilege` da solo
+      // passerebbe anche se avessimo ri-concesso TRUNCATE, per questo sta insieme
+      // alle due prove di rifiuto qui sopra.
+      await withRollback(async (client) => {
+        const { rows } = await client.query(`
+          SELECT r AS ruolo,
+                 has_table_privilege(r, 'public.valutazioni_evento', 'SELECT')   AS sel,
+                 has_table_privilege(r, 'public.valutazioni_evento', 'INSERT')   AS ins,
+                 has_table_privilege(r, 'public.valutazioni_evento', 'UPDATE')   AS upd,
+                 has_table_privilege(r, 'public.valutazioni_evento', 'DELETE')   AS del,
+                 has_table_privilege(r, 'public.valutazioni_evento', 'TRUNCATE') AS trunc
+            FROM unnest(ARRAY['anon','authenticated','service_role']) AS r`)
+        for (const p of rows) {
+          expect({ ruolo: p.ruolo, ...p }).toMatchObject({
+            sel: true, ins: true, upd: false, del: false, trunc: false,
+          })
+        }
+      })
+    })
+
+    it('🕗 SENTINELLA — su eventi_qualita il DELETE è ancora concesso, ed è DELIBERATO', async () => {
+      // D273 dice che un evento non si cancella. Ma il REVOKE DELETE deve arrivare
+      // INSIEME al ritiro morbido (evento ritirato con motivo, fuori da elenchi e
+      // conteggi): da solo terrebbe dentro i conteggi ogni riga nata da un tocco
+      // sbagliato, e quei conteggi finiscono nel rapporto dovuto per legge.
+      // 🔴 QUANDO ARRIVA IL RITIRO, QUESTA PROVA SI CAPOVOLGE: `del` diventa false.
+      // Non si cancella: diventa la prova che il divieto è entrato in vigore.
+      await withRollback(async (client) => {
+        const { rows } = await client.query(`
+          SELECT has_table_privilege('authenticated', 'public.eventi_qualita', 'DELETE') AS del,
+                 has_table_privilege('authenticated', 'public.eventi_qualita', 'UPDATE') AS upd`)
+        expect(rows[0].del).toBe(true)
+        expect(rows[0].upd).toBe(true) // D262: la correzione non si blocca mai
+      })
+    })
+  })
+
   // ── I quattro CHECK, provati con un valore che DEVE essere rifiutato ────
   describe('i vincoli di contenuto rifiutano davvero (R-P1: si prova col valore che deve fallire)', () => {
     it('motivo «altro» senza testo libero è rifiutato', async () => {
