@@ -574,27 +574,32 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     nessunTestoGrezzo((await res.json()).error)
   })
 
-  it('conosciuto_il con data e ora ma SENZA fuso → 201: è ISO 8601 valido, e il mandato dice ISO 8601', async () => {
-    // ⚠️ Ambiguità REALE, e la prova la fissa invece di nasconderla: senza fuso
-    // JavaScript legge nell'ora LOCALE di chi esegue — sul server (UTC) e sul
-    // telefono (CEST) lo stesso testo è un istante diverso. Pretendere il fuso
-    // la chiuderebbe, ma è una decisione sul contratto con il client (un campo
-    // `datetime-local` restituisce proprio questa forma), non una correzione
-    // della rete di prove: riferita a Francesco, non presa qui.
+  it('conosciuto_il con data e ora ma SENZA fuso → 201, letto sull\'orologio di ROMA (D286)', async () => {
+    // ⚖️ D286 (06/08/2026) CHIUDE l'ambiguità che questa prova dichiarava aperta.
+    // Diceva: «senza fuso JavaScript legge nell'ora LOCALE di chi esegue — sul
+    // server (UTC) e sul telefono (CEST) lo stesso testo è un istante diverso …
+    // riferita a Francesco, non presa qui». Francesco l'ha presa: l'app segue
+    // sempre l'orario italiano. Le 10:00 del 1º agosto a Roma (CEST) sono le
+    // 08:00 UTC — e l'asserzione ora è sull'ISTANTE, non più sul solo tipo.
+    // La rete completa sta in `tests/unit/istante-roma.test.ts`, che forza
+    // `TZ=UTC` perché qui il difetto sarebbe invisibile.
     const banco = bancoEvento()
     const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-01T10:00:00' })), paramsLavoro())
     expect(res.status).toBe(201)
-    expect(banco.rigaInserita?.conosciuto_il).toBeTypeOf('string')
+    expect(banco.rigaInserita?.conosciuto_il).toBe('2026-08-01T08:00:00.000Z')
   })
 
-  it('conosciuto_il come sola data ISO (`2026-08-01`) → 201', async () => {
-    // Ammessa: senza ora, JavaScript la legge a mezzanotte UTC — un istante
-    // ANTICIPATO rispetto a qualunque momento di quel giorno in Italia, quindi
-    // la scadenza si stringe. È la direzione dell'Art. 87(7).
+  it('conosciuto_il come sola data ISO (`2026-08-01`) → 201, mezzanotte di ROMA', async () => {
+    // 🔄 CAMBIATA da D286, e il cambio è dichiarato invece che scoperto dopo:
+    // valeva mezzanotte UTC, cioè le 02:00 italiane — un momento che in Italia
+    // era già il giorno indicato, ma spostato di due ore dentro la giornata.
+    // Ora vale mezzanotte di Roma: le 22:00 UTC del giorno prima. È anche la
+    // lettura CONSERVATIVA — l'istante più indietro, quindi la scadenza più
+    // vicina: la direzione dell'Art. 87(7) e di D280.
     const banco = bancoEvento()
     const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-01' })), paramsLavoro())
     expect(res.status).toBe(201)
-    expect(banco.rigaInserita?.conosciuto_il).toBe('2026-08-01T00:00:00.000Z')
+    expect(banco.rigaInserita?.conosciuto_il).toBe('2026-07-31T22:00:00.000Z')
   })
 
   it('conosciuto_il ISO con scostamento esplicito (`+02:00`) → 201', async () => {

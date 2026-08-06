@@ -18,6 +18,7 @@ import type {
   PotenzialeDiDanno,
 } from '@/lib/domain/qualita-costanti'
 import { classifica } from '@/lib/qualita/classifica'
+import { istanteDaTestoRoma } from '@/lib/utils/data-roma'
 
 /**
  * POST /api/lavori/[id]/eventi-qualita — registra IL FATTO e RESTITUISCE la
@@ -73,27 +74,26 @@ const TOLLERANZA_OROLOGIO_MS = 5 * 60 * 1000
 const LIMITE_TESTO_LIBERO = 1000
 
 /**
- * `conosciuto_il` deve arrivare in ISO 8601, e il controllo di FORMA viene
- * prima di `Date.parse` — perché `Date.parse` è troppo accomodante proprio dove
- * costa di più: `'01/08/2026'` non è un errore per lui, è l'**8 gennaio**. Su un
- * campo che fa partire i termini dell'Art. 87, sette mesi di scarto passerebbero
- * senza che nessuno se ne accorga.
+ * ⚖️ **D286 — L'AMBIGUITÀ CHE STAVA SCRITTA QUI È CHIUSA (06/08/2026).**
  *
- * Ammesso **tutto l'ISO 8601** utile qui, e nient'altro: la sola data
- * (`2026-08-01`), oppure data e ora con o senza il fuso in coda
- * (`Z`, `±HH:MM`). Fuori resta ciò che il formato non è — `01/08/2026` in
- * testa a tutti.
+ * Fin qui `conosciuto_il` passava per `Date.parse`, e questo riquadro dichiarava
+ * un'ambiguità lasciata aperta: una data e ora **senza fuso** JavaScript la
+ * legge nell'ora locale di **chi esegue**. Il server dell'app gira a UTC, quindi
+ * `2026-08-06T10:00` — che è **esattamente** ciò che manda un campo
+ * `datetime-local` dal telefono di un'operatrice italiana — veniva salvato come
+ * le **12:00 di Roma**: due ore in avanti sul momento zero dei termini
+ * dell'Art. 87.
  *
- * ⚠️ **Un'ambiguità REALE resta aperta, e sta scritta qui perché nessuno la
- * scopra a posteriori:** data e ora **senza** fuso JavaScript le legge nell'ora
- * locale di chi esegue — sul server (UTC) e sul telefono dell'operatrice (CEST)
- * lo stesso testo è un istante diverso, e la differenza si scarica **in avanti**
- * su una scadenza di legge. Pretendere il fuso la chiuderebbe, ma è una
- * decisione sul **contratto con il client** (un campo `datetime-local`
- * restituisce proprio `2026-08-06T10:00`, senza fuso): non si prende dentro un
- * mandato di correzione delle prove. Riferita, non decisa.
+ * Francesco ha deciso: «*sempre l'app deve seguire l'orario italiano di Roma,
+ * quello di qualsiasi dispositivo in Italia*». La lettura vive in
+ * `istanteDaTestoRoma` (`src/lib/utils/data-roma.ts`) — **lì e non qui**, perché
+ * è la stessa regola che serve a ogni superficie futura che manda un momento.
+ *
+ * 🔑 **`Date.parse` non compare più in questa rotta**, e non è una preferenza di
+ * stile: `Date.parse('01/08/2026')` non è un errore per JavaScript, è l'**8
+ * gennaio**. La funzione condivisa fa la guardia di forma e la lettura in un
+ * passaggio solo, così non possono divergere.
  */
-const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/
 
 // `post_consegna_correzioni` è `SMALLINT` (`002_fase2_schema.sql:75`): oltre
 // questo valore l'incremento traboccherebbe. Irraggiungibile nella pratica,
@@ -216,18 +216,24 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (typeof conosciutoGrezzo !== 'string' || conosciutoGrezzo.trim().length === 0) {
     return err('Indica quando siete venuti a saperlo: da lì partono i termini di legge.', 422)
   }
-  // 🛑 La FORMA prima del valore: `Date.parse` accetta `'01/08/2026'` e lo legge
-  // come 8 gennaio (vedi il riquadro su `ISO_8601_RE`).
-  if (!ISO_8601_RE.test(conosciutoGrezzo.trim())) {
+  // 🛑 Forma e lettura in un passaggio solo (D286): un momento senza fuso vale
+  // sull'orologio di ROMA, mai su quello del processo.
+  const esitoConosciuto = istanteDaTestoRoma(conosciutoGrezzo)
+  if (!esitoConosciuto.ok) {
+    if (esitoConosciuto.causa === 'ora_inesistente') {
+      // L'ultima domenica di marzo l'ora fra le 2 e le 3 non esiste: le lancette
+      // saltano avanti. Il messaggio dice COSA FARE, non cosa è vietato.
+      return err(
+        'Quella notte gli orologi italiani sono andati avanti di un\'ora, e l\'ora che hai indicato non è esistita: scrivi le 3:00 o un orario più tardi.',
+        422
+      )
+    }
     return err(
       'La data in cui siete venuti a saperlo va scritta nel formato internazionale anno-mese-giorno, con il fuso in coda — per esempio 2026-08-06T14:30:00Z, oppure la sola data 2026-08-06. Scritta come 01/08/2026 non si può leggere senza rischiare di scambiare il giorno con il mese.',
       422
     )
   }
-  const conosciutoMs = Date.parse(conosciutoGrezzo.trim())
-  if (Number.isNaN(conosciutoMs)) {
-    return err('La data in cui siete venuti a saperlo non è leggibile: controllala e riprova.', 422)
-  }
+  const conosciutoMs = esitoConosciuto.ms
   // Solo un limite SUPERIORE, e la mancanza di quello inferiore è deliberata:
   // una data sbagliata nel passato rende la scadenza **più** stretta, che è la
   // direzione dell'Art. 87(7) (nel dubbio si segnala). Una data nel futuro fa
