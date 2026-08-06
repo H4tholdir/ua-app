@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotredicesima tornata (D280-D282: l'attrito sta sulla porta d'uscita, mai su quella d'ingresso)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquattordicesima tornata (D283: il primo tocco chiede conferma — la rete che D269 aveva tolto senza rimpiazzarla)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**282 decisioni in centotredici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**283 decisioni in centoquattordici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2443,3 +2443,49 @@ il **ritiro** di D273 (la riga non doveva proprio esistere). Sono davvero divers
 un fatto vero, il secondo cancella un tocco sbagliato — **ma al banco si somigliano**, e due porte per
 la stessa stanza sono il modo classico di far contare due volte, o zero. ➡️ Il confine si disegna nel
 compito del ritiro, non si lascia all'intuito di chi sta al banco.
+
+---
+
+### Centoquattordicesima tornata — D283: il primo tocco chiede conferma, ed è la rete che D269 aveva tolto senza rimpiazzarla (06/08/2026, 21:26)
+
+**Nasce da:** una proposta di Francesco che **avevo capito male**, e la sua correzione.
+
+🛑 **LA MIA LETTURA SBAGLIATA, per intero e senza attenuanti.** Francesco aveva scritto: «*se abbiamo
+confermato un lavoro e vogliamo riaprirlo… ma se invece per sbaglio premo sul pulsante per riaprirlo?*».
+Io l'ho letta come una conferma **in uscita** (prima di togliere un evento dai conteggi) e ho scritto
+**D282** su quello. Lui parlava del **primo tocco**: la conferma **in ingresso**, che impedisce a un
+tocco involontario di aprire l'iter. Sua la precisazione: «*non mi sono spiegato bene… in prima
+battuta non sarebbe comodo chiedere una cosa tipo, sei sicuro di voler riaprire questo lavoro?*».
+➡️ **D282 resta valida** — è un'altra porta, e serve — **ma non era la sua domanda.**
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D283** | 🔑 **PRIMA DI APRIRE L'ITER, L'APP CHIEDE CONFERMA — e la conferma NOMINA IL LAVORO.** Di Francesco | Il gesto «devo intervenire» su un lavoro consegnato **non parte al primo tocco**: chiede conferma, e nel chiederla **dice quale lavoro** sta per riaprire. ⚠️ **Precisazione integrata:** nominare il lavoro intercetta anche l'errore **più frequente** del tasto sbagliato — quello del **lavoro sbagliato**, che un «sei sicuro?» nudo non prende. Testo esatto dal cancello §0B |
+
+**🔴 PERCHÉ NON È UNA COMODITÀ MA UN BUCO CHE STAVAMO PER LASCIARE APERTO — misurato, non supposto.**
+Oggi il tasto «Annulla» della fascia di consegna **parte al primo tocco**: `onClick={handleAnnulla}`
+in `src/components/features/lavori/AnnullaConsegnaBanner.tsx:145`, e in tutto il file **zero** dialoghi
+di conferma (`grep` → 0 riscontri). L'unica rete che esisteva **erano i dieci minuti**: un tocco
+involontario si annullava da sé, perché la finestra si chiudeva e il gesto era reversibile dentro di
+essa.
+🛑 **D269 toglie quella finestra.** Senza D283 il gesto diventa **permanente e a un tocco solo**: cioè
+**più pericoloso di prima**, non meno. ➡️ **La proposta di Francesco non aggiunge attrito: RIMPIAZZA
+una rete che stavamo smontando senza accorgercene.**
+
+**🔑 LA LEZIONE, e riguarda il metodo prima del prodotto: quando si toglie un vincolo, si censisce che
+cosa quel vincolo stava REGGENDO.** I dieci minuti erano stati diagnosticati come «un residuo di
+un'architettura mai eseguita» (D262), ed era vero **per il motivo per cui erano nati** — la fattura
+automatica alla consegna. Ma nel frattempo reggevano **un secondo carico che nessuno aveva scritto**:
+la protezione dal tocco involontario. Un vincolo inutile per la sua ragione originale può essere
+diventato utile per un'altra, e **toglierlo guardando solo la ragione originale lascia scoperto il
+carico nuovo**.
+⚠️ **E si noti chi l'ha visto:** non il panel, non la revisione, non i test — **Francesco, immaginando
+il gesto al banco.** Nessuno dei tre controlli automatici poteva trovarlo, perché non è un difetto del
+codice: è una cosa che il codice non fa.
+
+**📌 Come stanno insieme le due conferme (D283 e D282), e perché non sono un doppione:**
+D283 sta **in ingresso** e protegge dal gesto non voluto — «stai per riaprire il lavoro n. 412».
+D282 sta **in uscita** e protegge dal togliere qualcosa dai conteggi senza volerlo. Guardano due
+rischi diversi, in due momenti diversi. ➡️ **E con D283 in piedi, il caso del tocco involontario
+diventa raro**: la via più economica per un tocco sbagliato non è registrarlo e poi ritirarlo, è
+**non crearlo**.

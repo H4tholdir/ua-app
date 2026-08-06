@@ -792,3 +792,27 @@ quella prova **si capovolge**, non si cancella.
 4. **`psur/route.ts:190`** continua a dichiarare `totale_reclami: 0` per costruzione.
 5. La policy `FOR ALL` su `eventi_qualita` annuncerà una porta murata quando arriverà il `REVOKE DELETE`:
    va spezzata in `SELECT` + `INSERT` + `UPDATE` **nello stesso compito del ritiro**.
+
+---
+
+## ⚖️ D280-D283 — altri quattro emendamenti al piano (06/08/2026 sera)
+
+- **D280 — la domanda sulla gravità ha QUATTRO risposte, non due.** `non grave` · `grave, regola
+  generale` (15 gg, Art. 87(3)) · `morte o peggioramento grave non previsto` (10 gg, Art. 87(5)) ·
+  `minaccia grave per la salute pubblica` (2 gg, Art. 87(4)). 🛑 **A parità vince il TERMINE PIÙ
+  BREVE** — mai la media, mai il primo trovato. Tocca il **Task 6** (il testo) e chi userà la proposta.
+- **D281 — «commerciale» ed «errore di registrazione» su un lavoro mai uscito danno `nessuna_azione`**,
+  non non-conformità: D276 resta più forte di D278. Già implementato nel Task 2, qui **confermato**.
+- **D282 — prima di togliere qualcosa dai conteggi, conferma esplicita** che **dice cosa cambia**
+  (mai «sei sicuro?»), **dopo** che l'incidente è stato escluso, e **la stessa** del ritiro di D273.
+- 🔴 **D283 — IL PRIMO TOCCO CHIEDE CONFERMA, E LA CONFERMA NOMINA IL LAVORO.** Vincolo **nuovo per il
+  Task 6**, e non è un abbellimento: `AnnullaConsegnaBanner.tsx:145` parte oggi **al primo tocco**
+  (`onClick={handleAnnulla}`, zero dialoghi in tutto il file), e l'unica rete erano **i dieci minuti**
+  che il **Task 7** sta per rimuovere. Senza D283 il gesto diventa **permanente e a un tocco solo**.
+  ⚠️ **Il Task 7 non può essere chiuso prima che D283 sia in piedi**, o fra i due esiste una finestra
+  in cui il tocco involontario è irreversibile.
+
+🔑 **La lezione che vale oltre l'ondata: quando si toglie un vincolo, si censisce che cosa quel
+vincolo stava REGGENDO.** I dieci minuti erano nati per la fattura automatica alla consegna
+(architettura mai eseguita), ma nel frattempo reggevano **un secondo carico mai scritto**: la
+protezione dal tocco involontario.
