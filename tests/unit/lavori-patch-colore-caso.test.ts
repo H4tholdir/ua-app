@@ -169,10 +169,20 @@ describe('PATCH /api/lavori/[id] — il default di caso è di nuovo correggibile
   it('🛑 mezza coppia non è mezzo colore: una scala orfana non entra mai nel payload', async () => {
     // `lavori_colore_caso_coppia_ck` vieta la mezza coppia. Se `colore_scala`
     // passasse per l'allowlist da sola, l'UPDATE violerebbe il CHECK → 500.
+    //
+    // 🔄 ASSERZIONE CORRETTA CON D260 (06/08/2026), e il titolo di questa prova
+    //    diceva GIÀ la cosa giusta: «non entra mai nel payload». L'asserzione
+    //    però verificava che la coppia ci entrasse AZZERATA — che protegge dal
+    //    500 ma cancella un colore salvato che nessuno aveva chiesto di
+    //    cancellare. Ora la prova dice quello che il suo nome prometteva, ed è
+    //    più forte: chiede l'ASSENZA delle chiavi, non un valore.
+    //    Il caso gemello sulla tinta, e il perché una regola sola basti per
+    //    tutti e due, stanno in `tests/unit/lavori-patch-mezza-coppia.test.ts`.
     const res = await patch({ colore_scala: 'vita_classical' })
 
     expect(res.status).toBe(200)
-    expect(coloreScritto()).toEqual({ colore_scala: null, colore_codice: null })
+    expect(updatePayload).not.toHaveProperty('colore_scala')
+    expect(updatePayload).not.toHaveProperty('colore_codice')
   })
 
   it('una scala che non esiste non arriva al CHECK: si scarta il colore, non il lavoro', async () => {

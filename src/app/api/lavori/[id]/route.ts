@@ -478,16 +478,29 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // stesso salvataggio. La regola dura del Task 11 vale identica qui: **si
   // perde il colore, non il lavoro.**
   //
-  // 🔑 Le due chiavi si scrivono sempre INSIEME o nessuna delle due. Se il body
-  // non le nomina, il caso non si tocca affatto: è così che la scheda tiene il
-  // caso fermo finché sono le RIGHE a portare il colore (la precedenza riga→caso
-  // mostrerebbe comunque la riga, e riscrivere il caso sarebbe una seconda
-  // verità che nessuno vede). ⚠️ Nel momento in cui le righe si svuotano, invece,
-  // la scheda le NOMINA — anche per azzerarle: quel caso torna leggibile e deve
-  // tornare vero. La condizione sta di là, in `useLavoroForm.ts`
-  // (`coloreDelleRighe`), ed è la stessa con cui `idrataColoreScheda` lo rilegge.
+  // 🔑 È IL CODICE A COMANDARE — corretto con D260 (06/08/2026), e la frase che
+  // c'era prima («le due chiavi si scrivono sempre INSIEME o nessuna delle due»)
+  // era in contraddizione col contratto dichiarato in `colore-caso.ts:63-70`,
+  // che ammette apposta `colore_codice` senza `colore_scala`. Due contratti
+  // diversi scritti nello stesso repository: da quella frase è nato il rilievo
+  // qui sotto sulla tinta.
+  //   · codice presente → si normalizza la coppia sul catalogo (la scala, se non
+  //     arriva, la deduce il catalogo: è il caso NORMALE, quello che manda il form);
+  //   · codice assente → non c'è nessuna richiesta di colore. La scala orfana si
+  //     BUTTA dal corpo (se restasse, l'UPDATE violerebbe
+  //     `lavori_colore_caso_coppia_ck` → 500, e con lui si perderebbe ogni altra
+  //     correzione dello stesso salvataggio) e il caso salvato NON si tocca.
+  // Se il body non nomina il colore, il caso non si tocca affatto: è così che la
+  // scheda tiene il caso fermo finché sono le RIGHE a portare il colore (la
+  // precedenza riga→caso mostrerebbe comunque la riga, e riscrivere il caso
+  // sarebbe una seconda verità che nessuno vede). ⚠️ Nel momento in cui le righe
+  // si svuotano, invece, la scheda lo NOMINA — anche per azzerarlo: quel caso
+  // torna leggibile e deve tornare vero. La condizione sta di là, in
+  // `useLavoroForm.ts` (`coloreDelleRighe`), ed è la stessa con cui
+  // `idrataColoreScheda` lo rilegge.
+  if (!('colore_codice' in payload)) delete payload.colore_scala
   let coloreScartato = false
-  if ('colore_scala' in payload || 'colore_codice' in payload) {
+  if ('colore_codice' in payload) {
     const colore = await risolviColoreCaso(svc, payload.colore_scala, payload.colore_codice)
     payload.colore_scala = colore.colore_scala
     payload.colore_codice = colore.colore_codice
@@ -550,19 +563,30 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   let tintaRimossa: { famiglia: string; codice: string } | null = null
   let tintaScartata = false
 
-  // ⚠️ RILIEVO DELLA REVISIONE DI RAMO (Minore, 05/08/2026) — dichiarato, NON
-  // corretto, e la ragione conta: questo `if` entra su **una qualsiasi** delle
-  // due chiavi, mentre il contratto scritto sopra dice «insieme o nessuna».
-  // Un corpo col solo `tinta_famiglia` risolve a `NESSUNA_TINTA` e quindi
-  // **azzera una tinta valida senza dichiararlo** (`scartata: false`).
-  // 🔒 Perché non lo si tocca alla vigilia di un rilascio: oggi è
-  // **irraggiungibile** (nessuna superficie manda ancora la tinta — le
-  // superfici sono i T7-T8), e la forma è **identica al gemello del colore di
-  // caso**, che si comporta così da luglio. Cambiarla qui, e non lì, creerebbe
-  // due regole diverse per lo stesso problema — la classe di difetto che
-  // quest'ondata combatte. ➡️ Si chiude nel T8, insieme alla tavolozza, o in
-  // una passata che allinea **entrambi**.
-  if ('tinta_famiglia' in payload || 'tinta_codice' in payload) {
+  // ✅ RILIEVO DELLA REVISIONE DI RAMO (Minore, 05/08/2026) — CHIUSO con D260
+  // il 06/08/2026, e **su entrambi i gemelli nella stessa passata**, come il
+  // rilievo stesso chiedeva. Diceva: questo `if` entrava su una qualsiasi delle
+  // due chiavi, quindi un corpo col solo `tinta_famiglia` risolveva a
+  // `NESSUNA_TINTA` e **azzerava una tinta valida senza dichiararlo**.
+  //
+  // 🔑 LA PREMESSA È STATA RIVERIFICATA PRIMA DI SCRIVERE LA REGOLA, ed è il
+  // pezzo che vale più della correzione. Il rinvio poggiava su «la forma è
+  // identica al gemello del colore»; l'handoff del 06/08 aveva messo la frase
+  // in dubbio, notando che per il colore mezza coppia è il caso normale. Il
+  // dubbio era rivolto alla METÀ SBAGLIATA: le mezze coppie sono due e vanno al
+  // contrario. Il codice senza la chiave secondaria è normale e voluto in
+  // ENTRAMBI (`colore-caso.ts:89-98` deduce la scala, `tinta.ts:94-97` deduce la
+  // famiglia); la chiave secondaria senza il codice azzera in muto in ENTRAMBI.
+  // Quindi la premessa reggeva davvero, e la regola è UNA.
+  //
+  // 🛑 E LA CHIAVE ORFANA SI TOGLIE **PRIMA** DELLA CATENA, non in un ramo suo:
+  // così il caso ricade esattamente su «il body non nomina la tinta», compreso
+  // il ramo D117 qui sotto. Con un `else if` un cambio di tipo accompagnato da
+  // una famiglia orfana avrebbe tolto la tinta **in silenzio** — lo stesso
+  // difetto, spostato di due righe. La prova che lo tiene fermo è la ⑥ di
+  // `tests/unit/lavori-patch-mezza-coppia.test.ts`.
+  if (!('tinta_codice' in payload)) delete payload.tinta_famiglia
+  if ('tinta_codice' in payload) {
     const tinta = await risolviTinta(svc, payload.tinta_famiglia, payload.tinta_codice, macroDopo)
     payload.tinta_famiglia = tinta.tinta_famiglia
     payload.tinta_codice = tinta.tinta_codice
