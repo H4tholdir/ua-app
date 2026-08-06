@@ -3,8 +3,11 @@
 **Per:** Francesco, e per la sessione che riprende.
 **Quando:** 6 agosto 2026, mattina (`provato:` `date` → `2026-08-06 08:07 CEST`; il lavoro è stato fatto
 la sera del 5 e chiuso qui).
-**Stato:** ramo **`tinta-scheda-t7`** = `c5aaac9c`, **11 salvataggi avanti a `main`**, albero **pulito**,
-⛔ **NON pubblicato**. *(Gli ultimi tre sono la coda di chiusura: D255 e l'allineamento dei conteggi.)*
+**Stato:** ramo **`tinta-scheda-t7`**, albero **pulito**, ⛔ **NON pubblicato**.
+⚠️ **L'hash e il conteggio dei salvataggi NON si scrivono qui, e non è pigrizia:** un documento non può
+citare il proprio salvataggio — ogni volta che lo si aggiorna, il numero che contiene diventa vecchio di
+uno. Si leggono dall'orologio del repository, che non sbaglia mai:
+`git log --oneline -1` e `git log --oneline main..HEAD | wc -l`.
 `main` resta a **`affec7ae`** — in produzione ci sono ancora solo **T1-T6**.
 
 📌 **MISURATO IN CHIUSURA** (`provato:` `npm run verify:full`, **uscita 0** letta da file e non da pipe,
