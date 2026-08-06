@@ -246,7 +246,7 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   })
 
   // ── La divergenza dal corpo vivo, PROVATA: 'consegnata' viene annullata ──
-  it('DdC in stato "consegnata": viene annullata e lo slot attivo resta libero (divergenza voluta dal corpo vivo)', async () => {
+  it('dichiarazione in stato "consegnata": viene annullata e lo slot attivo resta libero (divergenza voluta dal corpo vivo)', async () => {
     await withRollback(async (client) => {
       await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
@@ -270,13 +270,13 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   })
 
   // ── R-P1 — fail-closed: la garanzia conservata dal corpo vivo ─────────────
-  it('fail-closed: DdC esistente ma GIÀ tutta annullata (nessuna riga da annullare, ma non è "assente") → RAISE EXCEPTION', async () => {
+  it('fail-closed: dichiarazione esistente ma GIÀ tutta annullata (nessuna riga da annullare, ma non è "assente") → RAISE EXCEPTION', async () => {
     await withRollback(async (client) => {
       await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
-      // Unica DdC del lavoro già 'annullata': non è né bozza/generata/firmata/consegnata
+      // Unica dichiarazione del lavoro, già 'annullata': non è più «viva»
       // (0 righe da aggiornare) né "assente" (ce n'è una) → stato incoerente.
       await creaDichiarazione(client, LAB_A, lavoroId, 'annullata')
 
@@ -284,7 +284,57 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
     })
   })
 
-  // ── dato legacy: nessuna DdC per il lavoro → si procede, si segnala ───────
+  // ── ATOMICA: è la parola nel nome della funzione, e nessuna prova la controllava ──
+  it('quando il fail-closed solleva, il ripristino del lavoro NON sopravvive: la funzione è davvero atomica', async () => {
+    // Il ripristino a 'pronto' avviene PRIMA del controllo sulla dichiarazione.
+    // Se l'eccezione non annullasse anche quello, resterebbe un lavoro riaperto
+    // con la sua dichiarazione ancora viva: lo stato peggiore dei due.
+    // Serve un SAVEPOINT perché in PostgreSQL l'errore aborta l'intera
+    // transazione, e senza non si potrebbe leggere niente dopo.
+    await withRollback(async (client) => {
+      await applicaMigrazione(client)
+      const clienteId = await creaCliente(client, LAB_A)
+      const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
+      const eventoId = await creaEvento(client, LAB_A, lavoroId)
+      await creaDichiarazione(client, LAB_A, lavoroId, 'annullata')
+
+      await client.query('SAVEPOINT prima_del_raise')
+      await expect(riapri(client, lavoroId, LAB_A, eventoId)).rejects.toThrow(/dichiarazione in stato incoerente/)
+      await client.query('ROLLBACK TO SAVEPOINT prima_del_raise')
+
+      const { rows: [dopo] } = await client.query(
+        `SELECT stato, conformato FROM lavori WHERE id = $1`, [lavoroId]
+      )
+      expect(dopo).toEqual({ stato: 'consegnato', conformato: true })
+    })
+  })
+
+  // ── il filtro «viva» vale per OGNI stato non annullato, non solo per due ──
+  it.each(['bozza', 'firmata'])(
+    'una dichiarazione in stato "%s" viene annullata come le altre — il filtro non elenca, esclude',
+    async (stato) => {
+      await withRollback(async (client) => {
+        await applicaMigrazione(client)
+        const clienteId = await creaCliente(client, LAB_A)
+        const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
+        const eventoId = await creaEvento(client, LAB_A, lavoroId)
+        await creaDichiarazione(client, LAB_A, lavoroId, stato)
+
+        const r = await riapri(client, lavoroId, LAB_A, eventoId)
+        expect(r.esito).toBe('ok')
+        expect(r.ddc_assente).toBe(false)
+
+        const { rows: [conta] } = await client.query(
+          `SELECT count(*)::int AS n FROM dichiarazioni_conformita
+           WHERE lavoro_id = $1 AND laboratorio_id = $2 AND stato <> 'annullata'`,
+          [lavoroId, LAB_A]
+        )
+        expect(conta.n).toBe(0)
+      })
+    }
+  )
+
+  // ── dato legacy: nessuna dichiarazione per il lavoro → si procede, si segnala ───────
   it('nessuna dichiarazione per il lavoro (dato legacy) → ok, ddc_assente=true', async () => {
     await withRollback(async (client) => {
       await applicaMigrazione(client)

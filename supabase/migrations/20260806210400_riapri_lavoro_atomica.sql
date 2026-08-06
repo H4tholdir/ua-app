@@ -25,26 +25,42 @@
 --    (`dichiarazioni_conformita_stato_check` la include) e che oggi nessun
 --    percorso applicativo scrive (dato reale nel DB, misurato: solo 'annullata'
 --    e 'generata' esistono). Nella VECCHIA funzione l'omissione è inerte: gira
---    dentro una finestra di 10 minuti dove una DdC arriva a 'consegnata' solo
+--    dentro una finestra di 10 minuti dove una dichiarazione arriva a 'consegnata' solo
 --    se qualcosa la porta lì prima che scada la finestra — improbabile. Qui è
 --    diverso: questa RPC gira ad ARBITRARIA distanza di tempo, cioè esattamente
---    nel dominio dove una DdC può essere legittimamente 'consegnata'. Con SOLO
---    tre stati, una riapertura su un lavoro con DdC 'consegnata' NON annulla
+--    nel dominio dove una dichiarazione può essere legittimamente 'consegnata'. Con SOLO
+--    tre stati, una riapertura su un lavoro con dichiarazione 'consegnata' NON annulla
 --    quella riga (0 righe toccate), la conta totale è >0, e la funzione
 --    SOLLEVA L'ECCEZIONE «dichiarazione in stato incoerente» — cioè BLOCCA
 --    esattamente la correzione che D265 dice deve riuscire SEMPRE. Verificato
 --    anche l'effetto collaterale: `ddc_lavoro_attiva_unique` è
 --    `WHERE stato <> 'annullata'` (20260710090000:14-17) — una 'consegnata'
 --    lasciata viva terrebbe occupato lo slot attivo, bloccando anche la
---    successiva riemissione (§8.1, annulla→riemetti). ➡️ Questa migration usa
---    QUATTRO stati (`'bozza','generata','firmata','consegnata'`), come il primo
---    abbozzo del brief — non perché il brief lo dicesse, ma perché la lettura
---    del corpo vivo E della CHECK E dell'indice, tutti e tre dal catalogo,
---    portano alla stessa conclusione: il fail-closed diventa PIÙ severo, non
---    più permissivo, con quattro stati — l'unico modo di raggiungere ancora il
---    RAISE è una DdC che non è in nessuno stato non-annullata del vocabolario,
---    cioè il vero caso incoerente. Prova nel test gemello (suite integrazione):
---    una DdC 'consegnata' viene annullata correttamente e lo slot resta libero.
+--    successiva riemissione (§8.1, annulla→riemetti).
+--
+--    ➡️ QUESTA MIGRATION NON ELENCA GLI STATI: usa `stato <> 'annullata'`.
+--    🔑 È la STESSA definizione che l'indice `ddc_lavoro_attiva_unique` usa per
+--    dire «viva» (`WHERE stato <> 'annullata'`, 20260710090000:14-17), ed è
+--    l'idioma di casa: 20260804152403_ondata_b_prescrizioni_rpc.sql:11 lo dice
+--    a parole («la STESSA definizione dell'indice») e lo usa in cinque punti
+--    (:174, :230, :287, :349); così anche 20260804211256:60,
+--    src/lib/pdf/generate-ddc.ts:103, src/lib/consegna/orchestrate.ts:112,
+--    src/lib/dashboard/striscia.ts:323. L'elenco a enumerazione vive SOLO
+--    nelle tre vecchie RPC di annullamento.
+--    🛑 PERCHÉ L'ELENCO ERA FRAGILE, e il modo in cui si rompeva è proprio il
+--    blocco che questa funzione nasce per togliere: il giorno in cui il
+--    vocabolario cresce di uno stato, un elenco scritto a mano DIVENTA MUTO —
+--    la riga nuova non viene annullata, la conta totale resta >0, e la
+--    riapertura SOLLEVA L'ECCEZIONE. Provato in transazione annullata
+--    allargando la CHECK a un sesto stato: con l'elenco la riapertura si
+--    blocca, con `<> 'annullata'` passa. Sullo schema di OGGI i due sono
+--    equivalenti (i cinque valori della CHECK lo rendono tale): il cambiamento
+--    non altera nulla adesso, e regge da solo domani.
+--    ⚠️ E il fail-closed così NON diventa «più severo» — diventa più ESATTO:
+--    un filtro più largo aggiorna più righe, quindi il RAISE scatta più di
+--    RADO. Perde un falso positivo (la dichiarazione 'consegnata', che è una
+--    riapertura legittima che D265 impone di far passare) e tiene l'unico caso
+--    vero: nessuna dichiarazione viva pur essendocene almeno una in archivio.
 -- 2. Il ripristino a 'pronto' nel corpo vivo azzera QUATTRO campi in più di
 --    quelli elencati nel mandato («conformato/data_conformazione»):
 --    `consegna_in_corso`, `consegna_tap_at` (lock/debounce del tap di consegna,
@@ -109,13 +125,19 @@ BEGIN
     proposta_dentista = NULL, proposta_at = NULL
   WHERE id = p_lavoro_id AND laboratorio_id = p_laboratorio_id;
   GET DIAGNOSTICS v_rows = ROW_COUNT;
+  -- ⚠️ RETE DIFENSIVA OGGI IRRAGGIUNGIBILE, e va detto invece di lasciarlo
+  -- credere una guardia viva: l'UPDATE sopra non porta `AND stato =
+  -- 'consegnato'` (il corpo vivo della funzione vecchia fa lo stesso), e la
+  -- riga è già bloccata da FOR UPDATE con lo stato controllato dopo il lock —
+  -- quindi v_rows non può essere 0. Resta perché il giorno in cui qualcuno
+  -- aggiungesse una condizione a quell'UPDATE, questo RAISE tornerebbe vivo.
   IF v_rows = 0 THEN RAISE EXCEPTION 'riapertura: ripristino lavoro fallito'; END IF;
 
   -- Fail-closed sulla dichiarazione — GARANZIA CONSERVATA dal corpo vivo di
   -- annulla_consegna_atomica (righe 52-65 dello snapshot fresco).
   UPDATE dichiarazioni_conformita SET stato = 'annullata'
   WHERE lavoro_id = p_lavoro_id AND laboratorio_id = p_laboratorio_id
-    AND stato IN ('bozza','generata','firmata','consegnata');
+    AND stato <> 'annullata';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows = 0 THEN
     SELECT count(*) INTO v_ddc_tot FROM dichiarazioni_conformita
