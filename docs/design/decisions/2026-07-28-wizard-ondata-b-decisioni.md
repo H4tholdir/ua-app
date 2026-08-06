@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoseiesima tornata (D262: «la PWA non dà blocchi, dà aiuti» — e la finestra dei 10 minuti è un residuo di un'architettura abbandonata)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centosettesima tornata (D263: si riapre il lavoro dichiarando il motivo, e il motivo sceglie l'iter)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**262 decisioni in centosei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**263 decisioni in centosette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2119,3 +2119,48 @@ che non esiste più.
 di «correggi e riemetti» che lascia il lavoro consegnato ed emette una **DdC sostitutiva collegata alla
 precedente**; come si **avvisa il medico**; e come si distingue — nettamente — la **correzione di un dato**
 dalla **vigilanza su un dispositivo difettoso** (Art. 87), che è un'altra cosa e non va confusa.
+
+---
+
+### Centosettesima tornata — D263: si riapre il lavoro DICHIARANDO IL MOTIVO, e il motivo sceglie l'iter (06/08/2026, 11:35)
+
+**Nasce da:** D262. Francesco ha dato la forma concreta della direttiva.
+
+> «*abbiamo consegnato il lavoro e fornito la dichiarazione, dobbiamo intervenire, per x motivi: il
+> sistema deve permettere di **riaprire il lavoro, segnalando la motivazione** ed in base a questo gestire
+> l'intervento **a norma di legge**. Es. correggere un dato sbagliato, allora segue un iter; dispositivo
+> difettoso, ne segue un altro (caso diverso da: se rientra il dispositivo per essere riparato perché
+> difettoso, **questo caso è che il laboratorio se ne è accorto subito dopo la consegna, non il
+> cliente**); etc etc.*»
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D263** | 🔑 **LA RIAPERTURA È UN GESTO SOLO, IL MOTIVO È OBBLIGATORIO, E IL MOTIVO SCEGLIE L'ITER.** Non si allarga una finestra: si dà al laboratorio **un modo di rientrare nel lavoro** dichiarando *perché*. Da quel «perché» il sistema fa discendere gli obblighi — documentali, di qualità, di segnalazione — **al posto dell'utente**, invece di lasciarglieli indovinare | Ondata da progettare **con panel** (dominio critico). Il motivo diventa **un dato in banca dati**, non una nota libera: è ciò che rende automatico l'iter e tracciabile la scelta (ISO 13485 §8.3 e §8.5) |
+
+**🔑 Il perno, ed è di Francesco: NON conta solo che cosa è successo, ma CHI se n'è accorto e QUANDO.**
+Lo stesso difetto seguìto da due strade diverse a seconda che l'abbia visto il laboratorio prima che il
+dispositivo fosse usato, o il medico dopo. È una distinzione **normativamente esatta** — la sorveglianza
+post-vendita si accende su ciò che accade **sul mercato**, non su ciò che il fabbricante intercetta in
+casa prima della messa a disposizione.
+
+**I casi da istruire — elenco APERTO, e nessuno di questi è deciso: è il materiale del panel.**
+
+| Caso | Chi se n'è accorto | Che cosa sembra richiedere (DA VERIFICARE al panel) |
+|---|---|---|
+| **1. Dato sbagliato sulla dichiarazione** (tinta, colore, materiale, anagrafica del paziente, nome del prescrittore) | Il laboratorio | Correzione del dato + **DdC sostitutiva a storno** della precedente, che resta agli atti. Il manufatto **non rientra**. È il caso di D262 |
+| **2. Difetto visto dal laboratorio subito dopo la consegna**, prima che il dispositivo sia applicato | Il laboratorio | Rientro del manufatto, rilavorazione, riconsegna. **Non è sorveglianza**: il difetto non è mai arrivato al paziente. ⚠️ **È il caso che Francesco distingue esplicitamente** |
+| **3. Difetto segnalato dal medico o dal paziente**, a dispositivo applicato | Il cliente | **Reclamo** → entra nella sorveglianza post-vendita. Se c'è danno o rischio per la salute → **vigilanza, Art. 87** (incidente grave), con termini e destinatari propri. 🛑 **Il confine fra 2 e 3 è il cuore dell'ondata** |
+| **4. Consegnato al destinatario sbagliato** | Chiunque | Tracciabilità: dove si trova davvero il dispositivo. Tocca la catena, non solo il documento |
+| **5. Il medico chiede una modifica che NON nasce da un errore** (esigenza clinica nuova) | Il cliente | **Non è una correzione**: è un lavoro nuovo o un rifacimento concordato. Chiamarlo «correzione» sporcherebbe i dati della qualità |
+| **6. Errore di prezzo o quantità** | Il laboratorio | **Non tocca la dichiarazione**: tocca la fattura. Iter fiscale, non MDR |
+| **7. Reso senza difetto** (il paziente non si presenta, il lavoro torna) | Il laboratorio | Nessun difetto da registrare: è logistica |
+
+**🛑 Ciò che NON va deciso a naso, e per cui il panel serve davvero:**
+- **Il confine fra 2 e 3** decide se scatta la sorveglianza post-vendita: sbagliarlo per eccesso riempie
+  il registro qualità di rumore, per difetto **salta un obbligo di legge**.
+- **Che cosa diventa la DdC vecchia**: già risolto in linea di principio (annullata, conservata, numero
+  mai riusato — D-1 del 16/07), ma va legato **il nuovo documento al vecchio**, o lo storno non è
+  leggibile da chi controlla.
+- **L'avviso al medico**: quando è cortesia e quando è **obbligo**.
+- **Se il motivo è correggibile**: chi sbaglia a scegliere l'iter deve poter tornare indietro, o si crea
+  un blocco nuovo mentre se ne toglie uno vecchio — cioè si tradisce D262 nel momento in cui la si attua.
