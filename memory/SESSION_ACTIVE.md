@@ -2,7 +2,7 @@
 
 🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/roadmap/2026-08-06-tinte-t7-t8-handoff.md` — **la §0 per prima**.
 
-**Stato (06/08/2026, 08:12):** ramo **`tinta-scheda-t7`** = `4229a332`, **8 salvataggi avanti a `main`**,
+**Stato (06/08/2026, 08:20):** ramo **`tinta-scheda-t7`** = `c5aaac9c`, **11 salvataggi avanti a `main`**,
 albero pulito, ⛔ **NON pubblicato**. `main` = `affec7ae` — in produzione solo **T1-T6**.
 
 🔴 **La §0 in una frase — cinque cose non fatte:** **un rilievo su due resta aperto**, e non per stanchezza
