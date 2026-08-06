@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centosettesima tornata (D263: si riapre il lavoro dichiarando il motivo, e il motivo sceglie l'iter)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centottesima tornata (D264-D270: l'ondata dell'intervento ha la sua forma — il confine è la consegna, non l'applicazione)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**263 decisioni in centosette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**270 decisioni in centotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2164,3 +2164,43 @@ casa prima della messa a disposizione.
 - **L'avviso al medico**: quando è cortesia e quando è **obbligo**.
 - **Se il motivo è correggibile**: chi sbaglia a scegliere l'iter deve poter tornare indietro, o si crea
   un blocco nuovo mentre se ne toglie uno vecchio — cioè si tradisce D262 nel momento in cui la si attua.
+
+---
+
+### Centottesima tornata — D264-D270: l'ondata dell'intervento ha la sua forma, e il panel ha ribaltato il confine (06/08/2026, 13:24)
+
+**Nasce da:** D262 (la direttiva) e D263 (il motivo sceglie l'iter). Panel di **tre advisor** su
+dominio critico — normativo MDR · sistema qualità · architettura sul codice vero — con il metodo del
+§9 (30/07): **premesse da falsificare, non domande da svolgere**.
+
+**Esito del panel: tre premesse, due falsificate e una invertita.**
+
+| Premessa | Esito |
+|---|---|
+| «Chi se n'è accorto» e «il dispositivo è stato applicato» sono lo stesso asse | **FALSIFICATA.** Art. 2(64) àncora allo **stato del dispositivo**, Art. 87(3) alla **conoscenza**: due assi. E l'Art. 2 definisce **tre** momenti di mercato, non due — un booleano non può reggerli. Chi se n'è accorto governa l'**orologio**; stato e potenziale di danno governano la **classe** |
+| Un «reclamo» esiste solo dopo l'applicazione al paziente | 🛑 **FALSIFICATA E INVERTITA.** Ministero della Salute, linee di indirizzo 29/11/2022: i reclami «*si tratta, in genere, di **eventi riscontrati prima dell'uso del dispositivo***». Il **caso 2 è il caso TIPICO di reclamo**, non rilavorazione interna. Avevamo classificato al contrario |
+| Un difetto intercettato dal laboratorio non genera registrazioni | **FALSIFICATA.** ISO 13485 §8.3.1 e §8.3.4: la rilavorazione va registrata e il prodotto ri-verificato |
+| *(al terzo advisor)* la messa a disposizione avviene alla consegna al medico | ✅ **REGGE**, su quattro clausole convergenti. **È il confine** |
+
+| # | Decisione | In una riga |
+|---|---|---|
+| **D264** | Perimetro della prima ondata | Casi **1, 2, 3, 5**. Fuori 4, 6, 7 — scritti, non spariti |
+| **D265** | Documento sanitario e documento fiscale sono **due mondi** | La dichiarazione si corregge **sempre**, anche a fattura emessa |
+| **D266** | L'intervento vive in `eventi_qualita`, **sopra** il rifacimento | Il rifacimento diventa un **esito**. `lavoro_nuovo_id NOT NULL` (`005:75`) gli vieta strutturalmente di esprimere «corretto sul posto» |
+| **D267** | **Fatti, mai conseguenze** — e registrare ≠ giudicare | L'evento si crea sempre; la valutazione è separata e comprende «nessuna azione, ed ecco perché». Gli indicatori contano le **valutazioni**. L'app **propone**, una persona **conferma** |
+| **D268** | 🛑 Il confine è la **consegna**, e l'ordine dei test è **ministeriale** | ① incidente → ② coinvolgimento → ③ conseguenze. **Rifiutata** la derivazione di un advisor che assegnava «reclamo» prima di escludere l'incidente: nasconde l'obbligo di **trend reporting Art. 88** |
+| **D269** | 🛑 **La finestra dei 10 minuti sparisce del tutto**; l'annullo consegna è **assorbito** in «Devo intervenire» | **Scelta esplicita di Francesco**, contro la raccomandazione di affiancare i due gesti. Costo dichiarato e accettato: **due tap invece di uno** per il tasto premuto per sbaglio |
+| **D270** | Una classificazione sbagliata si corregge per **sovrapposizione**, mai con un `UPDATE` | Sola-aggiunta **imposta dal database** (precedente in casa: `20260804154232:9`). **Declassare** chiede il motivo scritto |
+
+**🔑 La riga da tenere, e non riguarda solo quest'ondata:** *l'ordine in cui si fanno i controlli è
+esso stesso una regola*. Due derivazioni con gli stessi ingredienti, in ordine diverso, producono un
+adempimento e un'omissione. Il difetto non sarebbe stato visibile né dai test né dal codice: sarebbe
+entrato dalla porta principale, dentro un parere autorevole.
+
+**📌 Due dati di fatto forniti da Francesco:** non sa se il laboratorio sia certificato ISO 13485
+(➡️ si progetta **come se lo fosse**) · spesso **non si sa** se il dispositivo sia stato applicato
+(➡️ `non_noto` è ammesso e **non blocca** — e i tre test non lo chiedono mai).
+
+**Spec:** `docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md` — §14 porta **undici
+vuoti dichiarati**, §15 **otto ritrovamenti fuori mandato**, due dei quali gravi (la riga EUDAMED di
+`CLAUDE.md` §5 è sbagliata; `totale_reclami: 0` nel PSUR).
