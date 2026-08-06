@@ -1172,18 +1172,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "eventi_qualita_lavoro_id_fkey"
-            columns: ["lavoro_id"]
+            foreignKeyName: "eventi_qualita_lavoro_fk"
+            columns: ["lavoro_id", "laboratorio_id"]
             isOneToOne: false
             referencedRelation: "lavori"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "eventi_qualita_lavoro_id_fkey"
-            columns: ["lavoro_id"]
-            isOneToOne: false
-            referencedRelation: "lavori_dashboard"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "laboratorio_id"]
           },
         ]
       }
@@ -3565,11 +3558,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lavori_rifacimenti_evento_id_fkey"
-            columns: ["evento_id"]
+            foreignKeyName: "lavori_rifacimenti_evento_fk"
+            columns: ["evento_id", "laboratorio_id"]
             isOneToOne: false
             referencedRelation: "eventi_qualita"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "laboratorio_id"]
           },
           {
             foreignKeyName: "lavori_rifacimenti_laboratorio_id_fkey"
@@ -5941,11 +5934,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "valutazioni_evento_evento_id_fkey"
-            columns: ["evento_id"]
+            foreignKeyName: "valutazioni_evento_evento_fk"
+            columns: ["evento_id", "laboratorio_id"]
             isOneToOne: false
             referencedRelation: "eventi_qualita"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "laboratorio_id"]
           },
           {
             foreignKeyName: "valutazioni_evento_laboratorio_id_fkey"
@@ -6479,6 +6472,10 @@ export type Database = {
           p_valore: Json
         }
         Returns: undefined
+      }
+      valutazione_supera: {
+        Args: { p_laboratorio_id: string; p_valutazione_vecchia_id: string }
+        Returns: Json
       }
       xmlescape: { Args: { t: string }; Returns: string }
     }
