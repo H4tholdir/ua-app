@@ -169,15 +169,24 @@ describe('istanteDaTestoRoma — l\'esito NON dipende dal fuso di chi esegue', (
   const FUSI = ['UTC', 'Europe/Rome', 'America/New_York', 'Pacific/Kiritimati', 'Pacific/Midway']
 
   it.each(FUSI)('con TZ=%s le 10:00 di Roma del 6 agosto restano le 08:00 UTC', (tz) => {
-    const precedente = process.env.TZ
     try {
       process.env.TZ = tz
       expect(iso(ok('2026-08-06T10:00'))).toBe('2026-08-06T08:00:00.000Z')
       expect(iso(ok('2026-01-15T10:00'))).toBe('2026-01-15T09:00:00.000Z')
       expect(iso(ok('2026-08-06'))).toBe('2026-08-05T22:00:00.000Z')
     } finally {
-      process.env.TZ = precedente
+      // 🛑 Si rimette la COSTANTE, non una variabile catturata prima: assegnare
+      // `undefined` a `process.env.TZ` non lo cancella, lo scrive come la
+      // STRINGA «undefined» — che ICU fa ripiegare su UTC. Le asserzioni
+      // resterebbero verdi e il file smetterebbe di provare ciò che dichiara.
+      // Stessa ragione della guardia in `afterAll`, che qui mancava.
+      process.env.TZ = 'UTC'
     }
+  })
+
+  it('dopo il giro dei fusi il processo è ancora a UTC — la prova non si è avvelenata da sola', () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe('UTC')
+    expect(process.env.TZ).toBe('UTC')
   })
 })
 
