@@ -3,6 +3,7 @@ import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { CHIUSI, derivaAlias } from '@/lib/cassette/parco-shared'
+import { adessoRoma } from '@/lib/utils/data-roma'
 
 export interface LavoroLibero {
   id: string
@@ -37,6 +38,19 @@ const MS_GIORNO = 24 * 60 * 60 * 1000
  * riceve una sentinella grande (9999, non `Infinity`: `JSON.stringify(Infinity)` risolve a
  * `null` e romperebbe il contratto `urgenza: number`) — così finisce sempre in fondo, mai
  * escluso e mai crashato il sort.
+ *
+ * 🛑 `oggi` DEVE arrivare da `adessoRoma()`, mai da un `new Date()` nudo (D286, 06/08/2026).
+ * I getter qui sotto sono quelli SENZA `UTC`, cioè leggono il giorno civile della macchina che
+ * esegue — e in produzione quella macchina gira a UTC. Fra le 00:00 e le 02:00 italiane «oggi»
+ * era quindi il giorno PRIMA, e ogni `urgenza` usciva di uno: un lavoro scaduto ieri riceveva
+ * `urgenza: 0` e PERDEVA il segno di urgenza di `CassettaSheet.tsx:487` (`l.urgenza > 0`).
+ * Sulla macchina di sviluppo, che è `Europe/Rome`, il difetto è invisibile — per questo le
+ * prove (`tests/unit/lavori-liberi-orologio-roma.test.ts`) forzano `TZ=UTC`.
+ *
+ * 🔑 La forma è quella già in casa, non una nuova: `deltaGiorni`/`derivaUrgenza`
+ * (`src/lib/dashboard/pile-home-shared.ts:58`, `src/lib/lavori/urgenza.ts:30`) fanno lo stesso
+ * conto con la stessa firma, e il loro chiamante server (`src/lib/dashboard/pile-home.ts:41`)
+ * passa `adessoRoma()` esattamente per questo motivo. Qui mancava solo quel passaggio.
  */
 function giorniAllaConsegna(dataISO: string | null, oggi: Date): number {
   if (!dataISO) return 9999
@@ -105,7 +119,8 @@ export async function GET() {
   }
 
   const occupati = new Set((vive ?? []).map((v: { lavoro_id: string }) => v.lavoro_id))
-  const oggi = new Date()
+  // D286 — l'orologio a muro di Roma, non quello del processo (v. `giorniAllaConsegna`).
+  const oggi = adessoRoma()
 
   const liberi: LavoroLibero[] = ((lavori ?? []) as unknown as RawLavoroLibero[])
     .filter((l) => !occupati.has(l.id))
