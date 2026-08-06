@@ -947,3 +947,36 @@ verrebbe letto come **8 gennaio**, su un campo che fa partire **scadenze di legg
 (gli INSERT passano `laboratorio_id` dalla sessione, le FK composite sono soddisfatte, e la risposta è
 **404 mai 403**) · nessun doppio default · **le chiavi pericolose sono RIFIUTATE, non ignorate** (niente
 «salvato su un dato che non c'è») · il fail-soft sul contatore è giustificato e dichiarato.
+
+### ✅ Giro di correzione del Task 4 — i sei rilievi chiusi (`aefeb4a0`, `d60ae140`)
+
+**La prova che la correzione ha corretto davvero, ed è il pezzo che conta:** rifatta la stessa mutazione
+del Critico (proposta calcolata sul valore grezzo del client invece che sulla riga salvata),
+`expected 'reclamo' to be 'incidente'` → **1 asserzione rossa. Prima erano ZERO.** Altre due mutazioni
+di controllo: rami `23503`/`23514` cancellati → **2 rosse** · confronta-e-scambia tolto → **1 rossa**.
+Codice ripristinato, `git diff --stat -- src/app/api` **vuoto**.
+Prove del file: **66 → 81**. La fixture ora fa **l'eco del payload** e applica il default del database
+**solo alle chiavi assenti**.
+⚠️ **Un dettaglio della fixture che vale come lezione:** il risultato pigro è stato applicato **solo** a
+`eventi_qualita`. Su `lavori` no, perché lì il risultato dipende da **quanti accessi sono già
+avvenuti**: risolverlo tardi avrebbe fatto rispondere alla pre-verifica con la riga dell'incremento.
+
+**⚖️ UNA CORREZIONE CHE L'ESECUTORE HA FATTO A SÉ STESSO, e la riporto perché è la parte utile.**
+Aveva scritto il controllo di formato della data in modo da rifiutare anche `2026-08-06T10:00` (senza
+fuso). Ma **quella è ISO 8601 valida**, ed è esattamente ciò che restituisce un campo `datetime-local`
+del browser: rifiutarla avrebbe **vincolato l'interfaccia del Task 6** a una scelta che non era nel suo
+mandato. Annullata (`d60ae140`), col difetto del rilievo che resta chiuso.
+
+### 🟠 Ritrovamenti del giro di correzione (R-E2), riferiti e NON corretti
+
+1. **🔴 C-R4 — il fuso orario di `conosciuto_il`, e aspetta Francesco.** Senza fuso, JavaScript legge la
+   data **nell'ora locale di chi esegue**: il server e il telefono danno **due istanti diversi**, e lo
+   scarto si scarica **in avanti** su una scadenza dell'**Art. 87**. Chiuderla ora costa poco, ma è una
+   decisione sul **contratto con l'interfaccia**, che il Task 6 non ha ancora.
+2. **C-R1** — l'helper condiviso delle prove continua a non simulare le scritture (conferma di R5): ogni
+   rotta che scrive si costruisce la propria finzione, e le finzioni **divergono dalla rotta vera**.
+3. **C-R2** — il tetto di 1000 caratteri vive ormai in **tre file** senza una casa comune.
+4. **C-R3** — il messaggio del 422 sulla data parla **a chi programma**, non all'operatrice: da
+   riscrivere se il Task 6 mette una maschera d'inserimento.
+5. **C-R5** — il referto dichiarava «sei prove» di `nessunTestoGrezzo`: ne sono **nove**. Corretto
+   dall'esecutore dichiarandolo. **Quarta volta** che un numero di referto non regge alla misura.
