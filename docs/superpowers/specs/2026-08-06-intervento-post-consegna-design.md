@@ -41,7 +41,7 @@ sono più alte.
 
 ---
 
-## §1 Le decisioni di oggi — D264-D270 (centottesima tornata)
+## §1 Le decisioni di oggi — D264-D271 (centottesima tornata)
 
 | # | Decisione | Conseguenza |
 |---|---|---|
@@ -541,8 +541,15 @@ il file.**
    fonti secondarie indipendenti concordi: **da riscontrare su copia acquistata** prima del piano.
    Una copia integrale circola in rete e **non è stata usata**: non è una fonte su cui costruire un
    argomento di conformità.
-3. **Se il laboratorio sia certificato ISO 13485** — Francesco: «non lo so» (06/08). ➡️ **Si progetta
-   come se lo fosse.** Da accertare: cambia il tono di metà del documento.
+3. ✅ **CHIUSA il 06/08 — la certificazione ISO 13485 diventa un DATO del laboratorio (D271).**
+   Francesco: «*facciamo in modo che, nella scheda del laboratorio puoi segnare se si è certificati
+   oppure no ed in base a questo la pwa si comporta di conseguenza*». ➡️ Campo su `laboratori`, e il
+   comportamento conseguente è descritto in **§17**.
+   ⚠️ **Da non fraintendere, ed è la parte che conta:** la stragrande maggioranza degli obblighi qui
+   dentro **non viene da ISO 13485 — viene dal MDR** (Art. 10(9), 83-88, Allegato XIII), che vale
+   **comunque**, certificati o no. Il campo **non** è un interruttore che spegne le registrazioni: se
+   lo diventasse, sarebbe un modo elegante di costruire proprio la sotto-registrazione che §13.2
+   vieta.
 4. **La classe di rischio dei manufatti** (Annex VIII, caso per caso) decide se il rapporto periodico
    sia dovuto ex Art. 85 o Art. 86. **Non verificato.**
 5. **Quali manufatti odontotecnici siano «impiantabili»** ex Art. 2(5) → **10 o 15 anni** di
@@ -556,8 +563,21 @@ il file.**
    ministeriale diretta (salute.gov.it è dietro cookie-wall). **Non verificato.**
 9. **La sanzione per gli obblighi di vigilanza** (D.Lgs 137/2022): il progetto cita l'art. 27 c. 13
    per la **registrazione**; quella per la vigilanza è un comma diverso e **non è stata verificata**.
-10. **Se il laboratorio registri la consegna nell'app prima o dopo l'uscita fisica del manufatto**
-    (§2, P3). È una domanda di prassi per Francesco. **Non verificato.**
+10. 🔴 **CHIUSA il 06/08, e la risposta apre un problema: SUCCEDONO ENTRAMBE LE COSE.** Francesco,
+    alla domanda se la consegna venga registrata nell'app prima o dopo l'uscita fisica del manufatto:
+    «*potrebbe succedere entrambe le cose*».
+    ➡️ **Conseguenza:** oggi la dichiarazione nasce **dentro** la consegna
+    (`orchestrate.ts:265-269`). Quando il pezzo esce **prima** che si prema il tasto, il documento
+    nasce **dopo l'immissione sul mercato** — e l'Art. 52(8) lo vuole **prima**. Il codice fa i passi
+    nell'ordine giusto; è la **sequenza umana** che può invertirli, e nessun controllo se ne accorge.
+    ➡️ **Proposta (NON ratificata, e fuori dal perimetro di quest'ondata):** scollegare la
+    **generazione del documento** dalla **registrazione della consegna** — la dichiarazione si genera
+    quando il lavoro è **`pronto`**, cioè prima che il pezzo possa uscire, qualunque sia l'abitudine;
+    la consegna registra soltanto l'uscita. È un **aiuto**, non un blocco: il documento è già pronto
+    da allegare quando parte il corriere.
+    🔑 **E quest'ondata è ciò che rende sicura quell'anticipazione:** se dopo la generazione il lavoro
+    cambia, oggi non c'è rimedio — con «Devo intervenire» c'è. Le due cose si tengono.
+    ➡️ **Va deciso da Francesco** e diventa **voce di roadmap**: §15.9.
 11. **Tensione osservata e non risolta:** il diagramma ministeriale si apre con «*si è verificato un
     evento connesso all'**uso** di un dispositivo*», mentre i suoi stessi esempi di reclamo sono
     «prima dell'uso». Segnalata, non sciolta.
@@ -569,13 +589,20 @@ il file.**
 Nessuno di questi appartiene a quest'ondata. Sono elencati perché **un difetto visto e non scritto è
 un difetto perso**.
 
-1. 🛑 **La riga su EUDAMED in `CLAUDE.md` §5 è sbagliata.** Dice «lab custom-made = **ESENTI**». MDCG
-   2021-13 rev.1 Q2 esenta **solo** dalla registrazione come attore **prima dell'immissione sul
-   mercato**; Q3 impone la registrazione quando si trasmette per la prima volta una segnalazione di
-   incidente grave o di azione correttiva di sicurezza, **per dispositivi su misura di qualunque
-   classe**. ➡️ **L'esenzione finisce esattamente nello scenario per cui quest'ondata esiste.** È
-   un'istruzione permanente che insegna una falsità nel momento in cui costa di più: **la corregge
-   Francesco**, non io.
+1. ✅ **CORRETTA il 06/08 su richiesta di Francesco («fai una ricerca e risolvi la questione»), con il
+   TESTO PRIMARIO in mano.** Il PDF ufficiale MDCG 2021-13 rev.1 è stato scaricato ed estratto:
+   **Q2** — «*manufacturers of only custom-made devices are exempted from the obligation of registering
+   as actors in EUDAMED **before placing their devices on the market***»; **Q3** — la registrazione
+   diventa obbligatoria quando «*they submit to EUDAMED for the first time vigilance reports for
+   serious incidents, field safety corrective actions with their field safety notices, or trend
+   reports **in respect of custom-made devices of any risk class***», o al primo certificato per un
+   impiantabile di **classe III**. Chi si registra così riceve un «*Actor ID that is not a SRN*».
+   📌 **Stato accertato al 06/08/2026:** il modulo **Vigilanza/PMS di EUDAMED non è ancora
+   obbligatorio** — i quattro moduli obbligatori dal 28/05/2026 sono *Actor registration ·
+   UDI/Devices · Notified Bodies & Certificates · Market Surveillance*. **Fino ad allora la
+   segnalazione va per via nazionale al Ministero della Salute.**
+   ➡️ `CLAUDE.md` §5 riscritta di conseguenza, e la stessa riga porta ora anche la correzione del
+   **nome** del documento (§8.4).
 2. 🛑 **`totale_reclami: 0` nel rapporto periodico** (`src/app/api/qualita/psur/route.ts:190`, commento
    «non ancora implementato»). Il rapporto è **dovuto per legge** e dichiara zero reclami **per
    costruzione** — lo dirà anche il giorno in cui i reclami ci saranno. Quest'ondata gli darebbe
@@ -596,7 +623,13 @@ un difetto perso**.
    migrazione già nota di `/lavori/[id]/modifica`.
 7. 🟠 **La conservazione sopravvive alla chiusura del laboratorio** (§9): collide con `scaduto` e
    `blacklist` del ciclo di vita del tenant.
-8. 🟠 **Il nome «DdC» in tutta la codebase** (§8.4): rinomina da fare, ondata a sé.
+8. 🟠 **Il nome «DdC» in tutta la codebase** (§8.4): rinomina da fare, ondata a sé. ✅ La regola
+   («ogni testo NUOVO usa il nome corretto») è stata incisa in `CLAUDE.md` §5 il 06/08.
+9. 🔴 **NUOVA — la dichiarazione può nascere dopo che il manufatto è uscito** (§14.10). Francesco ha
+   confermato che «potrebbe succedere entrambe le cose». La proposta è di **anticipare la generazione
+   al `pronto`**, scollegandola dalla registrazione della consegna. **Priorità alta**: è l'unico
+   ritrovamento di questa giornata che tocca direttamente un **obbligo dell'Art. 52(8)**, e non
+   dipende da quest'ondata — ma quest'ondata è ciò che lo rende sicuro.
 
 ---
 
@@ -609,3 +642,56 @@ un difetto perso**.
    `docs/design/mockups/`, screenshot, assenso di Francesco. Riguarda «Devo intervenire», il foglio del
    motivo, e **il testo della riga bloccata rimandato da D261** — che ora ha la sua risposta: non «non
    si cambia più», ma **come si rientra**.
+
+---
+
+## §17 D271 — la certificazione ISO 13485 diventa un dato del laboratorio
+
+**Deciso da Francesco il 06/08:** «*facciamo in modo che, nella scheda del laboratorio puoi segnare se
+si è certificati oppure no ed in base a questo la pwa si comporta di conseguenza*».
+
+### 17.1 Il dato
+
+Campo su `laboratori` — **tre stati, non due**, perché «non lo so» è la risposta che Francesco ha
+dato oggi e sarà la risposta di molti laboratori al primo accesso:
+
+| Valore | Significato | Comportamento |
+|---|---|---|
+| `certificato` | Certificazione ISO 13485 in corso di validità | Rigore pieno: §17.2 |
+| `non_certificato` | Nessuna certificazione | Obblighi **MDR** pieni, extra-ISO consigliati e non pretesi |
+| `non_dichiarato` (**default**) | Non ancora indicato | **Si comporta come `certificato`** — è la scelta prudente già adottata in questa spec |
+
+Il default prudente è deliberato: un default permissivo su un campo che l'utente non ha ancora
+compilato è il modo classico di far nascere una sotto-registrazione **senza che nessuno l'abbia
+decisa**.
+
+### 17.2 🛑 Che cosa cambia davvero — e che cosa NON cambia
+
+**Non cambia quasi niente degli obblighi, e questo va detto chiaramente**, perché il campo può dare
+l'illusione contraria. Quasi tutto ciò che questa spec impone viene dal **MDR** — Art. 10(9) (sistema
+qualità obbligatorio, e MDCG 2021-3 Q8 conferma che copre i su misura), Art. 83-88, Allegato XIII §5 —
+e vale **certificati o no**. In particolare **valgono sempre**: la registrazione dell'evento, la
+valutazione con esito, i termini dell'Art. 87, il trend reporting dell'Art. 88, la conservazione.
+
+**Cambia il livello a cui l'app pretende la forma ISO:**
+
+| Ambito | `certificato` / `non_dichiarato` | `non_certificato` |
+|---|---|---|
+| Giustificazione scritta quando un reclamo **non** viene indagato (§8.2.2) | **Pretesa**: la valutazione non si considera completa senza | **Proposta**, e la sua assenza non rende la valutazione incompleta |
+| Ri-verifica documentata dopo la rilavorazione (§8.3.4) | **Pretesa** come passo del rientro | **Proposta** |
+| Riesame periodico dell'accumulato per le azioni correttive (§8.5.2) | Promemoria attivo | Disponibile, senza promemoria |
+| Documenti generati | Nominano le clausole ISO | Nominano gli articoli MDR |
+
+🛑 **Il campo non è un interruttore che spegne registrazioni, e non blocca mai un gesto** (D262):
+governa **che cosa l'app considera completo** e **come nomina le cose nei documenti**, non che cosa
+permette di fare.
+
+### 17.3 Perimetro
+
+**Il campo e il suo effetto sulle due voci di §17.2 che toccano l'intervento** (giustificazione del
+reclamo non indagato · ri-verifica dopo rilavorazione) stanno **dentro** quest'ondata: nascono con
+`eventi_qualita` e non hanno senso separati da lui.
+
+**Il resto** — promemoria del riesame periodico, nomi delle clausole nei documenti già esistenti,
+schermata di impostazione del laboratorio — è **voce di roadmap**: tocca superfici che quest'ondata
+non apre.

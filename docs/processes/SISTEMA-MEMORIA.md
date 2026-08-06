@@ -286,9 +286,14 @@ quando cambia l'architettura fondamentale.
 - MAI più di 3 KPI above the fold su mobile
 
 ## Normativa (non toccare senza leggere ANALISI/17)
-- DdC MDR: Art. 52(8) + Allegato XIII (NON Allegato IV)
+- Dichiarazione MDR: Art. 52(8) + Allegato XIII (NON Allegato IV) — ⚠️ il nome «DdC» è improprio per
+  i su misura: è una dichiarazione ex Allegato XIII (Art. 10(6) + MDCG 2021-3 Q9)
 - FatturaPA: natura N4 · bollo €2 se > €77,47
-- EUDAMED: lab custom-made = ESENTI (MDCG 2021-13 Rev.1)
+- EUDAMED: ⚠️ **«ESENTI» era falso oltre il pre-market — corretto il 06/08/2026.** L'esenzione copre
+  solo la registrazione **prima** dell'immissione sul mercato; **finisce** alla prima segnalazione di
+  vigilanza (incidente grave · azione correttiva di sicurezza · andamento di incidenti non gravi,
+  «*of any risk class*») o al primo certificato per un impiantabile di classe III (MDCG 2021-13 Rev.1
+  Q2/Q3). **Testo autoritativo: `ua-app/CLAUDE.md` §6** — questa è una copia di comodo
 - ITCA: OBBLIGATORIO (campo laboratori.codice_itca, sanzione €48.500)
 
 ## ID di Sistema

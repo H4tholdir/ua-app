@@ -463,9 +463,26 @@ chore(deps): add motion@12
 
 ## 6. Normativa — Regole veloci
 
-- **DdC:** Art. 52(8) + Allegato XIII MDR (NON Allegato IV)
+- **Dichiarazione:** Art. 52(8) + Allegato XIII MDR (NON Allegato IV).
+  ⚠️ **Il nome «DdC» è improprio** (06/08/2026): l'Art. 10(6) riserva la *dichiarazione di conformità
+  UE* ai dispositivi **diversi dai su misura**, e MDCG 2021-3 Q9 dice che i su misura sono
+  accompagnati — «*in place of a declaration of conformity*» — da una **dichiarazione ex Allegato
+  XIII**. Ogni **testo nuovo** usa il nome corretto; la rinomina della codebase è un'ondata a sé.
 - **FatturaPA:** natura **N4**, bollo €2 se > €77,47
-- **EUDAMED:** lab custom-made = **ESENTI**
+- **EUDAMED — 🛑 QUESTA RIGA DICEVA «ESENTI» ED ERA FALSA oltre il pre-market. Corretta il
+  06/08/2026 leggendo il PDF ufficiale MDCG 2021-13 rev.1.**
+  L'esenzione copre **solo** la registrazione **prima** di immettere sul mercato (Q2: «*exempted from
+  the obligation of registering as actors in EUDAMED **before placing their devices on the
+  market***»). **Finisce** — e la registrazione diventa obbligatoria — quando si trasmette per la
+  prima volta una segnalazione di vigilanza: incidente grave, azione correttiva di sicurezza col suo
+  avviso, o **andamento di incidenti non gravi**, «*in respect of custom-made devices **of any risk
+  class***» (Q3); oppure al primo certificato per un impiantabile di **classe III**. Si riceve un
+  **Actor ID, che non è un SRN**.
+  📌 **Stato al 06/08/2026:** il modulo **Vigilanza/PMS non è ancora obbligatorio** — i quattro
+  obbligatori dal 28/05/2026 sono *Actor registration · UDI/Devices · Notified Bodies & Certificates ·
+  Market Surveillance*. **Fino ad allora si segnala per via nazionale al Ministero della Salute**
+  (Ufficio 5). 🔑 **Perché contava:** l'esenzione finisce esattamente nello scenario dell'ondata
+  «si deve sempre poter intervenire» — cioè nel momento in cui costa di più crederla incondizionata.
 - **ITCA:** OBBLIGATORIO (campo `laboratori.codice_itca`)
 
 ---
