@@ -654,3 +654,53 @@ Task 4, nel calcolo di completezza della valutazione.
 ⚠️ **Un buco che dichiaro invece di nascondere:** i task 6-8 toccano `SchedaLavoroV3.tsx`, che **non è
 stato letto** (registro R-P2). Il loro dettaglio va scritto **dopo** che il primo esecutore lo apre e
 riferisce. Il piano non finge di sapere com'è fatto.
+
+---
+
+## 🔴 RITROVAMENTI ESEGUENDO — Task 1
+
+**I due difetti Critici erano del PIANO, non di chi ha eseguito.** La migration copiava fedelmente il
+testo scritto qui sopra, e quel testo era sbagliato in due punti. Peggio: **il progetto aveva già
+pagato entrambe le lezioni e le aveva già risolte altrove.** Chi scrive il piano non aveva cercato il
+precedente per **comportamento** (R-P3, assorbita da R-P2) — l'ha cercato per **nome**.
+
+### ⛔ Due vincoli globali che MANCAVANO, e che valgono per OGNI task successivo
+
+| Vincolo | Perché, e il precedente in casa |
+|---|---|
+| 🔴 **`REVOKE` deve includere `service_role`** | `service_role` riceve `ALL` dalle *default privileges* di Supabase e ha **`bypassrls`**: la RLS non lo ferma. `REVOKE … FROM anon, authenticated` **non protegge niente** contro il ruolo che l'applicazione usa davvero. Nota **«E8»** già scritta in `20260721090000_parete_cassette.sql:126-139`; correzione già applicata in `20260804150306_…:79` |
+| 🔴 **Le chiavi esterne fra tabelle di tenant devono essere COMPOSITE** su `(x_id, laboratorio_id)`, con `UNIQUE (id, laboratorio_id)` sulla tabella puntata | La RLS controlla **solo** la colonna `laboratorio_id` della riga che si inserisce, **non** chi possiede la riga puntata: con una FK semplice il laboratorio A crea un evento sul lavoro del laboratorio B. Pattern già in casa, usato due volte: `20260727120000_lavori_denti.sql:8` e `20260804150306_…:50-54` |
+
+🔑 **E le due cose erano collegate in un modo che nessuno dei due difetti mostrava da solo:** con
+`valutazione_viva_unique` su `(laboratorio_id, evento_id)`, **due laboratori diversi potevano tenere
+due valutazioni vive sullo stesso evento** — cioè il requisito «una sola valutazione viva per evento»
+era violabile *pur essendo l'indice corretto*. Lo chiude la FK composita, a monte.
+
+**Chiuso in** `supabase/migrations/20260806142910_correzione_eventi_qualita_cross_tenant.sql`, con
+cinque famiglie di prove: seconda valutazione viva **rifiutata** · evento su lavoro di altro
+laboratorio **rifiutato** · valutazione su evento di altro laboratorio **rifiutata** · valutazione
+legittima **accettata** (controprova) · `UPDATE` diretto come `service_role` **rifiutato**, e la stessa
+operazione via `valutazione_supera()` **riuscita**.
+
+### 🟠 Aperti, riferiti e NON corretti (R-E2) — vanno raccolti da un task successivo
+
+1. **`valutazioni_evento.sostituisce_id` è ancora una FK semplice** — quarto caso della stessa
+   famiglia, che il piano non aveva elencato. Non è un fix da una riga: serve prima
+   `UNIQUE (id, laboratorio_id)` su `valutazioni_evento`.
+2. **`valutazione_supera()` copre metà dell'operazione.** La riclassificazione (§9 della spec) deve
+   fare *supera la vecchia* **e** *inserisci la nuova*: fra le due chiamate esiste una finestra a
+   **zero valutazioni vive**. ➡️ Il task che implementa la riclassificazione le esegua **in una sola
+   transazione**, o in una sola funzione.
+3. **`eventi_qualita` non ha alcun `REVOKE`**: un utente autenticato dello stesso laboratorio può
+   modificare o cancellare il **fatto** via PostgREST. Il fatto è il fondamento della registrazione:
+   va deciso se anche lui debba diventare non modificabile.
+4. **`TRUNCATE` resta concesso ad `anon`/`authenticated`** su ogni tabella del progetto — pattern
+   preesistente, non introdotto qui; esposizione teorica (PostgREST non lo emette).
+
+### 🔑 La lezione, e non riguarda solo questa ondata
+
+**Un piano che copia il testo di una spec può essere fedele e sbagliato allo stesso tempo.** Nessuna
+rilettura del piano l'avrebbe trovato: i due difetti erano visibili solo **confrontando il piano con
+ciò che il progetto aveva già imparato**. ➡️ Prima di scrivere un oggetto di database in un piano, si
+cerca il precedente **per comportamento** («chi altro in questo repo protegge un riferimento fra
+tenant?»), **non per nome**.
