@@ -33,6 +33,14 @@ type RouteContext = { params: Promise<{ id: string }> }
 // fallire il cast `uuid` con un `22P02` grezzo.
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
+/**
+ * Tetto del testo libero — stesso valore e stessa forma dell'altra rotta e del
+ * modello di casa (`rifacimento/route.ts:167`): i route handler dell'App Router
+ * non impongono un limite al corpo, quindi senza questo tetto 5 MB incollati
+ * nella motivazione finirebbero in banca dati senza un errore.
+ */
+const LIMITE_TESTO_LIBERO = 1000
+
 function err(messaggio: string, status: number) {
   return NextResponse.json({ error: messaggio }, { status })
 }
@@ -79,6 +87,9 @@ export async function POST(req: Request, { params }: RouteContext) {
   const giustificazioneGrezza = corpo.giustificazione
   if (giustificazioneGrezza !== undefined && giustificazioneGrezza !== null && typeof giustificazioneGrezza !== 'string') {
     return err('La motivazione deve essere un testo.', 422)
+  }
+  if (typeof giustificazioneGrezza === 'string' && giustificazioneGrezza.length > LIMITE_TESTO_LIBERO) {
+    return err(`La motivazione è troppo lunga: accorciala a ${LIMITE_TESTO_LIBERO} caratteri.`, 422)
   }
   const giustificazione =
     typeof giustificazioneGrezza === 'string' && giustificazioneGrezza.trim().length > 0

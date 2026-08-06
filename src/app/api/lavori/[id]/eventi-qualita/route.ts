@@ -64,6 +64,31 @@ const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0
  */
 const TOLLERANZA_OROLOGIO_MS = 5 * 60 * 1000
 
+/**
+ * Tetto dei campi di testo libero. Stesso valore del modello di casa
+ * (`rifacimento/route.ts:167`): i route handler dell'App Router **non**
+ * impongono un limite al corpo della richiesta, quindi senza questo tetto 5 MB
+ * incollati in un campo finirebbero in banca dati senza un errore.
+ */
+const LIMITE_TESTO_LIBERO = 1000
+
+/**
+ * `conosciuto_il` deve arrivare in ISO 8601, e il controllo di FORMA viene
+ * prima di `Date.parse` — perché `Date.parse` è troppo accomodante proprio dove
+ * costa di più: `'01/08/2026'` non è un errore per lui, è l'**8 gennaio**. Su un
+ * campo che fa partire i termini dell'Art. 87, sette mesi di scarto passerebbero
+ * senza che nessuno se ne accorga.
+ *
+ * Ammesse due forme, e non una terza:
+ *  · la sola data (`2026-08-01`) — JavaScript la legge a mezzanotte UTC, cioè
+ *    un istante ANTICIPATO rispetto a qualunque momento di quel giorno in
+ *    Italia: la scadenza si stringe, ed è la direzione dell'Art. 87(7);
+ *  · data e ora **col fuso in coda** (`Z` oppure `±HH:MM`).
+ * 🛑 Data e ora SENZA fuso no: JavaScript le legge nell'ora locale di chi
+ * esegue, e server e telefono sono due istanti diversi sullo stesso testo.
+ */
+const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2}))?$/
+
 // `post_consegna_correzioni` è `SMALLINT` (`002_fase2_schema.sql:75`): oltre
 // questo valore l'incremento traboccherebbe. Irraggiungibile nella pratica,
 // ma un fail-soft che aborta la richiesta sarebbe peggio del contatore fermo.
@@ -119,7 +144,16 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (motivoLiberoGrezzo !== undefined && motivoLiberoGrezzo !== null && typeof motivoLiberoGrezzo !== 'string') {
     return err('La descrizione libera deve essere un testo.', 422)
   }
-  const motivoLibero = typeof motivoLiberoGrezzo === 'string' ? motivoLiberoGrezzo.trim() : null
+  if (typeof motivoLiberoGrezzo === 'string' && motivoLiberoGrezzo.length > LIMITE_TESTO_LIBERO) {
+    return err(`La descrizione libera è troppo lunga: accorciala a ${LIMITE_TESTO_LIBERO} caratteri.`, 422)
+  }
+  // Normalizzata come `note` (più sotto): soli spazi → `null`, mai la stringa
+  // VUOTA. Prima ci finiva, ed è un valore che un filtro «senza descrizione»
+  // non riconosce come vuoto.
+  const motivoLibero =
+    typeof motivoLiberoGrezzo === 'string' && motivoLiberoGrezzo.trim().length > 0
+      ? motivoLiberoGrezzo.trim()
+      : null
 
   // 🔑 `natura` NON è un secondo campo da compilare: è la derivazione fissa di
   // `motivo` (spec §5). L'unica eccezione è `altro`, per cui `naturaDaMotivo`
@@ -176,7 +210,15 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (typeof conosciutoGrezzo !== 'string' || conosciutoGrezzo.trim().length === 0) {
     return err('Indica quando siete venuti a saperlo: da lì partono i termini di legge.', 422)
   }
-  const conosciutoMs = Date.parse(conosciutoGrezzo)
+  // 🛑 La FORMA prima del valore: `Date.parse` accetta `'01/08/2026'` e lo legge
+  // come 8 gennaio (vedi il riquadro su `ISO_8601_RE`).
+  if (!ISO_8601_RE.test(conosciutoGrezzo.trim())) {
+    return err(
+      'La data in cui siete venuti a saperlo va scritta nel formato internazionale anno-mese-giorno, con il fuso in coda — per esempio 2026-08-06T14:30:00Z, oppure la sola data 2026-08-06. Scritta come 01/08/2026 non si può leggere senza rischiare di scambiare il giorno con il mese.',
+      422
+    )
+  }
+  const conosciutoMs = Date.parse(conosciutoGrezzo.trim())
   if (Number.isNaN(conosciutoMs)) {
     return err('La data in cui siete venuti a saperlo non è leggibile: controllala e riprova.', 422)
   }
@@ -192,6 +234,9 @@ export async function POST(req: Request, { params }: RouteContext) {
   const noteGrezze = corpo.note
   if (noteGrezze !== undefined && noteGrezze !== null && typeof noteGrezze !== 'string') {
     return err('Le note devono essere un testo.', 422)
+  }
+  if (typeof noteGrezze === 'string' && noteGrezze.length > LIMITE_TESTO_LIBERO) {
+    return err(`Le note sono troppo lunghe: accorciale a ${LIMITE_TESTO_LIBERO} caratteri.`, 422)
   }
   const note = typeof noteGrezze === 'string' && noteGrezze.trim().length > 0 ? noteGrezze.trim() : null
 

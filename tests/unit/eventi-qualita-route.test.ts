@@ -34,9 +34,21 @@ import { POST as POST_VALUTAZIONE } from '@/app/api/eventi-qualita/[id]/valutazi
 
 // ── mock di chain, con insert/update (il helper condiviso non li ha) ─────────
 type ChainCall = { method: string; args: unknown[] }
+type Risultato = { data: unknown; error: unknown }
 type Chain = { calls: ChainCall[]; [k: string]: unknown }
 
-function chain(result: { data: unknown; error: unknown }): Chain {
+/**
+ * Il risultato può essere un valore FISSO oppure una funzione risolta al
+ * momento dell'uscita (`single`/`maybeSingle`/`then`). La forma pigra serve a
+ * chi deve rispondere **in funzione di ciò che è stato inserito** — l'eco del
+ * payload dell'insert, vedi `rigaSalvataDa`.
+ *
+ * 🛑 La forma pigra NON si usa per `lavori`: lì il risultato si sceglie
+ * guardando `banco.lavori.length` PRIMA della `push`, e risolverlo più tardi
+ * farebbe rispondere alla pre-verifica con la riga dell'incremento.
+ */
+function chain(result: Risultato | (() => Risultato)): Chain {
+  const risolvi = (): Risultato => (typeof result === 'function' ? result() : result)
   const calls: ChainCall[] = []
   const c: Chain = { calls }
   for (const m of ['select', 'eq', 'is', 'insert', 'update', 'order', 'limit', 'neq'] as const) {
@@ -48,10 +60,10 @@ function chain(result: { data: unknown; error: unknown }): Chain {
   for (const m of ['single', 'maybeSingle'] as const) {
     c[m] = async (...args: unknown[]) => {
       calls.push({ method: m, args })
-      return result
+      return risolvi()
     }
   }
-  c.then = (resolve: (v: unknown) => void) => resolve(result)
+  c.then = (resolve: (v: unknown) => void) => resolve(risolvi())
   return c
 }
 
@@ -106,6 +118,33 @@ const URL_VALUTAZIONE = `http://localhost/api/eventi-qualita/${EVENTO_ID}/valuta
 const paramsLavoro = (id: string = LAVORO_ID) => ({ params: Promise.resolve({ id }) })
 const paramsEvento = (id: string = EVENTO_ID) => ({ params: Promise.resolve({ id }) })
 
+/**
+ * L'ECO DEL PAYLOAD, con i default del DATABASE — e non è un vezzo di fedeltà.
+ *
+ * 🛑 Il difetto che questa funzione chiude: la fixture rispondeva sempre
+ * `potenziale_di_danno: 'nessuno'`, qualunque cosa fosse stata inserita. Ma la
+ * colonna è `NOT NULL DEFAULT 'da_valutare'`
+ * (`20260806140823_eventi_qualita.sql:24`): **una riga inserita senza quella
+ * chiave non può tornare `'nessuno'`** — è una riga che Postgres non potrebbe
+ * mai produrre. Su una riga impossibile non si può scrivere l'asserzione che
+ * conta, cioè che la proposta si calcola sulla riga SALVATA e non su quella
+ * INVIATA: con la fixture vecchia, sostituire la lettura dalla riga salvata
+ * con il valore grezzo del client lasciava tutta la suite verde.
+ *
+ * Quindi: si rimanda indietro ciò che è stato inserito, e per le sole chiavi
+ * assenti si applica il default che applicherebbe il database.
+ */
+function rigaSalvataDa(payload: Record<string, unknown> | null): Record<string, unknown> {
+  const p = payload ?? {}
+  return {
+    id: EVENTO_ID,
+    created_at: new Date().toISOString(),
+    ...p,
+    // il DEFAULT della colonna, applicato SOLO se la chiave non è stata inviata
+    potenziale_di_danno: Object.hasOwn(p, 'potenziale_di_danno') ? p.potenziale_di_danno : 'da_valutare',
+  }
+}
+
 // ── banco della prima rotta ─────────────────────────────────────────────────
 type BancoEvento = {
   lavori: Chain[]
@@ -145,10 +184,12 @@ function bancoEvento(opts: {
       return c
     }
     if (tabella === 'eventi_qualita') {
-      const c = chain(
+      // 🔑 risultato PIGRO: la riga che torna è l'eco di quella inserita, e la
+      // riga inserita si conosce solo dopo che `insert` è stato chiamato.
+      const c = chain(() =>
         erroreInsert
           ? { data: null, error: erroreInsert }
-          : { data: { id: EVENTO_ID, lavoro_id: LAVORO_ID, potenziale_di_danno: 'nessuno' }, error: null }
+          : { data: rigaSalvataDa(banco.rigaInserita), error: null }
       )
       const originale = c.insert as (...a: unknown[]) => Chain
       c.insert = (...args: unknown[]) => {
@@ -333,11 +374,54 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     expect(banco.rigaInserita).toBeNull()
   })
 
+  it('motivo_libero di soli spazi su un motivo DERIVABILE → salvato come `null`, mai stringa vuota', async () => {
+    // 🛑 `note` (`route.ts:196`) normalizzava già a `null`, `motivo_libero` no:
+    // `'   '.trim()` finiva in banca dati come stringa VUOTA. Due campi di testo
+    // gemelli con due comportamenti diversi sono il modo in cui nasce un filtro
+    // «senza descrizione» che salta metà delle righe.
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ motivo_libero: '   ' })), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(banco.rigaInserita?.motivo_libero).toBeNull()
+  })
+
+  it('motivo_libero oltre il tetto → 422 e nessun insert', async () => {
+    // I route handler dell'App Router non impongono un limite al corpo: senza
+    // un tetto qui, 5 MB incollati finirebbero in banca dati senza un errore.
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ motivo_libero: 'a'.repeat(1001) })), paramsLavoro())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+    expect((await res.json()).error).toMatch(/1000/)
+  })
+
+  it('motivo_libero al tetto esatto (1000) → 201: il confine si prova da entrambi i lati', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ motivo_libero: 'a'.repeat(1000) })), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(banco.rigaInserita?.motivo_libero).toBe('a'.repeat(1000))
+  })
+
   it('note di tipo sbagliato (oggetto) → 422', async () => {
     const banco = bancoEvento()
     const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ note: { testo: 'ciao' } })), paramsLavoro())
     expect(res.status).toBe(422)
     expect(banco.rigaInserita).toBeNull()
+  })
+
+  it('note oltre il tetto → 422 e nessun insert', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ note: 'n'.repeat(1001) })), paramsLavoro())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+    expect((await res.json()).error).toMatch(/1000/)
+  })
+
+  it('note al tetto esatto (1000) → 201', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ note: 'n'.repeat(1000) })), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(banco.rigaInserita?.note).toBe('n'.repeat(1000))
   })
 
   it('origine_informazione fuori vocabolario → 422', async () => {
@@ -366,6 +450,29 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     expect(res.status).toBe(201)
     expect(banco.rigaInserita).not.toBeNull()
     expect(Object.hasOwn(banco.rigaInserita!, 'potenziale_di_danno')).toBe(false)
+  })
+
+  it('potenziale_di_danno assente → la proposta si calcola sulla riga SALVATA (`da_valutare`), non su quella inviata: esito `incidente`', async () => {
+    // 🔑 È l'asserzione che regge la proprietà più importante di questa rotta.
+    // Il client non manda `potenziale_di_danno`; il DATABASE ci mette il suo
+    // default `da_valutare` (`20260806140823:24`). La rotta rilegge quel valore
+    // dalla riga tornata dall'insert, e `da_valutare` ≠ `nessuno` fa scattare il
+    // passo ① di `classifica()` (`classifica.ts:136`) su un dispositivo uscito.
+    // Se invece la proposta si calcolasse sul corpo INVIATO — con un ripiego
+    // `'nessuno'` — l'esito uscirebbe `reclamo`, cioè un incidente
+    // sotto-classificato: esattamente il «generatore silenzioso di
+    // sotto-classificazione» che la spec §5 vieta.
+    const banco = bancoEvento()
+    const corpo = corpoValido()
+    delete (corpo as Record<string, unknown>).potenziale_di_danno
+    const res = await POST_EVENTO(req(URL_EVENTO, corpo), paramsLavoro())
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(banco.rigaInserita).not.toBeNull()
+    expect(Object.hasOwn(banco.rigaInserita!, 'potenziale_di_danno')).toBe(false)
+    expect(body.evento.potenziale_di_danno).toBe('da_valutare')
+    expect(body.proposta.esito).toBe('incidente')
+    expect(body.proposta.ramoIso).toBe('8.3.3')
   })
 
   // ── `altro`: natura e testo libero ────────────────────────────────────────
@@ -453,6 +560,44 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     bancoEvento()
     const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: 1754500000000 })), paramsLavoro())
     expect(res.status).toBe(422)
+  })
+
+  it('conosciuto_il in formato italiano (`01/08/2026`) → 422, MAI letto come 8 gennaio', async () => {
+    // 🛑 Il difetto vero, e su un campo che fa partire i termini dell'Art. 87:
+    // `Date.parse('01/08/2026')` in JavaScript dà l'**8 gennaio**, non il
+    // 1º agosto. Sette mesi di scarto su una scadenza di legge, e nessun
+    // errore da nessuna parte. Qui si pretende ISO 8601 e basta.
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '01/08/2026' })), paramsLavoro())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+    nessunTestoGrezzo((await res.json()).error)
+  })
+
+  it('conosciuto_il con data e ora ma SENZA fuso → 422: il fuso non si indovina', async () => {
+    // `'2026-08-06T10:00:00'` senza fuso viene letto nell'ora LOCALE di chi
+    // esegue: sul server (UTC) e sul telefono dell'operatrice (CEST) sono due
+    // istanti diversi, e la differenza si scarica sulla scadenza.
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-06T10:00:00' })), paramsLavoro())
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+  })
+
+  it('conosciuto_il come sola data ISO (`2026-08-01`) → 201', async () => {
+    // Ammessa: senza ora, JavaScript la legge a mezzanotte UTC — un istante
+    // ANTICIPATO rispetto a qualunque momento di quel giorno in Italia, quindi
+    // la scadenza si stringe. È la direzione dell'Art. 87(7).
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-01' })), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(banco.rigaInserita?.conosciuto_il).toBe('2026-08-01T00:00:00.000Z')
+  })
+
+  it('conosciuto_il ISO con scostamento esplicito (`+02:00`) → 201', async () => {
+    bancoEvento()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-01T10:30:00+02:00' })), paramsLavoro())
+    expect(res.status).toBe(201)
   })
 
   it('conosciuto_il nel futuro (mezz\'ora) → 422', async () => {
@@ -552,6 +697,23 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     expect(update?.args[0]).toEqual({ post_consegna_correzioni: 4 })
   })
 
+  it('l\'incremento porta il CONFRONTA-E-SCAMBIA: l\'UPDATE filtra sul valore letto', async () => {
+    // 🔑 `.eq('post_consegna_correzioni', valoreLetto)` è ciò che rende
+    // innocua la corsa dichiarata in testa a `incrementaCorrezioni`: due
+    // incrementi concorrenti non si sovrascrivono, il secondo non trova più
+    // la riga e fallisce in silenzio (fail-soft). Senza quel filtro,
+    // leggi-modifica-scrivi perde un'unità **sovrascrivendo** l'altra.
+    // Senza questa prova il filtro si può cancellare senza accendere niente.
+    const banco = bancoEvento({ postConsegnaCorrezioni: 3 })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido()), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(banco.lavori.length).toBe(2)
+    const eq = banco.lavori[1].calls.filter((c) => c.method === 'eq')
+    expect(eq).toContainEqual({ method: 'eq', args: ['post_consegna_correzioni', 3] })
+    expect(eq).toContainEqual({ method: 'eq', args: ['id', LAVORO_ID] })
+    expect(eq).toContainEqual({ method: 'eq', args: ['laboratorio_id', LAB_ID] })
+  })
+
   it('NON incrementa quando il dispositivo non è mai uscito dal laboratorio', async () => {
     const banco = bancoEvento()
     const res = await POST_EVENTO(
@@ -570,11 +732,30 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     expect(body.evento.id).toBe(EVENTO_ID)
   })
 
-  // ── gli errori del database, tradotti ─────────────────────────────────────
-  it('insert in errore → 500 senza una riga di testo Postgres grezzo', async () => {
+  // ── gli errori del database, tradotti — UN CASO PER RAMO ─────────────────
+  // 🛑 Qui c'era UN SOLO caso, e con `toBeGreaterThanOrEqual(400)`: un lucchetto
+  // vuoto. Passava indifferentemente con 400, 404, 409, 422 o 500, e infatti
+  // cancellare il ramo `23514` della rotta lasciava la suite tutta verde. I tre
+  // rami sono tre risposte diverse a tre fatti diversi, e ognuno ha il suo caso
+  // con il suo codice esatto.
+  it('insert rifiutato da una FK (23503) → 404 esatto, senza testo Postgres grezzo', async () => {
+    bancoEvento({ erroreInsert: { code: '23503', message: 'insert or update on table "eventi_qualita" violates foreign key constraint' } })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido()), paramsLavoro())
+    expect(res.status).toBe(404)
+    nessunTestoGrezzo((await res.json()).error)
+  })
+
+  it('insert rifiutato da un CHECK (23514) → 422 esatto, senza testo Postgres grezzo', async () => {
     bancoEvento({ erroreInsert: { code: '23514', message: 'new row violates check constraint "evento_altro_ha_testo"' } })
     const res = await POST_EVENTO(req(URL_EVENTO, corpoValido()), paramsLavoro())
-    expect(res.status).toBeGreaterThanOrEqual(400)
+    expect(res.status).toBe(422)
+    nessunTestoGrezzo((await res.json()).error)
+  })
+
+  it('guasto generico dell\'insert → 500 esatto, senza testo Postgres grezzo', async () => {
+    bancoEvento({ erroreInsert: { code: '08006', message: 'connection failure' } })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido()), paramsLavoro())
+    expect(res.status).toBe(500)
     nessunTestoGrezzo((await res.json()).error)
   })
 })
@@ -655,6 +836,29 @@ describe('POST /api/eventi-qualita/[id]/valutazioni — deposita il GIUDIZIO, no
     const res = await POST_VALUTAZIONE(req(URL_VALUTAZIONE, { esito: 'reclamo', giustificazione: 7 }), paramsEvento())
     expect(res.status).toBe(422)
     expect(banco.rigaInserita).toBeNull()
+  })
+
+  it('giustificazione oltre il tetto → 422 e nessun insert', async () => {
+    // Stesso tetto e stessa forma degli altri due campi di testo libero: senza,
+    // 5 MB incollati finirebbero in banca dati senza un errore.
+    const banco = bancoValutazione()
+    const res = await POST_VALUTAZIONE(
+      req(URL_VALUTAZIONE, { esito: 'nessuna_azione', giustificazione: 'g'.repeat(1001) }),
+      paramsEvento()
+    )
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+    expect((await res.json()).error).toMatch(/1000/)
+  })
+
+  it('giustificazione al tetto esatto (1000) → 201', async () => {
+    const banco = bancoValutazione()
+    const res = await POST_VALUTAZIONE(
+      req(URL_VALUTAZIONE, { esito: 'nessuna_azione', giustificazione: 'g'.repeat(1000) }),
+      paramsEvento()
+    )
+    expect(res.status).toBe(201)
+    expect(banco.rigaInserita?.giustificazione).toBe('g'.repeat(1000))
   })
 
   it('id di path non UUID → 404 e nessuna query', async () => {
