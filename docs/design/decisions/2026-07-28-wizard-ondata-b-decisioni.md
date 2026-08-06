@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centosedicesima tornata (D285: le due porte sono DUE, e solo il ritiro toglie dai conteggi)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centodiciottesima tornata (D288: leffetto del rientro si DERIVA dal motivo, e «ho sbagliato a premere consegna» ripristina tutto)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**285 decisioni in centosedici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**288 decisioni in centodiciotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2656,3 +2656,93 @@ porta** rispetto a dove D282/D283 le hanno messe.
 registrazione», il lavoro **deve tornare indietro** (e la dichiarazione annullarsi) — **sempre**,
 **mai**, oppure **solo se lo chiede in un secondo passaggio**? Da qui dipendono la colonna mancante, il
 chiamante della RPC del Task 3, e su quale porta vanno le difese.
+
+---
+
+### Centodiciassettesima tornata — D286 e D287: l'orologio è quello di Roma, e il contatore conta solo ciò che è uscito (06/08/2026, 23:39)
+
+**Nasce da:** due punti portati a Francesco in chiusura del Task 4 — uno trovato dall'esecutore
+correggendo sé stesso, uno da adjudicare perché uno scostamento dichiarato resti una decisione e non
+un'abitudine.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D286** | 🔑 **OGNI ORARIO DELL'APP È QUELLO ITALIANO DI ROMA.** Francesco: «*sempre l'app deve seguire l'orario italiano di Roma quello di qualsiasi dispositivo in Italia*» | Un momento che arriva **senza fuso** (`2026-08-06T10:00`, cioè ciò che restituisce un campo data-e-ora del browser) si legge **come ora di Roma**, mai come ora locale di chi esegue. ⚠️ **Il difetto vero che chiude:** il server dell'app gira in **UTC**; senza questa regola avrebbe letto «10:00» come 10:00 UTC, cioè **le 12:00 di Roma** in estate — **due ore di scarto IN AVANTI su una scadenza dell'Art. 87** |
+| **D287** | ✅ **IL CONTATORE DELLE CORREZIONI CONTA SOLO CIÒ CHE ERA USCITO.** Francesco: «*sì*» | `lavori.post_consegna_correzioni` sale **solo** se `stato_dispositivo <> 'mai_uscito_dal_lab'`. Ratifica di uno **scostamento dichiarato** dall'esecutore del Task 4 rispetto alla regola 3 del piano, che diceva «incrementa» e basta |
+
+**📌 D286 — che cosa comporta, in concreto, e dove NON si applica.**
+La regola riguarda **come si legge un momento ambiguo**, non come si conserva: in banca dati i momenti
+restano `TIMESTAMPTZ`, cioè istanti assoluti — che è la forma giusta e non cambia. Cambia il modo di
+**risolvere l'ambiguità in ingresso**, e cambia il **fuso in cui si mostrano** le date all'utente.
+⚠️ **Un caso d'angolo dichiarato, non nascosto:** l'ultima domenica di ottobre l'ora fra le 2 e le 3
+esiste **due volte**. Un momento scritto a mano in quella finestra è genuinamente ambiguo: si sceglie la
+lettura **più prudente per i termini di legge**, cioè quella che rende la scadenza **più vicina**
+(l'istante **precedente**, ora legale). È lo stesso principio di D280 — «a parità vince il termine più
+breve».
+
+**📌 D287 — perché è una ratifica e non un timbro.** Il piano diceva «incrementa» portando come prova
+solo che la **colonna esiste** — mai chi la legge. Il censimento è stato **rifatto in revisione**:
+`post_consegna_correzioni` compare in `src/` in **sei righe** oltre al Task 4 — tre nei tipi generati,
+una nel tipo di dominio, **due nelle rotte fiscali soltanto dentro l'elenco `select(...)`** — e
+`src/lib/fattura/generate-xml.ts` **non la nomina mai**; in `supabase/` nessuna vista né funzione la
+legge. ➡️ **Nessun documento fiscale cambia.** Il predicato è **lo stesso** già usato in
+`classifica.ts:128`, non un secondo criterio che diverge.
+⚠️ **La riserva onesta resta scritta:** `stato_dispositivo` è **dichiarato dal client**, quindi la
+metrica non era comunque indipendentemente affidabile.
+🟠 **E porta un compito al RITIRO:** un evento registrato per sbaglio fa salire quel contatore, e **oggi
+nessuno lo fa scendere**. Se il ritiro toglie la riga dai conteggi ma lascia il numero su, si costruisce
+**un secondo generatore di numeri falsi** accanto a quello che D273 chiude.
+
+**🛑 Esenzione dalla Regola Advisor, dichiarata invece che sottintesa.** Nessuna delle due è passata da
+un panel: **D286** è la scelta ovvia per un'applicazione italiana e non ha alternative sensate da
+mettere a confronto; **D287** ha già avuto **due revisioni indipendenti** e un censimento rifatto da
+zero, che è più di quanto un panel avrebbe prodotto. Le esenzioni previste sono «decisioni banali,
+reversibili in minuti, o già coperte».
+
+---
+
+### Centodiciottesima tornata — D288: l'effetto del rientro si DERIVA dal motivo, e chiude R1-bis (06/08/2026, 23:47)
+
+**Nasce da:** la domanda aperta della tornata precedente («il rientro è sempre, mai, o solo se lo
+chiede?»), a cui Francesco ha risposto con una **quarta forma, più precisa delle tre proposte**.
+
+> «*io consegno un lavoro con la pwa, deve esserci la possibilità di reintervenire sul lavoro
+> consegnato, poter premere un pulsante e prima di tutto dire: vuoi reintervenire sul lavoro o hai
+> premuto questo tasto per sbaglio? sì voglio reintervenire, benissimo, per quale motivo? per x
+> motivi, tra cui, ho sbagliato a premere consegna, allora ripristina tutto, mi sono accorto che devo
+> correggere un dato, lo corregge e posso riconsegnare, è tornato con un difetto e devo poter
+> intervenire etc etc.*»
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D288** | 🔑 **L'EFFETTO SUL LAVORO NON SI CHIEDE A PARTE: SI DERIVA DAL MOTIVO.** Di Francesco | Nessuna casella «vuoi anche rientrare in produzione?». Il motivo **è già** la risposta: «ho sbagliato a premere consegna» → **ripristina tutto** (lavoro a `pronto`, dichiarazione in `annullata`) · «devo correggere un dato» → si corregge e **si riconsegna** · «è tornato con un difetto» → il percorso dell'intervento vero. ➡️ **Stesso principio delle derivazioni già in spec §6**: l'app deriva e propone, la persona conferma |
+
+**🔴 QUESTO CHIUDE R1-bis, E DECIDE QUALE DELLE DUE RIGHE DELLA SPEC VINCE.** La spec diceva due cose
+diverse: §6 dà a `errore_registrazione` esito «nessuna azione» col perché «*Non tocca il dispositivo né
+il documento sanitario*»; §7 riga 384 lo indica come la via di chi ha sbagliato tasto, cioè quella che
+**riporta il lavoro a `pronto` e annulla la dichiarazione**. ➡️ **Vince la §7 sull'EFFETTO. E le due
+righe non erano in contraddizione: parlavano di due piani diversi**, e nessuno dei due documenti lo
+diceva.
+- **Piano della QUALITÀ** — l'esito resta **`nessuna_azione`**: non è un problema del dispositivo,
+  quindi **non entra nei conteggi regolamentari**. D281 e D285 restano intatte.
+- **Piano OPERATIVO** — il lavoro **torna indietro** e la dichiarazione **si annulla**, perché una
+  dichiarazione emessa su una consegna mai avvenuta è un documento che afferma il falso.
+
+🛑 **E il testo mostrato all'utente oggi è FALSO e va corretto** (`src/lib/qualita/classifica.ts:164`):
+«*Non tocca il dispositivo né il documento sanitario*» — mentre la dichiarazione **viene annullata**. Il
+perché deve dire **che cosa succede davvero**.
+
+**✅ E dà finalmente un CHIAMANTE a `riapri_lavoro_atomica`** (ritrovamento R1: costruita col Task 3,
+applicata al database, **zero chiamanti**). È la derivazione dal motivo a invocarla — e va **dentro il
+compito che scrive quella derivazione**, non lasciata a un compito che non esiste.
+
+**📌 D288 conferma e ARRICCHISCE D283.** La conferma in ingresso non è un «sei sicuro?»: la forma che
+Francesco descrive è **«vuoi reintervenire su questo lavoro, o hai premuto per sbaglio?»** — cioè offre
+**l'uscita** insieme alla domanda. È esattamente ciò che il panel prodotto aveva chiesto come
+condizione ③: *una via che non salva niente*, perché senza quella l'operatore sul lavoro sbagliato non
+ha **nessuna scelta giusta** a schermo e prenderà il motivo più vicino.
+
+**⏸️ Resta da decidere, ed è la conseguenza diretta:** ogni motivo dei nove porta il suo effetto, e
+**l'elenco degli effetti non è ancora scritto**. Va fatto **prima** del cancello §0B sui testi: le
+tre frasi da approvare devono dire *cosa cambia*, e non si può dire cosa cambia finché non è deciso
+che cosa cambia.

@@ -980,3 +980,43 @@ mandato. Annullata (`d60ae140`), col difetto del rilievo che resta chiuso.
    riscrivere se il Task 6 mette una maschera d'inserimento.
 5. **C-R5** — il referto dichiarava «sei prove» di `nessunTestoGrezzo`: ne sono **nove**. Corretto
    dall'esecutore dichiarandolo. **Quarta volta** che un numero di referto non regge alla misura.
+
+---
+
+## 🔴 RITROVAMENTO DI FRANCESCO — il vocabolario non ha una casella per «era fuori in PROVA»
+
+**Nasce da una sua domanda** («*se invece quel lavoro è uscito in prova e poi rientrato, tutto il suo
+flow ancora non lo abbiamo mai gestito vero?*»), e la risposta è **sì, il flusso delle prove è
+costruito** — ma la domanda ha scoperto un buco **in quest'ondata**, non lì.
+
+**✅ Quello che ESISTE già** (`provato:` lettura diretta): due stati del lavoro, `in_prova` e
+`in_prova_esterna` (`005_v1_foundation.sql:34`) · la tabella **`lavoro_prove`** (`:42-57`) con numero
+della prova, data di uscita, rientro previsto ed effettivo, **esito** da elenco chiuso
+(`ok`/`modifiche`/`rifare`/`sospeso`), note del dentista e foto · due RPC **atomiche**
+(`20260717120000_n12_prove_atomiche.sql:51` `manda_in_prova_atomico`, `:91`
+`registra_rientro_atomico`) · la rotta `POST /api/lavori/[id]/prove` **con notifica al tecnico** al
+rientro · e le schermate: `TabProve.tsx`, `LavoroTimeline.tsx`, `LavoroCard.tsx`, `StatoBadge.tsx`, e
+**il portale del dentista** (`src/app/portale/[token]/page.tsx`).
+
+**🔴 IL BUCO, ed è nel Task 1 già costruito e applicato al database.** `eventi_qualita.stato_dispositivo`
+ha **quattro** caselle (`20260806140823_eventi_qualita.sql:23-25`): `mai_uscito_dal_lab` ·
+`consegnato_non_applicato` · `applicato` · `non_noto`. **Nessuna descrive un manufatto uscito per una
+prova e rientrato.** E quella casella non è un'etichetta: **è l'asse che decide se scatta il test
+dell'incidente** — D278 ha reso il passo ① applicabile **solo a un dispositivo uscito**.
+➡️ Oggi chi registra un evento su un lavoro che era in prova deve scegliere **una casella falsa**:
+`mai_uscito_dal_lab` è **falso** (il manufatto era in bocca a un paziente), `consegnato_non_applicato`
+è **falso** (non è stato consegnato), `applicato` è ambiguo (provato ≠ applicato in via definitiva).
+Resta `non_noto`, che **non è una risposta: è una resa** — e per costruzione fa uscire l'evento dal
+ramo della vigilanza.
+
+**⚠️ E sotto c'è una domanda NORMATIVA che questa spec non ha mai posto — «non verificato».**
+La spec §3 fissa il confine alla **consegna**, sulla base che l'immissione sul mercato è la prima
+**messa a disposizione** (Art. 2(28)). Ma un dispositivo su misura **provato in bocca al paziente** e
+poi rientrato: è già stato «messo a disposizione»? Il panel del 06/08 ha discusso *consegna contro
+applicazione* — **la prova non è mai stata messa sul tavolo**. 🛑 Nessuna delle quattro prove ammesse
+dallo statuto delle fonti copre oggi questa domanda: **va a un panel normativo prima di scrivere la
+casella**, perché dalla risposta dipende se un evento in prova entra o no nella vigilanza.
+
+📌 **Perimetro:** è un **quinto valore in un CHECK già applicato al database** più il ramo
+corrispondente in `classifica.ts`. Non è un compito grande — ma è un compito **normativo**, e va prima
+del cancello §0B sui testi, perché una delle domande a schermo è proprio «dov'era il manufatto?».
