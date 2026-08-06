@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquattresima tornata (D260: la chiave secondaria orfana non è una richiesta — una regola sola per i due gemelli)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquesima tornata (D261: prima si decide la finestra di annullo, poi si scrive il messaggio della riga bloccata)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**260 decisioni in centoquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**261 decisioni in centocinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2024,3 +2024,39 @@ solo codice, o la coppia intera; `ModificaColoreSheet.tsx:208-218` verifica il c
 scrivono sempre INSIEME o nessuna delle due*», in **contraddizione** col contratto di `colore-caso.ts:63-70`,
 che ammette apposta il codice senza la scala. **Due contratti diversi scritti nello stesso repository**, ed
 è dalla frase sbagliata che il rilievo era nato. Corretta nello stesso salvataggio.
+
+---
+
+### Centocinquesima tornata — D261: prima si decide la FINESTRA, poi si scrive il messaggio (06/08/2026, 11:09)
+
+**Nasce da:** P7-⑥ del piano delle tinte, deferito **al gate L2 del T9**: su un lavoro con la
+Dichiarazione emessa la riga «Tinta» smette di essere premibile, ma **nessuna parola dice perché**, e il
+gemello «Colore» ha lo stesso vuoto. Portata a Francesco come scelta di parole, con tre testi a confronto.
+🔑 **Francesco non ha scelto un testo: ha cambiato la domanda**, e la domanda nuova era quella giusta —
+«*ma se la dichiarazione è uscita e per qualsivoglia motivo debba essere riemessa, per un errore tipo,
+come la gestisce la cosa la pwa?*».
+
+**Che cosa è stato verificato prima di rispondere** (`provato:` nel codice, non ricordato):
+
+| Momento | Comportamento di oggi | Prova |
+|---|---|---|
+| Entro **10 minuti** dalla consegna | Riquadro col conto alla rovescia; l'annullo porta la DdC a `annullata`, il lavoro a `pronto`, e riassegna la cassetta | `AnnullaConsegnaBanner.tsx:33` · `FINESTRA_ANNULLO_MS` in `src/lib/consegna/costanti.ts:7` |
+| Subito dopo l'annullo | ✅ **I campi si riaprono da soli**: la scheda esclude le DdC annullate, quindi `lavoro.ddc` torna nullo e la riga torna premibile | `src/app/(app)/lavori/[id]/page.tsx:43` (`.neq('ddc.stato','annullata')`) + `SchedaLavoroV3.tsx:462` |
+| Riconsegnando | Esce una **DdC nuova**, la vecchia resta agli atti come annullata — ed è anche ciò che la norma vuole (Allegato XIII punto 4: si conserva) | `src/lib/consegna/orchestrate.ts:107` |
+| **Oltre i 10 minuti** | 🔴 **Rifiutato**, e **non esiste nessun'altra via nel codice**: quel lavoro resta consegnato con la sua dichiarazione e i campi restano chiusi | `annulla-consegna/route.ts:147` · `grep FINESTRA_ANNULLO_MS` → 5 occorrenze, nessuna eccezione |
+| Con fattura già emessa | Rifiutato con la ragione giusta: «serve una nota di credito» | `annulla-consegna/route.ts:148` |
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D261** | 🛑 **IL MESSAGGIO DELLA RIGA BLOCCATA NON SI SCRIVE ORA.** Prima si decide **la finestra di annullo** (i 10 minuti bastano? serve una via di correzione dopo?), poi il messaggio si scrive **una volta sola, già giusto** | Francesco, il 06/08: **«prima decidiamo la finestra»** | ➡️ Il **T9 si chiude senza questa voce**, che resta **aperta e scritta** — non dimenticata. La questione della finestra nasce come **voce di roadmap**. P7-⑥ resta deferito, ora con una ragione migliore di prima |
+
+**🔑 Perché la decisione è giusta, e vale come metodo.** Il testo dipende dal comportamento: «*non si
+cambia più*» è **vero solo dopo i 10 minuti**; entro i 10 c'è ancora una via d'uscita, e un messaggio che
+la nasconde ferma l'utente quando poteva ancora rimediare. Scrivere le parole prima di sapere che cosa
+descrivono avrebbe prodotto **un testo da riscrivere**, o peggio un testo giusto a metà lasciato lì.
+➡️ **Quando il fatto sotto le parole non è ancora deciso, le parole aspettano.**
+
+**🔴 Il limite vero, dichiarato perché nessuno lo scopra sul cliente:** se l'errore si scopre **dopo mezz'ora**
+— e su una digitazione al banco è realistico — **dall'app non si fa niente**. Non è una svista da correggere
+di corsa: la finestra tocca un documento con valore legale, quindi la decisione vuole il suo panel
+normativo (Art. 52(8) e Allegato XIII), non un ritocco di costante.

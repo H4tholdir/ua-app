@@ -1733,3 +1733,73 @@ DI CASO»). Per la tinta, invece, mezza coppia è un corpo malformato.
 ➡️ **Quindi «forma identica al gemello» — la frase su cui poggiava la decisione di chiuderli insieme —
 va RIVERIFICATA prima di scrivere una regola sola per due casi che potrebbero non essere lo stesso caso.**
 È esattamente il tipo di verifica che non si fa all'una di notte su una rotta viva in produzione.
+
+---
+
+## 🔎 RITROVAMENTI ESEGUENDO — Task 9 (06/08/2026, 11:09)
+
+> Chiusura dell'ondata. I cinque passi del T9, uno per uno, con ciò che è andato diversamente dal piano.
+
+### ✅ Passo 1 — FASE 7
+
+`provato:` `npm run verify:full`, **uscita 0** letta da variabile e non da pipe:
+tsc **0** · eslint **0** · build **ok** · **sette guardie verdi** ·
+`vitest` **5069 passate | 19 saltate** (429 file | 3 saltati).
+📈 Riferimento del piano: `vitest` 370|3 file e 4275|19 prove → **+794 prove, +59 file** sull'intera ondata.
+
+### ✅ Passo 2 — FASE 9, il collaudo nell'app vera
+
+Fatto per intero, e il piano lo prevedeva **su un lavoro `paradenti`**: si è usato **`2026/0008`,
+`ortodonzia`** — l'unico lavoro con un tipo che ammette tinta presente in banca dati. Quattro passi su
+quattro: tinta messa **dall'interfaccia** → riletta **dalla banca dati** (`resina_ortodontica`/`rosso`,
+poi `glitter_multicolore`) → vista sulla scheda col foglietto (D247) → cambio di tipo, tinta tolta e
+**l'avviso lo dichiara**.
+🔑 **Il ramo D117 si è acceso per la prima volta**: fino al T8 era irraggiungibile (P8-①).
+🔑 **La famiglia l'ha dedotta il SERVER**, non il client — il contratto di `tinta.ts:94-97` provato da un
+giro vero e non solo dalle prove.
+Referto: `docs/design/screenshots/2026-08-06-tinte/README.md`.
+
+### ✅ Passo 3 — FASE 9b, gate estetico L2 — **e ha trovato due difetti veri**
+
+Referto: `docs/design/screenshots/2026-08-06-tinte/GATE-L2.md`. 12 sezioni × **2 superfici** (la scheda
+**e** la pagina di modifica: il T8 ne ha aggiunta una seconda) × 390/768/1280 × chiaro/scuro.
+⚠️ **Scatti in `docs/design/screenshots/2026-08-06-tinte/`**, non `2026-08-03-*` come diceva il piano: la
+cartella porta **la data vera in cui il gate è stato fatto** (D155 — la data si legge dall'orologio).
+
+- 🔴 **Un campo del modulo era IRRAGGIUNGIBILE.** Con l'avviso aperto la barra è alta 167px e il modulo
+  non le riservava spazio: scorrendo **fino in fondo** (227/227) le **Note interne** restavano sotto di
+  lei. Chiuso misurando la barra (`ResizeObserver`) invece di scrivere un numero a mano.
+- 🔴 **Le quattro righe premibili della scheda erano a 43,50px** contro i 44 della §8 — mezzo pixel,
+  «Modifica tinta» compresa. Ora 44,00.
+- ✅ **La tavolozza è promossa:** 18 caselle, **altezza unica 60px**, e **«Glitter multicolore» su una
+  riga sola** — il timore della §0③ era **infondato**, e ora è verificato invece che temuto.
+
+### 🔑 Passo 3-bis — P7-⑥ NON è stato chiuso, ed è la decisione D261
+
+Il piano lo mandava «al gate L2 del T9», e al gate ci è arrivato. Portato a Francesco come scelta di
+parole; **lui ha cambiato la domanda** — «*se la dichiarazione dev'essere riemessa per un errore, come la
+gestisce la pwa?*» — e la domanda nuova era quella giusta.
+`provato:` entro **10 minuti** l'annullo esiste e **riapre i campi da solo** (la scheda esclude le DdC
+annullate, `page.tsx:43`); **oltre**, non esiste **nessuna** via nel codice.
+➡️ **D261: prima si decide la finestra, poi si scrive il messaggio una volta sola.** Il testo dipende dal
+comportamento, e il comportamento non è ancora deciso. **Vale per entrambe le righe**, tinta e colore.
+
+### ✅ Passo 4 — FASE 11, BP-1
+
+`memory/MEMORY.md`, `docs/roadmap/ROADMAP-UFFICIALE.md`, `memory/SESSION_ACTIVE.md` e il verbale
+(D260, D261) allineati. Guardia di coerenza **verde**.
+
+### ⛔ Passo 5 — Merge: NON fatto, lo autorizza Francesco
+
+Il ramo `tinta-scheda-t7` è pronto e **non pubblicato**. D249 delega il **quando** a chi esegue, **non il
+se le prove servono** — e le prove ci sono tutte. Manca solo la parola di Francesco.
+
+### 📮 Fuori mandato — RIFERITO, non corretto (R-E2)
+
+1. 🔴 **Oltre i 10 minuti un errore sulla consegna non si corregge più dall'app.** Realistico su una
+   digitazione al banco. Tocca un documento a valore legale → decisione con panel normativo, non un
+   ritocco di costante. **Voce di roadmap** (nasce con D261).
+2. 🟡 **La pagina di modifica monta DUE design system insieme** (293 elementi in DM Sans ereditato dal
+   body v2.3 + tavolozza v3). ⚠️ **Non è un difetto:** la convivenza migra **per route, mai per
+   componente**, e questa route non è stata migrata. È un'**ondata di migrazione da decidere**.
+3. 🟡 Gli altri quattro deferiti del gate, con la loro ragione, in `GATE-L2.md` §4.

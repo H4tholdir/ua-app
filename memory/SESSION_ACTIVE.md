@@ -1,31 +1,32 @@
 # Sessione attiva — punto di ripresa
 
-🚪 **PUNTO DI RIPRESA:** `docs/design/screenshots/2026-08-06-tinte/GATE-L2.md` — **la §1 per prima**
-(i due difetti chiusi), poi la **§4** (i cinque deferiti, uno dei quali è una decisione).
+🚪 **PUNTO DI RIPRESA:** i «**RITROVAMENTI ESEGUENDO — Task 9**» in fondo a
+`docs/superpowers/plans/2026-08-03-tinte-manufatto.md`, poi
+`docs/design/screenshots/2026-08-06-tinte/GATE-L2.md`.
 
-**Stato (06/08/2026, 10:35):** ramo **`tinta-scheda-t7`**, ⛔ **NON pubblicato**. `main` = `affec7ae` —
-in produzione solo **T1-T6**.
+**Stato (06/08/2026, 11:15):** ramo **`tinta-scheda-t7`**, albero pulito, ⛔ **NON pubblicato**.
+`main` = `affec7ae` — in produzione solo **T1-T6**.
 
-✅ **Fatto oggi:** **D260** (il rilievo aperto chiuso su entrambi i gemelli — la premessa messa in dubbio
-**reggeva**, per il verso opposto) · **collaudo a schermo**, il primo mai fatto sulle tinte, 4 passi su 4,
-col ramo **D117 acceso per la prima volta** · **gate estetico L2** sulle due superfici.
+🏁 **L'ONDATA DELLE TINTE È COMPLETA: T9 chiuso, resta SOLO IL MERGE — lo autorizza Francesco.**
 
-🔴 **Il gate ha trovato un campo IRRAGGIUNGIBILE**, e nasce da una mia correzione **incompleta**: la prima
-passata aveva chiuso la *leggibilità* dell'avviso ma non la *copertura* (la barra è `sticky`, galleggia
-comunque). Rimisurando: con l'avviso aperto la barra è alta 167px e le **Note interne** restavano sotto di
-lei anche scorrendo in fondo. ✅ Chiuso misurando la barra con `ResizeObserver`, mai con un numero a mano.
-Chiuse anche le righe della scheda: **43,5 → 44px**.
+✅ **Fatto oggi:** **D260** (il rilievo aperto chiuso su entrambi i gemelli; la premessa messa in dubbio
+**reggeva**, per il verso opposto) · **collaudo nell'app vera**, 4 passi su 4, col ramo **D117 acceso per
+la prima volta** · **gate estetico L2** su 2 superfici × 3 viewport × 2 temi, che ha trovato **due difetti
+veri** (un campo **irraggiungibile** sotto la barra; le righe della scheda a 43,5 invece di 44) — entrambi
+chiusi e **rimisurati** · **D261**.
 
-✅ **La tavolozza è promossa:** 18 caselle, altezza unica 60px, «Glitter multicolore» su una riga sola —
-il timore della §0③ era **infondato**, e ora è verificato invece che temuto.
+⚖️ **D261 — nasce da una domanda di Francesco che ha cambiato la domanda.** Il messaggio della riga
+bloccata dalla Dichiarazione **non si scrive ora**: «*prima decidiamo la finestra*». `provato:` entro **10
+minuti** l'annullo esiste e riapre i campi da solo; **oltre, nel codice non c'è nessuna via**.
+🔑 Quando il fatto sotto le parole non è ancora deciso, **le parole aspettano**.
 
-🟡 **ASPETTA UNA DECISIONE:** la pagina di modifica monta **due design system insieme** (DM Sans ereditato
-dal body v2.3 + tavolozza v3). Non è un difetto da gate — la convivenza migra **per route, mai per
-componente** — è un'**ondata di migrazione della route**, da decidere. Gli altri quattro deferiti stanno
-nella §4 del gate.
+🔴 **VOCE NUOVA, ASPETTA UNA DECISIONE — la finestra di annullo della consegna.** Oggi 10 minuti. Un
+errore di digitazione scoperto **dopo mezz'ora** non si corregge più dall'app. Tocca un documento a valore
+legale → **panel normativo** (Art. 52(8) + Allegato XIII). **Da qui dipende il testo di D261.**
 
-🟡 **Restano:** **T9** e poi il merge · gate L2 arretrato del **wizard** · igiene (32 rami,
-`.superpowers/sdd/`) e **riordino memoria** (D257), dopo T8/T9.
+🟡 **Restano:** il **merge** delle tinte · gate L2 arretrato del **wizard** · l'**ondata di migrazione**
+della route `/lavori/[id]/modifica` (monta due design system insieme) · igiene (32 rami,
+`.superpowers/sdd/`) e **riordino memoria** (D257).
 
 📌 **Misurato:** `verify:full` **uscita 0** · **5069 passate | 19 saltate** (429 file).
-📎 260 decisioni in centoquattro tornate; la prossima è **D261**.
+📎 261 decisioni in centocinque tornate; la prossima è **D262**.
