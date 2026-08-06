@@ -148,4 +148,7 @@ persona).
 - 🛑 **La data e l'ora si leggono da `date`, sempre** — ieri notte la deduzione ha sbagliato di 25 minuti e
   di un giorno.
 - ⚠️ **Il verbale è fuori dalla catena della guardia:** il conteggio si verifica a mano.
-- **Il prossimo numero di decisione è D255.**
+- ⌨️ **`/chiudi` ORA È UN COMANDO VERO (D255):** `ua-app/.claude/commands/chiudi.md`, un **puntatore** alla
+  skill. 🛑 Il **collegamento** che lo rende visibile dalla cartella superiore **vive fuori da git**: se la
+  barra non risponde, si rifà con le due righe in `ua-app/CLAUDE.md` §0E.
+- **Il prossimo numero di decisione è D256.**

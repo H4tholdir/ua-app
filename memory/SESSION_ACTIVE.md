@@ -21,4 +21,7 @@ ramo D117) · **D251-D254** a verbale.
 
 ➡️ **Prima cosa:** riverificare se tinta e colore siano **lo stesso caso**, poi il **collaudo a schermo**.
 
-📎 254 decisioni in centuno tornate; la prossima è **D255**.
+📎 255 decisioni in centodue tornate; la prossima è **D256**.
+
+⌨️ **D255:** `/chiudi` è ora un **comando vero** (puntatore alla skill). Se la barra non risponde, il
+collegamento nella cartella superiore va rifatto — due righe in `CLAUDE.md` §0E.
