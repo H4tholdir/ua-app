@@ -1,20 +1,24 @@
 # Sessione attiva — punto di ripresa
 
-🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/roadmap/2026-08-05-tinte-in-produzione-handoff.md` — **la §0 per prima**.
+🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/roadmap/2026-08-06-tinte-t7-t8-handoff.md` — **la §0 per prima**.
 
-**Stato (05/08/2026, 22:30):** `main` = `453d7735`, **pubblicato**, 0 in attesa, albero pulito.
-🚀 **T1-T6 dell'ondata «tinte» sono IN PRODUZIONE** (merge `c6446d98..0cba8dba`), CI e rilascio verdi.
+**Stato (06/08/2026, 08:12):** ramo **`tinta-scheda-t7`** = `4229a332`, **8 salvataggi avanti a `main`**,
+albero pulito, ⛔ **NON pubblicato**. `main` = `affec7ae` — in produzione solo **T1-T6**.
 
-🔴 **La §0 in una frase — sei cose non fatte:** **T7-T8-T9 mancano** e senza di loro la tinta in produzione
-è **inerte** (`provato:` 0 lavori con tinta, nessuna superficie la mostra) · il **gate L2 sulle due
-superfici del wizard** è arretrato da tre giorni · l'**ordine a 1280** non è provato · **due rilievi della
-revisione** aperti di proposito, da chiudere **insieme** nel T8 · la **riga 22** aperta e non iniziata ·
-e l'igiene: `.superpowers/sdd/` non archiviata, 25 rami locali.
+🔴 **La §0 in una frase — cinque cose non fatte:** **un rilievo su due resta aperto**, e non per stanchezza
+(la premessa «forma identica al gemello del colore» **è dubbia**: per il colore mezza coppia è il caso
+NORMALE e voluto, quindi va riverificata prima di scrivere una regola sola) · il **collaudo a schermo non è
+mai stato fatto**, e da adesso **è possibile** perché il campo esiste · il **gate estetico L2 è dovuto su
+DUE superfici** e non c'è nessuno scatto · **D253 sul colore è sospesa** fino a D254 · igiene: **32 rami
+locali**, `.superpowers/sdd/` mai archiviata.
+
+✅ **Fatto:** **T7** intero · **T8 a metà** (campo in pagina, i tre lettori, D253 sulla tinta) · **P8-①**,
+un difetto che il T8 stesso avrebbe creato (il form nominava sempre la tinta e rendeva irraggiungibile il
+ramo D117) · **D251-D254** a verbale.
 
 📌 **Misurato in chiusura:** `verify:full` **uscita 0** · tsc 0 · eslint 0 · build ok · sette guardie verdi ·
-`vitest` **5016 passate | 19 saltate** (422 file | 3 saltati). Ieri: 4991|19 su 419.
+`vitest` **5057 passate | 19 saltate** (427 file | 3 saltati). Ieri sera: 5016|19 su 422.
 
-➡️ **Prima cosa:** il **Task 7** (la riga della tinta sulla scheda, **emendata da D247**: si preme e apre il
-foglietto sulla scheda). 🛑 **Da una branch NUOVA su `main`** — `tinte-manufatto` è assorbito.
+➡️ **Prima cosa:** riverificare se tinta e colore siano **lo stesso caso**, poi il **collaudo a schermo**.
 
-📎 250 decisioni in 98 tornate; la prossima è **D251**.
+📎 254 decisioni in centuno tornate; la prossima è **D255**.
