@@ -1,9 +1,13 @@
 # Handoff — le tinte sono in produzione, e la giornata si chiude con una direttiva che apre un'ondata
 
 **Per:** Francesco, e per la sessione che riprende.
-**Quando:** 6 agosto 2026, mattina-mezzogiorno (`provato:` `date` → `2026-08-06 11:45 CEST`).
-**Stato:** **`main` PUBBLICATO** — `git push origin main` → `affec7ae..1a2d1fc9`. Albero **pulito**,
-**0 salvataggi** avanti a `origin/main`.
+**Quando:** 6 agosto 2026, mattina-mezzogiorno (`provato:` `date` → `2026-08-06 11:45 CEST`; la verifica
+della pipeline è delle 12:00).
+**Stato:** ✅ **`main` PUBBLICATO E DEPLOYATO, verificato non solo lanciato.** `affec7ae..1a2d1fc9..4a69800b`.
+Albero **pulito**, **0 salvataggi** avanti a `origin/main`.
+`provato:` CI sul codice (`1a2d1fc9`) **success** · job **«Deploy to Production» success** (ambiente
+`production` → `https://uachelab.com`) · `curl https://uachelab.com/login` → **200** in 0,85s.
+**LE TINTE SONO IN PRODUZIONE.** ⚠️ Prima di allarmarsi leggendo i log del deploy, v. **§4-bis**.
 ⚠️ **L'hash non si ricopia da qui**: `git log --oneline -1` e `git log --oneline origin/main..main | wc -l`.
 
 📌 **MISURATO IN CHIUSURA** (`provato:` `npm run verify:full`, **uscita 0** letta da variabile e non da
