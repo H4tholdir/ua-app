@@ -1,11 +1,15 @@
 // src/lib/domain/qualita-costanti.ts
 //
-// I SEI vocabolari chiusi dell'ondata «si deve sempre poter intervenire»
-// (Task 2). Copiati ALLA LETTERA dai CHECK vivi in banca dati — fonte
-// autoritativa: supabase/migrations/20260806140823_eventi_qualita.sql
-// (Task 1, già applicata). Un valore in più o in meno qui è una riga che il
-// database rifiuterà a runtime con un 23514 illeggibile, invece di un errore
-// leggibile in fase di scrittura.
+// I SETTE vocabolari chiusi dell'ondata «si deve sempre poter intervenire»
+// (Task 2). SEI sono copiati ALLA LETTERA dai CHECK vivi in banca dati —
+// fonte autoritativa: supabase/migrations/20260806140823_eventi_qualita.sql
+// (Task 1, già applicata). Un valore in più o in meno qui, per quei sei, è
+// una riga che il database rifiuterà a runtime con un 23514 illeggibile,
+// invece di un errore leggibile in fase di scrittura.
+// ⚠️ Il SETTIMO, `RISPOSTE_GRAVITA_INCIDENTE` (D277, righe verso la fine di
+// questo file), NON ha un CHECK corrispondente: nessuna tabella porta ancora
+// quella colonna — per scelta dichiarata, non per omissione. Vedi il
+// commento sopra il suo export.
 //
 // 🔑 `natura` NON è un secondo campo che l'utente compila: è una derivazione
 // FISSA di `motivo` (spec §5, tabella). `naturaDaMotivo` è quella
@@ -106,22 +110,35 @@ const NATURA_DA_MOTIVO: Record<Exclude<Motivo, 'altro'>, Natura> = {
 
 const INSIEME_MOTIVI = new Set<string>(MOTIVI)
 
+/** `true` se il valore è uno dei nove motivi ammessi. La usa chi riceve un
+ *  `unknown` non validato (un body JSON) PRIMA di chiamare `naturaDaMotivo`
+ *  con un `Motivo` vero — stesso idioma di `isFonteTipo` in
+ *  `src/lib/domain/prescrizione-costanti.ts:72-74`.
+ *
+ *  🛑 Ritrovamento della revisione del Task 2 (06/08/2026), CHIUSO qui e non
+ *  dentro `naturaDaMotivo`: un `Record` indicizzato senza controllo di tipo
+ *  fa risalire un valore come `'constructor'` al prototipo di `Object` e
+ *  restituisce quel membro (una FUNZIONE; `'__proto__'` un OGGETTO) invece
+ *  di un esito coerente. La ri-revisione (06/08/2026, stessa data) ha
+ *  spostato la guardia QUI, separata da `naturaDaMotivo`: prima viveva
+ *  dentro, allargando la firma di `naturaDaMotivo` a `unknown` — e così
+ *  facendo il suo `null` tornava ad avere DUE significati («è `altro`»
+ *  oppure «è spazzatura»), il difetto opposto a quello che la guardia
+ *  doveva chiudere. Vedi il commento sopra `naturaDaMotivo`. */
+export function isMotivo(v: unknown): v is Motivo {
+  return typeof v === 'string' && INSIEME_MOTIVI.has(v)
+}
+
 /** La derivazione fissa motivo → natura (spec §5). `null` SOLO per
  *  `'altro'`: lì la natura si CHIEDE, non si indovina — l'utente la sceglie
  *  fra le sette (motivo_libero porta il testo, non basta a dedurre natura).
  *
- *  🛑 Ritrovamento della revisione del Task 2 (06/08/2026): con la firma
- *  precedente (`motivo: Motivo`) il controllo di TIPO mancava del tutto, e
- *  `motivo` qui è solo un'etichetta TypeScript — a runtime arriva `unknown`
- *  (body JSON). `naturaDaMotivo('constructor')` risaliva al prototipo di
- *  `Object` e restituiva una FUNZIONE (idem `'toString'`, `'valueOf'`;
- *  `'__proto__'` restituiva un oggetto) invece di `null`. Stesso idioma già
- *  in casa — `src/lib/domain/prescrizione-costanti.ts:61-74`
- *  (`new Set<string>` + `typeof v === 'string'`) — invece di indicizzare
- *  l'oggetto con un valore non verificato. */
-export function naturaDaMotivo(motivo: unknown): Natura | null {
-  if (typeof motivo !== 'string' || !INSIEME_MOTIVI.has(motivo) || motivo === 'altro') return null
-  return NATURA_DA_MOTIVO[motivo as Exclude<Motivo, 'altro'>]
+ *  🔑 Firma STRETTA (`motivo: Motivo`), come nel mandato originale del
+ *  Task 2. Chi ha solo un `unknown` non validato (un body JSON) chiama
+ *  PRIMA `isMotivo` — così `null` continua a significare UNA sola cosa. */
+export function naturaDaMotivo(motivo: Motivo): Natura | null {
+  if (motivo === 'altro') return null
+  return NATURA_DA_MOTIVO[motivo]
 }
 
 // ── la risposta alla domanda dell'Art. 2(65) — la gravità (D277, 06/08/2026) ──
@@ -139,8 +156,30 @@ export function naturaDaMotivo(motivo: unknown): Natura | null {
 // nel conteggio periodico dell'Art. 88).
 export const RISPOSTE_GRAVITA_INCIDENTE = [
   'minaccia_grave_salute_pubblica', // Art. 87(4) → 2 giorni
-  'morte_o_deterioramento_non_previsto', // Art. 87(5) → 10 giorni
+  'morte_o_deterioramento_grave_non_previsto', // Art. 87(5) → 10 giorni
   'grave_regola_generale', // Art. 87(3) → 15 giorni
   'non_grave', // incidente, nessuna scadenza MIR
 ] as const
 export type RispostaGravitaIncidente = (typeof RISPOSTE_GRAVITA_INCIDENTE)[number]
+
+const INSIEME_RISPOSTE_GRAVITA = new Set<string>(RISPOSTE_GRAVITA_INCIDENTE)
+
+/** `true` se il valore è una delle quattro risposte ammesse. La usa
+ *  `classifica()` (`src/lib/qualita/classifica.ts`) per normalizzare
+ *  `rispostaGravita` PRIMA di passarlo a `esitoDaGravita`: quella funzione
+ *  ha un `switch` esaustivo SUL TIPO dichiarato ma senza ramo di riserva —
+ *  un valore che il tipo esclude (fuori vocabolario, `null`, un numero) e
+ *  che arriva comunque a runtime (nessuna validazione a monte in questo
+ *  mandato) lo fa cadere attraverso il `switch` senza ritorno.
+ *
+ *  🛑 REGRESSIONE chiusa dalla ri-revisione (06/08/2026): prima di questa
+ *  guardia, un `rispostaGravita` malformato produceva un `TypeError` alla
+ *  destrutturazione (`classifica.ts`, passo ①) — la funzione ESPLODEVA
+ *  invece di proporre. Con la guardia, un valore non riconosciuto è trattato
+ *  come "nessuna risposta valida ancora data": la stessa domanda dell'Art.
+ *  2(65) resta aperta (D277 — la gravità si CHIEDE, non si deduce, e questo
+ *  vale anche per un ingresso corrotto: indovinare una gravità da un valore
+ *  a caso sarebbe esattamente la deduzione che D277 vieta). */
+export function isRispostaGravitaIncidente(v: unknown): v is RispostaGravitaIncidente {
+  return typeof v === 'string' && INSIEME_RISPOSTE_GRAVITA.has(v)
+}

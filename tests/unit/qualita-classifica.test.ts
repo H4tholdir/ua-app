@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { classifica } from '@/lib/qualita/classifica'
+import type { FattiEvento } from '@/lib/qualita/classifica'
 import type { Esito } from '@/lib/domain/qualita-costanti'
 
 const base = {
@@ -46,7 +47,7 @@ describe('classifica — ordine ministeriale (D268)', () => {
   })
 
   it('⚖️ D277 — morte o deterioramento grave non previsto (Art. 87(5)): 10 giorni, non 15', () => {
-    const p = classifica({ ...base, potenzialeDiDanno: 'accertato' }, 'morte_o_deterioramento_non_previsto')
+    const p = classifica({ ...base, potenzialeDiDanno: 'accertato' }, 'morte_o_deterioramento_grave_non_previsto')
     expect(p.esito).toBe('incidente_grave')
     expect(p.termineOre).toBe(10 * 24)
   })
@@ -196,7 +197,7 @@ describe('classifica — ogni ramo raggiungibile porta un PERCHÉ non vuoto', ()
     { nome: 'incidente — gravità in attesa di risposta', fatti: { ...base, potenzialeDiDanno: 'possibile' }, esitoAtteso: 'incidente' },
     { nome: 'incidente — gravità risposta NON grave', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'non_grave', esitoAtteso: 'incidente' },
     { nome: 'incidente_grave — minaccia salute pubblica', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'minaccia_grave_salute_pubblica', esitoAtteso: 'incidente_grave' },
-    { nome: 'incidente_grave — morte o deterioramento non previsto', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'morte_o_deterioramento_non_previsto', esitoAtteso: 'incidente_grave' },
+    { nome: 'incidente_grave — morte o deterioramento grave non previsto', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'morte_o_deterioramento_grave_non_previsto', esitoAtteso: 'incidente_grave' },
     { nome: 'incidente_grave — regola generale', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'grave_regola_generale', esitoAtteso: 'incidente_grave' },
   ]
 
@@ -208,9 +209,87 @@ describe('classifica — ogni ramo raggiungibile porta un PERCHÉ non vuoto', ()
 
   it('i dieci rami sopra non condividono tutti lo stesso testo (nessuna frase fissa copre più di un fatto reale)', () => {
     const testi = new Set(casi.map(({ fatti, gravita }) => classifica(fatti, gravita).perche))
-    // nessuna_azione ha due rami con testo intenzionalmente diverso; idem le due non
-    // conformità e le quattro varianti di incidente/incidente_grave — dieci casi, testi
-    // sostanzialmente tutti diversi salvo dove il fatto reale è davvero lo stesso.
-    expect(testi.size).toBeGreaterThan(1)
+    // Misurato dopo la ri-revisione: i dieci rami hanno DIECI testi distinti, non solo "più di
+    // uno" — un vincolo debole (toBeGreaterThan(1)) passerebbe anche con 2 testi su 10 rami
+    // realmente diversi. toBe(10) è il numero vero, misurato con questo stesso comando.
+    expect(testi.size).toBe(10)
+  })
+})
+
+// 🛑 RI-REVISIONE (06/08/2026) — REGRESSIONE introdotta dalla correzione D277-D279: i tre
+// helper interni che compongono `perche` (`descriviProvenienza`, `descriviStatoDispositivo`) e
+// il calcolo della gravità (`esitoDaGravita`, dietro la destrutturazione del passo ①) sono
+// `switch` esaustivi SUL TIPO dichiarato, ma senza un ramo di riserva per un valore che il tipo
+// dichiarato esclude e che arriva comunque a runtime (body JSON non ancora validato, un `Task
+// 4` che costruisce `FattiEvento` da un oggetto parziale). Prima di questa correzione questi
+// ingressi restituivano una proposta (sbagliata ma viva, sempre verso PIÙ obblighi); la
+// correzione D277-D279 li ha resi esplosivi. Qui si prova che sono tornati a NON esplodere, e
+// che restano dalla parte di più obblighi — mai di meno.
+describe('classifica — ri-revisione: un ingresso imprevisto non fa mai esplodere la funzione', () => {
+  describe('statoDispositivo imprevisto — resta "reclamo" (② non cambia), il perché non contiene "undefined"', () => {
+    it('fuori vocabolario', () => {
+      const p = classifica({ ...base, statoDispositivo: 'boh' } as unknown as FattiEvento)
+      expect(p.esito).toBe('reclamo')
+      expect(p.perche).not.toContain('undefined')
+    })
+
+    it('assente (chiave mancante nell\'oggetto)', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { statoDispositivo, ...senzaStato } = base
+      const p = classifica(senzaStato as unknown as FattiEvento)
+      expect(p.esito).toBe('reclamo')
+      expect(p.perche).not.toContain('undefined')
+    })
+
+    it('null', () => {
+      const p = classifica({ ...base, statoDispositivo: null } as unknown as FattiEvento)
+      expect(p.esito).toBe('reclamo')
+      expect(p.perche).not.toContain('undefined')
+    })
+
+    it('di tipo sbagliato (un numero)', () => {
+      const p = classifica({ ...base, statoDispositivo: 42 } as unknown as FattiEvento)
+      expect(p.esito).toBe('reclamo')
+      expect(p.perche).not.toContain('undefined')
+    })
+  })
+
+  describe('rispostaGravita imprevista — resta "incidente" IN ATTESA (mai dedotta da un valore a caso, D277), termine vuoto', () => {
+    it('fuori vocabolario', () => {
+      const p = classifica({ ...base, potenzialeDiDanno: 'possibile' }, 'boh' as unknown as Parameters<typeof classifica>[1])
+      expect(p.esito).toBe('incidente')
+      expect(p.termineOre).toBeNull()
+      expect(p.perche).not.toContain('undefined')
+    })
+
+    it('null', () => {
+      const p = classifica({ ...base, potenzialeDiDanno: 'possibile' }, null as unknown as Parameters<typeof classifica>[1])
+      expect(p.esito).toBe('incidente')
+      expect(p.termineOre).toBeNull()
+      expect(p.perche).not.toContain('undefined')
+    })
+
+    it('un numero', () => {
+      const p = classifica({ ...base, potenzialeDiDanno: 'possibile' }, 42 as unknown as Parameters<typeof classifica>[1])
+      expect(p.esito).toBe('incidente')
+      expect(p.termineOre).toBeNull()
+      expect(p.perche).not.toContain('undefined')
+    })
+  })
+
+  describe('origine imprevista — resta "reclamo" (② tratta l\'ignoto come esterno), il perché non contiene "undefined"', () => {
+    it('fuori vocabolario', () => {
+      const p = classifica({ ...base, origine: 'boh' } as unknown as FattiEvento)
+      expect(p.esito).toBe('reclamo')
+      expect(p.perche).not.toContain('undefined')
+    })
+
+    it('assente (chiave mancante nell\'oggetto)', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { origine, ...senzaOrigine } = base
+      const p = classifica(senzaOrigine as unknown as FattiEvento)
+      expect(p.esito).toBe('reclamo')
+      expect(p.perche).not.toContain('undefined')
+    })
   })
 })

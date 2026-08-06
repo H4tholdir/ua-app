@@ -32,6 +32,7 @@
 // chiaro; con la risposta, i tre termini dell'Art. 87(3)/(4)/(5) diventano raggiungibili.
 // ⚠️ `accertato` NON implica più «grave»: un danno può essere avvenuto ed essere lieve.
 
+import { isRispostaGravitaIncidente } from '@/lib/domain/qualita-costanti'
 import type {
   Natura,
   OrigineInformazione,
@@ -69,6 +70,13 @@ function descriviProvenienza(origine: OrigineInformazione): string {
     case 'paziente_tramite_medico': return 'Ce l\'ha segnalato il paziente, tramite il medico'
     case 'autorita_competente': return 'Ce l\'ha segnalato l\'autorità competente'
     case 'altro_operatore': return 'Ce l\'ha segnalato un altro operatore'
+    // 🛑 REGRESSIONE chiusa dalla ri-revisione (06/08/2026): senza questo ramo, un `origine`
+    // fuori vocabolario/assente/`null`/di tipo sbagliato faceva restituire `undefined`, e il
+    // testo composto (`:146`, `:157`) mostrava la parola letterale "undefined" invece di un
+    // "perché" leggibile. Non affermiamo una provenienza che non conosciamo — il calcolo
+    // dell'esito (② più sotto) tratta comunque ogni origine ≠ 'laboratorio_interno' come
+    // esterna, quindi resta dalla parte di PIÙ obblighi, mai di meno.
+    default: return 'Non sappiamo con certezza da dove sia arrivata la segnalazione'
   }
 }
 
@@ -81,6 +89,13 @@ function descriviStatoDispositivo(stato: StatoDispositivo): string {
     // fosse: la classificazione resta prudente (si tratta come se fosse uscito, Art. 87(7)
     // generalizzato), ma il TESTO non deve dichiarare una certezza che non c'è.
     case 'non_noto': return 'non sappiamo con certezza se il dispositivo fosse già uscito dal laboratorio, ma nel dubbio lo trattiamo come se lo fosse'
+    // 🛑 REGRESSIONE chiusa dalla ri-revisione (06/08/2026): stesso difetto di
+    // `descriviProvenienza` sopra, sullo stesso ingresso imprevisto (fuori vocabolario/
+    // assente/`null`/tipo sbagliato). Trattamento IDENTICO a `non_noto`: non affermiamo una
+    // certezza che non abbiamo, e restiamo coerenti con `uscito` (`f.statoDispositivo !==
+    // 'mai_uscito_dal_lab'`), che per lo stesso valore ignoto è già `true` — quindi più
+    // obblighi, mai meno.
+    default: return 'non sappiamo con certezza se il dispositivo fosse già uscito dal laboratorio, ma nel dubbio lo trattiamo come se lo fosse'
   }
 }
 
@@ -93,7 +108,7 @@ function esitoDaGravita(gravita: RispostaGravitaIncidente): { esito: 'incidente'
   switch (gravita) {
     case 'minaccia_grave_salute_pubblica':
       return { esito: 'incidente_grave', termineOre: 2 * 24, perche: 'È una minaccia grave per la salute pubblica: la segnalazione va fatta entro 2 giorni da quando lo si è saputo (Art. 87(4)).' }
-    case 'morte_o_deterioramento_non_previsto':
+    case 'morte_o_deterioramento_grave_non_previsto':
       return { esito: 'incidente_grave', termineOre: 10 * 24, perche: 'Ha portato, o avrebbe potuto portare, a una morte o a un peggioramento serio e non previsto della salute: la segnalazione va fatta entro 10 giorni da quando lo si è saputo (Art. 87(5)).' }
     case 'grave_regola_generale':
       return { esito: 'incidente_grave', termineOre: 15 * 24, perche: 'È un incidente grave: la segnalazione va fatta entro 15 giorni da quando lo si è saputo (Art. 87(3)).' }
@@ -120,7 +135,16 @@ export function classifica(f: FattiEvento, rispostaGravita?: RispostaGravitaInci
   // ① IL TEST DELL'INCIDENTE VIENE PRIMA — invertirlo nasconde l'obbligo dell'Art. 88 (D268)
   if (uscito && f.potenzialeDiDanno !== 'nessuno') {
     // ⚖️ D277 — la gravità si CHIEDE, non si deduce da `potenzialeDiDanno`.
-    if (rispostaGravita === undefined)
+    // 🛑 REGRESSIONE chiusa dalla ri-revisione (06/08/2026): il controllo era
+    // `rispostaGravita === undefined`, e SOLO quel valore rientrava nel ramo "domanda in
+    // attesa". Un `rispostaGravita` fuori vocabolario, `null`, o di un tipo diverso da
+    // stringa (nessuna validazione a monte in questo mandato) superava il controllo e cadeva
+    // in `esitoDaGravita`, il cui `switch` non ha un ramo di riserva: `TypeError` alla
+    // destrutturazione sotto, non una `Proposta`. `isRispostaGravitaIncidente` tratta OGNI
+    // valore non riconosciuto come "nessuna risposta valida ancora data" — stessa domanda in
+    // chiaro, stesso termine vuoto: indovinare una gravità da un ingresso corrotto sarebbe
+    // esattamente la deduzione che D277 vieta, quindi non si inventa nulla.
+    if (!isRispostaGravitaIncidente(rispostaGravita))
       return {
         esito: 'incidente',
         perche: 'C\'è un potenziale di danno: per la norma è un incidente (Art. 2(64)). Prima di calcolare la scadenza va risposto — ha causato, avrebbe potuto causare o potrebbe causare la morte, un peggioramento serio della salute, oppure una minaccia grave per la salute pubblica? Finché non si risponde, la scadenza resta da definire.',
