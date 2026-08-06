@@ -311,6 +311,28 @@ un gate · ④ scrivi l'handoff in `docs/roadmap/`, con la **§0 dedicata a ciò
 avvenuta. **Il fatto che l'ha generata:** il 02/08/2026 una chiusura fatta bene in tutto il resto si è
 dimenticata proprio quello, e Francesco ha dovuto chiederlo.
 
+### ⌨️ Se la barra non risponde a `/chiudi` — D255 (06/08/2026)
+
+**Il fatto:** `/chiudi` **non è mai stato un comando** fino al 06/08 — era **solo** una skill, e per giunta
+**scoped a `ua-app/`**, mentre le sessioni partono dalla **cartella superiore**. Veniva quindi scoperta a
+metà sessione, troppo tardi per il menu della barra: da lì l'errore «*Unknown command: /chiudi*».
+
+**Ora il comando esiste:** `ua-app/.claude/commands/chiudi.md` — un **puntatore** alla skill, mai una copia
+(ricopiare i sette passi creerebbe una seconda procedura che diverge in silenzio).
+
+🔗 **E serve un collegamento nella cartella superiore, perché è da lì che la sessione parte:**
+
+```bash
+mkdir -p "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/.claude/commands"
+ln -sfn "../../ua-app/.claude/commands/chiudi.md" "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/.claude/commands/chiudi.md"
+```
+
+🛑 **Quel collegamento vive FUORI da git e non sopravvive a un cambio di computer** — se la barra smette di
+rispondere, si rifà con le due righe qui sopra. **Il contenuto invece è versionato**, ed è la differenza
+con il caso già pagato dello script del link d'accesso, che stava *tutto* in una cartella ignorata.
+⚠️ **In ogni caso la procedura si può sempre chiedere a parole** («chiudiamo la sessione»): la barra è una
+scorciatoia, non la strada.
+
 ---
 
 ## 0F. La data si legge dall'OROLOGIO, mai dal documento precedente (ratificata 02/08/2026 — D155)
