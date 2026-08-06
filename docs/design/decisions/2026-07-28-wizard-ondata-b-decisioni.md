@@ -2204,3 +2204,11 @@ entrato dalla porta principale, dentro un parere autorevole.
 **Spec:** `docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md` — §14 porta **undici
 vuoti dichiarati**, §15 **otto ritrovamenti fuori mandato**, due dei quali gravi (la riga EUDAMED di
 `CLAUDE.md` §5 è sbagliata; `totale_reclami: 0` nel PSUR).
+
+**🔑 Seconda lezione, trovata rileggendo e non decidendo — DUE DECISIONI GIUSTE POSSONO COLLIDERE IN
+UNA CHIAMATA, E LA COLLISIONE NON SI VEDE LEGGENDO LE DECISIONI.** D265 («la dichiarazione si corregge
+sempre, anche a fattura emessa») e D269 («l'annullo consegna è assorbito nell'intervento») sono
+entrambe sane. Ma la prima stesura della spec faceva passare l'esito da `annulla_consegna_atomica`, che
+porta con sé **i cancelli fiscali**: una correzione su un lavoro fatturato sarebbe stata **rifiutata**
+— cioè il contrario esatto di D265. ➡️ **Due decisioni si controllano nel punto in cui il codice le fa
+incontrare, non nel documento che le enuncia.**
