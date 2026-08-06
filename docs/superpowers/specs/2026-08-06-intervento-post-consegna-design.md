@@ -1,7 +1,8 @@
 # Spec — «Si deve sempre poter intervenire»: l'intervento dopo la consegna
 
-**Stato:** 🟡 **SCRITTA — attende la revisione di Francesco** (il flusso brainstorming si chiude sulla
-sua rilettura, non sull'approvazione delle sezioni in chat, che è già avvenuta).
+**Stato:** ✅ **RATIFICATA da Francesco il 06/08/2026** («*ho letto la spec, procedi col piano*»), con
+**D271** e **D272** incise dopo la lettura. Piano di esecuzione:
+`docs/superpowers/plans/2026-08-06-intervento-post-consegna.md`.
 **Quando:** 6 agosto 2026 (`provato:` `date` → `2026-08-06 13:24 CEST`).
 **Decide:** Francesco Formicola.
 **Nasce da:** **D262** (direttiva permanente: «la PWA non deve fornirci blocchi o ostacoli, ma aiuti

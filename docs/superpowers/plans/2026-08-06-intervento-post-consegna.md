@@ -128,11 +128,11 @@ un ritrovamento** (R-E2), non un refuso da correggere in silenzio.
 **Nuovi**
 - `supabase/migrations/<ts>_eventi_qualita.sql` — le due tabelle, i vincoli, RLS, sola-aggiunta
 - `supabase/migrations/<ts>_riapri_lavoro_atomica.sql` — la RPC nuova
-- `src/lib/domain/qualita-costanti.ts` — vocabolari chiusi e mappa `motivo → natura`
-- `src/lib/qualita/classifica.ts` — i tre test nell'ordine ministeriale, **funzione pura**
-- `src/app/api/lavori/[id]/eventi-qualita/route.ts` — crea l'evento
-- `src/app/api/eventi-qualita/[id]/valutazioni/route.ts` — deposita la valutazione
-- `tests/unit/qualita-classifica.test.ts` · `tests/unit/eventi-qualita-route.test.ts`
+- `src/lib/domain/qualita-costanti.ts` — vocabolari chiusi e mappa `motivo → natura` 🆕
+- `src/lib/qualita/classifica.ts` — i tre test nell'ordine ministeriale, **funzione pura** 🆕
+- `src/app/api/lavori/[id]/eventi-qualita/route.ts` — crea l'evento 🆕
+- `src/app/api/eventi-qualita/[id]/valutazioni/route.ts` — deposita la valutazione 🆕
+- `tests/unit/qualita-classifica.test.ts` · `tests/unit/eventi-qualita-route.test.ts` 🆕
 
 **Modificati**
 - `src/lib/consegna/costanti.ts` · `AnnullaConsegnaBanner.tsx` · `FrameConsegnato.tsx` ·
@@ -293,8 +293,8 @@ git commit -m "feat(qualita): eventi_qualita e valutazioni_evento, con la sola-a
 al database, quindi tutto provabile.
 
 **File**
-- Crea: `src/lib/domain/qualita-costanti.ts` · `src/lib/qualita/classifica.ts`
-- Test: `tests/unit/qualita-classifica.test.ts`
+- Crea: `src/lib/domain/qualita-costanti.ts` · `src/lib/qualita/classifica.ts` 🆕
+- Test: `tests/unit/qualita-classifica.test.ts` 🆕
 - Leggi (R-P2): `src/lib/domain/prescrizione-costanti.ts:53-58` — `richiesta_dentista` **è già il
   caso 5**, e il nostro `nuova_esigenza_clinica` **vi rimanda, non lo duplica**
 
@@ -374,7 +374,7 @@ describe('classifica — ordine ministeriale (D268)', () => {
 - [ ] **Passo 2 — falle fallire, e CONTA (R-P4)**
 
 ```bash
-npx vitest run tests/unit/qualita-classifica.test.ts
+npx vitest run tests/unit/qualita-classifica.test.ts 🆕
 ```
 
 Atteso: fallimento da modulo non trovato. **Poi metti un abbozzo inerte**
@@ -413,7 +413,7 @@ export function classifica(f: FattiEvento): Proposta {
 - [ ] **Passo 4 — verde, e censisci le forme d'input (R-P4)**
 
 ```bash
-npx vitest run tests/unit/qualita-classifica.test.ts
+npx vitest run tests/unit/qualita-classifica.test.ts 🆕
 ```
 
 Atteso: **9 passate**. Poi scrivi nel referto, per ognuna: valore fuori vocabolario · campo assente ·
@@ -422,7 +422,7 @@ Atteso: **9 passate**. Poi scrivi nel referto, per ognuna: valore fuori vocabola
 - [ ] **Passo 5 — salva**
 
 ```bash
-git add src/lib/domain/qualita-costanti.ts src/lib/qualita/classifica.ts tests/unit/qualita-classifica.test.ts
+git add src/lib/domain/qualita-costanti.ts src/lib/qualita/classifica.ts tests/unit/qualita-classifica.test.ts 🆕
 git commit -m "feat(qualita): i tre test nell'ordine ministeriale, come funzione pura"
 ```
 
@@ -501,9 +501,9 @@ E prova che `p_evento_id` inesistente torna `evento_non_valido` — un vincolo s
 ## Task 4 — Le due rotte: crea l'evento, deposita la valutazione
 
 **File**
-- Crea: `src/app/api/lavori/[id]/eventi-qualita/route.ts` ·
-  `src/app/api/eventi-qualita/[id]/valutazioni/route.ts`
-- Test: `tests/unit/eventi-qualita-route.test.ts`
+- Crea: `src/app/api/lavori/[id]/eventi-qualita/route.ts` · 🆕
+  `src/app/api/eventi-qualita/[id]/valutazioni/route.ts` 🆕
+- Test: `tests/unit/eventi-qualita-route.test.ts` 🆕
 - Leggi per primo (R-P2): `src/app/api/lavori/[id]/rifacimento/route.ts` (il modello di rotta con
   `isSameOrigin`, `getFreshLabContext`, `assertLabOperativo`) e `src/app/api/qualita/incidenti/route.ts`
 
@@ -553,7 +553,7 @@ it('rifiuta una richiesta senza conosciuto_il: è il momento zero dei termini di
 **File**
 - Modifica: `src/lib/pdf/generate-ddc.ts` (aggiungi `sostituisce_id`)
 - Migration: colonna `dichiarazioni_conformita.sostituisce_id UUID REFERENCES dichiarazioni_conformita(id)`
-- Test: `tests/unit/riemissione-ordine.test.ts`
+- Test: `tests/unit/riemissione-ordine.test.ts` 🆕
 - 🔴 **Leggi PER PRIMO** (R-P2, mai letto finora): `src/lib/pdf/generate-ddc.ts` **per intero**, e in
   particolare le righe 85-105. Il censimento dice che restituisce la dichiarazione **esistente** se ne
   trova una non annullata, **ritornando `{numero, url}` come se l'avesse generata**. **Verifica se è
@@ -584,7 +584,7 @@ it('riemettere DOPO l annullo produce un documento nuovo che PUNTA al vecchio', 
 ## Task 6 — «Devo intervenire» sulla scheda (UI)
 
 🛑 **Cancello del progetto, §0B — non si scrive React prima:** mockup HTML in
-`docs/design/mockups/2026-08-06-devo-intervenire.html`, **almeno due varianti**, screenshot Playwright
+`docs/design/mockups/2026-08-06-devo-intervenire.html`, **almeno due varianti**, screenshot Playwright 🆕
 in `docs/design/mockups/screenshots/`, **light + dark**, e **approvazione esplicita di Francesco**.
 La decisione va scritta in `docs/design/decisions/`.
 
