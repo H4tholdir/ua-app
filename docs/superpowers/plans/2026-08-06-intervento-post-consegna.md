@@ -876,3 +876,74 @@ serve una migration in un compito successivo. **Va deciso prima di dichiarare co
   `valutazioni_evento`: due dei quattro campi calcolati **non sono salvabili**.
 - **R8** — `motivo = 'altro'` lascia al client la scelta della `natura`, quindi anche una via verso le
   tre esenzioni: D276 la delimita, ma la porta esiste.
+
+### ✅ Revisione del Task 4 — verdetto di CONFORMITÀ: **conforme con rilievi, nessun Critico**
+
+Dieci punti su dieci verificati con `file:riga` (guardia CSRF · `laboratorio_id` sempre dalla sessione ·
+la prima rotta non scrive mai in `valutazioni_evento`, provato col `grep` e col finto client · la
+seconda non riclassifica · `conosciuto_il` obbligatorio · l'ordine delle due guardie, e la prova lo
+distingue davvero perché usa `'constructor'`/`'__proto__'` invece di `'pippo'` · nessun testo grezzo di
+Postgres fuori dalle rotte · nessuna migration).
+
+**Il conteggio R-P4 regge, ma va LETTO BENE, ed è una lezione riusabile.** «66 su 141» sottoconta **per
+costruzione**: `vitest` ferma ogni caso alla **prima** asserzione rossa, quindi le altre non vengono
+nemmeno valutate. Il numero che significa qualcosa è **66 casi su 66**. Il revisore ha ricostruito `M`
+in modo indipendente (131 `expect(` meno 2 nell'helper più 6 chiamate contate due volte = 141) e tre
+artefatti indipendenti concordano sul passaggio 63 → 66.
+
+**⚖️ ADJUDICATO — lo scostamento dichiarato dall'esecutore (`post_consegna_correzioni`):** la regola 3
+del piano diceva «incrementa», e l'esecutore incrementa **solo se il manufatto era uscito**
+(`stato_dispositivo <> 'mai_uscito_dal_lab'`, lo stesso predicato di `classifica.ts:128`).
+**Accettato**, e per una ragione misurata, non per fiducia: il censimento rifatto dal revisore trova
+`post_consegna_correzioni` in **sei righe** oltre al Task 4 — tre nei tipi generati, una nel tipo di
+dominio, due nelle rotte fiscali **solo dentro l'elenco `select(...)`** — e `generate-xml.ts` **non la
+nomina mai**; in `supabase/` nessuna vista né funzione la legge. ➡️ **Accendere quell'incremento non
+tocca nessun documento fiscale.** 🟡 **Ma la decisione resta dell'esecutore finché Francesco non la
+ratifica** (rilievo M1): il codice è difendibile, la scelta va confermata.
+⚠️ Riserva onesta del revisore: il predicato poggia su `stato_dispositivo`, che è **dichiarato dal
+client** senza cancello di stato — la metrica non era comunque indipendentemente affidabile.
+
+### 🔴 RILIEVO NUOVO, e va nel compito del RITIRO (non in questo)
+
+**Un evento registrato per sbaglio incrementa `post_consegna_correzioni`, e oggi nessuno lo
+decrementa.** ➡️ Se il ritiro toglie la riga dai conteggi ma lascia il contatore incrementato, si
+costruisce **un secondo generatore di numeri falsi** accanto a quello che D273 chiude. **Il compito del
+ritiro deve occuparsi anche di questo numero** — o dichiarare per iscritto perché no.
+
+### ⚠️ Revisione del Task 4 — verdetto di QUALITÀ: **buona con rilievi, e un CRITICO trovato con una mutazione**
+
+🔑 **La conferma che i due verdetti separati servono davvero: la conformità era ✅ su dieci punti su
+dieci, e il difetto vero stava altrove.** Non nelle rotte — **nella rete di prove**.
+
+**🔴 CRITICO — la proprietà più importante della rotta non era protetta da nessuna asserzione, e la
+colpa era di una FIXTURE IMPOSSIBILE.** `tests/unit/eventi-qualita-route.test.ts:151` restituiva
+**sempre** `potenziale_di_danno: 'nessuno'`, qualunque cosa fosse stata inserita. Ma la colonna è
+`NOT NULL DEFAULT 'da_valutare'` (`20260806140823:24`): **un insert che omette la chiave non può tornare
+`'nessuno'`. È una riga che Postgres non potrebbe mai produrre.**
+`provato:` mutando `route.ts:263-268` — proposta calcolata sul valore **grezzo del client** invece che
+sulla **riga salvata**, col ripiego a `'nessuno'` — **66 prove su 66 restavano verdi**.
+🛑 **Lo scenario, in parole:** l'operatrice registra un evento **senza** dire il potenziale di danno; il
+database salva «da valutare»; la proposta giusta è **incidente** (Art. 88), quella mutata è
+**reclamo**. **L'obbligo sparisce, e nessuna prova se ne accorge.**
+➡️ È la famiglia **già pagata** una volta: *una fixture che non specchia la rotta vera*. La fixture
+deve fare **l'eco del payload** e applicare **il default del database** quando la chiave manca.
+
+**🟠 Un test che era un LUCCHETTO VUOTO** (`test:574-579`): il titolo diceva «→ 500», la fixture
+iniettava un codice che la rotta mappa a **422**, e l'asserzione era `toBeGreaterThanOrEqual(400)` —
+passava con 400, 404, 409, 422 o 500 indifferentemente. `provato:` cancellando il ramo `23514` restavano
+66/66 verdi.
+**🟠 Nessun tetto di lunghezza** su `motivo_libero`, `note`, `giustificazione` — il modello di casa ne ha
+uno (`rifacimento/route.ts:167-169`).
+**🟡 La guardia di concorrenza non era coperta** (`route.ts:337`: togliendo il confronta-e-scambia,
+66/66 verdi) · **🟡 `conosciuto_il` passava per `Date.parse` senza controllo di formato**: `'01/08/2026'`
+verrebbe letto come **8 gennaio**, su un campo che fa partire **scadenze di legge**.
+
+**⛔ Un rilievo NON si corregge, e la ragione è di casa:** un guasto transitorio del database esce come
+«Lavoro non trovato» (`route.ts:211`, `valutazioni:101`). **È l'idioma già in uso**
+(`rifacimento/route.ts:123-133`): correggerlo qui creerebbe **due dialetti** nello stesso repo. Resta
+**debito trasversale riferito**, da chiudere ovunque insieme.
+
+**✅ Quattro famiglie verificate SENZA difetto, con la prova** (non un «va tutto bene»): cross-tenant
+(gli INSERT passano `laboratorio_id` dalla sessione, le FK composite sono soddisfatte, e la risposta è
+**404 mai 403**) · nessun doppio default · **le chiavi pericolose sono RIFIUTATE, non ignorate** (niente
+«salvato su un dato che non c'è») · il fail-soft sul contatore è giustificato e dichiarato.
