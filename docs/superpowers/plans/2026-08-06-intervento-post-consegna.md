@@ -32,6 +32,9 @@ v4 · Motion 12 · Design System **v3** (la scheda lavoro è già v3).
 | **Fatti, non conseguenze** | Nelle colonne dell'evento si scrivono fatti. Le classificazioni si **derivano** e si fanno **confermare** da una persona (D267) |
 | **Nessun blocco nuovo** | Il cancello di qualità **non si chiude mai**. L'unico blocco ammesso è quello commerciale già esistente, e **non** deve toccare il documento sanitario (D262, D265) |
 | **Sola-aggiunta dal database** | `valutazioni_evento` non si aggiorna e non si cancella: la garanzia la dà il **database** (revoca dei permessi), non il codice (D270) |
+| 🔴 **`REVOKE` include SEMPRE `service_role`** | Aggiunto dopo il Task 1, dove mancava. `service_role` riceve `ALL` dalle *default privileges* di Supabase e ha **`bypassrls`**: revocare solo ad `anon, authenticated` **non protegge niente** contro il ruolo che l'app usa davvero. Nota «E8» in `20260721090000_parete_cassette.sql:126-139` |
+| 🔴 **Chiavi esterne fra tabelle di tenant: COMPOSITE** | Aggiunto dopo il Task 1. Sempre `(x_id, laboratorio_id)` con `UNIQUE (id, laboratorio_id)` sulla tabella puntata: la RLS controlla **solo** la riga che si inserisce, non chi possiede la riga puntata. Pattern in casa: `20260727120000_lavori_denti.sql:8` · `20260804150306_…:50-54` |
+| 🔎 **Il precedente si cerca per COMPORTAMENTO** | «Chi altro in questo repo protegge un riferimento fra tenant?», non «cerchiamo una tabella con un nome simile». È il controllo che avrebbe evitato i due difetti sopra |
 | **Nome del documento** | Ogni testo **nuovo** dice **«la dichiarazione»**, mai «dichiarazione di conformità» (spec §8.4) |
 | **Ruoli** | Sono **cinque**: `titolare`, `tecnico`, `front_desk`, `admin_rete`, `admin_sistema`. Mai `admin` nudo |
 | **RLS** | `public.current_lab_id()`, **mai** `auth.current_lab_id()` |
