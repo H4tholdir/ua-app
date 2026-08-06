@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquattordicesima tornata (D283: il primo tocco chiede conferma — la rete che D269 aveva tolto senza rimpiazzarla)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquindicesima tornata (D284: applicare una migration al banco di prova non si chiede più)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**283 decisioni in centoquattordici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**284 decisioni in centoquindici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2489,3 +2489,34 @@ D282 sta **in uscita** e protegge dal togliere qualcosa dai conteggi senza voler
 rischi diversi, in due momenti diversi. ➡️ **E con D283 in piedi, il caso del tocco involontario
 diventa raro**: la via più economica per un tocco sbagliato non è registrarlo e poi ritirarlo, è
 **non crearlo**.
+
+---
+
+### Centoquindicesima tornata — D284: applicare una migration al banco di prova non si chiede più (06/08/2026, 21:59)
+
+**Nasce da:** quattro rifiuti del classificatore dei comandi in una sola giornata, e la mia scelta di
+**chiedere invece di aggirare** — corretta come procedura, ma diventata un intralcio quando si ripete.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D284** | 🔑 **APPLICARE UNA MIGRATION AL DATABASE DI PROVA NON SI CHIEDE PIÙ.** Francesco: «*senti questo tipo di comando lo hai sempre eseguito in autonomia e voglio che tu continui a farlo, non chiedermi più di eseguirlo*» | `npx supabase db push --linked --yes` si lancia **da soli**. ⚠️ **La forma conta:** senza `--yes` il comando resta appeso a una domanda interattiva e **sembra fallito senza esserlo** — è successo oggi, e per capirlo è servito leggere il terminale. Il `--linked` punta al progetto collegato |
+
+**📌 Il perimetro, e resta stretto.** Vale per il **database di prova** `iagibumwjstnveqpjbwq`, che
+`ua-app/CLAUDE.md` §8 dichiara pieno di **soli dati di prova, nessun cliente reale**. È la stessa
+famiglia di **D103** («*logga tranquillamente con i dati nel file env*»): su un banco di prova
+chiedere il permesso a ogni giro è cerimonia, non prudenza.
+🛑 **Non si estende** a: pubblicare su `main` (resta di Francesco), cancellare dati, o toccare un
+domani un ambiente con dati veri — e **il giorno in cui il primo laboratorio reale entra**, questa
+decisione va riletta insieme alla sezione §8 che la regge.
+
+**⚠️ Il fatto che l'ha generata, e la lezione che porta con sé.** Oggi il classificatore ha rifiutato
+**quattro volte** i comandi che scrivono sul database. La regola di casa dice «*si chiede, non si
+aggira*», e l'ho seguita: ma il primo comando che ho passato a Francesco era **sbagliato** (senza la
+cartella: il terminale parte da quella superiore), il secondo avrebbe applicato il SQL **senza
+registrare la migration** — disallineando il registro — e il terzo è rimasto **appeso a una domanda**
+che dal mio lato sembrava un fallimento.
+🔑 **Tre errori in tre passaggi di consegne, su un comando che so eseguire.** ➡️ **Passare un compito a
+una persona non è gratis: ogni passaggio è un punto in cui si perde un pezzo di contesto.** Quando il
+contesto necessario ce l'ho io e il rischio è basso, il passaggio **aggiunge** rischio invece di
+toglierlo. La regola «si chiede, non si aggira» resta viva dove il rischio è alto — pubblicare,
+cancellare, toccare dati veri.

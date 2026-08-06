@@ -637,6 +637,32 @@ React attuale» — fra cui `paziente_nome_snapshot`, `classe_rischio`, `numero_
 - **SECURITY DEFINER:** funzioni PL/pgSQL SECURITY DEFINER richiedono `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` esplicito solo a `service_role`
 - **WhatsApp GDPR:** template MAI con nome paziente — solo numero lavoro + link portale token
 
+### Applicare una migration al banco NON si chiede (D284, Francesco 06/08/2026)
+
+> «senti questo tipo di comando lo hai sempre eseguito in autonomia e voglio che tu continui a farlo,
+> non chiedermi più di eseguirlo»
+
+```bash
+npx supabase db push --linked --yes    # dalla cartella ua-app/
+```
+
+⚠️ **La forma conta, e i tre modi di sbagliarla sono già stati pagati tutti in un giorno solo:**
+`--yes` è obbligatorio — **senza, il comando resta appeso a una domanda interattiva e dal lato di chi
+lo ha lanciato sembra fallito senza esserlo** · `scripts/psql.mjs` esegue il SQL **ma NON registra la
+migration** nel ledger, quindi non è un sostituto · e ogni comando passato a Francesco va dato **con
+la cartella dentro** (`cd "…/ua-app" && …`): il terminale parte dalla **cartella superiore**.
+
+📌 **Perimetro, e resta stretto:** vale per il database di prova `iagibumwjstnveqpjbwq`, che la §8
+dichiara pieno di **soli dati di prova**. Stessa famiglia di D103. 🛑 **NON si estende** a pubblicare
+su `main` (resta di Francesco), cancellare dati, o a un futuro ambiente con dati veri — e **alla prima
+onboarding di un laboratorio reale questa riga va riletta insieme alla §8 che la regge**.
+
+🔑 **Perché è stata ratificata:** in una giornata il classificatore ha rifiutato quattro volte, la
+regola «si chiede, non si aggira» è stata seguita, e **tre passaggi di consegne su tre hanno prodotto
+un errore** (comando senza cartella · comando che non registra la migration · comando appeso a una
+domanda). **Un passaggio di consegne non è gratis: è un punto in cui si perde contesto.** Dove il
+contesto ce l'ha chi esegue e il rischio è basso, il passaggio *aggiunge* rischio invece di toglierlo.
+
 ### Collaudo dal vivo — l'accesso al banco (D103, Francesco 03/08/2026)
 
 > «logga tranquillamente con i dati nel file env e ricordati di questa cosa»

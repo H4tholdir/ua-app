@@ -6426,6 +6426,14 @@ export type Database = {
         }
         Returns: Json
       }
+      riapri_lavoro_atomica: {
+        Args: {
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+        }
+        Returns: Json
+      }
       ricalcola_pagamento_fattura: {
         Args: { p_fattura_id: string }
         Returns: undefined
