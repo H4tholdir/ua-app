@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centododicesima tornata (D277-D279: la gravità si chiede, il banco non è il mercato, e il «perché» non può contraddire chi l'ha scritto)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotredicesima tornata (D280-D282: l'attrito sta sulla porta d'uscita, mai su quella d'ingresso)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**279 decisioni in centododici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**282 decisioni in centotredici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2404,3 +2404,42 @@ che il primo, per costruzione, non poteva vedere.
 **Chiuso anche, nello stesso giro:** tre lacune di copertura (un ramo del codice mai raggiunto da
 nessuna prova · `naturaDaMotivo` senza alcuna prova · la prova «ogni proposta porta il perché» che ne
 guardava **una sola** su sei).
+
+---
+
+### Centotredicesima tornata — D280-D282: la domanda sulla gravità prende forma, e nasce l'attrito che sta SOLO sulla porta d'uscita (06/08/2026, 20:54)
+
+**Nasce da:** le due decisioni lasciate aperte dalla chiusura del Task 2, più una **proposta di
+Francesco** che nessuno aveva messo sul tavolo.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D280** | 🔑 **LA DOMANDA SULLA GRAVITÀ HA TRE RISPOSTE «GRAVE» DISTINTE, E A PARITÀ VINCE IL TERMINE PIÙ BREVE.** Francesco: «*sì a entrambe*» | Non una domanda da sì/no: quattro risposte — **non grave** · **grave, regola generale** (15 gg, Art. 87(3)) · **morte o peggioramento grave non previsto** (10 gg, Art. 87(5)) · **minaccia grave per la salute pubblica** (2 gg, Art. 87(4)). 🛑 **Quando ne valgono due insieme** — una morte che è anche una minaccia per la salute pubblica — **vince il termine più breve**, mai la media e mai il primo trovato |
+| **D281** | ✅ **«COMMERCIALE» ED «ERRORE DI REGISTRAZIONE» SU UN LAVORO MAI USCITO DANNO «NESSUNA AZIONE», non non-conformità interna** | Conferma di un'interpretazione che stava già nel codice: D276 (le tre nature esenti) resta più forte di D278 (mai uscito → non conformità). Un tasto premuto per sbaglio **non è un problema del dispositivo**, quindi non entra nel registro qualità né nei conteggi (D273) |
+| **D282** | 🔑 **PRIMA DI TOGLIERE QUALCOSA DAI CONTEGGI, L'APP CHIEDE UNA CONFERMA ESPLICITA — ed è di Francesco.** «*credo che in quel caso dobbiamo prevedere un'opzione del tipo «sei sicuro?» e quindi la pwa procede, così escludiamo tutti i possibili casi di errore*» | Nasce un **passaggio di conferma** sull'unica porta che fa **uscire** un evento dai conteggi. ⚠️ **Tre precisioni, integrate nella decisione:** ① la conferma **dice cosa cambia**, non chiede «sei sicuro?» · ② compare **solo dopo** che l'incidente è stato escluso, **mai** davanti a un obbligo di sicurezza · ③ è **la stessa** conferma del ritiro di D273. Il testo esatto passa dal cancello §0B (mockup → approvazione) |
+
+**🔑 IL PRINCIPIO CHE D282 REGALA AL PROGETTO, e vale oltre questo caso: L'ATTRITO STA SULLA PORTA
+D'USCITA, MAI SU QUELLA D'INGRESSO.** Registrare un evento non deve costare nulla — è la direttiva
+D262. **Toglierlo dai conteggi**, invece, è l'unico gesto che *riduce* ciò che il laboratorio dichiara
+in un documento dovuto per legge: lì una conferma non è un ostacolo, è la differenza fra una scelta e
+un incidente di percorso. ➡️ **D262 non dice «mai attrito»: dice «mai attrito che impedisca di
+lavorare».** Una conferma su un gesto che sottrae è esattamente dove l'attrito serve.
+
+**⚠️ Perché «sei sicuro?» è la forma SBAGLIATA della cosa giusta.** Una conferma che chiede se sei
+sicuro viene premuta senza leggere dopo la terza volta: addestra a passare oltre. Una conferma che
+**dice cosa cambia** — «*questa registrazione non entrerà nel registro qualità*» — viene letta, perché
+porta un'informazione che chi legge non aveva. La proposta di Francesco è giusta nella sostanza; la
+precisione riguarda solo la forma, ed è la differenza fra una rete e un rituale.
+
+**🛑 E la precisione ② non è teorica: senza, la conferma finirebbe nel posto peggiore.** L'ordine
+ratificato (D276, D277) mette il test dell'incidente **prima** di tutto. Se la conferma comparisse
+davanti a quel test, l'app metterebbe un attrito **davanti a un obbligo di segnalazione** — cioè
+esattamente al contrario di dove serve.
+
+**🟠 UN NODO APERTO CHE D282 FA EMERGERE, e va sciolto prima del Task 6: DUE PORTE PORTANO NELLA STESSA
+STANZA.** Oggi ci sono due modi perché una registrazione non conti: `natura = errore_registrazione`
+(il fatto è «abbiamo registrato per sbaglio una consegna», e la classificazione è «nessuna azione») e
+il **ritiro** di D273 (la riga non doveva proprio esistere). Sono davvero diversi — il primo registra
+un fatto vero, il secondo cancella un tocco sbagliato — **ma al banco si somigliano**, e due porte per
+la stessa stanza sono il modo classico di far contare due volte, o zero. ➡️ Il confine si disegna nel
+compito del ritiro, non si lascia all'intuito di chi sta al banco.
