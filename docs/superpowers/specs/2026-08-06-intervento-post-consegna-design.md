@@ -325,11 +325,23 @@ dispositivo era uscito e la segnalazione arriva dall'odontoiatra»), e chi confe
 - `FINESTRA_ANNULLO_MS` (`src/lib/consegna/costanti.ts:6`) e ogni sua copia **spariscono**;
 - il banner con il conto alla rovescia (`AnnullaConsegnaBanner.tsx`) **sparisce**, e al suo posto la
   scheda del lavoro consegnato mostra **«Devo intervenire»**, sempre presente;
-- `annulla_consegna_atomica` **non viene allargata**: il suo lavoro utile — riportare il lavoro a
-  `pronto`, azzerare `conformato`/`data_conformazione`, mettere la dichiarazione in `annullata`
-  (`20260710180000:102-116`) — diventa **uno degli esiti** dell'intervento, invocato quando l'esito lo
-  richiede. ⚠️ La RPC ha un `RAISE` d'ingresso che vincola `p_finestra_ms` fra 1 secondo e 15 minuti
-  (`:75-77`): **la firma cambia**, quindi rigenerazione dei tipi obbligatoria;
+- 🛑 **`annulla_consegna_atomica` NON viene riusata — e questo punto è stato scritto due volte, la
+  prima in modo sbagliato.** La prima stesura diceva che il suo «lavoro utile» sarebbe diventato uno
+  degli esiti, invocandola quando serve. **È una contraddizione con D265**, e va detta per intero:
+  quella RPC porta con sé **i cancelli fiscali** (`fattura_gia_emessa` e `incluso_in_fattura`,
+  `20260710180000:88-101`). Se l'esito «riporta il lavoro a `pronto` e annulla la dichiarazione»
+  passasse da lì, **una correzione di un dato su un lavoro già fatturato verrebbe rifiutata** — cioè
+  esattamente ciò che D265 dice che si deve poter fare. **D265 e D269 collidono in quella chiamata**,
+  e la collisione non si scopre leggendo le due decisioni: si scopre leggendo la funzione.
+  ➡️ **Nasce una RPC nuova** che fa il lavoro di transizione — `pronto`, `conformato = false`,
+  `data_conformazione = NULL`, dichiarazione in `annullata` (`:102-116`) — **conservando il controllo
+  di coerenza fail-closed sulla dichiarazione** (`:117-127`, che è una garanzia vera e va tenuta) e
+  **lasciando fuori i cancelli fiscali**, che si spostano al livello che sceglie l'esito, non a quello
+  che cambia lo stato. `annulla_consegna_atomica` resta in vita finché il vecchio percorso non è
+  rimosso, e **muore con lui**.
+  ⚠️ La vecchia RPC ha inoltre un `RAISE` d'ingresso che vincola `p_finestra_ms` fra 1 secondo e 15
+  minuti (`:75-77`): **«finestra più lunga» non passa senza cambiare la firma** — un'altra ragione per
+  cui allargare non era una strada;
 - chi ha semplicemente sbagliato tasto usa `natura = errore_registrazione`: **due tap invece di uno**.
   È il costo dichiarato di D269, accettato da Francesco.
 
@@ -435,7 +447,7 @@ argomento di comodità.
 | **1 — dato sbagliato sul documento** | È l'unico che il sistema oggi **non sa esprimere affatto**, e la macchina di riemissione esiste già: massimo valore, minimo cantiere. È il caso di D262 | NC documentale + riemissione (§8). Reclamo **solo** se qualcuno ha segnalato. ⚠️ Se il dato errato ha **rilievo clinico** (materiale o lega su paziente allergico) è un candidato **incidente**: passa dai tre test come tutti |
 | **2 — difetto visto dopo la consegna, prima dell'applicazione** | È il caso che il panel ha **ribaltato**: se la segnalazione arriva da fuori è un **reclamo**, non rilavorazione interna | NC §8.3.3 + **registrazione di rilavorazione §8.3.4 + ri-verifica** — non «niente da registrare» |
 | **3 — difetto segnalato dal medico o dal paziente** | È la ragione per cui l'ondata esiste: l'unico con conseguenze di legge dirette | Tre test → reclamo o incidente → eventualmente MIR Art. 87 con i suoi termini |
-| **5 — richiesta clinica nuova** | **Entra come uscita, non come correzione.** Dal banco è indistinguibile dal caso 2 (il pezzo torna, si rilavora, riparte): senza una voce propria finisce nel conto delle non conformità e lo falsa dal primo giorno | **Nessuna registrazione di qualità.** Rimanda al meccanismo divergenza esistente; è una prescrizione nuova o modificata → **nuova dichiarazione** |
+| **5 — richiesta clinica nuova** | **Entra come uscita, non come correzione.** Dal banco è indistinguibile dal caso 2 (il pezzo torna, si rilavora, riparte): senza una voce propria finisce nel conto delle non conformità e lo falsa dal primo giorno | **Nessuna NON CONFORMITÀ** — e non «nessuna registrazione»: il dispositivo era conforme alla prescrizione con cui è stato fatto, ma la prescrizione **cambia**, e ne discende una **nuova dichiarazione**, che è a tutti gli effetti un documento controllato. Rimanda al meccanismo divergenza esistente |
 
 **FUORI — e non spariscono:**
 
