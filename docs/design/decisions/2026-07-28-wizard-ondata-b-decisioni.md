@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centocinquesima tornata (D261: prima si decide la finestra di annullo, poi si scrive il messaggio della riga bloccata)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoseiesima tornata (D262: «la PWA non dà blocchi, dà aiuti» — e la finestra dei 10 minuti è un residuo di un'architettura abbandonata)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**261 decisioni in centocinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**262 decisioni in centosei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2060,3 +2060,62 @@ descrivono avrebbe prodotto **un testo da riscrivere**, o peggio un testo giusto
 — e su una digitazione al banco è realistico — **dall'app non si fa niente**. Non è una svista da correggere
 di corsa: la finestra tocca un documento con valore legale, quindi la decisione vuole il suo panel
 normativo (Art. 52(8) e Allegato XIII), non un ritocco di costante.
+
+---
+
+### Centoseiesima tornata — D262: «la PWA non dà blocchi, dà aiuti» — e la finestra dei 10 minuti è un residuo (06/08/2026, 11:20)
+
+**Nasce da:** D261, che aveva rimandato il messaggio della riga bloccata in attesa di decidere la
+finestra. Francesco ha risposto con una **direttiva di prodotto**, non con un numero.
+
+> «*è giusto come funziona al momento la pwa, ma poiché la nostra filosofia è sempre quella di "aiutare"
+> il laboratorio, noi siamo il suo supporto in tutto. Mettiamo caso che dopo aver consegnato un lavoro e
+> chiuso tutto (siamo nella fase prima di fatturare), e ci accorgiamo che c'è un errore sulla
+> dichiarazione: noi dobbiamo avere la facoltà di avvertire il medico, sistemare i valori del lavoro e
+> riemettere una nuova dichiarazione a storno di quella vecchia. […] La nostra pwa non deve fornirci
+> blocchi o ostacoli, ma aiuti concreti nella vita di un laboratorio nelle sue mansioni e nelle sue
+> difficoltà. Dogma centrale: facilità di utilizzo, risoluzione dei problemi, automatismi, tenere tutto
+> sotto controllo, far funzionare il laboratorio alla perfezione.*»
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D262** | 🔑 **DIRETTIVA PERMANENTE — «si deve sempre poter intervenire».** Un errore scoperto **dopo la consegna e prima della fatturazione** deve poter essere corretto **dall'app**: avvertire il medico · sistemare i valori · **riemettere una dichiarazione a storno della vecchia**. Un blocco si giustifica solo con un **obbligo di legge** o un **fatto irreversibile già avvenuto** (una fattura emessa) — mai con la comodità di chi ha scritto il codice | Il limite **temporale** dei 10 minuti va sostituito da un limite **sostanziale**. La progettazione passa da un **panel** (dominio critico: documento a valore legale) |
+
+**✅ PRIMA VERIFICA — la richiesta di Francesco è GIÀ la prassi ratificata, non uno strappo.**
+`provato:` **D-1 del 16/07/2026** (`docs/design/decisions/2026-07-16-ondata-fondamenta-4b-consegna.md:13`),
+ratificata da un **panel di 2 advisor convergenti** (normativo + architetturale):
+«*Art. 52(8) impone la DdC prima dell'immissione sul mercato; **All. XIII non impone numerazione**;
+**ISO 13485 §4.2.4 → annullo tracciato è la prassi corretta***». Le condizioni erano già scritte lì e sono
+già rispettate: **numero mai riusato**, **DdC annullata conservata ≥10 anni**, **il registro mostra le
+annullate**.
+➡️ **Annullare e riemettere non è una forzatura: è il modo corretto**, e il progetto lo aveva già stabilito.
+
+**🔴 SECONDA VERIFICA, ed è il ritrovamento che cambia il quadro — LA RAGIONE DEI 10 MINUTI È DECADUTA.**
+La finestra nasce come vincolo **C4** dentro un'architettura in cui la fattura nasceva **da sola alla
+consegna** (outbox + cron, emissione differita). La spec lo dice a chiare lettere
+(`2026-07-09-ds-v3-il-cuore-design.md` §9): *«dentro i 10 minuti l'annullo **non incontra mai documenti
+fiscali**»*. La finestra serviva a **non far collidere l'annullo con una fattura automatica**.
+🛑 **Quell'architettura NON è mai stata eseguita.** Nota del 16/07 nella stessa spec: *«la 4a-server qui
+descritta (outbox+cron, emissione differita) **NON fu eseguita** — sostituita dal modello "fatturazione
+concordata": **la consegna non tocca il fiscale, nessuna fattura nasce alla consegna**»*.
+`provato:` `grep -c "insert.*fatture\|from('fatture')" src/lib/consegna/orchestrate.ts` → **0**, e
+`fattura: null` alle righe 157 e 385.
+➡️ **I 10 minuti proteggono da una collisione che non può più avvenire.** Sono il residuo di un'idea
+abbandonata, rimasto in una costante che nessuno ha più messo in discussione.
+
+**✅ TERZA VERIFICA — il confine giusto esiste GIÀ nel codice**, ed è esattamente quello che Francesco
+indica («*siamo nella fase prima di fatturare*»): `annulla-consegna/route.ts:148` rifiuta con
+`fattura_gia_emessa` → «*esiste già una fattura per questo lavoro: per stornare serve una nota di
+credito*». **Il limite sostanziale è già scritto e funziona.** Quello temporale gli sta davanti e lo
+rende irraggiungibile dopo 10 minuti.
+
+**🔑 La riga da tenere, e vale oltre questo caso:** *un vincolo sopravvive all'architettura che lo
+giustificava, e da lì in poi sembra una regola.* Nessuno l'aveva più riletto perché **una costante con
+una sigla accanto (`// C4`) ha l'aria di essere stata decisa** — e infatti lo era stata, ma per un mondo
+che non esiste più.
+
+**📌 Che cosa NON è deciso qui, e va al panel:** se la via giusta sia allargare l'annullo consegna
+(riporta il lavoro a `pronto`, gesto brusco se il manufatto è già dal medico) oppure un flusso **dedicato**
+di «correggi e riemetti» che lascia il lavoro consegnato ed emette una **DdC sostitutiva collegata alla
+precedente**; come si **avvisa il medico**; e come si distingue — nettamente — la **correzione di un dato**
+dalla **vigilanza su un dispositivo difettoso** (Art. 87), che è un'altra cosa e non va confusa.
