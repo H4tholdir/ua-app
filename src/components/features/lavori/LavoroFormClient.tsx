@@ -336,7 +336,18 @@ function LavoroFormClientCorpo({
         </div>
       )}
 
-      {/* Barra azioni fissa in fondo */}
+      {/* ═══ BARRA AZIONI FISSA IN FONDO — una COLONNA dal 06/08/2026 ═════════
+          Era una riga con i due riquadri (errore e avvisi) appesi sopra in
+          `position: absolute`, a quote calcolate a mano (72px, e 132px quando
+          c'erano tutti e due). 🔴 Il collaudo a schermo del 06/08 ha mostrato
+          che cosa fa un riquadro fuori dal flusso: si stampa SOPRA il modulo.
+          Misurato a 390×844 — il riquadro 620→700, l'etichetta «Priorità»
+          633→651: coperta per intero. Referto:
+          `docs/design/screenshots/2026-08-06-tinte/README.md` §2.
+          ✅ Ora i riquadri stanno DENTRO la barra, nel flusso: la barra cresce
+          verso l'alto e nessuno copre nessuno. Le quote a mano spariscono — e
+          con loro il difetto che tornava ogni volta che si aggiungeva un terzo
+          riquadro. */}
       <div
         style={{
           position: 'sticky',
@@ -345,11 +356,89 @@ function LavoroFormClientCorpo({
           right: 0,
           padding: '12px 20px',
           display: 'flex',
+          flexDirection: 'column',
           gap: '10px',
           background: 'linear-gradient(to top, var(--bg, #F4F0E7) 60%, transparent)',
           zIndex: 10,
         }}
       >
+        {/* D42 T8 (D251 · D248) — QUELLO CHE IL SERVER HA FATTO, detto a parole.
+            Tre casi, tutti additivi e tutti su un salvataggio RIUSCITO: la tinta
+            tolta dal cambio di tipo (D117), la tinta o il colore chiesti e non
+            registrabili.
+            🛑 Riquadro DISTINTO da quello rosso dell'errore, e non è cosmesi: il
+            salvataggio è andato a buon fine, e vestirlo da errore manderebbe
+            l'utente a ripetere un gesto già riuscito. Tono ambra = «guarda, è
+            successo qualcosa», non «hai sbagliato».
+            🔑 `role="status"` e non `role="alert"`: non interrompe, si legge.
+            🔴 IL FONDO È PIENO, e non è un dettaglio estetico: era un velo ambra
+            al 10%, quindi il testo sottostante TRASPARIVA e le due scritte si
+            mescolavano — a schermo si leggeva «Ho tolto la tinta» con dentro le
+            lettere di «PRIORITÀ». Il velo resta identico (il tono non cambia),
+            ma ora poggia sul fondo pagina invece che sul vuoto. */}
+        {avvisi.length > 0 && (
+          <div
+            role="status"
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              background:
+                'linear-gradient(rgba(212,168,67,0.10), rgba(212,168,67,0.10)), var(--bg, #F4F0E7)',
+              border: '1px solid rgba(212,168,67,0.35)',
+              color: 'var(--ink, #1A1A1A)',
+              fontFamily: 'var(--font-v3, sans-serif)',
+              fontSize: '13px',
+              lineHeight: 1.5,
+            }}
+          >
+            {avvisi.map((a) => (
+              <p key={a} style={{ margin: 0 }}>{a}</p>
+            ))}
+          </div>
+        )}
+
+        {/* ═══ IL MOTIVO SI VEDE SEMPRE, NON SOLO A FORM PULITO ══════════════
+            Qui c'era `saveError && !isDirty`, e quella condizione non era
+            «difficile»: era IRRAGGIUNGIBILE. `setIsDirty(false)` avviene SOLO
+            dopo un salvataggio riuscito (`useLavoroForm.ts:365-366`), e
+            `save()` azzera `saveError` in apertura (riga 250) — quindi «c'è un
+            errore E il form è pulito» non capita mai. In più il tasto qui sotto
+            si mostra `isDirty`: le due condizioni si escludono per costruzione.
+            Risultato trovato al collaudo del 28/07: chi salva vede solo
+            «⚠ Errore — riprova» e non sa MAI che gli basta toccare un dente. Le
+            tre frasi dell'ondata passano tutte di qui
+            (`useLavoroForm.ts:141,162,279`).
+            🔑 E resta visibile MENTRE si corregge, di proposito: un messaggio
+            che dice «seleziona almeno un dente» e si dissolve al primo tocco
+            toglie l'istruzione nell'istante in cui serve. Se ne va col
+            salvataggio successivo, che riparte da `setSaveError(null)`.
+            🔴 Fondo pieno e posizione nel flusso per la stessa ragione del
+            riquadro qui sopra: la forma era identica, e il censimento del 06/08
+            l'ha VERIFICATO invece di supporlo (è la lezione di D260). */}
+        {saveError && (
+          <p
+            role="alert"
+            style={{
+              margin: 0,
+              padding: '10px 14px',
+              borderRadius: '10px',
+              background:
+                'linear-gradient(rgba(217,0,18,0.08), rgba(217,0,18,0.08)), var(--bg, #F4F0E7)',
+              border: '1px solid rgba(217,0,18,0.25)',
+              color: 'var(--primary, #D90012)',
+              fontFamily: 'var(--font-v3, sans-serif)',
+              fontSize: '13px',
+              lineHeight: 1.5,
+            }}
+          >
+            {saveError}
+          </p>
+        )}
+
+        {/* 🛑 I TASTI RESTANO AFFIANCATI: impilare i riquadri non deve impilare
+            anche loro, o a 390px si mangerebbero il modulo. È la guardia ⑤ di
+            `tests/unit/lavoro-form-avviso-non-copre.test.tsx`. */}
+        <div style={{ display: 'flex', gap: '10px' }}>
         {/* Pulsante Salva — visibile solo se dirty */}
         {isDirty && (
           <button
@@ -378,76 +467,6 @@ function LavoroFormClientCorpo({
           </button>
         )}
 
-        {/* ═══ IL MOTIVO SI VEDE SEMPRE, NON SOLO A FORM PULITO ══════════════
-            Qui c'era `saveError && !isDirty`, e quella condizione non era
-            «difficile»: era IRRAGGIUNGIBILE. `setIsDirty(false)` avviene SOLO
-            dopo un salvataggio riuscito (`useLavoroForm.ts:365-366`), e
-            `save()` azzera `saveError` in apertura (riga 250) — quindi «c'è un
-            errore E il form è pulito» non capita mai. In più il tasto qui sopra
-            si mostra `isDirty` (riga 330): le due condizioni si escludono per
-            costruzione. Risultato trovato al collaudo del 28/07: chi salva vede
-            solo «⚠ Errore — riprova» e non sa MAI che gli basta toccare un
-            dente. Le tre frasi dell'ondata passano tutte di qui
-            (`useLavoroForm.ts:141,162,279`).
-            🔑 E resta visibile MENTRE si corregge, di proposito: un messaggio
-            che dice «seleziona almeno un dente» e si dissolve al primo tocco
-            toglie l'istruzione nell'istante in cui serve. Se ne va col
-            salvataggio successivo, che riparte da `setSaveError(null)`. */}
-        {saveError && (
-          <p
-            role="alert"
-            style={{
-              position: 'absolute',
-              bottom: '72px',
-              left: '20px',
-              right: '20px',
-              margin: 0,
-              padding: '10px 14px',
-              borderRadius: '10px',
-              background: 'rgba(217,0,18,0.08)',
-              border: '1px solid rgba(217,0,18,0.25)',
-              color: 'var(--primary, #D90012)',
-              fontFamily: 'var(--font-v3, sans-serif)',
-              fontSize: '13px',
-              lineHeight: 1.5,
-            }}
-          >
-            {saveError}
-          </p>
-        )}
-
-        {/* D42 T8 (D251 · D248) — QUELLO CHE IL SERVER HA FATTO, detto a parole.
-            Tre casi, tutti additivi e tutti su un salvataggio RIUSCITO: la tinta
-            tolta dal cambio di tipo (D117), la tinta o il colore chiesti e non
-            registrabili.
-            🛑 Riquadro DISTINTO da quello rosso dell'errore, e non è cosmesi: il
-            salvataggio è andato a buon fine, e vestirlo da errore manderebbe
-            l'utente a ripetere un gesto già riuscito. Tono ambra = «guarda, è
-            successo qualcosa», non «hai sbagliato».
-            🔑 `role="status"` e non `role="alert"`: non interrompe, si legge. */}
-        {avvisi.length > 0 && (
-          <div
-            role="status"
-            style={{
-              position: 'absolute',
-              bottom: saveError ? '132px' : '72px',
-              left: '20px',
-              right: '20px',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              background: 'rgba(212,168,67,0.10)',
-              border: '1px solid rgba(212,168,67,0.35)',
-              color: 'var(--ink, #1A1A1A)',
-              fontFamily: 'var(--font-v3, sans-serif)',
-              fontSize: '13px',
-              lineHeight: 1.5,
-            }}
-          >
-            {avvisi.map((a) => (
-              <p key={a} style={{ margin: 0 }}>{a}</p>
-            ))}
-          </div>
-        )}
 
         {/* Pulsante Documenti MDR */}
         <button
@@ -521,6 +540,7 @@ function LavoroFormClientCorpo({
             </span>
           </button>
         )}
+        </div>
       </div>
 
       {/* Bottom sheet Pacchetto Consegna MDR */}
