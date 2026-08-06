@@ -1110,6 +1110,83 @@ export type Database = {
           },
         ]
       }
+      eventi_qualita: {
+        Row: {
+          conosciuto_il: string
+          created_at: string
+          created_by: string | null
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          motivo: string
+          motivo_libero: string | null
+          natura: string
+          note: string | null
+          origine_informazione: string
+          potenziale_di_danno: string
+          stato_dispositivo: string
+        }
+        Insert: {
+          conosciuto_il: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          motivo: string
+          motivo_libero?: string | null
+          natura: string
+          note?: string | null
+          origine_informazione: string
+          potenziale_di_danno?: string
+          stato_dispositivo: string
+        }
+        Update: {
+          conosciuto_il?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          motivo?: string
+          motivo_libero?: string | null
+          natura?: string
+          note?: string | null
+          origine_informazione?: string
+          potenziale_di_danno?: string
+          stato_dispositivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventi_qualita_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventi_qualita_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventi_qualita_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventi_qualita_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fascicoli_tecnici: {
         Row: {
           analisi_rischi_id: string | null
@@ -2222,6 +2299,7 @@ export type Database = {
           anno_prima_marcatura: string | null
           bollo_default_attivo: boolean
           cap: string | null
+          certificazione_iso13485: string
           citta: string | null
           codice_fiscale: string | null
           codice_itca: string | null
@@ -2287,6 +2365,7 @@ export type Database = {
           anno_prima_marcatura?: string | null
           bollo_default_attivo?: boolean
           cap?: string | null
+          certificazione_iso13485?: string
           citta?: string | null
           codice_fiscale?: string | null
           codice_itca?: string | null
@@ -2352,6 +2431,7 @@ export type Database = {
           anno_prima_marcatura?: string | null
           bollo_default_attivo?: boolean
           cap?: string | null
+          certificazione_iso13485?: string
           citta?: string | null
           codice_fiscale?: string | null
           codice_itca?: string | null
@@ -3441,6 +3521,7 @@ export type Database = {
           costo_interno: number | null
           created_at: string
           created_by: string | null
+          evento_id: string | null
           id: string
           laboratorio_id: string
           lavoro_nuovo_id: string
@@ -3453,6 +3534,7 @@ export type Database = {
           costo_interno?: number | null
           created_at?: string
           created_by?: string | null
+          evento_id?: string | null
           id?: string
           laboratorio_id: string
           lavoro_nuovo_id: string
@@ -3465,6 +3547,7 @@ export type Database = {
           costo_interno?: number | null
           created_at?: string
           created_by?: string | null
+          evento_id?: string | null
           id?: string
           laboratorio_id?: string
           lavoro_nuovo_id?: string
@@ -3479,6 +3562,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_rifacimenti_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventi_qualita"
             referencedColumns: ["id"]
           },
           {
@@ -5801,6 +5891,74 @@ export type Database = {
             columns: ["laboratorio_id"]
             isOneToOne: false
             referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      valutazioni_evento: {
+        Row: {
+          classificato_da: string | null
+          classificato_il: string
+          esito: string
+          evento_id: string
+          giustificazione: string | null
+          id: string
+          laboratorio_id: string
+          motivo_riclassificazione: string | null
+          sostituisce_id: string | null
+          superata: boolean
+        }
+        Insert: {
+          classificato_da?: string | null
+          classificato_il?: string
+          esito: string
+          evento_id: string
+          giustificazione?: string | null
+          id?: string
+          laboratorio_id: string
+          motivo_riclassificazione?: string | null
+          sostituisce_id?: string | null
+          superata?: boolean
+        }
+        Update: {
+          classificato_da?: string | null
+          classificato_il?: string
+          esito?: string
+          evento_id?: string
+          giustificazione?: string | null
+          id?: string
+          laboratorio_id?: string
+          motivo_riclassificazione?: string | null
+          sostituisce_id?: string | null
+          superata?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valutazioni_evento_classificato_da_fkey"
+            columns: ["classificato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valutazioni_evento_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventi_qualita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valutazioni_evento_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valutazioni_evento_sostituisce_id_fkey"
+            columns: ["sostituisce_id"]
+            isOneToOne: false
+            referencedRelation: "valutazioni_evento"
             referencedColumns: ["id"]
           },
         ]
