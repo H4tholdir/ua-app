@@ -574,14 +574,17 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     nessunTestoGrezzo((await res.json()).error)
   })
 
-  it('conosciuto_il con data e ora ma SENZA fuso → 422: il fuso non si indovina', async () => {
-    // `'2026-08-06T10:00:00'` senza fuso viene letto nell'ora LOCALE di chi
-    // esegue: sul server (UTC) e sul telefono dell'operatrice (CEST) sono due
-    // istanti diversi, e la differenza si scarica sulla scadenza.
+  it('conosciuto_il con data e ora ma SENZA fuso → 201: è ISO 8601 valido, e il mandato dice ISO 8601', async () => {
+    // ⚠️ Ambiguità REALE, e la prova la fissa invece di nasconderla: senza fuso
+    // JavaScript legge nell'ora LOCALE di chi esegue — sul server (UTC) e sul
+    // telefono (CEST) lo stesso testo è un istante diverso. Pretendere il fuso
+    // la chiuderebbe, ma è una decisione sul contratto con il client (un campo
+    // `datetime-local` restituisce proprio questa forma), non una correzione
+    // della rete di prove: riferita a Francesco, non presa qui.
     const banco = bancoEvento()
-    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-06T10:00:00' })), paramsLavoro())
-    expect(res.status).toBe(422)
-    expect(banco.rigaInserita).toBeNull()
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ conosciuto_il: '2026-08-01T10:00:00' })), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(banco.rigaInserita?.conosciuto_il).toBeTypeOf('string')
   })
 
   it('conosciuto_il come sola data ISO (`2026-08-01`) → 201', async () => {

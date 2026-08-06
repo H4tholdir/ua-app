@@ -79,15 +79,21 @@ const LIMITE_TESTO_LIBERO = 1000
  * campo che fa partire i termini dell'Art. 87, sette mesi di scarto passerebbero
  * senza che nessuno se ne accorga.
  *
- * Ammesse due forme, e non una terza:
- *  · la sola data (`2026-08-01`) — JavaScript la legge a mezzanotte UTC, cioè
- *    un istante ANTICIPATO rispetto a qualunque momento di quel giorno in
- *    Italia: la scadenza si stringe, ed è la direzione dell'Art. 87(7);
- *  · data e ora **col fuso in coda** (`Z` oppure `±HH:MM`).
- * 🛑 Data e ora SENZA fuso no: JavaScript le legge nell'ora locale di chi
- * esegue, e server e telefono sono due istanti diversi sullo stesso testo.
+ * Ammesso **tutto l'ISO 8601** utile qui, e nient'altro: la sola data
+ * (`2026-08-01`), oppure data e ora con o senza il fuso in coda
+ * (`Z`, `±HH:MM`). Fuori resta ciò che il formato non è — `01/08/2026` in
+ * testa a tutti.
+ *
+ * ⚠️ **Un'ambiguità REALE resta aperta, e sta scritta qui perché nessuno la
+ * scopra a posteriori:** data e ora **senza** fuso JavaScript le legge nell'ora
+ * locale di chi esegue — sul server (UTC) e sul telefono dell'operatrice (CEST)
+ * lo stesso testo è un istante diverso, e la differenza si scarica **in avanti**
+ * su una scadenza di legge. Pretendere il fuso la chiuderebbe, ma è una
+ * decisione sul **contratto con il client** (un campo `datetime-local`
+ * restituisce proprio `2026-08-06T10:00`, senza fuso): non si prende dentro un
+ * mandato di correzione delle prove. Riferita, non decisa.
  */
-const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2}))?$/
+const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/
 
 // `post_consegna_correzioni` è `SMALLINT` (`002_fase2_schema.sql:75`): oltre
 // questo valore l'incremento traboccherebbe. Irraggiungibile nella pratica,
