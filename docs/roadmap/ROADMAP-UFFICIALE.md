@@ -162,6 +162,20 @@
 **⑤ Ciò che i traguardi storici hanno ancora aperto** — il **Design System v2.3** è dichiarato «parziale» (login WCAG-fail, 2 violazioni residue) e **A8** (ripiego via email quando l'utente non ha le notifiche attive) è ancora ⏳.
 🔄 **E una correzione trovata dall'audit del 04/08:** i traguardi **V1.9** e **V2.0** sono ancora agganciati a un evento che **non esiste più** — «*prima che Filippo usi l'app seriamente*» e «*dopo il collaudo sul campo*». Il laboratorio di prova è **materiale di studio non verificato** dal 27/07 (statuto delle fonti, `CLAUDE.md` §7): **quei traguardi aspettano un segnale che non arriverà**, e il loro trigger va riscritto sulla fine della FASE 1.
 
+**⑥ 🗂️ IL RIORDINO DELLA MEMORIA DI PROGETTO — ⚖️ D256-D259 (06/08/2026), ondata dedicata: si apre
+alla chiusura dell'ondata tinte (T8/T9), non scavalca il lavoro a metà.** Referto e piano:
+`docs/processes/2026-08-06-audit-processo-referto.md` · verbale: centotreesima tornata. In una riga:
+MEMORY.md e questa ROADMAP tornano **fotografie ≤30KB**; la cronaca diventa **diario vivo** in
+`memory/diario/` (D258 — si continua a scrivere a ogni chiusura, ma A LATO del percorso di avvio);
+lo stato ha **una casa sola** (handoff §0, contatore decisioni solo nel registro); mini-audit
+«dichiarato vs codice» e **tetti di dimensione meccanici** dentro `/chiudi`; registro decisioni con
+indice; CLAUDE.md radice versionato (pattern D255); strati fermi a maggio marchiati «non verificato»
+(`memory/domains/`, graphify, ruolo di claude-mem). 🛑 **I panel restano invariati (D256)** — la
+proposta di misurarli/restringerli è respinta, non riproporla. ⚡ Il **percorso Piccola alleggerito
+(D259) è già in vigore** (`ua-app/CLAUDE.md` §0C). 📐 **Smistamento D145, dichiarato:** sta in FASE 1
+perché il costo della memoria si paga **a ogni sessione di FASE 1** — è esattamente «ciò che,
+sistemato dopo, costringe a rifare lavoro» (rilettura e riconciliazione di copie), a ogni sessione.
+
 ---
 
 ### 🚚 FASE 2 — DISTRIBUIRE (nulla di qui blocca la FASE 1)

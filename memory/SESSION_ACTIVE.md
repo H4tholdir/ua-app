@@ -22,7 +22,12 @@ ramo D117) · **D251-D254** a verbale.
 
 ➡️ **Prima cosa:** riverificare se tinta e colore siano **lo stesso caso**, poi il **collaudo a schermo**.
 
-📎 255 decisioni in centodue tornate; la prossima è **D256**.
+🧭 **06/08 mattina — audit del processo, D256-D259 (centotreesima tornata):** i **panel restano** (D256) ·
+**riordino della memoria approvato** (D257, ondata dedicata **DOPO T8/T9** — voce ⑥ FASE 1 in roadmap) ·
+il **diario resta vivo** in `memory/diario/` (D258) · **percorso Piccola alleggerito GIÀ in vigore**
+(D259, `ua-app/CLAUDE.md` §0C). Referto: `docs/processes/2026-08-06-audit-processo-referto.md`.
+
+📎 259 decisioni in centotré tornate; la prossima è **D260**.
 
 ⌨️ **D255:** `/chiudi` è ora un **comando vero** (puntatore alla skill). Se la barra non risponde, il
 collegamento nella cartella superiore va rifatto — due righe in `CLAUDE.md` §0E.

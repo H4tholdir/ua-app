@@ -99,6 +99,15 @@ Documento completo: `docs/processes/WORKFLOW-STANDARD.md`. Versione condensata q
 | Grande (10+ file, multi-sessione) | GSD (fasi) + Superpowers | Feature complesse |
 | **⚠ OVERRIDE dominio critico** | **sempre percorso Grande** | **Qualsiasi change che tocca: RLS, Stripe, FatturaPA, auth, migrations — indipendentemente dal numero di file** |
 
+**⚡ Percorso «Piccola» alleggerito (⚖️ D259, 06/08/2026 — centotreesima tornata):** per change di
+1-3 file **FUORI dai domini critici** (l'override sopra prevale SEMPRE, e si accerta in FASE 3, che
+resta obbligatoria): FASE 2 (brainstorming) **facoltativa** · FASE 8 con **UNA sola review**
+(/code-review) · FASE 9 ridotta a **un giro sul viewport primario 390px, light+dark**, quando una
+superficie è toccata. **Restano piene: FASE 3 · TDD (FASE 6) · FASE 7 · BP-1.** «Ridotta» non vuol
+dire «niente prova a schermo»: la prova sul viewport primario è una prova vera. Nato dall'audit del
+processo del 06/08 (`docs/processes/2026-08-06-audit-processo-referto.md`): rapporto rituale/lavoro
+fino a 5:1 sui fix da minuti.
+
 **Le 12 Fasi Obbligatorie:**
 
 ```
