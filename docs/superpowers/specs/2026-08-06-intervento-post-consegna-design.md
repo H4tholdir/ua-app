@@ -577,7 +577,21 @@ il file.**
     da allegare quando parte il corriere.
     🔑 **E quest'ondata è ciò che rende sicura quell'anticipazione:** se dopo la generazione il lavoro
     cambia, oggi non c'è rimedio — con «Devo intervenire» c'è. Le due cose si tengono.
-    ➡️ **Va deciso da Francesco** e diventa **voce di roadmap**: §15.9.
+    ✅ **DECISO da Francesco, e la proposta qui sopra è RESPINTA — D272.** La sua risposta:
+    > «*non essere così fiscale, e ti dico perché: ad oggi, chi non usa un'app come questa, come credi
+    > che gestisca la cosa? Cosa cambia se nel momento in cui io premo sul pulsante «ok questo lavoro
+    > è finito» il sistema genera tutto quello che c'è da generare, e poi il lavoro o sta ancora al
+    > lab o è stato già portato allo studio? Mica è una questione di timestamp con minutaggi o
+    > geolocalizzazioni. Ricordati: cosa fa UÀ? Aiuta il laboratorio, lo segue, lo accompagna e
+    > soprattutto gli risolve i problemi. Non deve crearne di nuovi.*»
+    ➡️ **Non si fa niente, e il motivo è scritto:** il documento nasce **quando il laboratorio dichiara
+    finito il lavoro**, ed è quello l'atto sostanziale. La dichiarazione **esiste e accompagna il
+    dispositivo**; nessuna norma chiede al fabbricante di cronometrare l'uscita dal portone, e
+    **nessun laboratorio al mondo lo fa**. Quello che avevo scritto come difetto di conformità era una
+    **lettura letterale** che avrebbe prodotto un cantiere per un problema inesistente.
+    🔑 **La lezione, ed è la più importante della giornata:** *una norma letta alla lettera può
+    generare un problema che non esiste*. Il metro non è «cosa dice il testo isolato», ma **D262** —
+    se una regola nostra non risolve un problema vero del laboratorio, sta creandone uno.
 11. **Tensione osservata e non risolta:** il diagramma ministeriale si apre con «*si è verificato un
     evento connesso all'**uso** di un dispositivo*», mentre i suoi stessi esempi di reclamo sono
     «prima dell'uso». Segnalata, non sciolta.
@@ -625,11 +639,11 @@ un difetto perso**.
    `blacklist` del ciclo di vita del tenant.
 8. 🟠 **Il nome «DdC» in tutta la codebase** (§8.4): rinomina da fare, ondata a sé. ✅ La regola
    («ogni testo NUOVO usa il nome corretto») è stata incisa in `CLAUDE.md` §5 il 06/08.
-9. 🔴 **NUOVA — la dichiarazione può nascere dopo che il manufatto è uscito** (§14.10). Francesco ha
-   confermato che «potrebbe succedere entrambe le cose». La proposta è di **anticipare la generazione
-   al `pronto`**, scollegandola dalla registrazione della consegna. **Priorità alta**: è l'unico
-   ritrovamento di questa giornata che tocca direttamente un **obbligo dell'Art. 52(8)**, e non
-   dipende da quest'ondata — ma quest'ondata è ciò che lo rende sicuro.
+9. ⚫ **CHIUSA SENZA LAVORO — D272.** Era stata aperta come «la dichiarazione può nascere dopo che il
+   manufatto è uscito», con proposta di anticipare la generazione al `pronto`. **Francesco l'ha
+   respinta**, e il verbale porta il perché per intero (§14.10). **Non è una voce di roadmap: è una
+   voce chiusa**, e va lasciata chiusa — se ricomparisse in una sessione futura come «difetto noto»,
+   sarebbe questa riga a doverla fermare.
 
 ---
 

@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centottesima tornata (D264-D270: l'ondata dell'intervento ha la sua forma — il confine è la consegna, non l'applicazione)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centonovesima tornata (D271-D272: la certificazione diventa un dato, e una norma letta alla lettera stava per creare un cantiere inutile)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**270 decisioni in centotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**272 decisioni in centonove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2212,3 +2212,33 @@ entrambe sane. Ma la prima stesura della spec faceva passare l'esito da `annulla
 porta con sé **i cancelli fiscali**: una correzione su un lavoro fatturato sarebbe stata **rifiutata**
 — cioè il contrario esatto di D265. ➡️ **Due decisioni si controllano nel punto in cui il codice le fa
 incontrare, non nel documento che le enuncia.**
+
+---
+
+### Centonovesima tornata — D271 e D272: la certificazione diventa un dato, e una norma letta alla lettera stava per creare un cantiere inutile (06/08/2026, 15:10)
+
+**Nasce da:** le tre risposte di Francesco alle domande lasciate aperte dalla spec dell'intervento.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D271** | 🔑 **LA CERTIFICAZIONE ISO 13485 DIVENTA UN DATO DEL LABORATORIO.** «*facciamo in modo che, nella scheda del laboratorio, puoi segnare se si è certificati oppure no ed in base a questo la pwa si comporta di conseguenza*» | Campo a **tre** stati (`certificato` · `non_certificato` · `non_dichiarato`, default che si comporta come certificato). ⚠️ **Governa cosa l'app considera COMPLETO, non cosa permette:** quasi tutti gli obblighi vengono dal **MDR** (Art. 10(9), 83-88, All. XIII), non da ISO, e valgono comunque. Spec §17 |
+| **D272** | 🛑 **NON SI ANTICIPA LA DICHIARAZIONE AL «PRONTO»: LA PROPOSTA È RESPINTA, E IL MOTIVO VALE OLTRE IL CASO.** Il documento nasce **quando il laboratorio dichiara finito il lavoro**, e quello è l'atto sostanziale | La proposta era mia, nata leggendo l'Art. 52(8) alla lettera («prima dell'immissione sul mercato») dopo che Francesco aveva detto che la consegna si registra **sia prima sia dopo** l'uscita fisica. **Non si fa niente**, e la voce si chiude: non diventa roadmap |
+
+**La risposta di Francesco, per intero — è il metro, non un aneddoto:**
+
+> «*non essere così fiscale, e ti dico perché: ad oggi, chi non usa un'app come questa che stiamo
+> creando, come credi che gestisca la cosa? Cosa cambia se nel momento in cui io premo sul pulsante
+> «ok questo lavoro è finito» il sistema genera tutto quello che c'è da generare, e poi il lavoro o
+> sta ancora al lab o è stato già portato allo studio? Mica è una questione di timestamp con
+> minutaggi o geolocalizzazioni. Ricordati: cosa fa UÀ? Aiuta il laboratorio, lo segue, lo accompagna
+> e soprattutto gli risolve i problemi! Non deve crearne di nuovi.*»
+
+**🔑 LA LEZIONE, ed è la più importante della giornata — UNA NORMA LETTA ALLA LETTERA PUÒ GENERARE UN
+PROBLEMA CHE NON ESISTE.** La dichiarazione **esiste e accompagna il dispositivo**; nessuna norma
+chiede al fabbricante di cronometrare l'uscita dal portone, e **nessun laboratorio al mondo lo fa**.
+Il metro non è «cosa dice il testo isolato», ma **D262**: se una regola nostra non risolve un problema
+vero del laboratorio, **ne sta creando uno**.
+⚠️ **E si noti la simmetria con la giornata:** al mattino il panel aveva trovato che un vincolo
+sopravvive all'architettura che lo giustificava (i 10 minuti); al pomeriggio si stava per **crearne
+uno nuovo** dello stesso genere, partendo però da una fonte autorevole invece che da una costante
+dimenticata. **La provenienza nobile di un vincolo non lo rende utile.**
