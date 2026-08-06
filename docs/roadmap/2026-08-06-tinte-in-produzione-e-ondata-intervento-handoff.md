@@ -71,7 +71,7 @@ contro 13** · il resto di **P37**.
 | ⚖️ **D262 — direttiva permanente** | «*La PWA non deve fornirci blocchi o ostacoli, ma aiuti concreti*». Si deve **sempre poter intervenire**, fino alla fatturazione |
 | 🔴 **La finestra dei 10 minuti è un RESIDUO** | Nasceva per non far incontrare all'annullo una fattura **automatica** alla consegna. Quell'architettura **non è mai stata eseguita** |
 | ⚖️ **D263** | Si riapre il lavoro **dichiarando il motivo**, e **il motivo sceglie l'iter**. Sette casi istruiti |
-| 🚀 **PUBBLICATO** | `affec7ae..1a2d1fc9`, 22 salvataggi. ⚠️ CI **in corso** alla scrittura di questo documento (run `31090252774`) |
+| 🚀 **PUBBLICATO E DEPLOYATO** | `affec7ae..1a2d1fc9..4a69800b`. ✅ CI sul codice **success** · job «Deploy to Production» **success** · sito **200** su `/login` in 0,85s |
 
 ## 2. 🔑 Le lezioni
 
@@ -121,6 +121,22 @@ contro 13** · il resto di **P37**.
 2. **La centosettesima tornata** di `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
    (D263, i sette casi) e la **centoseiesima** (D262, con le tre verifiche sulla finestra).
 3. **`docs/roadmap/ROADMAP-UFFICIALE.md`** — la voce dell'ondata nuova è in testa.
+
+## 4-bis. ⚠️ Una trappola di LETTURA, pagata oggi — vale per ogni pubblicazione futura
+
+Nell'elenco dei job che `gh run watch` stampa compare la riga «**CI fallita — deploy saltato**». Letta di
+fretta sembra il referto di un disastro: **non lo è.** È il **nome** del job che il workflow esegue *solo
+se* la CI fallisce (`deploy.yml:56-58`, `if: conclusion != 'success'`), e a pubblicazione riuscita risulta
+**`skipped`**.
+🔴 **Oggi ha prodotto un falso allarme dichiarato a Francesco** — «le tinte forse non sono in produzione» —
+rientrato un minuto dopo guardando i job invece dei nomi:
+```bash
+gh run view <id> --json jobs --jq '.jobs[] | {name, conclusion}'
+# → {"conclusion":"success","name":"Deploy to Production"}
+# → {"conclusion":"skipped","name":"CI fallita — deploy saltato"}
+```
+🔑 **La regola generale:** in una pipeline, **il nome di un job non è il suo esito**. Un ramo di fallimento
+ben nominato *compare sempre*, anche quando tutto va bene.
 
 ## 5. Il minimo per non sbagliare
 

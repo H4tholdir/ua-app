@@ -3,9 +3,15 @@
 🚪 **PUNTO DI RIPRESA — leggi prima questo:**
 `docs/roadmap/2026-08-06-tinte-in-produzione-e-ondata-intervento-handoff.md` — **la §0 per prima**.
 
-**Stato (06/08/2026, 11:45):** **`main` PUBBLICATO** (`affec7ae..1a2d1fc9`, 22 salvataggi), albero pulito,
-**0 avanti a `origin/main`**. Le **tinte sono in produzione**. ⚠️ La CI era **in corso** alla chiusura
-(run `31090252774`): **va verificata** con `gh run view 31090252774`, e poi il sito.
+**Stato (06/08/2026, 12:00):** **`main` PUBBLICATO E DEPLOYATO** — `affec7ae..1a2d1fc9..4a69800b`, albero
+pulito, **0 avanti a `origin/main`**. ✅ **PIPELINE VERIFICATA, non solo lanciata:** CI sul codice
+(`1a2d1fc9`) **success** · job **«Deploy to Production» success** (ambiente `production` →
+`https://uachelab.com`, commit deployato `4a69800b`, che contiene tutte le tinte) · sito **200** su
+`/login` in 0,85s. **LE TINTE SONO IN PRODUZIONE.**
+⚠️ **Trappola di lettura, pagata oggi:** nell'elenco dei job di `gh run watch` compare la riga
+«**CI fallita — deploy saltato**». **NON è un errore**: è il *nome* del job che scatta se la CI fallisce, e
+risulta **`skipped`** quando tutto è andato bene. Letta di fretta fa gridare al lupo. Si controlla il job,
+non il nome: `gh run view <id> --json jobs --jq '.jobs[] | {name, conclusion}'`.
 
 🔴 **La §0 in una frase — sei cose non fatte:** il **messaggio della riga bloccata** va in produzione
 **senza spiegazione**, e **per scelta** (D261: dipende dall'ondata nuova) · il **gate L2 arretrato del
