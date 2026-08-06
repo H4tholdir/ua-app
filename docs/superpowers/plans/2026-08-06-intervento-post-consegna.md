@@ -368,6 +368,19 @@ describe('classifica — ordine ministeriale (D268)', () => {
   it('ogni proposta porta il PERCHÉ in chiaro', () => {
     expect(classifica(base).perche.length).toBeGreaterThan(10)
   })
+
+  // ⚖️ D276 — le due prove che chiudono il difetto trovato dal controllo pre-volo.
+  // Senza queste, l'uscita anticipata dei tre motivi tornerebbe senza far rumore.
+  it('🛑 «richiesta clinica nuova» NON scavalca il test dell\'incidente: col danno accertato è incidente GRAVE', () => {
+    const p = classifica({ ...base, natura: 'nuova_esigenza_clinica', potenzialeDiDanno: 'accertato' })
+    expect(p.esito).toBe('incidente_grave')
+    expect(p.termineOre).toBe(15 * 24)
+  })
+
+  it('🛑 «registrato per sbaglio» NON scavalca il test dell\'incidente', () => {
+    const p = classifica({ ...base, natura: 'errore_registrazione', potenzialeDiDanno: 'possibile' })
+    expect(p.esito).toBe('incidente')
+  })
 })
 ```
 
@@ -379,25 +392,30 @@ npx vitest run tests/unit/qualita-classifica.test.ts 🆕
 
 Atteso: fallimento da modulo non trovato. **Poi metti un abbozzo inerte**
 (`export function classifica() { return { esito: 'nessuna_azione', perche: '', ramoIso: '8.3.2', termineOre: null } }`)
-e **rilancia**: scrivi nel referto **quante asserzioni si accendono** (`N su 9`). Un rosso da modulo
+e **rilancia**: scrivi nel referto **quante asserzioni si accendono** (`N su 11`). Un rosso da modulo
 mancante non prova che le prove provino qualcosa.
 
 - [ ] **Passo 3 — implementa, nell'ordine ministeriale**
 
 ```typescript
 export function classifica(f: FattiEvento): Proposta {
-  // Fuori dal sistema qualità: il caso 5 e il caso 6 (spec §6)
-  if (f.natura === 'nuova_esigenza_clinica')
-    return { esito: 'nessuna_azione', perche: 'Il medico chiede una cosa nuova: il dispositivo era conforme alla prescrizione con cui è stato fatto. Serve una prescrizione nuova, non una correzione.', ramoIso: null, termineOre: null }
-  if (f.natura === 'commerciale' || f.natura === 'errore_registrazione')
-    return { esito: 'nessuna_azione', perche: 'Non tocca il dispositivo né il documento sanitario.', ramoIso: null, termineOre: null }
-
+  // 🛑 D276 — NESSUN MOTIVO SALTA LA FILA. Il test dell'incidente sta PRIMA di ogni
+  // esenzione: qui c'era l'uscita anticipata dei tre motivi «non è un problema del
+  // dispositivo», e faceva sparire un danno accertato dietro un «nessuna azione».
   // ① IL TEST DELL'INCIDENTE VIENE PRIMA — invertirlo nasconde l'obbligo dell'Art. 88 (D268)
   if (f.potenzialeDiDanno !== 'nessuno') {
     if (f.potenzialeDiDanno === 'accertato')
       return { esito: 'incidente_grave', perche: 'Ci sono state conseguenze accertate sulla salute: va valutata la segnalazione all\'autorità.', ramoIso: '8.3.3', termineOre: 15 * 24 }
     return { esito: 'incidente', perche: 'C\'è un potenziale di danno da valutare: prima di parlare di reclamo va escluso l\'incidente.', ramoIso: '8.3.3', termineOre: null }
   }
+
+  // ①-bis — SOLO ORA le esenzioni (D276): non sono problemi del dispositivo, quindi
+  // non entrano nei conteggi del rapporto periodico (D273). Ma ci si arriva solo dopo
+  // che l'incidente è stato escluso, mai prima.
+  if (f.natura === 'nuova_esigenza_clinica')
+    return { esito: 'nessuna_azione', perche: 'Il medico chiede una cosa nuova: il dispositivo era conforme alla prescrizione con cui è stato fatto. Serve una prescrizione nuova, non una correzione.', ramoIso: null, termineOre: null }
+  if (f.natura === 'commerciale' || f.natura === 'errore_registrazione')
+    return { esito: 'nessuna_azione', perche: 'Non tocca il dispositivo né il documento sanitario.', ramoIso: null, termineOre: null }
 
   // ② e ③ — coinvolgimento, poi conseguenze (che qui sono già escluse)
   const uscito = f.statoDispositivo !== 'mai_uscito_dal_lab'
@@ -416,7 +434,7 @@ export function classifica(f: FattiEvento): Proposta {
 npx vitest run tests/unit/qualita-classifica.test.ts 🆕
 ```
 
-Atteso: **9 passate**. Poi scrivi nel referto, per ognuna: valore fuori vocabolario · campo assente ·
+Atteso: **11 passate**. Poi scrivi nel referto, per ognuna: valore fuori vocabolario · campo assente ·
 `null` · tipo sbagliato → **coperta da quale prova, oppure «non coperta, perché»**.
 
 - [ ] **Passo 5 — salva**

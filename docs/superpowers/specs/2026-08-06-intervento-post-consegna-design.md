@@ -289,13 +289,29 @@ D263 chiede.
 ① potenziale_di_danno ≠ nessuno            → candidato INCIDENTE → test Art. 2(65) gravità
                                               ├─ grave      → MIR Art. 87 (2/10/15 gg da conosciuto_il)
                                               └─ non grave  → incidenti_mdr + Art. 88 (andamento)
+①-bis altrimenti, natura ∈ {nuova_esigenza_clinica,
+   commerciale, errore_registrazione}       → NESSUNA AZIONE, col perché scritto  ⟵ D276
 ② altrimenti, origine ≠ laboratorio_interno
-   e stato_dispositivo ≠ mai_uscito_dal_lab
-   e natura ∉ {nuova_esigenza_clinica, commerciale, errore_registrazione}
-                                            → RECLAMO (documentazione PMS, Art. 83-86)
+   e stato_dispositivo ≠ mai_uscito_dal_lab → RECLAMO (documentazione PMS, Art. 83-86)
 ③ altrimenti                                → NON CONFORMITÀ INTERNA (§8.3.2 o §8.3.3 secondo
                                               stato_dispositivo) + registrazione di rilavorazione
 ```
+
+> ⚖️ **D276 (06/08/2026, centoundicesima tornata) — due precisazioni, e nascono da un conflitto fra
+> QUESTA spec e il piano che la esegue, trovato dal controllo pre-volo.**
+>
+> **① Nessun motivo salta la fila.** Il test dell'incidente si applica **a ogni evento**, qualunque sia
+> la `natura` — compresi i tre «non è un problema del dispositivo». Il piano li faceva uscire **prima**
+> del passo ①: un evento marcato «richiesta clinica nuova» sarebbe uscito con «nessuna azione» **anche
+> con un danno accertato su una persona**, e l'obbligo di segnalazione sarebbe sparito. È lo stesso
+> difetto rifiutato al panel del mattino (D268), in un altro vestito — e con «nessuna azione» è peggio,
+> perché non lascia nemmeno una registrazione.
+>
+> **② I tre motivi danno NESSUNA AZIONE, non non-conformità interna.** Prima di D276 la lettera di
+> questa spec li faceva ricadere in ③: un tasto premuto per sbaglio sarebbe finito nel registro qualità
+> **e nei conteggi**, cioè in quelli che alimentano il rapporto periodico dovuto per legge. È
+> esattamente ciò che **D273** vieta. L'esito giusto era nel piano, l'ordine giusto era qui: nessuno dei
+> due documenti aveva ragione da solo.
 
 Derivazioni documentali, indipendenti dalle tre precedenti:
 

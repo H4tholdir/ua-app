@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centodecima tornata (D273-D275: il divieto di cancellare, da solo, non protegge un registro — lo sporca)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoundicesima tornata (D276: l'esenzione non salta la fila — il controllo pre-volo ha trovato il piano che contraddiceva la spec)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**275 decisioni in centodieci tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**276 decisioni in centoundici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2305,3 +2305,44 @@ cieca · `valutazione_supera()` non pretende un successore e non registra chi/qu
 piano (righe 391-392) **derivano `errore_registrazione` in due punti diversi** dell'ordine dei test:
 vince il codice, ma il documento **ratificato** dice un'altra cosa · `psur/route.ts:190` continua a
 dichiarare `totale_reclami: 0` per costruzione.
+
+---
+
+### Centoundicesima tornata — D276: l'esenzione non salta la fila, e il controllo pre-volo del piano ha trovato dove il piano contraddiceva la spec (06/08/2026, 18:10)
+
+**Nasce da:** il **controllo pre-volo** obbligatorio prima di mandare in esecuzione il Task 2 (la
+sotto-skill di esecuzione a sottoagenti lo impone: si scandaglia il piano in cerca di contraddizioni
+**prima** di dispacciare, e le si presenta **tutte insieme**). Ne è uscita una, e stava esattamente nel
+compito «su cui si gioca la correttezza normativa».
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D276** | 🔑 **IL CONTROLLO SULL'INCIDENTE VIENE SEMPRE PER PRIMO — NESSUN MOTIVO PUÒ SALTARE LA FILA — e i tre motivi «non è un problema del dispositivo» danno NESSUNA AZIONE, non non-conformità.** Francesco: «*dico di sì alla tua*» | Ordine definitivo: ① incidente (sempre, per ogni motivo) · **①-bis** natura ∈ {`nuova_esigenza_clinica`, `commerciale`, `errore_registrazione`} → **`nessuna_azione`** col perché scritto · ② reclamo · ③ non conformità interna. **Corregge il piano** (che faceva uscire i tre motivi PRIMA dell'incidente) **e precisa la spec §6** (che li faceva ricadere in non conformità interna) |
+
+**🔴 IL DIFETTO CHE IL CONTROLLO PRE-VOLO HA INTERCETTATO, ed era già scritto in forma di codice.**
+Il piano (Task 2, righe 389-393) faceva uscire i tre motivi **prima** del test dell'incidente. Effetto
+concreto: un evento marcato «il dentista chiede una cosa nuova» **usciva senza che nessuno guardasse se
+c'era stato un danno**. Con un danno accertato su una persona nella stessa segnalazione, l'app avrebbe
+risposto «nessuna azione» e **l'obbligo di segnalazione sarebbe sparito**.
+⚠️ **È LO STESSO DIFETTO DI STAMATTINA, IN UN ALTRO VESTITO.** Al mattino un advisor proponeva una
+derivazione che assegnava «reclamo» senza prima escludere l'incidente, e fu **rifiutata** (D268). Il
+piano faceva la stessa cosa con «nessuna azione» — e «nessuna azione» è **peggio**, perché non lascia
+nemmeno una registrazione.
+🛑 **E le prove del piano codificavano il comportamento SBAGLIATO:** scritte come stavano, avrebbero
+**bloccato il difetto invece di trovarlo**. È il caso in cui un test non è una rete: è un lucchetto.
+
+**🔑 L'ALTRA METÀ, che non era chiusa da nessuno dei due documenti.** Passato il test dell'incidente,
+cosa dice l'app per un tasto premuto per sbaglio? La spec §6, **letta alla lettera**, lo faceva ricadere
+in **non conformità interna** — cioè nel registro qualità e nei conteggi. Ma è precisamente ciò che
+**D273** ha stabilito di non fare poche ore prima: un dito scivolato non deve sporcare i numeri che
+finiscono nel rapporto periodico dovuto per legge. ➡️ Si tiene l'**ordine** della spec e l'**esito** del
+piano, e nessuno dei due documenti aveva ragione da solo.
+
+**🔑 LA LEZIONE — DUE DOCUMENTI ENTRAMBI RATIFICATI POSSONO CONTRADDIRSI, E LA CONTRADDIZIONE VIVE NEL
+CODICE, NON NELLA PROSA.** La spec era giusta sull'ordine e sbagliata sull'esito; il piano il contrario.
+Nessuna rilettura dell'uno o dell'altro l'avrebbe mostrato: **si vede solo mettendoli accanto sulla
+stessa riga di codice**. È la stessa forma della lezione di stamattina («due decisioni giuste possono
+collidere in una chiamata»), applicata stavolta fra una spec e il piano che la esegue.
+➡️ **Il controllo pre-volo non è burocrazia: qui ha pagato da solo il suo costo.**
+
+**Emendati nello stesso turno:** spec §6 (nasce il passo ①-bis) · piano Task 2 (codice e prove).
