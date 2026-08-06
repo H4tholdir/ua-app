@@ -313,6 +313,28 @@ D263 chiede.
 > esattamente ciò che **D273** vieta. L'esito giusto era nel piano, l'ordine giusto era qui: nessuno dei
 > due documenti aveva ragione da solo.
 
+> ⚖️ **D277 e D278 (06/08/2026, centododicesima tornata) — due correzioni al passo ①, trovate dalla
+> revisione del Task 2 e verificate contro il testo di questa stessa spec.**
+>
+> **D278 — il passo ① si applica SOLO a un dispositivo che è uscito.** Se
+> `stato_dispositivo = mai_uscito_dal_lab`, l'esito è **non conformità interna (§8.3.2)**, qualunque sia
+> il potenziale di danno. 🛑 **Questa §6 contraddiceva la §3 di questa spec**, che è netta: «*Prima della
+> consegna… Nessuna vigilanza, nessun reclamo*». Vince la **§3**, e la base è di legge: un incidente
+> riguarda un dispositivo «messo a disposizione» (Art. 2(64)), e quello non lo è mai stato.
+> ⚠️ **Non è il caso raro, è quello normale:** `potenziale_di_danno` nasce `da_valutare` in banca dati,
+> quindi un difetto registrato su un lavoro ancora al banco usciva classificato «incidente».
+>
+> **D277 — la GRAVITÀ non si deduce da `potenziale_di_danno`: si CHIEDE.** Il passo ① si ferma a
+> «**incidente**», propone la domanda dell'Art. 2(65) — *ha portato, avrebbe potuto portare o potrebbe
+> portare a morte, a un deterioramento grave della salute, o a una grave minaccia per la salute
+> pubblica?* — e **lascia il termine vuoto** finché una persona non risponde. Dalla risposta discendono
+> i tre termini già elencati in §3: **2 giorni** (87(4), minaccia grave alla salute pubblica) ·
+> **10 giorni** (87(5), morte o deterioramento grave non previsto) · **15 giorni** (87(3), regola
+> generale). ⚠️ **`accertato` NON implica grave**: un danno può essere avvenuto ed essere lieve.
+> 🔑 **Il motivo per cui non bastava aggiungere valori:** `potenziale_di_danno` ha quattro voci su **un
+> asse solo** e gli si facevano rispondere **due domande** (Art. 2(64) «è un incidente?» e Art. 2(65)
+> «è grave?»). La risposta giusta è **smettere di indovinare** — D267: l'app propone, la persona conferma.
+
 Derivazioni documentali, indipendenti dalle tre precedenti:
 
 - **riemissione della dichiarazione** ⟸ dichiarazione già emessa **e** `natura ∈ {dato_documentale,

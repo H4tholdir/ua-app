@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoundicesima tornata (D276: l'esenzione non salta la fila — il controllo pre-volo ha trovato il piano che contraddiceva la spec)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centododicesima tornata (D277-D279: la gravità si chiede, il banco non è il mercato, e il «perché» non può contraddire chi l'ha scritto)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**276 decisioni in centoundici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**279 decisioni in centododici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2346,3 +2346,61 @@ collidere in una chiamata»), applicata stavolta fra una spec e il piano che la 
 ➡️ **Il controllo pre-volo non è burocrazia: qui ha pagato da solo il suo costo.**
 
 **Emendati nello stesso turno:** spec §6 (nasce il passo ①-bis) · piano Task 2 (codice e prove).
+
+---
+
+### Centododicesima tornata — D277-D279: la gravità si CHIEDE, il banco non è il mercato, e il «perché» non può contraddire chi l'ha scritto (06/08/2026, 18:55)
+
+**Nasce da:** la revisione del Task 2. Conformità al mandato **approvata** (eseguito alla lettera,
+niente di meno e niente di più, ritrovamenti riferiti e non corretti di nascosto), **qualità da
+correggere** — e **tutti e tre i rilievi discendono dal mandato**, cioè dal piano e dalla spec.
+Verificati uno per uno contro il testo della spec ratificata prima di portarli a Francesco.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D277** | 🔴 **LA GRAVITÀ DI UN INCIDENTE SI CHIEDE, NON SI DEDUCE — e la scadenza nasce dalla risposta.** Francesco: «*sì a tutti e tre*» | L'app propone «incidente — **da valutare se grave**» e pone la domanda dell'Art. 2(65) a una persona; `termineOre` resta **vuoto** finché non c'è risposta. I tre termini della spec §3 diventano tutti raggiungibili: **2 giorni** (minaccia grave alla salute pubblica, 87(4)) · **10 giorni** (morte o deterioramento grave non previsto, 87(5)) · **15 giorni** (regola generale, 87(3)) |
+| **D278** | 🛑 **MAI USCITO DAL LABORATORIO = MAI UN INCIDENTE. Fra spec §3 e spec §6 vince la §3** | Se `stato_dispositivo = mai_uscito_dal_lab`, l'esito è **non conformità interna (§8.3.2)** qualunque sia il potenziale di danno. Base: un incidente riguarda un dispositivo «messo a disposizione» (Art. 2(64)) e quello **non lo è mai stato** |
+| **D279** | 🟠 **IL «PERCHÉ» SI COSTRUISCE DAI FATTI REGISTRATI, mai da frasi fisse** | Il testo che l'app propone non può affermare il contrario di ciò che l'utente ha appena dichiarato |
+
+**🔴 D277 — L'UNICO PUNTO IN CUI IL SISTEMA CHIEDEVA MENO DEL DOVUTO, e va detto per intero.**
+Il codice decideva la gravità con **una sola uguaglianza** (`potenziale_di_danno === 'accertato'`),
+mentre l'Art. 2(65) — citato nella **spec stessa**, §3 — dice che è grave anche l'incidente che
+«**avrebbe potuto portare**» a morte o a danno serio. Caso concreto, eseguito: una lega sbagliata su
+un paziente allergico, manufatto non ancora applicato → l'app proponeva «incidente **non grave**,
+nessuna scadenza». E quando diceva «grave» proponeva **sempre 15 giorni**, cioè il **più lungo** dei
+tre: per una morte la spec ne prevede **10**.
+🔑 **La radice non era un refuso: era il modello.** `potenziale_di_danno` ha quattro valori su **un
+asse solo**, e gli si facevano rispondere **due domande diverse** — «è un incidente?» (Art. 2(64)) e
+«è grave?» (Art. 2(65)). Quattro caselle non reggono due domande. ➡️ La risposta non è aggiungere
+valori, è **smettere di indovinare**: D267 dice che l'app propone e **una persona conferma**.
+⚠️ **E `accertato` NON implica grave:** un danno può essere avvenuto ed essere lieve. Anche lì si chiede.
+📌 **Direzione dell'errore, ed è la regola che decide:** Art. 87(7) — «*nel dubbio si segnala*». Ogni
+altro ingresso malformato di questa funzione degradava verso **più** obblighi; solo questo verso meno.
+
+**🛑 D278 — DUE SEZIONI DELLA STESSA SPEC SI CONTRADDICEVANO, e stavolta non fra due documenti.**
+La §3 è netta: «*Prima della consegna… **Nessuna vigilanza, nessun reclamo**. Difetto colto al banco =
+non conformità interna + rilavorazione*». La §6 applicava il test dell'incidente **a tutto**, senza
+guardare se il manufatto fosse mai uscito.
+⚠️ **E non è il caso raro: è quello NORMALE.** In banca dati `potenziale_di_danno` nasce
+**`da_valutare`** (`20260806140823:24`). L'addetta registra un difetto di lavorazione su un lavoro
+**ancora al banco**, lascia il valore com'è, e l'app le propone **«incidente»** con ramo §8.3.3.
+🔑 **Stessa forma di D276, un livello più dentro:** lì si contraddicevano la spec e il piano, qui **due
+sezioni della stessa spec** — e in entrambi i casi la contraddizione era invisibile nella prosa e
+visibile solo sulla riga di codice che le fa incontrare.
+
+**🟠 D279 — non è cosmesi, è la riga che un ispettore legge.** Tre casi provati: se l'utente dichiara
+che il manufatto **era applicato**, l'app scriveva «*anche se non è ancora stato applicato*»; se
+dichiarava «non lo so», scriveva «*a dispositivo già uscito*»; se la segnalazione veniva
+**dall'odontoiatra**, scriveva «*ce ne siamo accorti noi*». Sotto **D267** il «perché» è ciò su cui la
+persona decide se confermare, e finisce in `valutazioni_evento.giustificazione`.
+➡️ **Una motivazione che descrive male il caso è un invito a confermare male.**
+
+**🔑 LA LEZIONE DELLA REVISIONE — «CONFORME AL MANDATO» E «GIUSTO» SONO DUE VERDETTI, ED È GIUSTO CHE
+SIANO DUE.** L'esecutore ha fatto esattamente ciò che gli era stato chiesto, e proprio per questo i
+difetti del mandato sono arrivati intatti fino al codice: **un esecutore fedele è un amplificatore, non
+un filtro**. Il filtro è la revisione con due verdetti separati — e qui il secondo ha trovato tre cose
+che il primo, per costruzione, non poteva vedere.
+
+**Chiuso anche, nello stesso giro:** tre lacune di copertura (un ramo del codice mai raggiunto da
+nessuna prova · `naturaDaMotivo` senza alcuna prova · la prova «ogni proposta porta il perché» che ne
+guardava **una sola** su sei).
