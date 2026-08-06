@@ -816,3 +816,63 @@ quella prova **si capovolge**, non si cancella.
 vincolo stava REGGENDO.** I dieci minuti erano nati per la fattura automatica alla consegna
 (architettura mai eseguita), ma nel frattempo reggevano **un secondo carico mai scritto**: la
 protezione dal tocco involontario.
+
+---
+
+## 🔴 RITROVAMENTI ESEGUENDO — Task 4 (06/08/2026, sera)
+
+🛑 **Stanno QUI, e non nel registro `.superpowers/sdd/`, per una ragione precisa: quella cartella è in
+`.gitignore`.** Un ritrovamento scritto lì non sopravvive a un cambio di macchina — è lo stesso modo in
+cui si è persa la guardia della navigazione. Chi esegue riferisce (R-E2); chi controlla lo **versiona**.
+
+### 🔴 R1 — `riapri_lavoro_atomica` NON HA CHIAMANTI, E NESSUN COMPITO NE PRENDE UNO
+
+`provato:` `grep -r riapri_lavoro_atomica src/ --include="*.ts" --include="*.tsx"` → **un solo
+riscontro**, `src/types/database.types.ts:6429`, cioè il file dei tipi **generato**. Zero chiamanti veri.
+E leggendo i nove compiti: il **Task 6** è interfaccia, il **Task 7** nomina `annulla-consegna/route.ts`
+**senza dire** che debba passare alla RPC nuova, il **Task 4** (questo) non la tocca per mandato.
+➡️ **L'ondata rischia di chiudersi con la funzione del Task 3 costruita, applicata al database e mai
+eseguita.** È la famiglia della **guardia della navigazione mai agganciata**: una cosa che esiste, sembra
+copertura, e non gira. **Il compito che la chiama va assegnato esplicitamente**, e la scelta dipende
+dalla questione aperta qui sotto (R1-bis).
+
+### 🔴 R1-bis — LA §4 PROMETTE UNA COLONNA CHE NON ESISTE, e da lì dipende chi chiama la RPC
+
+`provato:` la spec §4 (righe 197-198) promette «*un indicatore opzionale «questo evento richiede anche
+di rientrare in produzione»*»; `grep 'rientr'` sulle due migration dell'ondata → **zero riscontri**.
+`eventi_qualita` ha **13 colonne** e nessuna è quella.
+⚠️ **E la spec si contraddice su che cosa faccia `errore_registrazione`:** §6 (e `classifica.ts:163-164`)
+gli dà esito **`nessuna azione`** col perché «*Non tocca il dispositivo né il documento sanitario*»;
+§7 riga 384 lo indica come **la via di chi ha sbagliato tasto** — cioè il gesto che sostituisce l'annullo
+della consegna, che riporta il lavoro a `pronto` **e annulla la dichiarazione**.
+➡️ **Domanda aperta portata a Francesco** (verbale, centosedicesima tornata, sezione «⏸️ RESTA APERTO»):
+il rientro è **sempre**, **mai**, o **solo se lo chiede**? Terza contraddizione fra documenti ratificati
+in un giorno solo.
+
+### 🔴 R2 — LA §17.2 È ASSEGNATA AL TASK 4, MA UN VINCOLO DEL TASK 1 LA RENDE IMPOSSIBILE
+
+L'autorevisione del piano (riga 667) assegna §17.2 al Task 4, «nel calcolo di completezza della
+valutazione». Ma `provato:` la spec §17.2 (riga 733) dice che per un laboratorio **`non_certificato`** la
+giustificazione del reclamo non indagato è **«Proposta, e la sua assenza non rende la valutazione
+incompleta»** — mentre il CHECK `valutazione_nessuna_azione_giustificata`
+(`20260806140823_eventi_qualita.sql:47-49`) la **pretende sempre**, a livello di database, per ogni
+esito `nessuna_azione`.
+➡️ **Non è risolvibile dentro il Task 4** (nessuna migration in quel mandato): o si emenda la spec, o
+serve una migration in un compito successivo. **Va deciso prima di dichiarare coperta la §17.2.**
+
+### 🟠 Minori, riferiti e non toccati
+
+- **R3** — il censimento aveva accertato che `post_consegna_correzioni` **esiste**, mai **chi la legge**:
+  verificato ora dall'esecutore, i due siti fiscali la nominano solo nel `select` e `generate-xml.ts`
+  non la legge → **nessun documento fiscale cambia** al variare di quel numero.
+- **R4** — i due modelli di rotta indicati dal brief (`rifacimento/route.ts:190`,
+  `qualita/incidenti/route.ts:109`) rispondono con `error.message` **grezzo**: il difetto che la
+  precondizione ② vieta è **preesistente e vivo** nei modelli stessi.
+- **R5** — `supabase-chain-mock.ts` non ha `insert`/`update`: ogni rotta che scrive si costruisce la
+  propria finzione, e le finzioni divergono dalla rotta vera (difetto già pagato una volta).
+- **R6** — `'pippo'` **non prova** l'ordine delle due guardie: solo `'constructor'` / `'__proto__'` lo
+  fanno. Il test del piano (riga 550) usava `'pippo'`.
+- **R7** — `ramoIso` e `termineOre`, prodotti da `classifica()`, non hanno colonne in
+  `valutazioni_evento`: due dei quattro campi calcolati **non sono salvabili**.
+- **R8** — `motivo = 'altro'` lascia al client la scelta della `natura`, quindi anche una via verso le
+  tre esenzioni: D276 la delimita, ma la porta esiste.

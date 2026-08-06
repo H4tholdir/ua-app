@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquindicesima tornata (D284: applicare una migration al banco di prova non si chiede più)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centosedicesima tornata (D285: le due porte sono DUE, e solo il ritiro toglie dai conteggi)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**284 decisioni in centoquindici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**285 decisioni in centosedici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2520,3 +2520,139 @@ una persona non è gratis: ogni passaggio è un punto in cui si perde un pezzo d
 contesto necessario ce l'ho io e il rischio è basso, il passaggio **aggiunge** rischio invece di
 toglierlo. La regola «si chiede, non si aggira» resta viva dove il rischio è alto — pubblicare,
 cancellare, toccare dati veri.
+
+---
+
+### Centosedicesima tornata — D285: le due porte sono DUE, e solo il ritiro toglie dai conteggi (06/08/2026, 22:31)
+
+**Nasce da:** il §0③ dell'handoff della sera — «*due porte portano nella stessa stanza*» — portato a
+Francesco **prima** di spendere la serata sui compiti liberi, perché tutta la catena dei blocchi (il
+ritiro → i tre testi → il Task 6 → il Task 7) sta a valle di questa risposta e **niente di quella
+catena si muove senza di lui**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D285** | 🔑 **LE DUE PORTE RESTANO DUE, E SI DISTINGUONO PER *CHE COSA* ERA SBAGLIATO.** Scelta di Francesco fra tre forme proposte | **①** «errore di registrazione» (e «commerciale») = **il fatto è successo davvero**, qualcuno l'ha guardato e ha concluso che non è un problema del dispositivo → esito `nessuna_azione`, **la riga resta in elenco e resta nel conto delle cose esaminate**. **②** Il **RITIRO** (D273) = **questa riga non doveva esistere** (tocco sbagliato, doppione) → esce da elenchi e da **ogni** conteggio, e **resta in archivio col motivo obbligatorio**. ➡️ **I predicati dei conteggi diventano DUE** (v. l'emendamento qui sotto: la prima stesura ne diceva «uno solo» e sbagliava). |
+
+**🔑 La riga che rende la distinzione insegnabile, ed è il motivo per cui regge:** le due porte non si
+distinguono per l'esito — quello si somiglia — ma per **quale oggetto era sbagliato**. Nel primo caso
+era sbagliato **il dato del lavoro**, e l'evento è la prova che qualcuno se n'è accorto e ha guardato.
+Nel secondo era sbagliato **aver aperto la segnalazione**, e la prova che serve è un'altra: il motivo
+per cui è stata tolta.
+
+**⚠️ E questo cambia una riga di codice già scritta — un ritrovamento, non un dettaglio.** Il commento
+di `src/lib/qualita/classifica.ts:158-160` dice oggi che le esenzioni «*non entrano nei conteggi del
+rapporto periodico (D273)*». Con D285 quella frase è **troppo larga**: le esenzioni non entrano nei
+conteggi delle **non conformità e dei reclami**, ma **restano** nel conto delle cose esaminate — che è
+esattamente ciò che dimostra a un'autorità che il laboratorio guarda le cose invece di non registrarle.
+➡️ **La correzione del commento va nel compito del ritiro**, insieme al predicato: sono la stessa cosa
+detta nei due posti dove va detta.
+
+**⏳ Stato della ratifica.** La scelta è di Francesco ed è registrata **subito** (BP-1-bis). La **Regola
+Advisor** vuole il panel *prima* della ratifica: tre advisor con mandato di **smontare** la decisione —
+normativo (è difendibile davanti a un'autorità togliere righe «ritirate» dai numeri dell'Art. 85/86?),
+database (il predicato, la policy `FOR ALL`, il `REVOKE DELETE`, i collegamenti per il divieto di
+ritiro), prodotto (un operatore al banco distingue i due gesti?). **Le loro condizioni si integrano qui
+sotto o si motivano una per una.**
+
+#### 🔬 Il verbale del panel — tre advisor, mandato di SMONTARE: **REGGE CON CONDIZIONI ×3**
+
+Nessuno dei tre dice «non regge». Ma tutti e tre trovano qualcosa che la decisione, **come l'avevo
+scritta**, non copriva.
+
+**🛑 ①  LA MIA FRASE «UN PREDICATO SOLO» ERA SBAGLIATA, E CONTRADDICEVA D281 — correzione, non
+sfumatura.** D281 dice, per gli stessi due valori: «*non entra nel registro qualità **né nei conteggi**
+(D273)*». La mia riga diceva l'opposto. ➡️ **I predicati sono DUE, e la contraddizione sparisce appena
+si smette di dire «i conteggi» come se fossero uno:**
+- **conteggio regolamentare** (non conformità · reclami · incidenti — quelli del rapporto periodico):
+  `non ritirata` **E** l'esito è uno di quelli regolamentari. `errore_registrazione` **NON** ci entra —
+  D281 regge intatta.
+- **conteggio delle cose esaminate** (quante segnalazioni sono state guardate): `non ritirata`, e basta.
+  `errore_registrazione` **ci entra**, ed è ciò che dimostra che il laboratorio guarda.
+⚠️ **Il secondo conteggio oggi NON ESISTE**: `psur/route.ts:190` è `totale_reclami: 0` fisso e la rotta
+**non legge mai** `eventi_qualita`. Un predicato senza una query che lo usi è **prosa** (R-P1). ➡️ **Il
+compito del ritiro deve cablare almeno un conteggio vero**, o non c'è niente da provare.
+
+**🔴 ②  IL TEST CHE DECIDE QUALE PORTA — ed è la condizione più forte del panel normativo.**
+La mia D285 enunciava una *conseguenza*, non un **test**. Il test è questo, e si prova in una riga:
+**se l'informazione è arrivata da FUORI, il ritiro è vietato** — `origine_informazione <>
+'laboratorio_interno'` (quattro valori su cinque sono esterni, `20260806140823:18-20`). **E il divieto
+sta nel database, non nell'interfaccia.** Fondamento: Allegato III §1.1(a) enumera che cosa è dato
+rilevante di sorveglianza — un tocco sbagliato non è nessuna di quelle cose, ma **un reclamo arrivato
+da un odontoiatra sì**, e quello non si toglie mai. ⚠️ Vale **in una direzione sola**: «interno» non
+implica «ritirabile».
+
+**🔴 ③  IL PUNTO PIÙ DEBOLE, e nessuno dei tre lo attenua: il ritiro ricrea, un piano più in su, il
+difetto che D276 esiste per chiudere.** D276 impedisce a una `natura` di **saltare la fila** davanti al
+test dell'incidente; D282 ② promette che la conferma compare **solo dopo** che l'incidente è escluso.
+Ma **il ritiro agisce sulla RIGA**, e oggi si aprirebbe **prima che una derivazione sia mai girata**:
+è l'unica via che non ha mai dovuto rispondere alla domanda dell'Art. 2(64). ➡️ **Condizione: il ritiro
+non è raggiungibile finché non esiste una valutazione viva** con esito diverso da incidente.
+
+**🟠 ④  LA GARANZIA CHE RENDE IL RITIRO DIFENDIBILE È UN NUMERO PUBBLICATO, non un permesso.**
+Il rapporto porta **entrambi**: `righe_totali = righe_contate + righe_ritirate`. Un numero pubblicato
+smette di essere una sparizione. 🔑 Serve perché per i su misura il rapporto periodico **è parte della
+documentazione dell'Allegato XIII §2** (Art. 86(2)): è materiale che un'autorità può farsi consegnare.
+
+**🛑 ⑤  `incidenti_mdr` NON È IL MODELLO — ed è scritto «modello già in casa» nel piano (riga 742).**
+La sua policy `FOR ALL USING (… AND deleted_at IS NULL)` (`002_fase2_schema.sql:423-424`) **non ha
+`WITH CHECK`**: nasconde la riga **al laboratorio stesso**, e non ha né motivo né autore. Copiarlo
+importa il difetto insieme al pattern. ➡️ **Il filtro va nelle query (o in una vista), MAI nella
+policy**: il motivo obbligatorio serve proprio a poter **rivedere** i ritirati.
+
+**🟠 ⑥  IL RITIRO SENZA STORIA NON VALE NIENTE.** Due colonne e l'`UPDATE` aperto (che D262 vuole
+aperto) danno: ritira → dis-ritira → ritira, e resta **solo l'ultimo motivo** — sull'unico gesto che
+**sottrae** da un conteggio dovuto per legge, mentre `valutazioni_evento` è sola-aggiunta proprio per
+ISO 13485 §4.2.5. ➡️ Il ritiro passa da una **RPC `SECURITY DEFINER`** (modello `valutazione_supera`),
+con `GRANT UPDATE` per colonna invece che sulla tabella. ⚠️ **La sentinella
+`tests/integration/eventi-qualita-schema.rpc.test.ts` va spostata su `has_column_privilege`**, o
+diventerà rossa leggendosi come «D262 rotto» quando è vero il contrario.
+
+**🔴 ⑦  L'ECCEZIONE «HA GIÀ PRODOTTO UN ATTO VERSO L'ESTERNO» È OGGI APPLICABILE SU 0 RAMI SU 3.**
+`provato:` nessun `evento_id` su `dichiarazioni_conformita` (e il `sostituisce_id` del Task 5 lega
+documento→documento, quindi **non basta neanche dopo**) · nessun `evento_id` su `incidenti_mdr` ·
+**l'avviso al medico non è registrato da nessuna parte**: si costruisce solo un indirizzo `wa.me`
+(`src/lib/consegna/orchestrate.ts:158`). ➡️ **O il compito crea i legami, o la guardia si dichiara non
+applicabile.** Una guardia che ne controlla zero su tre è peggio dell'assenza: sembra copertura.
+
+**🟢 ⑧  LE DUE FRASI CHE RENDONO LA DISTINZIONE INSEGNABILE AL BANCO** (panel prodotto), da portare al
+cancello §0B invece di inventarne altre: «**Ho sbagliato a segnare il lavoro**» · «**Ho sbagliato ad
+aprire questa nota**». Una parola di differenza — *lavoro* / *nota* — e la domanda diventa una a cui si
+risponde in piedi. La riga «cosa cambia» del ritiro: «*La nota sparisce dagli elenchi. Resta in
+archivio, col motivo che scrivi.*»
+⚠️ **E D282 ③ deve cedere:** «la STESSA conferma» per due gesti che cambiano cose diverse **non può
+dire cosa cambia** — stesso componente, **due frasi**.
+
+#### ⏸️ RESTA APERTO, e la decisione è di Francesco: che cosa FA «errore di registrazione»?
+
+**Il panel prodotto l'ha trovata, io l'ho verificata riga per riga, ed è la TERZA contraddizione fra
+documenti ratificati in un giorno solo** (dopo spec-contro-piano e spec-contro-sé-stessa).
+
+| Dove | Che cosa dice |
+|---|---|
+| **§6** della spec (e il codice, `classifica.ts:163-164`) | `errore_registrazione` → esito **`nessuna azione`**, col perché scritto: «*Non tocca il dispositivo né il documento sanitario*» |
+| **§7** della spec, riga 384 | «*chi ha semplicemente sbagliato tasto usa `natura = errore_registrazione`: **due tap invece di uno***» — cioè è **la via che sostituisce l'annullo della consegna**, e quell'annullo riporta il lavoro a `pronto` **e mette la dichiarazione in `annullata`** |
+
+🔑 **Le due righe possono convivere** — l'esito di *qualità* è «nessuna azione», l'effetto *operativo* è
+il rientro — **ma solo se qualcosa le tiene insieme, e oggi non c'è niente:**
+1. `provato:` la **§4 promette** (righe 197-198) «*un indicatore opzionale «questo evento richiede anche
+   di rientrare in produzione»*». **Quella colonna NON ESISTE**: `grep 'rientr'` sulle due migration
+   dell'ondata → **zero riscontri**; `eventi_qualita` ha 13 colonne e nessuna è quella.
+2. `provato:` **`riapri_lavoro_atomica` — costruita oggi col Task 3, applicata al database — ha ZERO
+   chiamanti**: `grep -r` in `src/` → **un solo riscontro**, ed è `src/types/database.types.ts:6429`,
+   cioè il file dei tipi **generato**. **E nessuno dei nove compiti del piano la chiama.** ➡️ È
+   esattamente la famiglia della **guardia mai agganciata**: una cosa costruita, applicata, e che non
+   gira mai.
+3. Il testo che l'utente legge — «*Non tocca il dispositivo né il documento sanitario*» — **è falso**
+   nel caso in cui il rientro annulli la dichiarazione.
+
+🔴 **E se vince la §7, il rischio è INVERTITO rispetto alla premessa di D285.** Il ritiro fa sparire
+**una nota**; «errore di registrazione», se porta il rientro con sé, **disfa una consegna vera e annulla
+un documento a valore legale** — ed è l'unico dei due che sta sullo schermo **nel momento di panico**,
+offerto dentro una lista di nove voci. Le difese (conferme, attriti, gate) andrebbero allora **sull'altra
+porta** rispetto a dove D282/D283 le hanno messe.
+
+**La domanda, in una riga:** quando qualcuno ha segnato «consegnato» per sbaglio e sceglie «errore di
+registrazione», il lavoro **deve tornare indietro** (e la dichiarazione annullarsi) — **sempre**,
+**mai**, oppure **solo se lo chiede in un secondo passaggio**? Da qui dipendono la colonna mancante, il
+chiamante della RPC del Task 3, e su quale porta vanno le difese.
