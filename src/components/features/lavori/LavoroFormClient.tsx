@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type {
   LavoroDettaglio,
@@ -89,6 +89,30 @@ function LavoroFormClientCorpo({
   // deve sovrascrivere l'update già confermato dalla seconda, più recente.
   const updateFaseRequestIdRef = useRef<Record<string, number>>({})
   const [immagini, setImmagini] = useState<LavoroImmagine[]>(lavoro.immagini ?? [])
+
+  // ═══ LO SPAZIO SOTTO IL MODULO LO DETTA LA BARRA, NON UN NUMERO A MANO ═════
+  // 🔴 Trovato dal GATE L2 del 06/08/2026, e misurato: con l'avviso aperto la
+  //    barra è alta 167px e sta appiccicata a 72px dal fondo. Scorrendo FINO IN
+  //    FONDO (227 su 227) l'ultimo campo del modulo — le **Note interne** —
+  //    restava sotto di lei: non «scomoda da leggere», **irraggiungibile**.
+  // 🔑 Perché non basta un `paddingBottom` fisso: la barra cambia altezza da
+  //    sola (tasto Salva che compare, avviso, errore, tutti e due insieme). Un
+  //    numero scritto a mano sarebbe giusto per una combinazione e sbagliato per
+  //    le altre — la stessa classe di difetto delle quote `72px`/`132px` appena
+  //    tolte da qui. Si misura la barra vera e si riserva quello.
+  const barraRef = useRef<HTMLDivElement>(null)
+  const [altezzaBarra, setAltezzaBarra] = useState(0)
+  useEffect(() => {
+    const nodo = barraRef.current
+    // `ResizeObserver` non esiste in jsdom: senza questa guardia le prove del
+    // componente esploderebbero invece di limitarsi a non misurare nulla.
+    if (!nodo || typeof ResizeObserver === 'undefined') return
+    const osservatore = new ResizeObserver(([voce]) => {
+      setAltezzaBarra(voce.contentRect.height)
+    })
+    osservatore.observe(nodo)
+    return () => osservatore.disconnect()
+  }, [])
 
   // Stato bottom sheet Pacchetto Consegna MDR
   const [pacchettoOpen, setPacchettoOpen] = useState(false)
@@ -348,7 +372,13 @@ function LavoroFormClientCorpo({
           verso l'alto e nessuno copre nessuno. Le quote a mano spariscono — e
           con loro il difetto che tornava ogni volta che si aggiungeva un terzo
           riquadro. */}
+      {/* Lo spazio che la barra si riprende: alto quanto lei più i 72px a cui
+          sta appesa. Senza, l'ultimo campo del modulo finisce sotto la barra e
+          non lo si raggiunge nemmeno scorrendo fino in fondo. */}
+      <div aria-hidden="true" style={{ height: altezzaBarra ? `${altezzaBarra + 72}px` : undefined }} />
+
       <div
+        ref={barraRef}
         style={{
           position: 'sticky',
           bottom: '72px', // sopra BottomNavPill

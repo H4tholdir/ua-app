@@ -1143,7 +1143,14 @@ function RigaEditabile(props: {
       className="ds-tap-v3"
       onClick={onApri}
       aria-label={ariaAzione}
-      style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
+      // 🔴 `minHeight` messa dal GATE L2 del 06/08/2026, e il numero misurato
+      //    era 43,5px: mezzo pixel sotto la soglia dei 44 della checklist §8,
+      //    su TUTTE e quattro le righe premibili della scheda — «Modifica
+      //    tinta» compresa. Non si vedeva a occhio, si vede solo misurando
+      //    (`getBoundingClientRect`), ed è esattamente il genere di cosa per
+      //    cui il gate esiste. L'altezza la dava il contenuto (`RigaDato`);
+      //    ora il pavimento è dichiarato qui, dove vive il bersaglio del dito.
+      style={{ display: 'block', width: '100%', minHeight: '44px', padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
     >
       <RigaDato chiave={chiave} valore={valore} urgente={urgente} sub={sub} pastiglia={pastiglia} />
     </button>

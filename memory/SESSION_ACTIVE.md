@@ -1,26 +1,31 @@
 # Sessione attiva — punto di ripresa
 
-🚪 **PUNTO DI RIPRESA — leggi prima questo:** `docs/design/screenshots/2026-08-06-tinte/README.md` — **la §2 per prima** (il difetto trovato dal collaudo).
+🚪 **PUNTO DI RIPRESA:** `docs/design/screenshots/2026-08-06-tinte/GATE-L2.md` — **la §1 per prima**
+(i due difetti chiusi), poi la **§4** (i cinque deferiti, uno dei quali è una decisione).
 
-**Stato (06/08/2026, 10:05):** ramo **`tinta-scheda-t7`**, ⛔ **NON pubblicato** (hash e numero di
-salvataggi si leggono con `git log`). `main` = `affec7ae` — in produzione solo **T1-T6**.
+**Stato (06/08/2026, 10:35):** ramo **`tinta-scheda-t7`**, ⛔ **NON pubblicato**. `main` = `affec7ae` —
+in produzione solo **T1-T6**.
 
-✅ **Fatto oggi:** **D260** — il rilievo aperto (`route.ts:553`) è **chiuso su entrambi i gemelli**. La
-premessa che l'handoff aveva messo in dubbio **reggeva**, per il verso opposto: le mezze coppie sono due
-e vanno al contrario, il dubbio guardava quella sbagliata. Una regola sola: comanda il **codice**, la
-chiave secondaria orfana si butta dal corpo e la coppia salvata non si tocca.
+✅ **Fatto oggi:** **D260** (il rilievo aperto chiuso su entrambi i gemelli — la premessa messa in dubbio
+**reggeva**, per il verso opposto) · **collaudo a schermo**, il primo mai fatto sulle tinte, 4 passi su 4,
+col ramo **D117 acceso per la prima volta** · **gate estetico L2** sulle due superfici.
 
-🔬 **Collaudo a schermo FATTO** (§0②, il primo mai fatto sulle tinte): tinta messa dall'app → riletta
-**dalla banca dati** → vista sulla scheda → cambio di tipo con l'avviso «ti ho tolto la tinta». Il ramo
-**D117 si è acceso per la prima volta**. «Glitter multicolore» **non sfasa la riga**.
+🔴 **Il gate ha trovato un campo IRRAGGIUNGIBILE**, e nasce da una mia correzione **incompleta**: la prima
+passata aveva chiuso la *leggibilità* dell'avviso ma non la *copertura* (la barra è `sticky`, galleggia
+comunque). Rimisurando: con l'avviso aperto la barra è alta 167px e le **Note interne** restavano sotto di
+lei anche scorrendo in fondo. ✅ Chiuso misurando la barra con `ResizeObserver`, mai con un numero a mano.
+Chiuse anche le righe della scheda: **43,5 → 44px**.
 
-🔴 **Difetto trovato e RIFERITO, non corretto (R-E2):** l'avviso è `position:absolute` e **copre il campo
-«Priorità»** (`LavoroFormClient.tsx:428-450`; misurato: etichetta coperta per intero). Preesistente. Cambia
-l'aspetto → si apre col suo **gate L2**. **Aspetta una decisione di Francesco.**
+✅ **La tavolozza è promossa:** 18 caselle, altezza unica 60px, «Glitter multicolore» su una riga sola —
+il timore della §0③ era **infondato**, e ora è verificato invece che temuto.
 
-🟡 **Restano:** il **gate estetico L2** su due superfici (3 viewport × 2 temi — il collaudo ne copre 1×1 e
-**non lo sostituisce**) · **T9** poi il merge · gate L2 arretrato del wizard · igiene (32 rami,
-`.superpowers/sdd/`) e **riordino memoria** (D257) **dopo T8/T9**.
+🟡 **ASPETTA UNA DECISIONE:** la pagina di modifica monta **due design system insieme** (DM Sans ereditato
+dal body v2.3 + tavolozza v3). Non è un difetto da gate — la convivenza migra **per route, mai per
+componente** — è un'**ondata di migrazione della route**, da decidere. Gli altri quattro deferiti stanno
+nella §4 del gate.
 
-📌 **Misurato:** `verify:full` **uscita 0** · **5064 passate | 19 saltate** (428 file).
+🟡 **Restano:** **T9** e poi il merge · gate L2 arretrato del **wizard** · igiene (32 rami,
+`.superpowers/sdd/`) e **riordino memoria** (D257), dopo T8/T9.
+
+📌 **Misurato:** `verify:full` **uscita 0** · **5069 passate | 19 saltate** (429 file).
 📎 260 decisioni in centoquattro tornate; la prossima è **D261**.
