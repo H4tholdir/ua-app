@@ -104,10 +104,43 @@ const NATURA_DA_MOTIVO: Record<Exclude<Motivo, 'altro'>, Natura> = {
   errore_registrazione: 'errore_registrazione',
 }
 
+const INSIEME_MOTIVI = new Set<string>(MOTIVI)
+
 /** La derivazione fissa motivo → natura (spec §5). `null` SOLO per
  *  `'altro'`: lì la natura si CHIEDE, non si indovina — l'utente la sceglie
- *  fra le sette (motivo_libero porta il testo, non basta a dedurre natura). */
-export function naturaDaMotivo(motivo: Motivo): Natura | null {
-  if (motivo === 'altro') return null
-  return NATURA_DA_MOTIVO[motivo]
+ *  fra le sette (motivo_libero porta il testo, non basta a dedurre natura).
+ *
+ *  🛑 Ritrovamento della revisione del Task 2 (06/08/2026): con la firma
+ *  precedente (`motivo: Motivo`) il controllo di TIPO mancava del tutto, e
+ *  `motivo` qui è solo un'etichetta TypeScript — a runtime arriva `unknown`
+ *  (body JSON). `naturaDaMotivo('constructor')` risaliva al prototipo di
+ *  `Object` e restituiva una FUNZIONE (idem `'toString'`, `'valueOf'`;
+ *  `'__proto__'` restituiva un oggetto) invece di `null`. Stesso idioma già
+ *  in casa — `src/lib/domain/prescrizione-costanti.ts:61-74`
+ *  (`new Set<string>` + `typeof v === 'string'`) — invece di indicizzare
+ *  l'oggetto con un valore non verificato. */
+export function naturaDaMotivo(motivo: unknown): Natura | null {
+  if (typeof motivo !== 'string' || !INSIEME_MOTIVI.has(motivo) || motivo === 'altro') return null
+  return NATURA_DA_MOTIVO[motivo as Exclude<Motivo, 'altro'>]
 }
+
+// ── la risposta alla domanda dell'Art. 2(65) — la gravità (D277, 06/08/2026) ──
+// 🔑 NON è un vincolo di banca dati: nessuna tabella ha ancora questa colonna
+// (Task 2 è puro, senza DB — l'aggancio a `valutazioni_evento` è di una Task
+// successiva, fuori da questo mandato). Vive qui perché è lo stesso dominio
+// dei sei vocabolari sopra: la domanda che `classifica()` pone quando il
+// passo ① trova un potenziale di danno e non può più dedurre la gravità da
+// un solo valore di `potenziale_di_danno` — il difetto che D277 ha chiuso
+// (quell'asse risponde all'Art. 2(64) «è un incidente?», non all'Art. 2(65)
+// «è grave?»: sono due domande, non una).
+//
+// Le prime tre sono «grave», ciascuna col suo termine dell'Art. 87; la quarta
+// ferma la scadenza a `null` (resta un incidente, ma senza MIR — entra solo
+// nel conteggio periodico dell'Art. 88).
+export const RISPOSTE_GRAVITA_INCIDENTE = [
+  'minaccia_grave_salute_pubblica', // Art. 87(4) → 2 giorni
+  'morte_o_deterioramento_non_previsto', // Art. 87(5) → 10 giorni
+  'grave_regola_generale', // Art. 87(3) → 15 giorni
+  'non_grave', // incidente, nessuna scadenza MIR
+] as const
+export type RispostaGravitaIncidente = (typeof RISPOSTE_GRAVITA_INCIDENTE)[number]
