@@ -1101,6 +1101,15 @@ l'evento è agli atti. E i testi sono **sei**, tre stati × due azioni nuove —
 v3 un `push` impila la pagina sopra un doppione di history e lascia un «indietro» morto (direttiva
 permanente, `CLAUDE.md` §9).
 
+📌 **DOVE STANNO OGGI QUEI RIQUADRI, misurato dalla revisione del Task 6 e scritto qui perché non vada
+perso:** `src/components/features/lavori/scheda-v3/DevoIntervenire.tsx:492-513` li disegna **solo** se
+esiste `riapertura` — cioè **solo per `riapri_lavoro`**. Le due azioni nuove non hanno oggi **nessun
+canale di risposta a schermo**: il Task 6 le fa dichiarare, il Task 7 le fa eseguire e rinomina il
+campo in `esito_azione`, e **questo passo è il punto in cui la persona le vede**. 🛑 Se questo passo si
+limitasse a scrivere i sei testi senza generalizzare la condizione di disegno, l'app farebbe la cosa
+giusta **in silenzio** — che per una scelta appena presa da una persona è indistinguibile dal non
+averla fatta.
+
 - [ ] **Passo 6 — FASE 9: la prova a schermo, sul banco vero**
 
 🛑 **Non è un rituale, ed è la lezione del 07/08:** quindici prove verdi e sullo schermo il foglio non
