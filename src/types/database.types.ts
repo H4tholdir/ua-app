@@ -897,6 +897,7 @@ export type Database = {
       dichiarazioni_conformita: {
         Row: {
           anno_ddc: number
+          annullata_da_evento_id: string | null
           classe_rischio: string
           contiene_sostanze_o_tessuti: boolean
           created_at: string
@@ -943,6 +944,7 @@ export type Database = {
           rischi_json: Json | null
           rischi_residui_snapshot: string | null
           sostanze_tessuti_dettaglio: string | null
+          sostituisce_id: string | null
           stato: string
           storage_object_version: string | null
           storage_path_pdf: string | null
@@ -956,6 +958,7 @@ export type Database = {
         }
         Insert: {
           anno_ddc?: number
+          annullata_da_evento_id?: string | null
           classe_rischio: string
           contiene_sostanze_o_tessuti?: boolean
           created_at?: string
@@ -1002,6 +1005,7 @@ export type Database = {
           rischi_json?: Json | null
           rischi_residui_snapshot?: string | null
           sostanze_tessuti_dettaglio?: string | null
+          sostituisce_id?: string | null
           stato?: string
           storage_object_version?: string | null
           storage_path_pdf?: string | null
@@ -1015,6 +1019,7 @@ export type Database = {
         }
         Update: {
           anno_ddc?: number
+          annullata_da_evento_id?: string | null
           classe_rischio?: string
           contiene_sostanze_o_tessuti?: boolean
           created_at?: string
@@ -1061,6 +1066,7 @@ export type Database = {
           rischi_json?: Json | null
           rischi_residui_snapshot?: string | null
           sostanze_tessuti_dettaglio?: string | null
+          sostituisce_id?: string | null
           stato?: string
           storage_object_version?: string | null
           storage_path_pdf?: string | null
@@ -1073,6 +1079,13 @@ export type Database = {
           uso_esclusivo_paziente?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dichiarazioni_conformita_annullata_da_evento_id_fkey"
+            columns: ["annullata_da_evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventi_qualita"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dichiarazioni_conformita_generated_by_fkey"
             columns: ["generated_by"]
@@ -1099,6 +1112,20 @@ export type Database = {
             columns: ["lavoro_id"]
             isOneToOne: false
             referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dichiarazioni_conformita_sostituisce_id_fkey"
+            columns: ["sostituisce_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_conformita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dichiarazioni_conformita_sostituisce_id_fkey"
+            columns: ["sostituisce_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_in_scadenza"
             referencedColumns: ["id"]
           },
           {
@@ -6445,6 +6472,15 @@ export type Database = {
           p_lab_id: string
         }
         Returns: boolean
+      }
+      riemetti_ddc_atomica: {
+        Args: {
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+          p_nuova: Json
+        }
+        Returns: Json
       }
       salva_fasi_ciclo_atomico: {
         Args: {

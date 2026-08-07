@@ -1414,3 +1414,88 @@ quel motivo è `mai_uscito_dal_lab`, che è già quello che non incrementa.
 classificata sul suo effetto **meno grave**. Un ritrovamento scritto male è peggio di uno non
 scritto: sembra già trattato. ➡️ Quando un ingresso incoerente produce **più** conseguenze, la riga
 si scrive sulla **peggiore**, non sulla prima che si vede.
+
+---
+
+## ✅ TASK 5 — FATTO (07/08/2026, pomeriggio). E il piano sbagliava su una cosa
+
+**Cancello FASE 3 (percorso GRANDE, obbligato dalla migration):** isolamento tenant — la colonna sta
+su una tabella già scoped, la RPC fissa `laboratorio_id` dai propri parametri e la rotta lo prende
+dalla sessione · schema — **sì**, migration, quindi **FASE 6b eseguita** (`gen types` → `tsc` **0**) ·
+contratto — additivo, nessun client rotto · ritorno indietro — la colonna è annullabile e la funzione
+è nuova, nessuna superficie preesistente cambia comportamento · dominio critico — **sì** (migration +
+documento a valore legale): percorso grande.
+
+### 🔴 IL PIANO SOTTO-SPECIFICAVA LA PROPRIA SPEC — una colonna su due
+
+Il Task 5 elencava **`sostituisce_id`**. La spec §8.2, che il task esegue, ne dichiara **DUE** («le
+due cose che mancano»): il filo verso la superata **e il MOTIVO dell'annullamento. Fatte entrambe**,
+perché sono la stessa migration e farne una sola oggi vuol dire una seconda migration domani.
+⚠️ E `annullata_da_evento_id` ha imposto un secondo passo, altrimenti sarebbe nata popolata a metà:
+**anche `riapri_lavoro_atomica` ora la scrive** — aveva già `p_evento_id` fra i parametri e lo
+validava, gli mancava solo di registrarlo. 🔑 Una colonna popolata da uno dei due percorsi vivi si
+legge come un **fatto** («questo annullo non aveva un motivo») invece che come una **lacuna**.
+
+### 🛑 LA SCELTA CHE COSTA E PERCHÉ SI PAGA: una RPC, non due scritture
+
+`ddc_lavoro_attiva_unique` ammette **una sola** dichiarazione viva per lavoro (`provato:` sul
+catalogo). Quindi la nuova non può nascere prima che la vecchia sia annullata — e **fra i due passi
+c'è un momento a zero dichiarazioni vive**. Se le due scritture le fa il codice e la seconda
+fallisce, resta un **lavoro consegnato senza nessuna dichiarazione**: uno stato che **nessun vincolo
+può segnalare**, perché «zero» è legittimo per un lavoro mai consegnato.
+➡️ Le due scritture stanno in **una transazione sola**. È la regola di casa già scritta per il
+rifacimento (`ua-app/CLAUDE.md` §9), non una preferenza.
+🔑 **E l'ordine non è «consigliato»: è l'unico possibile** — `provato:` inserire una seconda viva dà
+`duplicate key`. È il senso vero della §8.1.
+
+### 🔑 `jsonb_populate_record` SU UNA RIGA BASE, e il suo difetto chiuso dal database
+
+58 colonne non si riscrivono a mano in SQL: vivrebbero in **due posti** e divergerebbero (quarta
+volta in questo progetto). La nuova nasce **dalla riga vecchia** e ne sovrascrive i campi mandati —
+così ciò che il codice non manda **conserva il suo valore** invece di diventare `NULL`.
+🛑 L'altro difetto di quella funzione — **le chiavi senza colonna vengono ignorate in silenzio** — è
+chiuso **dentro la RPC**, confrontando le chiavi col catalogo e sollevando un errore. È il caso R-P6
+per eccellenza, e la rete è il database, non una prova che può invecchiare.
+📌 **Azzerati a mano** i campi che descrivono la vita del documento *vecchio*: firma, invio,
+cancellazione, causale. Un documento nuovo che si dichiarasse già firmato affermerebbe il falso.
+
+### ✅ IL CHIAMANTE C'È — e nasce insieme al meccanismo
+
+`POST /api/lavori/[id]/dichiarazione/riemetti`. 🛑 **Non l'ho rimandato al Task 6**, perché è
+esattamente la frase che il piano aveva già scritto per `riapri_lavoro_atomica` («lo farà il Task 6»)
+e che il ritrovamento R1 ha dimostrato falsa. La rotta carica il lavoro **con gli stessi embed della
+consegna** e **la stessa** `normalizzaPrescrizione`: caricarlo diversamente vorrebbe dire che un
+documento riemesso può dire cose diverse da uno emesso, a parità di dati.
+
+### 📌 Scelte dichiarate, non subìte
+
+- **Un numero bruciato** se la riemissione fallisce dopo aver preso il progressivo. Accettabile e
+  detto: il numero della dichiarazione **non è un contenuto dovuto** (Allegato XIII punto 1 non lo
+  nomina, censimento D294), a differenza della numerazione delle fatture. E non si può prendere più
+  tardi: è **stampato sul PDF**.
+- **Un file orfano su Storage** nello stesso caso. Nessuno lo referenzia.
+- 🛑 **NON ho usato l'interruttore `annullaPrima: false`** che il piano proponeva per provare
+  l'ordine: sarebbe un ramo **vivo in produzione** in cui l'ordine è quello sbagliato — si
+  costruirebbe il difetto per poterlo provare. L'ordine è provato dal vincolo del database e dalle
+  mutazioni.
+
+### 🔬 Le prove, e che cosa ciascuna morde
+
+- **23 prove unitarie** (`riemissione-ordine.test.ts` · `riemissione-route.test.ts`).
+- **12 prove d'integrazione** contro il database vero (`riemetti-ddc-atomica.rpc.test.ts`),
+  ⚠️ **saltate nella verifica normale** (vogliono le credenziali) e **lanciate a parte**: 12 su 12.
+  La ⑤ è quella che giustifica l'intera RPC: si fa **fallire l'inserimento** e si controlla che la
+  vecchia sia **ancora viva**.
+- `provato:` **le correzioni mordono**, con la rottura rifatta: leggere ogni esito della RPC come
+  successo → **2 rosse**; togliere la normalizzazione della prescrizione nella rotta → **1 rossa**.
+
+### 🟠 Riferito e NON toccato (R-E2)
+
+- **R12** — `generateDdC` resta l'unica strada per la **prima** emissione, e la sua porta di
+  idempotenza (`:194-203`) continua a restituire la dichiarazione esistente come se l'avesse
+  generata. **È corretto per il retry della consegna** ed è il motivo per cui `riemettiDdC` è una
+  funzione a sé; ma quel comportamento è ancora **indistinguibile da un successo** per chi lo chiama.
+  Fuori dal mandato di questo compito.
+- **R13** — nessuna schermata legge ancora `sostituisce_id` né `annullata_da_evento_id`: la **catena
+  delle riemissioni non è visibile a nessuno**. È l'ispettore il destinatario di quel filo (§8.2), e
+  finché non c'è una superficie che lo mostra il dato è scritto e muto. **Vincolo per il Task 6.**

@@ -183,25 +183,27 @@ export function improntaPayload(payload: unknown): string {
   return crypto.createHash('sha256').update(canonico(payload)).digest('hex')
 }
 
-export async function generateDdC(lavoro: LavoroDettaglio) {
-  const supabase = getTypedServiceClient()
-
-  // Idempotenza su retry di orchestraConsegna (B13 1/2): se la DdC per questo
-  // lavoro esiste già (generata in un tentativo precedente), non rigenerare —
-  // evita un secondo file su Storage e un secondo progressivo sprecato. Il
-  // recupero su errore 23505 più sotto resta come rete di sicurezza per la
-  // race condition residua (due richieste che superano entrambe questo guard).
-  const { data: ddcEsistente } = await supabase
-    .from('dichiarazioni_conformita')
-    .select('numero_ddc, pdf_url')
-    .eq('lavoro_id', lavoro.id)
-    .neq('stato', 'annullata')
-    .maybeSingle()
-
-  if (ddcEsistente) {
-    return { numero: ddcEsistente.numero_ddc, url: ddcEsistente.pdf_url ?? '' }
-  }
-
+/** Costruisce la dichiarazione: il numero, i dati, il PDF reso e caricato, le
+ *  due impronte. **NON scrive una riga in banca dati** — a scriverla è chi la
+ *  chiama, e sono due atti diversi (la prima emissione e la riemissione).
+ *
+ *  🔑 PERCHÉ È ESTRATTA, e non è un riordino estetico. Con due costruttori — uno
+ *  per emettere e uno per riemettere — il documento riemesso divergerebbe da
+ *  quello emesso al primo cambiamento che qualcuno propaga in un posto solo, e
+ *  **nessuna prova guarderebbe la differenza**: è la lezione delle «due metà
+ *  giuste» pagata il 07/08. Il costruttore è UNO, e le due strade si separano
+ *  solo su COME la riga finisce in banca dati.
+ *
+ *  ⚠️ Il numero progressivo si prende QUI, cioè prima della scrittura: se la
+ *  scrittura poi fallisce, quel numero è bruciato e nella serie resta un buco.
+ *  È accettabile e va detto: il numero della dichiarazione **non è un contenuto
+ *  dovuto** (l'Allegato XIII punto 1 non lo nomina — censimento D294), a
+ *  differenza della numerazione delle fatture. Non si può nemmeno prendere più
+ *  tardi: il numero è **stampato sul PDF**. */
+async function costruisciDichiarazione(
+  supabase: ReturnType<typeof getTypedServiceClient>,
+  lavoro: LavoroDettaglio
+) {
   const anno = annoRoma()
 
   // Carica dati laboratorio + rischi residui per tipo dispositivo
@@ -346,21 +348,58 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     .getPublicUrl(storagePath)
   const pdfUrl = urlData?.publicUrl ?? ''
 
+  // 🛑 `laboratorio_id` e `lavoro_id` NON stanno qui: li mette chi scrive. Per la
+  // riemissione è la RPC a fissarli dai propri parametri, e una copia in più nel
+  // corpo sarebbe una seconda verità sullo stesso fatto.
+  const riga = {
+    ...ddc,
+    pdf_url: pdfUrl,
+    storage_path_pdf: storagePath,
+    pdf_sha256: sha256,
+    // D102 ① — le due colonne dichiarate come prova e mai scritte da nessuno.
+    payload_sha256: payloadSha256,
+    template_version: VERSIONE_TEMPLATE_DDC,
+    pdf_generato_at: new Date().toISOString(),
+    inviata_al_dentista: false,
+  }
+
+  return { riga, numero, pdfUrl }
+}
+
+export async function generateDdC(lavoro: LavoroDettaglio) {
+  const supabase = getTypedServiceClient()
+
+  // Idempotenza su retry di orchestraConsegna (B13 1/2): se la DdC per questo
+  // lavoro esiste già (generata in un tentativo precedente), non rigenerare —
+  // evita un secondo file su Storage e un secondo progressivo sprecato. Il
+  // recupero su errore 23505 più sotto resta come rete di sicurezza per la
+  // race condition residua (due richieste che superano entrambe questo guard).
+  //
+  // 🛑 ED È QUESTA LA PORTA DA CUI LA RIEMISSIONE NON DEVE PASSARE (spec §8.1):
+  // qui si torna `{numero, url}` della dichiarazione ESISTENTE, senza nessun
+  // segno di non averla generata. Una riemissione che entrasse di qui direbbe
+  // «riemessa» con in mano il documento VECCHIO. Per questo `riemettiDdC` è una
+  // funzione a sé e non un parametro di questa.
+  const { data: ddcEsistente } = await supabase
+    .from('dichiarazioni_conformita')
+    .select('numero_ddc, pdf_url')
+    .eq('lavoro_id', lavoro.id)
+    .neq('stato', 'annullata')
+    .maybeSingle()
+
+  if (ddcEsistente) {
+    return { numero: ddcEsistente.numero_ddc, url: ddcEsistente.pdf_url ?? '' }
+  }
+
+  const { riga, numero, pdfUrl } = await costruisciDichiarazione(supabase, lavoro)
+
   // INSERT record DdC
   const { error: insertErr } = await supabase
     .from('dichiarazioni_conformita')
     .insert({
       laboratorio_id: lavoro.laboratorio_id,
       lavoro_id: lavoro.id,
-      ...ddc,
-      pdf_url: pdfUrl,
-      storage_path_pdf: storagePath,
-      pdf_sha256: sha256,
-      // D102 ① — le due colonne dichiarate come prova e mai scritte da nessuno.
-      payload_sha256: payloadSha256,
-      template_version: VERSIONE_TEMPLATE_DDC,
-      pdf_generato_at: new Date().toISOString(),
-      inviata_al_dentista: false,
+      ...riga,
     })
 
   if (insertErr) {
@@ -378,4 +417,83 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   }
 
   return { numero, url: pdfUrl }
+}
+
+/** L'esito di una riemissione. I due casi «non si può» **non sono guasti** e non
+ *  lanciano: sono risposte, e chi chiama deve poterle distinguere da un successo
+ *  senza leggere un messaggio d'errore. Tutto il resto **lancia**, perché su
+ *  questo documento un successo dichiarato per sbaglio è il difetto peggiore
+ *  possibile (spec §8.1). */
+export type EsitoRiemissione =
+  | { stato: 'ok'; numero: string; url: string; nuovaId: string; vecchiaId: string; numeroSuperato: string }
+  /** Non c'era niente da superare: una prima emissione è un altro atto. */
+  | { stato: 'nessuna_dichiarazione_viva' }
+  /** L'evento non esiste, o non è di questo lavoro: mai una riemissione senza motivo (D263). */
+  | { stato: 'evento_non_valido' }
+
+/** Riemette la dichiarazione di un lavoro: **prima si annulla, poi si riemette**
+ *  (spec §8.1), e le due scritture stanno in **una transazione sola**.
+ *
+ *  ⚖️ D299 — questa funzione **NON tocca `lavori.stato`**. Il manufatto è a posto
+ *  e resta dal dentista: si rifà solo la carta. Parole di Francesco, «*il lavoro
+ *  resta consegnato, si rifà solo la carta*». Chi cerca il rientro in produzione
+ *  sta cercando un'altra strada: `riapri_lavoro_atomica`, che è di un altro motivo.
+ *
+ *  🛑 PERCHÉ L'ORDINE È PORTANTE, ed è invisibile leggendo il TypeScript.
+ *  `ddc_lavoro_attiva_unique` ammette **una sola** dichiarazione viva per lavoro:
+ *  inserire prima di annullare sbatte contro un `23505`. E annullare senza
+ *  inserire, o non annullare affatto, lascia il lavoro **senza nessuna
+ *  dichiarazione viva** — uno stato che nessun vincolo può segnalare, perché
+ *  «zero» è legittimo per un lavoro mai consegnato. ➡️ La transazione è la sola
+ *  cosa che tiene, e per questo l'ordine vive nella RPC, non qui.
+ *
+ *  🔑 `sostituisce_id` NON si calcola qui: lo fissa il database, che sa qual era
+ *  la dichiarazione viva **nello stesso istante in cui la annulla**. Calcolarlo
+ *  in TypeScript vorrebbe dire leggerlo prima, e fra la lettura e la scrittura la
+ *  viva potrebbe essere un'altra. */
+export async function riemettiDdC(lavoro: LavoroDettaglio, eventoId: string): Promise<EsitoRiemissione> {
+  const supabase = getTypedServiceClient()
+
+  // Il PDF si rende e si carica PRIMA: non sono scritture in banca dati, e
+  // tenerle fuori dalla transazione è ciò che permette alla transazione di
+  // esistere. Se la RPC poi fallisce restano un file orfano e un numero bruciato:
+  // nessuno dei due rompe niente (v. `costruisciDichiarazione`).
+  const { riga, numero, pdfUrl } = await costruisciDichiarazione(supabase, lavoro)
+
+  const { data, error } = await supabase.rpc('riemetti_ddc_atomica', {
+    p_lavoro_id: lavoro.id,
+    p_laboratorio_id: lavoro.laboratorio_id,
+    p_evento_id: eventoId,
+    p_nuova: riga as unknown as Record<string, never>,
+  })
+
+  if (error) {
+    console.error('[DdC] riemetti_ddc_atomica fallita:', error)
+    throw new Error('Non è stato possibile rifare la dichiarazione', { cause: error })
+  }
+
+  const risposta = (data ?? {}) as { esito?: unknown; nuova_id?: unknown; vecchia_id?: unknown; numero?: unknown; numero_superato?: unknown }
+
+  if (risposta.esito === 'nessuna_dichiarazione_viva') return { stato: 'nessuna_dichiarazione_viva' }
+  if (risposta.esito === 'evento_non_valido') return { stato: 'evento_non_valido' }
+
+  // 🛑 FAIL-CLOSED su tutto il resto, e non è pignoleria: un esito che questa
+  // funzione non riconosce — una risposta vuota, un valore nuovo aggiunto alla
+  // RPC domani — letto come successo restituirebbe un numero senza sapere se
+  // la riemissione è avvenuta. Su questo documento è il difetto peggiore.
+  if (risposta.esito !== 'ok' || typeof risposta.nuova_id !== 'string') {
+    console.error('[DdC] riemetti_ddc_atomica: esito inatteso', data)
+    throw new Error('Non è stato possibile rifare la dichiarazione')
+  }
+
+  return {
+    stato: 'ok',
+    // Il numero e l'indirizzo li restituisce il database sulla riga davvero
+    // scritta; quelli calcolati qui sono il ripiego, mai la fonte.
+    numero: typeof risposta.numero === 'string' ? risposta.numero : numero,
+    url: pdfUrl,
+    nuovaId: risposta.nuova_id,
+    vecchiaId: typeof risposta.vecchia_id === 'string' ? risposta.vecchia_id : '',
+    numeroSuperato: typeof risposta.numero_superato === 'string' ? risposta.numero_superato : '',
+  }
 }
