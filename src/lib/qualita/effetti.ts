@@ -23,12 +23,21 @@
 // poi il motivo. Un terzo passaggio di conferma dopo il motivo violerebbe
 // quella riga: per questo l'azione automatica parte quando l'evento si registra.
 //
-// ⚠️ UNA SOLA RIGA SU NOVE HA UN'AZIONE AUTOMATICA, e le altre otto NON sono
-// abbozzi: sono descrittori. Dichiarano che cosa è stato deciso, e l'app non
-// finge di eseguirlo. Costruire otto rami inerti che sembrano agire sarebbe
-// esattamente il difetto che questo modulo nasce per chiudere — la funzione
-// esistente che nessuno chiama, «una cosa che esiste, sembra copertura, e non
-// gira».
+// ⚠️ DUE RIGHE SU NOVE HANNO UN'AZIONE AUTOMATICA — erano una fino al 07/08,
+// e la seconda è `destinatario_errato` (⚖️ D312): l'ha resa possibile la
+// transizione «pronto col documento intatto» costruita dal PRONTO-4. Le altre
+// sette NON sono abbozzi: sono descrittori. Dichiarano che cosa è stato deciso,
+// e l'app non finge di eseguirlo. Costruire sette rami inerti che sembrano
+// agire sarebbe esattamente il difetto che questo modulo nasce per chiudere —
+// la funzione esistente che nessuno chiama, «una cosa che esiste, sembra
+// copertura, e non gira».
+//
+// 🔑 E DICHIARARE UN'AZIONE CHE ANCORA NESSUNO ESEGUE NON È UNO DI QUEI RAMI
+// INERTI. La differenza è la finestra: un ramo inerte finge di agire **per
+// sempre**; qui il modulo DICHIARA e il compito successivo CABLA lo
+// smistamento, dentro la stessa ondata. Finché non lo fa, la rotta smista solo
+// `riapri_lavoro` e la cosa è scritta nella prova che ne tiene il perimetro
+// (`tests/unit/eventi-qualita-route.test.ts`, il caso D312).
 
 import { MOTIVI } from '@/lib/domain/qualita-costanti'
 import type { Motivo } from '@/lib/domain/qualita-costanti'
@@ -63,13 +72,17 @@ export type EffettoDocumento =
   | 'dipende_dal_perche'
   | 'nessuno'
 
-/** L'unica cosa che l'app fa DA SOLA, senza altre domande. */
-export type AzioneAutomatica = 'riapri_lavoro'
+/** Le cose che l'app fa DA SOLA, senza altre domande.
+ *  - `riapri_lavoro` — torna a `pronto` E annulla la dichiarazione (D288);
+ *  - `torna_pronto` — torna a `pronto` e la dichiarazione RESTA VIVA (D291 · D304);
+ *  - `crea_rifacimento` — nasce un lavoro nuovo, il vecchio resta consegnato (D306). */
+export type AzioneAutomatica = 'riapri_lavoro' | 'torna_pronto' | 'crea_rifacimento'
 
 export interface Effetto {
   lavoro: EffettoLavoro
   documento: EffettoDocumento
-  /** `null` = l'app registra e non agisce. Oggi una riga su nove non lo è. */
+  /** `null` = l'app registra e non agisce. Oggi due righe su nove non lo sono
+   *  nella tabella fissa, più i due esiti risolti del bivio (D304). */
   azione: AzioneAutomatica | null
   /** In parole comuni: è il testo che una persona legge per decidere. */
   perche: string
@@ -124,10 +137,23 @@ export const EFFETTI_PER_MOTIVO: Record<Motivo, Effetto> = {
   destinatario_errato: {
     lavoro: 'torna_pronto',
     documento: 'resta_valido',
-    azione: null,
+    // ⚖️ D312 (07/08/2026) — QUI C'ERA `null`, e accanto un commento che diceva
+    // «la transizione "pronto col documento intatto" NON ESISTE ancora».
+    // 🛑 Quel testo è SCADUTO: il PRONTO-4 ha costruito
+    // `riporta_a_pronto_atomica`, che riporta il lavoro fra i pronti e lascia
+    // viva la dichiarazione — cioè esattamente ciò che questa riga chiede da
+    // quando è stata scritta. Un commento che nega l'esistenza di una cosa
+    // costruita è il modo più veloce per far nascere rossa una prova tre
+    // compiti più in là, con l'aria della regressione.
+    // 🔑 Resta vero PERCHÉ non è `riapri_lavoro`: quella gemella annulla SEMPRE
+    // la dichiarazione (20260806210400:138-140), e qui il documento diceva il
+    // vero — il manufatto è uscito davvero, solo alla persona sbagliata.
+    // ⚠️ Il TERZO dei tre motivi della spec §0 è questo, e non passa dal bivio:
+    // la sua azione vive qui, nella riga fissa, non in `effettoDaMotivoEScelta`.
+    azione: 'torna_pronto',
     perche:
       'Il manufatto è giusto: sbagliata è la persona a cui è andato. Si recupera e si riconsegna a chi doveva riceverlo. Il lavoro torna fra quelli pronti, e la dichiarazione resta valida perché diceva il vero.',
-    decisione: 'D291',
+    decisione: 'D291 · D312',
   },
   modifica_clinica_richiesta: {
     lavoro: 'lavoro_nuovo',
@@ -183,4 +209,60 @@ const INSIEME_MOTIVI = new Set<string>(MOTIVI)
 export function effettoDaMotivo(motivo: Motivo): Effetto {
   if (!INSIEME_MOTIVI.has(motivo)) return NEUTRO
   return EFFETTI_PER_MOTIVO[motivo]
+}
+
+// ─── IL BIVIO DEI DUE DIFETTI (D304) ────────────────────────────────────────
+
+/** Il bivio dei due difetti: la sceglie chi registra, e non si indovina (D290 · D297 · D304). */
+export type Scelta = 'si_sistema' | 'si_rifa'
+
+/** I soli motivi che ammettono — e pretendono — una scelta. 🔑 Questa è la FONTE:
+ *  il database porta solo l'implicazione «se c'è una scelta, il motivo è uno di
+ *  questi», perché il biconditionale abortirebbe sulle righe già esistenti. */
+export const MOTIVI_CON_SCELTA = ['difetto_lavorazione', 'difetto_materiale'] as const satisfies readonly Motivo[]
+
+export function richiedeScelta(motivo: Motivo): boolean {
+  return (MOTIVI_CON_SCELTA as readonly string[]).includes(motivo)
+}
+
+/** L'effetto RISOLTO. Senza scelta restituisce la riga non risolta — che dichiara
+ *  `scelta_richiesta` e non agisce — invece di indovinare un ramo.
+ *
+ *  📋 Forme d'ingresso censite (R-P4): motivo del bivio + scelta valida → la riga
+ *  risolta · motivo del bivio + `null` → la riga NON risolta, nessuna azione ·
+ *  motivo fuori dal bivio + una scelta qualunque → esattamente `effettoDaMotivo`,
+ *  perché su quel motivo la scelta non ha significato e scartarla in silenzio
+ *  spetta alla rotta, che la rifiuta con un 422 · chiave del prototipo → riga
+ *  neutra (la guardia sta in `effettoDaMotivo`, e questa funzione ci passa
+ *  sempre) · una scelta fuori vocabolario su un motivo del bivio → la riga NON
+ *  risolta, mai un ramo indovinato.
+ *
+ *  🛑 `destinatario_errato` NON passa di qui: è il terzo motivo della spec §0, e
+ *  la sua azione vive nella riga fissa di `EFFETTI_PER_MOTIVO` (⚖️ D312). Per lui
+ *  `richiedeScelta` è falso, quindi questa funzione restituisce `base` — che la
+ *  porta già. */
+export function effettoDaMotivoEScelta(motivo: Motivo, scelta: Scelta | null): Effetto {
+  const base = effettoDaMotivo(motivo)
+  if (!richiedeScelta(motivo) || scelta === null) return base
+  if (scelta === 'si_sistema') {
+    return {
+      lavoro: 'torna_pronto',
+      documento: 'resta_valido',
+      azione: 'torna_pronto',
+      perche:
+        'Si sistema questo manufatto. Il lavoro torna fra quelli pronti e la dichiarazione resta valida: il manufatto è lo stesso, e nessuno dei dati stampati cambia.',
+      decisione: `${base.decisione} · D304 · D310`,
+    }
+  }
+  if (scelta === 'si_rifa') {
+    return {
+      lavoro: 'lavoro_nuovo',
+      documento: 'resta_valido',
+      azione: 'crea_rifacimento',
+      perche:
+        'Se ne fa uno nuovo. Nasce subito un lavoro nuovo, collegato a questo; il lavoro di prima resta consegnato con la sua dichiarazione, e il manufatto nuovo avrà la sua quando lo consegnerai.',
+      decisione: `${base.decisione} · D304 · D306`,
+    }
+  }
+  return base
 }

@@ -821,10 +821,13 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     expect(body.p_evento_id).toBe(EVENTO_ID)
   })
 
-  it('🛑 GLI ALTRI OTTO MOTIVI NON la chiamano — la giuntura tiene anche nel verso opposto', async () => {
+  // ⚖️ D312 — `destinatario_errato` È USCITO DA QUESTO CICLO, e ha la sua prova
+  // qui sotto: la sua riga porta ora `azione: 'torna_pronto'`, quindi
+  // l'asserzione `azione === null` non vale più per lui. Le altre sei restano.
+  it('🛑 GLI ALTRI SEI MOTIVI NON la chiamano e non portano azione — la giuntura tiene anche nel verso opposto', async () => {
     for (const motivo of [
       'errore_dato_dichiarazione', 'difetto_lavorazione', 'difetto_materiale',
-      'destinatario_errato', 'modifica_clinica_richiesta', 'errore_prezzo_quantita',
+      'modifica_clinica_richiesta', 'errore_prezzo_quantita',
       'reso_senza_difetto',
     ]) {
       vi.clearAllMocks()
@@ -837,6 +840,28 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
       expect(body.effetto.azione, motivo).toBeNull()
       expect(body.riapertura, motivo).toBeUndefined()
     }
+  })
+
+  // ⚖️ D312 — «PERSONA SBAGLIATA»: L'AZIONE C'È, MA A QUESTO TASK NESSUNO LA
+  // ESEGUE. La riga fissa dichiara `torna_pronto`; la rotta, oggi, smista solo
+  // su `riapri_lavoro` (`eventi-qualita/route.ts:383-386`), quindi la RPC non
+  // parte. 🛑 Le due cose si affermano INSIEME, e la seconda è la più
+  // importante: è il perimetro del Task 7, che caberà lo smistamento. Se un
+  // giorno questa prova si accende sulla riga della RPC, vuol dire che
+  // qualcuno ha collegato l'azione — e allora è QUI che va aggiornata, non
+  // aggirata.
+  it('⚖️ D312 «persona sbagliata» porta l\'azione «torna_pronto», ma a questo task nessuna RPC parte', async () => {
+    bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'destinatario_errato' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.effetto.azione).toBe('torna_pronto')
+    expect(body.effetto.lavoro).toBe('torna_pronto')
+    expect(mockRpc).not.toHaveBeenCalled()
+    expect(body.riapertura).toBeUndefined()
   })
 
   it('anche «altro» non la chiama, e porta comunque il suo effetto neutro', async () => {

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { effettoDaMotivo, EFFETTI_PER_MOTIVO } from '@/lib/qualita/effetti'
+import {
+  effettoDaMotivo,
+  effettoDaMotivoEScelta,
+  EFFETTI_PER_MOTIVO,
+  MOTIVI_CON_SCELTA,
+} from '@/lib/qualita/effetti'
 import { MOTIVI } from '@/lib/domain/qualita-costanti'
 import type { Motivo } from '@/lib/domain/qualita-costanti'
 
@@ -20,7 +25,7 @@ import type { Motivo } from '@/lib/domain/qualita-costanti'
  */
 
 describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
-  describe('la riga che l\'app esegue DA SOLA — l\'unica', () => {
+  describe('le righe che l\'app esegue DA SOLA — oggi DUE, non più una', () => {
     it('«ho sbagliato a premere consegna» ripristina tutto, e porta l\'azione automatica (D288)', () => {
       const e = effettoDaMotivo('errore_registrazione')
       expect(e.lavoro).toBe('ripristina_tutto')
@@ -28,21 +33,33 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
       expect(e.azione).toBe('riapri_lavoro')
     })
 
-    it('è l\'UNICO dei nove con un\'azione automatica — gli altri otto non fanno niente da soli', () => {
+    // ⚖️ D312 (07/08/2026) — QUESTA RIGA DICEVA «è l'UNICO dei nove», ed era vero
+    // finché la transizione «pronto col documento intatto» non esisteva. Il
+    // PRONTO-4 l'ha costruita (`riporta_a_pronto_atomica`), quindi «persona
+    // sbagliata» smette di essere un descrittore e prende la sua azione.
+    // 🔑 L'ordine atteso NON è alfabetico: è quello di `MOTIVI`
+    // (`qualita-costanti.ts:21-31`), dove `destinatario_errato` è la quarta voce
+    // e `errore_registrazione` l'ottava — `filter` conserva quell'ordine.
+    it('sono DUE i motivi con un\'azione automatica, e gli altri sette non fanno niente da soli (D312)', () => {
       const conAzione = MOTIVI.filter((m) => effettoDaMotivo(m).azione !== null)
-      expect(conAzione).toEqual(['errore_registrazione'])
+      expect(conAzione).toEqual(['destinatario_errato', 'errore_registrazione'])
     })
   })
 
   describe('le righe decise, che però una scelta o un altro compito devono ancora eseguire', () => {
-    it('«persona sbagliata»: il lavoro torna pronto e il documento RESTA VALIDO (D291)', () => {
+    it('«persona sbagliata»: il lavoro torna pronto, il documento RESTA VALIDO, e ora l\'azione c\'è (D291 · D312)', () => {
       const e = effettoDaMotivo('destinatario_errato')
       expect(e.lavoro).toBe('torna_pronto')
       expect(e.documento).toBe('resta_valido')
-      // 🛑 E NON è automatica: `riapri_lavoro_atomica` annulla SEMPRE la
-      // dichiarazione (20260806210400:138-140), quindi non può servire questa
-      // riga. La transizione «pronto col documento intatto» NON ESISTE ancora.
-      expect(e.azione).toBeNull()
+      // ⚖️ D312 — QUI C'ERA `toBeNull()`, con accanto tre righe di commento che
+      // dicevano «la transizione "pronto col documento intatto" NON ESISTE
+      // ancora». 🛑 Quel testo è SCADUTO dal PRONTO-4, che ha costruito
+      // `riporta_a_pronto_atomica`: ripristina il lavoro e lascia viva la
+      // dichiarazione, che è esattamente ciò che questa riga chiede.
+      // 🔑 Resta vero il motivo per cui NON può essere `riapri_lavoro`:
+      // `riapri_lavoro_atomica` annulla SEMPRE la dichiarazione
+      // (20260806210400:138-140). L'azione è l'altra.
+      expect(e.azione).toBe('torna_pronto')
     })
 
     it('«difetto di lavorazione» e «difetto del materiale» chiedono una scelta, e il documento la segue (D290, D297, D298)', () => {
@@ -114,11 +131,33 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
     // compromesso» e, in un'altra riga, «Il manufatto è a posto»: **due parole
     // per la stessa cosa dentro lo stesso file**, e nessuno se n'era accorto
     // finché Francesco non l'ha letto a schermo.
+    // 🔴 EMENDAMENTO DEL 07/08 — L'INGRESSO DELLA GUARDIA ERA CIECO SUI TESTI
+    // NUOVI. Scorrendo i soli `MOTIVI` e chiamando `effettoDaMotivo`, questa
+    // prova guardava **la sola tabella fissa**: i due `perche` risolti li
+    // produce `effettoDaMotivoEScelta`, quindi non venivano esaminati nemmeno
+    // per sbaglio — sarebbero passati per non essere stati guardati.
+    // 🛑 È la stessa famiglia dei falsi verdi già pagati in quest'ondata: *una
+    // prova che non guarda la cosa non è una prova che la cosa sia giusta*.
+    // Ora l'ingresso sono TREDICI testi: i nove della tabella più i quattro
+    // esiti risolti (`MOTIVI_CON_SCELTA` × `si_sistema`/`si_rifa`), così il
+    // divieto vale anche per chi scriverà la prossima frase.
     it('🛑 D301/D302 — nessun testo dice «pezzo» o «carta»: si dice MANUFATTO e DICHIARAZIONE', () => {
-      for (const m of MOTIVI) {
-        const t = effettoDaMotivo(m).perche.toLowerCase()
-        expect(t, `${m} — «pezzo» è vietato (D301: si dice «manufatto»)`).not.toMatch(/\bpezzo\b/)
-        expect(t, `${m} — «carta» è vietata nelle etichette (D302: si dice «dichiarazione»)`).not.toMatch(/\bcarta\b/)
+      const testi: Array<readonly [string, string]> = [
+        ...MOTIVI.map((m) => [m, effettoDaMotivo(m).perche] as const),
+        ...MOTIVI_CON_SCELTA.flatMap((m) =>
+          (['si_sistema', 'si_rifa'] as const).map(
+            (s) => [`${m} + ${s}`, effettoDaMotivoEScelta(m, s).perche] as const
+          )
+        ),
+      ]
+      // 🔑 Il conteggio è parte della guardia: senza, un `MOTIVI_CON_SCELTA`
+      // svuotato per sbaglio farebbe RESTRINGERE l'ingresso in silenzio, e la
+      // prova tornerebbe verde proprio perché non guarda più niente.
+      expect(testi).toHaveLength(13)
+      for (const [dove, grezzo] of testi) {
+        const t = grezzo.toLowerCase()
+        expect(t, `${dove} — «pezzo» è vietato (D301: si dice «manufatto»)`).not.toMatch(/\bpezzo\b/)
+        expect(t, `${dove} — «carta» è vietata nelle etichette (D302: si dice «dichiarazione»)`).not.toMatch(/\bcarta\b/)
       }
     })
 
@@ -136,5 +175,73 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
         expect(e.lavoro, String(veleno)).toBe('nessuno')
       }
     })
+  })
+})
+
+/**
+ * IL BIVIO DEI DUE DIFETTI — D304, sopra D290/D297/D298.
+ *
+ * 🔑 Due motivi su nove non hanno un effetto solo: hanno un BIVIO, e chi
+ * registra lo sceglie. `effettoDaMotivo` restituisce la riga NON risolta —
+ * quella che dichiara `scelta_richiesta` e non agisce; `effettoDaMotivoEScelta`
+ * restituisce la riga RISOLTA. Le due convivono per disegno: la prima descrive
+ * il motivo, la seconda descrive il motivo *più* la risposta.
+ *
+ * 🛑 E la scelta non si indovina: senza, la funzione torna alla riga non
+ * risolta invece di scegliere un ramo per conto di chi non ha risposto.
+ */
+describe('effettoDaMotivoEScelta — il bivio dei due difetti (D304)', () => {
+  it('difetto_lavorazione + si_sistema → il lavoro torna pronto, la dichiarazione resta valida', () => {
+    const e = effettoDaMotivoEScelta('difetto_lavorazione', 'si_sistema')
+    expect(e.lavoro).toBe('torna_pronto')
+    expect(e.documento).toBe('resta_valido')
+    expect(e.azione).toBe('torna_pronto')
+  })
+
+  it('difetto_materiale + si_rifa → nasce un lavoro nuovo, il vecchio resta consegnato', () => {
+    const e = effettoDaMotivoEScelta('difetto_materiale', 'si_rifa')
+    expect(e.lavoro).toBe('lavoro_nuovo')
+    expect(e.documento).toBe('resta_valido')
+    expect(e.azione).toBe('crea_rifacimento')
+  })
+
+  it('senza scelta restituisce la riga NON risolta, e nessuna azione', () => {
+    const e = effettoDaMotivoEScelta('difetto_lavorazione', null)
+    expect(e.lavoro).toBe('scelta_richiesta')
+    expect(e.azione).toBeNull()
+  })
+
+  it('una scelta su un motivo che non la ammette NON produce nessuna azione', () => {
+    const e = effettoDaMotivoEScelta('errore_prezzo_quantita', 'si_rifa')
+    expect(e).toEqual(effettoDaMotivo('errore_prezzo_quantita'))
+    expect(e.azione).toBeNull()
+  })
+
+  it('una chiave del prototipo non risale a Object e non porta azioni', () => {
+    const e = effettoDaMotivoEScelta('constructor' as never, 'si_rifa' as never)
+    expect(e.azione).toBeNull()
+    expect(typeof e.perche).toBe('string')
+  })
+
+  // 🔑 NON È COSMESI: `DevoIntervenire.tsx:468` stampa `effetto.perche`, e il
+  // testo della riga non risolta (`effetti.ts:113`) è una DOMANDA APERTA. Senza
+  // questa prova, la schermata finale richiederebbe una scelta già fatta.
+  it('il testo risolto NON ripete la domanda a cui la persona ha già risposto', () => {
+    const e = effettoDaMotivoEScelta('difetto_lavorazione', 'si_sistema')
+    expect(e.perche).not.toMatch(/oppure se ne fa uno nuovo\?/)
+  })
+
+  // ⚖️ D312 — il TERZO motivo della spec §0, che non passa dal bivio: la sua
+  // azione vive nella riga fissa, e questa prova la copre da entrambe le porte.
+  it('«persona sbagliata» porta ORA la sua azione, e la porta anche senza scelta (D291 · D312)', () => {
+    for (const e of [
+      effettoDaMotivo('destinatario_errato'),
+      effettoDaMotivoEScelta('destinatario_errato', null),
+      effettoDaMotivoEScelta('destinatario_errato', 'si_rifa'), // una scelta che quel motivo non ammette
+    ]) {
+      expect(e.lavoro).toBe('torna_pronto')
+      expect(e.documento).toBe('resta_valido')
+      expect(e.azione).toBe('torna_pronto')
+    }
   })
 })
