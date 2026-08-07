@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventiduesima tornata (D295: il documento si ripulisce E si completa, nella stessa ondata)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventitreesima tornata (D296: il push non si chiede piu — ma il MERGE su main resta un giudizio, non un automatismo)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**295 decisioni in centoventidue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**296 decisioni in centoventitre tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2926,3 +2926,38 @@ i due temi su cui la checklist è costruita. ➡️ **Si fa la prova a schermo �
 PRIMA e DOPO, guardato** — e **non** il micro-audit a dodici sezioni per sei combinazioni, che su un
 foglio A4 non ha oggetto. 🛑 La regola non è saltata: è **adattata con motivo scritto**, che è
 esattamente ciò che D245 chiede quando dice «risolto **o deferito con motivo**».
+
+---
+
+### Centoventitreesima tornata — D296: il push non si chiede più (07/08/2026, 13:27)
+
+**Nasce da:** una chiusura in cui, per l'ennesima volta, il lavoro è rimasto **solo sul computer di
+Francesco** — e da lui, che ha guardato il rapporto rischio/attrito e l'ha sciolto.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D296** | 🔑 **PUBBLICARE NON SI CHIEDE PIÙ.** Francesco: «*quando ritieni di pushare, fallo, ti autorizzo, tanto possiamo sempre tornare indietro e poi non siamo in distribuzione, la pwa verrà utilizzata dai clienti solo quando lo dirò io, quindi siamo tranquilli*» | `git push` si esegue **da soli**, senza chiedere il permesso ogni volta |
+
+**📌 Le due ragioni che Francesco ha dato, e vanno tenute insieme perché la seconda regge la prima:**
+**«si può sempre tornare indietro»** (un salvataggio pubblicato non è irreversibile) e **«non siamo in
+distribuzione: la PWA la useranno i clienti solo quando lo dirò io»**. ➡️ **Il perimetro di questa
+decisione è esattamente il secondo pezzo**, ed è la stessa struttura di D103 e D284: *il rischio è basso
+perché nessuno è ancora dentro*. 🛑 **Il giorno in cui il primo laboratorio reale entra, questa riga va
+riletta insieme alla §8 di `ua-app/CLAUDE.md` che la regge** — come già scritto per D284.
+
+**🔑 CIÒ CHE D296 TOGLIE È IL PERMESSO, NON IL GIUDIZIO — e la distinzione è tutta la decisione.**
+«Quando **ritieni** di pushare» affida una **valutazione**, non un automatismo. Restano quindi in piedi,
+e non sono attriti burocratici ma il contenuto stesso di quel «ritieni»:
+- **Un ramo si pubblica volentieri**: è una copia di sicurezza fuori dal computer, e non tocca nulla.
+  ⚠️ È l'unica rete contro il caso «il Mac non si accende domani»: fino a oggi **63 salvataggi di lavoro
+  vivevano in un posto solo**.
+- 🛑 **`main` è un'altra cosa: `git push origin main` fa PARTIRE VERCEL**, cioè pubblica. Un'ondata **a
+  metà**, con difetti dichiarati nella §0 del proprio handoff, **non si manda lì** — non perché serva un
+  permesso, ma perché pubblicare un lavoro incompleto è una scelta tecnica sbagliata a prescindere da
+  chi la autorizza.
+- **Il verde va misurato prima, non dopo**: `verify:full` con l'uscita letta **da variabile**.
+
+**⚖️ Applicazione immediata, dichiarata:** il ramo `intervento-post-consegna` **viene pubblicato oggi**;
+il **merge su `main` no**, ed è un giudizio motivato — l'ondata è a **quattro compiti su nove** più il
+lavoro sul documento, e la sua §0 elenca **sette cose non fatte**, fra cui **un testo falso che l'app
+mostra all'utente**.

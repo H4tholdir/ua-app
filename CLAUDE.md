@@ -676,15 +676,41 @@ migration** nel ledger, quindi non è un sostituto · e ogni comando passato a F
 la cartella dentro** (`cd "…/ua-app" && …`): il terminale parte dalla **cartella superiore**.
 
 📌 **Perimetro, e resta stretto:** vale per il database di prova `iagibumwjstnveqpjbwq`, che la §8
-dichiara pieno di **soli dati di prova**. Stessa famiglia di D103. 🛑 **NON si estende** a pubblicare
-su `main` (resta di Francesco), cancellare dati, o a un futuro ambiente con dati veri — e **alla prima
-onboarding di un laboratorio reale questa riga va riletta insieme alla §8 che la regge**.
+dichiara pieno di **soli dati di prova**. Stessa famiglia di D103. 🛑 **NON si estende** a cancellare
+dati o a un futuro ambiente con dati veri — e **alla prima onboarding di un laboratorio reale questa
+riga va riletta insieme alla §8 che la regge**.
+🔄 **«resta di Francesco» valeva per il PUSH fino al 07/08/2026: v. D296 poco sotto.**
 
 🔑 **Perché è stata ratificata:** in una giornata il classificatore ha rifiutato quattro volte, la
 regola «si chiede, non si aggira» è stata seguita, e **tre passaggi di consegne su tre hanno prodotto
 un errore** (comando senza cartella · comando che non registra la migration · comando appeso a una
 domanda). **Un passaggio di consegne non è gratis: è un punto in cui si perde contesto.** Dove il
 contesto ce l'ha chi esegue e il rischio è basso, il passaggio *aggiunge* rischio invece di toglierlo.
+
+---
+
+### Pubblicare non si chiede più — ma il MERGE su `main` resta un giudizio (D296, Francesco 07/08/2026)
+
+> «quando ritieni di pushare, fallo, ti autorizzo, tanto possiamo sempre tornare indietro e poi non
+> siamo in distribuzione, la pwa verrà utilizzata dai clienti solo quando lo dirò io, quindi siamo
+> tranquilli»
+
+**`git push` si esegue da soli.** 🔑 **Ma ciò che D296 toglie è il PERMESSO, non il GIUDIZIO:** «quando
+**ritieni**» affida una valutazione, e il contenuto di quella valutazione è questo —
+
+- **Un RAMO si pubblica volentieri**, sempre: è una copia di sicurezza fuori dal computer e non tocca
+  nulla. ⚠️ È l'unica rete contro il caso «il Mac non si accende domani»: il 07/08 **63 salvataggi di
+  lavoro vivevano in un posto solo**.
+- 🛑 **`main` è un'altra cosa: `git push origin main` FA PARTIRE VERCEL**, cioè pubblica. **Un'ondata a
+  metà, con difetti dichiarati nella §0 del proprio handoff, non si manda lì** — non perché serva un
+  permesso, ma perché pubblicare un lavoro incompleto è una scelta tecnica sbagliata a prescindere da
+  chi la autorizza.
+- **Il verde si misura PRIMA**, con `verify:full` e l'uscita letta **da variabile**.
+
+📌 **Il perimetro lo dà la seconda metà della frase di Francesco** — «*non siamo in distribuzione… i
+clienti la useranno solo quando lo dirò io*»: è la stessa struttura di D103 e D284, *il rischio è basso
+perché nessuno è ancora dentro*. 🛑 **Alla prima onboarding di un laboratorio reale questa riga va
+riletta insieme alla §8.**
 
 ### Collaudo dal vivo — l'accesso al banco (D103, Francesco 03/08/2026)
 
