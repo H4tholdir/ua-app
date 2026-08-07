@@ -5,6 +5,7 @@ import { isStatoConsegnabile } from './costanti'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 import { annoRoma } from '@/lib/utils/data-roma'
 
@@ -191,7 +192,8 @@ export async function orchestraConsegna(
         cliente:clienti(*),
         paziente:pazienti(*),
         lavorazioni:lavori_lavorazioni(*),
-        materiali:lavori_materiali(*)
+        materiali:lavori_materiali(*),
+        prescrizione:lavori_prescrizioni(*)
       `)
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
@@ -207,6 +209,17 @@ export async function orchestraConsegna(
         messaggio: 'Lavoro non trovato o eliminato.',
       }
     }
+
+    // D295 — l'embed della prescrizione si normalizza SUBITO, prima di
+    // chiunque lo legga.
+    // 🔑 PostgREST restituisce `prescrizione` come ARRAY (la FK dell'embed è
+    //    composita, quindi la relazione è `isOneToOne: false`): passarlo così
+    //    a valle darebbe un `contenuto` sempre `undefined` — cioè il difetto di
+    //    prima, mascherato da correzione. `normalizzaPrescrizione` è la STESSA
+    //    funzione della scheda (`lavori/[id]/page.tsx:81`) e della rotta
+    //    (`api/lavori/[id]/route.ts:396`), non una seconda lettura.
+    // ⚠️ Qui e non più giù: il precheck dello Step 2 la legge già.
+    lavoro.prescrizione = normalizzaPrescrizione(lavoro.prescrizione)
 
     // ----------------------------------------------------------------
     // Step 1.5 — Gate B1: solo stati consegnabili (E4, server-side)

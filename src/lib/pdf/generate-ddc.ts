@@ -9,6 +9,7 @@ import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 import { isPublicStorageUrl } from '@/lib/utils/storage-url'
 import { annoRoma } from '@/lib/utils/data-roma'
 import { nomePrescrittore } from '@/lib/consegna/prescrittore'
+import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-prescritte'
 
 // A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
 // decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
@@ -51,8 +52,56 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
  *     §5 (referral ①②③④): la clausola «e ai disposti dell'Allegato XIII», il
  *     luogo di fabbricazione mancante, il «Sostanze/tessuti: No» affermato senza
  *     dato, l'identificazione del paziente che può ridursi a un trattino.
+ *
+ *  `ddc-v2` — dal 07/08/2026 (**D295**). ⚠️ È il primo salto, ed è dovuto:
+ *     **DUE contenuti dell'Allegato XIII ENTRANO**, e uno dei due era già
+ *     nominato fra i candidati qui sopra.
+ *       ① **Voce 6** — «le caratteristiche specifiche del prodotto indicate
+ *          nella prescrizione». Era cablata a `null` e la riga del modello è
+ *          condizionale: **non è mai comparsa su nessuna dichiarazione**. Ora
+ *          nasce da `lavori_prescrizioni.contenuto`, resa in italiano da
+ *          `caratteristichePrescritte`.
+ *       ② **Voce 1** — «il nome e l'indirizzo del fabbricante e di TUTTI I
+ *          LUOGHI DI FABBRICAZIONE». `luogo_fabbricazione` esisteva come
+ *          colonna `NOT NULL DEFAULT 'Italia'`, non la scriveva nessuno e il
+ *          modello non la stampava.
+ *     🔑 Perché il salto NON era rimandabile: senza, due documenti che dicono
+ *        cose diverse porterebbero la stessa etichetta di versione — e fra
+ *        dieci anni questa colonna è l'unica cosa che permette di rileggere una
+ *        dichiarazione sapendo come andava letta.
  *  ═════════════════════════════════════════════════════════════════════════ */
-const VERSIONE_TEMPLATE_DDC = 'ddc-v1'
+const VERSIONE_TEMPLATE_DDC = 'ddc-v2'
+
+/** Il luogo di fabbricazione della VOCE 1, ricavato dal laboratorio.
+ *
+ *  🔴 DA DOVE ARRIVAVA PRIMA: **da nessuna parte.** La colonna è
+ *     `NOT NULL DEFAULT 'Italia'` (`supabase/schema.sql:1251`) e nessuna riga
+ *     di codice l'ha mai scritta — quindi ogni dichiarazione in archivio porta
+ *     il letterale **«Italia»**, che è un PAESE e non un indirizzo, mentre la
+ *     voce 1 chiede «il nome e **l'indirizzo**… di tutti i luoghi di
+ *     fabbricazione». E comunque non usciva sul foglio: il modello non la
+ *     stampava affatto.
+ *
+ *  🔑 DECISIONE (D295, presa qui e dichiarata nel referto): per un laboratorio
+ *     a **sede unica** — che è il caso di ogni laboratorio odontotecnico che
+ *     questa PWA serve oggi — il luogo di fabbricazione **coincide con
+ *     l'indirizzo del fabbricante**. Il §1 mostrerà quindi la stessa stringa
+ *     sotto due etichette: è corretto, e si dice invece di lasciarlo scoprire.
+ *     ⚠️ Un laboratorio con PIÙ luoghi di fabbricazione (una seconda sede, una
+ *     fresatura esternalizzata sotto il proprio nome) qui NON è rappresentabile:
+ *     servirebbe un campo dedicato e ripetibile. È una decisione di Francesco,
+ *     non di questa funzione — riferita, non presa.
+ *
+ *  🛑 Il ripiego su «Italia» resta, e non è pigrizia: la colonna è `NOT NULL`,
+ *     una stringa vuota la supererebbe (vuoto per il database non è vuoto per
+ *     una persona) e stamperebbe un'etichetta senza valore. «Italia» è il
+ *     valore che quella colonna ha sempre avuto: peggiora nulla, e non finge. */
+function luogoFabbricazione(lab: Laboratorio): string {
+  const pezzi = [lab.indirizzo, lab.citta]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter((v) => v.length > 0)
+  return pezzi.length > 0 ? pezzi.join(', ') : 'Italia'
+}
 
 /** Serializzazione CANONICA: le chiavi degli oggetti in ordine alfabetico, gli
  *  array nel loro ordine (che è un dato, non una casualità).
@@ -144,6 +193,9 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     fabbricante_piva: (lab.partita_iva ?? '') as string,
     fabbricante_itca: (lab.codice_itca ?? null) as string | null,
     luogo_emissione: (lab.citta ?? 'Italia') as string,
+    // VOCE 1 (D295) — ⚠️ NON è `luogo_emissione`: quello è dove il documento è
+    // stato firmato, questo è dove il dispositivo è stato fabbricato.
+    luogo_fabbricazione: luogoFabbricazione(lab),
     // D242 — il ripiego sul cliente vale con la STESSA regola del precheck.
     // 🛑 Qui c'era `lavoro.richiedente_nome ?? …`: un `??` ripiega solo su
     // `null`, quindi una stringa vuota (o di soli spazi) lo superava intatta e
@@ -163,7 +215,18 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     descrizione_dispositivo: lavoro.descrizione,
     denti_coinvolti: lavoro.denti_coinvolti ?? null,
     uso_esclusivo_paziente: 'Dispositivo fabbricato su misura esclusivamente per il paziente indicato',
-    prescrizione_caratteristiche: null as string | null,
+    // VOCE 6 (D295) — «le caratteristiche specifiche del prodotto indicate
+    // nella prescrizione».
+    // 🔴 Qui c'era `null as string | null`, cablato. Il dato esisteva già in
+    //    `lavori_prescrizioni.contenuto` (ondata B) e non lo leggeva nessuno:
+    //    mancava il filo, non il dato. Con la riga del modello condizionale,
+    //    l'effetto era che uno degli OTTO contenuti obbligatori non è MAI
+    //    comparso su una dichiarazione emessa.
+    // 🔑 `undefined` (embed non chiesto) e «prescrizione senza caratteristiche»
+    //    danno lo stesso vuoto QUI, e va bene: sul documento un vuoto è un
+    //    vuoto. A distinguerli è `precheckMDR`, che vede se la riga esiste e lo
+    //    dice PRIMA di emettere, quando si può ancora rimediare.
+    prescrizione_caratteristiche: caratteristichePrescritte(lavoro.prescrizione?.contenuto),
     contiene_sostanze_o_tessuti: false,
     sostanze_tessuti_dettaglio: null as string | null,
     classe_rischio: lavoro.classe_rischio,

@@ -228,14 +228,25 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
   })
 
-  it('template_version resta `ddc-v1` — il salto è riservato a un cambiamento di SOSTANZA (D105)', async () => {
-    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:202`) chiede solo
+  it('template_version è `ddc-v2` — il salto è avvenuto, e questo è il suo fatto (D295)', async () => {
+    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:224`) chiede solo
     // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
     // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
     // costante gli dice quando è lecito farlo.
+    //
+    // 🔄 QUESTA PROVA DICEVA `ddc-v1`, ed è stata cambiata il 07/08/2026 — non
+    //    perché desse fastidio, ma perché la sua PREMESSA è decaduta. Il registro
+    //    accanto alla costante riservava il salto «al primo cambiamento di
+    //    SOSTANZA — un contenuto dell'Allegato XIII che entra, esce o cambia
+    //    significato» e nominava fra i candidati «il luogo di fabbricazione
+    //    mancante». Con D295 ne ENTRANO DUE (la voce 6 e la voce 1): è
+    //    esattamente il caso previsto. Lasciare `ddc-v1` significherebbe due
+    //    documenti che dicono cose diverse sotto la stessa etichetta di
+    //    versione — cioè togliere valore all'unica colonna che, fra dieci anni,
+    //    permette di rileggere una dichiarazione sapendo come andava letta.
     await generateDdC(LAVORO_FIXTURE)
     const riga = mockInsert.mock.calls[0][0]
-    expect(riga.template_version).toBe('ddc-v1')
+    expect(riga.template_version).toBe('ddc-v2')
   })
 
   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
@@ -438,4 +449,149 @@ describe('numero DDC a capodanno (fix date fiscali 20/07)', () => {
     expect(result.numero).toBe('DDC-2027-0001')
     expect(mockGeneraProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'ddc', 2027)
   })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D295 — I DUE CONTENUTI DELL'ALLEGATO XIII CHE IL DOCUMENTO NON HA MAI DETTO
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 IL FATTO, misurato il 07/08/2026: `generate-ddc.ts:166` cablava
+//    `prescrizione_caratteristiche: null` — la VOCE 6 dell'Allegato XIII («le
+//    caratteristiche specifiche del prodotto indicate nella prescrizione») non
+//    è MAI comparsa su una dichiarazione, perché il modello rende quella riga
+//    solo se valorizzata. E `luogo_fabbricazione`, che la VOCE 1 pretende
+//    («il nome e l'indirizzo del fabbricante e di TUTTI I LUOGHI DI
+//    FABBRICAZIONE»), è una colonna `NOT NULL DEFAULT 'Italia'` che nessuno ha
+//    mai scritta e che il modello non ha mai stampata.
+describe('D295 voce 6 — le caratteristiche prescritte arrivano sul documento', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+    mockTables(LAB_FIXTURE)
+  })
+
+  it('🔴 con una prescrizione trascritta, la voce 6 è una FRASE, non `null`', async () => {
+    await generateDdC({
+      ...LAVORO_FIXTURE,
+      prescrizione: { contenuto: { elementi: [26, 27], colore: 'A3' } },
+    } as unknown as typeof LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrizione_caratteristiche: 'Elementi: denti 26, 27 · Colore: A3' })
+    )
+  })
+
+  it('senza prescrizione la voce 6 resta vuota — legittimamente, e senza inventare', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrizione_caratteristiche: null })
+    )
+  })
+
+  it('prescrizione presente ma contenuto vuoto: `null`, non una frase a vuoto', async () => {
+    await generateDdC({
+      ...LAVORO_FIXTURE,
+      prescrizione: { contenuto: {} },
+    } as unknown as typeof LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrizione_caratteristiche: null })
+    )
+  })
+})
+
+describe('D295 voce 1 — il luogo di fabbricazione, che era un `DEFAULT` mai scritto', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+  })
+
+  it('🔴 il luogo di fabbricazione è l\'INDIRIZZO del laboratorio, non il paese', async () => {
+    // «Italia» è un paese, non un indirizzo: la voce 1 chiede l'indirizzo dei
+    // luoghi di fabbricazione. Per un laboratorio a sede unica il luogo di
+    // fabbricazione COINCIDE con l'indirizzo del fabbricante — e si dice.
+    mockTables(LAB_FIXTURE)
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Via Roma 12, Serre' })
+    )
+  })
+
+  it('laboratorio senza indirizzo: si ripiega su «Italia» — il valore che la colonna già aveva', async () => {
+    mockTables({ ...LAB_FIXTURE, indirizzo: null, citta: null })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Italia' })
+    )
+  })
+
+  it('indirizzo di SOLI SPAZI: è vuoto quanto `null` — la colonna è NOT NULL e non prende stringhe finte', async () => {
+    mockTables({ ...LAB_FIXTURE, indirizzo: '   ', citta: '  ' })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Italia' })
+    )
+  })
+
+  it('solo la città, senza via: si stampa quello che c\'è', async () => {
+    mockTables({ ...LAB_FIXTURE, indirizzo: null })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Serre' })
+    )
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D295 — LA PROVA CHE CHIUDE IL GIRO: dal lavoro alla CARTA, senza tagli
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛑 PERCHÉ QUESTA PROVA ESISTE, ed è la lezione del difetto stesso. Il modello
+//    sapeva già stampare la voce 6 (`DdcTemplate.tsx:442-447`) e le prove sul
+//    modello erano VERDI: bastava passargli il valore a mano. Era il
+//    GENERATORE a non passarglielo mai. Due metà giuste e nessuno che
+//    provasse la giuntura — ed è esattamente lì che il difetto è vissuto.
+//    Questa prova parte da un LAVORO e finisce sul TESTO DEL PDF: la giuntura
+//    è dentro, non fuori.
+describe('D295 — dal lavoro alla carta: la voce 6 arriva davvero sul foglio', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+    mockTables(LAB_FIXTURE)
+  })
+
+  it('🔴 il PDF costruito dai dati del GENERATORE porta la frase e il luogo', async () => {
+    const { createElement } = await import('react')
+    const { PDFParse } = await import('pdf-parse')
+    const { renderPdfDocument } = await import('@/lib/pdf/render-document')
+    const { DdcTemplate } = await import('@/components/features/pdf/DdcTemplate')
+
+    const lavoro = {
+      ...LAVORO_FIXTURE,
+      prescrizione: { contenuto: { elementi: [26, 27], colore: 'A3' } },
+    } as unknown as typeof LAVORO_FIXTURE
+
+    await generateDdC(lavoro)
+    // La riga che il generatore ha DAVVERO scritto — non una fixture a mano.
+    const riga = mockInsert.mock.calls[0][0]
+
+    const buffer = await renderPdfDocument(
+      createElement(DdcTemplate, { lavoro, lab: LAB_FIXTURE, ddc: riga })
+    )
+    const parser = new PDFParse({ data: buffer })
+    const { text } = await parser.getText()
+    await parser.destroy()
+
+    expect(text).toContain('Caratteristiche prescritte')
+    expect(text).toContain('Elementi: denti 26, 27 · Colore: A3')
+    expect(text).toContain('Luogo di fabbricazione')
+    expect(text).toContain('Via Roma 12, Serre')
+    // E mai la forma da macchina: il foglio lo legge una persona.
+    expect(text).not.toContain('"elementi"')
+  }, 30_000)
 })

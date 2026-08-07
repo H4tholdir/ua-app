@@ -362,6 +362,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
               <Text style={styles.value}>{lab.srn_eudamed}</Text>
             </View>
           ) : null}
+          {/* VOCE 1 (D295) — «il nome e l'indirizzo del fabbricante e di TUTTI
+              I LUOGHI DI FABBRICAZIONE». Prima del 07/08/2026 questa riga non
+              esisteva: la colonna c'era (NOT NULL DEFAULT 'Italia'), nessuno la
+              scriveva, e il foglio non la diceva.
+              🔑 Incondizionata, a differenza delle righe facoltative qui sopra:
+              la colonna è NOT NULL e un luogo di fabbricazione è SEMPRE dovuto —
+              nasconderla quando è vuota nasconderebbe proprio il caso da vedere.
+              ⚠️ Per un laboratorio a sede unica questo valore COINCIDE con
+              l'indirizzo del fabbricante due righe sopra. È corretto, non un
+              doppione: la voce 1 chiede entrambe le informazioni, e chi ispeziona
+              deve poter leggere che coincidono invece di doverlo dedurre. */}
+          <View style={styles.row}>
+            <Text style={styles.label}>Luogo di fabbricazione:</Text>
+            <Text style={styles.value}>{ddc.luogo_fabbricazione || '—'}</Text>
+          </View>
           <View style={styles.row}>
             <Text style={styles.label}>Luogo emissione:</Text>
             <Text style={styles.value}>{ddc.luogo_emissione || '—'}</Text>

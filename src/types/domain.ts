@@ -719,6 +719,17 @@ export interface DichiarazioneConformita {
   fabbricante_piva: string;
   fabbricante_itca: string | null;
   luogo_emissione: string;               // Es. "Serre (SA), Italia"
+  /** VOCE 1 dell'Allegato XIII: «il nome e l'indirizzo del fabbricante e di
+   *  TUTTI I LUOGHI DI FABBRICAZIONE».
+   *
+   *  🔄 Aggiunto al tipo il 07/08/2026 (D295): la colonna esiste dal primo
+   *     giorno (`schema.sql:1251`, `NOT NULL DEFAULT 'Italia'`), ma non stava
+   *     nel tipo, non la scriveva nessuno e il modello non la stampava — così
+   *     ogni dichiarazione emessa portava in banca dati il letterale «Italia»,
+   *     che è un PAESE e non un indirizzo, e sul foglio non portava niente.
+   *  ⚠️ NON è `luogo_emissione` (`lab.citta`): quello è dove il documento è
+   *     stato firmato, questo è dove il dispositivo è stato fabbricato. */
+  luogo_fabbricazione: string;
   // §3 — Prescrittore
   prescrittore_nome: string;
   prescrizione_id: string | null;        // Numero prescrizione del dentista
@@ -759,7 +770,24 @@ export interface ConsegnaPayload {
 export interface ConsegnaPrecheckResult {
   ok: boolean;
   errori: {
-    elemento: number; // 1-8 (Allegato XIII MDR)
+    /** La VOCE dell'Allegato XIII punto 1 che questo controllo protegge (1-8),
+     *  oppure `null` quando il controllo non difende una voce dell'Allegato ma
+     *  l'integrità del documento (una colonna `NOT NULL`, un dato d'esercizio).
+     *
+     *  🔄 CORRETTO IL 07/08/2026 (D295). Qui c'era `elemento: number` con il
+     *     commento «1-8 (Allegato XIII MDR)», e la numerazione che ci passava
+     *     dentro NON era quella dell'Allegato: tre voci erano inventate (data
+     *     di emissione, classe di rischio, data di consegna prevista — nessuna
+     *     compare nell'Allegato) e tre voci vere mancavano (la 2 mandatario,
+     *     la 6 caratteristiche prescritte, la 8 sostanze/tessuti).
+     *  🔑 Perché un numero sbagliato è costato mesi: chi leggeva «6 = classe di
+     *     rischio» aveva ogni ragione di credere che la voce 6 fosse coperta.
+     *     Era invece l'unica delle otto che il documento non ha MAI stampato.
+     *  ⚠️ Il numero non arriva all'operatore: `FlussoConsegna.tsx:169` lo usa
+     *     come sola `key` di React, e la schermata mostra `descrizione`. È un
+     *     nome per chi scrive il codice — ed è esattamente per questo che
+     *     sbagliarlo non si vedeva. */
+    elemento: number | null;
     descrizione: string;
     campo: string;
     route: string;
@@ -767,6 +795,15 @@ export interface ConsegnaPrecheckResult {
   /** Segnala campi accettazione-ingresso mancanti (tipo_impronte, disinfettante_usato) — SOFT BLOCK */
   mdr_incompleto?: boolean;
   mdr_campi_mancanti?: string[];
+  /** Avvisi già scritti in italiano compiuto — la rotta di precheck li versa
+   *  nei `warnings`, che la schermata mostra nel foglio di conferma.
+   *
+   *  🛑 NON BLOCCANO, e la distinzione è una direttiva: «la PWA non dà blocchi,
+   *     dà aiuti» (D262). `mdr_campi_mancanti` non basta come casa: quella
+   *     lista porta NOMI DI CAMPO e la rotta li completa con «non registrato
+   *     all'accettazione» (precheck-consegna/route.ts:62) — una coda che per
+   *     un avviso diverso da quelli d'accettazione direbbe una cosa falsa. */
+  avvisi?: string[];
 }
 
 export interface PrecheckConsegnaResponse {

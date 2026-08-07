@@ -45,6 +45,11 @@ const DDC_FIXTURE: DichiarazioneConformita = {
   fabbricante_piva: '03508740655',
   fabbricante_itca: 'ITCA01051686',
   luogo_emissione: 'Serre (SA), Italia',
+  // 🔴 «Italia» È IL VALORE VERO DI OGNI DICHIARAZIONE IN ARCHIVIO, non un
+  //    valore scelto per la prova: fino al 07/08/2026 nessuno scriveva questa
+  //    colonna e il `DEFAULT 'Italia'` di `schema.sql:1251` faceva da solo.
+  //    Questa fixture è quindi il documento «di prima», e resta tale apposta.
+  luogo_fabbricazione: 'Italia',
   // §3 Prescrittore
   prescrittore_nome: 'Dott. Mario Rossi',
   prescrizione_id: null,
@@ -456,4 +461,61 @@ describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova
     // il segnaposto di codifica: senza, un lettore mostrerebbe «ConformitÃ»
     expect(grezzo).toContain('\xfe\xff')
   }, 30_000)
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D295 — LA PROVA CHE LE DUE VOCI FINISCONO DAVVERO SULLA CARTA
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛑 NON BASTA che `generateDdC` metta il valore nell'insert: fino al
+//    07/08/2026 `prescrizione_caratteristiche` ERA una colonna, ERA nel
+//    modello, e il documento non l'ha mai stampata — perché il valore che ci
+//    arrivava era sempre `null` e la riga è condizionale
+//    (`DdcTemplate.tsx:442-447`). Queste prove rendono il PDF VERO e ne
+//    leggono il testo: è l'unico controllo che il difetto non poteva superare.
+//
+// ⚠️ La fixture di sopra (`DDC_FIXTURE`) lascia le due voci vuote apposta —
+//    è il documento «di prima». Qui se ne rende una seconda, «di dopo».
+describe('D295 — voce 6 e luogo di fabbricazione sul foglio reso', () => {
+  let testoPieno = ''
+
+  beforeAll(async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: {
+        ...DDC_FIXTURE,
+        prescrizione_caratteristiche: 'Elementi: denti 26, 27 · Colore: A3',
+        luogo_fabbricazione: 'Via Roma 12, Serre',
+      },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    testoPieno = result.text
+  }, 30_000)
+
+  it('🔴 §5 stampa l\'etichetta «Caratteristiche prescritte»', () => {
+    expect(testoPieno).toContain('Caratteristiche prescritte')
+  })
+
+  it('🔴 e stampa la FRASE, leggibile da una persona — non un oggetto JSON', () => {
+    expect(testoPieno).toContain('Elementi: denti 26, 27 · Colore: A3')
+    // La contro-prova che vale più dell'asserzione sopra: sul foglio non
+    // compare MAI la forma da macchina.
+    expect(testoPieno).not.toContain('{"colore"')
+    expect(testoPieno).not.toContain('"elementi"')
+  })
+
+  it('🔴 §1 stampa il luogo di fabbricazione, che la voce 1 pretende', () => {
+    expect(testoPieno).toContain('Luogo di fabbricazione')
+    expect(testoPieno).toContain('Via Roma 12, Serre')
+  })
+
+  it('il documento «di prima» NON aveva nessuna delle due: è il difetto, misurato', () => {
+    // `pdfText` è il render della fixture con le due voci vuote. Se un giorno
+    // qualcuno rendesse incondizionali quelle righe, questa prova lo direbbe:
+    // una riga vuota su un documento legale è peggio di una riga assente.
+    expect(pdfText).not.toContain('Caratteristiche prescritte')
+  })
 })
