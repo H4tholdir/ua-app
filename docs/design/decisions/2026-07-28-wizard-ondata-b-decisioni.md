@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centodiciottesima tornata (D288: leffetto del rientro si DERIVA dal motivo, e «ho sbagliato a premere consegna» ripristina tutto)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventesima tornata (D290-D292: tre effetti dei nove motivi, decisi da chi il mestiere lo fa)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**288 decisioni in centodiciotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**292 decisioni in centoventi tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2746,3 +2746,70 @@ ha **nessuna scelta giusta** a schermo e prenderà il motivo più vicino.
 **l'elenco degli effetti non è ancora scritto**. Va fatto **prima** del cancello §0B sui testi: le
 tre frasi da approvare devono dire *cosa cambia*, e non si può dire cosa cambia finché non è deciso
 che cosa cambia.
+
+---
+
+### Centodiciannovesima tornata — D289: il formato della data si allinea a quello di casa, e NON serve il gate (07/08/2026, mattina)
+
+**Nasce da:** un effetto collaterale della propagazione di D286. Correggendo il fuso, due stampe
+server-side sono passate da `toLocaleDateString` nudo a `dataItalianaBreve()`, e con esse il testo
+visibile su `impostazioni/abbonamento`: **`20/8/2026` → `20/08/2026`**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D289** | ✅ **IL FORMATO CON LO ZERO DAVANTI VA BENE, e non apre un gate estetico.** Francesco: «*per il formato della data va benissimo*» | `dataItalianaBreve()` resta la forma unica. **La FASE 9b (gate L2) NON è dovuta** per questo cambio |
+
+**📌 Perché la domanda è stata posta lo stesso, e perché la risposta non svuota D245.** D245 dice che
+**il testo visibile è aspetto**, e che **in dubbio si fa il gate** (fail-closed, come R-P1). Qui il
+dubbio era reale: `impostazioni/abbonamento` **non è una superficie di quest'ondata**, quindi un
+micro-audit su dodici sezioni e sei combinazioni di schermo e tema sarebbe costato più del cambio.
+➡️ **La regola non è stata piegata: è stata applicata, e la sua uscita prevista è che DECIDE
+Francesco.** Un gate saltato **in silenzio** sarebbe stato il difetto già pagato due giorni di fila;
+un gate **dichiarato e sciolto da chi decide** è il funzionamento normale.
+🔑 **E il cambio va nella direzione giusta a prescindere:** `20/8/2026` era il formato **predefinito
+del browser**, non una scelta del progetto — cioè un punto in cui l'app parlava una lingua diversa da
+quella dei propri documenti.
+
+---
+
+### Centoventesima tornata — D290-D292: tre effetti dei nove motivi, decisi da chi il mestiere lo fa (07/08/2026, 08:42)
+
+> 🛑 **CORREZIONE DI ORARIO SU QUESTE DUE TORNATE, e la scrivo per intera perché è esattamente il difetto che D155 esiste per impedire.** Le due intestazioni portavano `00:41` e `00:52`: orari **DEDOTTI** dalla sessione precedente, non letti dall'orologio. `provato:` `date` → **`07/08/2026 08:43 CEST`**, e l'ultimo salvataggio della notte è delle **00:30** — fra i due c'è una pausa di otto ore che avevo registrato come cinquanta minuti. ➡️ D290-D292 portano ora l'ora **misurata**; per D289 non ho una misura dell'istante esatto e scrivo **«mattina»**, che è vero, invece di un numero preciso e falso. 🔑 **Il meccanismo è identico a quello del 02/08: un orario non verificato si eredita dal contesto precedente e nessun passaggio lo confronta con un orologio.** La regola dice `date` **prima** di scrivere una data, non dopo.
+
+
+**Nasce da:** D288 («l'effetto si deriva dal motivo») che ha aperto la conseguenza diretta — **l'elenco
+degli effetti dei nove motivi**, che non esisteva. Cinque righe su nove erano già decise dalla spec o
+da D288; tre erano **domande di mestiere**, non di programmazione, e sono andate a Francesco.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D290** | 🔑 **DIFETTO DI LAVORAZIONE: LO SCEGLIE CHI REGISTRA — «si sistema questo, o se ne fa uno nuovo?»** | L'app **non decide**: chiede. A volte un difetto si corregge sul pezzo, a volte il pezzo non è recuperabile. ➡️ Due esiti dallo stesso motivo: **rientro in produzione** (il lavoro torna a `pronto`) oppure **rifacimento** (lavoro nuovo collegato, `lavori_rifacimenti.evento_id`, che la spec §4 ha già reso «un esito, non la porta d'ingresso») |
+| **D291** | 🔑 **PERSONA SBAGLIATA: SI ANNULLA LA CONSEGNA, MA IL DOCUMENTO RESTA** | Il manufatto si recupera e si riconsegna a chi doveva riceverlo. Il lavoro torna a `pronto`; la dichiarazione **non si rifà**, perché **diceva il vero**: sbagliato era il destinatario, non il contenuto |
+| **D292** | 🔑 **RESO SENZA DIFETTO: DIPENDE DAL PERCHÉ È TORNATO — e l'app lo chiede** | Un manufatto che torna perché il paziente non si è presentato non è la stessa cosa di uno che il medico rimanda indietro senza dire perché. ➡️ Serve **un secondo dettaglio** prima di derivare l'effetto: **vocabolario nuovo, da progettare** |
+
+**🔑 Il filo che tiene insieme le tre, e non è una coincidenza: dove il mestiere ha più di un caso,
+l'app CHIEDE invece di indovinare.** Due risposte su tre sono «dipende», ed è la stessa forma di D267
+(«l'app propone, una persona conferma») applicata all'effetto invece che alla classificazione. 🛑 **Il
+contrario — derivare un esito solo perché è il più frequente — è il difetto che D276 ha già chiuso una
+volta**, in un altro vestito.
+
+**⚠️ Una conseguenza di D290 che DICHIARO invece di assumerla:** la stessa scelta «si sistema o si
+rifà?» ha senso anche per **`difetto_materiale`**, che ha la stessa struttura (il manufatto è fisicamente
+compromesso). **Non l'ho chiesto**, quindi lo porto come **proposta da confermare**, non come deciso.
+
+**⏸️ D292 apre un lavoro nuovo, piccolo ma vero:** il vocabolario dei motivi del reso senza difetto non
+esiste. Va progettato **prima** del cancello §0B, come tutto il resto di questo elenco.
+
+**📌 L'elenco degli effetti, allo stato di questa tornata** (cinque righe erano già decise):
+
+| motivo | il lavoro | il documento |
+|---|---|---|
+| dato sbagliato sul documento | resta consegnato | **si annulla e si rifà** (spec §6) |
+| **difetto di lavorazione** | **si sistema oppure si rifà — sceglie chi registra (D290)** | ❓ **panel normativo in corso** |
+| difetto del materiale | rientra (🟡 proposta: stessa scelta di D290) | **si annulla e si rifà** (spec §6) |
+| **persona sbagliata** | **torna a `pronto` (D291)** | **resta valido (D291)** |
+| modifica chiesta dal medico | **lavoro nuovo**, non un rientro | resta valido (era conforme alla sua prescrizione) |
+| prezzo o quantità sbagliati | non si tocca | non si tocca — l'app **segnala** la nota di credito e non la esegue (caso 6, fuori perimetro) |
+| **reso senza difetto** | **dipende dal perché (D292)** — vocabolario da progettare | idem |
+| ho sbagliato a premere consegna | **ripristina tutto** (D288) | **si annulla** (D288) |
+| altro | niente in automatico | niente — l'app registra e non indovina |
