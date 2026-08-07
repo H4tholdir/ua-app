@@ -2593,6 +2593,7 @@ export type Database = {
           post_consegna_correzioni: number
           prescrizione_digitale_id: string | null
           prezzo_unitario: number | null
+          prima_immissione_at: string | null
           priorita: string
           proposta_at: string | null
           proposta_dentista: string | null
@@ -2695,6 +2696,7 @@ export type Database = {
           post_consegna_correzioni?: number
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
+          prima_immissione_at?: string | null
           priorita?: string
           proposta_at?: string | null
           proposta_dentista?: string | null
@@ -2797,6 +2799,7 @@ export type Database = {
           post_consegna_correzioni?: number
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
+          prima_immissione_at?: string | null
           priorita?: string
           proposta_at?: string | null
           proposta_dentista?: string | null

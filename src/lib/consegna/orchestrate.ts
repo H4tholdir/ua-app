@@ -326,6 +326,15 @@ export async function orchestraConsegna(
         conformato: true,
         data_conformazione: now,
         data_consegna_effettiva: now,
+        // 🔑 La prima immissione sul mercato si scrive UNA VOLTA SOLA
+        // (Allegato XIII p.4 + Art. 2(28)): da qui decorrono i 10 anni di
+        // conservazione della dichiarazione. Una riconsegna dopo una
+        // riapertura NON la sposta — `lavoro` è la riga letta allo Step 1
+        // (select('*') su questo stesso lavoro), quindi il valore esistente
+        // è già in mano: se c'è, vince sempre sul nuovo, o il termine
+        // ripartirebbe da capo e la dichiarazione verrebbe distrutta troppo
+        // presto.
+        prima_immissione_at: lavoro.prima_immissione_at ?? now,
         consegna_completata_at: now,
         consegna_precheck_passato_al_primo_tentativo: true,
       }, { count: 'exact' })
