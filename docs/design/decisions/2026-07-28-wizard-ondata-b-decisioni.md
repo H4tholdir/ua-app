@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventisettesima tornata (D303: «manufatto» e «dispositivo» convivono, ognuno nel suo registro)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentesima tornata (D307: si tappano i due difetti che l'ondata crea, gli altri quattro vanno alla riga 12)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**303 decisioni in centoventisette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**307 decisioni in centotrenta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3143,3 +3143,89 @@ testi degli effetti; **non** vieta «dispositivo» in `classifica.ts`, ed è giu
 
 📌 **Regola in una riga, per chi scrive un testo nuovo:** *se la frase sta spiegando la legge, si dice
 **dispositivo**; se sta dicendo che cosa fare col lavoro, si dice **manufatto**.*
+
+---
+
+### Centoventottesima tornata — D304: il bivio dei due difetti ENTRA nell'ondata, e il terzo tocco è accettato dove il motivo non basta (07/08/2026, 17:27)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 17:27 CEST`**, comando separato.
+
+**Nasce da:** il ritrovamento **R9** (la transizione «torna a `pronto` col documento intatto» non
+esiste) e da una **contraddizione fra documenti già ratificati**, che nessuno dei due conosceva.
+Dei tre motivi che chiedono quella transizione, **uno solo** è derivabile dal motivo — `destinatario_errato`
+(D291). Gli altri due — `difetto_lavorazione` (D290) e `difetto_materiale` (D297) — portano un
+**bivio**: *si sistema questo manufatto, o se ne fa uno nuovo?* La dichiarazione segue quella scelta (D298).
+
+🛑 **E qui i documenti si contraddicono.** **D288** stabilisce che «l'effetto non si chiede a parte: si
+deriva dal motivo», e **D269** fissa il costo in **due tocchi invece di uno** — «Devo intervenire», poi
+il motivo. Ma `scelta_richiesta` è per costruzione un **terzo** tocco. Nessuno dei due documenti sapeva
+dell'altro, e la scelta è stata portata a Francesco invece di essere presa dentro un file `.ts`
+(lezione 5 del 07/08 sera: *una scelta fatta interpretando due documenti che si contraddicono è una decisione*).
+
+| # | Decisione | Testo/scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D304** | 🔑 **SI COSTRUISCONO TUTTI E TRE I MOTIVI, BIVIO COMPRESO** — e quindi il terzo tocco **è accettato** dove il motivo, da solo, non determina l'effetto | scelta esplicita fra tre perimetri (solo `destinatario_errato` · tutti e tre · fermarsi a decidere prima) | L'ondata prende dentro: ① la funzione nuova nel database (`pronto` **senza** toccare `dichiarazioni_conformita`) · ② `destinatario_errato` come azione automatica · ③ **la domanda del bivio** per i due difetti, il posto dove salvarne la risposta, e il ramo «se ne fa uno nuovo» in rapporto al rifacimento che già esiste |
+
+**🔑 Come si scioglie la contraddizione, e perché non è un'eccezione a D288 ma la sua lettura esatta.**
+D288 vieta di **chiedere ciò che il motivo già dice** — «nessuna casella *vuoi anche rientrare in
+produzione?*», perché su `errore_registrazione` la risposta è nel motivo stesso. Su
+`difetto_lavorazione` e `difetto_materiale` la risposta **non è nel motivo**: sono D290 e D297 a dirlo,
+istituendo il bivio. ➡️ **La domanda non è ridondante: è l'unica fonte di quel dato.** Il divieto di D288
+resta pieno sugli altri sette motivi, e il costo di D269 resta due tocchi **dove l'app sa già la risposta**.
+
+⚠️ **Ciò che D304 NON decide, e che resta aperto:** **dove** e **quando** si chiede il bivio — subito
+dentro il foglio «Devo intervenire», oppure dopo, quando il manufatto è stato guardato. Quella è una
+decisione a sé, e la porta la tornata successiva.
+
+---
+
+### Centoventinovesima tornata — D305 e D306: il bivio si chiede SUBITO, e «se ne fa uno nuovo» crea il rifacimento da solo (07/08/2026, 17:36)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 17:36 CEST`**, comando separato.
+
+**Nasce da:** D304, che porta il bivio dentro l'ondata e lascia aperto **dove** e **quando** si chiede.
+🛑 **La domanda è stata portata a Francesco dichiarando di NON sapere la risposta**, invece di
+dedurla dai documenti: nessuna delle quattro prove dello statuto delle fonti dice se, al momento in
+cui si registra un difetto, il manufatto sia già rientrato e qualcuno l'abbia guardato.
+
+| # | Decisione | Testo/scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D305** | ⏱️ **IL BIVIO SI CHIEDE SUBITO, dentro il foglio «Devo intervenire»** — chi registra un difetto, quasi sempre, sa già se il manufatto si sistema o se ne va fatto uno nuovo | «sì, quasi sempre: si chiede subito» | Un **terzo passaggio** nel foglio, subito dopo il motivo, per i soli `difetto_lavorazione` e `difetto_materiale`. 🟢 **Nessuno stato d'attesa** da nessuna parte: niente riga «devi ancora decidere» sulla scheda, niente lavoro sospeso a metà. L'effetto parte nello stesso gesto |
+| **D306** | 🔨 **«SE NE FA UNO NUOVO» CREA IL RIFACIMENTO DA SOLO**, senza un tasto di conferma in più | scelta esplicita fra proporre · creare · registrare soltanto | La rotta chiama `crea_rifacimento_atomico` nello stesso giro in cui salva l'evento. Il lavoro vecchio **resta consegnato** con la sua dichiarazione (D298), e il lavoro nuovo nasce col suo numero |
+
+**⚠️ La riserva, dichiarata prima della scelta e non dopo.** Il flusso del rifacimento è quello che
+Francesco stesso ha definito **«solo una bozza»** il 04/08 (D221, riga 12 della coda di ROADMAP:
+«*va studiato tutto il flusso di un rifacimento*»). Agganciarcisi in automatico significa che
+quest'ondata **eredita i limiti di quel flusso**. Francesco ha scelto sapendolo: la riserva era
+scritta nell'opzione stessa. ➡️ Resta scritta qui perché il giorno in cui la riga 12 si esegue,
+questo è uno dei suoi chiamanti.
+
+**🔴 E il ponte fra i due vocabolari NON esiste — trovato leggendo, non dedotto.**
+`provato:` `lavori_rifacimenti.motivo` porta un CHECK di **sette** valori
+(`005_v1_foundation.sql:77-83`: `colore_sbagliato · misura_errata · fusione_difettosa ·
+rottura_produzione · non_confortevole · errore_prescrizione · altro`), e **nessuno dei due motivi
+dell'evento ha un corrispondente**. Scriverci `altro` sarebbe perdere l'unica informazione che
+conta — cioè il difetto già chiuso altrove: *un elenco che scarta in silenzio*. ➡️ La spec deve
+dire quale dei due si allarga, e con quale migration.
+
+---
+
+### Centotrentesima tornata — D307: si tappano i DUE difetti che creiamo noi, gli altri QUATTRO vanno alla riga 12 (07/08/2026, 18:05)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 18:05 CEST`**, comando separato.
+
+**Nasce da:** il panel della Regola Advisor su questa proposta — tre esaminatori (database · normativa
+MDR · uso al banco). D306 era stata scelta contro una riserva **generica** («il flusso del rifacimento
+è una bozza»); il panel l'ha trasformata in **sei difetti nominati e misurati**. Francesco ha deciso
+sapendo la *forma*; questa tornata gliene dà la *dimensione*.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D307** | 🔨 **I DUE DIFETTI CHE L'ONDATA CREA SI TAPPANO QUI; I QUATTRO CHE IL RIFACIMENTO HA GIÀ vanno alla riga 12 della coda** | scelta esplicita fra tappare due · sistemare tutti e sei · rimandare l'intero ramo | Dentro: ① **l'idempotenza per evento** (un vincolo di unicità su `lavori_rifacimenti`, così il secondo tentativo è un errore riconoscibile e non un lavoro fantasma) · ② **la cassetta segue il rifacimento**, riusando la funzione che la rotta HTTP già chiama. Fuori, e **scritti per nome** nella riga 12: il ritardo alla nascita · `numero_prescrizione` non clonato · nessuna via per annullare un lavoro · la scheda che non mostra i rifacimenti |
+
+**🔑 Il criterio, e vale oltre questo caso: si tappa ciò che l'ondata CREA o AMPLIFICA, si riferisce ciò
+che trova.** L'idempotenza e la cassetta non erano un problema finché il rifacimento nasceva da un
+tasto premuto a mano su una schermata sua; lo diventano nel momento in cui **l'app lo crea da sola**
+dentro un altro flusso. Gli altri quattro sono difetti del rifacimento **già oggi**, e correggerli qui
+sarebbe R-E2 al contrario: una correzione fuori mandato che lascia il difetto vero — il flusso da
+ristudiare — intatto e più difficile da vedere.
