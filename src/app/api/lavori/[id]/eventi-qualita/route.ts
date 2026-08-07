@@ -12,13 +12,16 @@ import {
   naturaDaMotivo,
 } from '@/lib/domain/qualita-costanti'
 import type {
+  Motivo,
   Natura,
   OrigineInformazione,
   StatoDispositivo,
   PotenzialeDiDanno,
 } from '@/lib/domain/qualita-costanti'
 import { classifica } from '@/lib/qualita/classifica'
-import { effettoDaMotivo } from '@/lib/qualita/effetti'
+import { effettoDaMotivoEScelta, richiedeScelta } from '@/lib/qualita/effetti'
+import type { Scelta } from '@/lib/qualita/effetti'
+import { trasferisciCassettaAlRifacimento } from '@/lib/rifacimento/cassetta'
 import { istanteDaTestoRoma } from '@/lib/utils/data-roma'
 
 /**
@@ -100,6 +103,16 @@ const LIMITE_TESTO_LIBERO = 1000
 // questo valore l'incremento traboccherebbe. Irraggiungibile nella pratica,
 // ma un fail-soft che aborta la richiesta sarebbe peggio del contatore fermo.
 const SMALLINT_MAX = 32767
+
+/**
+ * Il vocabolario del bivio (D304), scritto QUI e non dedotto da
+ * `MOTIVI_CON_SCELTA`: quello elenca i **motivi** che aprono il bivio, questo i
+ * **valori** che il bivio ammette. Sono due elenchi diversi che si somigliano,
+ * ed è esattamente il genere di coppia che si accorcia per sbaglio.
+ * 🔑 Specchio del CHECK vivo (`20260807171033_evento_scelta_intervento.sql`): un
+ * valore in più qui sarebbe un `23514` illeggibile a runtime invece di un 422.
+ */
+const SCELTE = ['si_sistema', 'si_rifa'] as const
 
 function inVocabolario<T extends string>(vocabolario: readonly T[], v: unknown): v is T {
   return typeof v === 'string' && (vocabolario as readonly string[]).includes(v)
@@ -234,6 +247,38 @@ export async function POST(req: Request, { params }: RouteContext) {
     return err('Se il manufatto era già uscito dal laboratorio, la consegna è avvenuta davvero: scegli il motivo che descrive che cosa è successo dopo, non «ho sbagliato a premere consegna».', 422)
   }
 
+  // ── il bivio (D304 · D305) ──────────────────────────────────────────────
+  // 🛑 La guardia sta QUI e non nell'interfaccia: è la lezione pagata tre volte
+  // il 07/08 — una coppia incoerente (motivo, azione) che arriva a un atto che
+  // crea o sposta cose non si ferma con una schermata.
+  // ⚠️ E sta DOPO la guardia sulla `natura` (:199-201) di proposito: un corpo
+  // sbagliato due volte deve sentirsi dire per prima la cosa che ha sbagliato
+  // prima. L'ordine è sorvegliato da una prova.
+  const sceltaGrezza = corpo.scelta_intervento
+  let scelta: Scelta | null = null
+  if (richiedeScelta(motivo)) {
+    if (!inVocabolario(SCELTE, sceltaGrezza)) {
+      return err('Dicci come si procede: si sistema questo manufatto, oppure se ne fa uno nuovo?', 422)
+    }
+    scelta = sceltaGrezza
+  } else if (sceltaGrezza !== undefined && sceltaGrezza !== null) {
+    // Non si scarta in silenzio: è la classe di difetto «Salvato su un dato che
+    // non c'è» — stesso trattamento già riservato a `natura` (:199-201).
+    return err('Su questo motivo non c\'è nessuna scelta da fare: l\'effetto si ricava dal motivo stesso.', 422)
+  }
+
+  // 🛑 GEMELLA DELLA GUARDIA SU `errore_registrazione`: se il manufatto non è mai
+  // uscito dal laboratorio, non può essere andato alla persona sbagliata — quel
+  // caso è «ho premuto consegna per sbaglio», che ha il suo motivo e la sua
+  // transizione (distruttiva, e per questo va scelta apposta).
+  // ⚠️ A differenza del suo modello, questa combinazione è RAGGIUNGIBILE dal
+  // foglio «Devo intervenire», dove «Mai uscito» è una pastiglia liberamente
+  // toccabile: impedirla PRIMA del modulo compilato è il Passo 4 del Task 9.
+  // La guardia qui resta comunque, perché è qui che sta il confine.
+  if (motivo === 'destinatario_errato' && statoDispositivo === 'mai_uscito_dal_lab') {
+    return err('Se il manufatto non è mai uscito dal laboratorio non può essere andato alla persona sbagliata: se hai premuto «consegna» per errore, scegli quel motivo.', 422)
+  }
+
   // `potenziale_di_danno` è facoltativo: se manca, il default lo mette il
   // DATABASE (`DEFAULT 'da_valutare'`, `20260806140823:24`). Non si scrive un
   // secondo default qui, o i due potrebbero divergere in silenzio.
@@ -325,6 +370,10 @@ export async function POST(req: Request, { params }: RouteContext) {
     created_by: context.userId,
   }
   if (potenzialeInviato) daScrivere.potenziale_di_danno = potenzialeGrezzo
+  // 🔑 La chiave si manda SOLO quando c'è una scelta — non `null` esplicito. Il
+  // CHECK in banca dati ammette un valore soltanto sui due motivi del bivio, e
+  // una colonna che nasce `NULL` da sola non ha bisogno che glielo si dica.
+  if (scelta !== null) daScrivere.scelta_intervento = scelta
 
   const { data: evento, error: erroreInsert } = await svc
     .from('eventi_qualita')
@@ -371,7 +420,22 @@ export async function POST(req: Request, { params }: RouteContext) {
   // incidente? un reclamo?); `effetto` è il piano OPERATIVO (che cosa succede
   // adesso al lavoro e alla dichiarazione). D288: «le due righe non erano in
   // contraddizione, parlavano di due piani diversi».
-  const effetto = effettoDaMotivo(motivo)
+  // 🔑 L'EFFETTO VIAGGIA GIÀ RISOLTO (spec §4.3). Per i due difetti la riga
+  // fissa dichiara `scelta_richiesta` e il suo `perche` è formulato **come una
+  // domanda aperta**: restituirlo così farebbe ristampare alla schermata finale
+  // la domanda a cui la persona ha appena risposto.
+  const effetto = effettoDaMotivoEScelta(motivo, scelta)
+
+  // 🔴 PASSO 4-bis — L'IDENTIFICATIVO DELL'EVENTO SI PRENDE DA QUI, MAI DAL CORPO.
+  // Il trigger `assert_same_lab_rifacimento` guarda solo i due lavori, mai
+  // l'evento; la FK composita difende dal caso «evento di un altro laboratorio»,
+  // **non** dal caso «evento dello stesso laboratorio ma di un ALTRO lavoro»,
+  // che passerebbe in silenzio — e `rifacimento_evento_unique` a quel punto
+  // BRUCEREBBE quell'evento, facendo uscire 23505 a un rifacimento legittimo
+  // successivo. Questa rotta è l'ultimo punto in cui l'identificativo giusto può
+  // essere garantito, e ce l'ha in mano: l'evento l'ha appena inserito lei, su
+  // questo lavoro.
+  const eventoId = (evento as { id: string }).id
 
   // 🛑 PERCHÉ L'AZIONE PARTE QUI, senza un terzo tocco di conferma. D269 fissa
   // il costo in **due tap invece di uno** — «Devo intervenire», poi il motivo —
@@ -379,11 +443,23 @@ export async function POST(req: Request, { params }: RouteContext) {
   // anche rientrare in produzione?": il motivo È già la risposta». Una conferma
   // in più dopo il motivo sarebbe un terzo tap che nessuna decisione autorizza.
   // ⚠️ La conferma esiste, ma sta PRIMA: è la domanda d'ingresso di D283/D288
-  // («vuoi reintervenire su questo lavoro, o hai premuto per sbaglio?»).
-  const riapertura =
-    effetto.azione === 'riapri_lavoro'
-      ? await riapriLavoro(svc, lavoro_id, context.laboratorioId, (evento as { id: string }).id)
-      : undefined
+  // («vuoi reintervenire su questo lavoro, o hai premuto per sbaglio?»); e per i
+  // due difetti c'è **anche** il bivio, che è una risposta, non una conferma.
+  //
+  // 🛑 LE DUE GEMELLE NON SI SCAMBIANO, E LA DIFFERENZA STA NEL NOME.
+  // `riapri_lavoro_atomica` annulla la dichiarazione **incondizionatamente**:
+  // è giusto solo dove la premessa è «la consegna non è mai avvenuta».
+  // `riporta_a_pronto_atomica` la lascia viva: è la transizione dei casi in cui
+  // il manufatto è uscito davvero e il documento diceva il vero (D293). Nessun
+  // parametro decide fra le due — decide il nome della funzione chiamata.
+  let esitoAzione: EsitoAzione | undefined
+  if (effetto.azione === 'riapri_lavoro') {
+    esitoAzione = await chiamaRipristino(svc, 'riapri_lavoro_atomica', lavoro_id, context.laboratorioId, eventoId)
+  } else if (effetto.azione === 'torna_pronto') {
+    esitoAzione = await chiamaRipristino(svc, 'riporta_a_pronto_atomica', lavoro_id, context.laboratorioId, eventoId)
+  } else if (effetto.azione === 'crea_rifacimento') {
+    esitoAzione = await creaRifacimento(svc, context.laboratorioId, lavoro_id, eventoId, motivo)
+  }
 
   await incrementaCorrezioni(
     svc,
@@ -395,33 +471,69 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   // 🛑 `{ evento, proposta, effetto }` — e nessuna `valutazione`: l'app propone,
   // una persona conferma (spec §6). Il giudizio lo deposita la seconda rotta.
+  // 🔑 IL QUARTO CAMPO SI CHIAMA `esito_azione`, e `riapertura` NON resta come
+  // sinonimo: un nome che dice «riapertura» su un'azione che **crea** un lavoro
+  // è un testo falso — la stessa famiglia di difetto già chiusa in
+  // `classifica.ts` il 07/08, dove un ramo solo serviva due casi opposti.
   return NextResponse.json(
-    riapertura ? { evento, proposta, effetto, riapertura } : { evento, proposta, effetto },
+    esitoAzione ? { evento, proposta, effetto, esito_azione: esitoAzione } : { evento, proposta, effetto },
     { status: 201 }
   )
 }
 
 /**
- * L'esito della riapertura, e sono TRE COSE DIVERSE — un booleano le
- * appiattirebbe, ed è proprio l'appiattimento che nasconde i guasti:
- * - `applicato` — il lavoro è tornato indietro (`dichiarazione_assente` è il
- *   caso di un dato vecchio senza dichiarazione: riuscito, ma va detto);
- * - `non_applicabile` — non c'era niente da riaprire (il lavoro non è
- *   consegnato, o non esiste): **non è un guasto**, e chiamarlo tale
- *   insegnerebbe a ignorare gli avvisi;
+ * L'esito dell'AZIONE, e sono TRE COSE DIVERSE — un booleano le appiattirebbe,
+ * ed è proprio l'appiattimento che nasconde i guasti:
+ * - `applicato` — l'azione è andata a buon fine. I tre campi facoltativi sono i
+ *   **caveat**, uno per azione: `dichiarazione_assente` (riapertura su un dato
+ *   vecchio senza dichiarazione), `dichiarazione_viva` (la promessa «resta
+ *   valida» non aveva oggetto), `lavoro_nuovo` (il rifacimento appena nato);
+ * - `non_applicabile` — non c'era niente da fare (il lavoro non è consegnato, o
+ *   non esiste): **non è un guasto**, e chiamarlo tale insegnerebbe a ignorare
+ *   gli avvisi;
  * - `fallito` — **il guasto vero**, quello che una persona deve vedere.
+ *
+ * 🔄 SI CHIAMAVA `Riapertura`, e il nome è cambiato col Task 7: da qui passano
+ * anche un ritorno «col documento intatto» e la **creazione** di un lavoro
+ * nuovo. Chiamare «riapertura» un atto che crea sarebbe un testo falso.
  */
-type Riapertura =
-  | { stato: 'applicato'; dichiarazione_assente: boolean }
+type EsitoAzione =
+  | {
+      stato: 'applicato'
+      dichiarazione_assente?: boolean
+      dichiarazione_viva?: boolean
+      lavoro_nuovo?: { id: string; numero_lavoro: string }
+    }
   | { stato: 'non_applicabile'; motivo: 'non_trovato' | 'non_consegnato' | 'evento_non_valido' }
   | { stato: 'fallito'; messaggio: string }
 
-const MESSAGGIO_RIAPERTURA_FALLITA =
+const MESSAGGIO_RIPRISTINO_FALLITO =
   'La registrazione è salva, ma il lavoro non è tornato indietro da solo: riportalo tu fra quelli pronti, oppure riprova fra un momento.'
 
+const MESSAGGIO_RIFACIMENTO_FALLITO =
+  'La registrazione è salva, ma il lavoro nuovo non è stato creato: crealo dalla scheda, oppure riprova fra un momento.'
+
 /**
- * Chiama `riapri_lavoro_atomica` — l'unica azione che quest'ondata esegue da
- * sola (D288, motivo `errore_registrazione`).
+ * Le DUE RPC di ripristino, e ciascuna col **suo** caveat.
+ *
+ * 🛑 PERCHÉ LA CHIAVE È DICHIARATA QUI E NON ANNUSATA DALLA RISPOSTA. Una
+ * funzione che accettasse `ddc_assente` **oppure** `ddc_viva` da entrambe le RPC
+ * risponderebbe `applicato` **senza nessuno dei due campi** il giorno in cui una
+ * delle due cambiasse forma — cioè perderebbe il caveat in silenzio, che è
+ * esattamente il difetto che i caveat esistono per chiudere. Con la chiave
+ * dichiarata, una divergenza di forma si vede: il campo esce `false`, cioè la
+ * direzione prudente (un avviso in più, mai uno in meno).
+ */
+const CAVEAT_RIPRISTINO = {
+  riapri_lavoro_atomica: { daRpc: 'ddc_assente', inRisposta: 'dichiarazione_assente' },
+  riporta_a_pronto_atomica: { daRpc: 'ddc_viva', inRisposta: 'dichiarazione_viva' },
+} as const
+
+type RpcRipristino = keyof typeof CAVEAT_RIPRISTINO
+
+/**
+ * Chiama una delle due RPC di ripristino — la distruttiva (D288, motivo
+ * `errore_registrazione`) o quella che lascia vivo il documento (D291 · D304).
  *
  * 🛑 NON È FAIL-SOFT, ed è la differenza con `incrementaCorrezioni` qui sotto.
  * Un contatore che non si aggiorna è un numero interno impreciso; un lavoro che
@@ -430,19 +542,21 @@ const MESSAGGIO_RIAPERTURA_FALLITA =
  * il fatto è salvato e non si butta via — ma l'esito negativo **viaggia nella
  * risposta**, non solo nei log del server.
  *
- * ⚠️ REQUISITO PER IL TASK 6, e va scritto qui perché oggi nessuna interfaccia
- * legge questo campo: la schermata «Devo intervenire» DEVE rendere visibile
- * `riapertura.stato === 'fallito'`. Un campo negativo che nessuno disegna è
- * indistinguibile da un successo, e riaprirebbe lo stesso difetto dall'altro lato.
+ * ⚠️ E il campo negativo va DISEGNATO: la schermata «Devo intervenire» rende
+ * visibile `esito_azione.stato === 'fallito'`. Un campo negativo che nessuno
+ * disegna è indistinguibile da un successo, e riaprirebbe lo stesso difetto
+ * dall'altro lato.
  */
-async function riapriLavoro(
+async function chiamaRipristino(
   svc: ReturnType<typeof getServiceClient>,
+  nome: RpcRipristino,
   lavoro_id: string,
   laboratorio_id: string,
   evento_id: string
-): Promise<Riapertura> {
+): Promise<EsitoAzione> {
+  const caveat = CAVEAT_RIPRISTINO[nome]
   try {
-    const { data, error } = await svc.rpc('riapri_lavoro_atomica', {
+    const { data, error } = await svc.rpc(nome, {
       p_lavoro_id: lavoro_id,
       p_laboratorio_id: laboratorio_id,
       p_evento_id: evento_id,
@@ -450,12 +564,12 @@ async function riapriLavoro(
     if (error) {
       // Il testo di Postgres («dichiarazione in stato incoerente») resta nei
       // log: chi legge la risposta è un'operatrice al banco.
-      console.error('[EVENTI-QUALITA] riapri_lavoro_atomica fallita:', error)
-      return { stato: 'fallito', messaggio: MESSAGGIO_RIAPERTURA_FALLITA }
+      console.error(`[EVENTI-QUALITA] ${nome} fallita:`, error)
+      return { stato: 'fallito', messaggio: MESSAGGIO_RIPRISTINO_FALLITO }
     }
-    const risposta = (data ?? {}) as { esito?: unknown; ddc_assente?: unknown }
+    const risposta = (data ?? {}) as Record<string, unknown>
     if (risposta.esito === 'ok') {
-      return { stato: 'applicato', dichiarazione_assente: risposta.ddc_assente === true }
+      return { stato: 'applicato', [caveat.inRisposta]: risposta[caveat.daRpc] === true }
     }
     if (
       risposta.esito === 'non_trovato' ||
@@ -467,11 +581,74 @@ async function riapriLavoro(
     // Un esito fuori dai quattro che la funzione dichiara di restituire non si
     // legge come successo: fail-closed, come ogni altro ingresso ignoto di
     // quest'ondata.
-    console.error('[EVENTI-QUALITA] riapri_lavoro_atomica: esito inatteso', data)
-    return { stato: 'fallito', messaggio: MESSAGGIO_RIAPERTURA_FALLITA }
+    console.error(`[EVENTI-QUALITA] ${nome}: esito inatteso`, data)
+    return { stato: 'fallito', messaggio: MESSAGGIO_RIPRISTINO_FALLITO }
   } catch (e) {
-    console.error('[EVENTI-QUALITA] riapri_lavoro_atomica — eccezione:', e)
-    return { stato: 'fallito', messaggio: MESSAGGIO_RIAPERTURA_FALLITA }
+    console.error(`[EVENTI-QUALITA] ${nome} — eccezione:`, e)
+    return { stato: 'fallito', messaggio: MESSAGGIO_RIPRISTINO_FALLITO }
+  }
+}
+
+/**
+ * Crea il rifacimento (D306). **NON è fail-soft** sul lavoro nuovo: se non
+ * nasce, l'utente deve saperlo. È fail-soft SOLO sul trasferimento della
+ * cassetta (D309), come già fa il percorso HTTP esistente — un cassetto non
+ * spostato non annulla un lavoro già creato.
+ *
+ * 🔑 `p_motivo` porta il motivo VERO. La RPC non valida quel campo
+ * (`20260805201640:113,157`) e la rotta HTTP del rifacimento non accetta questi
+ * due valori: l'unico guardiano dei due nomi nuovi è questa derivazione. Un
+ * `altro` di ripiego perderebbe l'unica informazione che conta.
+ */
+async function creaRifacimento(
+  svc: ReturnType<typeof getServiceClient>,
+  laboratorio_id: string,
+  lavoro_id: string,
+  evento_id: string,
+  motivo: Motivo
+): Promise<EsitoAzione> {
+  try {
+    const { data, error } = await svc.rpc('crea_rifacimento_atomico', {
+      p_lavoro_originale_id: lavoro_id,
+      p_motivo: motivo,               // 'difetto_lavorazione' | 'difetto_materiale' — il CHECK li accetta
+      p_rilevato_in: 'post_consegna', // l'unico valore vero qui: il problema è emerso dopo la consegna
+      p_costo_interno: null,
+      p_note: null,
+      p_evento_id: evento_id,
+    })
+    if (error) {
+      // 23505 = questo evento ha già il suo rifacimento. Non è un guasto: è il
+      // secondo tocco, o il ritentativo dopo un timeout. Si restituisce quello
+      // che c'è invece di crearne un altro e bruciare un progressivo d'anno.
+      if (error.code === '23505') {
+        const { data: gia } = await svc
+          .from('lavori_rifacimenti')
+          .select('lavoro_nuovo:lavori!lavori_rifacimenti_lavoro_nuovo_id_fkey(id, numero_lavoro)')
+          // 🛑 Il filtro sul laboratorio non è ridondante con l'indice unico:
+          // quella lettura è a chiave di servizio, quindi senza RLS. È la riga
+          // che tiene la lettura dentro il laboratorio di chi ha chiesto.
+          .eq('laboratorio_id', laboratorio_id)
+          .eq('evento_id', evento_id)
+          .maybeSingle()
+        const nuovo = (gia as { lavoro_nuovo?: { id: string; numero_lavoro: string } } | null)?.lavoro_nuovo
+        if (nuovo) return { stato: 'applicato', lavoro_nuovo: nuovo }
+      }
+      console.error('[EVENTI-QUALITA] crea_rifacimento_atomico fallita:', error)
+      return { stato: 'fallito', messaggio: MESSAGGIO_RIFACIMENTO_FALLITO }
+    }
+    const r = data as { lavoro_nuovo_id?: string; numero_lavoro?: string }
+    if (!r?.lavoro_nuovo_id || !r?.numero_lavoro) {
+      console.error('[EVENTI-QUALITA] crea_rifacimento_atomico: risposta inattesa', data)
+      return { stato: 'fallito', messaggio: MESSAGGIO_RIFACIMENTO_FALLITO }
+    }
+    // ⚖️ D309 — fail-soft, e l'helper è lo STESSO del percorso HTTP esistente
+    // (`src/lib/rifacimento/cassetta.ts`): due copie divergerebbero, e il tecnico
+    // troverebbe il cassetto vuoto a seconda del bottone premuto.
+    await trasferisciCassettaAlRifacimento(svc, laboratorio_id, lavoro_id, r.lavoro_nuovo_id)
+    return { stato: 'applicato', lavoro_nuovo: { id: r.lavoro_nuovo_id, numero_lavoro: r.numero_lavoro } }
+  } catch (e) {
+    console.error('[EVENTI-QUALITA] crea_rifacimento_atomico — eccezione:', e)
+    return { stato: 'fallito', messaggio: MESSAGGIO_RIFACIMENTO_FALLITO }
   }
 }
 

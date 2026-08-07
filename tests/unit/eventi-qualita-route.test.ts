@@ -86,10 +86,29 @@ const CONTEXT = {
 
 const IERI = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
 
-// Corpo minimo valido per la prima rotta.
+/**
+ * Corpo minimo valido per la prima rotta.
+ *
+ * 🛑 **IL MOTIVO PREDEFINITO È CAMBIATO CON IL TASK 7, e non è cosmesi.** Qui
+ * c'era `difetto_lavorazione`, cioè **uno dei due motivi del bivio** (D304): da
+ * quando la rotta pretende `scelta_intervento` su quei due, un corpo «minimo
+ * valido» che li usasse non sarebbe più valido — e le ~40 prove che chiamano
+ * `corpoValido()` senza indicare un motivo uscirebbero tutte **422**, cioè un
+ * rosso di massa che non parla del difetto che ciascuna sorveglia.
+ *
+ * Il ripiego è `errore_dato_dichiarazione`, scelto per tre proprietà misurate,
+ * non a caso: ① non chiede nessuna scelta (`MOTIVI_CON_SCELTA` non lo contiene);
+ * ② non porta **nessuna azione automatica** (`effetti.ts:112-127`, `azione: null`),
+ * quindi nessuna prova generica fa partire una RPC per sbaglio; ③ la sua natura
+ * derivata è `dato_documentale`, che **non** è fra le tre esenzioni di
+ * `classifica.ts:161-183` — la proposta resta `reclamo`, esattamente com'era con
+ * `difetto_lavorazione` (natura `difetto_fisico`). Con `errore_prezzo_quantita`
+ * (natura `commerciale`) l'esito sarebbe diventato `nessuna_azione` e le prove
+ * sul contratto della risposta sarebbero cambiate di significato.
+ */
 function corpoValido(extra: Record<string, unknown> = {}) {
   return {
-    motivo: 'difetto_lavorazione',
+    motivo: 'errore_dato_dichiarazione',
     origine_informazione: 'odontoiatra',
     stato_dispositivo: 'consegnato_non_applicato',
     conosciuto_il: IERI,
@@ -149,6 +168,8 @@ function rigaSalvataDa(payload: Record<string, unknown> | null): Record<string, 
 type BancoEvento = {
   lavori: Chain[]
   eventi: Chain[]
+  /** Le letture su `lavori_rifacimenti` — esistono solo sul ramo `23505` (T7). */
+  rifacimenti: Chain[]
   rigaInserita: Record<string, unknown> | null
 }
 
@@ -157,14 +178,18 @@ function bancoEvento(opts: {
   postConsegnaCorrezioni?: number
   erroreInsert?: { code?: string; message?: string } | null
   erroreUpdate?: { code?: string; message?: string } | null
+  /** La riga che `lavori_rifacimenti` restituisce sul ramo dell'idempotenza
+   *  (T7, Passo 5): `null` = nessuna riga trovata, cioè il 23505 resta un guasto. */
+  rifacimentoGia?: { lavoro_nuovo: { id: string; numero_lavoro: string } } | null
 } = {}): BancoEvento {
   const {
     lavoroTrovato = true,
     postConsegnaCorrezioni = 0,
     erroreInsert = null,
     erroreUpdate = null,
+    rifacimentoGia = null,
   } = opts
-  const banco: BancoEvento = { lavori: [], eventi: [], rigaInserita: null }
+  const banco: BancoEvento = { lavori: [], eventi: [], rifacimenti: [], rigaInserita: null }
 
   mockFrom.mockImplementation((tabella: string) => {
     if (tabella === 'lavori') {
@@ -197,6 +222,11 @@ function bancoEvento(opts: {
         return originale(...args)
       }
       banco.eventi.push(c)
+      return c
+    }
+    if (tabella === 'lavori_rifacimenti') {
+      const c = chain({ data: rifacimentoGia, error: null })
+      banco.rifacimenti.push(c)
       return c
     }
     throw new Error(`tabella inattesa: ${tabella}`)
@@ -528,16 +558,27 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
     )
     expect(res.status).toBe(422)
     expect(banco.rigaInserita).toBeNull()
+    // 🔑 L'ORDINE DELLE DUE GUARDIE, e senza questa riga non sarebbe provato.
+    // Questo corpo è sbagliato DUE volte: natura incoerente **e** — dal Task 7 —
+    // `scelta_intervento` mancante su un motivo del bivio. A parlare deve essere
+    // la guardia della natura, che viene prima: se un giorno il blocco del bivio
+    // salisse sopra, l'operatrice leggerebbe «dicci come si procede» su un corpo
+    // il cui difetto vero è un altro.
+    expect((await res.json()).error).toContain('si ricava dal motivo scelto')
   })
 
   it('natura coerente col motivo derivabile → 201', async () => {
     const banco = bancoEvento()
     const res = await POST_EVENTO(
-      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', natura: 'difetto_fisico' })),
+      // ⚠️ Era `difetto_lavorazione` + `difetto_fisico`. Dal Task 7 quel motivo
+      // pretende anche la scelta del bivio, e la prova qui riguarda la NATURA:
+      // si usa un motivo derivabile che non apre nessun bivio, così il 201 non
+      // dipende da un secondo campo che non c'entra.
+      req(URL_EVENTO, corpoValido({ motivo: 'errore_dato_dichiarazione', natura: 'dato_documentale' })),
       paramsLavoro()
     )
     expect(res.status).toBe(201)
-    expect(banco.rigaInserita?.natura).toBe('difetto_fisico')
+    expect(banco.rigaInserita?.natura).toBe('dato_documentale')
   })
 
   // ── conosciuto_il: il momento zero dei termini di legge ───────────────────
@@ -808,7 +849,11 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     const body = await res.json()
     expect(body.effetto.lavoro).toBe('ripristina_tutto')
     expect(body.effetto.azione).toBe('riapri_lavoro')
-    expect(body.riapertura).toEqual({ stato: 'applicato', dichiarazione_assente: false })
+    // 🛑 IL CAMPO SI CHIAMA `esito_azione` DAL TASK 7, e `riapertura` NON resta
+    // come sinonimo: un nome che dice «riapertura» su un'azione che CREA un
+    // lavoro sarebbe un testo falso. La seconda riga è la parte che morde.
+    expect(body.esito_azione).toEqual({ stato: 'applicato', dichiarazione_assente: false })
+    expect(body.riapertura).toBeUndefined()
   })
 
   it('🛑 l\'evento si registra PRIMA: l\'id passato alla RPC è quello della riga appena salvata', async () => {
@@ -821,12 +866,17 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     expect(body.p_evento_id).toBe(EVENTO_ID)
   })
 
-  // ⚖️ D312 — `destinatario_errato` È USCITO DA QUESTO CICLO, e ha la sua prova
-  // qui sotto: la sua riga porta ora `azione: 'torna_pronto'`, quindi
-  // l'asserzione `azione === null` non vale più per lui. Le altre sei restano.
-  it('🛑 GLI ALTRI SEI MOTIVI NON la chiamano e non portano azione — la giuntura tiene anche nel verso opposto', async () => {
+  // ⚖️ D312 + TASK 7 — DA SEI A QUATTRO, e i due che sono usciti sono usciti per
+  // ragioni diverse:
+  //   · `destinatario_errato` era già uscito col Task 6 (la sua riga fissa porta
+  //     `azione: 'torna_pronto'`), e ora ha la prova che la sua RPC parte davvero;
+  //   · `difetto_lavorazione` e `difetto_materiale` escono ADESSO: dal Task 7 non
+  //     sono più corpi validi senza `scelta_intervento`, e con la scelta portano
+  //     un'azione. Le loro prove stanno nel blocco del bivio, più in basso.
+  // Restano i quattro motivi che davvero non fanno succedere niente.
+  it('🛑 GLI ALTRI QUATTRO MOTIVI NON chiamano nessuna RPC e non portano azione — la giuntura tiene anche nel verso opposto', async () => {
     for (const motivo of [
-      'errore_dato_dichiarazione', 'difetto_lavorazione', 'difetto_materiale',
+      'errore_dato_dichiarazione',
       'modifica_clinica_richiesta', 'errore_prezzo_quantita',
       'reso_senza_difetto',
     ]) {
@@ -838,20 +888,23 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
       expect(mockRpc, motivo).not.toHaveBeenCalled()
       const body = await res.json()
       expect(body.effetto.azione, motivo).toBeNull()
-      expect(body.riapertura, motivo).toBeUndefined()
+      expect(body.esito_azione, motivo).toBeUndefined()
     }
   })
 
-  // ⚖️ D312 — «PERSONA SBAGLIATA»: L'AZIONE C'È, MA A QUESTO TASK NESSUNO LA
-  // ESEGUE. La riga fissa dichiara `torna_pronto`; la rotta, oggi, smista solo
-  // su `riapri_lavoro` (`eventi-qualita/route.ts:383-386`), quindi la RPC non
-  // parte. 🛑 Le due cose si affermano INSIEME, e la seconda è la più
-  // importante: è il perimetro del Task 7, che caberà lo smistamento. Se un
-  // giorno questa prova si accende sulla riga della RPC, vuol dire che
-  // qualcuno ha collegato l'azione — e allora è QUI che va aggiornata, non
-  // aggirata.
-  it('⚖️ D312 «persona sbagliata» porta l\'azione «torna_pronto», ma a questo task nessuna RPC parte', async () => {
+  // ⚖️ D312 — «PERSONA SBAGLIATA»: DAL TASK 7 L'AZIONE SI ESEGUE.
+  // 🔄 Questa prova diceva l'opposto — «ma a questo task nessuna RPC parte» — ed
+  // era VERA al Task 6, perché lì la rotta smistava solo su `riapri_lavoro`. Il
+  // Task 7 cabla lo smistamento, quindi la prova si CAMBIA: era il suo stesso
+  // commento a dirlo («se un giorno questa prova si accende sulla riga della RPC,
+  // è QUI che va aggiornata, non aggirata»).
+  // 🛑 E la riga che conta più di tutte è la TERZA: la RPC chiamata è la gemella
+  // NON distruttiva. Se un giorno partisse `riapri_lavoro_atomica`, la
+  // dichiarazione di un manufatto uscito DAVVERO verrebbe annullata — è ciò che
+  // D293 vieta, e la differenza fra le due funzioni sta tutta nel nome.
+  it('⚖️ D312 «persona sbagliata» chiama riporta_a_pronto_atomica — e MAI la gemella che annulla il documento', async () => {
     bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_viva: true }, error: null })
     const res = await POST_EVENTO(
       req(URL_EVENTO, corpoValido({ motivo: 'destinatario_errato' })),
       paramsLavoro()
@@ -860,8 +913,64 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     const body = await res.json()
     expect(body.effetto.azione).toBe('torna_pronto')
     expect(body.effetto.lavoro).toBe('torna_pronto')
+    expect(mockRpc).toHaveBeenCalledTimes(1)
+    expect(mockRpc).toHaveBeenCalledWith('riporta_a_pronto_atomica', {
+      p_lavoro_id: LAVORO_ID,
+      p_laboratorio_id: LAB_ID,
+      p_evento_id: EVENTO_ID,
+    })
+    expect(mockRpc).not.toHaveBeenCalledWith('riapri_lavoro_atomica', expect.anything())
+    expect(body.esito_azione).toEqual({ stato: 'applicato', dichiarazione_viva: true })
+  })
+
+  // 🛑 LA PROMESSA CHE NON HA OGGETTO. «La dichiarazione resta valida» è una
+  // frase, e se non c'è nessuna dichiarazione viva è una frase FALSA: la RPC lo
+  // dice con `ddc_viva:false` (`20260807182614:96`) e la rotta lo fa VIAGGIARE
+  // nella risposta. Un campo negativo che non arriva a chi legge è
+  // indistinguibile da un successo (R10).
+  it('🛑 se non c\'era nessuna dichiarazione viva, la risposta lo DICE (ddc_viva → dichiarazione_viva)', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_viva: false }, error: null })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'destinatario_errato' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    expect((await res.json()).esito_azione).toEqual({ stato: 'applicato', dichiarazione_viva: false })
+  })
+
+  // 🛑 GEMELLA DELLA GUARDIA SU `errore_registrazione` (Task 7, Passo 3). Se il
+  // manufatto non è mai uscito dal laboratorio non può essere andato alla persona
+  // sbagliata: quel caso è «ho premuto consegna per sbaglio», che ha il suo
+  // motivo e la sua transizione — distruttiva, e per questo va scelta apposta.
+  // La guardia sta nell'API e non nella schermata: è il confine di un atto che
+  // sposta un lavoro, e una schermata non è un confine.
+  it('🛑 «persona sbagliata» su un manufatto MAI USCITO → 422, nessun evento salvato, nessuna RPC', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'destinatario_errato', stato_dispositivo: 'mai_uscito_dal_lab', origine_informazione: 'laboratorio_interno' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
     expect(mockRpc).not.toHaveBeenCalled()
-    expect(body.riapertura).toBeUndefined()
+    // Il messaggio dice DOVE andare, non solo che è vietato (D262).
+    expect((await res.json()).error).toContain('consegna')
+  })
+
+  it('«persona sbagliata» resta ammessa su ogni ALTRO stato del dispositivo — la guardia è mirata', async () => {
+    for (const stato of ['consegnato_non_applicato', 'applicato', 'non_noto']) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      bancoEvento()
+      mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_viva: true }, error: null })
+      const res = await POST_EVENTO(
+        req(URL_EVENTO, corpoValido({ motivo: 'destinatario_errato', stato_dispositivo: stato })),
+        paramsLavoro()
+      )
+      expect(res.status, stato).toBe(201)
+      expect(mockRpc, stato).toHaveBeenCalledWith('riporta_a_pronto_atomica', expect.anything())
+    }
   })
 
   it('anche «altro» non la chiama, e porta comunque il suo effetto neutro', async () => {
@@ -881,7 +990,7 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     mockRpc.mockResolvedValue({ data: { esito: 'non_consegnato' }, error: null })
     const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
     expect(res.status).toBe(201)
-    expect((await res.json()).riapertura).toEqual({ stato: 'non_applicabile', motivo: 'non_consegnato' })
+    expect((await res.json()).esito_azione).toEqual({ stato: 'non_applicabile', motivo: 'non_consegnato' })
   })
 
   it('🛑 la RPC FALLISCE → 201 (il fatto non si perde) ma la risposta lo DICE: mai un successo silenzioso', async () => {
@@ -893,16 +1002,16 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     const body = await res.json()
     expect(body.evento).toBeTruthy()
     // 🛑 Ma NON dice «applicato». È il difetto della §8.1 — «fallire dichiarando successo».
-    expect(body.riapertura.stato).toBe('fallito')
+    expect(body.esito_azione.stato).toBe('fallito')
     // …e il testo Postgres grezzo non arriva a chi legge (precondizione ②).
-    nessunTestoGrezzo(body.riapertura.messaggio)
+    nessunTestoGrezzo(body.esito_azione.messaggio)
   })
 
   it('applicata su un lavoro senza dichiarazione (dato vecchio) → applicata, ma il caveat si vede', async () => {
     bancoEvento()
     mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_assente: true }, error: null })
     const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
-    expect((await res.json()).riapertura).toEqual({ stato: 'applicato', dichiarazione_assente: true })
+    expect((await res.json()).esito_azione).toEqual({ stato: 'applicato', dichiarazione_assente: true })
   })
 
   it('un\'eccezione della RPC non fa cadere la richiesta: il fatto resta salvato', async () => {
@@ -910,7 +1019,7 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     mockRpc.mockRejectedValue(new Error('rete giù'))
     const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
     expect(res.status).toBe(201)
-    expect((await res.json()).riapertura.stato).toBe('fallito')
+    expect((await res.json()).esito_azione.stato).toBe('fallito')
   })
 
   // ── LA PORTA DI «ALTRO» SU QUESTA NATURA SI CHIUDE (R8) ────────────────────
@@ -970,16 +1079,30 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     expect(mockRpc).toHaveBeenCalledTimes(1)
   })
 
-  it('gli ALTRI motivi restano liberi su ogni stato del dispositivo — la guardia è mirata, non un blocco', async () => {
+  // ⚠️ «GLI ALTRI» SONO DIVENTATI DUE INSIEMI, e la riga va letta con la spec §4.4:
+  //   · i DUE DIFETTI restano liberi su ogni stato — e in particolare su
+  //     `mai_uscito_dal_lab` **non** c'è nessun 422: a rispondere è il cancello di
+  //     stato DENTRO la RPC, che dice `non_consegnato`, e la rotta lo traduce in
+  //     «non applicabile». È l'ultima riga della tabella §4.4, quella marcata «da
+  //     verificare in FASE 6»: qui è provata la TRADUZIONE, non il cancello (che
+  //     vive in `20260807182614:73` ed è materia delle prove d'integrazione, T10);
+  //   · `destinatario_errato` invece NON è più libero, e ha la sua guardia
+  //     dedicata più sopra.
+  it('i DUE DIFETTI restano liberi su ogni stato del dispositivo — la guardia è mirata, non un blocco', async () => {
     for (const stato of ['mai_uscito_dal_lab', 'consegnato_non_applicato', 'applicato', 'non_noto']) {
       vi.clearAllMocks()
       mockGetFreshLabContext.mockResolvedValue(CONTEXT)
       bancoEvento()
+      mockRpc.mockResolvedValue({
+        data: stato === 'mai_uscito_dal_lab' ? { esito: 'non_consegnato' } : { esito: 'ok', ddc_viva: true },
+        error: null,
+      })
       const res = await POST_EVENTO(
-        req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', stato_dispositivo: stato })),
+        req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_sistema', stato_dispositivo: stato })),
         paramsLavoro()
       )
       expect(res.status, stato).toBe(201)
+      expect(res.status, stato).not.toBe(422)
     }
   })
 
@@ -994,6 +1117,368 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
       )
       expect(res.status, natura).toBe(201)
     }
+  })
+})
+
+/**
+ * ⚖️ D304 · D305 · D306 · D307 — IL BIVIO DEI DUE DIFETTI, E LE DUE AZIONI NUOVE
+ * (Task 7 dell'ondata «torna a `pronto` col documento intatto»).
+ *
+ * 🔑 PERCHÉ OGNI GUARDIA STA NELL'API. La lezione è stata pagata tre volte il
+ * 07/08: una coppia incoerente (motivo, azione) che arriva a un atto che **crea o
+ * sposta** cose non si ferma con una schermata. Una schermata la si aggira con
+ * `curl`, con una PWA aperta da ieri, con un tocco doppio — e quello che sta
+ * dall'altra parte qui brucia un progressivo d'anno o sposta un lavoro.
+ *
+ * 📋 FORME D'INGRESSO CENSITE per `scelta_intervento` (R-P4), ognuna col suo caso
+ * o col suo «non coperta, perché»:
+ *   · chiave assente su un motivo del bivio → 422 (caso ①)
+ *   · `null` su un motivo del bivio → 422 (caso ①-bis: `null` non è una scelta)
+ *   · stringa fuori vocabolario → 422 (caso ③)
+ *   · numero, array, oggetto → 422 (caso ③-bis: `inVocabolario` regge ogni `unknown`)
+ *   · valore valido su un motivo SENZA bivio → 422 (caso ②: mai uno scarto muto)
+ *   · `null` su un motivo senza bivio → 201, trattato come assenza (caso ②-bis)
+ *   · `undefined` esplicito → **non coperta, perché** `JSON.stringify` cancella la
+ *     chiave: al confine HTTP quel caso *è* «chiave assente», già coperto da ①
+ *   · corpo non-JSON / `null` / array → **già coperte** dalle prove d'ingresso del
+ *     primo blocco (400, mai 500): quel confine è a monte e non è cambiato.
+ */
+describe('POST …/eventi-qualita — il bivio dei due difetti e le due azioni nuove (D304-D307)', () => {
+  const LAVORO_NUOVO = '77777777-7777-7777-7777-777777777777'
+  const ALTRO_EVENTO = '88888888-8888-8888-8888-888888888888'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+  })
+
+  /** Instrada le DUE RPC del percorso «si rifà»: la creazione e — solo dopo —
+   *  il trasferimento della cassetta (D309, fail-soft). */
+  function rpcRifacimento(opts: { crea?: Risultato; cassetta?: Risultato } = {}) {
+    const crea = opts.crea ?? { data: { lavoro_nuovo_id: LAVORO_NUOVO, numero_lavoro: '2026-0042' }, error: null }
+    const cassetta = opts.cassetta ?? { data: { esito: 'trasferita' }, error: null }
+    mockRpc.mockImplementation((nome: string) =>
+      Promise.resolve(nome === 'cassetta_trasferisci_rifacimento' ? cassetta : crea)
+    )
+  }
+
+  // ── ① il valore che DEVE essere rifiutato: la scelta che manca ─────────────
+  it('① un motivo del bivio SENZA scelta → 422, nessun evento salvato, nessuna RPC', async () => {
+    for (const motivo of ['difetto_lavorazione', 'difetto_materiale']) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      const banco = bancoEvento()
+      const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ motivo })), paramsLavoro())
+      expect(res.status, motivo).toBe(422)
+      expect(banco.rigaInserita, motivo).toBeNull()
+      expect(mockRpc, motivo).not.toHaveBeenCalled()
+      // Il messaggio è la DOMANDA, non un divieto: dice che cosa manca.
+      expect((await res.json()).error, motivo).toContain('si sistema questo manufatto')
+    }
+  })
+
+  it('①-bis `scelta_intervento: null` su un motivo del bivio → 422: `null` non è una scelta', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_materiale', scelta_intervento: null })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+  })
+
+  // ── ② il valore che DEVE essere rifiutato: la scelta di troppo ─────────────
+  it('② una scelta su un motivo che non ne ha → 422, mai uno scarto silenzioso', async () => {
+    // 🔑 È la classe di difetto «Salvato su un dato che non c'è»: scartare la
+    // chiave in silenzio farebbe leggere «Registrato» a chi ha appena indicato
+    // una strada che nessuno prenderà. Stesso trattamento già riservato a
+    // `natura` su un motivo derivabile.
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'errore_prezzo_quantita', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(422)
+    expect(banco.rigaInserita).toBeNull()
+    expect(mockRpc).not.toHaveBeenCalled()
+    expect((await res.json()).error).toContain('nessuna scelta da fare')
+  })
+
+  it('②-bis `scelta_intervento: null` su un motivo senza bivio → 201: assente e nullo si equivalgono', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'errore_prezzo_quantita', scelta_intervento: null })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    expect(Object.hasOwn(banco.rigaInserita!, 'scelta_intervento')).toBe(false)
+  })
+
+  // ── ③ i valori che DEVONO essere rifiutati: le forme storte ────────────────
+  it('③ `scelta_intervento: \'forse\'` → 422', async () => {
+    const banco = bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'forse' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(422)
+    expect(res.status).not.toBe(500)
+    expect(banco.rigaInserita).toBeNull()
+  })
+
+  it('③-bis numero, array e oggetto al posto della scelta → 422, mai 500', async () => {
+    for (const valore of [7, ['si_sistema'], { scelta: 'si_sistema' }, true] as const) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      const banco = bancoEvento()
+      const res = await POST_EVENTO(
+        req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: valore })),
+        paramsLavoro()
+      )
+      expect(res.status, JSON.stringify(valore)).toBe(422)
+      expect(res.status, JSON.stringify(valore)).not.toBe(500)
+      expect(banco.rigaInserita, JSON.stringify(valore)).toBeNull()
+    }
+  })
+
+  // ── la scelta si SALVA, e quando non c'è non si inventa ────────────────────
+  it('la scelta arriva in banca dati sulla riga dell\'evento, e senza bivio la chiave non esiste', async () => {
+    const banco = bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_viva: true }, error: null })
+    await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_sistema' })),
+      paramsLavoro()
+    )
+    expect(banco.rigaInserita?.scelta_intervento).toBe('si_sistema')
+
+    vi.clearAllMocks()
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+    const secondo = bancoEvento()
+    await POST_EVENTO(req(URL_EVENTO, corpoValido()), paramsLavoro())
+    // 🛑 Non `null`: la chiave proprio non si manda. Il CHECK in banca dati
+    // ammette solo `NULL` fuori dai due motivi, e mandarla esplicita sarebbe un
+    // valore in più da spiegare a ogni futuro lettore.
+    expect(Object.hasOwn(secondo.rigaInserita!, 'scelta_intervento')).toBe(false)
+  })
+
+  // ── «si sistema» → la gemella che NON annulla il documento ─────────────────
+  it('«si sistema» chiama riporta_a_pronto_atomica, e MAI la gemella distruttiva', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_viva: true }, error: null })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_sistema' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    expect(mockRpc).toHaveBeenCalledWith('riporta_a_pronto_atomica', {
+      p_lavoro_id: LAVORO_ID,
+      p_laboratorio_id: LAB_ID,
+      p_evento_id: EVENTO_ID,
+    })
+    expect(mockRpc).not.toHaveBeenCalledWith('riapri_lavoro_atomica', expect.anything())
+    const body = await res.json()
+    // 🔑 L'effetto viaggia GIÀ RISOLTO: la schermata finale non deve ristampare
+    // la domanda a cui la persona ha appena risposto (spec §4.3).
+    expect(body.effetto.lavoro).toBe('torna_pronto')
+    expect(body.effetto.azione).toBe('torna_pronto')
+    expect(body.effetto.perche).not.toContain('serve una scelta')
+    expect(body.esito_azione).toEqual({ stato: 'applicato', dichiarazione_viva: true })
+  })
+
+  // ── ⑤ la riga che il piano dichiara NON PROVATA ────────────────────────────
+  // 🛑 CHE COSA PROVA QUESTA RIGA, E CHE COSA NO. Prova che la rotta **traduce**
+  // `esito: 'non_consegnato'` in «non applicabile» invece di gridare al guasto —
+  // un lavoro che non era da riportare indietro non è un errore, e chiamarlo tale
+  // insegna a ignorare gli avvisi. NON prova che la RPC risponda davvero così su
+  // un lavoro non consegnato: qui la RPC è finta. Il cancello vero sta in
+  // `20260807182614:73` (`IF v_lavoro.stato <> 'consegnato' THEN … 'non_consegnato'`),
+  // e la prova a runtime è materia del Task 10.
+  it('⑤ «si sistema» su un lavoro NON consegnato → 201 con esito «non applicabile», non un guasto', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'non_consegnato' }, error: null })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_sistema' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.evento.id).toBe(EVENTO_ID) // il fatto resta agli atti
+    expect(body.esito_azione).toEqual({ stato: 'non_applicabile', motivo: 'non_consegnato' })
+  })
+
+  it('un esito ignoto dalla RPC di ripristino NON si legge come successo (fail-closed)', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'boh' }, error: null })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_sistema' })),
+      paramsLavoro()
+    )
+    expect((await res.json()).esito_azione.stato).toBe('fallito')
+  })
+
+  // ── ⑥ «si rifà» → nasce un lavoro nuovo ───────────────────────────────────
+  it('⑥ «si rifà» crea il rifacimento e restituisce il numero del lavoro nuovo', async () => {
+    bancoEvento()
+    rpcRifacimento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_materiale', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    expect(mockRpc).toHaveBeenCalledWith('crea_rifacimento_atomico', {
+      p_lavoro_originale_id: LAVORO_ID,
+      p_motivo: 'difetto_materiale',
+      p_rilevato_in: 'post_consegna',
+      p_costo_interno: null,
+      p_note: null,
+      p_evento_id: EVENTO_ID,
+    })
+    const body = await res.json()
+    expect(body.effetto.azione).toBe('crea_rifacimento')
+    expect(body.esito_azione.stato).toBe('applicato')
+    expect(body.esito_azione.lavoro_nuovo).toEqual({ id: LAVORO_NUOVO, numero_lavoro: '2026-0042' })
+    // 🛑 «riapertura» sarebbe un nome FALSO qui: non si riapre niente, nasce un
+    // lavoro. È la ragione per cui il campo è stato rinominato in questo task.
+    expect(body.riapertura).toBeUndefined()
+  })
+
+  it('il motivo scritto sul rifacimento è quello VERO, non un «altro» di ripiego', async () => {
+    // 🔑 La RPC non valida `p_motivo` e la rotta HTTP del rifacimento non accetta
+    // questi due valori: l'unico guardiano del dato è questa derivazione. Se
+    // scrivesse `altro` si perderebbe l'unica informazione che conta.
+    bancoEvento()
+    rpcRifacimento()
+    await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    const args = mockRpc.mock.calls.find((c) => c[0] === 'crea_rifacimento_atomico')![1] as { p_motivo: string }
+    expect(args.p_motivo).toBe('difetto_lavorazione')
+  })
+
+  // ── 🔴 PASSO 4-bis — L'EMENDAMENTO: nessuno lega l'evento al lavoro ────────
+  // Il trigger `assert_same_lab_rifacimento` guarda solo i due lavori, mai
+  // l'evento; la FK composita difende dal «evento di un altro laboratorio», non
+  // dal «evento dello stesso laboratorio ma di un ALTRO lavoro». E quel secondo
+  // caso non resta innocuo: `rifacimento_evento_unique` BRUCIA quell'evento, così
+  // un rifacimento legittimo successivo su di esso uscirebbe 23505.
+  // ➡️ Questa rotta è l'ultimo punto in cui l'identificativo giusto è garantito,
+  // e ce l'ha in mano: l'evento l'ha appena inserito lei, su QUESTO lavoro.
+  it('🔴 l\'evento passato al rifacimento è quello appena salvato, MAI uno che arriva dal corpo', async () => {
+    bancoEvento()
+    rpcRifacimento()
+    await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({
+        motivo: 'difetto_lavorazione',
+        scelta_intervento: 'si_rifa',
+        evento_id: ALTRO_EVENTO,
+        p_evento_id: ALTRO_EVENTO,
+      })),
+      paramsLavoro()
+    )
+    const args = mockRpc.mock.calls.find((c) => c[0] === 'crea_rifacimento_atomico')![1] as { p_evento_id: string }
+    expect(args.p_evento_id).toBe(EVENTO_ID)
+    expect(args.p_evento_id).not.toBe(ALTRO_EVENTO)
+  })
+
+  // ── ⑦ il secondo tocco non crea un secondo lavoro ─────────────────────────
+  it('⑦ un secondo invio sullo stesso evento (23505) restituisce il lavoro che c\'è già', async () => {
+    const banco = bancoEvento({ rifacimentoGia: { lavoro_nuovo: { id: LAVORO_NUOVO, numero_lavoro: '2026-0042' } } })
+    rpcRifacimento({ crea: { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "rifacimento_evento_unique"' } } })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    // 🔑 Non è un guasto: è il secondo tocco, o il ritentativo dopo un timeout.
+    expect(body.esito_azione.stato).toBe('applicato')
+    expect(body.esito_azione.lavoro_nuovo).toEqual({ id: LAVORO_NUOVO, numero_lavoro: '2026-0042' })
+    nessunTestoGrezzo(JSON.stringify(body.esito_azione))
+    // La lettura di riparazione filtra per laboratorio ED evento: mai il
+    // rifacimento di un altro laboratorio.
+    const eq = banco.rifacimenti[0].calls.filter((c) => c.method === 'eq')
+    expect(eq).toContainEqual({ method: 'eq', args: ['laboratorio_id', LAB_ID] })
+    expect(eq).toContainEqual({ method: 'eq', args: ['evento_id', EVENTO_ID] })
+    // …e nessun secondo tentativo di creazione.
+    expect(mockRpc.mock.calls.filter((c) => c[0] === 'crea_rifacimento_atomico')).toHaveLength(1)
+  })
+
+  it('⑦-bis un 23505 senza riga da restituire resta un GUASTO, non un successo inventato', async () => {
+    bancoEvento({ rifacimentoGia: null })
+    rpcRifacimento({ crea: { data: null, error: { code: '23505', message: 'duplicate key' } } })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.esito_azione.stato).toBe('fallito')
+    nessunTestoGrezzo(body.esito_azione.messaggio)
+  })
+
+  it('la creazione fallita si DICE: 201 col fatto salvo, ma l\'esito non è «applicato»', async () => {
+    bancoEvento()
+    rpcRifacimento({ crea: { data: null, error: { code: '08006', message: 'connection failure' } } })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.evento.id).toBe(EVENTO_ID)
+    expect(body.esito_azione.stato).toBe('fallito')
+    expect(body.esito_azione.messaggio).toContain('non è stato creato')
+    nessunTestoGrezzo(body.esito_azione.messaggio)
+  })
+
+  it('una risposta senza numero di lavoro non si legge come successo (fail-closed)', async () => {
+    bancoEvento()
+    rpcRifacimento({ crea: { data: { lavoro_nuovo_id: LAVORO_NUOVO }, error: null } })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect((await res.json()).esito_azione.stato).toBe('fallito')
+  })
+
+  it('un\'eccezione durante la creazione non fa cadere la richiesta', async () => {
+    bancoEvento()
+    mockRpc.mockRejectedValue(new Error('rete giù'))
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    expect((await res.json()).esito_azione.stato).toBe('fallito')
+  })
+
+  // ── D309 — la cassetta segue il rifacimento, ed è l'UNICA parte fail-soft ──
+  it('la cassetta si sposta con lo stesso helper del percorso HTTP esistente', async () => {
+    bancoEvento()
+    rpcRifacimento()
+    await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(mockRpc).toHaveBeenCalledWith('cassetta_trasferisci_rifacimento', {
+      p_lab: LAB_ID,
+      p_lavoro_vecchio: LAVORO_ID,
+      p_lavoro_nuovo: LAVORO_NUOVO,
+    })
+  })
+
+  it('🛑 ma un cassetto non spostato NON annulla un lavoro già creato (D309, fail-soft)', async () => {
+    bancoEvento()
+    rpcRifacimento({ cassetta: { data: null, error: { code: '40001', message: 'serialization failure' } } })
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', scelta_intervento: 'si_rifa' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.esito_azione.stato).toBe('applicato')
+    expect(body.esito_azione.lavoro_nuovo.numero_lavoro).toBe('2026-0042')
   })
 })
 

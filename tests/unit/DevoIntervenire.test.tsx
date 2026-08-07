@@ -102,7 +102,7 @@ describe('DevoIntervenire', () => {
   })
 
   it('🛑 e quando registra, manda «mai uscito» — mai uno stato scelto a mano', async () => {
-    const spia = fingiFetch({ ...RISPOSTA_OK, riapertura: { stato: 'applicato', dichiarazione_assente: false } })
+    const spia = fingiFetch({ ...RISPOSTA_OK, esito_azione: { stato: 'applicato', dichiarazione_assente: false } })
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
@@ -175,7 +175,7 @@ describe('DevoIntervenire', () => {
   // 🛑 R10 — gli esiti negativi vanno DISEGNATI, o sono indistinguibili da un
   // successo. Questa prova è il motivo per cui la rotta ne distingue tre.
   it('🛑 se la riapertura FALLISCE, la schermata lo DICE', async () => {
-    fingiFetch({ ...RISPOSTA_OK, riapertura: { stato: 'fallito', messaggio: 'Riportalo tu fra quelli pronti.' } })
+    fingiFetch({ ...RISPOSTA_OK, esito_azione: { stato: 'fallito', messaggio: 'Riportalo tu fra quelli pronti.' } })
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
@@ -186,7 +186,7 @@ describe('DevoIntervenire', () => {
   })
 
   it('🛑 «non applicabile» NON si mostra come un guasto: non lo è', async () => {
-    fingiFetch({ ...RISPOSTA_OK, riapertura: { stato: 'non_applicabile', motivo: 'non_consegnato' } })
+    fingiFetch({ ...RISPOSTA_OK, esito_azione: { stato: 'non_applicabile', motivo: 'non_consegnato' } })
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
@@ -197,7 +197,7 @@ describe('DevoIntervenire', () => {
   })
 
   it('la riapertura riuscita si vede, col caveat quando non c\'era una dichiarazione', async () => {
-    fingiFetch({ ...RISPOSTA_OK, riapertura: { stato: 'applicato', dichiarazione_assente: true } })
+    fingiFetch({ ...RISPOSTA_OK, esito_azione: { stato: 'applicato', dichiarazione_assente: true } })
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))

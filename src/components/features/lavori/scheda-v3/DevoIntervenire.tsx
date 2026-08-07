@@ -92,9 +92,25 @@ interface Proposta {
   termineOre: number | null
 }
 
-interface Riapertura {
+/**
+ * 🔄 SI CHIAMAVA `Riapertura`, ed è stata rinominata col Task 7 insieme al campo
+ * della risposta: da questo canale passano ora anche il ritorno «col documento
+ * intatto» e la **creazione** di un lavoro nuovo. Chiamare «riapertura» un atto
+ * che crea sarebbe un testo falso.
+ *
+ * ⚠️ **I RIQUADRI CHE LO DISEGNANO SONO ANCORA QUELLI DELLA SOLA RIAPERTURA**
+ * (`:492-513` prima di questa modifica): dicono «il lavoro è tornato fra i
+ * pronti», che su un rifacimento è **falso**, e non mostrano né
+ * `dichiarazione_viva` né `lavoro_nuovo`. Generalizzare il disegno e scrivere i
+ * sei testi (tre stati × due azioni nuove) è il **Task 9**, non questo: qui il
+ * rinominare si porta a termine e il resto si **dichiara**, invece di farlo a
+ * metà di nascosto.
+ */
+interface EsitoAzione {
   stato: 'applicato' | 'non_applicabile' | 'fallito'
   dichiarazione_assente?: boolean
+  dichiarazione_viva?: boolean
+  lavoro_nuovo?: { id: string; numero_lavoro: string }
   motivo?: string
   messaggio?: string
 }
@@ -103,7 +119,7 @@ interface RispostaEvento {
   evento: { id: string }
   proposta: Proposta
   effetto: { lavoro: string; documento: string; azione: string | null; perche: string }
-  riapertura?: Riapertura
+  esito_azione?: EsitoAzione
 }
 
 const TINTE = {
@@ -489,9 +505,9 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
                 ? 'La registrazione e la valutazione sono agli atti.'
                 : 'La registrazione è agli atti.'}
             </Esito>
-            {risposta.riapertura?.stato === 'applicato' && (
+            {risposta.esito_azione?.stato === 'applicato' && (
               <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
-                {risposta.riapertura.dichiarazione_assente
+                {risposta.esito_azione.dichiarazione_assente
                   ? 'Non c\'era nessuna dichiarazione da annullare.'
                   : 'La dichiarazione è stata annullata.'}
               </Esito>
@@ -499,7 +515,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
             {/* 🛑 «Non applicabile» NON è un guasto: il lavoro non era da
                 riportare indietro. Trattarlo come errore insegnerebbe a
                 ignorare gli avvisi. */}
-            {risposta.riapertura?.stato === 'non_applicabile' && (
+            {risposta.esito_azione?.stato === 'non_applicabile' && (
               <Esito tono="attesa" titolo="Il lavoro non era da riportare indietro">
                 Era già fra i pronti, o non è più consegnato. La registrazione è salva.
               </Esito>
@@ -507,9 +523,9 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
             {/* 🛑 IL GUASTO VERO, e questa riga è la ragione per cui la rotta
                 distingue tre esiti invece di un sì/no: senza, «registrato»
                 sembrerebbe «fatto tutto». */}
-            {risposta.riapertura?.stato === 'fallito' && (
+            {risposta.esito_azione?.stato === 'fallito' && (
               <Esito tono="guasto" titolo="Ma il lavoro non è tornato indietro">
-                {risposta.riapertura.messaggio ?? 'Riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
+                {risposta.esito_azione.messaggio ?? 'Riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
               </Esito>
             )}
             <TastoPrimario onClick={ricomincia}>Ho capito</TastoPrimario>

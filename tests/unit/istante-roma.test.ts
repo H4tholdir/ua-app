@@ -262,9 +262,22 @@ function req(body: unknown) {
 
 const params = { params: Promise.resolve({ id: LAVORO_ID }) }
 
+/**
+ * ⚠️ IL MOTIVO È CAMBIATO COL TASK 7 dell'ondata «torna a `pronto` col documento
+ * intatto», e questa è la SECONDA fixture del progetto che portava lo stesso
+ * valore (l'altra è `corpoValido` in `eventi-qualita-route.test.ts`).
+ *
+ * Qui c'era `difetto_lavorazione`, cioè uno dei due motivi del **bivio**: da
+ * quando la rotta pretende `scelta_intervento` su quei due, questo corpo non è
+ * più valido, e la guardia del bivio sta **prima** della lettura di
+ * `conosciuto_il`. Conseguenza doppia, e la seconda è la peggiore: le prove che
+ * si aspettano 201 uscivano 422, e quelle che si aspettano 422 restavano verdi
+ * **per il motivo sbagliato** — cioè non misuravano più niente sull'orologio di
+ * Roma. Il ripiego è un motivo derivabile che non apre nessun bivio.
+ */
 function corpo(conosciuto_il: unknown) {
   return {
-    motivo: 'difetto_lavorazione',
+    motivo: 'errore_dato_dichiarazione',
     origine_informazione: 'odontoiatra',
     stato_dispositivo: 'consegnato_non_applicato',
     potenziale_di_danno: 'nessuno',
