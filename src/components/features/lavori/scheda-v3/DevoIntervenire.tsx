@@ -69,6 +69,7 @@ import {
   DOMANDE, ORIGINE_UI, STATO_UI, DANNO_UI, ESITO_UI,
 } from '@/lib/qualita/motivi-ui'
 import { effettoDaMotivo } from '@/lib/qualita/effetti'
+import type { AzioneAutomatica } from '@/lib/qualita/effetti'
 
 /** Le fasi del percorso. `chiuso` è lo stato a riposo: la riga sulla scheda. */
 type Fase = 'chiuso' | 'domanda' | 'motivo' | 'confermaSbaglio' | 'dettagli' | 'proposta' | 'esito'
@@ -118,7 +119,11 @@ interface EsitoAzione {
 interface RispostaEvento {
   evento: { id: string }
   proposta: Proposta
-  effetto: { lavoro: string; documento: string; azione: string | null; perche: string }
+  /** 🔑 `azione` è STRETTA all'unione vera, non `string` (spec §4.3, e la revisione
+   *  del Task 7 lo aveva riferito come Minore). Serve a questo file: i riquadri
+   *  d'esito si scelgono confrontandola, e con `string` un refuso — `'torna_pronta'`
+   *  — sarebbe un ramo che non si accende mai, in silenzio. */
+  effetto: { lavoro: string; documento: string; azione: AzioneAutomatica | null; perche: string }
   esito_azione?: EsitoAzione
 }
 
@@ -505,28 +510,70 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
                 ? 'La registrazione e la valutazione sono agli atti.'
                 : 'La registrazione è agli atti.'}
             </Esito>
+            {/* 🔴 QUESTO BLOCCO ERA UN TESTO FALSO, e l'ha trovato la revisione del
+                Task 7. Diceva «La dichiarazione è stata annullata» **proprio sul ramo
+                che la tiene viva**: il ternario guardava `dichiarazione_assente`, che
+                su `torna_pronto` non arriva affatto (la rotta manda `dichiarazione_viva`),
+                quindi cadeva sempre nel ramo «annullata». 🛑 È l'inversione esatta di
+                D293 e dell'Art. 21(2) MDR — e la porta era già aperta, perché
+                `destinatario_errato` non ha nessun cancello a monte.
+                📌 I testi sono quelli **già ratificati** nel Passo 5 del Task 9: qui si
+                chiude la bugia, non si progetta la schermata. Al Task 9 restano
+                l'inversione dell'ordine (l'esito sopra la conferma) e la via per
+                **aprire** il lavoro nuovo. */}
             {risposta.esito_azione?.stato === 'applicato' && (
-              <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
-                {risposta.esito_azione.dichiarazione_assente
-                  ? 'Non c\'era nessuna dichiarazione da annullare.'
-                  : 'La dichiarazione è stata annullata.'}
-              </Esito>
+              risposta.effetto.azione === 'crea_rifacimento' ? (
+                <Esito
+                  tono="ok"
+                  titolo={
+                    risposta.esito_azione.lavoro_nuovo
+                      ? `È nato il lavoro ${risposta.esito_azione.lavoro_nuovo.numero_lavoro}`
+                      : 'È nato un lavoro nuovo'
+                  }
+                >
+                  Questo resta consegnato con la sua dichiarazione.
+                </Esito>
+              ) : risposta.effetto.azione === 'torna_pronto' ? (
+                <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
+                  {risposta.esito_azione.dichiarazione_viva === false
+                    ? 'Su questo lavoro non c\'era una dichiarazione valida: quando lo riconsegnerai ne verrà emessa una nuova.'
+                    : 'La dichiarazione resta valida.'}
+                </Esito>
+              ) : (
+                <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
+                  {risposta.esito_azione.dichiarazione_assente
+                    ? 'Non c\'era nessuna dichiarazione da annullare.'
+                    : 'La dichiarazione è stata annullata.'}
+                </Esito>
+              )
             )}
             {/* 🛑 «Non applicabile» NON è un guasto: il lavoro non era da
                 riportare indietro. Trattarlo come errore insegnerebbe a
                 ignorare gli avvisi. */}
             {risposta.esito_azione?.stato === 'non_applicabile' && (
-              <Esito tono="attesa" titolo="Il lavoro non era da riportare indietro">
-                Era già fra i pronti, o non è più consegnato. La registrazione è salva.
-              </Esito>
+              risposta.effetto.azione === 'crea_rifacimento' ? (
+                <Esito tono="attesa" titolo="Non c'era niente da rifare su questo lavoro">
+                  La registrazione è salva.
+                </Esito>
+              ) : (
+                <Esito tono="attesa" titolo="Il lavoro non era da riportare indietro">
+                  Era già fra i pronti, o non è più consegnato. La registrazione è salva.
+                </Esito>
+              )
             )}
             {/* 🛑 IL GUASTO VERO, e questa riga è la ragione per cui la rotta
                 distingue tre esiti invece di un sì/no: senza, «registrato»
                 sembrerebbe «fatto tutto». */}
             {risposta.esito_azione?.stato === 'fallito' && (
-              <Esito tono="guasto" titolo="Ma il lavoro non è tornato indietro">
-                {risposta.esito_azione.messaggio ?? 'Riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
-              </Esito>
+              risposta.effetto.azione === 'crea_rifacimento' ? (
+                <Esito tono="guasto" titolo="Ma il lavoro nuovo non è stato creato">
+                  {risposta.esito_azione.messaggio ?? 'Crealo dalla scheda, oppure riprova fra un momento.'}
+                </Esito>
+              ) : (
+                <Esito tono="guasto" titolo="Ma il lavoro non è tornato indietro">
+                  {risposta.esito_azione.messaggio ?? 'Riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
+                </Esito>
+              )
             )}
             <TastoPrimario onClick={ricomincia}>Ho capito</TastoPrimario>
           </>

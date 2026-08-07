@@ -1087,6 +1087,19 @@ motivo è `destinatario_errato`, con la ragione a schermo. 🛑 **La guardia del
 
 - [ ] **Passo 5 — la schermata finale: prima che cosa è successo al LAVORO**
 
+> 🔴 **PARTE DI QUESTO PASSO È GIÀ FATTA, e non per zelo: era un CRITICO.** La revisione del Task 7 ha
+> misurato che il riquadro diceva «*La dichiarazione è stata annullata*» **proprio sul ramo che la
+> tiene viva** — il ternario guardava `dichiarazione_assente`, che su `torna_pronto` non arriva
+> affatto, quindi cadeva sempre nel ramo dell'annullamento. È l'inversione esatta di **D293** e
+> dell'**Art. 21(2)**, ed era raggiungibile: `destinatario_errato` non ha nessun cancello a monte.
+> ✅ **Già scritti, con i testi ratificati della tabella qui sotto:** i tre riquadri
+> (`applicato` · `non_applicabile` · `fallito`) si scelgono ora sull'azione, e `azione` è stretta
+> all'unione vera invece che a `string`. Provati **rompendoli**: rimesso il difetto, due prove si
+> accendono citando la frase falsa (`tests/unit/DevoIntervenire.test.tsx`).
+> ⏳ **A QUESTO PASSO RESTANO TRE COSE, e sono quelle di disegno:** ① **l'inversione dell'ordine** —
+> oggi «Registrato» è ancora la prima card e l'esito viene sotto; ② **la via per APRIRE il lavoro
+> nuovo** (con `useNavigaDaOverlay`, mai `router.push`); ③ la **FASE 9** a schermo.
+
 Oggi la prima card è sempre «Registrato» (verde, incondizionata) e l'eventuale guasto è la **terza**,
 su 390px facilmente sotto la piega. ➡️ **Inverti**: in cima l'esito dell'azione, sotto la conferma che
 l'evento è agli atti. E i testi sono **sei**, tre stati × due azioni nuove — quelli esistenti dicono

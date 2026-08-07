@@ -207,6 +207,68 @@ describe('DevoIntervenire', () => {
     expect(screen.getByText(/Non c'era nessuna dichiarazione da annullare/)).toBeTruthy()
   })
 
+  // 🔴 LE TRE PROVE QUI SOTTO NASCONO DA UN CRITICO trovato dalla revisione del
+  // Task 7: il riquadro diceva «La dichiarazione è stata annullata» **anche sul
+  // ramo che la tiene viva**. Il ternario guardava `dichiarazione_assente`, che
+  // su `torna_pronto` non arriva proprio (la rotta manda `dichiarazione_viva`),
+  // quindi cadeva sempre nel ramo dell'annullamento.
+  // 🛑 Perché è la prova più importante di questo file: è l'inversione esatta di
+  // D293 e dell'Art. 21(2) MDR. L'intera ondata esiste per NON cancellare la
+  // prova che un manufatto è uscito davvero, e la schermata diceva il contrario
+  // a chi l'aveva appena salvata.
+  it('🛑 «torna a pronto»: la schermata NON dice che la dichiarazione è stata annullata — perché non lo è', async () => {
+    fingiFetch({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'torna_pronto' },
+      esito_azione: { stato: 'applicato', dichiarazione_viva: true },
+    })
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+
+    await waitFor(() => expect(screen.getAllByText('Il lavoro è tornato fra i pronti').length).toBeGreaterThan(0))
+    expect(screen.getByText(/La dichiarazione resta valida/)).toBeTruthy()
+    expect(screen.queryByText(/La dichiarazione è stata annullata/)).toBeNull()
+  })
+
+  it('«torna a pronto» senza una dichiarazione viva: lo dice, e dice che ne verrà emessa una nuova', async () => {
+    fingiFetch({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'torna_pronto' },
+      esito_azione: { stato: 'applicato', dichiarazione_viva: false },
+    })
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+
+    await waitFor(() => expect(screen.getAllByText('Il lavoro è tornato fra i pronti').length).toBeGreaterThan(0))
+    expect(screen.getByText(/ne verrà emessa una nuova/)).toBeTruthy()
+    expect(screen.queryByText(/La dichiarazione è stata annullata/)).toBeNull()
+  })
+
+  it('«se ne fa uno nuovo»: la schermata NOMINA il lavoro nato, e non dice che questo è tornato indietro', async () => {
+    fingiFetch({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'crea_rifacimento' },
+      esito_azione: {
+        stato: 'applicato',
+        lavoro_nuovo: { id: '55555555-5555-5555-5555-555555555555', numero_lavoro: '2026-0042' },
+      },
+    })
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+
+    await waitFor(() => expect(screen.getAllByText('È nato il lavoro 2026-0042').length).toBeGreaterThan(0))
+    expect(screen.getByText(/Questo resta consegnato con la sua dichiarazione/)).toBeTruthy()
+    // 🔑 La riga che il piano chiama «falsa su un rifacimento»: il lavoro vecchio
+    // NON è tornato indietro, e la schermata non deve dirlo.
+    expect(screen.queryByText('Il lavoro è tornato fra i pronti')).toBeNull()
+  })
+
   // 🛑 Il vincolo di banca dati: «nessuna azione» senza il perché è rifiutato.
   it('confermando la proposta, la giustificazione è il PERCHÉ mostrato — non un testo inventato', async () => {
     const spia = fingiFetch()
