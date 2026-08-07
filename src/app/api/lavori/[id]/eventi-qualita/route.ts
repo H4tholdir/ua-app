@@ -212,6 +212,28 @@ export async function POST(req: Request, { params }: RouteContext) {
     return err('Indica dov\'era il manufatto quando è emerso il problema, scegliendo dall\'elenco.', 422)
   }
 
+  // 🛑 LA COMBINAZIONE CHE DISTRUGGEREBBE UNA PROVA DI LEGGE — e non è teorica:
+  // prima di questa guardia passava.
+  // «Ho premuto consegna per sbaglio» e «il manufatto era già uscito» non
+  // possono essere veri insieme: se è uscito, la consegna È avvenuta. Ma con
+  // `stato_dispositivo = 'applicato'` accadevano due cose insieme —
+  //   ① `classifica()` proponeva **INCIDENTE** (dispositivo uscito + potenziale
+  //      di danno: il passo ① scatta prima delle esenzioni, D276);
+  //   ② l'effetto derivato dal motivo chiamava comunque `riapri_lavoro_atomica`,
+  //      che porta la dichiarazione a `annullata` **incondizionatamente**.
+  // 🔑 Cioè si annullava il documento di un manufatto uscito DAVVERO, che è
+  // esattamente ciò che D293 vieta: quella dichiarazione è l'unica prova che il
+  // manufatto è esistito ed è andato a un paziente, e `annullata` lì non
+  // significherebbe «superata» ma cancellata.
+  // ➡️ La guardia sta nell'API e non nell'interfaccia: il confine di un atto
+  // distruttivo su un documento a valore legale non si affida a una schermata.
+  // ⚠️ `non_noto` è rifiutato con gli altri, e non è pignoleria: chi dichiara di
+  // aver premuto per sbaglio è la stessa persona che ha premuto — se non sa se
+  // il manufatto sia uscito, allora non sa nemmeno di aver sbagliato tasto.
+  if (motivo === 'errore_registrazione' && statoDispositivo !== 'mai_uscito_dal_lab') {
+    return err('Se il manufatto era già uscito dal laboratorio, la consegna è avvenuta davvero: scegli il motivo che descrive che cosa è successo dopo, non «ho sbagliato a premere consegna».', 422)
+  }
+
   // `potenziale_di_danno` è facoltativo: se manca, il default lo mette il
   // DATABASE (`DEFAULT 'da_valutare'`, `20260806140823:24`). Non si scrive un
   // secondo default qui, o i due potrebbero divergere in silenzio.

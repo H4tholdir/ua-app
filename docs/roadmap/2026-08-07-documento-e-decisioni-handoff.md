@@ -20,7 +20,32 @@ pipe**): tsc **0** · eslint **0** · `npm run build` ok · **sei guardie verdi*
 
 ## 0. 🔴 CIÒ CHE NON È STATO FATTO
 
-### ① 🔴 UN TESTO CHE L'APP MOSTRA È FALSO, LO SAPPIAMO DA STAMATTINA, E NON L'HO CORRETTO
+> ## ✅ AGGIORNAMENTO DEL 07/08/2026, POMERIGGIO — I PUNTI ①, ② E ③ SONO CHIUSI
+>
+> Salvataggio **`62ed00a3`** (+ il giro di revisione che segue), ramo `intervento-post-consegna`,
+> pubblicato. **Il resto della §0 vale invariato**: ④ ⑤ ⑥ ⑦ sono ancora tutti aperti.
+>
+> - **①+② chiusi INSIEME**, come una cosa sola: correggere il testo lasciando la funzione senza
+>   chiamanti avrebbe sostituito un testo falso con una **promessa**. Il difetto di
+>   `classifica.ts:164` **non era la frase, era il RAMO** — `commerciale` ed `errore_registrazione`
+>   ne condividevano uno, e la stessa frase era vera per il primo e falsa per il secondo.
+>   `src/lib/qualita/effetti.ts` 🆕 porta l'elenco dei nove motivi; la rotta
+>   `POST …/eventi-qualita` **chiama finalmente `riapri_lavoro_atomica`**.
+> - **③ chiuso** con **D297** (difetto del materiale: stessa scelta di D290) e **D298** (difetto di
+>   lavorazione → il documento: la casella diceva «panel in corso» e **il panel c'era già stato**,
+>   è D293 a rispondere). L'elenco è pieno per **otto righe su nove**: resta il solo
+>   `reso_senza_difetto`, che **non è una domanda ma un lavoro** (vocabolario in banca dati →
+>   migration → percorso GRANDE, da progettare **insieme alla riga 9 della coda di ROADMAP**).
+> - 🔴 **TRE RITROVAMENTI NUOVI**, in fondo al piano: **R9** la transizione «torna a `pronto` col
+>   documento INTATTO» **non esiste** e serve a tre motivi su nove (→ ROADMAP **23**) · **R10** il
+>   Task 6 **deve disegnare** gli esiti negativi della riapertura · **R11** una combinazione che
+>   **annullava la dichiarazione di un manufatto applicato a un paziente**, raggiungibile e ora
+>   chiusa nella rotta.
+>
+> ⚠️ **Le righe originali qui sotto restano, barrate dove servono**: dicono *perché* il difetto era
+> lì, e quella parte non invecchia.
+
+### ① ~~🔴 UN TESTO CHE L'APP MOSTRA È FALSO~~ ✅ CHIUSO — e non era una frase da riscrivere
 `provato:` `src/lib/qualita/classifica.ts:164` dice ancora, per «commerciale» ed «errore di
 registrazione»: «**Non tocca il dispositivo né il documento sanitario.**»
 🛑 **D288 stabilisce l'opposto**: «ho sbagliato a premere consegna» **riporta il lavoro a `pronto` e
@@ -28,13 +53,13 @@ annulla la dichiarazione**. Il testo è quindi **falso proprio nel caso più fre
 che una persona legge per decidere.
 ➡️ Va corretto **insieme** all'elenco degli effetti (§3.1), non prima: la frase giusta dipende da quella.
 
-### ② 🔴 `riapri_lavoro_atomica` HA UN CHIAMANTE DECISO E ANCORA NESSUNO CHE LA CHIAMI
+### ② ~~🔴 `riapri_lavoro_atomica` NON HA CHIAMANTI~~ ✅ CHIUSO — la chiama la rotta degli eventi
 `provato:` `grep -rl` in `src/` → **un solo file**, ed è `src/types/database.types.ts` (generato).
 La funzione è stata **costruita col Task 3 e applicata al database** il 06/08. **D288 ha deciso chi la
 invoca** — la derivazione dal motivo — ma **nessuno l'ha scritto**.
 ➡️ È la famiglia della **guardia mai agganciata**: una cosa che esiste, sembra copertura, e non gira.
 
-### ③ 🟠 L'ELENCO DEGLI EFFETTI DEI NOVE MOTIVI È PIENO PER SETTE SU NOVE
+### ③ ~~🟠 PIENO PER SETTE SU NOVE~~ ✅ OTTO SU NOVE (D297-D298) — resta il solo «reso senza difetto»
 Deciso: dato sbagliato sul documento · **difetto di lavorazione (D290)** · **persona sbagliata (D291)** ·
 modifica chiesta dal medico · prezzo/quantità · **ho sbagliato a premere consegna (D288)** · altro.
 **Mancano:**

@@ -901,6 +901,63 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     expect((await res.json()).error).toContain('ho sbagliato a premere consegna')
   })
 
+  // ── 🛑 LA COMBINAZIONE CHE DISTRUGGE UNA PROVA DI LEGGE ────────────────────
+  // «Ho premuto consegna per sbaglio» e «il manufatto era APPLICATO a un
+  // paziente» non possono essere veri insieme: se è stato applicato, la consegna
+  // è avvenuta. Ma niente lo impediva, e le conseguenze erano due, entrambe gravi:
+  //   ① `classifica()` fa scattare il passo ① (dispositivo uscito + potenziale di
+  //      danno) e propone **INCIDENTE**;
+  //   ② l'effetto derivato dal motivo chiama comunque la RPC, che **annulla la
+  //      dichiarazione** — su un manufatto uscito DAVVERO.
+  // 🔑 È esattamente ciò che D293 vieta: annullare il documento di una consegna
+  // realmente avvenuta cancella l'unica prova che quel manufatto è esistito ed è
+  // andato a un paziente. La guardia sta QUI e non nell'interfaccia: il confine
+  // di un atto distruttivo su un documento a valore legale è dell'API.
+  it('🛑 «ho sbagliato a premere consegna» su un manufatto APPLICATO → 422, e la RPC non parte', async () => {
+    bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'errore_registrazione', stato_dispositivo: 'applicato', potenziale_di_danno: 'possibile' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(422)
+    expect(mockRpc).not.toHaveBeenCalled()
+  })
+
+  it('🛑 e nemmeno su un manufatto CONSEGNATO o di cui non si sa: la consegna o è avvenuta o no', async () => {
+    for (const stato of ['consegnato_non_applicato', 'non_noto']) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      bancoEvento()
+      const res = await POST_EVENTO(
+        req(URL_EVENTO, corpoValido({ motivo: 'errore_registrazione', stato_dispositivo: stato })),
+        paramsLavoro()
+      )
+      expect(res.status, stato).toBe(422)
+      expect(mockRpc, stato).not.toHaveBeenCalled()
+    }
+  })
+
+  it('l\'unico stato coerente resta ammesso, e lì la RPC parte', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_assente: false }, error: null })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect(mockRpc).toHaveBeenCalledTimes(1)
+  })
+
+  it('gli ALTRI motivi restano liberi su ogni stato del dispositivo — la guardia è mirata, non un blocco', async () => {
+    for (const stato of ['mai_uscito_dal_lab', 'consegnato_non_applicato', 'applicato', 'non_noto']) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      bancoEvento()
+      const res = await POST_EVENTO(
+        req(URL_EVENTO, corpoValido({ motivo: 'difetto_lavorazione', stato_dispositivo: stato })),
+        paramsLavoro()
+      )
+      expect(res.status, stato).toBe(201)
+    }
+  })
+
   it('«altro» resta invece libero sulle altre naturae, che non portano nessuna azione', async () => {
     for (const natura of ['commerciale', 'nuova_esigenza_clinica', 'difetto_fisico']) {
       vi.clearAllMocks()

@@ -1374,12 +1374,34 @@ sembrare un successo.
 🛑 **Un campo negativo che nessuna schermata disegna è indistinguibile da un successo**, e
 riaprirebbe lo stesso difetto dall'altro lato.
 
-### 🟠 R11 — il contatore può crescere su un motivo che dice «la consegna non è avvenuta»
+### 🔴 R11 — LA COMBINAZIONE CHE DISTRUGGEVA UNA PROVA DI LEGGE — trovata da un revisore, era RAGGIUNGIBILE, ✅ CHIUSA
 
-`post_consegna_correzioni` si incrementa quando `stato_dispositivo !== 'mai_uscito_dal_lab'`. Per
-«ho sbagliato a premere consegna» il valore coerente è `mai_uscito_dal_lab`, quindi **nella pratica
-non si incrementa** — ma nulla impedisce all'interfaccia di mandare un altro stato, e allora il
-contatore conterebbe come *correzione post-consegna* un evento che dichiara che **la consegna non
-c'è stata**. ➡️ Vincolo per il **Task 6**: su quel motivo lo stato del dispositivo non si chiede,
-si **fissa**. ⚠️ Stessa famiglia del ritrovamento ⑤ del compito del ritiro («un evento ritirato deve
-far scendere `post_consegna_correzioni`»): i due si guardano insieme.
+🛑 **L'avevo scritta come un difetto del CONTATORE, e il contatore era la parte irrilevante.** La
+prima stesura di questo ritrovamento diceva: «`post_consegna_correzioni` potrebbe crescere su un
+motivo che dichiara che la consegna non c'è stata», e rimandava il rimedio all'interfaccia del
+Task 6. **La cosa vera era un'altra, sullo stesso ingresso.**
+
+`provato:` con `motivo = 'errore_registrazione'` e `stato_dispositivo = 'applicato'`, prima della
+correzione la rotta rispondeva **201** e la RPC partiva (due prove scritte apposta fallivano):
+- `classifica()` propone **INCIDENTE** — il dispositivo è uscito e c'è potenziale di danno, e il
+  passo ① sta prima delle esenzioni (D276);
+- **e nello stesso giro** l'effetto derivato dal motivo chiama `riapri_lavoro_atomica`, che porta la
+  dichiarazione a `annullata` **incondizionatamente**.
+
+➡️ Si annullava il documento di un manufatto **uscito davvero e applicato a un paziente**, che è
+esattamente ciò che **D293** vieta: lì `annullata` non significherebbe *superata*, significherebbe
+**cancellata** — e quella dichiarazione è l'unica prova che il manufatto è esistito.
+
+✅ **Chiusa nella ROTTA, non nell'interfaccia** (422 con il rimando al motivo giusto): il confine di
+un atto distruttivo su un documento a valore legale non si affida a una schermata. `non_noto` è
+rifiutato con gli altri — chi dichiara di aver premuto per sbaglio è la stessa persona che ha
+premuto: se non sa se il manufatto sia uscito, non sa nemmeno di aver sbagliato tasto.
+🔑 **E il contatore si sistema di conseguenza**, senza una seconda regola: l'unico stato ammesso su
+quel motivo è `mai_uscito_dal_lab`, che è già quello che non incrementa.
+⚠️ Resta invece aperto il gemello del compito del ritiro: **un evento ritirato deve far SCENDERE
+`post_consegna_correzioni`**.
+
+**🔑 La lezione, e non riguarda solo questo ingresso:** avevo censito la combinazione e l'avevo
+classificata sul suo effetto **meno grave**. Un ritrovamento scritto male è peggio di uno non
+scritto: sembra già trattato. ➡️ Quando un ingresso incoerente produce **più** conseguenze, la riga
+si scrive sulla **peggiore**, non sulla prima che si vede.
