@@ -817,6 +817,17 @@ in `classifica.ts` il 07/08. Rinomina anche il tipo (`Riapertura` → `EsitoAzio
 lettore in `DevoIntervenire.tsx`** — se resti a metà, `tsc` te lo dice (ed è il motivo per cui la
 rinomina si fa qui e non «dopo»).
 
+- [ ] **Passo 4-bis — 🔴 EMENDAMENTO (revisione del Task 5): NESSUNO LEGA L'EVENTO AL LAVORO**
+
+`provato:` il trigger `assert_same_lab_rifacimento` guarda **solo** `lavoro_originale_id` e
+`lavoro_nuovo_id`, **mai** `evento_id`. La FK composita difende il caso «evento di un altro
+laboratorio»; **non** difende «evento dello stesso laboratorio ma di un ALTRO lavoro», che passa in
+silenzio. E si aggrava: `rifacimento_evento_unique` a quel punto **brucia quell'evento**, così un
+rifacimento legittimo successivo su di esso uscirebbe `23505`.
+➡️ **Questa rotta è l'ultimo punto in cui l'identificativo giusto può essere garantito**, e ce l'ha
+già in mano: l'evento lo ha appena inserito lei, su questo lavoro. Passa **quello**, mai un valore
+che arriva dal corpo della richiesta.
+
 - [ ] **Passo 5 — `creaRifacimento`, con l'idempotenza tradotta**
 
 ```typescript
