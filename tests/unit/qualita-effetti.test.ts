@@ -54,10 +54,17 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
       }
     })
 
-    it('«dato sbagliato sul documento»: il lavoro resta consegnato, il documento si riemette (spec §6, D293①)', () => {
+    // ⚖️ D299 — «si riconsegna» voleva dire la CARTA, non il pezzo. La spec e D288
+    // si contraddicevano; Francesco: «il lavoro resta consegnato, si rifà solo la
+    // carta». 🛑 Questa prova è anche il PERIMETRO del Task 5: se un giorno la
+    // riemissione facesse rientrare il lavoro, si accenderebbe qui.
+    it('«dato sbagliato sul documento»: il lavoro RESTA CONSEGNATO, si rifà solo la carta (D299)', () => {
       const e = effettoDaMotivo('errore_dato_dichiarazione')
       expect(e.lavoro).toBe('resta_consegnato')
       expect(e.documento).toBe('riemetti')
+      // 🛑 E non porta azione automatica: la riemissione è il Task 5, e non passa
+      // da `riapri_lavoro_atomica` — che riporterebbe il lavoro a `pronto`.
+      expect(e.azione).toBeNull()
     })
 
     it('«modifica chiesta dal medico»: lavoro NUOVO, non un rientro — e il documento resta valido', () => {

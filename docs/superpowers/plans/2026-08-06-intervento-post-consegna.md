@@ -573,6 +573,15 @@ it('rifiuta una richiesta senza conosciuto_il: è il momento zero dei termini di
 
 🛑 **È il punto in cui l'ondata può fallire dichiarando successo.**
 
+> ⚖️ **PERIMETRO FISSATO DA D299 (07/08/2026) — e senza questa riga il compito poteva legittimamente
+> sbagliare.** La riemissione **NON tocca `lavori.stato`** e **non chiama `riapri_lavoro_atomica`**.
+> Il manufatto è a posto e resta dov'è, dal dentista: si rifà **solo la carta**. Parole di Francesco:
+> «*il lavoro resta consegnato, si rifà solo la carta*».
+> 🔑 **Perché il vincolo serviva:** D288 riporta «*lo corregge e posso **riconsegnare***», che si legge
+> come un lavoro che torna indietro — e un esecutore in buona fede poteva farlo rientrare appoggiandosi
+> a quella frase. «Riconsegnare» era il **documento**. La prova che sorveglia il confine è in
+> `tests/unit/qualita-effetti.test.ts` (`errore_dato_dichiarazione` → `resta_consegnato`, `azione: null`).
+
 **File**
 - Modifica: `src/lib/pdf/generate-ddc.ts` (aggiungi `sostituisce_id`)
 - Migration: colonna `dichiarazioni_conformita.sostituisce_id UUID REFERENCES dichiarazioni_conformita(id)`

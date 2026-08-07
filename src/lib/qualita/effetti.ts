@@ -94,8 +94,16 @@ export const EFFETTI_PER_MOTIVO: Record<Motivo, Effetto> = {
     documento: 'riemetti',
     azione: null,
     perche:
-      'Il manufatto è a posto: sbagliato è un dato scritto sul documento. Il lavoro resta consegnato, e la dichiarazione si rifà con il dato giusto — la vecchia resta in archivio come superata, non sparisce.',
-    decisione: 'spec §6 · D293①',
+      'Il manufatto è a posto: sbagliato è un dato scritto sul documento. Il pezzo resta dov\'è, dal dentista — si rifà solo la carta, con il dato giusto. La dichiarazione vecchia resta in archivio come superata, non sparisce.',
+    // ⚖️ D299 (07/08/2026) — QUESTA RIGA ERA UNA SCELTA FATTA IN SILENZIO, e adesso
+    // non lo è più. Due documenti ratificati si contraddicevano: la tabella degli
+    // effetti (tornata 120) dice «resta consegnato», mentre D288 riporta le parole
+    // «lo corregge e posso RICONSEGNARE», che si leggono come un lavoro che torna
+    // indietro. Francesco ha sciolto il nodo: «il lavoro resta consegnato, si rifà
+    // solo la carta» — «riconsegnare» era il DOCUMENTO, non il manufatto.
+    // 🔑 Da qui il perimetro del Task 5: la riemissione NON tocca `lavori.stato` e
+    // NON chiama `riapri_lavoro_atomica`.
+    decisione: 'spec §6 · D293① · D299',
   },
   difetto_lavorazione: {
     lavoro: 'scelta_richiesta',

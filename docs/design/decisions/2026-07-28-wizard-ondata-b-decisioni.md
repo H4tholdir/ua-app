@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventiquattresima tornata (D297-D298: l'elenco degli effetti dei nove motivi si chiude a otto righe su nove)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventicinquesima tornata (D299: «si riconsegna» voleva dire la carta, non il pezzo — e fissa il perimetro del Task 5)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**298 decisioni in centoventiquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**299 decisioni in centoventicinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3031,3 +3031,40 @@ motivi. Progettarli separati significa modellare lo stesso fatto due volte, in d
 **🚦 Questo NON blocca il resto dell'ondata.** L'elenco doveva essere completo prima del cancello §0B
 sui testi, e per otto motivi su nove **lo è**. La riga del reso blocca **solo** le frasi che descrivono
 quel motivo, non le altre otto né i compiti 5-9.
+
+---
+
+### Centoventicinquesima tornata — D299: «si riconsegna» voleva dire la CARTA, non il pezzo (07/08/2026, 14:23)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 14:23 CEST`**, comando separato, letto prima
+> di comporre questa riga.
+
+**Nasce da:** una scelta che avevo fatto **in silenzio** scrivendo `src/lib/qualita/effetti.ts`, e che
+ho portato a Francesco invece di lasciarla incassata nel codice. **Due documenti ratificati dicevano
+due cose diverse**, e nessuno dei due se ne accorgeva:
+- la tabella degli effetti (tornata 120) dà a «dato sbagliato sul documento» → **il lavoro resta
+  consegnato**;
+- **D288** riporta le parole di Francesco: «*mi sono accorto che devo correggere un dato, lo corregge
+  e **posso riconsegnare***» — che si legge come un lavoro che **torna indietro**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D299** | 🔑 **DATO SBAGLIATO SUL DOCUMENTO: IL LAVORO RESTA CONSEGNATO, SI RIFÀ SOLO LA CARTA.** Francesco: «*il lavoro resta consegnato, si rifà solo la carta*» | Vince la tabella della tornata 120. ➡️ «Riconsegnare», nella frase di D288, voleva dire **riconsegnare il DOCUMENTO**, non il manufatto: il pezzo è a posto e resta dov'è, dal dentista. Nessun rientro in produzione, nessuna riapertura del lavoro |
+
+**🔑 Perché questa riga vale più di quanto sembri: fissa il PERIMETRO del Task 5.** La riemissione
+(annulla → riemetti, spec §8.1) **non tocca `lavori.stato`**, e non deve chiamare
+`riapri_lavoro_atomica`. Senza D299 quel compito avrebbe potuto legittimamente far rientrare il
+lavoro, appoggiandosi alla frase di D288 — e sarebbe stato un rientro **non voluto** su un manufatto
+che sta benissimo dov'è.
+
+**📌 E restringe l'elenco dei casi che hanno bisogno della transizione mancante (ritrovamento R9,
+ROADMAP voce 23) a TRE, non quattro:** persona sbagliata (D291) · difetto di lavorazione nel ramo
+«si sistema» (D290) · difetto del materiale nel ramo «si sistema» (D297). «Dato sbagliato sul
+documento» **esce** da quell'elenco.
+
+**🔄 Nota sulla riga di D288, che resta com'è ma va letta con questa accanto.** Non la correggo:
+riporta **parole testuali di Francesco**, e un verbale che riscrive le parole di chi decide non è più
+un verbale. ⚠️ Ma «riconsegnare» lì è ambiguo, e l'ambiguità è arrivata fino al codice — dove era
+stata sciolta **senza dirlo**. 🔑 **La lezione è quella:** una scelta fatta interpretando due
+documenti che si contraddicono **non è un dettaglio di implementazione**, è una decisione. Se non
+riceve un numero, esiste solo dentro un file `.ts` che nessuno rilegge come se fosse un verbale.
