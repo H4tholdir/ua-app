@@ -476,3 +476,32 @@ Base del piano: `be6e2c59`. 🛑 I brief/report di QUESTO piano hanno prefisso `
   satisfies`): è stata spedita la seconda forma — **il T7 deve saperlo**.
   📈 `verify:full` **uscita 0**: 5444 passate | 68 saltate su 450 file (da 5436), tsc 0, build ok,
   sette guardie verdi.
+
+- **PRONTO-7: COMPLETO** (commit `2ede802d..ad82e708`, revisione indipendente: **UN CRITICO**, corretto).
+  La rotta deriva il bivio, chiama le due azioni nuove, lega l'evento al lavoro (Passo 4-bis) e
+  rinomina `riapertura` → `esito_azione` fino ai file di prove dei componenti. **R-P4: 31 su 37**
+  (sei erano già verdi: sorvegliano regressioni di questa stessa modifica — dichiarato, non misurato).
+  🔴 **IL CRITICO, e non era nella rotta: era nella FRASE.** `DevoIntervenire.tsx` diceva «*La
+  dichiarazione è stata annullata*» **proprio sul ramo che la tiene viva** — il ternario guardava
+  `dichiarazione_assente`, che su `torna_pronto` non arriva (la rotta manda `dichiarazione_viva`),
+  quindi cadeva sempre nel ramo dell'annullamento. **Inversione esatta di D293 e dell'Art. 21(2)**, e
+  raggiungibile oggi: `destinatario_errato` non ha cancelli a monte. ✅ Corretto con i testi **già
+  ratificati** nel Passo 5 del T9, e **provato rompendolo** (2 prove si accendono citando la frase
+  falsa). ⚠️ Il resoconto dell'esecutore lo chiamava «incompleto»: era **invertito**, e quella parola
+  avrebbe mandato il T9 a trattarlo come copywriting.
+  🔑 **DUE FIXTURE CONDIVISE TENEVANO IN OSTAGGIO ALTRI FILE, e la seconda è la lezione:**
+  `corpoValido` usava `difetto_lavorazione`, che da questo task pretende una scelta → ~40 prove
+  sarebbero uscite 422. La stessa fixture esisteva **una seconda volta** in
+  `tests/unit/istante-roma.test.ts:264`: tre prove rosse, **e trenta verdi per il motivo sbagliato** —
+  la guardia del bivio sta prima della lettura di `conosciuto_il`, quindi un intero file sui **termini
+  di legge** avrebbe smesso di misurarli restando verde. Trovata solo perché l'esecutore ha lanciato
+  più prove di quelle che il mandato nominava.
+  🟠 **DUE IMPORTANTI RIFERITI:** ① l'idempotenza `23505` **non è raggiungibile da questa rotta** (ogni
+  POST inserisce un evento nuovo; `postgrest-js` ritenta solo `GET/HEAD/OPTIONS`): il doppio invio vero
+  crea **due lavori e brucia due progressivi**, trattenuto solo dalla spia del componente, cioè da una
+  schermata · ② la porta della spec §1 è aperta ora da **tre** motivi invece di uno → **D308 (Task 8)
+  è urgente, non solo dovuto**.
+  📌 Il piano aveva **tre difetti**, fra cui uno che si dichiarava verde senza provare niente:
+  `npx vitest run tests/unit/api` esce **0 su 221 prove di altri task** — quella cartella non esiste, e
+  vitest tratta l'argomento come frammento di nome.
+  📈 `verify:full` **uscita 0**: 5470 passate | 68 saltate su 450 file (da 5444), tsc 0, build ok.
