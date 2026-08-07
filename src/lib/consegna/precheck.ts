@@ -42,10 +42,25 @@ import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-pr
  *      alla generazione. La seconda metà della voce («**se del caso**»,
  *      i requisiti non interamente rispettati) è **condizionale**: pretenderla
  *      sempre sarebbe sbagliato quanto ignorarla.
- *   8. Sostanze medicinali, tessuti o cellule → «**se del caso**». Oggi il
- *      documento afferma «No» senza avere il dato: **è un difetto noto, fuori
- *      da questo mandato** (candidato già registrato nel registro versioni di
- *      `generate-ddc.ts`), riferito e non corretto qui.
+ *   8. Sostanze medicinali, tessuti o cellule → «**se del caso**». Nessun
+ *      controllo qui, ed è la risposta giusta: è una voce condizionale, e
+ *      pretenderla sempre sarebbe sbagliato quanto ignorarla (stesso
+ *      ragionamento della seconda metà della voce 7).
+ *      🔄 **RISCRITTA il 07/08/2026, poche ore dopo la prima stesura: diceva
+ *      «oggi il documento afferma "No" senza avere il dato: è un difetto noto…
+ *      riferito e non corretto qui», e nel frattempo era stato corretto** —
+ *      proprio dal lavoro che aveva scritto questa riga (D294 e il suo giro di
+ *      correzione). Il foglio non afferma più «No»: **tace** quando il dato è
+ *      falso o assente, e **dichiara** quando il dato è affermativo
+ *      (`DdcTemplate.tsx`, §5). Un commento che spiega una logica decaduta è il
+ *      difetto che questo progetto ha già pagato più volte, e questa riga lo era
+ *      diventata nel giro di una mattina.
+ *      ⚠️ **CIÒ CHE RESTA APERTO, e va detto qui perché è l'unico posto dove
+ *      qualcuno lo cercherà:** il dato non lo raccoglie ancora nessuno.
+ *      `generate-ddc.ts` cabla `contiene_sostanze_o_tessuti: false` perché
+ *      nessuna schermata fa la domanda all'odontotecnico. La strada di stampa è
+ *      pronta e provata; **manca la raccolta** — e finché manca, questo precheck
+ *      non ha niente da misurare.
  *
  * ── I due controlli che NON sono voci dell'Allegato, e restano ─────────────
  * `classe_rischio` e `data_consegna_prevista` portano `elemento: null`, che

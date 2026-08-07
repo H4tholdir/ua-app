@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
-import { createElement } from 'react'
+import { createElement, isValidElement, type ReactElement } from 'react'
 import { PDFParse } from 'pdf-parse'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { DichiarazioneConformita } from '@/types/domain'
@@ -467,18 +467,45 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(result.text.toLowerCase()).not.toContain('norme armonizzate')
   })
 
-  it('🔴 D294 — la sezione «Norme Armonizzate Applicate» non ha più nemmeno il titoletto', () => {
+  it('🔴 D294 — la sezione «Norme Armonizzate Applicate» non ha più nemmeno il titoletto', async () => {
     // ⚖️ CAPOVOLTA il 07/08/2026 (D294) da «§6-bis non compare quando norme_json
-    //    è vuoto», che dopo il taglio sarebbe rimasta verde per il motivo
-    //    sbagliato — la fixture ha `norme_json: null`, quindi la sezione non
-    //    sarebbe comparsa comunque.
+    //    è vuoto», e **RESA VERA nel giro di correzione dello stesso giorno**.
+    // 🛑 Il difetto della versione di mezzo, ed è la terza prova-teatro trovata
+    //    in questo lavoro: asseriva sul foglio reso da `DDC_FIXTURE`, che ha
+    //    `norme_json: null` — e nel modello PRE-taglio quella sezione era **già
+    //    condizionale su quel campo**. Rimettendo la sezione intera, la prova
+    //    sarebbe rimasta VERDE: cioè non misurava il taglio, misurava la
+    //    fixture.
+    // 🔑 Ora si rende con `norme_json` POPOLATO, l'unico foglio su cui quel
+    //    titoletto potrebbe comparire.
     // 🛑 Tenuta come caso a sé, e non fusa nella prova qui sopra, per la stessa
     //    ragione delle due sezioni svuotate: il TITOLETTO si guarda a parte,
     //    perché una sezione tolta a metà lascia un titolo bordato e vuoto.
-    expect(pdfText).not.toContain('NORME ARMONIZZATE')
-    expect(pdfText.toLowerCase()).not.toContain('norme armonizzate')
-    expect(pdfText).not.toContain('§6-bis')
-  })
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: {
+        ...DDC_FIXTURE,
+        norme_json: [
+          { codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials' },
+          { codice: 'EN ISO 22674:2016', titolo: 'Metallic materials', anno: 2016 },
+        ],
+      },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    // Il titoletto vero, come stava scritto nel modello pre-taglio:
+    // «§6-bis — Norme Armonizzate Applicate», reso tutto maiuscolo da
+    // `textTransform: 'uppercase'`. ⚠️ Per questo si cerca in minuscolo: una
+    // asserzione su `'§6-bis'` sarebbe passata comunque, perché sul foglio quel
+    // testo sarebbe uscito come «§6-BIS».
+    expect(result.text).not.toContain('NORME ARMONIZZATE APPLICATE')
+    expect(result.text.toLowerCase()).not.toContain('norme armonizzate')
+    expect(result.text.toLowerCase()).not.toContain('6-bis')
+  }, 30_000)
 
   it('🔴 D294 — la NORMA DI RIFERIMENTO non compare nemmeno quando il lavoro ne ha una', async () => {
     // ⚖️ NUOVA il 07/08/2026 (D294): nessuna prova guardava questo campo, che
@@ -529,17 +556,95 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(result.text.toLowerCase()).not.toContain('rischi residui')
   })
 
-  it('🔴 D294 — il PIÈ DI PAGINA non compare più su nessuna pagina', async () => {
+  // ── IL PIÈ DI PAGINA: tre reti, e solo la prima guarda il testo ────────────
+  // 🛑 IL DIFETTO DI QUESTA RETE, misurato nel giro di correzione del
+  //    07/08/2026. Il commento qui sotto diceva che il conteggio del numero era
+  //    «l'unica forma che si accende anche se il piè di pagina tornasse con un
+  //    testo diverso». **Era falso, ed è stato provato per mutazione:**
+  //    rimettendo un piè di pagina `fixed` con un testo diverso e SENZA il
+  //    numero del documento, tutte le prove restavano verdi. Cioè un blocco
+  //    ripetuto su OGNI PAGINA di un documento a valore legale sarebbe potuto
+  //    rientrare senza che nulla suonasse.
+  // 🔑 LA LEZIONE, che vale oltre questo caso: una rete legata al TESTO di un
+  //    blocco protegge quel testo, non quel blocco. Per proteggere il blocco si
+  //    prova ciò che lo rende riconoscibile a prescindere da cosa ci sia
+  //    scritto — qui: **è un elemento `fixed`**, e **si ripete su ogni pagina**.
+
+  it('🔴 D294 — il TESTO del piè di pagina non compare, e il numero una volta sola', async () => {
     // ⚖️ NUOVA il 07/08/2026 (D294): il piè di pagina non aveva prove, benché
-    //    fosse `fixed` — cioè ripetuto su OGNI pagina. Erano doppioni: la base
+    //    fosse `fixed` — cioè ripetuto su OGNI pagina. Era un doppione: la base
     //    giuridica sta già nel sottotitolo, il numero già in testa al foglio.
+    // ⚠️ Questa prova guarda il TESTO che c'era, e basta: è utile contro il
+    //    ritorno di quel testo esatto, e NON è la rete sul blocco. La rete sul
+    //    blocco sono le due prove qui sotto.
     expect(pdfText).not.toContain('Documento generato ai sensi')
-    // 🔑 E il numero del documento deve restare ESATTAMENTE UNA volta: era due
-    //    (intestazione + piè di pagina). Il conteggio è l'unica forma che si
-    //    accende anche se il piè di pagina tornasse con un testo diverso.
     const occorrenzeNumero = pdfText.split('DDC-2026-0001').length - 1
     expect(occorrenzeNumero).toBe(1)
   })
+
+  it('🔴 nessun elemento del modello è `fixed`: la FORMA, non il testo', () => {
+    // 🔑 `fixed` è la proprietà con cui @react-pdf dichiara «questo blocco si
+    //    ripete su ogni pagina»: è la firma strutturale di un piè di pagina (e
+    //    di una testata ripetuta), e non dipende da una sola parola del testo.
+    //    Il modello di oggi non ha nessun elemento `fixed`, e questa prova si
+    //    accende su QUALUNQUE blocco ripetuto che rientri, comunque scritto.
+    const conta = (nodo: unknown): number => {
+      if (Array.isArray(nodo)) return nodo.reduce<number>((n, f) => n + conta(f), 0)
+      if (!isValidElement(nodo)) return 0
+      const props = (nodo as ReactElement<Record<string, unknown>>).props
+      return (props.fixed === true ? 1 : 0) + conta(props.children)
+    }
+
+    const albero = DdcTemplate({
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: DDC_FIXTURE,
+    })
+    expect(conta(albero)).toBe(0)
+  })
+
+  it('🔴 e su un foglio a PIÙ PAGINE nessun blocco di testo si ripete su tutte', async () => {
+    // 🔑 IL COMPORTAMENTO, non la proprietà: un piè di pagina si riconosce dal
+    //    fatto che lo stesso blocco compare su OGNI pagina. Questa prova rende
+    //    un documento lungo abbastanza da spezzarsi e confronta il testo pagina
+    //    per pagina: se una riga qualsiasi è presente su tutte, c'è un blocco
+    //    ripetuto — e su questo foglio non ce ne devono essere.
+    // 🛑 Il riempimento è fatto di frasi TUTTE DIVERSE, numerate una per una, e
+    //    non è un vezzo: con un riempimento ripetitivo (`'x'.repeat(…)`) le
+    //    righe impaginate sarebbero identiche fra loro e l'intersezione
+    //    risulterebbe piena anche senza nessun piè di pagina — la prova
+    //    fallirebbe per il motivo sbagliato, che è il modo peggiore di fallire.
+    const riempimento = Array.from(
+      { length: 130 },
+      (_, i) => `Annotazione ${i + 1}: verifica dimensionale e occlusale eseguita al banco.`,
+    ).join(' ')
+
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: { ...DDC_FIXTURE, descrizione_dispositivo: riempimento },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    // 🛑 ASSERZIONE, non guardia: se un giorno il riempimento smettesse di
+    //    spezzare il foglio, questa prova non deve passare in silenzio — sarebbe
+    //    esattamente il teatro che questo giro è venuto a togliere.
+    expect(result.total).toBeGreaterThanOrEqual(2)
+
+    const MARCA_PAGINA = /^--\s*\d+\s+of\s+\d+\s*--$/
+    const righeUtili = (t: string) =>
+      t
+        .split('\n')
+        .map((r) => r.trim())
+        .filter((r) => r.length > 0 && !MARCA_PAGINA.test(r))
+
+    const perPagina = result.pages.map((p) => righeUtili(p.text))
+    const ripetute = perPagina.reduce((comuni, righe) => comuni.filter((r) => righe.includes(r)))
+    expect(ripetute).toEqual([])
+  }, 30_000)
 
   // ══ D102 ③ — un documento CONGELATO non legge dati VIVI ═══════════════════
   // 🔴 IL DIFETTO, misurato: `DdcTemplate.tsx` prendeva i denti da
@@ -597,20 +702,70 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
   })
 })
 
-describe('D294 — la voce 8 è CONDIZIONALE: il silenzio è la forma giusta', () => {
-  // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva «Sì — vedere documentazione
-  //    allegata» sul ramo affermativo.
-  // 🔴 IL FATTO, ed è il taglio più delicato dei dodici: il foglio stampava
-  //    «Sostanze / tessuti: No» a partire da un `false` CABLATO
-  //    (`generate-ddc.ts:230`) che nessuna riga di codice ha mai scritto. Su un
-  //    documento a valore legale è un'AFFERMAZIONE NON SOSTENUTA: nessuno ha
-  //    mai chiesto all'odontotecnico se il dispositivo contenga una sostanza
-  //    medicinale, un derivato del sangue o tessuti di origine animale.
-  // 🔑 La voce 8 dell'Allegato XIII punto 1 comincia con «**se del caso**»: è
-  //    condizionale. Tacere è conforme; affermare «No» senza sapere non lo è.
-  // 🛑 Le due colonne RESTANO in banca dati. Il giorno in cui qualcuno raccoglierà
-  //    davvero il dato, la riga tornerà — e tornerà sostenuta.
-  it('🔴 non stampa nulla nemmeno sul ramo affermativo, che è quello che parlerebbe', async () => {
+describe('D294 — la voce ⑧ è CONDIZIONALE: parla col dato, tace senza', () => {
+  // ⚖️ CAPOVOLTA il 07/08/2026 (D294) e **CAPOVOLTA DI NUOVO** nel giro di
+  //    correzione dello stesso giorno. La seconda volta è la più importante.
+  //
+  // 🔴 IL DIFETTO DI PARTENZA: il foglio stampava «Sostanze / tessuti: No» a
+  //    partire da un `false` CABLATO (`generate-ddc.ts`) che nessuna riga di
+  //    codice ha mai scritto. Su un documento a valore legale è
+  //    un'AFFERMAZIONE NON SOSTENUTA: nessuno ha mai chiesto all'odontotecnico
+  //    se il dispositivo contenga una sostanza medicinale, un derivato del
+  //    sangue o del plasma, o tessuti di origine umana o animale.
+  //
+  // 🛑 IL DIFETTO INTRODOTTO CORREGGENDO IL PRIMO, ed è il motivo per cui questo
+  //    blocco è scritto così. Il taglio aveva portato via **l'intero blocco
+  //    condizionale, ramo affermativo compreso**, e questa prova si intitolava
+  //    «non stampa nulla nemmeno sul ramo affermativo». Cioè: la strada di
+  //    stampa della voce ⑧ era chiusa **e blindata da una prova verde il cui
+  //    nome affermava che quel silenzio fosse voluto**. Il giorno in cui il dato
+  //    si fosse raccolto davvero, l'odontotecnico avrebbe dichiarato «sì,
+  //    contiene un derivato del plasma» e il documento non avrebbe stampato
+  //    nulla — e chi fosse andato a rimediare avrebbe trovato una prova rossa
+  //    che gli diceva che il silenzio era la forma giusta. Avrebbe tolto la
+  //    raccolta invece del difetto.
+  //
+  // 🔑 LA REGOLA VERA, e sono DUE metà che vanno provate tutt'e due. La voce ⑧
+  //    dell'Allegato XIII punto 1 comincia con «**se del caso**»:
+  //      · quando il caso NON ricorre (dato falso o assente) → **tacere è la
+  //        forma giusta**; affermare «No» senza sapere non lo è;
+  //      · quando il caso RICORRE (dato affermativo) → la voce è
+  //        **OBBLIGATORIA**, e il documento la deve dichiarare.
+  //    Una prova che guardi una metà sola lascia l'altra senza rete — ed è
+  //    successo, in tutt'e due le direzioni, nello stesso giorno.
+  //
+  // 📌 `generate-ddc.ts` cabla ancora `contiene_sostanze_o_tessuti: false` e
+  //    nessuna schermata raccoglie il dato: **manca la raccolta, non la
+  //    strada**. Queste prove sono ciò che tiene la strada aperta e percorribile
+  //    fino al giorno in cui la raccolta arriverà.
+
+  it('🔴 col dato AFFERMATIVO e il dettaglio, il documento DICHIARA la sostanza', async () => {
+    const DETTAGLIO =
+      'Contiene un derivato del plasma umano (fibrina autologa) — vedere documentazione allegata'
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: {
+        ...DDC_FIXTURE,
+        contiene_sostanze_o_tessuti: true,
+        sostanze_tessuti_dettaglio: DETTAGLIO,
+      },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    expect(result.text).toContain('Sostanze / tessuti')
+    // 🔑 E il DETTAGLIO, non solo l'etichetta: una prova che si fermasse
+    //    all'etichetta resterebbe verde su un modello che stampa il titoletto e
+    //    butta via il contenuto — cioè proprio ciò che la voce ⑧ chiede.
+    expect(result.text).toContain('derivato del plasma umano')
+  }, 30_000)
+
+  it('🔴 col dato affermativo ma SENZA dettaglio, dichiara comunque il fatto', async () => {
+    // Il ripiego non è cosmetico: la voce ⑧ chiede «l'INDICAZIONE che il
+    // dispositivo contiene o incorpora…». Il dettaglio la arricchisce, non la
+    // costituisce — e un `null` nel dettaglio non può far sparire l'indicazione.
     const element = createElement(DdcTemplate, {
       lavoro: LAVORO_FIXTURE,
       lab: LAB_FIXTURE,
@@ -620,17 +775,40 @@ describe('D294 — la voce 8 è CONDIZIONALE: il silenzio è la forma giusta', (
     const parser = new PDFParse({ data: buffer })
     const result = await parser.getText()
     await parser.destroy()
-    expect(result.text).not.toContain('Sì — vedere documentazione allegata')
-    expect(result.text.toLowerCase()).not.toContain('sostanze')
-    expect(result.text.toLowerCase()).not.toContain('tessuti')
+    expect(result.text).toContain('Sostanze / tessuti')
+    expect(result.text).toContain('Sì — vedere documentazione allegata')
   }, 30_000)
 
-  it('🔴 e non stampa il «No» affermato senza dato, che è il difetto vero', async () => {
+  it('🔴 e TACE col dato a `false`: il «No» affermato senza dato è il difetto vero', () => {
     // La fixture ha `contiene_sostanze_o_tessuti: false` — cioè ESATTAMENTE il
     // valore cablato che ogni dichiarazione in archivio porta. Questa prova
     // guarda il caso reale, non quello raro.
     expect(pdfText).not.toContain('Sostanze / tessuti')
+    expect(pdfText.toLowerCase()).not.toContain('sostanze')
   })
+
+  it('🔴 e tace anche col campo ASSENTE, che è una forma d\'ingresso raggiungibile', async () => {
+    // 🔑 `DdcTemplateProps.ddc` è un `Partial`: la chiave può mancare del tutto.
+    //    `false` e «assente» sono due input DIVERSI che devono dare lo stesso
+    //    silenzio, e una condizione scritta male (`!== false`, oppure
+    //    `'contiene_sostanze_o_tessuti' in ddc`) parlerebbe sul secondo.
+    const senzaCampo: Partial<DichiarazioneConformita> &
+      Pick<DichiarazioneConformita, 'tipo_dispositivo'> = { ...DDC_FIXTURE }
+    delete senzaCampo.contiene_sostanze_o_tessuti
+    delete senzaCampo.sostanze_tessuti_dettaglio
+
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: senzaCampo,
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    expect(result.text).not.toContain('Sostanze / tessuti')
+    expect(result.text.toLowerCase()).not.toContain('sostanze')
+  }, 30_000)
 })
 
 describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova guardava', () => {
@@ -850,6 +1028,19 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
     expect(testoMassimale).toMatch(/Allegato\s+I(?!\w)/)
   })
 
+  it('✅ e la VOCE ⑧, che su questo foglio ricorre: il dato è affermativo', () => {
+    // ⚖️ SALITA QUI nel giro di correzione del 07/08/2026, dalla lista dei tagli
+    //    qui sotto. La voce ⑧ dell'Allegato XIII punto 1 è condizionale — «se
+    //    del caso» — ma quando il caso ricorre è **obbligatoria**, e questa
+    //    fixture ha `contiene_sostanze_o_tessuti: true`: il caso ricorre.
+    // 🔴 Il taglio del mattino aveva portato via l'intero blocco condizionale,
+    //    ramo affermativo compreso: la voce ⑧ non aveva più NESSUNA strada per
+    //    comparire su nessun foglio. Questa asserzione, sul foglio massimale, è
+    //    la prova che la strada è di nuovo percorribile.
+    expect(testoMassimale).toContain('Sostanze / tessuti')
+    expect(testoMassimale).toContain('Sì — vedere documentazione allegata')
+  })
+
   it('✅ e i tre appigli tenuti apposta, ognuno con la sua ragione', () => {
     // data di emissione — Art. 52(8): «prima dell'immissione sul mercato».
     // Senza data non si dimostra di aver rispettato il termine.
@@ -871,9 +1062,25 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
     expect(testoMassimale.toLowerCase()).toContain('marcatura ce')
   })
 
-  // ── Ciò che NON deve esserci: i dodici tagli, tutti insieme ────────────────
+  // ── Ciò che NON deve esserci: i tagli che lasciano un testo da cercare ────
 
-  it('🔴 e NESSUNO dei dodici tagli, su un foglio dove tutti avrebbero da stampare', () => {
+  it('🔴 e NESSUNO dei NOVE tagli che lasciano un testo, su un foglio dove tutti avrebbero da stampare', () => {
+    // ⚖️ RINOMINATA nel giro di correzione del 07/08/2026, e il nome vecchio era
+    //    «e NESSUNO dei DODICI tagli». Ne controllava DIECI, non dodici: il
+    //    **logo** e i **metadati del file** non lasciano testo sul foglio —
+    //    un'immagine è invisibile a `PDFParse.getText()` e i metadati vivono nel
+    //    dizionario `/Info` — quindi non possono stare in una lista di stringhe.
+    //    Le loro reti esistono e guardano i BYTE: «nessuna immagine sul foglio»
+    //    e «title/subject/… non sono più scritti nel file».
+    // ⚖️ E da DIECI sono scesi a NOVE nello stesso giro: la voce ⑧ («Sostanze /
+    //    tessuti») **non è più un taglio**. Il ramo affermativo è stato
+    //    ripristinato, perché quando il caso ricorre quella voce è OBBLIGATORIA
+    //    — e questa fixture ha `contiene_sostanze_o_tessuti: true`, quindi il
+    //    foglio la DEVE portare. È risalita nella prova qui sopra, fra ciò che
+    //    ci deve stare.
+    // 🔑 Perché il nome conta quanto le asserzioni: un nome di prova si tramanda
+    //    più a lungo del codice che descrive, e un numero sbagliato lì dentro fa
+    //    credere coperto ciò che nessuno guarda.
     const vietati: Array<[string, string]> = [
       ['materiali e lotti', 'Zirconia IPS e.max ZirCAD'],
       ['materiali e lotti (lotto)', 'LOT-2025-ZR-0042'],
@@ -884,7 +1091,6 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
       ['norma di riferimento', 'UNI EN ISO 22674:2016'],
       ['norme armonizzate', 'EN ISO 6872:2015'],
       ['rischi residui', 'Rischio residuo di frattura'],
-      ['sostanze / tessuti', 'Sostanze'],
       ['responsabile (PRRC)', 'PRRC'],
       ['piè di pagina', 'Documento generato ai sensi'],
     ]

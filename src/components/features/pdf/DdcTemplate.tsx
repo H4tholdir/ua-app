@@ -29,6 +29,16 @@
 //    «Sostanze / tessuti: No» affermato senza avere il dato, la firma col
 //    responsabile, il logo, il piè di pagina e i metadati del file.
 //
+// ⚠️ UNA PRECISAZIONE SUL TAGLIO N. 8, aggiunta nel giro di correzione dello
+//    stesso giorno perché la riga qui sopra si legge male. È uscito **il solo
+//    «No» affermato senza il dato**, non la voce ⑧. Il taglio del mattino aveva
+//    portato via l'intero blocco condizionale, ramo affermativo compreso: la
+//    voce ⑧ non aveva più nessuna strada per comparire nemmeno con un dato
+//    affermativo, e una prova verde intitolata «non stampa nulla nemmeno sul
+//    ramo affermativo» teneva chiusa quella strada. Il ramo affermativo è stato
+//    RIPRISTINATO (§5, riga «Sostanze / tessuti»): «se del caso» vuol dire che
+//    quando il caso ricorre la voce è **obbligatoria**.
+//
 // 🔴 USCIRE DAL FOGLIO NON È USCIRE DALLA BANCA DATI. Tutte le colonne restano,
 //    tutti i valori continuano a salvarsi, e i materiali continuano a stamparsi
 //    su ricevuta di consegna ed etichetta. Qui si decide solo COSA SI STAMPA.
@@ -218,9 +228,22 @@ interface DdcTemplateProps {
    *  sintomo; il rimedio è dichiarare che senza questi campi la dichiarazione non
    *  si stampa affatto — sono colonne NOT NULL, quindi la fotografia li ha
    *  SEMPRE, e un chiamante che li dimenticasse si rompe alla compilazione invece
-   *  che in silenzio sulla carta. */
+   *  che in silenzio sulla carta.
+   *
+   *  ⚠️ ERANO DUE, ED È RIMASTO UNO (giro di correzione del 07/08/2026).
+   *  `classe_rischio` stava qui accanto a `tipo_dispositivo`, e la ragione
+   *  scritta sopra — «senza questi campi la dichiarazione non si stampa
+   *  affatto» — per lei **non era più vera**: la classe di rischio è uscita dal
+   *  foglio con D294 e questo modello non la legge da nessuna parte. Un tipo che
+   *  pretende un campo che non usa non è severo, è **impreciso**: chiede una cosa
+   *  in nome di una regola che non la riguarda, e il commento accanto diventa
+   *  metà vero e metà falso.
+   *  🛑 Il DATO non è toccato: `dichiarazioni_conformita.classe_rischio` è
+   *  `NOT NULL`, `generate-ddc.ts` continua a scriverla a ogni emissione e il
+   *  controllo di consegna continua a pretenderla (`precheck.ts`). A cambiare è
+   *  solo ciò che QUESTO componente dichiara di aver bisogno. */
   ddc: Partial<DichiarazioneConformita> &
-    Pick<DichiarazioneConformita, 'tipo_dispositivo' | 'classe_rischio'>
+    Pick<DichiarazioneConformita, 'tipo_dispositivo'>
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -444,9 +467,42 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
               medicinale, un derivato del sangue o tessuti. Su un documento a
               valore legale è un'AFFERMAZIONE NON SOSTENUTA.
               🔑 La voce ⑧ comincia con «se del caso»: è condizionale, e il
-              silenzio è la forma giusta finché il dato non c'è. Le due colonne
-              restano: il giorno in cui il dato si raccoglierà davvero, la riga
-              tornerà — e tornerà sostenuta. */}
+              silenzio è la forma giusta finché il dato non c'è.
+
+              🛑 MA IL TAGLIO ERA ANDATO OLTRE, e il giro di correzione dello
+              stesso giorno l'ha rimediato: era uscito **l'intero blocco
+              condizionale, ramo affermativo compreso**, e una prova verde
+              intitolata «non stampa nulla nemmeno sul ramo affermativo» lo
+              teneva chiuso. La voce ⑧ non aveva più NESSUNA strada per comparire
+              su nessun foglio. La riga qui sotto è quella strada, riaperta. */}
+          {/* ── VOCE ⑧ — «SE DEL CASO», e quando il caso ricorre è DOVUTA ──
+              Allegato XIII punto 1, ottavo trattino: «se del caso, l'indicazione
+              che il dispositivo contiene o incorpora una sostanza medicinale,
+              compreso un derivato dal sangue o dal plasma umani, o tessuti o
+              cellule di origine umana o di origine animale…».
+              🔑 CONDIZIONALE VUOL DIRE DUE COSE, NON UNA: con il dato assente o
+              falso il foglio TACE (affermare «No» senza saperlo è
+              un'affermazione non sostenuta su un documento a valore legale); con
+              il dato affermativo il foglio DEVE dichiararlo. Per questo la riga
+              esiste ed è dentro un `? :` sul dato, invece di essere sparita.
+              📌 Il dettaglio ARRICCHISCE l'indicazione, non la costituisce: se
+              manca si dichiara comunque il fatto e si rimanda alla
+              documentazione allegata. Un `null` nel dettaglio non può far
+              sparire una voce obbligatoria.
+              ⚠️ OGGI QUESTA RIGA NON COMPARE SU NESSUN DOCUMENTO EMESSO, e non
+              è un difetto di qui: `generate-ddc.ts` cabla ancora
+              `contiene_sostanze_o_tessuti: false` perché **nessuna schermata
+              chiede il dato all'odontotecnico**. Manca la raccolta, non la
+              stampa. Le prove in `tests/unit/ddc-pdf-content.test.ts` tengono
+              questa strada percorribile in tutt'e due i versi. */}
+          {ddc.contiene_sostanze_o_tessuti ? (
+            <View style={styles.row}>
+              <Text style={styles.label}>Sostanze / tessuti:</Text>
+              <Text style={styles.value}>
+                {ddc.sostanze_tessuti_dettaglio ?? 'Sì — vedere documentazione allegata'}
+              </Text>
+            </View>
+          ) : null}
           <Text style={styles.rischiText}>
             Dispositivo su misura ai sensi dell&apos;Art. 2(1)(3) MDR — non soggetto a marcatura CE ai sensi dell&apos;Art. 20(1) MDR 2017/745.
           </Text>

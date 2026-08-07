@@ -6,31 +6,40 @@ import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
-import { isPublicStorageUrl } from '@/lib/utils/storage-url'
 import { annoRoma } from '@/lib/utils/data-roma'
 import { nomePrescrittore } from '@/lib/consegna/prescrittore'
 import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-prescritte'
 
-// A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
-// decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
-// test). Fail-open: se il download fallisce l'hash resta null e la DdC si
-// genera comunque (metadato d'integrità, non condizione di emissione).
-async function hashFirmaDdc(url: string | null): Promise<string | null> {
-  if (!url) return null
-  // Difesa in profondità (review Bundle T): il valore è già validato a
-  // scrittura in PATCH /api/impostazioni, ma un dato storico o scritto per
-  // altre vie non deve comunque far fetchare al server un URL arbitrario.
-  if (!isPublicStorageUrl(url)) return null
-  try {
-    const res = await fetch(url)
-    if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    return crypto.createHash('sha256').update(buf).digest('hex')
-  } catch (err) {
-    console.error('[DdC] hash firma non calcolato:', err instanceof Error ? err.message : err)
-    return null
-  }
-}
+// ═══ `hashFirmaDdc` VIVEVA QUI, E NON C'È PIÙ (07/08/2026, giro di correzione
+//     di D294) ══════════════════════════════════════════════════════════════
+//
+// 🔴 CHE COSA FACEVA, e perché non doveva più farlo: a OGNI emissione scaricava
+//    da Storage il file della firma del laboratorio (`fetch`) e ne calcolava
+//    l'impronta SHA-256, per scriverla in `firma_ddc_sha256`. Nato con A18 come
+//    metadato d'integrità della firma **stampata sulla dichiarazione**.
+//    D294 ha tolto il blocco firma dal foglio: da quel momento era una chiamata
+//    di rete, dentro il percorso di consegna, per certificare l'integrità di
+//    un'immagine che **nessun modello rende più** e per riempire una colonna che
+//    **non ha nessun lettore** in tutto il progetto.
+//
+// 🔑 Perché toglierla è più che risparmiare: era l'unico punto in cui l'emissione
+//    di un documento a valore legale dipendeva dalla raggiungibilità di Storage.
+//    Era `fail-open` — e il fail-open era la cura giusta per un rischio che ora
+//    semplicemente non c'è.
+//
+// 🛑 QUEL CHE NON È USCITO, perché non è di questo mandato:
+//    · le colonne `firma_ddc_url` (laboratori) e `firma_ddc_storage_path`
+//      (dichiarazioni_conformita) restano, e la seconda continua a essere
+//      scritta a ogni emissione: è la fotografia di com'era configurato il
+//      laboratorio quel giorno, e non costa niente;
+//    · la **schermata di caricamento** della firma in `/impostazioni` e
+//      l'allowlist di `PATCH /api/impostazioni` **non sono toccate**: è una
+//      superficie che l'utente vede, e la decisione è di Francesco. Riferita.
+//    · con la `fetch` è uscita anche la difesa anti-SSRF `isPublicStorageUrl`,
+//      che serviva a non far scaricare al server un URL arbitrario: **non è un
+//      indebolimento**, è la scomparsa della superficie che difendeva. La
+//      validazione a scrittura in `PATCH /api/impostazioni` resta al suo posto.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /** La versione della FORMA del documento. Cambia quando cambia **ciò che il
  *  documento dice** — non a ogni ritocco di codice, e non per un glifo.
@@ -80,9 +89,24 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
  *     era stampato **due volte** · ③ l'«SRN EUDAMED», la cui etichetta era
  *     sbagliata due volte · ④ il luogo di **emissione**, anch'esso due volte ·
  *     ⑤ la classe di rischio · ⑥ la norma di riferimento e le norme armonizzate ·
- *     ⑦ i rischi residui · ⑧ «Sostanze / tessuti» · ⑨ la firma con l'etichetta
- *     PRRC, il nome e la qualifica del responsabile · ⑩ il logo · ⑪ il piè di
- *     pagina · ⑫ i metadati del file.
+ *     ⑦ i rischi residui · ⑧ il «**Sostanze / tessuti: No**» affermato senza il
+ *     dato — ⚠️ **e solo quello**: v. la riga qui sotto · ⑨ la firma con
+ *     l'etichetta PRRC, il nome e la qualifica del responsabile · ⑩ il logo ·
+ *     ⑪ il piè di pagina · ⑫ i metadati del file.
+ *     🔑 **PRECISATO NEL GIRO DI CORREZIONE DELLO STESSO GIORNO, perché la voce
+ *        ⑧ non è uscita per intero e la riga di prima lasciava credere di sì.**
+ *        Il taglio aveva portato via l'intero blocco condizionale, ramo
+ *        affermativo compreso: la voce ⑧ dell'Allegato XIII non aveva più
+ *        nessuna strada per comparire, nemmeno con un dato affermativo. Il ramo
+ *        affermativo è stato **ripristinato**; a uscire è, e resta, il solo «No»
+ *        affermato senza il dato.
+ *     📌 **`ddc-v3` NON si spacca in due per questo, ed è una decisione presa
+ *        e non subìta.** Il registro salta quando cambia ciò che il documento
+ *        **dice**, e `contiene_sostanze_o_tessuti` è ancora cablato a `false`
+ *        (v. il commento accanto al valore): **nessuna dichiarazione emessa
+ *        cambia di una riga**, né quelle di prima né quelle di oggi. Il giorno
+ *        in cui la raccolta del dato arriverà, un documento potrà dire una cosa
+ *        che oggi nessun documento dice — e **quello** sarà il salto a `ddc-v4`.
  *     📌 Con le due sezioni svuotate è cambiata anche la **numerazione**: la
  *        dichiarazione di conformità era il §7 ed è il §6.
  *     🛑 Nessuna colonna è stata toccata: escono dal FOGLIO, non dalla banca
@@ -203,8 +227,6 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
   const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
 
-  const firmaSha256 = await hashFirmaDdc((lab.firma_ddc_url ?? null) as string | null)
-
   // Prepara dati snapshot
   const ddc = {
     numero_ddc: numero,
@@ -249,6 +271,33 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     //    vuoto. A distinguerli è `precheckMDR`, che vede se la riga esiste e lo
     //    dice PRIMA di emettere, quando si può ancora rimediare.
     prescrizione_caratteristiche: caratteristichePrescritte(lavoro.prescrizione?.contenuto),
+    // VOCE 8 (D294 + giro di correzione, 07/08/2026) — «se del caso,
+    // l'indicazione che il dispositivo contiene o incorpora una sostanza
+    // medicinale, compreso un derivato dal sangue o dal plasma umani, o tessuti
+    // o cellule di origine umana o di origine animale».
+    //
+    // 🔴 QUESTO `false` È CABLATO: nessuna riga di codice lo scrive a partire da
+    //    una risposta dell'odontotecnico, perché **nessuna schermata gli fa la
+    //    domanda**. Non è un valore misurato, è un posto vuoto che ha la forma
+    //    di una risposta.
+    //
+    // 🛑 E RESTA CABLATO APPOSTA, perché raccogliere il dato è un'altra ondata:
+    //    serve un campo nel lavoro (o nel wizard), la sua via di correzione fino
+    //    alla consegna (direttiva permanente di Francesco, 27/07/2026) e una
+    //    decisione su chi risponde. Inventare qui un valore sarebbe rimettere
+    //    l'affermazione non sostenuta che il taglio ha tolto dal foglio.
+    //
+    // ✅ MA LA STRADA DI STAMPA C'È ED È PRONTA, e questa riga è l'unica cosa
+    //    che manca. `DdcTemplate` porta di nuovo il blocco condizionale della
+    //    voce 8: con `true` il documento DICHIARA la sostanza (col dettaglio, o
+    //    rimandando alla documentazione allegata se il dettaglio manca), con
+    //    `false` o col campo assente TACE. Provato in tutt'e due i versi in
+    //    `tests/unit/ddc-pdf-content.test.ts` («la voce ⑧ è CONDIZIONALE»).
+    //    ⚠️ Fino al giro di correzione questa frase sarebbe stata FALSA: il
+    //    taglio aveva portato via anche il ramo affermativo, e una prova verde
+    //    intitolata «non stampa nulla nemmeno sul ramo affermativo» blindava il
+    //    vicolo cieco da entrambi i lati. Chi arriva qui a collegare la raccolta
+    //    deve trovare scritto lo stato vero, non quello di ieri.
     contiene_sostanze_o_tessuti: false,
     sostanze_tessuti_dettaglio: null as string | null,
     classe_rischio: lavoro.classe_rischio,
@@ -257,7 +306,14 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     prrc_nome: (lab.prrc_nome ?? '') as string,
     prrc_qualifica: (lab.prrc_qualifica ?? null) as string | null,
     firma_ddc_storage_path: (lab.firma_ddc_url ?? null) as string | null,
-    firma_ddc_sha256: firmaSha256,
+    // 🛑 SEMPRE `null` dal 07/08/2026, e la chiave resta scritta a posta: era
+    //    l'impronta del file della firma, calcolata scaricandolo a ogni
+    //    emissione. Nessun modello stampa più quella firma e nessuno legge
+    //    questa colonna — v. il blocco in testa al file, dove `hashFirmaDdc`
+    //    viveva. La chiave si tiene esplicita perché il payload dell'impronta
+    //    (`payload_sha256`) mantenga la stessa FORMA, e perché un `null` scritto
+    //    con la sua ragione accanto si legge meglio di una chiave sparita.
+    firma_ddc_sha256: null as string | null,
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
     rischi_residui_snapshot: (rischiRow?.rischi_residui ?? lab.testo_rischi_default ?? null) as string | null,
     norme_json: (rischiRow?.norme_json ?? []) as Array<{ codice: string; titolo: string; anno?: number }>,
