@@ -1151,6 +1151,7 @@ export type Database = {
           note: string | null
           origine_informazione: string
           potenziale_di_danno: string
+          scelta_intervento: string | null
           stato_dispositivo: string
         }
         Insert: {
@@ -1166,6 +1167,7 @@ export type Database = {
           note?: string | null
           origine_informazione: string
           potenziale_di_danno?: string
+          scelta_intervento?: string | null
           stato_dispositivo: string
         }
         Update: {
@@ -1181,6 +1183,7 @@ export type Database = {
           note?: string | null
           origine_informazione?: string
           potenziale_di_danno?: string
+          scelta_intervento?: string | null
           stato_dispositivo?: string
         }
         Relationships: [
