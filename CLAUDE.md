@@ -730,10 +730,13 @@ le due righe (la prima esiste già, si aggiunge la seconda):
       "Bash(git push*)"
     ],
 ```
-📌 **In DUE file, e la ragione è quella già pagata con `/chiudi` (D255):**
-`ua-app/.claude/settings.json` è **versionato** e sopravvive a un cambio di macchina ·
-`«SOFTWARE FILIPPO»/.claude/settings.json` è quello che la sessione legge davvero, perché **il terminale
-parte dalla cartella superiore** — ma **vive fuori da git**, quindi su una macchina nuova va rifatto.
+🔄 **CORRETTO SUBITO DOPO, MISURATO: BASTA UN FILE SOLO, ed è quello VERSIONATO.** Avevo scritto che
+serviva anche in `«SOFTWARE FILIPPO»/.claude/settings.json` perché il terminale parte dalla cartella
+superiore. **Falso:** messa la riga nel solo `ua-app/.claude/settings.json`, `provato:`
+`git push -u origin intervento-post-consegna` → `* [new branch] … -> …`, **riuscito**.
+🔑 **Il permesso si risolve sulla cartella del comando (`cd …/ua-app`), non su quella da cui è partita la
+sessione** — e la conseguenza è la migliore possibile: **la regola vive sotto git e sopravvive a un
+cambio di macchina**, senza la fragilità del collegamento di `/chiudi` (D255).
 
 📌 **Il perimetro lo dà la seconda metà della frase di Francesco** — «*non siamo in distribuzione… i
 clienti la useranno solo quando lo dirò io*»: è la stessa struttura di D103 e D284, *il rischio è basso
