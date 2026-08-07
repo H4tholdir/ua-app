@@ -89,6 +89,21 @@ scripts/tmp/
 *-report.*
 *-result.*
 
+# 🔄 …TRANNE SOTTO `.superpowers/`, e la deroga nasce da un difetto misurato.
+# ⚖️ D313 ha deciso che mappa di recupero **e resoconti** entrano in git. Applicata,
+# ne entravano **2 su 58**: la regola generica `*-report.*` qui sopra — nata per i
+# file di analisi buttati in giro per il repo — ingoiava tutti i resoconti degli
+# esecutori e dei revisori, cioè esattamente ciò che D313 voleva salvare.
+# 🔑 Il sintomo che l'ha rivelata: in indice ce n'era **uno solo**, e si chiamava
+# «PRESERVATO» — qualcuno aveva già rimediato a mano senza chiudere la causa.
+# ⚠️ Una regola generica che cancella una decisione specifica non dà nessun errore:
+# il file semplicemente non c'è, e chi lo cerca pensa di non averlo mai scritto.
+!.superpowers/**/*-report.*
+!.superpowers/**/*-analysis.*
+!.superpowers/**/*-result.*
+# 📌 I `*.log` di `.superpowers/brainstorm/*/state/` restano fuori (12 file): sono
+# rumore di esecuzione, non resoconti. Fuori apposta, non per distrazione.
+
 # === PLAYWRIGHT ===
 test-results/
 playwright-report/
