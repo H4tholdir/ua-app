@@ -1088,3 +1088,69 @@ MDCG 2021-3 per *repair/rework/remake* dà **zero occorrenze** riferite ai dispo
 ⚠️ **E i testi verbatim vengono da un mirror** (`medical-device-regulation.eu`), **non dal CELEX
 ufficiale**: EUR-Lex è andato in timeout **tre volte**. ➡️ **Vanno riconfermati sul PDF EUR-Lex prima
 della ratifica** — è la stessa prudenza che il 03/08 ha corretto D125.
+
+---
+
+## ✅ RICONFERMA SU FONTE PRIMARIA — 07/08/2026, e EUR-Lex era SPENTO
+
+**Nasce da:** la richiesta di Francesco («*riconferma le fonti su EUR-Lex e poi ratifichiamo, ricordati
+che a noi interessano le leggi italiane*») dopo che il panel precedente aveva dovuto ripiegare su un
+sito-specchio.
+
+🛑 **`eur-lex.europa.eu` era GIÙ PER TUTTI** — non un problema di rete nostro: verificato da Francesco
+con un servizio esterno di monitoraggio alle **09:23 del 07/08/2026**, e **quattro punti d'ingresso su
+quattro** hanno fallito (handshake TLS completato, poi zero byte, su due percorsi di rete indipendenti).
+
+✅ **Il testo è stato ottenuto lo stesso, e NON da uno specchio:** da **`publications.europa.eu`
+(Cellar)**, che è il **deposito documentale dell'Ufficio delle pubblicazioni UE** — cioè la fonte da cui
+EUR-Lex stesso serve i testi. **È fonte primaria.**
+`provato:` intestazione del file scaricato → **`02017R0745 — IT — 01.01.2026 — 006.001`**, consolidato
+fino al Reg. (UE) 2025/2457 del 26/11/2025. Allegati I-XVII tutti presenti, nessun troncamento.
+Copia in chiaro: `scratchpad/mdr_it.txt` (630 KB).
+
+### I verbatim che reggono la regola — e la controprova l'ho rifatta io sul file
+
+| Punto | Verbatim (italiano ufficiale) | Esito |
+|---|---|---|
+| **Art. 2(28)** | «immissione sul mercato»: **la prima** messa a disposizione… | ✅ `provato:` `grep` sul file → presente. **La parola «prima» c'è** |
+| **Art. 52(8)** | i fabbricanti di su misura «redigono la dichiarazione… **prima dell'immissione** di tali dispositivi sul mercato» | ✅ |
+| **All. XIII punto 1** | **OTTO** contenuti, contati | ✅ e **data, numero, materiali e lotti NON sono nominati** |
+| **All. XIII punto 4** | «è conservata per almeno 10 anni **dalla data di immissione sul mercato del dispositivo**» | ✅ `provato:` `grep` → presente. **Singolare**, e «ultimo dispositivo» ricorre **8 volte** nel Regolamento ma **mai** nell'Allegato XIII |
+| **Annullamento** | — | 🔴 **CERCATO E NON TROVATO.** `provato:` `grep -c "annull"` sul consolidato → **0 occorrenze**. Sospensione e ritiro esistono, ma sono istituti costruiti per i **certificati** degli organismi notificati, mai per la dichiarazione del fabbricante |
+
+### 🔄 DUE CORREZIONI a quanto avevo riportato prima
+
+1. 🛑 **L'Allegato XIII punto 5 NON dice ciò che il panel precedente gli faceva dire.** Il testo è:
+   «*Il fabbricante valuta e documenta l'esperienza acquisita nella fase successiva alla produzione…*».
+   **Non dice** che la documentazione del dispositivo difettoso vada conservata: che lo *presupponga* è
+   **un'inferenza**, e il verificatore si è rifiutato di farla. ➡️ **L'argomento resta in piedi lo
+   stesso, ma su una gamba sola invece che due:** il punto 4 impone di **conservare**, e
+   dell'annullamento non c'è traccia.
+2. **«Ricondizionamento completo» non esiste in italiano.** `provato:` `grep -c` → **0**. Il termine è
+   **«rimessa a nuovo»**, ed è il punto **31**, non il 30 (il 30 definisce il **fabbricante**).
+
+### 🔴 IL VERO PUNTO DI ATTRITO, che nessuno aveva visto — e non è l'Art. 52
+
+**Art. 2(30):** è **fabbricante** anche «*la persona… che… **rimette a nuovo** un dispositivo*».
+**Art. 2(31):** «rimessa a nuovo» = «*la **ricostruzione completa** di un dispositivo **già immesso sul
+mercato**… unitamente al **conferimento di una nuova vita** al dispositivo*».
+➡️ **Il Regolamento contempla espressamente il caso di un dispositivo già sul mercato che viene
+ricostruito, e la conseguenza è un fabbricante nuovo — quindi una dichiarazione nuova.**
+🛑 **La domanda che decide tutto: DOVE FINISCE LA RILAVORAZIONE E DOVE COMINCIA LA RICOSTRUZIONE
+COMPLETA? Nulla nel testo traccia quel confine** — e cade esattamente sopra D290 («si sistema questo o
+se ne fa uno nuovo?»). ⚠️ Il «se ne fa uno nuovo» **non è una scelta di comodo: è la soglia oltre la
+quale la norma cambia soggetto.**
+
+### 🆕 Un articolo che non avevamo in elenco, e tocca l'ITALIA — **Art. 21(2)**
+
+> «I dispositivi su misura sono muniti della dichiarazione di cui all'allegato XIII, punto 1, che è
+> messa a disposizione di un determinato paziente o utilizzatore…». Secondo comma: «**Gli Stati membri
+> possono stabilire** che il fabbricante di un dispositivo su misura debba presentare all'autorità
+> competente un **elenco** dei dispositivi di questo tipo messi a disposizione nel loro territorio.»
+
+➡️ **È la porta da cui entra un obbligo NAZIONALE**, ed è esattamente la domanda aperta all'advisor
+italiano. Da collegare all'**ITCA**.
+
+⚠️ **Quinta volta che un conteggio di referto non regge alla misura:** il verificatore scriveva «9
+occorrenze» di *ultimo dispositivo*, ne ho contate **8**. Non cambia la conclusione — cambia la fiducia
+da dare ai numeri non rimisurati.
