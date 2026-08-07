@@ -1222,3 +1222,85 @@ una riparazione** · la qualificazione della riconsegna come nuova immissione. E
 dell'art. 7 c. 5** — quello sui «*soggetti che montano o adattano per un paziente specifico un
 dispositivo già presente sul mercato*», che sarebbe **il più vicino al nostro caso** — **non risulta
 emanato**.
+
+---
+
+## 🔴 CENSIMENTO D294 — cercavamo che cosa TOGLIERE dal documento, e abbiamo trovato che cosa MANCA
+
+**Nasce da** D294 («*togli tutto quello che sul documento non ci deve essere*»). Il censimento campo per
+campo contro gli **otto** contenuti dell'Allegato XIII punto 1 ha prodotto l'elenco richiesto — e **due
+difetti che nessuno cercava, entrambi verificati riga per riga da chi controlla**.
+
+### 🛑 ① LA VOCE 6 NON È MAI STATA SODDISFATTA — su NESSUNA dichiarazione mai emessa
+
+`provato:` `src/lib/pdf/generate-ddc.ts:166` → `prescrizione_caratteristiche: null as string | null`.
+**Cablato a `null`.** La riga «Caratteristiche prescritte» del modello (`DdcTemplate.tsx:442-447`) è
+condizionale, quindi **non compare mai**. E `generate-ddc.ts:210` è **l'unico** inseritore della tabella
+(verificato: nessun altro `insert`).
+➡️ **La voce 6 dell'Allegato XIII — «*le caratteristiche specifiche del prodotto indicate nella
+prescrizione*» — è OBBLIGATORIA, e manca da ogni documento prodotto finora.**
+🔑 **E il dato oggi ESISTE**: le ondate precedenti hanno costruito `lavori_prescrizioni` col suo
+contenuto (elementi, colore). **Il documento non lo usa.** Non è un dato da raccogliere: è un dato da
+collegare.
+
+### 🛑 ② IL CONTROLLO CHE DOVREBBE ACCORGERSENE HA UN ELENCO INVENTATO
+
+`provato:` `src/lib/consegna/precheck.ts:5-18` dichiara di verificare «*gli 8 elementi obbligatori
+Allegato XIII MDR 2017/745*» e poi elenca: **1** fabbricante · **2 data emissione** · **8 conformità** ·
+**3** prescrittore · **4** paziente · **5** descrizione · **6 classe di rischio** · **7 data consegna
+prevista**.
+🛑 **Non è la numerazione dell'Allegato XIII. Non ci somiglia nemmeno.** Tre voci sono **inventate**
+(data emissione · classe di rischio · data consegna prevista: nessuna delle tre è nell'Allegato) e **tre
+voci vere mancano**: la **2** (mandatario), la **6** (caratteristiche prescritte) e la **8**
+(sostanze/tessuti).
+➡️ **Ecco perché il buco ① non è mai emerso: il cancello della consegna non poteva vederlo, perché
+controlla un elenco che non è quello della norma.** ⚠️ La stessa numerazione inventata è in
+`src/types/domain.ts:762`, **e da lì arriva all'operatore**. Terza occorrenza: i commenti di
+`supabase/schema.sql:1197+` citano «MDR §9…§12», mentre **l'Allegato XIII ha CINQUE punti** e le otto
+voci sono trattini del punto 1.
+🔑 **È la famiglia già pagata tre volte oggi: un elenco scritto a mano che sembra completo e non lo è.**
+
+### 🟢 ③ Un dato DOVUTO, presente in banca dati, e mai stampato
+
+`luogo_fabbricazione` è **`NOT NULL`** (`supabase/schema.sql:1251`) e **non compare sul documento**,
+mentre la voce **1** chiede «*il nome e l'indirizzo del fabbricante e di **tutti i luoghi di
+fabbricazione***».
+
+### 🟠 ④ Un'affermazione non sostenuta su un documento a valore legale
+
+«Sostanze / tessuti: **No**» (`DdcTemplate.tsx:448-455`) è stampato da un `false` **cablato**
+(`generate-ddc.ts:167`) che nessuno scrive mai. La voce 8 è **condizionale** («se del caso»): un «No»
+affermato senza che nessuno l'abbia verificato è peggio del silenzio. **Toglierlo è più corretto, non
+meno.**
+
+### 📋 L'elenco secco — che cosa ESCE dal documento (classe C)
+
+materiali e lotti · **codice ITCA, stampato DUE volte** · SRN EUDAMED · **luogo di emissione, due
+volte** · classe di rischio · norma di riferimento · norme armonizzate · rischi residui · «Sostanze /
+tessuti: No» · firma, etichetta e nome/qualifica del responsabile · logo · piè di pagina · metadati PDF.
+
+**Le ragioni che reggono i tagli meno ovvi:**
+- **ITCA** — la voce 1 nomina **due** cose, nome e indirizzo: un codice di registrazione non è nessuna
+  delle due. L'obbligo italiano colpisce **l'iscriversi**, non il contenuto del foglio.
+- **Norme e rischi residui** — la voce **7** chiede la dichiarazione di conformità **e**, «se del caso»,
+  i requisiti **NON rispettati con motivazione**. Una norma **applicata** è un'altra cosa. ⚠️ Riserva:
+  se un laboratorio scrivesse i propri rischi residui **come deroga a un requisito**, la voce 7 si
+  accenderebbe — oggi è testo libero.
+- **Firma e responsabile (PRRC)** — l'Art. 15(3)(b) nomina la *dichiarazione di conformità **UE***, che
+  per i su misura **non esiste**. Le otto voci non parlano né di firma né di persona responsabile.
+  📌 Il progetto lo sapeva già: `ROADMAP-UFFICIALE.md:1138`.
+- **Luogo di emissione** — è la città del laboratorio, **non** un luogo di fabbricazione.
+
+**Restano, con la loro ragione scritta (classe B):** data di emissione (**Art. 52(8)**: «prima
+dell'immissione» — senza data non si dimostra) · numero del documento (chiave di reperimento per la
+conservazione decennale, All. XIII p. 4) · numero della prescrizione (àncora al documento da cui deriva
+la voce 6) · titolo e base giuridica · nota sulla marcatura CE · partita IVA (🟡 **riserva del
+censimento: nessun obbligo trovato — se si vuole rigore pieno, è C**).
+
+### ⚠️ Riserve dichiarate dal censimento
+
+**Togliere i materiali NON ripara la voce 6: sono due lavori diversi.** · I materiali **restano** in
+banca dati e **continuano a stamparsi** su ricevuta di consegna ed etichetta: dal documento escono, dal
+laboratorio no. · `materiali_json` e `colore_dente` esistono in tabella e **nessuno li scrive**. ·
+`prescrizione_id` legge una colonna **legacy** (`lavoro.numero_prescrizione`) mentre il numero canonico
+è stato spostato su `lavori_prescrizioni`.
