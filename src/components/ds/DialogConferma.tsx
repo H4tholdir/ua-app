@@ -287,4 +287,16 @@ const notaStile: CSSProperties = {
   padding: `${spazio.xs + 2}px ${spazio.sm}px`,
   margin: `${spazio.s}px 0 0`,
   textAlign: 'center',
+  // Gli a capo della `nota` si vedono (07/08/2026): FlussoConsegna elenca gli
+  // avvisi uno per riga invece di contarli, e una lista appiattita in un solo
+  // paragrafo centrato non si legge. `pre-line` collassa gli spazi esattamente
+  // come `normal` e preserva i soli `\n`, quindi è INERTE su una riga sola.
+  // 📌 Censiti i consumatori di `nota` — TRE in tutto, e sono tutti e tre da
+  //    guardare, non da presumere (`grep -rn "<DialogConferma" src/`):
+  //    FlussoConsegna.tsx:176 (questo, a più righe di proposito),
+  //    FrameConsegnato.tsx:161 (frase letterale, una riga) e
+  //    SchedaPersonaSheet.tsx:280 (`erroreDisattiva`: o un letterale, o
+  //    `json.error` della nostra stessa API — una riga). Nessuno dei due
+  //    preesistenti cambia resa.
+  whiteSpace: 'pre-line',
 }

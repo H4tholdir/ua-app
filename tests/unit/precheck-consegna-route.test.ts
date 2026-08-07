@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createChain } from './helpers/supabase-chain-mock'
 
 const { mockGetLabContextWithTimings, mockFrom, mockMaterialiCarenti } = vi.hoisted(() => ({
   mockGetLabContextWithTimings: vi.fn(),
@@ -57,28 +58,39 @@ function makeLavoroRow(overrides: Record<string, unknown> = {}) {
  *   orchestrate.ts Step 1
  * Il laboratorio_id ora arriva da getLabContextWithTimings (mockato sopra).
  * `materialiCarenti` è mockato a livello di modulo (vedi vi.mock sopra).
+ *
+ * 🔴 CORRETTO IL 07/08/2026 (giro di correzione D295). Qui c'era una catena
+ *    scritta a mano che apriva con `select: () => (…)`, cioè **buttava via
+ *    l'argomento**: nessuna prova di questo repo guardava mai la stringa
+ *    passata al `.select()`, e togliere l'embed
+ *    `prescrizione:lavori_prescrizioni(*)` dalla query restava verde. Ora la
+ *    catena è `createChain` (lo stesso strumento di
+ *    `lavori-id-route-get-prescrizione.test.ts:118-127`), che REGISTRA ogni
+ *    chiamata con i suoi argomenti in `chain.calls`.
  */
 function buildMockFrom(opts: { lavoro?: Record<string, unknown> | null }) {
   const { lavoro = makeLavoroRow() } = opts
 
   return vi.fn((table: string) => {
     if (table === 'lavori') {
-      return {
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              is: () => ({
-                single: async () => ({ data: lavoro, error: null }),
-              }),
-            }),
-          }),
-        }),
-      }
+      return createChain({ data: lavoro, error: null })
     }
 
     throw new Error(`Unexpected table: ${table}`)
   })
 }
+
+/** La stringa passata al `.select()` della prima `.from('lavori')`. */
+function selectDellaRotta(from: ReturnType<typeof buildMockFrom>): string {
+  const chain = from.mock.results[0].value as ReturnType<typeof createChain>
+  const selectCall = chain.calls.find((c) => c.method === 'select')
+  expect(selectCall).toBeDefined()
+  return String(selectCall!.args[0])
+}
+
+/** L'avviso della voce 6 (Allegato XIII punto 1), per prefisso: il testo
+ *  completo vive in `precheck.ts` e non si duplica qui parola per parola. */
+const AVVISO_VOCE_6 = 'La prescrizione è allegata ma non riporta caratteristiche'
 
 describe('GET /api/lavori/[id]/precheck-consegna', () => {
   beforeEach(() => {
@@ -132,5 +144,66 @@ describe('GET /api/lavori/[id]/precheck-consegna', () => {
     const json = await res.json()
     expect(json.consegnabile).toBe(true)
     expect(json.warnings.some((w: string) => w.includes('Zirconia disco 98mm'))).toBe(true)
+  })
+
+  // ═══ LA GIUNTURA banca dati → risposta (giro di correzione D295) ══════════
+  //
+  // 🔑 Le tre prove qui sotto accendono TRE anelli diversi, e servono tutte e
+  //    tre perché ognuna cade per una ragione sua:
+  //    · la stringa del `.select()` è l'unica prova possibile dell'EMBED — il
+  //      finto client non filtra davvero le colonne, quindi togliere l'embed
+  //      dalla query non cambierebbe il dato che il finto restituisce;
+  //    · la riga ad ARRAY **con** caratteristiche prova la NORMALIZZAZIONE:
+  //      senza `normalizzaPrescrizione`, `lavoro.prescrizione` resta
+  //      `[{…}]`, `.contenuto` è `undefined`, e l'avviso scatterebbe su un
+  //      lavoro che le caratteristiche ce le ha — un falso allarme;
+  //    · la riga ad ARRAY **senza** caratteristiche prova il TRAVASO degli
+  //      avvisi nei `warnings` della risposta.
+  //
+  // 📌 La forma ad ARRAY è quella VERA di PostgREST (la FK dell'embed è
+  //    composita → `isOneToOne: false`), verificata interrogando la banca dati.
+
+  it('il select nomina esplicitamente l\'embed prescrizione:lavori_prescrizioni(*)', async () => {
+    const from = buildMockFrom({})
+    mockFrom.mockImplementation(from)
+
+    await GET(req(), { params })
+
+    expect(selectDellaRotta(from)).toContain('prescrizione:lavori_prescrizioni(*)')
+  })
+
+  it('prescrizione come ARRAY senza caratteristiche → l\'avviso della voce 6 arriva nei warnings', async () => {
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        lavoro: makeLavoroRow({ prescrizione: [{ id: 'presc-1', contenuto: {} }] }),
+      })
+    )
+
+    const res = await GET(req(), { params })
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.consegnabile).toBe(true)
+    expect(json.warnings.some((w: string) => w.includes(AVVISO_VOCE_6))).toBe(true)
+    // 🛑 E NON prende la coda «non registrato all'accettazione»: quell'avviso è
+    //    già una frase italiana compiuta, la coda lì direbbe una cosa falsa.
+    expect(json.warnings.some((w: string) => w.includes(`${AVVISO_VOCE_6}`) && w.includes('non registrato all\'accettazione'))).toBe(false)
+  })
+
+  it('prescrizione come ARRAY CON caratteristiche → nessun avviso: la normalizzazione ha spacchettato l\'array', async () => {
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        lavoro: makeLavoroRow({
+          prescrizione: [{ id: 'presc-1', contenuto: { elementi: [26, 27], colore: 'A3' } }],
+        }),
+      })
+    )
+
+    const res = await GET(req(), { params })
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.warnings.some((w: string) => w.includes(AVVISO_VOCE_6))).toBe(false)
+    expect(json.warnings).toEqual([])
   })
 })

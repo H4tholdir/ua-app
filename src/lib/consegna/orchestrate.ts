@@ -159,6 +159,11 @@ export async function orchestraConsegna(
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
       cassettaLiberata,
+      // 🛑 `avvisi` NON compare qui, ed è una scelta: su questo ramo il
+      //    precheck non gira affatto (il lavoro è già consegnato, i documenti
+      //    sono già emessi). Un `avvisi: []` affermerebbe «nessun avviso» su
+      //    un controllo che nessuno ha eseguito — l'assenza del campo dice il
+      //    vero, l'array vuoto direbbe il falso.
     }
   }
 
@@ -399,6 +404,10 @@ export async function orchestraConsegna(
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
       cassettaLiberata,
+      // Gli avvisi non bloccanti che il precheck ha visto allo Step 2 (fra cui
+      // la voce 6, D295). Erano calcolati e buttati via: un client che chiami
+      // il POST senza fare prima il GET non li avrebbe mai visti.
+      avvisi: precheck.avvisi ?? [],
     }
   } catch (err) {
     // Catch-all globale — rilascia lock, restituisci errore generico

@@ -52,10 +52,41 @@ describe('FlussoConsegna — macchina a stati (§3.2)', () => {
     expect(bottoni[0]).toHaveTextContent('Consegna')
   })
 
-  it('verde con warnings: nota ambra aggregata nel dialog (D-6)', async () => {
-    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: ['Zirconia sotto scorta (2 g su 5)', 'Tipo impronta non registrato all\'accettazione'] } } })
+  // 🔴 CORRETTO IL 07/08/2026 — questa prova difendeva un difetto.
+  //    Asseriva `/2 avvisi — si può consegnare, ma dai un occhio a magazzino e
+  //    accettazione/`: con DUE o più avvisi la schermata li CONTAVA invece di
+  //    dirli. Nello scenario più frequente (prescrizione allegata senza
+  //    caratteristiche + tipo impronta non registrato) l'addetta leggeva «2
+  //    avvisi… magazzino e accettazione» — la voce obbligatoria per legge non
+  //    veniva nominata, e la frase la mandava a guardare due posti che non
+  //    c'entravano. Ora si ELENCANO: nessun avviso sparisce perché ha compagnia.
+  it('verde con DUE warnings: la nota li elenca per intero, mai un conteggio (D295)', async () => {
+    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [
+      'Tipo impronta non registrato all\'accettazione',
+      'La prescrizione è allegata ma non riporta caratteristiche (elementi o colore): la dichiarazione uscirà senza',
+    ] } } })
     montaAperto()
-    expect(await screen.findByText(/2 avvisi — si può consegnare/)).toBeInTheDocument()
+    const nota = await screen.findByRole('alert')
+    expect(nota.textContent).toContain('Si può consegnare lo stesso:')
+    expect(nota.textContent).toContain('Tipo impronta non registrato all\'accettazione')
+    expect(nota.textContent).toContain('La prescrizione è allegata ma non riporta caratteristiche (elementi o colore): la dichiarazione uscirà senza')
+    // 🛑 Il conteggio non torna dalla finestra: contare è ciò che faceva sparire il testo.
+    expect(nota.textContent).not.toMatch(/\d+ avvisi/)
+  })
+
+  it('verde con UN solo warning: stessa forma, nessun ramo speciale', async () => {
+    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: ['Zirconia sotto scorta (2 g su 5)'] } } })
+    montaAperto()
+    const nota = await screen.findByRole('alert')
+    expect(nota.textContent).toContain('Si può consegnare lo stesso:')
+    expect(nota.textContent).toContain('Zirconia sotto scorta (2 g su 5)')
+  })
+
+  it('verde senza warnings: nessuna nota ambra', async () => {
+    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [] } } })
+    montaAperto()
+    expect(await screen.findByText(/Consegno\?/)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('rosso: GET con bloccanti → sheet «Prima di consegnare» con RigaBloccante; tap → onRisolvi(route)', async () => {

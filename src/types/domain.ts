@@ -831,6 +831,22 @@ export interface ConsegnaResult {
    *  (fail-soft: la consegna non si annulla mai per questo). Opzionale per
    *  compatibilità con payload/mock preesistenti che non lo includono. */
   cassettaLiberata?: string | null;
+  /** Gli avvisi non bloccanti del precheck (`ConsegnaPrecheckResult.avvisi`),
+   *  così come li ha visti il POST al momento della consegna.
+   *
+   *  🔑 PERCHÉ ESISTE (giro di correzione 07/08/2026). Il campo aveva **un solo
+   *     consumatore su due**: la rotta di precheck li versa nei `warnings` e la
+   *     schermata li mostra, ma `orchestraConsegna` li calcolava e li buttava
+   *     via. Oggi non morde, perché la schermata fa sempre il GET prima del
+   *     POST — ma un client che chiami direttamente `POST /consegna` non li
+   *     vedrebbe MAI, e su una voce dell'Allegato XIII «non morde oggi» non è
+   *     una ragione per lasciare il filo staccato.
+   *
+   *  ⚠️ OPZIONALE, e l'assenza NON è «nessun avviso»: sul ramo idempotente
+   *     `gia_consegnato` il precheck non gira affatto, quindi il campo manca —
+   *     un array vuoto lì affermerebbe una cosa che nessuno ha verificato.
+   *     Stessa scelta, e stessa ragione, di `cassettaLiberata` qui sopra. */
+  avvisi?: string[];
 }
 
 export interface ConsegnaError {

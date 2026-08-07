@@ -71,6 +71,24 @@ describe('caratteristichePrescritte — la frase della voce 6', () => {
     expect(caratteristichePrescritte({ colore: '' })).toBeNull()
   })
 
+  it('colore di SOLI SPAZI: vuoto quanto la stringa vuota — mai «Colore:» seguito da niente', () => {
+    // 🔴 Giro di correzione del 07/08/2026. Qui c'era `colore !== ''` e basta,
+    //    con un commento che DICHIARAVA di preservare i soli spazi «perché
+    //    giudicarli vuoti richiederebbe il trim, che D210 vieta». Ma una
+    //    stringa di soli spazi È memorizzabile, e su una carta legale il
+    //    documento avrebbe stampato «Colore:» seguito da spazi — una riga
+    //    mozza sotto un titolo di legge.
+    // 🔑 Le due cose sono separate: si GIUDICA col trim, si STAMPA il valore
+    //    intero. D210 vieta di raddrizzare ciò che il medico ha scritto, non
+    //    di riconoscere che non ha scritto nulla.
+    expect(caratteristichePrescritte({ colore: '   ' })).toBeNull()
+    expect(caratteristichePrescritte({ colore: '\t\n ' })).toBeNull()
+  })
+
+  it('colore con spazi INTORNO a un valore vero: si stampa intero, non trimmato (D210 intatta)', () => {
+    expect(caratteristichePrescritte({ colore: ' A3 ' })).toBe('Colore:  A3 ')
+  })
+
   it('`tipo` NON entra nella frase: non è prescritto (D213) ed è già il §5 del documento', () => {
     // D213: `tipo` entra nello snapshot SOLO alla conferma di consegna, copiato
     // da `lavori.tipo_dispositivo` — cioè è ciò che il laboratorio HA FATTO, non

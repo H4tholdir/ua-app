@@ -54,10 +54,14 @@ export function etichettaDenti(denti: number[]): string {
  *    distingue da qui (qui arriva solo il contenuto): lo separa `precheckMDR`,
  *    che vede se la riga esiste, e lo dice con un avviso non bloccante.
  *
- * 🛑 IL COLORE RESTA COME DIGITATO (D210): niente `trim`, niente maiuscole. È
- *    il testo del medico, non un valore di catalogo — su un documento a valore
- *    legale «a3,5 » non si raddrizza in «A3.5», perché quella sarebbe una
- *    caratteristica che nessuno ha prescritto.
+ * 🛑 IL COLORE RESTA COME DIGITATO (D210): niente `trim` sul valore STAMPATO,
+ *    niente maiuscole. È il testo del medico, non un valore di catalogo — su un
+ *    documento a valore legale «a3,5 » non si raddrizza in «A3.5», perché
+ *    quella sarebbe una caratteristica che nessuno ha prescritto.
+ *    ⚠️ Il `trim` serve — e serve SOLO — a rispondere alla domanda «c'è
+ *    qualcosa?»: un campo di soli spazi è vuoto quanto la stringa vuota, e
+ *    stamparlo darebbe «Colore:» seguito dal niente. Giudicare non è
+ *    raddrizzare.
  *
  * 🛑 `tipo` NON ENTRA, ed è una scelta, non una dimenticanza: D213 dice che
  *    entra nello snapshot SOLO alla conferma di consegna, copiato da
@@ -82,11 +86,19 @@ export function caratteristichePrescritte(
     pezzi.push(`Elementi: ${etichettaDenti(elementi)}`)
   }
 
-  // Stessa regola di vuoto di `componiSnapshot` (`componi-snapshot.ts:41`): la
-  // stringa VUOTA non è la trascrizione di niente. «Solo spazi» invece SI
-  // preserva — giudicarlo vuoto richiederebbe il trim, che D210 vieta.
+  // SI GIUDICA COL TRIM, SI STAMPA INTERO — e le due cose sono separate
+  // apposta (corretto il 07/08/2026).
+  // 🔴 Qui c'era `colore !== ''` e basta, con un commento che dichiarava di
+  //    preservare i soli spazi «perché giudicarli vuoti richiederebbe il trim,
+  //    che D210 vieta». Ma una stringa di soli spazi È memorizzabile, e il
+  //    documento avrebbe stampato «Colore:» seguito da spazi: una riga mozza
+  //    sotto un titolo di legge, su una carta che si conserva dieci anni.
+  // 🔑 D210 vieta di RADDRIZZARE ciò che il medico ha scritto («a3,5 » non
+  //    diventa «A3.5»), non di riconoscere che non ha scritto niente. Il trim
+  //    serve solo alla domanda «c'è qualcosa?»; il valore che finisce sulla
+  //    carta resta quello digitato, spazi compresi.
   const colore = contenuto.colore
-  if (typeof colore === 'string' && colore !== '') {
+  if (typeof colore === 'string' && colore.trim() !== '') {
     pezzi.push(`Colore: ${colore}`)
   }
 
