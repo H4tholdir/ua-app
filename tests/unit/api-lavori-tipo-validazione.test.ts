@@ -159,6 +159,12 @@ describe('PATCH /api/lavori/[id] — validazione enum tipo_dispositivo (B2)', ()
           },
         }
       }
+      // D308 — il cancello sui cinque campi stampati conta le dichiarazioni
+      // vive. Su questo lavoro non ce n'è nessuna: il cancello resta un no-op e
+      // queste prove continuano a misurare ciò che misuravano.
+      if (table === 'dichiarazioni_conformita') {
+        return { select: () => ({ eq: () => ({ eq: () => ({ neq: async () => ({ count: 0, error: null }) }) }) }) }
+      }
       throw new Error(`Unexpected table: ${table}`)
     })
   }

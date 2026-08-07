@@ -20,6 +20,12 @@ beforeEach(() => {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
     }
+    // D308 — il cancello sui cinque campi stampati conta le dichiarazioni vive.
+    // Su questo lavoro non ce n'è nessuna: il cancello resta un no-op e questa
+    // prova continua a misurare ciò che misurava.
+    if (table === 'dichiarazioni_conformita') {
+      return { select: () => ({ eq: () => ({ eq: () => ({ neq: async () => ({ count: 0, error: null }) }) }) }) }
+    }
     // lavori: select existing (incluso_in_fattura) + update
     return {
       select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }),

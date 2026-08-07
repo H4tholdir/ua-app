@@ -85,6 +85,12 @@ beforeEach(() => {
         }),
       }
     }
+    // D308 — il cancello sui cinque campi stampati conta le dichiarazioni vive.
+    // Su questo lavoro non ce n'è nessuna: il cancello resta un no-op e queste
+    // prove continuano a misurare ciò che misuravano.
+    if (table === 'dichiarazioni_conformita') {
+      return { select: () => ({ eq: () => ({ eq: () => ({ neq: async () => ({ count: 0, error: null }) }) }) }) }
+    }
     return {
       select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({
         data: { incluso_in_fattura: false, tecnico_id: null, numero_lavoro: '2026/0001' },

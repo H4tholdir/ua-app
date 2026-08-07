@@ -151,6 +151,22 @@ function buildMockFrom(opts: {
       }
     }
 
+    // D308 — il cancello sui cinque campi stampati conta le dichiarazioni vive.
+    // Su questo lavoro non ce n'è nessuna: il cancello resta un no-op e queste
+    // prove continuano a misurare ciò che misuravano. Il caso col cancello
+    // ACCESO vive in tests/unit/lavori-patch-campi-stampati-d308.test.ts.
+    if (table === 'dichiarazioni_conformita') {
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              neq: async () => ({ count: 0, error: null }),
+            }),
+          }),
+        }),
+      }
+    }
+
     // FK tables
     if (['clienti', 'pazienti', 'tecnici', 'cicli_produzione'].includes(table)) {
       return {
