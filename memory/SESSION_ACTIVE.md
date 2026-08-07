@@ -2,7 +2,8 @@
 
 🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-07-documento-e-decisioni-handoff.md` — **la §0 per prima**.
 
-**Ramo:** `intervento-post-consegna`, **NON pubblicato**, albero pulito. `main` = `origin/main` (`7427a680`).
+**Ramo:** `intervento-post-consegna`, ✅ **PUBBLICATO** (`origin/intervento-post-consegna`), albero pulito.
+🔑 **`main` NON è stato toccato** ed è `7427a680`: il merge è un giudizio a sé (D296), e l'ondata è a metà.
 Il numero dei salvataggi non si ricopia: `git rev-list --count main..HEAD`.
 
 📌 **Misurato in chiusura** (`verify:full`, uscita 0 letta da variabile): tsc 0 · eslint 0 · build ok ·
@@ -16,5 +17,6 @@ toccati, e il **7 non si chiude prima di D283** · ⑤ il compito del **ritiro**
 `REVOKE DELETE` resta deliberatamente fuori con la sua **sentinella** · ⑥ **FASE 9/9b** dovute su
 `FlussoConsegna` · ⑦ invariati: le 4 prove **TD04**, i due ritrovamenti del Task 1, `audit_log`, la §17.2.
 
-⚖️ **Dieci decisioni oggi: D286-D295** (verbale, tornate 116-122).
+⚖️ **Undici decisioni oggi: D286-D296** (verbale, tornate 116-123). D296: **il push non si chiede più** —
+e il permesso `Bash(git push*)` è ora in `.claude/settings.json`, **versionato**.
 📄 **Fatto:** il Task 4, e **la dichiarazione è rifatta** — dice tutto il dovuto e solo il dovuto.

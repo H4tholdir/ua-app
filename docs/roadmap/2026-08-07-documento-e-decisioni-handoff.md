@@ -2,7 +2,9 @@
 
 **Per:** Francesco, e per la sessione che riprende.
 **Quando:** 7 agosto 2026 (`provato:` `date`, letto in un comando **separato** — v. §2 lezione 6).
-**Stato:** ramo **`intervento-post-consegna`**, **NON pubblicato**, albero **pulito**.
+**Stato:** ramo **`intervento-post-consegna`**, ✅ **PUBBLICATO** (`origin/intervento-post-consegna`),
+albero **pulito**. 🔑 **`main` NON è stato toccato**: il merge è un giudizio a sé (D296), e quest'ondata
+è a metà.
 ⚠️ Il conteggio dei salvataggi **non si ricopia da qui**: `git rev-list --count main..HEAD`.
 `main` è **intatto** e coincide con `origin/main` (`7427a680`), che è anche la **base** del ramo.
 
