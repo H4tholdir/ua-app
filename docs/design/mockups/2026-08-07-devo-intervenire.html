@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>«Devo intervenire» — Task 6, due varianti (07/08/2026)</title>
+<style>
+  /* Token DS v3 copiati VERBATIM da src/design-system/v3/tokens.ts.
+     Mockup di sola lettura: decide la FORMA di «Devo intervenire» prima del React (§0B). */
+  :root{
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF; --purple:#7C3F9C;
+    --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC; --purple-tint:#F3EAF7;
+    --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --scrim:rgba(29,25,19,.35);
+  }
+  .notte{
+    --bg:#171411; --bg-deep:#211D18; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#9A8F80; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF; --purple:#B98BE8;
+    --red-tint:rgba(255,59,68,.14); --amber-tint:rgba(232,161,61,.14); --blue-tint:rgba(91,155,255,.14);
+    --green-tint:rgba(52,196,104,.14); --purple-tint:rgba(185,139,232,.14);
+    --sh-card:none;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#8A8580}
+  .colonne{display:flex;flex-wrap:wrap;gap:0}
+  .tema{flex:1 1 480px;background:var(--bg);padding:28px 20px 60px;min-width:380px}
+  h1.tt{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:0 0 24px}
+  .sez{margin:0 0 12px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .nota{font-size:13px;color:var(--faint);margin:0 0 14px;max-width:390px;line-height:1.45}
+  .tel{width:390px;max-width:100%;margin:0 auto 34px;background:var(--bg);border:1px solid var(--line);border-radius:34px;padding:16px 14px;position:relative}
+  .notte .tel{background:var(--bg)}
+
+  /* — la porta: la riga sulla scheda — */
+  .card{background:var(--card);border-radius:24px;padding:20px;box-shadow:var(--sh-card)}
+  .testata{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .n{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+  .pill{font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:999px;background:var(--green-tint);color:var(--green)}
+  .rigaint{display:flex;align-items:center;gap:12px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 16px;font:inherit;text-align:left;min-height:52px;cursor:pointer}
+  .rigaint .g{font-size:19px;line-height:1}
+  .rigaint .t{flex:1}
+  .rigaint .t b{display:block;font-size:17px;font-weight:700;color:var(--ink)}
+  .rigaint .t s{display:block;font-size:13px;color:var(--muted);text-decoration:none;margin-top:2px}
+  .rigaint .c{color:var(--faint);font-size:17px}
+
+  /* — dialogo di conferma (§5.17) — */
+  .dial{background:var(--card);border-radius:24px;padding:24px;box-shadow:var(--sh-card);text-align:center}
+  .occhiello{font-size:16.5px;font-weight:700;color:var(--muted);margin:0}
+  .titolo{font-size:21px;font-weight:800;color:var(--ink);margin:2px 0 0;letter-spacing:-.02em}
+  .testo{font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+  .tasti{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+  .primario{background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);color:#fff;border:0;border-radius:20px;padding:15px;font:inherit;font-weight:700;font-size:17px;min-height:52px;box-shadow:0 5px 0 var(--red-dark);cursor:pointer}
+  .secondario{background:transparent;color:var(--muted);border:0;border-radius:20px;padding:15px;font:inherit;font-weight:700;font-size:17px;min-height:52px;cursor:pointer}
+
+  /* — foglio (§5.16) — */
+  .foglio{background:var(--card);border-radius:28px 28px 0 0;padding:22px 18px 24px;box-shadow:var(--sh-card)}
+  .maniglia{width:44px;height:5px;border-radius:999px;background:var(--line);margin:0 auto 16px}
+  .domanda{font-size:27px;font-weight:800;color:var(--ink);margin:0 0 4px;letter-spacing:-.02em;line-height:1.15}
+  .sotto{font-size:15.5px;color:var(--muted);margin:0 0 18px}
+
+  /* — righe di scelta — */
+  .scelte{display:flex;flex-direction:column;gap:8px}
+  .scelta{display:flex;align-items:center;gap:13px;width:100%;background:var(--bg-deep);border:1px solid transparent;border-radius:18px;padding:14px 15px;font:inherit;text-align:left;min-height:56px;cursor:pointer}
+  .notte .scelta{background:var(--elv)}
+  .scelta:hover{border-color:var(--line)}
+  .scelta .ic{width:34px;height:34px;flex:none;border-radius:11px;display:grid;place-items:center;font-size:16px}
+  .scelta .tx b{display:block;font-size:17px;font-weight:700;color:var(--ink);line-height:1.25}
+  .scelta .tx s{display:block;font-size:13.5px;color:var(--muted);text-decoration:none;margin-top:3px;line-height:1.35}
+  .i-doc{background:var(--blue-tint);color:var(--blue)}
+  .i-pez{background:var(--red-tint);color:var(--red)}
+  .i-per{background:var(--purple-tint);color:var(--purple)}
+  .i-alt{background:var(--amber-tint);color:var(--amber)}
+  .i-sba{background:var(--green-tint);color:var(--green)}
+
+  .famiglia{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:800;margin:16px 0 8px}
+  .famiglia:first-of-type{margin-top:4px}
+
+  /* — caselle di dettaglio — */
+  .campo{margin-top:18px}
+  .campo>label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  /* 🛑 In tema scuro una superficie premibile NON si dipinge del colore del
+     pannello che la contiene: sparirebbe. È il difetto già censito in roadmap
+     (voce 13), e qui lo eviterei per caso se non lo scrivessi. Chip, righe e
+     campi salgono a --elv dentro un pannello --card. */
+  .chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:10px 14px;font:inherit;font-size:14.5px;font-weight:600;color:var(--ink);min-height:44px;cursor:pointer}
+  .notte .chip{background:var(--elv)}
+  .notte .rigaint{background:var(--elv)}
+  .notte .data{background:var(--elv)}
+  .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .chip.attesa{border-color:var(--amber);color:var(--amber);background:var(--amber-tint)}
+  .data{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px 14px;font:inherit;font-size:16px;color:var(--ink);min-height:48px}
+
+  /* — la proposta — */
+  .prop{margin-top:20px;border-radius:20px;padding:16px;background:var(--amber-tint);border:1px solid transparent}
+  .prop .et{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--amber);margin:0 0 6px}
+  .prop .v{font-size:19px;font-weight:800;color:var(--ink);margin:0}
+  .prop .p{font-size:14.5px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+  .prop .cambia{margin-top:12px;background:transparent;border:1px solid var(--line);border-radius:14px;padding:10px 14px;font:inherit;font-weight:700;font-size:14.5px;color:var(--ink);min-height:44px;cursor:pointer}
+  .prop.rossa{background:var(--red-tint)} .prop.rossa .et{color:var(--red)}
+  .prop.verde{background:var(--green-tint)} .prop.verde .et{color:var(--green)}
+
+  .effetto{margin-top:12px;border-radius:16px;padding:13px 15px;background:var(--bg-deep);font-size:14.5px;color:var(--muted);line-height:1.45}
+  .notte .effetto{background:var(--elv)}
+  .effetto b{color:var(--ink);display:block;margin-bottom:3px;font-size:15px}
+
+  .esito{border-radius:18px;padding:15px 16px;margin-bottom:10px;font-size:14.5px;line-height:1.45}
+  .esito b{display:block;font-size:16px;margin-bottom:4px}
+  .e-ok{background:var(--green-tint);color:var(--muted)} .e-ok b{color:var(--green)}
+  .e-no{background:var(--red-tint);color:var(--muted)} .e-no b{color:var(--red)}
+  .e-na{background:var(--amber-tint);color:var(--muted)} .e-na b{color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="colonne">
+
+<!-- ══════════════════ CHIARO ══════════════════ -->
+<section class="tema">
+<h1 class="tt">Chiaro · 390px</h1>
+
+<div class="tel">
+  <p class="sez">① La porta — dove oggi muore il conto alla rovescia</p>
+  <p class="nota">Sempre presente su un lavoro consegnato, non per dieci minuti (D269). La riga dice <b>dove si va</b>, non cosa è vietato.</p>
+  <div class="card">
+    <div class="testata"><span class="n">n.147</span><span class="pill">Consegnato</span></div>
+    <button class="rigaint">
+      <span class="g">🛠</span>
+      <span class="t"><b>Devo intervenire</b><s>Il lavoro è consegnato: da qui si registra cos'è successo</s></span>
+      <span class="c">›</span>
+    </button>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">② La domanda d'ingresso — uguale in tutte le varianti</p>
+  <p class="nota">Parole di Francesco (D288): «<i>vuoi reintervenire sul lavoro o hai premuto questo tasto per sbaglio?</i>». 🛑 È un <b>dialogo</b>, non un foglio: per una conferma prima di un atto conseguente il foglio a scomparsa è lo strumento sbagliato. E l'uscita <b>non salva niente</b>.</p>
+  <div class="dial">
+    <p class="occhiello">Un momento</p>
+    <h2 class="titolo">Vuoi intervenire su questo lavoro?</h2>
+    <p class="testo">Corona zirconia n.147 — consegnata il 3 agosto al Dr. Esposito.</p>
+    <div class="tasti">
+      <button class="primario">Sì, devo intervenire</button>
+      <button class="secondario">No, ho premuto per sbaglio</button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">Ⓐ Variante A — «una cosa alla volta»: i nove motivi in fila</p>
+  <p class="nota">Un elenco solo, ogni riga dice <b>cosa succede</b>. Nessun raggruppamento: si legge dall'alto e si tocca.</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Che cos'è successo?</h2>
+    <p class="sotto">Scegli il motivo: da quello l'app capisce cosa fare.</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-sba">↩</span><span class="tx"><b>Ho premuto «consegna» per sbaglio</b><s>Il lavoro torna fra i pronti e la dichiarazione si annulla</s></span></button>
+      <button class="scelta"><span class="ic i-doc">📄</span><span class="tx"><b>C'è un dato sbagliato sul documento</b><s>Il pezzo resta dov'è: si rifà solo la carta</s></span></button>
+      <button class="scelta"><span class="ic i-pez">🔧</span><span class="tx"><b>Difetto di lavorazione</b><s>Si sistema questo o se ne fa uno nuovo — scegli tu</s></span></button>
+      <button class="scelta"><span class="ic i-pez">🧱</span><span class="tx"><b>Difetto del materiale</b><s>Si sistema questo o se ne fa uno nuovo — scegli tu</s></span></button>
+      <button class="scelta"><span class="ic i-per">👤</span><span class="tx"><b>È andato alla persona sbagliata</b><s>Torna fra i pronti; la dichiarazione resta valida</s></span></button>
+      <button class="scelta"><span class="ic i-doc">🩺</span><span class="tx"><b>Il medico chiede una modifica</b><s>Non è una correzione: serve un lavoro nuovo</s></span></button>
+      <button class="scelta"><span class="ic i-alt">€</span><span class="tx"><b>Prezzo o quantità sbagliati</b><s>Il lavoro non si tocca: è una questione di fattura</s></span></button>
+      <button class="scelta"><span class="ic i-alt">📦</span><span class="tx"><b>È tornato indietro senza difetti</b><s>Registriamo il fatto; cosa fare si decide dopo</s></span></button>
+      <button class="scelta"><span class="ic i-alt">✎</span><span class="tx"><b>Altro</b><s>Scrivilo in due parole</s></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">Ⓑ Variante B — per famiglie</p>
+  <p class="nota">Gli stessi nove, raggruppati in quattro famiglie. Nove righe di fila su un telefono sono un muro; qui l'occhio salta alla famiglia giusta e legge tre righe invece di nove.</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Che cos'è successo?</h2>
+    <p class="sotto">Scegli il motivo: da quello l'app capisce cosa fare.</p>
+
+    <p class="famiglia">Il pezzo</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-pez">🔧</span><span class="tx"><b>Difetto di lavorazione</b><s>Si sistema questo o se ne fa uno nuovo</s></span></button>
+      <button class="scelta"><span class="ic i-pez">🧱</span><span class="tx"><b>Difetto del materiale</b><s>Si sistema questo o se ne fa uno nuovo</s></span></button>
+      <button class="scelta"><span class="ic i-alt">📦</span><span class="tx"><b>Tornato indietro senza difetti</b><s>Registriamo il fatto</s></span></button>
+    </div>
+
+    <p class="famiglia">La carta</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-doc">📄</span><span class="tx"><b>Dato sbagliato sul documento</b><s>Si rifà solo la carta</s></span></button>
+      <button class="scelta"><span class="ic i-alt">€</span><span class="tx"><b>Prezzo o quantità sbagliati</b><s>Questione di fattura</s></span></button>
+    </div>
+
+    <p class="famiglia">La persona, o la richiesta</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-per">👤</span><span class="tx"><b>Andato alla persona sbagliata</b><s>La dichiarazione resta valida</s></span></button>
+      <button class="scelta"><span class="ic i-doc">🩺</span><span class="tx"><b>Il medico chiede una modifica</b><s>Serve un lavoro nuovo</s></span></button>
+    </div>
+
+    <p class="famiglia">Un errore nostro qui dentro</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-sba">↩</span><span class="tx"><b>Ho premuto «consegna» per sbaglio</b><s>Ripristina tutto</s></span></button>
+      <button class="scelta"><span class="ic i-alt">✎</span><span class="tx"><b>Altro</b><s>Scrivilo in due parole</s></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">③ Il percorso corto — «ho premuto consegna per sbaglio»</p>
+  <p class="nota">🔑 <b>Due tap e basta</b>, com'è scritto in D269. Nessuna delle quattro caselle si chiede: la consegna non è avvenuta, quindi non c'è un «dov'era il pezzo» da rispondere. 🛑 E l'app non la lascia scegliere: sarebbe la coppia incoerente già chiusa nella rotta.</p>
+  <div class="dial">
+    <p class="occhiello">Confermi?</p>
+    <h2 class="titolo">Il lavoro torna fra i pronti</h2>
+    <p class="testo">La consegna non è mai avvenuta: la dichiarazione già emessa viene annullata, perché diceva di una consegna che non c'è stata.</p>
+    <div class="tasti">
+      <button class="primario">Sì, riportalo indietro</button>
+      <button class="secondario">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">④ Le quattro caselle — per tutti gli altri motivi</p>
+  <p class="nota">🛑 «Da valutare» è <b>già acceso</b> e non è il percorso più lento: «nessuno» non deve mai essere la via più rapida, o si sotto-classifica in silenzio.</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Qualche dettaglio</h2>
+    <p class="sotto">Serve alla legge, non a noi. Sono quattro tocchi.</p>
+
+    <div class="campo"><label>Chi se n'è accorto?</label>
+      <div class="chips"><button class="chip">Noi in laboratorio</button><button class="chip on">L'odontoiatra</button><button class="chip">Il paziente, tramite il medico</button><button class="chip">Un'autorità</button><button class="chip">Un altro operatore</button></div>
+    </div>
+
+    <div class="campo"><label>Quando l'avete saputo?</label>
+      <input class="data" type="datetime-local" value="2026-08-07T15:00">
+    </div>
+
+    <div class="campo"><label>Dov'era il manufatto?</label>
+      <div class="chips"><button class="chip">Mai uscito</button><button class="chip">Consegnato, non applicato</button><button class="chip on">Già applicato</button><button class="chip">Non lo so</button></div>
+    </div>
+
+    <div class="campo"><label>Poteva far male a qualcuno?</label>
+      <div class="chips"><button class="chip">No</button><button class="chip attesa">Da valutare</button><button class="chip">Forse</button><button class="chip">Sì, è successo</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">⑤ La proposta, col suo perché — e si può cambiare</p>
+  <p class="nota">L'app propone, una persona conferma. Il riquadro grigio dice <b>cosa cambia sul lavoro</b>: è l'altro piano, e i due non si mescolano.</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Ecco cosa ne penso</h2>
+    <p class="sotto">Se non ti torna, cambiala: decidi tu.</p>
+    <div class="prop rossa">
+      <p class="et">Per la legge è</p>
+      <p class="v">Un incidente</p>
+      <p class="p">C'è un potenziale di danno: per la norma è un incidente. Prima di calcolare la scadenza va risposto — ha causato, avrebbe potuto causare o potrebbe causare la morte, un peggioramento serio della salute, oppure una minaccia grave per la salute pubblica?</p>
+      <button class="cambia">Non è così — cambia</button>
+    </div>
+    <div class="effetto"><b>E sul lavoro</b>Il pezzo è compromesso, e prima di procedere serve una scelta: si sistema questo, oppure se ne fa uno nuovo?</div>
+    <div class="tasti"><button class="primario">Registra</button><button class="secondario">Torna indietro</button></div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">⑥ Gli esiti — anche quelli che non sono un successo</p>
+  <p class="nota">🛑 Un campo negativo che nessuna schermata disegna è indistinguibile da un successo. I tre casi sono <b>tre cose diverse</b> e non si appiattiscono su un booleano.</p>
+  <div class="card">
+    <div class="esito e-ok"><b>Fatto</b>Registrato, e il lavoro è tornato fra i pronti.</div>
+    <div class="esito e-na"><b>Registrato</b>Il lavoro non era da riportare indietro: era già fra i pronti. La registrazione è salva.</div>
+    <div class="esito e-no"><b>Registrato, ma il lavoro non è tornato indietro</b>Riportalo tu fra i pronti, oppure riprova fra un momento.</div>
+  </div>
+</div>
+
+</section>
+
+<!-- ══════════════════ SCURO ══════════════════ -->
+<section class="tema notte">
+<h1 class="tt">Scuro · 390px</h1>
+
+<div class="tel">
+  <p class="sez">① La porta</p>
+  <div class="card">
+    <div class="testata"><span class="n">n.147</span><span class="pill">Consegnato</span></div>
+    <button class="rigaint">
+      <span class="g">🛠</span>
+      <span class="t"><b>Devo intervenire</b><s>Il lavoro è consegnato: da qui si registra cos'è successo</s></span>
+      <span class="c">›</span>
+    </button>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">② La domanda d'ingresso</p>
+  <div class="dial">
+    <p class="occhiello">Un momento</p>
+    <h2 class="titolo">Vuoi intervenire su questo lavoro?</h2>
+    <p class="testo">Corona zirconia n.147 — consegnata il 3 agosto al Dr. Esposito.</p>
+    <div class="tasti">
+      <button class="primario">Sì, devo intervenire</button>
+      <button class="secondario">No, ho premuto per sbaglio</button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">Ⓐ Variante A — i nove in fila</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Che cos'è successo?</h2>
+    <p class="sotto">Scegli il motivo: da quello l'app capisce cosa fare.</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-sba">↩</span><span class="tx"><b>Ho premuto «consegna» per sbaglio</b><s>Il lavoro torna fra i pronti e la dichiarazione si annulla</s></span></button>
+      <button class="scelta"><span class="ic i-doc">📄</span><span class="tx"><b>C'è un dato sbagliato sul documento</b><s>Il pezzo resta dov'è: si rifà solo la carta</s></span></button>
+      <button class="scelta"><span class="ic i-pez">🔧</span><span class="tx"><b>Difetto di lavorazione</b><s>Si sistema questo o se ne fa uno nuovo — scegli tu</s></span></button>
+      <button class="scelta"><span class="ic i-pez">🧱</span><span class="tx"><b>Difetto del materiale</b><s>Si sistema questo o se ne fa uno nuovo — scegli tu</s></span></button>
+      <button class="scelta"><span class="ic i-per">👤</span><span class="tx"><b>È andato alla persona sbagliata</b><s>Torna fra i pronti; la dichiarazione resta valida</s></span></button>
+      <button class="scelta"><span class="ic i-doc">🩺</span><span class="tx"><b>Il medico chiede una modifica</b><s>Non è una correzione: serve un lavoro nuovo</s></span></button>
+      <button class="scelta"><span class="ic i-alt">€</span><span class="tx"><b>Prezzo o quantità sbagliati</b><s>Il lavoro non si tocca: è una questione di fattura</s></span></button>
+      <button class="scelta"><span class="ic i-alt">📦</span><span class="tx"><b>È tornato indietro senza difetti</b><s>Registriamo il fatto; cosa fare si decide dopo</s></span></button>
+      <button class="scelta"><span class="ic i-alt">✎</span><span class="tx"><b>Altro</b><s>Scrivilo in due parole</s></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">Ⓑ Variante B — per famiglie</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Che cos'è successo?</h2>
+    <p class="sotto">Scegli il motivo: da quello l'app capisce cosa fare.</p>
+    <p class="famiglia">Il pezzo</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-pez">🔧</span><span class="tx"><b>Difetto di lavorazione</b><s>Si sistema questo o se ne fa uno nuovo</s></span></button>
+      <button class="scelta"><span class="ic i-pez">🧱</span><span class="tx"><b>Difetto del materiale</b><s>Si sistema questo o se ne fa uno nuovo</s></span></button>
+      <button class="scelta"><span class="ic i-alt">📦</span><span class="tx"><b>Tornato indietro senza difetti</b><s>Registriamo il fatto</s></span></button>
+    </div>
+    <p class="famiglia">La carta</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-doc">📄</span><span class="tx"><b>Dato sbagliato sul documento</b><s>Si rifà solo la carta</s></span></button>
+      <button class="scelta"><span class="ic i-alt">€</span><span class="tx"><b>Prezzo o quantità sbagliati</b><s>Questione di fattura</s></span></button>
+    </div>
+    <p class="famiglia">La persona, o la richiesta</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-per">👤</span><span class="tx"><b>Andato alla persona sbagliata</b><s>La dichiarazione resta valida</s></span></button>
+      <button class="scelta"><span class="ic i-doc">🩺</span><span class="tx"><b>Il medico chiede una modifica</b><s>Serve un lavoro nuovo</s></span></button>
+    </div>
+    <p class="famiglia">Un errore nostro qui dentro</p>
+    <div class="scelte">
+      <button class="scelta"><span class="ic i-sba">↩</span><span class="tx"><b>Ho premuto «consegna» per sbaglio</b><s>Ripristina tutto</s></span></button>
+      <button class="scelta"><span class="ic i-alt">✎</span><span class="tx"><b>Altro</b><s>Scrivilo in due parole</s></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">③ Il percorso corto</p>
+  <div class="dial">
+    <p class="occhiello">Confermi?</p>
+    <h2 class="titolo">Il lavoro torna fra i pronti</h2>
+    <p class="testo">La consegna non è mai avvenuta: la dichiarazione già emessa viene annullata, perché diceva di una consegna che non c'è stata.</p>
+    <div class="tasti">
+      <button class="primario">Sì, riportalo indietro</button>
+      <button class="secondario">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">④ Le quattro caselle</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Qualche dettaglio</h2>
+    <p class="sotto">Serve alla legge, non a noi. Sono quattro tocchi.</p>
+    <div class="campo"><label>Chi se n'è accorto?</label>
+      <div class="chips"><button class="chip">Noi in laboratorio</button><button class="chip on">L'odontoiatra</button><button class="chip">Il paziente, tramite il medico</button><button class="chip">Un'autorità</button><button class="chip">Un altro operatore</button></div>
+    </div>
+    <div class="campo"><label>Quando l'avete saputo?</label>
+      <input class="data" type="datetime-local" value="2026-08-07T15:00">
+    </div>
+    <div class="campo"><label>Dov'era il manufatto?</label>
+      <div class="chips"><button class="chip">Mai uscito</button><button class="chip">Consegnato, non applicato</button><button class="chip on">Già applicato</button><button class="chip">Non lo so</button></div>
+    </div>
+    <div class="campo"><label>Poteva far male a qualcuno?</label>
+      <div class="chips"><button class="chip">No</button><button class="chip attesa">Da valutare</button><button class="chip">Forse</button><button class="chip">Sì, è successo</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">⑤ La proposta</p>
+  <div class="foglio">
+    <div class="maniglia"></div>
+    <h2 class="domanda">Ecco cosa ne penso</h2>
+    <p class="sotto">Se non ti torna, cambiala: decidi tu.</p>
+    <div class="prop rossa">
+      <p class="et">Per la legge è</p>
+      <p class="v">Un incidente</p>
+      <p class="p">C'è un potenziale di danno: per la norma è un incidente. Prima di calcolare la scadenza va risposto — ha causato, avrebbe potuto causare o potrebbe causare la morte, un peggioramento serio della salute, oppure una minaccia grave per la salute pubblica?</p>
+      <button class="cambia">Non è così — cambia</button>
+    </div>
+    <div class="effetto"><b>E sul lavoro</b>Il pezzo è compromesso, e prima di procedere serve una scelta: si sistema questo, oppure se ne fa uno nuovo?</div>
+    <div class="tasti"><button class="primario">Registra</button><button class="secondario">Torna indietro</button></div>
+  </div>
+</div>
+
+<div class="tel">
+  <p class="sez">⑥ Gli esiti</p>
+  <div class="card">
+    <div class="esito e-ok"><b>Fatto</b>Registrato, e il lavoro è tornato fra i pronti.</div>
+    <div class="esito e-na"><b>Registrato</b>Il lavoro non era da riportare indietro: era già fra i pronti. La registrazione è salva.</div>
+    <div class="esito e-no"><b>Registrato, ma il lavoro non è tornato indietro</b>Riportalo tu fra i pronti, oppure riprova fra un momento.</div>
+  </div>
+</div>
+
+</section>
+</div>
+</body>
+</html>
