@@ -220,7 +220,7 @@ git add supabase/migrations src/types/database.types.ts && git commit -m "feat(q
 **File:**
 - Crea: `supabase/migrations/<timestamp>_lavori_prima_immissione.sql`
 - Modifica: `src/lib/consegna/orchestrate.ts` (dove scrive `data_consegna_effettiva`)
-- Prova: `tests/integration/torna-a-pronto.rpc.test.ts` — **no**: qui basta la sonda del Passo 3
+- Prova: `tests/integration/torna-a-pronto.rpc.test.ts` — **no**: qui basta la sonda del Passo 3 *(da creare)*
 
 **Interfacce:**
 - Produce: `lavori.prima_immissione_at TIMESTAMPTZ NULL`, scritta **una volta sola**.
@@ -885,7 +885,7 @@ const MESSAGGIO_RIFACIMENTO_FALLITO =
 ```
 🛑 **`trasferisciCassetta` NON si riscrive**: la funzione esiste in
 `src/app/api/lavori/[id]/rifacimento/route.ts` (`trasferisciCassettaAlRifacimento`). **Estraila** in
-un modulo condiviso — `src/lib/rifacimento/cassetta.ts` — e falla importare da **entrambe** le rotte.
+un modulo condiviso — `src/lib/rifacimento/cassetta.ts` — e falla importare da **entrambe** le rotte. *(da creare)*
 Due copie sono «le liste scritte due volte» in forma di codice, e il difetto è che i due percorsi che
 creano lo stesso oggetto **divergerebbero**.
 
@@ -1031,7 +1031,7 @@ git add -A && git commit -m "feat(lavori): il bivio a schermo, e la schermata fi
 
 ## Task 10 — Le prove d'integrazione e la chiusura
 
-**File:** Crea `tests/integration/torna-a-pronto.rpc.test.ts`
+**File:** Crea `tests/integration/torna-a-pronto.rpc.test.ts` *(da creare)*
 
 - [ ] **Passo 0 — 🔴 EMENDAMENTO DEL 07/08 (revisione del Task 4): UN FILE DI PROVE GUARDA UNA FUNZIONE MORTA**
 
