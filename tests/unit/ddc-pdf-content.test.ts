@@ -380,11 +380,15 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).toContain('2017/745')
   })
 
-  it('§6 contiene riferimento ad Art. 52(8)', () => {
-    // ⚠️ Nota di lettura aggiornata il 07/08/2026 (D294): fino a oggi questa
-    //    stringa compariva in TRE posti (sottotitolo, §7 e piè di pagina).
-    //    Tolto il piè di pagina, resta nel sottotitolo sotto il titolo — che è
-    //    la base giuridica del documento e non si tocca.
+  it('il foglio porta la base giuridica «Art. 52(8)» — nel SOTTOTITOLO, non nel §6', () => {
+    // ⚖️ RINOMINATA il 07/08/2026 (D294). Si chiamava «§6 contiene riferimento
+    //    ad Art. 52(8)» ed era una LOCALIZZAZIONE FALSA: il testo di conformità
+    //    del §6 porta «Allegato I», «Allegato XIII» e «2017/745», ma NON
+    //    «Art. 52(8)». Quella stringa vive nel sottotitolo sotto il titolo, e
+    //    fino a oggi anche nel piè di pagina (uscito con D294).
+    // 🔑 È la stessa specie di difetto dell'«elemento 8 Allegato XIII» corretto
+    //    poco sopra: un nome di prova che afferma un fatto sbagliato si tramanda
+    //    più a lungo del codice che descrive.
     expect(pdfText).toContain('Art. 52(8)')
   })
 
