@@ -2,9 +2,9 @@
 
 **Data:** 7 agosto 2026 (`provato:` `date`, comando separato) · **Ondata:** «si deve sempre poter intervenire»
 **Ramo:** `intervento-post-consegna` · **Nasce da:** ritrovamento **R9**, riga **23** della coda di ROADMAP
-**Decisioni che la reggono:** D290 · D291 · D293 · D297 · D298 · **D304** · **D305** · **D306** · **D307**
-**Verbale:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, tornate **128-130**
-**Stato:** 🟡 **in attesa di ratifica di Francesco** — due punti sono marcati *DA RATIFICARE* (§3.1 e §4.2)
+**Decisioni che la reggono:** D290 · D291 · D293 · D297 · D298 · **D304-D307** · **D308** · **D309** · **D310**
+**Verbale:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, tornate **128-131**
+**Stato:** ✅ **RATIFICATA da Francesco il 07/08/2026, 18:19** («*va bene, procedi col piano*») — i tre punti aperti sono chiusi da **D308** (§1.1), **D309** (§4.2) e **D310** (§5.2)
 
 ---
 
@@ -52,7 +52,7 @@ muniti della dichiarazione di cui all'allegato XIII, punto 1, che è messa a dis
 determinato paziente o utilizzatore, identificato mediante il nome, un acronimo o un codice numerico.*»
 L'identità è **la cosa che non può divergere**.
 
-### 1.1 Il rimedio — *DA RATIFICARE (sarà D308)*
+### 1.1 Il rimedio — ⚖️ **D308**
 
 🔑 **Non si inventa un innesco nuovo: si indirizza al percorso che esiste già.**
 
@@ -215,7 +215,7 @@ non interroga affatto le dichiarazioni, quindi **non blocca** la riconsegna (`pr
   (`rifacimento/route.ts:197`, `trasferisciCassettaAlRifacimento`, fail-soft assoluto). Il percorso
   nuovo **riusa quella stessa funzione** — o due percorsi che creano lo stesso oggetto si
   comporterebbero in modo diverso, e il tecnico andrebbe a un cassetto vuoto.
-  📌 *DA RATIFICARE:* il trasferimento è **fail-soft** anche qui (un cassetto non spostato non annulla
+  ⚖️ **D309:** il trasferimento è **fail-soft** anche qui (un cassetto non spostato non annulla
   un lavoro già creato), coerente con il percorso esistente.
 
 ### 4.3 Il modulo degli effetti
@@ -295,7 +295,7 @@ di lì. **Il testo del 422 deve nominare anche questo caso.**
 6. 🟡 **Il rifacimento eredita `listino_id` e `prezzo_unitario`** dall'originale: **non verificato** se
    la fatturazione escluda i rifacimenti.
 
-### 5.2 Una ri-ratifica dovuta, non un'eredità
+### 5.2 Una ri-ratifica dovuta, non un'eredità — ⚖️ **D310**, fatta
 
 Il panel del 06/08 giustificò «la dichiarazione resta valida dopo una rilavorazione» con **un solo
 discriminante**: la lista dei lotti — se la riparazione consuma materiale nuovo, il foglio in mano al
@@ -303,8 +303,8 @@ paziente elenca lotti che non sono più quelli del dispositivo, quindi si riemet
 (`plans/2026-08-06-intervento-post-consegna.md:1092-1095`). 🛑 **D294, lo stesso giorno, ha tolto
 materiali e lotti dal foglio** (`DdcTemplate.tsx:449-455`): **quel discriminante non ha più un oggetto.**
 La conclusione **regge lo stesso** — senza lotti stampati, una riparazione tipica non cambia nessuna
-delle voci del foglio — ma **la sua prova è caduta**, e va ri-ratificata in una riga invece di essere
-ereditata come cosa chiusa.
+delle voci del foglio — ma **la sua prova è caduta**. ✅ **Ri-ratificata come D310 il 07/08/2026:**
+da oggi quella conclusione poggia su **D294**, non più sul panel del 06/08.
 
 ---
 

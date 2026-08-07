@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentesima tornata (D307: si tappano i due difetti che l'ondata crea, gli altri quattro vanno alla riga 12)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentunesima tornata (D308-D310: la spec della transizione è ratificata, e i suoi tre punti aperti sono chiusi)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**307 decisioni in centotrenta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**310 decisioni in centotrentuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3229,3 +3229,28 @@ tasto premuto a mano su una schermata sua; lo diventano nel momento in cui **l'a
 dentro un altro flusso. Gli altri quattro sono difetti del rifacimento **già oggi**, e correggerli qui
 sarebbe R-E2 al contrario: una correzione fuori mandato che lascia il difetto vero — il flusso da
 ristudiare — intatto e più difficile da vedere.
+
+---
+
+### Centotrentunesima tornata — D308-D310: la spec è RATIFICATA, e i tre punti aperti sono chiusi (07/08/2026, 18:19)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 18:19 CEST`**, comando separato.
+
+**Nasce da:** la ratifica della spec `docs/superpowers/specs/2026-08-07-torna-a-pronto-documento-intatto-design.md`
+(«*va bene, procedi col piano*»), che portava **tre punti marcati DA RATIFICARE**. Ognuno prende il suo
+numero: un punto ratificato in blocco, senza numero, è una decisione che nessuno ritrova.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D308** | 🛑 **FINCHÉ UN LAVORO HA UNA DICHIARAZIONE VIVA, I CINQUE CAMPI STAMPATI NON SI CORREGGONO DALLA PATCH** — `paziente_id`, `cliente_id`, `richiedente_nome`, `tipo_dispositivo`, `descrizione` → **422**, con il testo che dice **dove andare** | Chi vuole correggere un dato stampato passa dal motivo «dato sbagliato sulla dichiarazione», che **riemette** conservando la vecchia (Task 5). ⚠️ La regola vale per **ogni** lavoro con dichiarazione viva, non solo per quelli riaperti: restringerla lascerebbe la stessa porta aperta altrove |
+| **D309** | 🧰 **IL TRASFERIMENTO DELLA CASSETTA AL RIFACIMENTO È FAIL-SOFT anche nel percorso nuovo** | Un cassetto non spostato **non annulla** un lavoro già creato. Identico al percorso esistente (`rifacimento/route.ts:197`): due strade che creano lo stesso oggetto non possono comportarsi in modo diverso |
+| **D310** | 🔄 **RI-RATIFICATA «la dichiarazione resta valida dopo una riparazione», con la prova NUOVA** | Il discriminante del panel del 06/08 era **la lista dei lotti stampata sul foglio**, e **D294 l'ha tolta dal documento lo stesso giorno**: quella prova non esiste più. La conclusione regge — senza lotti stampati, una riparazione tipica non cambia nessuna delle voci del foglio — ma **poggia su D294, non più sul panel del 06/08** |
+
+**🔑 Perché D308 non contraddice la direttiva del 27/07** («ogni campo del lavoro si corregge, fino alla
+consegna»). Il confine di quella finestra non è stato scelto oggi: lo ha fissato il **panel normativo
+del 29/07**, e **si aggancia all'emissione della dichiarazione** — Art. 52(8) impone il documento prima
+dell'immissione sul mercato, e Art. 2(28) definisce l'immissione come la **prima messa a disposizione**,
+cioè la consegna. Con una dichiarazione viva la finestra è **chiusa per quelle cinque voci soltanto**;
+ogni altro campo resta correggibile. 🛑 **E non è un blocco cieco:** D262 dice che la PWA non dà blocchi
+ma aiuti, e il 422 **nomina il percorso giusto**, esattamente come fa già la guardia di
+`errore_registrazione` (`eventi-qualita/route.ts:233-235`).
