@@ -130,12 +130,10 @@ messo in opera il cancello SBAGLIATO del piano (solo il predicato del filtro, `c
 lasciando tutto il resto identico) e ho rilanciato:
 
 ```
-### SOLO IL FILE D308 ###
-× ⑤ corpo INTERO della scheda coi cinque INVARIATI + una nota cambiata → 200
+× ⑤ corpo INTERO della scheda coi cinque INVARIATI + campi non stampati cambiati → 200
 × ⑩ `null` su un valore già assente NON è un cambio → 200
 × ⑪ D242: `richiedente_nome: ""` contro un nome ASSENTE non è un cambio → 200
- Tests  3 failed | 14 passed (17)
-### SUITE INTERA ###
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
  Test Files  1 failed | 444 passed | 6 skipped (451)
       Tests  3 failed | 5484 passed | 68 skipped (5555)
 ```
@@ -162,11 +160,19 @@ non avrebbe nemmeno chiesto le quattro colonne nuove, quindi avrebbe fatto cader
 | corpo non-JSON | ⑬ | 400, e il cancello non parte affatto |
 | i cinque campi **uno per uno** | ⑦ | 422 ciascuno |
 | un campo **fuori** dai cinque | ③ | 200, con dichiarazione viva |
-| più campi insieme, di cui **solo uno** vietato | ⑥ | 422 |
-| più campi insieme, **nessuno** davvero cambiato | ⑤ | 200 |
+| più campi insieme, di cui **solo uno** vietato | ⑤ + ⑥ | 422 — v. la nota qui sotto |
+| più campi insieme, **nessuno stampato** davvero cambiato | ⑤ | 200 |
 | dichiarazione viva di un **altro laboratorio** | ⑭ | 200 (non blocca, non è osservabile) |
 | solo dichiarazioni **annullate** | ④ | 200 |
 | la lettura **fallisce** | ⑰ | 500, nessun UPDATE |
+
+⚠️ **La riga «solo uno vietato» richiede DUE casi, e all'inizio ne aveva uno solo — corretto
+dopo la revisione.** Un 422 da solo non dice **quale** campo l'ha causato: la risposta non nomina il
+campo, e un altro 422 della stessa rotta (tipo non valido, prezzo gestito dalle righe) avrebbe tenuto
+verde la prova al posto del cancello. La causa la nomina **la differenza** fra ⑤ e ⑥, che mandano
+corpi identici tranne il valore di `paziente_id`: in ⑤ i tre campi non stampati cambiano tutti e la
+risposta è **200**, in ⑥ cambia in più quel solo valore stampato e la risposta è **422**. In ⑥ si
+verifica anche che il messaggio sia quello di D308.
 
 **Non coperte, e perché:**
 - **`undefined` esplicito** su una delle cinque chiavi: JSON non lo trasporta (`JSON.stringify` lo
@@ -326,7 +332,14 @@ visibile.
 `pronto`.** Non doveva: il cancello non guarda `lavori.stato` per niente, guarda solo la
 dichiarazione (spec §1.1, confine deliberato). Lo scrivo perché è una domanda che verrà.
 
-**④ Il caso ⑤ usa un corpo «della scheda» che ho costruito io.** È fedele a
+**④ ⑭ prova meno di quanto dica il suo titolo.** Si chiama «la dichiarazione viva di un ALTRO
+laboratorio non blocca nulla», e quello lo prova davvero (la riga di `lab-2` non fa scattare il
+cancello). Ma la seconda metà — che il filtro porti **il laboratorio di chi chiama** — è provata solo
+fino a un certo punto: nel finto, «il laboratorio di chi chiama» e la stringa `'lab-1'` sono lo
+stesso valore per costruzione, quindi la prova resterebbe verde anche se la rotta scrivesse `'lab-1'`
+a mano. Ciò che è misurato è: *il filtro c'è, e porta il valore che la rotta gli passa*.
+
+**⑤ Il caso ⑤ usa un corpo «della scheda» che ho costruito io.** È fedele a
 `useLavoroForm.ts:316` per i cinque nomi, ma **non è il corpo vero della scheda**: non porta le altre
 trenta colonne. Prova la regola giusta; non prova che un salvataggio completo della scheda passi.
 Sarebbe una prova a schermo, non unitaria.

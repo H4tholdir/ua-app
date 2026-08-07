@@ -175,19 +175,34 @@ describe('PATCH /api/lavori/[id] — D308, i cinque campi stampati', () => {
     expect(updatePayload).toHaveProperty('descrizione', 'Corona 24')
   })
 
-  it('⑤ 🛑 corpo INTERO della scheda coi cinque INVARIATI + una nota cambiata → 200', async () => {
+  it('⑤ 🛑 corpo INTERO della scheda coi cinque INVARIATI + campi non stampati cambiati → 200', async () => {
     // La prova che distingue «guarda il valore» da «guarda la chiave»: con un
     // cancello a chiave-presente questa risposta sarebbe 422 e la scheda
     // diventerebbe di sola lettura su tutto.
-    const res = await patch(corpoScheda({ note_interne: 'consegnare venerdì' }))
+    // I campi non stampati sono TRE e cambiano tutti: nessuno di loro deve mai
+    // finire fra i «cambiati» che accendono il cancello.
+    const res = await patch(
+      corpoScheda({ note_interne: 'consegnare venerdì', priorita: 'alta', ora_consegna: '09:30' }),
+    )
     expect(res.status).toBe(200)
     expect(updatePayload).toHaveProperty('note_interne', 'consegnare venerdì')
+    expect(updatePayload).toHaveProperty('priorita', 'alta')
     expect(updatePayload).toHaveProperty('descrizione', 'Corona 14')
   })
 
-  it('⑥ 🛑 lo STESSO corpo intero, ma con UNA voce davvero cambiata → 422', async () => {
-    const res = await patch(corpoScheda({ paziente_id: 'paz-2', note_interne: 'consegnare venerdì' }))
+  it('⑥ 🛑 lo STESSO corpo, diverso per UN SOLO valore stampato → 422, ed è il cancello D308', async () => {
+    // 🔑 ⑤ e ⑥ mandano corpi che differiscono per UNA sola cosa: il valore di
+    // `paziente_id`. È la differenza a nominare la causa — nessuno dei tre campi
+    // non stampati può essere responsabile, perché in ⑤ cambiano identici e la
+    // risposta è 200.
+    // E il messaggio pesa: senza, un 422 qualunque (validazione del tipo, prezzo
+    // gestito dalle righe) terrebbe verde questa prova al posto del cancello.
+    const res = await patch(
+      corpoScheda({ paziente_id: 'paz-2', note_interne: 'consegnare venerdì', priorita: 'alta', ora_consegna: '09:30' }),
+    )
     expect(res.status).toBe(422)
+    const testo = await messaggio(res)
+    expect(testo).toContain('Devo intervenire')
     expect(updatePayload).toBeNull()
   })
 
