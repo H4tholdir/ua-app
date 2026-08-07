@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventesima tornata (D290-D292: tre effetti dei nove motivi, decisi da chi il mestiere lo fa)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventunesima tornata (D293-D294: la dichiarazione non si annulla mai, e porta solo cio che ci deve stare)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**292 decisioni in centoventi tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**294 decisioni in centoventuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2813,3 +2813,62 @@ esiste. Va progettato **prima** del cancello §0B, come tutto il resto di questo
 | **reso senza difetto** | **dipende dal perché (D292)** — vocabolario da progettare | idem |
 | ho sbagliato a premere consegna | **ripristina tutto** (D288) | **si annulla** (D288) |
 | altro | niente in automatico | niente — l'app registra e non indovina |
+
+---
+
+### Centoventunesima tornata — D293 e D294: la dichiarazione non si annulla mai, e porta solo ciò che ci deve stare (07/08/2026, 09:44)
+
+**Nasce da:** tre verifiche su fonti primarie, richieste da Francesco («*riconferma le fonti su EUR-Lex
+e poi ratifichiamo, ricordati che a noi interessano le leggi italiane*») dopo che un primo panel aveva
+dovuto ripiegare su un sito-specchio. 🔑 **L'aggiunta «le leggi italiane» è stata la più produttiva
+delle tre:** ha ribaltato la domanda invece di rispondervi.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D293** | 🔑 **LA DICHIARAZIONE NON SI ANNULLA MAI SE IL MANUFATTO È USCITO DAVVERO — e si rifà solo se cambia qualcosa che vi è stampato.** Ratificata da Francesco: «*confermo, ratifichiamo*» | ① `annullata` in banca dati significa **superata**, mai «nulla» · ② una **riconsegna dopo rilavorazione NON è una nuova immissione** (Art. 2(28): «*la **prima** messa a disposizione*») · ③ si riemette **solo** se cambia un campo stampato · ④ se il pezzo si **rifà da zero** il documento nuovo è dovuto e **il vecchio resta**, unica prova di un manufatto esistito e consegnato a un paziente |
+| **D294** | 🔑 **IL DOCUMENTO PORTA SOLO CIÒ CHE CI DEVE STARE — via i materiali.** Francesco: «*togli tutto quello che sul documento non ci deve essere, come la storia dei materiali*» | I materiali e i lotti **escono dalla dichiarazione**. ⚠️ **Tenerne traccia resta**: la tracciatura interna è cosa diversa dalla stampa sul documento (Allegato XIII **punto 2**). ➡️ Serve un **censimento campo per campo** contro gli otto contenuti dell'Allegato XIII punto 1, **prima** di toccare il generatore |
+
+### 📜 Le prove su cui poggiano, e da dove vengono
+
+🛑 **EUR-Lex era SPENTO** (verificato da Francesco con monitoraggio esterno, 09:23 del 07/08/2026;
+quattro punti d'ingresso su quattro falliti). Il testo è stato preso da **`publications.europa.eu`
+(Cellar)**, che **non è uno specchio**: è il deposito da cui EUR-Lex stesso serve i testi. `provato:`
+intestazione → **`02017R0745 — IT — 01.01.2026 — 006.001`**.
+
+- **Art. 2(28)** — «immissione sul mercato»: «*la **prima** messa a disposizione*». Un evento
+  irripetibile. `provato:` `grep` sul file scaricato.
+- **Allegato XIII punto 1** — **OTTO** contenuti, contati: fabbricante e siti · mandatario · dati
+  identificativi del dispositivo · uso esclusivo per il paziente nominato · prescrittore · caratteristiche
+  dalla prescrizione · conformità ai requisiti generali · sostanze/tessuti. **Data, numero, materiali e
+  lotti NON sono nominati.** ⚠️ «Non nominati» ≠ «vietati»: le voci 3 e 6 sono aperte, e **se la
+  prescrizione nomina i materiali, i materiali rientrano da quella porta**.
+- **Allegato XIII punto 4** — «*è conservata per almeno 10 anni **dalla data di immissione sul mercato
+  del dispositivo***» (singolare).
+- 🔴 **Annullamento: CERCATO E NON TROVATO.** `provato:` `grep -c "annull"` sul consolidato → **0
+  occorrenze**. Sospensione e ritiro esistono, ma sono istituti costruiti per i **certificati** degli
+  organismi notificati, mai per l'atto del fabbricante.
+- 🇮🇹 **Nessuna fonte primaria italiana impone il contenuto della dichiarazione**, né i materiali né i
+  lotti: censimento **esaustivo** su D.Lgs. 137/2022 (testo vigente, Normattiva) · DM 9 giugno 2023
+  (unico decreto attuativo dell'art. 7, letto per intero) · l'intero indice del tema del Ministero ·
+  le 16 FAQ ministeriali sui su misura (agg. 06/07/2026).
+- 🔑 **E la prassi italiana dei materiali nasce da una nota del 1998, cioè da un regime ABROGATO — dove
+  però i materiali stavano sull'«attestazione dell'ODONTOIATRA al paziente», non sulla dichiarazione
+  del laboratorio**, e la rintracciabilità delle materie prime stava nel **fascicolo tecnico interno**.
+  ➡️ **Non ha mai avuto quel fondamento, nemmeno prima del MDR.**
+
+### 🔄 Una correzione a me stesso, dentro la stessa ratifica
+
+Avevo riportato che l'**Allegato XIII punto 5** «presuppone che il documento del pezzo difettoso esista
+ancora». **Il testo non lo dice**: dice che il fabbricante valuta e documenta l'esperienza dopo la
+produzione. Era **un'inferenza**, e il verificatore si è rifiutato di farla passare per lettura.
+➡️ **D293 regge lo stesso, ma su una gamba invece che due:** il punto 4 impone di **conservare**, e
+dell'annullamento non c'è traccia.
+
+### 🔴 IL PUNTO DI ATTRITO CHE RESTA APERTO, e cade sopra D290
+
+**Art. 2(30)** rende **fabbricante** chi «*rimette a nuovo*» un dispositivo; **Art. 2(31)** definisce la
+rimessa a nuovo come «*la ricostruzione completa di un dispositivo **già immesso sul mercato**…
+unitamente al conferimento di una nuova vita*». ➡️ **Dove finisce la rilavorazione e dove comincia la
+ricostruzione completa, il testo non lo traccia** — e il bivio di D290 («si sistema questo, o se ne fa
+uno nuovo?») **è esattamente quella soglia**. ⚠️ **Non è una scelta organizzativa: è il punto in cui
+cambia il soggetto giuridico**, e l'interfaccia deve farlo capire senza dirlo in giuridichese.
