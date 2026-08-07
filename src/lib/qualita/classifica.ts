@@ -160,8 +160,27 @@ export function classifica(f: FattiEvento, rispostaGravita?: RispostaGravitaInci
   // stato del dispositivo (D278: non c'era nessun incidente da nascondere qui).
   if (f.natura === 'nuova_esigenza_clinica')
     return { esito: 'nessuna_azione', perche: 'Il medico chiede una cosa nuova: il dispositivo era conforme alla prescrizione con cui è stato fatto. Serve una prescrizione nuova, non una correzione.', ramoIso: null, termineOre: null }
-  if (f.natura === 'commerciale' || f.natura === 'errore_registrazione')
+  // ⚖️ D288 — QUI C'ERA UN RAMO SOLO PER DUE CASI OPPOSTI, e la frase che ne usciva era
+  // FALSA per uno dei due. `commerciale` ed `errore_registrazione` uscivano insieme con
+  // «Non tocca il dispositivo né il documento sanitario»: vero per un errore di prezzo,
+  // **l'esatto contrario** per chi ha premuto «consegna» per sbaglio, dove il lavoro torna
+  // a `pronto` e la dichiarazione si annulla.
+  // 🛑 Il difetto NON era il testo: era il ramo condiviso. Riscrivere la frase l'avrebbe resa
+  // giusta per uno e falsa per l'altro — la correzione è la SPACCATURA.
+  if (f.natura === 'commerciale')
     return { esito: 'nessuna_azione', perche: 'Non tocca il dispositivo né il documento sanitario.', ramoIso: null, termineOre: null }
+  // 🔑 I DUE PIANI RESTANO DUE (D288). Sul piano della QUALITÀ l'esito è lo stesso di sopra —
+  // `nessuna_azione`, nessun ramo ISO, nessun termine: non è un problema del dispositivo e
+  // non entra nei conteggi regolamentari (D281 e D285 intatte). È il piano OPERATIVO a
+  // divergere, e il suo effetto vive in `src/lib/qualita/effetti.ts`, non qui: una funzione
+  // sola che rispondeva a due domande diverse è ciò che aveva prodotto la frase falsa.
+  if (f.natura === 'errore_registrazione')
+    return {
+      esito: 'nessuna_azione',
+      perche: 'La consegna non è mai avvenuta: non c\'è nessun problema del dispositivo da segnalare, e questo caso non entra nei conteggi di legge. Ma non resta senza conseguenze: il lavoro torna fra quelli pronti e la dichiarazione già emessa viene annullata, perché diceva di una consegna che non c\'è stata.',
+      ramoIso: null,
+      termineOre: null,
+    }
 
   // ② — dispositivo uscito, nessun incidente, segnalazione da fuori: reclamo.
   if (uscito && f.origine !== 'laboratorio_interno')

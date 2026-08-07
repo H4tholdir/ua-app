@@ -18,6 +18,7 @@ import type {
   PotenzialeDiDanno,
 } from '@/lib/domain/qualita-costanti'
 import { classifica } from '@/lib/qualita/classifica'
+import { effettoDaMotivo } from '@/lib/qualita/effetti'
 import { istanteDaTestoRoma } from '@/lib/utils/data-roma'
 
 /**
@@ -178,6 +179,18 @@ export async function POST(req: Request, { params }: RouteContext) {
     if (!inVocabolario(NATURE, naturaGrezza)) {
       return err('Hai scelto «altro»: indica anche di che genere di problema si tratta.', 422)
     }
+    // 🛑 UNA SOLA NATURA È VIETATA DA «ALTRO», ed è quella che PORTA UN'AZIONE.
+    // D288 deriva l'effetto dal MOTIVO: `errore_registrazione` come motivo
+    // riapre il lavoro e annulla la dichiarazione; come natura scelta a mano da
+    // «altro» non riaprirebbe niente — ma `classifica()` restituirebbe lo stesso
+    // il perché che dice «il lavoro torna fra quelli pronti». Sarebbe una
+    // PROMESSA CHE NESSUNO MANTIENE, cioè il difetto §8.1 in un altro vestito.
+    // 📌 Chiude la foglia pericolosa del ritrovamento R8 (Task 4): le altre due
+    // esenzioni restano raggiungibili, perché nessuna delle due porta un'azione
+    // automatica e quindi nessuna può promettere ciò che non succede.
+    if (naturaGrezza === 'errore_registrazione') {
+      return err('Per registrare che il tasto «consegna» è stato premuto per sbaglio scegli il motivo «ho sbagliato a premere consegna»: da «altro» il lavoro non tornerebbe indietro.', 422)
+    }
     natura = naturaGrezza
   } else {
     // Una `natura` che arriva dal client su un motivo derivabile non si scarta
@@ -331,6 +344,25 @@ export async function POST(req: Request, { params }: RouteContext) {
     potenzialeDiDanno: potenzialeSalvato,
   })
 
+  // ── L'EFFETTO OPERATIVO (D288) ──────────────────────────────────────────
+  // 🔑 DUE PIANI, DUE RISPOSTE. `proposta` è il piano della QUALITÀ (è un
+  // incidente? un reclamo?); `effetto` è il piano OPERATIVO (che cosa succede
+  // adesso al lavoro e alla dichiarazione). D288: «le due righe non erano in
+  // contraddizione, parlavano di due piani diversi».
+  const effetto = effettoDaMotivo(motivo)
+
+  // 🛑 PERCHÉ L'AZIONE PARTE QUI, senza un terzo tocco di conferma. D269 fissa
+  // il costo in **due tap invece di uno** — «Devo intervenire», poi il motivo —
+  // e Francesco l'ha accettato in quella misura. D288: «nessuna casella "vuoi
+  // anche rientrare in produzione?": il motivo È già la risposta». Una conferma
+  // in più dopo il motivo sarebbe un terzo tap che nessuna decisione autorizza.
+  // ⚠️ La conferma esiste, ma sta PRIMA: è la domanda d'ingresso di D283/D288
+  // («vuoi reintervenire su questo lavoro, o hai premuto per sbaglio?»).
+  const riapertura =
+    effetto.azione === 'riapri_lavoro'
+      ? await riapriLavoro(svc, lavoro_id, context.laboratorioId, (evento as { id: string }).id)
+      : undefined
+
   await incrementaCorrezioni(
     svc,
     context.laboratorioId,
@@ -339,9 +371,86 @@ export async function POST(req: Request, { params }: RouteContext) {
     statoDispositivo
   )
 
-  // 🛑 `{ evento, proposta }` — e nessuna `valutazione`: l'app propone, una
-  // persona conferma (spec §6). Il giudizio lo deposita la seconda rotta.
-  return NextResponse.json({ evento, proposta }, { status: 201 })
+  // 🛑 `{ evento, proposta, effetto }` — e nessuna `valutazione`: l'app propone,
+  // una persona conferma (spec §6). Il giudizio lo deposita la seconda rotta.
+  return NextResponse.json(
+    riapertura ? { evento, proposta, effetto, riapertura } : { evento, proposta, effetto },
+    { status: 201 }
+  )
+}
+
+/**
+ * L'esito della riapertura, e sono TRE COSE DIVERSE — un booleano le
+ * appiattirebbe, ed è proprio l'appiattimento che nasconde i guasti:
+ * - `applicato` — il lavoro è tornato indietro (`dichiarazione_assente` è il
+ *   caso di un dato vecchio senza dichiarazione: riuscito, ma va detto);
+ * - `non_applicabile` — non c'era niente da riaprire (il lavoro non è
+ *   consegnato, o non esiste): **non è un guasto**, e chiamarlo tale
+ *   insegnerebbe a ignorare gli avvisi;
+ * - `fallito` — **il guasto vero**, quello che una persona deve vedere.
+ */
+type Riapertura =
+  | { stato: 'applicato'; dichiarazione_assente: boolean }
+  | { stato: 'non_applicabile'; motivo: 'non_trovato' | 'non_consegnato' | 'evento_non_valido' }
+  | { stato: 'fallito'; messaggio: string }
+
+const MESSAGGIO_RIAPERTURA_FALLITA =
+  'La registrazione è salva, ma il lavoro non è tornato indietro da solo: riportalo tu fra quelli pronti, oppure riprova fra un momento.'
+
+/**
+ * Chiama `riapri_lavoro_atomica` — l'unica azione che quest'ondata esegue da
+ * sola (D288, motivo `errore_registrazione`).
+ *
+ * 🛑 NON È FAIL-SOFT, ed è la differenza con `incrementaCorrezioni` qui sotto.
+ * Un contatore che non si aggiorna è un numero interno impreciso; un lavoro che
+ * NON torna indietro mentre l'utente crede di sì è la famiglia §8.1 della spec,
+ * «fallire dichiarando successo». Quindi: la richiesta risponde **201** perché
+ * il fatto è salvato e non si butta via — ma l'esito negativo **viaggia nella
+ * risposta**, non solo nei log del server.
+ *
+ * ⚠️ REQUISITO PER IL TASK 6, e va scritto qui perché oggi nessuna interfaccia
+ * legge questo campo: la schermata «Devo intervenire» DEVE rendere visibile
+ * `riapertura.stato === 'fallito'`. Un campo negativo che nessuno disegna è
+ * indistinguibile da un successo, e riaprirebbe lo stesso difetto dall'altro lato.
+ */
+async function riapriLavoro(
+  svc: ReturnType<typeof getServiceClient>,
+  lavoro_id: string,
+  laboratorio_id: string,
+  evento_id: string
+): Promise<Riapertura> {
+  try {
+    const { data, error } = await svc.rpc('riapri_lavoro_atomica', {
+      p_lavoro_id: lavoro_id,
+      p_laboratorio_id: laboratorio_id,
+      p_evento_id: evento_id,
+    })
+    if (error) {
+      // Il testo di Postgres («dichiarazione in stato incoerente») resta nei
+      // log: chi legge la risposta è un'operatrice al banco.
+      console.error('[EVENTI-QUALITA] riapri_lavoro_atomica fallita:', error)
+      return { stato: 'fallito', messaggio: MESSAGGIO_RIAPERTURA_FALLITA }
+    }
+    const risposta = (data ?? {}) as { esito?: unknown; ddc_assente?: unknown }
+    if (risposta.esito === 'ok') {
+      return { stato: 'applicato', dichiarazione_assente: risposta.ddc_assente === true }
+    }
+    if (
+      risposta.esito === 'non_trovato' ||
+      risposta.esito === 'non_consegnato' ||
+      risposta.esito === 'evento_non_valido'
+    ) {
+      return { stato: 'non_applicabile', motivo: risposta.esito }
+    }
+    // Un esito fuori dai quattro che la funzione dichiara di restituire non si
+    // legge come successo: fail-closed, come ogni altro ingresso ignoto di
+    // quest'ondata.
+    console.error('[EVENTI-QUALITA] riapri_lavoro_atomica: esito inatteso', data)
+    return { stato: 'fallito', messaggio: MESSAGGIO_RIAPERTURA_FALLITA }
+  } catch (e) {
+    console.error('[EVENTI-QUALITA] riapri_lavoro_atomica — eccezione:', e)
+    return { stato: 'fallito', messaggio: MESSAGGIO_RIAPERTURA_FALLITA }
+  }
 }
 
 /**

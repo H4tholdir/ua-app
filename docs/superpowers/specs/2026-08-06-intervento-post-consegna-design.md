@@ -291,11 +291,25 @@ D263 chiede.
                                               └─ non grave  → incidenti_mdr + Art. 88 (andamento)
 ①-bis altrimenti, natura ∈ {nuova_esigenza_clinica,
    commerciale, errore_registrazione}       → NESSUNA AZIONE, col perché scritto  ⟵ D276
+                                              ⚠️ tre naturae, TRE perché DIVERSI: v. D288 sotto
 ② altrimenti, origine ≠ laboratorio_interno
    e stato_dispositivo ≠ mai_uscito_dal_lab → RECLAMO (documentazione PMS, Art. 83-86)
 ③ altrimenti                                → NON CONFORMITÀ INTERNA (§8.3.2 o §8.3.3 secondo
                                               stato_dispositivo) + registrazione di rilavorazione
 ```
+
+> 🔄 **EMENDATA DA D288 il 07/08/2026 — «nessuna azione» sul piano della QUALITÀ non vuol dire «non
+> succede niente».** Fino al 07/08 questo passo ①-bis produceva **una frase sola per tre naturae**, e
+> nel codice `commerciale` ed `errore_registrazione` uscivano dallo **stesso ramo** con «*Non tocca il
+> dispositivo né il documento sanitario*». Per un errore di prezzo è vero; per chi ha premuto
+> «consegna» per sbaglio è **l'esatto contrario** — il lavoro torna a `pronto` e la dichiarazione si
+> annulla (D288). 🛑 **Il difetto non era il testo: era il ramo condiviso**, e riscrivere la frase
+> l'avrebbe resa giusta per uno e falsa per l'altro.
+> ➡️ **I due piani si tengono separati, e adesso lo sono anche nel codice:** l'**esito** resta
+> `nessuna_azione` per tutte e tre — non sono problemi del dispositivo, quindi fuori dai conteggi
+> regolamentari (D281, D285 intatte) — mentre **l'effetto operativo vive in
+> `src/lib/qualita/effetti.ts`**, l'elenco dei nove motivi (D288 · D290 · D291 · D292 · D297 · D298).
+> Una funzione sola che rispondeva a due domande diverse è ciò che aveva prodotto la frase falsa.
 
 > ⚖️ **D276 (06/08/2026, centoundicesima tornata) — due precisazioni, e nascono da un conflitto fra
 > QUESTA spec e il piano che la esegue, trovato dal controllo pre-volo.**
@@ -381,8 +395,18 @@ dispositivo era uscito e la segnalazione arriva dall'odontoiatra»), e chi confe
   ⚠️ La vecchia RPC ha inoltre un `RAISE` d'ingresso che vincola `p_finestra_ms` fra 1 secondo e 15
   minuti (`:75-77`): **«finestra più lunga» non passa senza cambiare la firma** — un'altra ragione per
   cui allargare non era una strada;
-- chi ha semplicemente sbagliato tasto usa `natura = errore_registrazione`: **due tap invece di uno**.
-  È il costo dichiarato di D269, accettato da Francesco.
+- chi ha semplicemente sbagliato tasto usa ~~`natura = errore_registrazione`~~ **`motivo =
+  errore_registrazione`**: **due tap invece di uno**. È il costo dichiarato di D269, accettato da
+  Francesco.
+  🔄 **Corretto il 07/08/2026, e la differenza fra le due parole è portante.** D288 deriva l'effetto
+  dal **motivo**, non dalla natura: `errore_registrazione` come motivo fa partire
+  `riapri_lavoro_atomica`; la stessa parola scelta come *natura* da «altro» **non farebbe partire
+  niente**, pur producendo un perché che promette il rientro. ➡️ Quella porta è **chiusa** in
+  `eventi-qualita/route.ts` (422 con il rimando al motivo giusto) — chiude la foglia pericolosa del
+  ritrovamento **R8** del Task 4. Le altre due esenzioni restano raggiungibili da «altro», perché
+  nessuna delle due porta un'azione automatica e quindi nessuna può promettere ciò che non succede.
+  ⚠️ **E i due tap restano due**: la conferma sta all'ingresso («vuoi reintervenire, o hai premuto per
+  sbaglio?», D283/D288), non dopo il motivo — un terzo passaggio non è autorizzato da nessuna decisione.
 
 ---
 

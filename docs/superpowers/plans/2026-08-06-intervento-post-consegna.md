@@ -414,6 +414,11 @@ export function classifica(f: FattiEvento): Proposta {
   // che l'incidente è stato escluso, mai prima.
   if (f.natura === 'nuova_esigenza_clinica')
     return { esito: 'nessuna_azione', perche: 'Il medico chiede una cosa nuova: il dispositivo era conforme alla prescrizione con cui è stato fatto. Serve una prescrizione nuova, non una correzione.', ramoIso: null, termineOre: null }
+  // 🛑 QUESTA RIGA È SUPERATA — NON RICOPIARLA. Il ramo condiviso fra `commerciale` ed
+  // `errore_registrazione` è stato SPACCATO IN DUE il 07/08/2026 (D288): la frase qui sotto
+  // è vera per un errore di prezzo e FALSA per chi ha premuto «consegna» per sbaglio, dove
+  // il lavoro torna a `pronto` e la dichiarazione si annulla. Il codice vivo è
+  // `src/lib/qualita/classifica.ts`; l'effetto operativo sta in `src/lib/qualita/effetti.ts`.
   if (f.natura === 'commerciale' || f.natura === 'errore_registrazione')
     return { esito: 'nessuna_azione', perche: 'Non tocca il dispositivo né il documento sanitario.', ramoIso: null, termineOre: null }
 
@@ -1304,3 +1309,77 @@ banca dati e **continuano a stamparsi** su ricevuta di consegna ed etichetta: da
 laboratorio no. · `materiali_json` e `colore_dente` esistono in tabella e **nessuno li scrive**. ·
 `prescrizione_id` legge una colonna **legacy** (`lavoro.numero_prescrizione`) mentre il numero canonico
 è stato spostato su `lavori_prescrizioni`.
+
+---
+
+## 🔴 RITROVAMENTI ESEGUENDO — §0① + §0② dell'handoff (07/08/2026, pomeriggio)
+
+Compito: correggere il testo falso di `classifica.ts:164` e dare un chiamante a
+`riapri_lavoro_atomica`. **Fatti entrambi, e come UNA cosa sola** — correggere il testo lasciando la
+funzione senza chiamanti avrebbe sostituito un testo falso con una **promessa**.
+
+### ✅ Che cosa è stato fatto
+
+- **`src/lib/qualita/effetti.ts` 🆕** — l'elenco dei nove motivi col loro effetto su lavoro e
+  documento. **Una sola riga su nove porta un'azione automatica** (`errore_registrazione` →
+  `riapri_lavoro`); le altre otto sono **descrittori**, non abbozzi che fingono di agire.
+- **`classifica.ts` — il ramo condiviso spaccato in due.** Il difetto non era il testo: era il ramo.
+- **La rotta `POST …/eventi-qualita`** deriva l'effetto e, per quell'unico motivo, chiama la RPC.
+  Risposta: `{ evento, proposta, effetto, riapertura? }`.
+- **La porta di «altro» su `natura = errore_registrazione` è chiusa** (422): chiude la foglia
+  pericolosa di **R8**.
+
+`provato:` **la correzione morde**, con la rottura rifatta due volte invece che immaginata —
+① disattivando il chiamante (`false ? await riapriLavoro…`) → **6 prove rosse**; ② facendo
+restituire `applicato` a un errore della RPC → **1 prova rossa**, esattamente quella che sorveglia
+«fallire dichiarando successo». R-P4: sull'abbozzo inerte di `effetti.ts` si sono accese **12
+asserzioni su 12**.
+
+### 🔴 R9 — LA TRANSIZIONE «TORNA A `pronto` COL DOCUMENTO INTATTO» NON ESISTE, e serve a TRE motivi su nove
+
+`provato:` `20260806210400_riapri_lavoro_atomica.sql:138-140` — la RPC porta la dichiarazione a
+`annullata` **incondizionatamente**, ogni volta che riapre un lavoro.
+🛑 Ma l'elenco degli effetti (D291 · D290 · D297 · D298) chiede il contrario per **tre** motivi:
+
+| motivo | il lavoro | il documento | oggi |
+|---|---|---|---|
+| `destinatario_errato` (D291) | torna a `pronto` | **resta valido** — «diceva il vero» | ❌ nessuna transizione |
+| `difetto_lavorazione`, ramo «si sistema» (D290) | torna a `pronto` | **resta valido** (D298) | ❌ nessuna transizione |
+| `difetto_materiale`, ramo «si sistema» (D297) | torna a `pronto` | **resta valido** (D298) | ❌ nessuna transizione |
+
+➡️ `riapri_lavoro_atomica` serve **un motivo solo**, quello per cui è nata: «ho sbagliato a premere
+consegna», dove la consegna non è mai avvenuta e il documento è **nullo**, non superato.
+🔑 **E la distinzione non è formale: è D293.** «La dichiarazione non si annulla mai **se il manufatto
+è uscito davvero**» — annullare il documento di una consegna realmente avvenuta significa cancellare
+l'unica prova che quel manufatto è esistito ed è andato a un paziente.
+⚠️ **RIFERITO E NON CORRETTO (R-E2).** Serve una seconda RPC — `pronto` senza toccare
+`dichiarazioni_conformita` — e quindi una **migration**, cioè un mandato che questo compito non ha.
+**Va assegnata esplicitamente**, o si ripete esattamente R1: una decisione presa e nessuno che la
+esegue. 🛑 **Il compito che la scrive deve anche decidere che cosa fare della finestra
+`ddc_lavoro_attiva_unique`**: lasciare viva la dichiarazione tiene occupato lo slot attivo, il che è
+*giusto* qui (non se ne emette una nuova) ma va detto, non scoperto.
+
+### 🔴 R10 — REQUISITO VINCOLANTE PER IL TASK 6: gli esiti negativi vanno DISEGNATI
+
+La rotta ora può rispondere **201 con `riapertura.stato === 'fallito'`** — il fatto è salvato, il
+lavoro **non** è tornato indietro. È corretto che il fatto non si perda; è **falso** lasciarlo
+sembrare un successo.
+➡️ Alla lista di ciò che nel Task 6 «è già fissato e non si rinegozia» si aggiunge:
+- `riapertura.stato === 'fallito'` → **avviso visibile**, col testo già pronto in
+  `riapertura.messaggio` (nessun testo Postgres grezzo);
+- `riapertura.stato === 'non_applicabile'` → **non è un guasto**: il lavoro non era da riaprire.
+  Trattarlo come errore insegnerebbe a ignorare gli avvisi;
+- `riapertura.dichiarazione_assente === true` → riuscito, **con caveat**: non c'era nessuna
+  dichiarazione da annullare (dato vecchio).
+🛑 **Un campo negativo che nessuna schermata disegna è indistinguibile da un successo**, e
+riaprirebbe lo stesso difetto dall'altro lato.
+
+### 🟠 R11 — il contatore può crescere su un motivo che dice «la consegna non è avvenuta»
+
+`post_consegna_correzioni` si incrementa quando `stato_dispositivo !== 'mai_uscito_dal_lab'`. Per
+«ho sbagliato a premere consegna» il valore coerente è `mai_uscito_dal_lab`, quindi **nella pratica
+non si incrementa** — ma nulla impedisce all'interfaccia di mandare un altro stato, e allora il
+contatore conterebbe come *correzione post-consegna* un evento che dichiara che **la consegna non
+c'è stata**. ➡️ Vincolo per il **Task 6**: su quel motivo lo stato del dispositivo non si chiede,
+si **fissa**. ⚠️ Stessa famiglia del ritrovamento ⑤ del compito del ritiro («un evento ritirato deve
+far scendere `post_consegna_correzioni`»): i due si guardano insieme.

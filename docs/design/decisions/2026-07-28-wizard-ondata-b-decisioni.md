@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventitreesima tornata (D296: il push non si chiede piu — ma il MERGE su main resta un giudizio, non un automatismo)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventiquattresima tornata (D297-D298: l'elenco degli effetti dei nove motivi si chiude a otto righe su nove)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**296 decisioni in centoventitre tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**298 decisioni in centoventiquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2961,3 +2961,73 @@ e non sono attriti burocratici ma il contenuto stesso di quel «ritieni»:
 il **merge su `main` no**, ed è un giudizio motivato — l'ondata è a **quattro compiti su nove** più il
 lavoro sul documento, e la sua §0 elenca **sette cose non fatte**, fra cui **un testo falso che l'app
 mostra all'utente**.
+
+---
+
+### Centoventiquattresima tornata — D297 e D298: l'elenco degli effetti si chiude a otto righe su nove (07/08/2026, 13:48)
+
+> ✅ **Orario MISURATO, e stavolta nel modo giusto:** `provato:` `date` → **`07/08/2026, 13:48 CEST`**,
+> eseguito in un **comando separato** e letto **prima** di comporre questa riga. È la regola operativa
+> nata dalle due violazioni della mattina (tornate 120 e 122).
+
+**Nasce da:** la rilettura della §0 dell'handoff, che elencava **due** caselle vuote nell'elenco degli
+effetti dei nove motivi. Una era una domanda mai posta; l'altra **aveva già la sua risposta** e nessuno
+l'aveva scritta.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D297** | 🔑 **DIFETTO DEL MATERIALE: STESSA SCELTA DEL DIFETTO DI LAVORAZIONE — «si sistema questo, o se ne fa uno nuovo?»** Francesco: «*ok*» | La proposta portata come tale dalla tornata 120 diventa deciso. Due esiti dallo stesso motivo, come in D290: **rientro in produzione** (il lavoro torna a `pronto`) oppure **rifacimento** (lavoro nuovo collegato). ➡️ I due motivi «il pezzo è fisicamente compromesso» si comportano allo stesso modo, e l'interfaccia non deve inventare due percorsi per la stessa domanda |
+| **D298** | 🔑 **DIFETTO DI LAVORAZIONE → IL DOCUMENTO: LA CASELLA È CHIUSA DA D293, non da un panel nuovo.** Francesco: «*sì*» | La casella era segnata «❓ panel normativo in corso»: **quel panel è stato fatto**, ed è quello che ha prodotto D293 la mattina dopo. La regola generale copre **entrambi** i rami di D290 — ① **si sistema il pezzo** → la riconsegna dopo rilavorazione non è una prima immissione (Art. 2(28)), quindi il documento **resta valido**, salvo che la rilavorazione cambi un campo **stampato**; ② **se ne fa uno nuovo** → **documento nuovo dovuto, e il vecchio resta** (D293④) |
+
+**🔑 Perché D298 non è una decisione nuova ma va scritta lo stesso, ed è il punto della tornata.** La
+risposta esisteva **da quattro ore** quando l'handoff l'ha registrata come mancante: D293 è stata
+ratificata alle 09:44, la tabella degli effetti è della tornata precedente e **non è stata rivisitata
+dopo**. ➡️ È la stessa famiglia già pagata **tre volte** in questo progetto — *una correzione già fatta
+che non arriva alla riga di sintesi*: l'Allegato XIII punto 4 del 29/07 rimasto nel verbale e mai
+salito in `CLAUDE.md`, il quarto posto dello sfondo unico scritto e mai propagato, la voce 6 della
+dichiarazione documentata e mai collegata. 🛑 **Una tabella di sintesi non si aggiorna da sola quando
+la regola che la riempie cambia altrove**, e nessuna guardia meccanica può accorgersene: la guardia
+controlla la coerenza dei conteggi, non se una casella è rimasta indietro rispetto a una decisione.
+
+**🔄 CONSEGUENZA DICHIARATA DI D293+D294 SU UNA TERZA RIGA, e la porto qui invece di applicarla in
+silenzio.** La tabella della tornata 120 dava a **difetto del materiale → il documento** l'effetto «*si
+annulla e si rifà (spec §6)*». Quella riga **precede** D293 e D294 ed è oggi **superata da entrambe**:
+- **D294 ha tolto i materiali dal documento.** Un difetto del materiale non cambia più, di per sé,
+  nessuno degli otto contenuti stampati.
+- **D293③ riemette solo se cambia un campo stampato**, e **D293① dice che la dichiarazione non si
+  annulla mai** se il manufatto è uscito davvero.
+➡️ **Difetto del materiale segue quindi la stessa regola di D298**, non «si annulla e si rifà». La
+riga vecchia era coerente con un documento che stampava i lotti; **quel documento non esiste più**.
+
+**📌 L'ELENCO DEGLI EFFETTI, COMPLETO — otto righe su nove**
+
+| motivo | il lavoro | il documento |
+|---|---|---|
+| dato sbagliato sul documento | resta consegnato | **si riemette** e il vecchio passa a `annullata` = *superata* (D293①) |
+| **difetto di lavorazione** | si sistema **oppure** si rifà — sceglie chi registra (D290) | **D298**: si sistema → **resta valido**; si rifà → **nuovo dovuto, vecchio resta** |
+| **difetto del materiale** | **D297**: stessa scelta di D290 | **come D298** (🔄 non più «si annulla e si rifà»: v. sopra) |
+| persona sbagliata | torna a `pronto` (D291) | **resta valido** (D291) — diceva il vero |
+| modifica chiesta dal medico | **lavoro nuovo**, non un rientro | resta valido (era conforme alla sua prescrizione) |
+| prezzo o quantità sbagliati | non si tocca | non si tocca — l'app **segnala** la nota di credito e non la esegue |
+| ⏸️ **reso senza difetto** | **dipende dal perché** (D292) | idem |
+| ho sbagliato a premere consegna | **ripristina tutto** (D288) | 🛑 **si annulla DAVVERO** — v. il riquadro qui sotto |
+| altro | niente in automatico | niente — l'app registra e non indovina |
+
+> 🔑 **LA DISTINZIONE CHE REGGE L'ULTIMA RIGA, e senza la quale sembra contraddire D293.** D293 dice
+> «la dichiarazione non si annulla mai **se il manufatto è uscito davvero**». In «ho sbagliato a premere
+> consegna» **il manufatto non è mai uscito**: la premessa di D293 non si avvera, e quel documento non è
+> *superato* — afferma un fatto **mai accaduto**. ➡️ È l'unico dei nove motivi in cui `annullata`
+> significa **nullo** invece che *superato*, ed è esattamente la ragione per cui `classifica.ts:164`,
+> che oggi tiene questo motivo e «prezzo sbagliato» **nella stessa riga con la stessa frase**, va
+> **spaccato in due rami** e non riscritto.
+
+**⏸️ RESTA UNA SOLA RIGA, e non è una domanda: è un lavoro.** `reso_senza_difetto` (D292) vuole un
+**vocabolario nuovo di motivi del reso**, che vive come vincolo **in banca dati** — quindi migration,
+quindi percorso GRANDE con FASE 3 e panel di advisor. ⚠️ **E si sovrappone alla voce 9 di roadmap**
+(«era fuori in prova»): un manufatto uscito per una prova e rientrato è plausibilmente uno di quei
+motivi. Progettarli separati significa modellare lo stesso fatto due volte, in due colonne diverse.
+➡️ **Si progettano insieme, in un brainstorming dedicato.** Francesco: «*ok*».
+
+**🚦 Questo NON blocca il resto dell'ondata.** L'elenco doveva essere completo prima del cancello §0B
+sui testi, e per otto motivi su nove **lo è**. La riga del reso blocca **solo** le frasi che descrivono
+quel motivo, non le altre otto né i compiti 5-9.

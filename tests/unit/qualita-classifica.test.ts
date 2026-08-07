@@ -117,6 +117,54 @@ describe('classifica — ordine ministeriale (D268)', () => {
   })
 })
 
+// ⚖️ D288 (06/08/2026) — IL RAMO CHE TENEVA INSIEME DUE CASI OPPOSTI.
+//
+// Fino al 07/08 `commerciale` ed `errore_registrazione` uscivano dalla STESSA riga con la
+// STESSA frase: «Non tocca il dispositivo né il documento sanitario.» Per il primo è vera;
+// per il secondo D288 dice l'ESATTO CONTRARIO — il lavoro torna a `pronto` e la dichiarazione
+// si annulla. 🛑 Riscrivere la frase non bastava: giusta per uno, sarebbe diventata falsa per
+// l'altro. Il difetto non era il testo, era il ramo condiviso.
+//
+// 🔑 E i due piani restano DUE: sul piano della QUALITÀ l'esito è `nessuna_azione` per
+// entrambi — non è un problema del dispositivo, quindi non entra nei conteggi regolamentari
+// (D281, D285 intatte). È solo il piano OPERATIVO a divergere, e lo dice `effetti.ts`.
+describe('classifica — D288: le due esenzioni non condividono più la stessa frase', () => {
+  const base = {
+    origine: 'laboratorio_interno',
+    statoDispositivo: 'consegnato_non_applicato',
+    potenzialeDiDanno: 'nessuno',
+  } as const
+
+  it('sul piano della QUALITÀ i due restano identici: nessuna azione, nessun ramo ISO', () => {
+    for (const natura of ['commerciale', 'errore_registrazione'] as const) {
+      const p = classifica({ ...base, natura })
+      expect(p.esito, natura).toBe('nessuna_azione')
+      expect(p.ramoIso, natura).toBeNull()
+      expect(p.termineOre, natura).toBeNull()
+    }
+  })
+
+  it('🛑 ma il PERCHÉ non è più lo stesso — è la rottura rifatta, e senza la spaccatura fallisce', () => {
+    const commerciale = classifica({ ...base, natura: 'commerciale' })
+    const sbagliato = classifica({ ...base, natura: 'errore_registrazione' })
+    expect(sbagliato.perche).not.toBe(commerciale.perche)
+  })
+
+  it('🛑 «ho sbagliato a premere consegna» NON può più dire che il documento non si tocca', () => {
+    const p = classifica({ ...base, natura: 'errore_registrazione' })
+    // La frase esatta che l'app diceva, e che era falsa proprio qui.
+    expect(p.perche).not.toContain('Non tocca il dispositivo né il documento sanitario')
+    // E dice che cosa succede DAVVERO (D288: «il perché deve dire che cosa succede davvero»).
+    expect(p.perche).toContain('annullata')
+    expect(p.perche).toContain('pronti')
+  })
+
+  it('«prezzo o quantità sbagliati» invece continua a dire il vero, e la frase resta', () => {
+    const p = classifica({ ...base, natura: 'commerciale' })
+    expect(p.perche).toContain('Non tocca il dispositivo né il documento sanitario')
+  })
+})
+
 // ⚖️ D278 (06/08/2026) — «mai uscito dal laboratorio» esclude l'incidente, qualunque sia il
 // potenziale di danno E qualunque sia l'origine: un incidente riguarda un dispositivo «messo
 // a disposizione» (Art. 2(64)), e uno che non è mai uscito dal laboratorio non lo è mai stato.

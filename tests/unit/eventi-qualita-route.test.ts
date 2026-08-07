@@ -768,6 +768,153 @@ describe('POST /api/lavori/[id]/eventi-qualita — registra il FATTO, propone, n
   })
 })
 
+/**
+ * ⚖️ D288 — LA GIUNTURA: dal motivo scelto all'effetto davvero applicato.
+ *
+ * 🛑 PERCHÉ LE PROVE STANNO QUI E NON SUI DUE LATI. Il 07/08 questo progetto ha
+ * pagato la lezione per intero: «due metà giuste non fanno una cosa che
+ * funziona, e nessuna prova guarda la giuntura». `riapri_lavoro_atomica` era
+ * costruita, applicata al database e **provata** (Task 3) — e non la chiamava
+ * nessuno: tre prove su quattro erano verdi mentre la funzione non girava mai.
+ * ➡️ Le prove che contano sono quelle che vanno DAL MOTIVO ALLA CHIAMATA.
+ *
+ * 🔑 E la prova che una correzione morde è la STESSA ROTTURA RIFATTA: qui la
+ * rottura è «l'effetto non parte», e la si rifà chiedendo che `mockRpc` sia
+ * stato chiamato con quegli argomenti — non che la risposta contenga una parola.
+ */
+describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e per uno solo si ESEGUE', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+  })
+
+  const corpoSbagliatoTasto = (extra: Record<string, unknown> = {}) =>
+    corpoValido({ motivo: 'errore_registrazione', stato_dispositivo: 'mai_uscito_dal_lab', ...extra })
+
+  it('«ho sbagliato a premere consegna» CHIAMA riapri_lavoro_atomica, con lavoro, laboratorio ed evento', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_assente: false }, error: null })
+
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    expect(res.status).toBe(201)
+
+    expect(mockRpc).toHaveBeenCalledTimes(1)
+    expect(mockRpc).toHaveBeenCalledWith('riapri_lavoro_atomica', {
+      p_lavoro_id: LAVORO_ID,
+      p_laboratorio_id: LAB_ID,
+      p_evento_id: EVENTO_ID,
+    })
+
+    const body = await res.json()
+    expect(body.effetto.lavoro).toBe('ripristina_tutto')
+    expect(body.effetto.azione).toBe('riapri_lavoro')
+    expect(body.riapertura).toEqual({ stato: 'applicato', dichiarazione_assente: false })
+  })
+
+  it('🛑 l\'evento si registra PRIMA: l\'id passato alla RPC è quello della riga appena salvata', async () => {
+    // Senza questo ordine la RPC riceverebbe un evento inesistente e
+    // restituirebbe `evento_non_valido` — la guardia D263 dentro la funzione.
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_assente: false }, error: null })
+    await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    const body = mockRpc.mock.calls[0][1] as { p_evento_id: string }
+    expect(body.p_evento_id).toBe(EVENTO_ID)
+  })
+
+  it('🛑 GLI ALTRI OTTO MOTIVI NON la chiamano — la giuntura tiene anche nel verso opposto', async () => {
+    for (const motivo of [
+      'errore_dato_dichiarazione', 'difetto_lavorazione', 'difetto_materiale',
+      'destinatario_errato', 'modifica_clinica_richiesta', 'errore_prezzo_quantita',
+      'reso_senza_difetto',
+    ]) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      bancoEvento()
+      const res = await POST_EVENTO(req(URL_EVENTO, corpoValido({ motivo })), paramsLavoro())
+      expect(res.status, motivo).toBe(201)
+      expect(mockRpc, motivo).not.toHaveBeenCalled()
+      const body = await res.json()
+      expect(body.effetto.azione, motivo).toBeNull()
+      expect(body.riapertura, motivo).toBeUndefined()
+    }
+  })
+
+  it('anche «altro» non la chiama, e porta comunque il suo effetto neutro', async () => {
+    bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'altro', motivo_libero: 'caso strano', natura: 'nessun_difetto' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(201)
+    expect(mockRpc).not.toHaveBeenCalled()
+    expect((await res.json()).effetto.lavoro).toBe('nessuno')
+  })
+
+  // ── I TRE ESITI NEGATIVI SONO TRE COSE DIVERSE, e un booleano li appiattirebbe ──
+  it('lavoro non più consegnato → «non applicabile», NON un fallimento', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'non_consegnato' }, error: null })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect((await res.json()).riapertura).toEqual({ stato: 'non_applicabile', motivo: 'non_consegnato' })
+  })
+
+  it('🛑 la RPC FALLISCE → 201 (il fatto non si perde) ma la risposta lo DICE: mai un successo silenzioso', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'riapertura: dichiarazione in stato incoerente per lavoro …' } })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    // Il FATTO è salvato e non si butta via: 201, come per ogni altro motivo.
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.evento).toBeTruthy()
+    // 🛑 Ma NON dice «applicato». È il difetto della §8.1 — «fallire dichiarando successo».
+    expect(body.riapertura.stato).toBe('fallito')
+    // …e il testo Postgres grezzo non arriva a chi legge (precondizione ②).
+    nessunTestoGrezzo(body.riapertura.messaggio)
+  })
+
+  it('applicata su un lavoro senza dichiarazione (dato vecchio) → applicata, ma il caveat si vede', async () => {
+    bancoEvento()
+    mockRpc.mockResolvedValue({ data: { esito: 'ok', ddc_assente: true }, error: null })
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    expect((await res.json()).riapertura).toEqual({ stato: 'applicato', dichiarazione_assente: true })
+  })
+
+  it('un\'eccezione della RPC non fa cadere la richiesta: il fatto resta salvato', async () => {
+    bancoEvento()
+    mockRpc.mockRejectedValue(new Error('rete giù'))
+    const res = await POST_EVENTO(req(URL_EVENTO, corpoSbagliatoTasto()), paramsLavoro())
+    expect(res.status).toBe(201)
+    expect((await res.json()).riapertura.stato).toBe('fallito')
+  })
+
+  // ── LA PORTA DI «ALTRO» SU QUESTA NATURA SI CHIUDE (R8) ────────────────────
+  it('🛑 «altro» NON può prendersi la natura «errore di registrazione»: sarebbe una promessa che nessuno mantiene', async () => {
+    bancoEvento()
+    const res = await POST_EVENTO(
+      req(URL_EVENTO, corpoValido({ motivo: 'altro', motivo_libero: 'boh', natura: 'errore_registrazione' })),
+      paramsLavoro()
+    )
+    expect(res.status).toBe(422)
+    expect(mockRpc).not.toHaveBeenCalled()
+    // Il messaggio dice DOVE andare, non cosa è vietato (D262).
+    expect((await res.json()).error).toContain('ho sbagliato a premere consegna')
+  })
+
+  it('«altro» resta invece libero sulle altre naturae, che non portano nessuna azione', async () => {
+    for (const natura of ['commerciale', 'nuova_esigenza_clinica', 'difetto_fisico']) {
+      vi.clearAllMocks()
+      mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+      bancoEvento()
+      const res = await POST_EVENTO(
+        req(URL_EVENTO, corpoValido({ motivo: 'altro', motivo_libero: 'caso', natura })),
+        paramsLavoro()
+      )
+      expect(res.status, natura).toBe(201)
+    }
+  })
+})
+
 describe('POST /api/eventi-qualita/[id]/valutazioni — deposita il GIUDIZIO, non riclassifica', () => {
   beforeEach(() => {
     vi.clearAllMocks()
