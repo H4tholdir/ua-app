@@ -505,3 +505,34 @@ Base del piano: `be6e2c59`. 🛑 I brief/report di QUESTO piano hanno prefisso `
   `npx vitest run tests/unit/api` esce **0 su 221 prove di altri task** — quella cartella non esiste, e
   vitest tratta l'argomento come frammento di nome.
   📈 `verify:full` **uscita 0**: 5470 passate | 68 saltate su 450 file (da 5444), tsc 0, build ok.
+
+- **PRONTO-8: COMPLETO come CANCELLO** (commit `59e1628e..034505a2`) — 🛑 **ma la revisione ha trovato
+  un CRITICO DELL'ONDATA, non dell'esecutore: la strada che il 422 nomina riporta nella stessa stanza.**
+  ✅ **Il cancello è costruito bene**, e il revisore l'ha bombardato con **nove mutazioni** senza trovare
+  buchi: invertire il confronto → 10 rosse · togliere il filtro del laboratorio → 31 su 9 file ·
+  predicato a elenco di stati → 27 · 422→200 → 5 · messaggio generico → 2 · fail-closed → 1 · colonne → 1.
+  🔑 **L'ESECUTORE HA TROVATO UN DIFETTO DEL PIANO CHE AVREBBE RESO IL LAVORO DI SOLA LETTURA.** Il piano
+  decideva chi ha toccato un campo stampato **dalla presenza della chiave** (`c in aggiornamenti`); ma
+  `src/hooks/useLavoroForm.ts:316` manda `{ ...data }`, cioè **l'intera riga**, e i cinque nomi non
+  vengono mai tolti → note, date, tecnico, priorità sarebbero diventati incorreggibili. Violazione della
+  direttiva del 27/07 travestita da conformità. ➡️ **Il cancello guarda il VALORE: si rifiuta ciò che
+  CAMBIA.** ⚠️ **E le tre prove che il piano proponeva NON distinguevano le due letture:** col cancello
+  sbagliato in opera, `3 rosse su 5.555` — misurato dall'esecutore e **rifatto identico dal revisore**.
+  🔴 **IL CRITICO, verificato tre volte sul codice:** il 422 dice «apri Devo intervenire → dato sbagliato
+  sulla dichiarazione: l'app rifà il documento». ① **Nessuna schermata collega quella strada**
+  (`DevoIntervenire.tsx` non nomina `errore_dato_dichiarazione` né `riemett`: zero occorrenze) · ②
+  quando il T9 la collegherà, **il documento rifatto sarà IDENTICO nei cinque campi**, perché
+  `generate-ddc.ts:251-261` li prende dalla riga del lavoro **che nessuno ha potuto correggere** · ③ e
+  non c'è finestra: `riemetti_ddc_atomica` annulla e inserisce **nella stessa transazione**, per scelta
+  dichiarata (`20260807143623:55-70`). ➡️ **Non si corregge prima, né durante, né dopo.** Un refuso del
+  front desk sul paziente, scoperto dopo la consegna, **non ha nessun percorso veritiero** — l'unico che
+  funziona è `errore_registrazione`, che dichiara una consegna mai avvenuta, cioè mente.
+  🛑 **DECISIONE DOVUTA DA FRANCESCO PRIMA DEL TASK 9.**
+  🟠 **DUE IMPORTANTI:** la spec §4.5 dà per chiuso dal cancello il caso (b), e **non lo è**:
+  `clienti.nome`/`cognome` e `pazienti.codice_paziente` restano correggibili senza cancello, e il
+  prescrittore ripiega proprio su `${cliente.cognome} ${cliente.nome}` — il documento consegnato è
+  congelato (stantio, non falso), ma una **riemissione** stamperebbe un prescrittore diverso.
+  🔵 **Minore utile:** il commento a `route.ts:491-493` dice che senza le quattro colonne il cancello si
+  spegnerebbe «in silenzio». **È il contrario**, misurato: si accenderebbe **di più** (un valore assente
+  risulta diverso), fino a un 422 su ogni salvataggio. Codice giusto, descrizione del rischio invertita.
+  📈 `verify:full` **uscita 0**: 5487 passate | 68 saltate su **451** file (da 5470/450), tsc 0, build ok.
