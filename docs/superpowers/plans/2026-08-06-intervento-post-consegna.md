@@ -1020,3 +1020,71 @@ casella**, perché dalla risposta dipende se un evento in prova entra o no nella
 📌 **Perimetro:** è un **quinto valore in un CHECK già applicato al database** più il ramo
 corrispondente in `classifica.ts`. Non è un compito grande — ma è un compito **normativo**, e va prima
 del cancello §0B sui testi, perché una delle domande a schermo è proprio «dov'era il manufatto?».
+
+---
+
+## 🔬 PANEL SULLA RIEMISSIONE DOPO UN RIENTRO — due pareri, e un RAMO MORTO nella spec ratificata
+
+**Nasce da** D290 («si sistema o se ne fa uno nuovo? sceglie chi registra»), che ha lasciato aperta la
+domanda: *dopo una rilavorazione, il documento va rifatto?* Due advisor con compiti diversi — uno sulla
+norma, uno **sui campi realmente stampati**.
+
+### 🔴 IL RITROVAMENTO PIÙ GRAVE — la derivazione della riemissione NON PUÒ MAI ACCENDERSI
+
+`provato:` la spec §6 riga 340-341 dice: riemissione ⟸ dichiarazione emessa **e**
+`natura ∈ {dato_documentale, difetto_materiale}`.
+Ma **`difetto_materiale` NON è una natura: è un MOTIVO** (`src/lib/domain/qualita-costanti.ts:24`), e
+mappa alla natura `difetto_fisico` (`:98`). Le nature ammesse dal CHECK **già applicato al database**
+sono sette (`20260806140823_eventi_qualita.sql:15-17`) e `difetto_materiale` **non è fra queste**.
+➡️ **La condizione è sempre falsa.** Se qualcuno implementasse la spec alla lettera, la riemissione
+scatterebbe **solo** per `dato_documentale`, e **nessun difetto fisico la innescherebbe mai — in
+silenzio.** È la famiglia già pagata: *un elenco scritto a mano che confronta due vocabolari diversi*.
+
+### 📄 CHE COSA C'È DAVVERO NEL DOCUMENTO — e cambia la domanda
+
+L'**Allegato XIII §1** elenca **otto** contenuti obbligatori: fabbricante e siti · mandatario · dati
+identificativi del dispositivo · uso esclusivo per quel paziente · prescrittore · caratteristiche da
+prescrizione · conformità ai requisiti generali · sostanze/tessuti. 🔑 **Non c'è la data. Non c'è il
+numero. Non c'è il lotto. Non c'è il materiale.** Una rilavorazione **non tocca nessuno degli otto**.
+
+**Ma l'app ne stampa di più**, e tre fatti misurati cambiano il quadro:
+1. **Il documento NON è la fotografia che il progetto crede.** Restano **quattro letture vive**:
+   logo · **`srn_eudamed`** (mai fotografato) · numero del lavoro · **materiali e lotti**
+   (`DdcTemplate.tsx:277-284` legge `lavoro.materiali`).
+2. 🔴 **`dichiarazioni_conformita.materiali_json` ESISTE e NESSUNO LA SCRIVE.** `provato:` `grep` su
+   `src/` e `supabase/migrations/` → **zero riscontri** fuori dai tipi generati. ➡️ **In banca dati non
+   esiste traccia di quali lotti furono dichiarati:** la conservazione decennale poggia **solo sui byte
+   del PDF**.
+3. 🔴 **`riapri_lavoro_atomica` non tocca `lavori_materiali`:** i lotti della prima consegna **restano
+   attaccati** e i nuovi si sommano — crescita monotona, mai una ri-scelta. Il documento finirebbe per
+   elencare **più materiali di quelli davvero usati**.
+
+### ⚖️ LA RISPOSTA DEI DUE PARERI, e la regola che ne discende
+
+- **La dichiarazione NON SI ANNULLA MAI, quando il dispositivo è uscito davvero.** L'obbligo
+  dell'Allegato XIII **punto 4** è **conservare** («*è conservata per almeno 10 anni dalla data di
+  immissione sul mercato **del dispositivo***»); **nessuna norma prevede di annullare**. E il **punto 5**
+  (riesame dell'esperienza post-produzione) **presuppone** che il documento del pezzo difettoso esista
+  ancora: è l'**input** del riesame. ➡️ In banca dati `annullata` deve voler dire **«superata»**, mai
+  «nulla» — ed è già così (N superate + 1 viva).
+  🔑 **E questo NON contraddice D288**: lì la consegna **non è mai avvenuta**, quindi non c'è stata
+  immissione sul mercato e quel documento **non doveva esistere**. Sono due casi diversi, e la
+  differenza è la stessa di D285: *è successo* contro *non doveva esistere*.
+- **La riconsegna dopo una rilavorazione NON è una nuova immissione.** Art. 2(28): l'immissione è la
+  **prima** messa a disposizione; ogni fornitura successiva è «messa a disposizione» (Art. 2(27)).
+  L'Art. 52(8) impone la dichiarazione **prima** dell'immissione → **su un pezzo già consegnato non si
+  riattiva**. ⚠️ Eccezione dichiarata: la **ricostruzione completa** dell'Art. 2(30) — che una sistemata
+  al banco non è, **un rifacimento sì**.
+- ➡️ **IL DISCRIMINANTE È UNO SOLO: LA LISTA DEI LOTTI.** Rilavorazione che **consuma materiale nuovo**
+  → il documento in mano al paziente elenca lotti che non sono più quelli del dispositivo: **si
+  riemette**. Rilavorazione che **non consuma nulla** (una rilucidatura) → due PDF identici con numeri
+  diversi: **rumore, non tracciabilità**.
+
+### 🛑 IL PUNTO DEBOLE, dichiarato dal panel stesso — NON RATIFICARE PRIMA DI CHIUDERLO
+
+**Nessuna guida MDCG affronta la rilavorazione o la riconsegna di un su misura**: la ricerca su
+MDCG 2021-3 per *repair/rework/remake* dà **zero occorrenze** riferite ai dispositivi su misura. La tesi
+«la riconsegna non è nuova immissione» poggia **sulla sola parola «prima» dell'Art. 2(28)**.
+⚠️ **E i testi verbatim vengono da un mirror** (`medical-device-regulation.eu`), **non dal CELEX
+ufficiale**: EUR-Lex è andato in timeout **tre volte**. ➡️ **Vanno riconfermati sul PDF EUR-Lex prima
+della ratifica** — è la stessa prudenza che il 03/08 ha corretto D125.

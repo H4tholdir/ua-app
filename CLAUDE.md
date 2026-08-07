@@ -686,7 +686,7 @@ annullo: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §6.
 
 ⚠️ **Prima di consegnare un lavoro per prova, due controlli — o la prova non prova niente:** lo stato dev'essere
 `pronto`/`in_ritardo` (`src/lib/consegna/costanti.ts:4`) **e** non deve esistere una DdC con stato ≠
-`annullata`, altrimenti il guard di idempotenza (`generate-ddc.ts:85-95`) restituisce quella vecchia **senza
+`annullata`, altrimenti il guard di idempotenza (`generate-ddc.ts:99-108` — 🔄 **numero di riga corretto il 07/08/2026: diceva `85-95`**) restituisce quella vecchia **senza
 generare nulla**. La finestra per annullare è **10 minuti**: script di lettura pronti *prima* di premere.
 
 ### Supabase types
