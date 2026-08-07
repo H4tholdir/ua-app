@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentunesima tornata (D308-D310: la spec della transizione è ratificata, e i suoi tre punti aperti sono chiusi)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentaduesima tornata (D311: le migration si battezzano con l'orologio universale, sempre)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**310 decisioni in centotrentuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**311 decisioni in centotrentadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3254,3 +3254,38 @@ cioè la consegna. Con una dichiarazione viva la finestra è **chiusa per quelle
 ogni altro campo resta correggibile. 🛑 **E non è un blocco cieco:** D262 dice che la PWA non dà blocchi
 ma aiuti, e il 422 **nomina il percorso giusto**, esattamente come fa già la guardia di
 `errore_registrazione` (`eventi-qualita/route.ts:233-235`).
+
+---
+
+### Centotrentaduesima tornata — D311: le migration si battezzano con l'orologio UNIVERSALE, sempre (07/08/2026, 21:27)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 21:27 CEST`**, comando separato.
+
+**Nasce da:** la revisione del Task 5, che ha misurato un fatto invisibile a occhio — **il ledger delle
+migration ha DUE orologi, e il passaggio è avvenuto dentro quest'ondata.**
+`provato:` `git log --diff-filter=A` — `20260807143623_riemissione_ddc.sql` è nata alle **14:53 CEST**
+con nome `14:36` (**locale**); `20260807171033_evento_scelta_intervento.sql` alle **19:18 CEST** con
+nome `17:10`, cioè le 19:10 di Roma (**UTC**). Il piano di stasera prescriveva `date -u`; D155
+descriveva l'ora locale.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D311** | 🕛 **I nomi delle migration si prendono con l'orologio UNIVERSALE (`date -u`), sempre** | scelta esplicita fra universale e ora di Roma | `date -u "+%Y%m%d%H%M%S"`, in un comando **separato** (D155 resta intatta su questo). Il pavimento attuale è già UTC: `20260807185858` |
+
+**🔑 Perché universale e non l'ora di Roma.** L'ora locale **torna indietro di un'ora** l'ultima domenica
+di ottobre: in quella finestra due nomi presi in momenti successivi possono **scavalcarsi**, e un nome
+più basso di quello già applicato è precisamente ciò che rompe il push. L'orologio universale non ha
+quel salto: cresce sempre.
+
+**⚠️ Che cosa succede se i due si alternano, misurato e non temuto.** Roma è avanti di due ore, quindi
+un nome locale sta **sempre sopra** un nome UTC preso nello stesso istante. Il guaio arriva quando dopo
+un nome locale se ne prende uno universale entro due ore: nasce **più basso**, e
+`npx supabase db push` **si ferma** con `LegacyDbPushMissingRemoteError`. 🛑 **E lo sblocco è peggio del
+blocco:** chi passasse `--include-all` farebbe divergere per sempre l'ordine di applicazione vivo da
+quello dei file — in un archivio dove le stesse funzioni vengono riscritte da più migration in fila,
+una ricostruzione da file può far vincere un corpo **più vecchio**. È la stessa classe di guasto che il
+Task 4 ha già pagato ribattendo una funzione dal catalogo.
+
+📌 **Nulla di già applicato è compromesso:** il ledger è monotòno
+(`…143623 < 171033 < 172520 < 174850 < 180314 < 182614 < 185858`). **Il rischio era tutto in avanti**, e
+questa decisione lo chiude.

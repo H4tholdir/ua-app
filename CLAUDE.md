@@ -372,6 +372,27 @@ lavoro lungo e delicato, e non è FASE 1). **Tabella di conversione per chi legg
 un documento chiamato **`2026-08-03-*` è stato scritto l'1 agosto**; **`2026-08-04-*` il 2 agosto**.
 La deriva si ferma qui: **dal documento successivo in poi, il nome porta la data vera**.
 
+### 🕛 E per le MIGRATION l'orologio è UNIVERSALE — D311 (07/08/2026)
+
+```bash
+date -u "+%Y%m%d%H%M%S"      # in un comando SEPARATO, e si usa QUESTO output
+```
+
+**Il fatto che l'ha generata, misurato e non temuto:** il 07/08 il ledger delle migration si è
+trovato con **due orologi**. `provato:` `git log --diff-filter=A` — `20260807143623_riemissione_ddc.sql`
+è nata alle **14:53 CEST** con nome `14:36` (**locale**), `20260807171033_evento_scelta_intervento.sql`
+alle **19:18 CEST** con nome `17:10` = le 19:10 di Roma (**UTC**).
+
+🛑 **Perché non è cosmesi.** Roma è avanti di due ore, quindi un nome locale sta **sempre sopra** un
+nome UTC preso nello stesso istante: se dopo un nome locale se ne prende uno universale entro due ore,
+quello nasce **più basso di ciò che è già applicato** e `npx supabase db push` **si ferma**
+(`LegacyDbPushMissingRemoteError`). E lo sblocco è peggio del blocco: `--include-all` fa divergere per
+sempre l'ordine di applicazione vivo da quello dei file — in un archivio dove le stesse funzioni
+vengono riscritte da più migration in fila, una ricostruzione può far vincere **un corpo più vecchio**.
+🔑 **Universale e non Roma** perché l'ora locale **torna indietro di un'ora** l'ultima domenica di
+ottobre: in quella finestra due nomi presi in momenti successivi possono scavalcarsi. UTC cresce sempre.
+📌 Pavimento attuale: **`20260807185858`**. Verbale: centotrentaduesima tornata.
+
 ---
 
 ## 0B. Workflow UI — Obbligatorio per ogni nuova pagina/feature
