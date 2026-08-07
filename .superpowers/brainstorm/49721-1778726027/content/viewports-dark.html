@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UÀ — Viewport + Dark Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body { font-family:'DM Sans',sans-serif; margin:0; padding:24px 16px 48px; background:#1a1a1a; color:#eee; }
+h2 { font-size:22px; font-weight:800; margin-bottom:6px; }
+.sub { color:#999; font-size:13px; margin-bottom:28px; line-height:1.5; }
+
+.grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:24px; align-items:start; }
+@media(max-width:900px){ .grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:500px){ .grid { grid-template-columns:1fr; } }
+
+.vp-label { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#666; margin-bottom:8px; }
+
+/* ── LIGHT DEVICE ── */
+.device-light {
+  background:#DDD8D3; border-radius:24px; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.5); position:relative;
+}
+.status-l { height:24px; background:#DDD8D3; display:flex; align-items:center; padding:0 12px; justify-content:space-between; }
+.status-l span { font-size:9px; font-weight:800; color:#1C1916; }
+.content-l { padding:12px 10px 80px; }
+.nums-l { display:flex; gap:5px; margin-bottom:8px; }
+.num-l { flex:1; border-radius:8px; padding:7px; text-align:center;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.10), inset -1px -1px 3px rgba(255,255,255,.62);
+  background:#E4DFD9; }
+.num-l .v { font-size:16px; font-weight:900; line-height:1; }
+.num-l .lb { font-size:7px; color:#96918D; margin-top:1px; }
+.card-l { background:#E4DFD9; border-radius:8px; padding:8px 10px; margin-bottom:5px;
+  box-shadow:-2px -2px 6px rgba(255,255,255,.6),2px 3px 8px rgba(148,128,118,.24); }
+.card-l .cn { font-size:9px; font-weight:700; color:#1C1916; }
+.card-l .cs { font-size:7px; color:#96918D; margin-top:1px; }
+.section-label { font-size:8px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#96918D; margin:8px 0 5px; }
+
+/* Floating bar light */
+.bar-l {
+  position:absolute; bottom:12px; left:10px; right:10px;
+  background:#E4DFD9; border-radius:18px; height:50px;
+  box-shadow:-3px -3px 8px rgba(255,255,255,.7),4px 6px 14px rgba(148,128,118,.36),1px 2px 6px rgba(148,128,118,.18);
+  display:flex; align-items:center; padding:0 8px;
+}
+.tab-l { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.tab-l .ic { width:16px; height:16px; border-radius:5px; background:rgba(0,0,0,.07); }
+.tab-l .ic.active { background:#D90012; }
+.tab-l span { font-size:6.5px; color:#96918D; }
+.tab-l span.active { color:#D90012; font-weight:700; }
+.fab-l { width:38px; height:38px; background:#D90012; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 10px rgba(180,0,0,.42);
+  border:2.5px solid #DDD8D3; margin-top:-16px;
+  font-size:18px; color:#fff; font-weight:300; line-height:1; }
+
+/* ── DARK DEVICE ── */
+.device-dark {
+  background:#1A1916; border-radius:24px; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.7); position:relative;
+}
+.status-d { height:24px; background:#1A1916; display:flex; align-items:center; padding:0 12px; justify-content:space-between; }
+.status-d span { font-size:9px; font-weight:800; color:#F0EDE8; }
+.content-d { padding:12px 10px 80px; }
+.nums-d { display:flex; gap:5px; margin-bottom:8px; }
+.num-d { flex:1; border-radius:8px; padding:7px; text-align:center;
+  box-shadow: inset 3px 3px 7px rgba(0,0,0,.55), inset -2px -2px 4px rgba(255,255,255,.03);
+  background:#121110; }
+.num-d .v { font-size:16px; font-weight:900; line-height:1; }
+.num-d .lb { font-size:7px; color:#8A8580; margin-top:1px; }
+.card-d { background:#222019; border-radius:8px; padding:8px 10px; margin-bottom:5px;
+  box-shadow:-2px -2px 6px rgba(255,255,255,.02),2px 3px 8px rgba(0,0,0,.50); }
+.card-d .cn { font-size:9px; font-weight:700; color:#F0EDE8; }
+.card-d .cs { font-size:7px; color:#8A8580; margin-top:1px; }
+.section-label-d { font-size:8px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#4A4845; margin:8px 0 5px; }
+
+/* Floating bar dark */
+.bar-d {
+  position:absolute; bottom:12px; left:10px; right:10px;
+  background:#222019; border-radius:18px; height:50px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 4px 6px 18px rgba(0,0,0,.65), 2px 3px 8px rgba(0,0,0,.40);
+  display:flex; align-items:center; padding:0 8px;
+}
+.tab-d { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.tab-d .ic { width:16px; height:16px; border-radius:5px; background:rgba(255,255,255,.07); }
+.tab-d .ic.active { background:#E8001A; }
+.tab-d span { font-size:6.5px; color:#8A8580; }
+.tab-d span.active { color:#E8001A; font-weight:700; }
+.fab-d { width:38px; height:38px; background:#E8001A; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 10px rgba(232,0,26,.40);
+  border:2.5px solid #1A1916; margin-top:-16px;
+  font-size:18px; color:#fff; font-weight:300; line-height:1; }
+
+/* ── TABLET ── */
+.device-tablet { background:#DDD8D3; border-radius:20px; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.5); position:relative; }
+.content-tab { padding:16px 14px 80px; }
+.nums-tab { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+.num-tab { border-radius:10px; padding:10px; text-align:center;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.10), inset -1px -1px 3px rgba(255,255,255,.62);
+  background:#E4DFD9; }
+.num-tab .v { font-size:22px; font-weight:900; line-height:1; }
+.num-tab .lb { font-size:8px; color:#96918D; }
+.list-tab { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.card-tab { background:#E4DFD9; border-radius:10px; padding:10px 12px;
+  box-shadow:-2px -2px 6px rgba(255,255,255,.6),2px 3px 8px rgba(148,128,118,.24); }
+.card-tab .cn { font-size:11px; font-weight:700; color:#1C1916; }
+.card-tab .cs { font-size:9px; color:#96918D; margin-top:2px; }
+/* Tablet bar — wider, more padding */
+.bar-tab {
+  position:absolute; bottom:14px; left:24px; right:24px;
+  background:#E4DFD9; border-radius:20px; height:54px;
+  box-shadow:-3px -3px 8px rgba(255,255,255,.7),4px 6px 14px rgba(148,128,118,.36);
+  display:flex; align-items:center; padding:0 16px; max-width:480px; margin:0 auto;
+}
+
+/* ── DESKTOP ── */
+.device-desktop { background:#DDD8D3; border-radius:16px; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.5); position:relative; }
+.desktop-layout { display:flex; height:260px; }
+.desktop-sidebar { width:60px; background:#E4DFD9; display:flex; flex-direction:column; align-items:center;
+  padding:14px 0; gap:16px;
+  box-shadow:1px 0 0 rgba(0,0,0,.07), 2px 0 8px rgba(148,128,118,.14); }
+.sib-ic { width:32px; height:32px; border-radius:10px; background:rgba(0,0,0,.07); }
+.sib-ic.active { background:#D90012; }
+.desktop-content { flex:1; padding:16px; overflow:hidden; }
+.desktop-fab { width:36px; height:36px; background:#D90012; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 10px rgba(180,0,0,.42); font-size:16px; color:#fff; }
+
+/* ── SCROLL ANIM DIAGRAM ── */
+.anim-box { background:#222; border-radius:12px; padding:14px; margin-top:24px; }
+.anim-title { font-size:12px; font-weight:700; color:#ccc; margin-bottom:10px; letter-spacing:.04em; text-transform:uppercase; }
+.anim-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.anim-state { background:#333; border-radius:8px; padding:10px 14px; font-size:11px; color:#ccc; text-align:center; flex:1; min-width:140px; }
+.anim-arrow { color:#666; font-size:18px; }
+.anim-code { font-family:monospace; font-size:10px; color:#7EC8E3; background:#1a1a1a; border-radius:6px; padding:8px 10px; margin-top:8px; width:100%; display:block; }
+
+/* ── CUSTOM MODE ── */
+.custom-box { background:#222; border-radius:12px; padding:14px; margin-top:16px; }
+</style>
+</head>
+<body>
+
+<h2>Bottom bar flottante — tutti i viewport</h2>
+<p class="sub">Light · Dark · Tablet · Desktop + comportamento scroll + modalità personalizzazione.<br>
+La barra si adatta, le ombre cambiano tema, il "+" è sempre accessibile.</p>
+
+<div class="grid">
+
+  <!-- MOBILE LIGHT -->
+  <div>
+    <div class="vp-label">📱 Mobile 390px — Light</div>
+    <div class="device-light" style="height:320px;">
+      <div class="status-l"><span>9:41</span><span>●●●</span></div>
+      <div class="content-l">
+        <div class="section-label">Martedì 14 maggio</div>
+        <div class="nums-l">
+          <div class="num-l"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+          <div class="num-l"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+          <div class="num-l"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+        </div>
+        <div class="section-label">Da consegnare</div>
+        <div class="card-l"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+        <div class="card-l"><div class="cn">Verdi — Protesi mobile</div><div class="cs">ore 16:00</div></div>
+      </div>
+      <div class="bar-l">
+        <div class="tab-l"><div class="ic active"></div><span class="active">Home</span></div>
+        <div class="tab-l"><div class="ic"></div><span>Lavori</span></div>
+        <div class="fab-l">+</div>
+        <div class="tab-l"><div class="ic"></div><span>Clienti</span></div>
+        <div class="tab-l"><div class="ic"></div><span>Altro</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE DARK -->
+  <div>
+    <div class="vp-label">🌙 Mobile 390px — Dark</div>
+    <div class="device-dark" style="height:320px;">
+      <div class="status-d"><span>9:41</span><span>●●●</span></div>
+      <div class="content-d">
+        <div class="section-label-d">Martedì 14 maggio</div>
+        <div class="nums-d">
+          <div class="num-d"><div class="v" style="color:#E8001A;">2</div><div class="lb">ritardi</div></div>
+          <div class="num-d"><div class="v" style="color:#F59E0B;">4</div><div class="lb">oggi</div></div>
+          <div class="num-d"><div class="v" style="color:#2ECC7A;">3.2k</div><div class="lb">mese</div></div>
+        </div>
+        <div class="section-label-d">Da consegnare</div>
+        <div class="card-d"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+        <div class="card-d"><div class="cn">Verdi — Protesi mobile</div><div class="cs">ore 16:00</div></div>
+      </div>
+      <div class="bar-d">
+        <div class="tab-d"><div class="ic active"></div><span class="active">Home</span></div>
+        <div class="tab-d"><div class="ic"></div><span>Lavori</span></div>
+        <div class="fab-d">+</div>
+        <div class="tab-d"><div class="ic"></div><span>Clienti</span></div>
+        <div class="tab-d"><div class="ic"></div><span>Altro</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLET -->
+  <div>
+    <div class="vp-label">📟 Tablet 768px — Light</div>
+    <div class="device-tablet" style="height:320px;">
+      <div class="status-l" style="height:24px;background:#DDD8D3;display:flex;align-items:center;padding:0 16px;justify-content:space-between;">
+        <span style="font-size:9px;font-weight:800;color:#1C1916;">9:41</span>
+        <span style="font-size:9px;color:#1C1916;">●●●</span>
+      </div>
+      <div class="content-tab">
+        <div class="section-label">Martedì 14 maggio</div>
+        <div class="nums-tab">
+          <div class="num-tab"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+          <div class="num-tab"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+          <div class="num-tab"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+        </div>
+        <div class="list-tab">
+          <div class="card-tab"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+          <div class="card-tab"><div class="cn">Verdi — Protesi</div><div class="cs">ore 16:00</div></div>
+          <div class="card-tab"><div class="cn">Esposito — Intarsio</div><div class="cs">ven 16/05</div></div>
+          <div class="card-tab" style="opacity:.5;"><div class="cn">+ 2 lavori...</div><div class="cs">Vedi tutti</div></div>
+        </div>
+      </div>
+      <!-- Tablet bar: max-width centered, wider padding -->
+      <div style="position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;">
+        <div style="background:#E4DFD9;border-radius:20px;height:54px;width:340px;
+          box-shadow:-3px -3px 8px rgba(255,255,255,.7),4px 6px 14px rgba(148,128,118,.36);
+          display:flex;align-items:center;padding:0 18px;">
+          <div class="tab-l" style="flex:1;"><div class="ic active"></div><span class="active" style="font-size:8px;">Home</span></div>
+          <div class="tab-l" style="flex:1;"><div class="ic"></div><span style="font-size:8px;color:#96918D;">Lavori</span></div>
+          <div style="width:44px;height:44px;background:#D90012;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;margin-top:-18px;font-size:20px;color:#fff;font-weight:300;line-height:1;">+</div>
+          <div class="tab-l" style="flex:1;"><div class="ic"></div><span style="font-size:8px;color:#96918D;">Clienti</span></div>
+          <div class="tab-l" style="flex:1;"><div class="ic"></div><span style="font-size:8px;color:#96918D;">Altro</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#666;margin-top:6px;text-align:center;">Barra centrata, max-width 480px, content in 2 colonne</div>
+  </div>
+
+  <!-- DESKTOP -->
+  <div>
+    <div class="vp-label">🖥️ Desktop 1280px</div>
+    <div class="device-desktop">
+      <div class="status-l" style="height:22px;background:#DDD8D3;display:flex;align-items:center;padding:0 14px;justify-content:space-between;">
+        <span style="font-size:9px;font-weight:800;color:#1C1916;">UÀ</span>
+        <span style="font-size:9px;color:#1C1916;">Francesco Formicola ⊕</span>
+      </div>
+      <div class="desktop-layout">
+        <!-- Sidebar nav on desktop -->
+        <div class="desktop-sidebar">
+          <div class="sib-ic active"></div>
+          <div class="sib-ic"></div>
+          <div class="desktop-fab">+</div>
+          <div class="sib-ic"></div>
+          <div class="sib-ic"></div>
+        </div>
+        <!-- Content area -->
+        <div class="desktop-content">
+          <div style="font-size:11px;font-weight:800;color:#1C1916;margin-bottom:8px;">Martedì 14 maggio</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div class="num-l" style="flex:1;background:#E4DFD9;border-radius:8px;padding:8px;text-align:center;">
+              <div class="v" style="font-size:18px;font-weight:900;color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num-l" style="flex:1;background:#E4DFD9;border-radius:8px;padding:8px;text-align:center;">
+              <div class="v" style="font-size:18px;font-weight:900;color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num-l" style="flex:1;background:#E4DFD9;border-radius:8px;padding:8px;text-align:center;">
+              <div class="v" style="font-size:18px;font-weight:900;color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="card-l" style="margin-bottom:4px;"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+          <div class="card-l"><div class="cn">Verdi — Protesi mobile</div><div class="cs">ore 16:00</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#666;margin-top:6px;text-align:center;">Sidebar verticale sx (60px) invece della tab bar</div>
+  </div>
+
+</div>
+
+<!-- SCROLL ANIMATION -->
+<div class="anim-box">
+  <div class="anim-title">🎬 Animazione scroll (Motion 12.x — token "expressive")</div>
+  <div class="anim-row">
+    <div class="anim-state">
+      <div style="font-size:11px;font-weight:700;color:#eee;margin-bottom:4px;">Barra visibile</div>
+      <div style="font-size:10px;color:#999;">transform: translateY(0)<br>opacity: 1</div>
+    </div>
+    <div class="anim-arrow">→ scroll down →</div>
+    <div class="anim-state">
+      <div style="font-size:11px;font-weight:700;color:#eee;margin-bottom:4px;">Barra nascosta</div>
+      <div style="font-size:10px;color:#999;">transform: translateY(120%)<br>opacity: 0</div>
+    </div>
+    <div class="anim-arrow">→ scroll up →</div>
+    <div class="anim-state">
+      <div style="font-size:11px;font-weight:700;color:#eee;margin-bottom:4px;">Barra torna</div>
+      <div style="font-size:10px;color:#999;">spring: stiffness 520<br>damping 36 (snappy)</div>
+    </div>
+  </div>
+  <code class="anim-code">// Da motion.ts — token "snappy" per feedback tattile immediato
+animate(navBar, { y: scrollingDown ? "120%" : "0%" }, motionTokens.spring.snappy)
+// Soglia: 10px scroll per non triggerare su micro-movimenti</code>
+</div>
+
+<!-- CUSTOMIZATION MODE -->
+<div class="custom-box">
+  <div class="anim-title">✏️ Personalizzazione barra (long-press 400ms)</div>
+  <div style="font-size:12px;color:#aaa;line-height:1.7;margin-bottom:10px;">
+    Long-press su qualsiasi tab (400ms) → entra in <strong style="color:#eee;">modalità edit</strong>:<br>
+    • Le tab shake con animazione tremolante (come iOS)<br>
+    • Drag&amp;drop per riordinare le tab<br>
+    • Tap "…" per cambiare una tab con opzioni dalla libreria<br>
+    • Libreria tab disponibili: Home · Lavori · Clienti · Fatture · Magazzino · Agenda · Report<br>
+    • Tap fuori o "Fine" per salvare — preferenza persistita in localStorage<br>
+    • Suono: snap al drop, click sui bottoni di conferma
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="background:#2C2A27;border-radius:8px;padding:8px 12px;font-size:11px;color:#D4A843;font-weight:700;">Home</div>
+    <div style="background:#2C2A27;border-radius:8px;padding:8px 12px;font-size:11px;color:#D4A843;font-weight:700;animation:shake .4s ease-in-out infinite;transform-origin:center;">Lavori ✕</div>
+    <div style="background:#D90012;border-radius:8px;padding:8px 12px;font-size:11px;color:#fff;font-weight:800;">+</div>
+    <div style="background:#2C2A27;border-radius:8px;padding:8px 12px;font-size:11px;color:#D4A843;font-weight:700;">Clienti ✕</div>
+    <div style="background:#2C2A27;border-radius:8px;padding:8px 12px;font-size:11px;color:#D4A843;font-weight:700;">Altro ✕</div>
+  </div>
+  <div style="font-size:11px;color:#666;margin-top:8px;">Il "+" centrale NON è personalizzabile — è sempre Nuovo Lavoro.</div>
+</div>
+
+<style>
+@keyframes shake {
+  0%,100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+</style>
+
+</body>
+</html>

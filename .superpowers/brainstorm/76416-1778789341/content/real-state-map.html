@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Stato Reale (da codice)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; padding: 28px; }
+  h1 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .col-wide { grid-column: span 2; }
+
+  .block { background: #1e2130; border-radius: 12px; padding: 16px; border: 1px solid #2d3148; }
+  .block-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .block-title .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .green { background: #22c55e; }
+  .red { background: #ef4444; }
+  .orange { background: #f97316; }
+  .blue { background: #3b82f6; }
+  .purple { background: #a855f7; }
+
+  .item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 7px; margin-bottom: 3px; font-size: 12px; }
+  .item:hover { background: rgba(255,255,255,0.04); }
+  .item-label { flex: 1; color: #cbd5e1; }
+  .item-sub { font-size: 10px; color: #475569; margin-top: 1px; }
+  .item-route { font-family: monospace; font-size: 10px; color: #334155; }
+
+  .tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .tag-ok { background: #14532d; color: #86efac; }
+  .tag-ui { background: #1e3a5f; color: #93c5fd; }
+  .tag-bug { background: #7c2d12; color: #fed7aa; }
+  .tag-phase3 { background: #1e1b4b; color: #a5b4fc; }
+
+  .section { margin-top: 16px; }
+  .section-title { font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .db-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .db-chip { font-size: 10px; font-family: monospace; padding: 3px 8px; border-radius: 4px; background: #1a2035; color: #64748b; border: 1px solid #2d3148; }
+  .db-chip.ok { color: #34d399; border-color: #064e3b; background: #022c22; }
+  .db-chip.gap { color: #fb923c; border-color: #7c2d12; background: #2a0f0a; }
+
+  .gap-box { background: #1e0a0a; border: 1px solid #7c2d12; border-radius: 10px; padding: 14px; margin-top: 14px; }
+  .gap-title { font-size: 12px; font-weight: 700; color: #ef4444; margin-bottom: 8px; }
+  .gap-item { font-size: 11px; color: #fca5a5; margin-bottom: 4px; padding-left: 12px; position: relative; }
+  .gap-item::before { content: "→"; position: absolute; left: 0; color: #7f1d1d; }
+
+  .win-box { background: #062015; border: 1px solid #166534; border-radius: 10px; padding: 14px; margin-top: 14px; }
+  .win-title { font-size: 12px; font-weight: 700; color: #22c55e; margin-bottom: 8px; }
+  .win-item { font-size: 11px; color: #86efac; margin-bottom: 4px; padding-left: 12px; position: relative; }
+  .win-item::before { content: "✓"; position: absolute; left: 0; color: #166534; }
+
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #64748b; }
+</style>
+</head>
+<body>
+
+<h1>UÀ — Stato Reale del Codice</h1>
+<p class="subtitle">Audit empirico: 30 pagine · 36 API · 15 tabelle migrate · 6 migrazioni applicate</p>
+
+<div class="legend">
+  <div class="leg"><span class="tag tag-ok">OK</span> Implementato e funzionante</div>
+  <div class="leg"><span class="tag tag-ui">UI</span> Backend ok, UI da redesign</div>
+  <div class="leg"><span class="tag tag-bug">BUG</span> Bug funzionale bloccante</div>
+  <div class="leg"><span class="tag tag-phase3">F3</span> Fase 3 — non ancora in scope</div>
+</div>
+
+<div class="grid">
+
+  <!-- AUTH ZONE -->
+  <div class="block">
+    <div class="block-title"><span class="dot blue"></span>Auth /(auth)/*</div>
+    <div class="item"><div class="module-icon">🔑</div><div class="item-label">Login<div class="item-route">/login</div></div><span class="tag tag-ok">OK</span></div>
+    <div class="item"><div class="module-icon">📧</div><div class="item-label">Forgot Password<div class="item-route">/forgot-password ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><div class="module-icon">🔓</div><div class="item-label">Reset Password<div class="item-route">/reset-password ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><div class="module-icon">✉️</div><div class="item-label">Invito Titolare<div class="item-route">/invite/[token] ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="section">
+      <div class="section-title">⚠️ Email template da customizzare</div>
+      <div class="gap-item">Supabase Dashboard → Auth → Email Templates → "Reset Password" e "Invite User" mostrano branding Supabase di default</div>
+    </div>
+  </div>
+
+  <!-- APP CORE — wide -->
+  <div class="block col-wide">
+    <div class="block-title"><span class="dot green"></span>App Core /(app)/* — 20 pagine implementate</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+      <div class="item"><span>🏠</span><div class="item-label">Dashboard<div class="item-route">/dashboard + API kpi</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>📋</span><div class="item-label">Lavori (lista)<div class="item-route">/lavori</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>🔍</span><div class="item-label">Lavoro Dettaglio<div class="item-route">/lavori/[id]</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item" style="border: 1px solid #166534;"><span>🚀</span><div class="item-label">CONSEGNA — HERO<div class="item-route">/lavori/[id]/consegna</div></div><span class="tag tag-ok">OK</span></div>
+      <div class="item" style="border: 1px solid #7c2d12;"><span>➕</span><div class="item-label">Nuovo Lavoro<div class="item-route">/lavori/nuovo — manca cliente_id</div></div><span class="tag tag-bug">BUG</span></div>
+      <div class="item"><span>👨‍⚕️</span><div class="item-label">Clienti + Dettaglio<div class="item-route">/clienti + /clienti/[id]</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>🧑</span><div class="item-label">Pazienti<div class="item-route">/pazienti (no /[id] page)</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>📦</span><div class="item-label">Magazzino<div class="item-route">/magazzino (no /[id] page)</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>💰</span><div class="item-label">Listino<div class="item-route">/listino</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>🧾</span><div class="item-label">Fatture<div class="item-route">/fatture (no /[id] page)</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>📅</span><div class="item-label">Agenda<div class="item-route">/agenda</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>📊</span><div class="item-label">Analytics<div class="item-route">/analytics</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>👷</span><div class="item-label">Tecnici<div class="item-route">/tecnici</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>🏥</span><div class="item-label">Qualità MDR<div class="item-route">/qualita + psur + rischi + incidenti</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>🌐</span><div class="item-label">Rete Multi-lab<div class="item-route">/rete</div></div><span class="tag tag-ui">UI</span></div>
+      <div class="item"><span>⚙️</span><div class="item-label">Impostazioni<div class="item-route">/impostazioni + nomina-prrc</div></div><span class="tag tag-ui">UI</span></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="block">
+    <div class="block-title"><span class="dot purple"></span>Admin /admin/*</div>
+    <div class="item"><span>🏭</span><div class="item-label">Lista Laboratori<div class="item-route">/admin/labs ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><span>🔍</span><div class="item-label">Dettaglio Lab<div class="item-route">/admin/labs/[id] ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><span>📤</span><div class="item-label">Inviti<div class="item-route">API: /admin/invite(s)</div></div><span class="tag tag-ok">OK</span></div>
+    <div class="item"><span>🔄</span><div class="item-label">Cambio stato lab<div class="item-route">API: /admin/labs/[id]/stato</div></div><span class="tag tag-ok">OK</span></div>
+  </div>
+
+  <!-- PORTALE + PUBLIC -->
+  <div class="block">
+    <div class="block-title"><span class="dot green"></span>Portale + Pubbliche</div>
+    <div class="item"><span>🦷</span><div class="item-label">Portale Dentista<div class="item-route">/portale/[token] ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><span>💳</span><div class="item-label">Billing<div class="item-route">/billing ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><span>🚫</span><div class="item-label">Blocked<div class="item-route">/blocked ✓ esiste</div></div><span class="tag tag-ui">UI</span></div>
+    <div class="item"><span>🌍</span><div class="item-label">Landing page<div class="item-route">/ (root)</div></div><span class="tag tag-ui">UI</span></div>
+  </div>
+
+  <!-- DB STATE -->
+  <div class="block col-wide">
+    <div class="block-title"><span class="dot orange"></span>Database — Stato Reale (6 migrazioni applicate)</div>
+    <div class="section-title">Tabelle core (da schema doc + Supabase)</div>
+    <div class="db-grid">
+      <span class="db-chip ok">laboratori</span>
+      <span class="db-chip ok">utenti</span>
+      <span class="db-chip ok">clienti</span>
+      <span class="db-chip ok">pazienti</span>
+      <span class="db-chip ok">lavori</span>
+      <span class="db-chip ok">listino</span>
+      <span class="db-chip ok">magazzino</span>
+      <span class="db-chip ok">lotti_magazzino</span>
+      <span class="db-chip ok">dichiarazioni_conformita</span>
+      <span class="db-chip ok">fatture</span>
+      <span class="db-chip ok">fasi_produzione</span>
+      <span class="db-chip ok">cicli_produzione</span>
+      <span class="db-chip ok">progressivi_anno</span>
+    </div>
+    <div class="section-title" style="margin-top:10px;">Tabelle migrate (nei file .sql del repo)</div>
+    <div class="db-grid">
+      <span class="db-chip ok">lab_memberships</span>
+      <span class="db-chip ok">inviti</span>
+      <span class="db-chip ok">stripe_events</span>
+      <span class="db-chip ok">lab_stato_log</span>
+      <span class="db-chip ok">lavori_appuntamenti</span>
+      <span class="db-chip ok">lavori_immagini</span>
+      <span class="db-chip ok">lavori_partitario</span>
+      <span class="db-chip ok">portale_accessi</span>
+      <span class="db-chip ok">dashboard_kpi_cache</span>
+      <span class="db-chip ok">psur</span>
+      <span class="db-chip ok">rischi_tipo_dispositivo</span>
+      <span class="db-chip ok">incidenti_mdr</span>
+      <span class="db-chip ok">nomine_prrc</span>
+      <span class="db-chip ok">reti + reti_membri</span>
+    </div>
+    <div class="section-title" style="margin-top:10px;">Tabelle mancanti (gap analysis vs DentalMaster)</div>
+    <div class="db-grid">
+      <span class="db-chip gap">listino_prezzi_tier</span>
+      <span class="db-chip gap">listino_compensi_tecnico</span>
+      <span class="db-chip gap">listino_materiali_auto</span>
+      <span class="db-chip gap">lavori_assegnazioni_tecnico</span>
+      <span class="db-chip gap">agenda_messaggi_clienti</span>
+      <span class="db-chip gap">attrezzature (F3)</span>
+      <span class="db-chip gap">controlli_qualita (F3)</span>
+    </div>
+    <div class="section-title" style="margin-top:10px;">Colonne mancanti in tabelle esistenti</div>
+    <div class="db-grid">
+      <span class="db-chip gap">lavori_lavorazioni.calo</span>
+      <span class="db-chip gap">lavori_lavorazioni.sconto</span>
+      <span class="db-chip gap">clienti.prezzo_tier</span>
+      <span class="db-chip gap">laboratori.logo_url</span>
+      <span class="db-chip gap">laboratori.firma_ddc_url</span>
+      <span class="db-chip gap">fatture.tipo_documento</span>
+      <span class="db-chip gap">fatture.stato_sdi</span>
+      <span class="db-chip gap">fatture.progressivo_invio</span>
+    </div>
+  </div>
+
+  <!-- GAPS -->
+  <div class="block">
+    <div class="block-title"><span class="dot red"></span>Gap vs DentalMaster + MDR</div>
+    <div class="gap-box">
+      <div class="gap-title">🔴 Bloccanti go-live</div>
+      <div class="gap-item">Form /lavori/nuovo: manca campo cliente_id</div>
+      <div class="gap-item">Email Supabase: branding generico (Reset, Invite)</div>
+      <div class="gap-item">Colonna calo nel Buono di consegna</div>
+      <div class="gap-item">fatture.stato_sdi mancante (stati SDI)</div>
+    </div>
+    <div class="gap-box" style="margin-top:8px; background: #1a1500; border-color: #a16207;">
+      <div class="gap-title" style="color:#f59e0b;">🟡 Fase 2 da completare</div>
+      <div class="gap-item" style="color:#fde68a;">Pagine mancanti: /pazienti/[id], /magazzino/[id], /fatture/[id]</div>
+      <div class="gap-item" style="color:#fde68a;">listino_prezzi_tier (multi-tier pricing)</div>
+      <div class="gap-item" style="color:#fde68a;">listino_materiali_auto (scarico magazzino auto)</div>
+      <div class="gap-item" style="color:#fde68a;">agenda_messaggi_clienti (log WhatsApp)</div>
+      <div class="gap-item" style="color:#fde68a;">UI redesign completo (clay haptimorphism)</div>
+    </div>
+  </div>
+
+  <!-- WINS -->
+  <div class="block">
+    <div class="block-title"><span class="dot green"></span>Vantaggi confermati vs competitor</div>
+    <div class="win-box">
+      <div class="win-title">✅ UÀ già supera DentalMaster su:</div>
+      <div class="win-item">WebAuthn passkey (Touch ID / Face ID)</div>
+      <div class="win-item">Multi-tenant SaaS (zero IT per il lab)</div>
+      <div class="win-item">CONSEGNA in 1 tap (DM = 6+ click)</div>
+      <div class="win-item">Portale dentista senza login</div>
+      <div class="win-item">Stripe billing integrato</div>
+      <div class="win-item">RBAC + RLS (6 ruoli)</div>
+      <div class="win-item">PWA offline-capable</div>
+      <div class="win-item">WhatsApp nativo (DM = messaggistica interna)</div>
+      <div class="win-item">Numero progressivo DdC (DM non ce l'ha)</div>
+      <div class="win-item">Pseudonimizzazione GDPR (DM = zero)</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

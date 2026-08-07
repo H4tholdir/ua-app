@@ -1,0 +1,74 @@
+# Review package: 790e3c91..e8b767f0
+
+## Commits
+e8b767f0 feat(dpa): versione del modello e guardia dell'impronta del testo
+
+## Files changed
+ src/lib/pdf/dpa-modello.ts     | 11 +++++++++++
+ tests/unit/dpa-modello.test.ts | 40 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+
+## Diff
+diff --git a/src/lib/pdf/dpa-modello.ts b/src/lib/pdf/dpa-modello.ts
+new file mode 100644
+index 00000000..130d4fa9
+--- /dev/null
++++ b/src/lib/pdf/dpa-modello.ts
+@@ -0,0 +1,11 @@
++// src/lib/pdf/dpa-modello.ts
++
++/** Versione della FORMA del documento. Si alza a OGNI cambio del testo di
++ *  `DpaTemplate.tsx`, insieme a IMPRONTA_TESTO_DPA: le due cose si muovono
++ *  sempre insieme, e `tests/unit/dpa-modello.test.ts` è ciò che lo impone.
++ *  v2 = riscrittura del 03/08/2026 (D126). */
++export const VERSIONE_MODELLO_DPA = 'dpa-v2'
++
++/** sha-256 del testo reso con la fixture fissa della prova. NON è una firma del
++ *  documento: è l'ancora che lega il testo alla versione dichiarata. */
++export const IMPRONTA_TESTO_DPA = '8d98dbeebfef2cf3c884f66149804f9654e030b9283c1f9d6a254a5b7ef64ef5'
+diff --git a/tests/unit/dpa-modello.test.ts b/tests/unit/dpa-modello.test.ts
+new file mode 100644
+index 00000000..016276c3
+--- /dev/null
++++ b/tests/unit/dpa-modello.test.ts
+@@ -0,0 +1,40 @@
++// tests/unit/dpa-modello.test.ts
++// @vitest-environment node
++// 🔑 La guardia della versione. VERSIONE_MODELLO_DPA va alzata a ogni cambio del
++// testo — ma un gesto da ricordare a mano è un gesto che prima o poi non si fa
++// (D120: 211 scatti dei mockup mai salvati). Questa prova àncora l'impronta del
++// TESTO alla versione dichiarata: chi cambia una parola la vede rossa.
++import { describe, it, expect } from 'vitest'
++import { createHash } from 'node:crypto'
++import { createElement } from 'react'
++import { PDFParse } from 'pdf-parse'
++import { renderPdfDocument } from '@/lib/pdf/render-document'
++import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
++import { VERSIONE_MODELLO_DPA, IMPRONTA_TESTO_DPA } from '@/lib/pdf/dpa-modello'
++
++const FIXTURE_FISSA = {
++  lab: {
++    ragione_sociale: 'Lab Prova S.r.l.', nome: 'Prova', partita_iva: '00000000000',
++    codice_fiscale: null, indirizzo: 'Via Uno 1', cap: '84028', citta: 'Serre',
++    provincia: 'SA', prrc_nome: 'Mario Bianchi', codice_itca: 'ITCA00000000',
++  },
++  cliente: {
++    studio_nome: 'Studio Prova', nome: 'Anna', cognome: 'Verdi', partita_iva: '11111111111',
++    codice_fiscale: null, indirizzo: 'Via Due 2', cap: '84121', citta: 'Salerno', provincia: 'SA',
++  },
++  numero_dpa: 'DPA-0000-FISSO',
++  data_emissione: '2026-01-01T00:00:00.000Z',
++}
++
++describe('la versione del modello DPA', () => {
++  it('è dichiarata e vale dpa-v2', () => {
++    expect(VERSIONE_MODELLO_DPA).toBe('dpa-v2')
++  })
++
++  it('🛑 il testo reso corrisponde all\'impronta dichiarata — se fallisce, ALZA la versione e aggiorna l\'impronta', async () => {
++    const buffer = await renderPdfDocument(createElement(DpaTemplate, { dpa: FIXTURE_FISSA }))
++    const testo = (await new PDFParse({ data: buffer }).getText()).text.replace(/\s+/g, ' ').trim()
++    const impronta = createHash('sha256').update(testo, 'utf8').digest('hex')
++    expect(impronta).toBe(IMPRONTA_TESTO_DPA)
++  })
++})

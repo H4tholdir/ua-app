@@ -1,0 +1,143 @@
+# Review package: 2a2b5514..0eadfd47
+
+## Commits
+0eadfd47 fix(db): correct doubled apostrophe on accented letters in P31 telefono comment
+63d8346a feat(db): P31 — nasce clienti.cellulare_whatsapp, e telefono torna a dire la verità
+
+## Files changed
+ src/types/database.types.ts                        |  3 +++
+ .../20260803113525_p31_cellulare_whatsapp.sql      | 26 ++++++++++++++++++++++
+ supabase/schema.sql                                |  3 ++-
+ 3 files changed, 31 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index 8578305a..c4b79808 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -434,20 +434,21 @@ export type Database = {
+             columns: ["updated_by"]
+             isOneToOne: false
+             referencedRelation: "utenti"
+             referencedColumns: ["id"]
+           },
+         ]
+       }
+       clienti: {
+         Row: {
+           cap: string | null
++          cellulare_whatsapp: string | null
+           citta: string | null
+           codice_fiscale: string | null
+           codice_sdi: string | null
+           cognome: string
+           contatore_prescrizioni: number
+           created_at: string
+           deleted_at: string | null
+           email: string | null
+           fatturare_al_paziente: boolean
+           iban: string | null
+@@ -472,20 +473,21 @@ export type Database = {
+           portale_token_scade_at: string | null
+           provincia: string | null
+           sconto_percentuale: number
+           studio_nome: string | null
+           tecnico_default_id: string | null
+           telefono: string | null
+           updated_at: string
+         }
+         Insert: {
+           cap?: string | null
++          cellulare_whatsapp?: string | null
+           citta?: string | null
+           codice_fiscale?: string | null
+           codice_sdi?: string | null
+           cognome: string
+           contatore_prescrizioni?: number
+           created_at?: string
+           deleted_at?: string | null
+           email?: string | null
+           fatturare_al_paziente?: boolean
+           iban?: string | null
+@@ -510,20 +512,21 @@ export type Database = {
+           portale_token_scade_at?: string | null
+           provincia?: string | null
+           sconto_percentuale?: number
+           studio_nome?: string | null
+           tecnico_default_id?: string | null
+           telefono?: string | null
+           updated_at?: string
+         }
+         Update: {
+           cap?: string | null
++          cellulare_whatsapp?: string | null
+           citta?: string | null
+           codice_fiscale?: string | null
+           codice_sdi?: string | null
+           cognome?: string
+           contatore_prescrizioni?: number
+           created_at?: string
+           deleted_at?: string | null
+           email?: string | null
+           fatturare_al_paziente?: boolean
+           iban?: string | null
+diff --git a/supabase/migrations/20260803113525_p31_cellulare_whatsapp.sql b/supabase/migrations/20260803113525_p31_cellulare_whatsapp.sql
+new file mode 100644
+index 00000000..199b5fbf
+--- /dev/null
++++ b/supabase/migrations/20260803113525_p31_cellulare_whatsapp.sql
+@@ -0,0 +1,26 @@
++-- ============================================================
++-- P31 — Il telefono dello studio e il cellulare WhatsApp sono
++-- due dati diversi con lo stesso nome (D181, 03/08/2026).
++--
++-- `telefono` RESTA il numero dello studio: è quello che si
++-- chiama, quello che va sui documenti, e può essere un fisso.
++-- provato: l'unico numero in banca dati è un fisso (0976...),
++--          quindi quella colonna si comporta già così.
++-- Nasce `cellulare_whatsapp`: dove arrivano consegna e solleciti.
++--
++-- Nessun backfill: cellulare_whatsapp nasce NULL per tutti, ed
++-- è corretto — nessuno l'ha mai inserito.
++--
++-- Nessun CHECK sul formato: un vincolo renderebbe NON SALVABILE
++-- un numero scritto male, contro la direttiva permanente del
++-- 27/07 («ogni campo si corregge, fino alla consegna»). La forma
++-- si sistema quando si costruisce il link, non quando si salva.
++-- ============================================================
++
++ALTER TABLE public.clienti ADD COLUMN cellulare_whatsapp TEXT;
++
++COMMENT ON COLUMN public.clienti.telefono IS
++  'Telefono dello studio: si chiama, va sui documenti. Può essere un fisso. NON è il numero WhatsApp — v. cellulare_whatsapp (P31, D181).';
++
++COMMENT ON COLUMN public.clienti.cellulare_whatsapp IS
++  'Cellulare su cui il dentista riceve i messaggi (consegna, solleciti). Il prefisso internazionale lo aggiunge il codice, non l''utente (P31, D182).';
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index dbb55cb6..34d72a0b 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -363,21 +363,22 @@ CREATE INDEX idx_tecnici_utente ON tecnici(utente_id) WHERE utente_id IS NOT NUL
+ -- CLIENTI — dentisti e studi dentistici
+ -- ============================================================
+ CREATE TABLE clienti (
+   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   laboratorio_id    UUID NOT NULL REFERENCES laboratori(id),
+ 
+   -- Anagrafica
+   studio_nome       TEXT,               -- Ragione sociale studio
+   nome              TEXT NOT NULL,      -- Nome dentista referente
+   cognome           TEXT NOT NULL,
+-  telefono          TEXT,               -- Usato per WhatsApp
++  telefono          TEXT,               -- Telefono dello STUDIO: si chiama, va sui documenti. Può essere un fisso. NON è WhatsApp (P31, D181)
++  cellulare_whatsapp TEXT,              -- Cellulare per consegna e solleciti. Il prefisso lo mette il codice (P31, D182)
+   email             TEXT,
+ 
+   -- Dati fiscali (obbligatori per FatturaPA)
+   partita_iva       TEXT,
+   codice_fiscale    TEXT,
+   codice_sdi        CHAR(7),            -- Codice destinatario SDI (7 cifre)
+   pec               TEXT,               -- Alternativa a codice_sdi
+ 
+   -- Indirizzo
+   indirizzo         TEXT,

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Dashboard Redesign Concepts</title>
+<style>
+  :root {
+    --bg: #DDD8D3; --sfc: #E4DFD9; --elv: #EDEDEA; --prs: #D4CFC9;
+    --t1: #1C1916; --t2: #96918D; --t3: #B8B3AE;
+    --primary: #D90012; --gold: #D4A843; --success: #16A34A;
+    --info: #2563EB; --warning: #B45309; --urgente: #F97316;
+    --sh-b: inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44);
+    --sh-i: inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+    background: #C8C3BE;
+    padding: 24px 16px 40px;
+    min-height: 100vh;
+  }
+  .page-title {
+    text-align: center; color: var(--t1); font-size: 20px; font-weight: 700;
+    margin-bottom: 6px; letter-spacing: -0.02em;
+  }
+  .page-sub {
+    text-align: center; color: var(--t2); font-size: 13px; margin-bottom: 28px;
+  }
+
+  /* ─── Concepts grid ─────────────────────────────────────── */
+  .concepts {
+    display: flex; gap: 24px; justify-content: center;
+    flex-wrap: wrap; align-items: flex-start;
+  }
+  .concept {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    cursor: pointer; transition: transform .2s;
+    width: 300px;
+  }
+  .concept:hover { transform: translateY(-4px); }
+  .concept.selected .phone-frame { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+  .concept-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--t2); text-align: center;
+  }
+  .concept-name {
+    font-size: 16px; font-weight: 700; color: var(--t1); text-align: center;
+    margin-top: -4px;
+  }
+  .concept-tag {
+    font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 100px;
+    text-align: center;
+  }
+  .tag-recommended { background: rgba(217,0,18,.12); color: var(--primary); }
+  .tag-complex { background: rgba(37,99,235,.12); color: var(--info); }
+  .tag-simple { background: rgba(22,163,74,.12); color: var(--success); }
+
+  /* ─── Phone frame ───────────────────────────────────────── */
+  .phone-frame {
+    width: 300px;
+    background: var(--bg);
+    border-radius: 36px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.28), 0 4px 16px rgba(0,0,0,.14),
+                inset 0 1px 0 rgba(255,255,255,.5);
+    overflow: hidden;
+    border: 6px solid #2A2A2A;
+    position: relative;
+  }
+  .phone-notch {
+    height: 24px; background: #2A2A2A; display: flex;
+    align-items: center; justify-content: center; gap: 6px;
+  }
+  .notch-cam { width: 10px; height: 10px; background: #1a1a1a; border-radius: 50%; }
+  .notch-sensor { width: 40px; height: 6px; background: #1a1a1a; border-radius: 3px; }
+  .phone-screen { background: var(--bg); min-height: 560px; overflow: hidden; }
+  .phone-home { height: 20px; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+  .home-bar { width: 80px; height: 4px; background: rgba(0,0,0,.15); border-radius: 2px; }
+
+  /* ─── Screen components ─────────────────────────────────── */
+  .s-header {
+    padding: 12px 16px 8px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .s-live { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: .05em; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .s-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: var(--sh-b); }
+
+  .s-greeting { padding: 0 16px 10px; }
+  .s-greeting-main { font-size: 20px; font-weight: 700; color: var(--t1); letter-spacing: -.02em; line-height: 1.1; }
+  .s-greeting-sub { font-size: 12px; color: var(--t2); margin-top: 2px; }
+
+  /* KPI strip */
+  .s-kpi-strip { display: flex; gap: 6px; padding: 6px 16px 10px; overflow-x: hidden; }
+  .s-kpi { background: var(--elv); border-radius: 12px; padding: 8px 10px; box-shadow: var(--sh-b); flex: 1; min-width: 0; }
+  .s-kpi-val { font-size: 20px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .s-kpi-val.blue { color: var(--info); }
+  .s-kpi-val.green { color: var(--success); }
+  .s-kpi-val.gold { color: var(--gold); }
+  .s-kpi-label { font-size: 9px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; line-height: 1.2; }
+
+  /* Section label */
+  .s-section { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; color: var(--t2); text-transform: uppercase; letter-spacing: .06em; }
+
+  /* Card */
+  .s-card { margin: 0 10px 6px; background: var(--sfc); border-radius: 14px; padding: 10px 12px; box-shadow: var(--sh-b); }
+  .s-card-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .s-card-name { font-size: 13px; font-weight: 700; color: var(--t1); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-card-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+  .badge-ritardo { background: rgba(217,0,18,.12); color: var(--primary); }
+  .badge-ok { background: rgba(22,163,74,.12); color: var(--success); }
+  .badge-info { background: rgba(37,99,235,.12); color: var(--info); }
+  .badge-gold { background: rgba(212,168,67,.15); color: var(--gold); }
+  .s-card-sub { font-size: 11px; color: var(--t2); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-card-date { font-size: 10px; color: var(--t2); text-align: right; flex-shrink: 0; }
+
+  /* Progress bar */
+  .s-progress { margin-top: 6px; }
+  .s-progress-track { height: 4px; background: var(--prs); border-radius: 2px; overflow: hidden; }
+  .s-progress-fill { height: 100%; border-radius: 2px; }
+
+  /* Hero urgency cards */
+  .s-hero { margin: 0 10px 6px; border-radius: 16px; padding: 12px 14px; }
+  .s-hero.danger { background: rgba(217,0,18,.10); border: 1px solid rgba(217,0,18,.20); }
+  .s-hero.today { background: rgba(37,99,235,.10); border: 1px solid rgba(37,99,235,.18); }
+  .s-hero.warn { background: rgba(212,168,67,.12); border: 1px solid rgba(212,168,67,.22); }
+  .s-hero-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .s-hero.danger .s-hero-label { color: var(--primary); }
+  .s-hero.today .s-hero-label { color: var(--info); }
+  .s-hero.warn .s-hero-label { color: var(--gold); }
+  .s-hero-big { font-size: 28px; font-weight: 800; line-height: 1; }
+  .s-hero.danger .s-hero-big { color: var(--primary); }
+  .s-hero.today .s-hero-big { color: var(--info); }
+  .s-hero.warn .s-hero-big { color: var(--gold); }
+  .s-hero-sub { font-size: 11px; color: var(--t2); margin-top: 1px; }
+  .s-hero-cta { font-size: 10px; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 3px; }
+  .s-hero.danger .s-hero-cta { color: var(--primary); }
+  .s-hero.today .s-hero-cta { color: var(--info); }
+  .s-hero.warn .s-hero-cta { color: var(--gold); }
+
+  /* Task item */
+  .s-task { margin: 0 10px 4px; background: var(--sfc); border-radius: 12px; padding: 9px 12px; display: flex; gap: 10px; align-items: center; box-shadow: var(--sh-b); }
+  .s-task-num { font-size: 9px; font-weight: 700; color: var(--t3); min-width: 20px; text-align: center; }
+  .s-task-body { flex: 1; min-width: 0; }
+  .s-task-name { font-size: 12px; font-weight: 700; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-task-phase { font-size: 10px; color: var(--t2); margin-top: 2px; }
+  .s-task-right { text-align: right; flex-shrink: 0; }
+  .s-task-time { font-size: 10px; font-weight: 700; color: var(--t1); }
+  .s-task-deadline { font-size: 9px; color: var(--t2); margin-top: 1px; }
+
+  /* Timeline column */
+  .s-timeline { padding: 0 10px; }
+  .s-time-group { margin-bottom: 8px; }
+  .s-time-header { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--t3); padding: 0 4px 4px; display: flex; align-items: center; gap: 6px; }
+  .s-time-line { flex: 1; height: 1px; background: var(--prs); }
+  .s-time-card { background: var(--sfc); border-radius: 10px; padding: 8px 10px; margin-bottom: 4px; box-shadow: var(--sh-b); display: flex; gap: 8px; align-items: center; }
+  .s-time-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .s-time-info { flex: 1; min-width: 0; }
+  .s-time-name { font-size: 11px; font-weight: 700; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-time-phase { font-size: 10px; color: var(--t2); }
+  .s-time-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 100px; flex-shrink: 0; }
+
+  /* Role switcher */
+  .s-role-switch { margin: 0 10px 8px; background: var(--prs); border-radius: 12px; padding: 3px; display: flex; box-shadow: var(--sh-i); }
+  .s-role-btn { flex: 1; padding: 6px; border-radius: 9px; font-size: 10px; font-weight: 700; text-align: center; color: var(--t2); }
+  .s-role-btn.active { background: var(--elv); color: var(--t1); box-shadow: var(--sh-b); }
+
+  /* Bottom nav */
+  .s-nav {
+    margin: 6px 10px 0;
+    background: var(--elv);
+    border-radius: 100px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 8px;
+    box-shadow: var(--sh-b);
+  }
+  .s-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 8px; border-radius: 100px; min-width: 44px; }
+  .s-nav-item.active { background: var(--prs); box-shadow: var(--sh-i); }
+  .s-nav-icon { font-size: 14px; }
+  .s-nav-label { font-size: 8px; font-weight: active ? 700 : 400; color: var(--t2); }
+  .s-nav-item.active .s-nav-label { color: var(--primary); font-weight: 700; }
+  .s-nav-cta { width: 44px; height: 44px; border-radius: 50%; background: var(--elv); display: flex; align-items: center; justify-content: center; box-shadow: var(--sh-b); font-size: 20px; color: var(--primary); font-weight: 700; }
+
+  /* Concept description */
+  .concept-desc {
+    background: rgba(255,255,255,.7); border-radius: 12px; padding: 12px 14px;
+    font-size: 12px; color: var(--t1); line-height: 1.5; width: 300px;
+    backdrop-filter: blur(8px);
+  }
+  .concept-desc strong { color: var(--primary); }
+  .concept-desc ul { margin: 6px 0 0 14px; }
+  .concept-desc li { margin-bottom: 3px; }
+
+  /* Selection indicator */
+  .sel-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(28,25,22,.92); backdrop-filter: blur(12px); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
+  .sel-text { color: #fff; font-size: 13px; font-weight: 600; }
+  .sel-hint { color: rgba(255,255,255,.5); font-size: 11px; }
+
+  .divider { width: 1px; background: rgba(255,255,255,.15); height: 100%; }
+
+  /* Hybrid tag */
+  .hybrid-badge { background: linear-gradient(135deg, rgba(217,0,18,.15), rgba(37,99,235,.15)); border: 1px solid rgba(217,0,18,.2); border-radius: 8px; padding: 3px 8px; font-size: 9px; font-weight: 700; color: var(--t1); display: flex; align-items: center; gap: 4px; margin: 0 10px 6px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Dashboard Redesign — 3 Concetti</div>
+<div class="page-sub">Clicca un concetto per selezionarlo · Design System v2.2 warm panna</div>
+
+<div class="concepts">
+
+  <!-- ══════════════════════════════════════ CONCEPT A ══ -->
+  <div class="concept" id="conceptA" onclick="select('A')">
+    <div class="concept-label">Concept A</div>
+    <div class="concept-name">OGGI Screen</div>
+    <div class="concept-tag tag-recommended">★ Raccomandato</div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><div class="notch-sensor"></div><div class="notch-cam"></div></div>
+      <div class="phone-screen">
+
+        <div class="s-header">
+          <div class="s-live"><div class="live-dot"></div>LIVE</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div style="font-size:10px;color:var(--t2)">ven 22 mag</div>
+            <div class="s-avatar">FO</div>
+          </div>
+        </div>
+
+        <div class="s-greeting">
+          <div class="s-greeting-main">Buon pomeriggio,<br>Filippo</div>
+          <div class="s-greeting-sub">Laboratorio Opromolla · Serre SA</div>
+        </div>
+
+        <!-- 3 HERO URGENCY CARDS -->
+        <div class="s-hero danger">
+          <div class="s-hero-label">⛔ Blocchi attivi</div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <div class="s-hero-big">2</div>
+            <div style="font-size:11px;color:var(--t2)">segnalazioni non risolte</div>
+          </div>
+          <div class="s-hero-cta">Risolvi prima di consegnare →</div>
+        </div>
+
+        <div class="s-hero today">
+          <div class="s-hero-label">📦 Da consegnare oggi</div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <div class="s-hero-big">3</div>
+            <div style="font-size:11px;color:var(--t2)">1 pronto · 2 in lavorazione</div>
+          </div>
+          <div class="s-hero-cta">Vedi lavori →</div>
+        </div>
+
+        <div class="s-hero warn">
+          <div class="s-hero-label">⏰ In ritardo</div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <div class="s-hero-big">1</div>
+            <div style="font-size:11px;color:var(--t2)">scaduto ieri</div>
+          </div>
+          <div class="s-hero-cta">Agisci subito →</div>
+        </div>
+
+        <div class="s-section">Panoramica lab</div>
+        <div class="s-kpi-strip">
+          <div class="s-kpi"><div class="s-kpi-val gold">5</div><div class="s-kpi-label">Da fatturare</div></div>
+          <div class="s-kpi"><div class="s-kpi-val blue">4</div><div class="s-kpi-label">Materiali</div></div>
+          <div class="s-kpi"><div class="s-kpi-val green">€0</div><div class="s-kpi-label">Fatt. mese</div></div>
+        </div>
+
+        <div style="height:6px"></div>
+        <div class="s-nav">
+          <div class="s-nav-item active"><div class="s-nav-icon">⊞</div><div class="s-nav-label" style="color:var(--primary);font-weight:700">Oggi</div></div>
+          <div class="s-nav-item"><div class="s-nav-icon">≡</div><div class="s-nav-label">Lavori</div></div>
+          <div class="s-nav-cta">+</div>
+          <div class="s-nav-item"><div class="s-nav-icon">👤</div><div class="s-nav-label">Clienti</div></div>
+          <div class="s-nav-item"><div class="s-nav-icon">⊙</div><div class="s-nav-label">Altro</div></div>
+        </div>
+
+      </div>
+      <div class="phone-home"><div class="home-bar"></div></div>
+    </div>
+
+    <div class="concept-desc">
+      <strong>OGGI Screen</strong> — La dashboard risponde a una sola domanda: <em>"Cosa devo fare ADESSO?"</em>
+      <ul>
+        <li>3 hero card above fold: Blocchi → Da consegnare → In ritardo</li>
+        <li>KPI business sotto il fold (collassabili)</li>
+        <li>Titolare+Tecnico: le hero card uniscono entrambe le visioni</li>
+        <li>Cognitive load minimo su mobile</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ CONCEPT B ══ -->
+  <div class="concept" id="conceptB" onclick="select('B')">
+    <div class="concept-label">Concept B</div>
+    <div class="concept-name">Task Commander</div>
+    <div class="concept-tag tag-complex">Ruoli ibridi</div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><div class="notch-sensor"></div><div class="notch-cam"></div></div>
+      <div class="phone-screen">
+
+        <div class="s-header">
+          <div class="s-live"><div class="live-dot"></div>LIVE</div>
+          <div class="s-avatar">FO</div>
+        </div>
+
+        <div class="s-greeting">
+          <div class="s-greeting-main">Filippo</div>
+          <div class="s-greeting-sub">venerdì 22 maggio</div>
+        </div>
+
+        <!-- ROLE SWITCHER ibrido -->
+        <div class="s-role-switch">
+          <div class="s-role-btn active">👨‍💼 Titolare</div>
+          <div class="s-role-btn">🔧 Tecnico</div>
+          <div class="s-role-btn">⊞ Entrambi</div>
+        </div>
+
+        <!-- Task list ordinata per urgenza+scadenza -->
+        <div class="s-section">I miei lavori — ordinati per urgenza</div>
+
+        <div class="s-task">
+          <div class="s-task-num">#1</div>
+          <div class="s-task-body">
+            <div class="s-task-name">ESPOSITO MASSIMO</div>
+            <div class="s-task-phase">🔴 Blocco · Impronta non idonea</div>
+            <div class="s-progress"><div class="s-progress-track"><div class="s-progress-fill" style="width:45%;background:var(--primary)"></div></div></div>
+          </div>
+          <div class="s-task-right">
+            <div class="s-task-time">oggi</div>
+            <div class="s-task-deadline">ore 17:00</div>
+          </div>
+        </div>
+
+        <div class="s-task">
+          <div class="s-task-num">#2</div>
+          <div class="s-task-body">
+            <div class="s-task-name">STUDIO DENTISTICO ROSSI</div>
+            <div class="s-task-phase">🟡 Finitura · manca lucidatura</div>
+            <div class="s-progress"><div class="s-progress-track"><div class="s-progress-fill" style="width:78%;background:var(--gold)"></div></div></div>
+          </div>
+          <div class="s-task-right">
+            <div class="s-task-time">oggi</div>
+            <div class="s-task-deadline">ore 18:30</div>
+          </div>
+        </div>
+
+        <div class="s-task">
+          <div class="s-task-num">#3</div>
+          <div class="s-task-body">
+            <div class="s-task-name">DI SANTI CATERINA</div>
+            <div class="s-task-phase">🟢 Pronta · da imballare</div>
+            <div class="s-progress"><div class="s-progress-track"><div class="s-progress-fill" style="width:95%;background:var(--success)"></div></div></div>
+          </div>
+          <div class="s-task-right">
+            <div class="s-task-time">domani</div>
+            <div class="s-task-deadline">ore 09:00</div>
+          </div>
+        </div>
+
+        <div class="s-section" style="margin-top:4px">KPI Lab</div>
+        <div class="s-kpi-strip">
+          <div class="s-kpi"><div class="s-kpi-val">2</div><div class="s-kpi-label">Blocchi</div></div>
+          <div class="s-kpi"><div class="s-kpi-val blue">3</div><div class="s-kpi-label">Oggi</div></div>
+          <div class="s-kpi"><div class="s-kpi-val gold">5</div><div class="s-kpi-label">Da fatt.</div></div>
+        </div>
+
+        <div style="height:4px"></div>
+        <div class="s-nav">
+          <div class="s-nav-item active"><div class="s-nav-icon">⊞</div><div class="s-nav-label" style="color:var(--primary);font-weight:700">Oggi</div></div>
+          <div class="s-nav-item"><div class="s-nav-icon">≡</div><div class="s-nav-label">Lavori</div></div>
+          <div class="s-nav-cta">+</div>
+          <div class="s-nav-item"><div class="s-nav-icon">👤</div><div class="s-nav-label">Clienti</div></div>
+          <div class="s-nav-item"><div class="s-nav-icon">⊙</div><div class="s-nav-label">Altro</div></div>
+        </div>
+
+      </div>
+      <div class="phone-home"><div class="home-bar"></div></div>
+    </div>
+
+    <div class="concept-desc">
+      <strong>Task Commander</strong> — Lista prioritizzata per urgenza + scadenza con progress bar reale per fase.
+      <ul>
+        <li>Role switcher: Titolare | Tecnico | Entrambi</li>
+        <li>Progress bar calcolato da lavori_fasi</li>
+        <li>Ordine: blocchi → in ritardo → oggi → domani</li>
+        <li>Ideale per titolare che lavora anche al banco</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ CONCEPT C ══ -->
+  <div class="concept" id="conceptC" onclick="select('C')">
+    <div class="concept-label">Concept C</div>
+    <div class="concept-name">Timeline Flow</div>
+    <div class="concept-tag tag-simple">Cronologico</div>
+
+    <div class="phone-frame">
+      <div class="phone-notch"><div class="notch-sensor"></div><div class="notch-cam"></div></div>
+      <div class="phone-screen">
+
+        <div class="s-header">
+          <div class="s-live"><div class="live-dot"></div>LIVE</div>
+          <div class="s-avatar">FO</div>
+        </div>
+
+        <div class="s-greeting">
+          <div class="s-greeting-main">Filippo</div>
+          <div class="s-greeting-sub">venerdì 22 maggio</div>
+        </div>
+
+        <div class="s-kpi-strip">
+          <div class="s-kpi"><div class="s-kpi-val">2</div><div class="s-kpi-label">Blocchi</div></div>
+          <div class="s-kpi"><div class="s-kpi-val blue">1</div><div class="s-kpi-label">Oggi</div></div>
+          <div class="s-kpi"><div class="s-kpi-val green">4</div><div class="s-kpi-label">In lav.</div></div>
+          <div class="s-kpi"><div class="s-kpi-val gold">5</div><div class="s-kpi-label">Da fatt.</div></div>
+        </div>
+
+        <div class="s-timeline">
+
+          <div class="s-time-group">
+            <div class="s-time-header">
+              <span style="color:var(--primary)">⛔ BLOCCATI</span>
+              <div class="s-time-line"></div>
+            </div>
+            <div class="s-time-card">
+              <div class="s-time-dot" style="background:var(--primary)"></div>
+              <div class="s-time-info">
+                <div class="s-time-name">ESPOSITO MASSIMO</div>
+                <div class="s-time-phase">Impronta non idonea · consegna oggi</div>
+              </div>
+              <div class="s-time-badge badge-ritardo">BLOCCO</div>
+            </div>
+          </div>
+
+          <div class="s-time-group">
+            <div class="s-time-header">
+              <span style="color:var(--info)">📦 OGGI</span>
+              <div class="s-time-line"></div>
+              <span style="color:var(--t2);font-size:9px">22 mag</span>
+            </div>
+            <div class="s-time-card">
+              <div class="s-time-dot" style="background:var(--gold)"></div>
+              <div class="s-time-info">
+                <div class="s-time-name">STUDIO DENTISTICO ROSSI</div>
+                <div class="s-time-phase">Finitura · ore 18:30</div>
+              </div>
+              <div class="s-time-badge badge-info">78%</div>
+            </div>
+          </div>
+
+          <div class="s-time-group">
+            <div class="s-time-header">
+              <span>DOMANI</span>
+              <div class="s-time-line"></div>
+              <span style="color:var(--t2);font-size:9px">23 mag</span>
+            </div>
+            <div class="s-time-card">
+              <div class="s-time-dot" style="background:var(--success)"></div>
+              <div class="s-time-info">
+                <div class="s-time-name">DI SANTI CATERINA</div>
+                <div class="s-time-phase">Pronta · da imballare · ore 09:00</div>
+              </div>
+              <div class="s-time-badge badge-ok">PRONTO</div>
+            </div>
+            <div class="s-time-card">
+              <div class="s-time-dot" style="background:var(--info)"></div>
+              <div class="s-time-info">
+                <div class="s-time-name">STUDI MEDICI DI SANTI</div>
+                <div class="s-time-phase">In lavorazione · ceratura · ore 11:00</div>
+              </div>
+              <div class="s-time-badge badge-info">45%</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="height:4px"></div>
+        <div class="s-nav">
+          <div class="s-nav-item active"><div class="s-nav-icon">⊞</div><div class="s-nav-label" style="color:var(--primary);font-weight:700">Oggi</div></div>
+          <div class="s-nav-item"><div class="s-nav-icon">≡</div><div class="s-nav-label">Lavori</div></div>
+          <div class="s-nav-cta">+</div>
+          <div class="s-nav-item"><div class="s-nav-icon">👤</div><div class="s-nav-label">Clienti</div></div>
+          <div class="s-nav-item"><div class="s-nav-icon">⊙</div><div class="s-nav-label">Altro</div></div>
+        </div>
+
+      </div>
+      <div class="phone-home"><div class="home-bar"></div></div>
+    </div>
+
+    <div class="concept-desc">
+      <strong>Timeline Flow</strong> — Vista cronologica: scaduto → oggi → domani → settimana.
+      <ul>
+        <li>Mentale model: "devo consegnare IN ORDINE di tempo"</li>
+        <li>Blocchi sempre in cima (override cronologico)</li>
+        <li>Progress % da lavori_fasi (dato reale)</li>
+        <li>Funziona bene sia per titolare che per tecnico</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div style="height:80px"></div>
+
+<div class="sel-bar">
+  <div class="sel-text" id="selText">Clicca un concept per selezionarlo</div>
+  <div class="sel-hint">Poi rispondi nel terminale</div>
+</div>
+
+<script>
+let selected = null;
+function select(id) {
+  ['A','B','C'].forEach(c => {
+    document.getElementById('concept'+c).classList.remove('selected');
+  });
+  selected = id;
+  document.getElementById('concept'+id).classList.add('selected');
+  const names = {A:'Concept A — OGGI Screen', B:'Concept B — Task Commander', C:'Concept C — Timeline Flow'};
+  document.getElementById('selText').textContent = '✓ Selezionato: ' + names[id];
+
+  // Record selection
+  if (window.__recordSelection) window.__recordSelection(id, names[id]);
+}
+</script>
+
+</body>
+</html>

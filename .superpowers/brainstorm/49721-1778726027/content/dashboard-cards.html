@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UÀ — Dashboard + Card Lavoro</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#1a1a1a;color:#eee;padding:24px 16px 60px;}
+h2{font-size:20px;font-weight:800;margin-bottom:4px;}
+.sub{color:#888;font-size:12px;margin-bottom:24px;line-height:1.5;}
+.section{margin-bottom:36px;}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#D4A843;margin-bottom:16px;}
+.row{display:flex;gap:16px;flex-wrap:wrap;}
+.col{flex:1;min-width:200px;}
+.col-label{font-size:10px;color:#555;margin-bottom:8px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+
+/* DEVICE */
+.device{background:#DDD8D3;border-radius:24px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.5);position:relative;height:440px;}
+.status{height:24px;background:#DDD8D3;display:flex;align-items:center;padding:0 12px;justify-content:space-between;}
+.status span{font-size:9px;font-weight:800;color:#1C1916;}
+.scroll{padding:12px 10px 80px;height:calc(100% - 24px);overflow-y:auto;}
+.scroll::-webkit-scrollbar{display:none;}
+
+/* Section label */
+.slbl{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#96918D;margin:10px 0 6px;}
+.slbl:first-child{margin-top:0;}
+
+/* 3 NUMBERS */
+.nums{display:flex;gap:5px;margin-bottom:10px;}
+.num{flex:1;border-radius:10px;padding:8px 6px;text-align:center;
+  background:#E4DFD9;
+  box-shadow:inset 2px 2px 5px rgba(0,0,0,.10),inset -1px -1px 3px rgba(255,255,255,.62);}
+.num .v{font-size:18px;font-weight:900;line-height:1;}
+.num .lb{font-size:7px;color:#96918D;margin-top:1px;}
+
+/* ── CARD STYLE A: Compact ── */
+.card-a{
+  background:#E4DFD9;border-radius:10px;padding:10px 12px;margin-bottom:6px;
+  box-shadow:-2px -2px 6px rgba(255,255,255,.6),2px 3px 8px rgba(148,128,118,.24);
+  display:flex;align-items:center;gap:10px;
+}
+.card-a-left{flex:1;min-width:0;}
+.card-a-top{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.card-a-cliente{font-size:10px;font-weight:800;color:#1C1916;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-a-tipo{font-size:8px;font-weight:600;color:#96918D;white-space:nowrap;}
+.card-a-desc{font-size:8px;color:#96918D;}
+.card-a-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.card-a-date{font-size:8px;font-weight:700;color:#96918D;}
+.card-a-date.today{color:#B45309;}
+.card-a-date.late{color:#D90012;}
+
+/* ── CARD STYLE B: Rich ── */
+.card-b{
+  background:#E4DFD9;border-radius:12px;padding:12px;margin-bottom:8px;
+  box-shadow:-2px -2px 7px rgba(255,255,255,.65),3px 4px 10px rgba(148,128,118,.28);
+}
+.card-b-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+.card-b-cliente{font-size:11px;font-weight:900;color:#1C1916;}
+.card-b-paziente{font-size:8px;color:#96918D;margin-top:1px;}
+.card-b-body{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.card-b-tipo-icon{width:28px;height:28px;border-radius:8px;background:#D4CFC9;
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;
+  box-shadow:inset 1px 1px 3px rgba(0,0,0,.10),inset -1px -1px 2px rgba(255,255,255,.70);}
+.card-b-desc{font-size:9px;font-weight:700;color:#1C1916;line-height:1.3;}
+.card-b-detail{font-size:8px;color:#96918D;}
+.card-b-footer{display:flex;align-items:center;justify-content:space-between;}
+.card-b-denti{font-size:7px;font-weight:600;color:#96918D;background:#D4CFC9;padding:2px 6px;border-radius:4px;}
+
+/* ── CARD STYLE C: Timeline inline ── */
+.card-c{
+  background:#E4DFD9;border-radius:12px;padding:11px 12px;margin-bottom:7px;
+  box-shadow:-2px -2px 7px rgba(255,255,255,.65),3px 4px 10px rgba(148,128,118,.28);
+}
+.card-c-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.card-c-title{font-size:10px;font-weight:800;color:#1C1916;}
+.card-c-sub{font-size:8px;color:#96918D;margin-top:1px;}
+.card-c-timeline{display:flex;align-items:center;gap:0;}
+.timeline-step{display:flex;flex-direction:column;align-items:center;flex:1;}
+.timeline-dot{width:10px;height:10px;border-radius:50%;border:2px solid #B8B3AE;background:#DDD8D3;}
+.timeline-dot.done{background:#3DCB5C;border-color:#3DCB5C;}
+.timeline-dot.current{background:#D90012;border-color:#D90012;box-shadow:0 0 0 2px rgba(217,0,18,.2);}
+.timeline-line{flex:1;height:2px;background:#C8C3BD;margin:0;}
+.timeline-line.done{background:#3DCB5C;}
+.timeline-label{font-size:6px;color:#96918D;margin-top:2px;text-align:center;white-space:nowrap;}
+
+/* STATUS BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:7px;font-weight:800;letter-spacing:.04em;}
+.badge.lavoro{background:rgba(59,130,246,.12);color:#2563EB;}
+.badge.pronto{background:rgba(34,197,94,.12);color:#16A34A;}
+.badge.urgente{background:rgba(245,158,11,.14);color:#B45309;}
+.badge.ritardo{background:rgba(217,0,18,.12);color:#D90012;}
+.badge.consegnato{background:rgba(148,145,141,.12);color:#96918D;}
+
+/* Floating bar */
+.bar{position:absolute;bottom:10px;left:8px;right:8px;background:#E4DFD9;border-radius:16px;height:46px;
+  box-shadow:-3px -3px 8px rgba(255,255,255,.7),4px 6px 14px rgba(148,128,118,.36);
+  display:flex;align-items:center;padding:0 8px;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
+.tab .ic{width:14px;height:14px;border-radius:4px;background:rgba(0,0,0,.07);}
+.tab .ic.on{background:#D90012;}
+.tab span{font-size:6px;color:#96918D;}
+.tab span.on{color:#D90012;font-weight:700;}
+.fab{width:36px;height:36px;background:#D90012;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(180,0,0,.42);border:2px solid #DDD8D3;
+  margin-top:-14px;font-size:17px;color:#fff;font-weight:300;line-height:1;}
+
+.info-box{background:#222;border-radius:10px;padding:12px 14px;margin-top:12px;font-size:11px;color:#aaa;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<h2>Card lavoro + Dashboard layout</h2>
+<p class="sub">Tre varianti di card — scegli quella che ti trasmette le info giuste al volo. La dashboard usa le card nel contesto reale.</p>
+
+<!-- CARD VARIANTS -->
+<div class="section">
+  <div class="sec-title">① Varianti card lavoro</div>
+  <div class="row">
+
+    <!-- CARD A: Compact -->
+    <div class="col">
+      <div class="col-label">A — Compatta (lista lunga)</div>
+      <div style="background:#DDD8D3;border-radius:16px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
+        <!-- Urgente -->
+        <div class="card-a" style="border-left:3px solid #D90012;">
+          <div class="card-a-left">
+            <div class="card-a-top">
+              <span class="card-a-cliente">Dr. Bianchi</span>
+              <span class="badge ritardo">↑ ritardo</span>
+            </div>
+            <div class="card-a-tipo">Corona ceramica · dente 14 A2</div>
+          </div>
+          <div class="card-a-right">
+            <div class="card-a-date late">Ieri</div>
+            <div class="badge ritardo">in ritardo</div>
+          </div>
+        </div>
+        <!-- Today urgente -->
+        <div class="card-a" style="border-left:3px solid #B45309;">
+          <div class="card-a-left">
+            <div class="card-a-top">
+              <span class="card-a-cliente">Dr. Verdi</span>
+              <span class="badge urgente">urgente</span>
+            </div>
+            <div class="card-a-tipo">Protesi mobile sup. · Rossi Mario</div>
+          </div>
+          <div class="card-a-right">
+            <div class="card-a-date today">Oggi</div>
+            <div class="badge lavoro">in lavorazione</div>
+          </div>
+        </div>
+        <!-- Normal -->
+        <div class="card-a">
+          <div class="card-a-left">
+            <div class="card-a-top">
+              <span class="card-a-cliente">Dr. Esposito</span>
+            </div>
+            <div class="card-a-tipo">Intarsio ceramica · denti 25-26</div>
+          </div>
+          <div class="card-a-right">
+            <div class="card-a-date">16/05</div>
+            <div class="badge pronto">pronto</div>
+          </div>
+        </div>
+      </div>
+      <div class="info-box">
+        <strong>Pro:</strong> max 6-8 lavori visibili, scansione rapida, colore urgenza sul bordo sinistro.<br>
+        <strong>Contro:</strong> meno dettaglio, il dentista non si vede subito dai denti.
+      </div>
+    </div>
+
+    <!-- CARD B: Rich -->
+    <div class="col">
+      <div class="col-label">B — Ricca (dettaglio visivo)</div>
+      <div style="background:#DDD8D3;border-radius:16px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
+        <div class="card-b">
+          <div class="card-b-header">
+            <div>
+              <div class="card-b-cliente">Dr. Bianchi</div>
+              <div class="card-b-paziente">Rossi Mario — 14/05/1962</div>
+            </div>
+            <div class="badge ritardo">in ritardo</div>
+          </div>
+          <div class="card-b-body">
+            <div class="card-b-tipo-icon">🦷</div>
+            <div>
+              <div class="card-b-desc">Corona ceramica</div>
+              <div class="card-b-detail">Dente 14 · Colore A2 · Classe IIa</div>
+            </div>
+          </div>
+          <div class="card-b-footer">
+            <div class="card-b-denti">14</div>
+            <div style="font-size:8px;font-weight:700;color:#D90012;">Scaduto ieri</div>
+          </div>
+        </div>
+        <div class="card-b">
+          <div class="card-b-header">
+            <div>
+              <div class="card-b-cliente">Dr. Verdi</div>
+              <div class="card-b-paziente">Bianchi Luigi</div>
+            </div>
+            <div class="badge pronto">pronto</div>
+          </div>
+          <div class="card-b-body">
+            <div class="card-b-tipo-icon">😬</div>
+            <div>
+              <div class="card-b-desc">Protesi mobile superiore</div>
+              <div class="card-b-detail">Arcata superiore · Classe IIa</div>
+            </div>
+          </div>
+          <div class="card-b-footer">
+            <div class="card-b-denti">11 12 13 14</div>
+            <div style="font-size:8px;font-weight:700;color:#B45309;">Oggi ore 14:00</div>
+          </div>
+        </div>
+      </div>
+      <div class="info-box">
+        <strong>Pro:</strong> paziente visibile, denti, colore — tutte le info MDR al volo.<br>
+        <strong>Contro:</strong> max 3-4 card sullo schermo, lista più lenta da scorrere.
+      </div>
+    </div>
+
+    <!-- CARD C: Con timeline -->
+    <div class="col">
+      <div class="col-label">C — Con timeline stato (consigliata)</div>
+      <div style="background:#DDD8D3;border-radius:16px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
+        <div class="card-c">
+          <div class="card-c-top">
+            <div>
+              <div class="card-c-title">Dr. Bianchi — Corona 14</div>
+              <div class="card-c-sub">Rossi Mario · A2 · <span style="color:#D90012;font-weight:700;">Ieri — in ritardo</span></div>
+            </div>
+            <div class="badge ritardo">↑</div>
+          </div>
+          <div class="card-c-timeline">
+            <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+            <div class="timeline-line done"></div>
+            <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Lavora.</div></div>
+            <div class="timeline-line"></div>
+            <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Pronto</div></div>
+            <div class="timeline-line"></div>
+            <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+          </div>
+        </div>
+        <div class="card-c">
+          <div class="card-c-top">
+            <div>
+              <div class="card-c-title">Dr. Verdi — Protesi mobile</div>
+              <div class="card-c-sub">Bianchi Luigi · <span style="color:#B45309;font-weight:700;">Oggi ore 14:00</span></div>
+            </div>
+            <div class="badge pronto">✓</div>
+          </div>
+          <div class="card-c-timeline">
+            <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+            <div class="timeline-line done"></div>
+            <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Lavora.</div></div>
+            <div class="timeline-line done"></div>
+            <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Pronto</div></div>
+            <div class="timeline-line"></div>
+            <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+          </div>
+        </div>
+        <div class="card-c">
+          <div class="card-c-top">
+            <div>
+              <div class="card-c-title">Dr. Esposito — Intarsio</div>
+              <div class="card-c-sub">denti 25-26 · <span style="color:#96918D;">16/05</span></div>
+            </div>
+            <div class="badge lavoro">···</div>
+          </div>
+          <div class="card-c-timeline">
+            <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+            <div class="timeline-line done"></div>
+            <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Lavora.</div></div>
+            <div class="timeline-line"></div>
+            <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Pronto</div></div>
+            <div class="timeline-line"></div>
+            <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="info-box">
+        <strong>Pro:</strong> lo stato si vede subito (dove sei nel workflow), urgenza sul badge, 4-5 card visibili.<br>
+        <strong>Contro:</strong> la timeline occupa spazio, meno dettaglio clinico (denti/colore).
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DASHBOARD LAYOUTS -->
+<div class="section">
+  <div class="sec-title">② Dashboard home — layout completo con card C</div>
+  <div class="row">
+
+    <!-- Dashboard con card C -->
+    <div class="col">
+      <div class="col-label">Home — sezioni scrollabili</div>
+      <div class="device">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="scroll">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:800;color:#1C1916;">Martedì 14 maggio</div>
+            <div style="font-size:8px;color:#96918D;">Lab Opromolla</div>
+          </div>
+          <!-- 3 numbers inset -->
+          <div class="nums">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <!-- In ritardo -->
+          <div class="slbl" style="color:#D90012;">⚠ In ritardo</div>
+          <div class="card-c" style="border-left:2px solid #D90012;">
+            <div class="card-c-top">
+              <div><div class="card-c-title">Dr. Bianchi — Corona 14</div><div class="card-c-sub" style="color:#D90012;">Scaduto ieri · urgente</div></div>
+              <div class="badge ritardo">!</div>
+            </div>
+            <div class="card-c-timeline">
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Lavora.</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Pronto</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+            </div>
+          </div>
+          <!-- Oggi -->
+          <div class="slbl">Da consegnare oggi</div>
+          <div class="card-c">
+            <div class="card-c-top">
+              <div><div class="card-c-title">Dr. Verdi — Protesi mobile</div><div class="card-c-sub" style="color:#B45309;">Oggi ore 14:00</div></div>
+              <div class="badge pronto">✓</div>
+            </div>
+            <div class="card-c-timeline">
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Lavora.</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot current" style="background:#3DCB5C;border-color:#3DCB5C;"></div><div class="timeline-label">Pronto</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+            </div>
+          </div>
+          <!-- In lavorazione -->
+          <div class="slbl">In lavorazione</div>
+          <div class="card-c">
+            <div class="card-c-top">
+              <div><div class="card-c-title">Dr. Esposito — Intarsio</div><div class="card-c-sub">denti 25-26 · 16/05</div></div>
+            </div>
+            <div class="card-c-timeline">
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Lavora.</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Pronto</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bar">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <div class="fab">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lavori tab con filtri -->
+    <div class="col">
+      <div class="col-label">Tab Lavori — filtri + lista</div>
+      <div class="device">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="scroll">
+          <div style="font-size:12px;font-weight:800;color:#1C1916;margin-bottom:10px;">Tutti i lavori</div>
+          <!-- Search bar -->
+          <div style="background:#E4DFD9;border-radius:10px;height:32px;
+            box-shadow:inset 2px 2px 5px rgba(0,0,0,.10),inset -1px -1px 3px rgba(255,255,255,.62);
+            display:flex;align-items:center;padding:0 10px;gap:6px;margin-bottom:10px;">
+            <div style="width:12px;height:12px;border-radius:50%;border:1.5px solid #96918D;"></div>
+            <span style="font-size:9px;color:#96918D;">Cerca cliente o lavoro…</span>
+          </div>
+          <!-- Filter pills -->
+          <div style="display:flex;gap:5px;margin-bottom:10px;">
+            <div style="background:#1C1916;color:#fff;font-size:8px;font-weight:700;padding:4px 10px;border-radius:8px;
+              box-shadow:inset 2px 2px 4px rgba(0,0,0,.4),inset -1px -1px 2px rgba(255,255,255,.04);">Tutti</div>
+            <div style="background:#E4DFD9;color:#96918D;font-size:8px;font-weight:600;padding:4px 10px;border-radius:8px;
+              box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 2px 5px -1px rgba(148,128,118,.28);">Oggi</div>
+            <div style="background:#E4DFD9;color:#D90012;font-size:8px;font-weight:700;padding:4px 10px;border-radius:8px;
+              box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 2px 5px -1px rgba(148,128,118,.28);">Ritardi 2</div>
+            <div style="background:#E4DFD9;color:#96918D;font-size:8px;font-weight:600;padding:4px 10px;border-radius:8px;
+              box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 2px 5px -1px rgba(148,128,118,.28);">Consegnati</div>
+          </div>
+          <!-- Lista -->
+          <div class="card-c" style="border-left:2px solid #D90012;">
+            <div class="card-c-top">
+              <div><div class="card-c-title">Dr. Bianchi — Corona 14</div><div class="card-c-sub" style="color:#D90012;">In ritardo · ieri</div></div>
+              <div class="badge ritardo">!</div>
+            </div>
+            <div class="card-c-timeline">
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Lavora.</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Pronto</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+            </div>
+          </div>
+          <div class="card-c">
+            <div class="card-c-top">
+              <div><div class="card-c-title">Dr. Verdi — Protesi mobile</div><div class="card-c-sub" style="color:#B45309;">Oggi ore 14:00</div></div>
+              <div class="badge pronto">✓</div>
+            </div>
+            <div class="card-c-timeline">
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Lavora.</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot current" style="background:#3DCB5C;border-color:#3DCB5C;"></div><div class="timeline-label">Pronto</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+            </div>
+          </div>
+          <div class="card-c">
+            <div class="card-c-top">
+              <div><div class="card-c-title">Dr. Esposito — Intarsio</div><div class="card-c-sub">16/05</div></div>
+            </div>
+            <div class="card-c-timeline">
+              <div class="timeline-step"><div class="timeline-dot done"></div><div class="timeline-label">Ricevuto</div></div>
+              <div class="timeline-line done"></div>
+              <div class="timeline-step"><div class="timeline-dot current"></div><div class="timeline-label">Lavora.</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Pronto</div></div>
+              <div class="timeline-line"></div>
+              <div class="timeline-step"><div class="timeline-dot"></div><div class="timeline-label">Consegna</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bar">
+          <div class="tab"><div class="ic"></div><span>Home</span></div>
+          <div class="tab"><div class="ic on"></div><span class="on">Lavori</span></div>
+          <div class="fab">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:#222;border-radius:12px;padding:14px;font-size:11px;color:#aaa;line-height:1.7;">
+  <strong style="color:#D4A843;">Consiglio:</strong> Card C (timeline) è la più adatta perché mostra lo stato avanzamento a colpo d'occhio — fondamentale per decidere cosa fare ora.<br>
+  Il bordo sinistro colorato <strong style="color:#D90012;">rosso = ritardo</strong>, <strong style="color:#B45309;">arancione = urgente</strong>.<br>
+  Nella lista Lavori: filtri sempre visibili sopra + search bar.
+</div>
+
+</body>
+</html>

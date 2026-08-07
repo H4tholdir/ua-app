@@ -1,0 +1,12 @@
+# ⚖️ D313 (07/08/2026) — QUESTA CARTELLA SI VERSIONA. Nessun motivo qui dentro.
+#
+# Qui c'era una riga sola, `*`, che insieme a `.superpowers/` nel .gitignore di
+# radice teneva fuori da git la MAPPA DI RECUPERO (`progress.md`) e tutti i
+# resoconti di esecutori e revisori — cioè i numeri misurati e le prove.
+# 🔑 Il fatto: 21 documenti vivi indicano `progress.md` come «la mappa da cui
+# riprendere», e quella mappa viveva su un computer solo. Un artefatto che SEMBRA
+# durevole e non lo è è peggio della sua assenza, perché nessuno lo cerca altrove.
+#
+# 🛑 SE QUESTO FILE TORNA A CONTENERE `*`, l'ha riscritto lo strumento SDD: va
+# rimesso così. La modifica si vede in `git status`, ed è il motivo per cui il file
+# resta al suo posto invece di essere cancellato.

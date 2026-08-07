@@ -1,0 +1,364 @@
+# Review package: d77ca9ca..821d0fa4
+
+## Commits
+821d0fa4 feat(dpa): generateDpa EMETTE — file, progressivo e riga di registro (Task 4)
+
+## Files changed
+ src/app/api/clienti/[id]/dpa/route.ts |   5 +-
+ src/lib/pdf/generate-dpa.ts           |  75 +++++++++++++++++++++-
+ tests/unit/dpa-registro.test.ts       | 114 ++++++++++++++++++++++++++++++++++
+ tests/unit/generate-dpa.test.ts       |  22 +++++--
+ 4 files changed, 208 insertions(+), 8 deletions(-)
+
+## Diff
+diff --git a/src/app/api/clienti/[id]/dpa/route.ts b/src/app/api/clienti/[id]/dpa/route.ts
+index 5e2c2d93..b82b1671 100644
+--- a/src/app/api/clienti/[id]/dpa/route.ts
++++ b/src/app/api/clienti/[id]/dpa/route.ts
+@@ -19,21 +19,24 @@ export async function GET(
+     if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+     if (!context.laboratorioId) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
+     if (!['titolare', 'admin_rete', 'admin_sistema'].includes(context.ruolo ?? '')) {
+       return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
+     }
+     const guard = assertLabOperativo(context, 'GET')
+     if (guard) return guard
+     const labId: string = context.laboratorioId
+ 
+     try {
+-      const buffer = await generateDpa(labId, clienteId)
++      // `generateDpa` non rende più un Buffer nudo: rende un'EMISSIONE (Task 4).
++      // Qui si prende il solo file, per lasciare la rotta identica a prima —
++      // numero, id di registro e `riemessa` sono materia del Task 7.
++      const { buffer } = await generateDpa(labId, clienteId)
+       const filename = `DPA-${clienteId.slice(0, 8).toUpperCase()}.pdf`
+ 
+       return new NextResponse(new Uint8Array(buffer), {
+         headers: {
+           'Content-Type': 'application/pdf',
+           'Content-Disposition': `attachment; filename="${filename}"`,
+         },
+       })
+     } catch (e) {
+       const msg = e instanceof Error ? e.message : 'Errore generazione DPA'
+diff --git a/src/lib/pdf/generate-dpa.ts b/src/lib/pdf/generate-dpa.ts
+index c7ab383d..f05de669 100644
+--- a/src/lib/pdf/generate-dpa.ts
++++ b/src/lib/pdf/generate-dpa.ts
+@@ -1,48 +1,74 @@
+ import 'server-only'
+ import { createElement } from 'react'
++import { createHash } from 'node:crypto'
+ import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+ import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
+ import { renderPdfDocument } from '@/lib/pdf/render-document'
+ import type { Laboratorio, Cliente } from '@/types/domain'
+ import { annoRoma } from '@/lib/utils/data-roma'
++import { generaProgressivo } from '@/lib/db/progressivi'
++import { improntaDpa, VERSIONE_MODELLO_DPA } from '@/lib/pdf/dpa-modello'
++
++/** Il risultato di un'EMISSIONE — non di una generazione.
++ *
++ *  🔑 La differenza è il punto dell'ondata: prima di D129/D130 `generateDpa()`
++ *  rendeva un PDF al volo e UÀ non sapeva quale testo avesse in mano ogni
++ *  studio. Ora ogni scarico lascia una riga in `data_processing_agreements`,
++ *  con un numero progressivo vero e il file conservato nel contenitore privato.
++ *
++ *  `riemessa` dice se il documento è nato ADESSO. Nel Task 4 è sempre `true`
++ *  (non c'è ancora nulla da riusare); il guard di riuso del Task 5 è ciò che le
++ *  darà anche il valore `false`. */
++export interface EmissioneDpa {
++  buffer: Buffer
++  numero_dpa: string      // es. "DPA-2026-0007"
++  emissione_id: string    // uuid della riga di registro
++  riemessa: boolean       // true = generata ora, false = restituita dall'archivio
++}
+ 
+ function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
+   if (!lab.partita_iva && !lab.codice_fiscale) {
+     throw new Error('DPA: laboratorio privo di Partita IVA e Codice Fiscale')
+   }
+   if (!cliente.partita_iva && !cliente.codice_fiscale) {
+     throw new Error('DPA: cliente privo di Partita IVA e Codice Fiscale')
+   }
+ }
+ 
+-export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<Buffer> {
++export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<EmissioneDpa> {
+   const svc = getTypedServiceClient()
+ 
+   const [{ data: labRaw }, { data: clienteRaw }] = await Promise.all([
+     svc.from('laboratori').select('*').eq('id', laboratorio_id).single(),
+     svc.from('clienti').select('*').eq('id', cliente_id).eq('laboratorio_id', laboratorio_id).single(),
+   ])
+ 
+   if (!labRaw) throw new Error('Laboratorio non trovato')
+   if (!clienteRaw) throw new Error('Cliente non trovato')
+ 
+   // Cast puntuale sul risultato: lo schema reale tipizza alcune colonne enum
+   // (es. laboratori.piano, clienti.listino_numero) come stringa/numero generico
+   // invece delle union letterali di domain.ts — la query stessa resta type-safe
+   // sullo schema (typo sulle colonne vengono comunque intercettati da tsc).
+   const lab = labRaw as Laboratorio
+   const cliente = clienteRaw as Cliente
+ 
+   validateDpaData(lab, cliente)
+ 
+-  const numero_dpa = `DPA-${annoRoma()}-${cliente_id.slice(0, 8).toUpperCase()}`
++  const impronta = improntaDpa(lab, cliente)
++
++  // Task 5 inserisce qui il guard di riuso.
++
++  const anno = annoRoma()
++  const progressivo = await generaProgressivo(svc, laboratorio_id, 'dpa', anno)
++  const numero_dpa = `DPA-${anno}-${String(progressivo).padStart(4, '0')}`
+ 
+   const dpa = {
+     lab: {
+       ragione_sociale: lab.ragione_sociale,
+       nome: lab.nome,
+       partita_iva: lab.partita_iva,
+       codice_fiscale: lab.codice_fiscale,
+       indirizzo: lab.indirizzo,
+       cap: lab.cap,
+       citta: lab.citta,
+@@ -58,12 +84,55 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
+       codice_fiscale: cliente.codice_fiscale,
+       indirizzo: cliente.indirizzo,
+       cap: cliente.cap,
+       citta: cliente.citta,
+       provincia: cliente.provincia,
+     },
+     numero_dpa,
+     data_emissione: new Date().toISOString(),
+   }
+ 
+-  return renderPdfDocument(createElement(DpaTemplate, { dpa }))
++  const buffer = await renderPdfDocument(createElement(DpaTemplate, { dpa }))
++
++  // Il FILE prima della RIGA: se il caricamento fallisce, nessuna traccia resta
++  // in banca dati. Stessa regola di D61 (immagini/[imgId]/route.ts:207-219).
++  //
++  // ⚠️ La promessa vale per `data_processing_agreements`, NON per la serie dei
++  // numeri: `generaProgressivo` ha già incrementato `progressivi_anno` con una
++  // RPC committata, e nessun errore qui sotto la annulla. Se l'archivio rifiuta,
++  // quel numero è BRUCIATO e la serie mostra un buco. L'ordine è però FORZATO,
++  // non distratto: `storage_path_pdf` contiene `numero_dpa`, quindi il numero
++  // deve esistere prima del caricamento — invertire richiederebbe caricare su un
++  // percorso provvisorio e poi spostarlo, che è fuori da questo task.
++  const storage_path_pdf = `${laboratorio_id}/dpa/${anno}/${numero_dpa}.pdf`
++  const { error: erroreFile } = await svc.storage
++    .from('documenti')
++    .upload(storage_path_pdf, buffer, { contentType: 'application/pdf', upsert: false })
++  if (erroreFile) {
++    console.error('generateDpa — caricamento del PDF fallito:', erroreFile.message)
++    throw new Error('DPA: non è stato possibile conservare il documento')
++  }
++
++  const { data: riga, error: erroreRiga } = await svc
++    .from('data_processing_agreements')
++    .insert({
++      laboratorio_id,
++      tipo_controparte: 'dentista',
++      dentista_id: cliente_id,
++      stato: 'da_firmare',
++      // 🛑 D133: la costante, MAI il letterale — porta dentro l'impronta del
++      // testo, quindi cambia da sola quando cambia il contratto.
++      template_versione: VERSIONE_MODELLO_DPA,
++      numero_dpa,
++      anno_dpa: anno,
++      progressivo_dpa: progressivo,
++      storage_path_pdf,
++      pdf_sha256: createHash('sha256').update(buffer).digest('hex'),
++      payload_sha256: impronta,
++      emesso_at: new Date().toISOString(),
++    })
++    .select('id')
++    .single()
++  if (erroreRiga || !riga) throw new Error(`DPA: registro non scritto — ${erroreRiga?.message ?? 'nessuna riga'}`)
++
++  return { buffer, numero_dpa, emissione_id: riga.id, riemessa: true }
+ }
+diff --git a/tests/unit/dpa-registro.test.ts b/tests/unit/dpa-registro.test.ts
+new file mode 100644
+index 00000000..970a24af
+--- /dev/null
++++ b/tests/unit/dpa-registro.test.ts
+@@ -0,0 +1,114 @@
++// @vitest-environment node
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++import { createChain, type MockChain } from './helpers/supabase-chain-mock'
++import { LAB_FIXTURE, CLIENTE_FIXTURE } from './helpers/pdf-fixtures'
++
++const { mockFrom, mockInsert, mockUpload, mockDownload, mockProgressivo } = vi.hoisted(() => ({
++  mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpload: vi.fn(), mockDownload: vi.fn(), mockProgressivo: vi.fn(),
++}))
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({
++    from: mockFrom,
++    storage: { from: () => ({ upload: mockUpload, download: mockDownload }) },
++  }),
++}))
++vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: mockProgressivo }))
++
++import { generateDpa } from '@/lib/pdf/generate-dpa'
++import { VERSIONE_MODELLO_DPA } from '@/lib/pdf/dpa-modello'
++
++/** L'anno civile di Roma calcolato QUI, senza passare da `annoRoma()`.
++ *  🔑 Se lo calcolassi con la stessa funzione che usa l'implementazione, la prova
++ *  confronterebbe l'implementazione con sé stessa e resterebbe verde anche se
++ *  qualcuno passasse all'anno UTC — cioè proprio il guasto di capodanno che
++ *  `src/lib/db/progressivi.ts:12-15` documenta come già pagato una volta. */
++const ANNO_ROMA = Number(
++  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric' }).format(new Date())
++)
++
++/** Le catene consegnate da `from()`, indicizzate per TABELLA.
++ *  🔑 NON si selezionano per posizione in `mockFrom.mock.results`: l'ordine delle
++ *  chiamate è un dettaglio dell'implementazione (`Promise.all` valuta l'array da
++ *  sinistra), e una prova che ci si appoggia guarda la catena sbagliata appena
++ *  qualcuno riordina due righe — restando verde o rossa per la ragione sbagliata. */
++const catene: Record<string, MockChain> = {}
++
++function montaTabelle(emissioneEsistente: unknown) {
++  for (const k of Object.keys(catene)) delete catene[k]
++  mockFrom.mockImplementation((tabella: string) => {
++    if (tabella === 'laboratori') {
++      return (catene.laboratori = createChain({ data: LAB_FIXTURE, error: null }))
++    }
++    if (tabella === 'clienti') {
++      return (catene.clienti = createChain({ data: CLIENTE_FIXTURE, error: null }))
++    }
++    if (tabella === 'data_processing_agreements') {
++      const c = createChain({ data: emissioneEsistente, error: null })
++      c.insert = mockInsert
++      return (catene.data_processing_agreements = c)
++    }
++    throw new Error(`Tabella inattesa nel mock: ${tabella}`)
++  })
++}
++
++describe('emissione nuova', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    mockUpload.mockResolvedValue({ error: null })
++    mockProgressivo.mockResolvedValue(7)
++    mockInsert.mockReturnValue(createChain({ data: { id: 'em-1' }, error: null }))
++  })
++
++  it('quando non esiste nulla: carica il file, prende un progressivo, scrive la riga', async () => {
++    montaTabelle(null)
++    const r = await generateDpa('lab-test-001', 'cli-001')
++
++    expect(r.riemessa).toBe(true)
++    expect(r.numero_dpa).toBe(`DPA-${ANNO_ROMA}-0007`)
++    expect(r.emissione_id).toBe('em-1')
++    expect(r.buffer.length).toBeGreaterThan(0)
++
++    // il FILE prima della RIGA
++    expect(mockUpload).toHaveBeenCalledBefore(mockInsert as never)
++
++    const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
++    expect(riga.tipo_controparte).toBe('dentista')
++    expect(riga.dentista_id).toBe('cli-001')
++    expect(riga.laboratorio_id).toBe('lab-test-001')
++    expect(riga.stato).toBe('da_firmare')
++    expect(riga.template_versione).toBe(VERSIONE_MODELLO_DPA)   // 🛑 D133: MAI il letterale
++    expect(riga.progressivo_dpa).toBe(7)
++    expect(riga.anno_dpa).toBe(ANNO_ROMA)
++    expect(riga.numero_dpa).toBe(`DPA-${ANNO_ROMA}-0007`)
++    expect(String(riga.storage_path_pdf)).toMatch(/^lab-test-001\/dpa\/\d{4}\/DPA-\d{4}-0007\.pdf$/)
++    // 🔑 Non `toHaveLength(64)`: il vincolo vero in banca dati è
++    // `dpa_impronte_esadecimali` (`^[0-9a-f]{64}$`), e una prova più debole del
++    // vincolo lascia passare proprio la forma che il vincolo esiste per fermare.
++    expect(String(riga.pdf_sha256)).toMatch(/^[0-9a-f]{64}$/)
++    expect(String(riga.payload_sha256)).toMatch(/^[0-9a-f]{64}$/)
++    expect(riga.emesso_at).toBeTruthy()
++  })
++
++  it("il progressivo è chiesto col tipo «dpa» e con l'anno di Roma", async () => {
++    montaTabelle(null)
++    await generateDpa('lab-test-001', 'cli-001')
++    expect(mockProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'dpa', ANNO_ROMA)
++  })
++
++  it("la lettura del cliente porta SEMPRE il filtro laboratorio_id (il client di servizio aggira la RLS)", async () => {
++    montaTabelle(null)
++    await generateDpa('lab-test-001', 'cli-001')
++    expect(catene.clienti.calls).toContainEqual({ method: 'eq', args: ['laboratorio_id', 'lab-test-001'] })
++  })
++
++  it('la riga di registro nasce dentro il proprio laboratorio, e il percorso del file pure', async () => {
++    montaTabelle(null)
++    await generateDpa('lab-test-001', 'cli-001')
++    const riga = mockInsert.mock.calls[0][0] as Record<string, unknown>
++    expect(riga.laboratorio_id).toBe('lab-test-001')
++    // Stesso invariante del CHECK `dpa_percorso_nel_proprio_laboratorio`:
++    // il percorso sta SOTTO la cartella del laboratorio che lo possiede.
++    expect(String(riga.storage_path_pdf).startsWith('lab-test-001/')).toBe(true)
++    expect(mockUpload.mock.calls[0][0]).toBe(riga.storage_path_pdf)
++  })
++})
+diff --git a/tests/unit/generate-dpa.test.ts b/tests/unit/generate-dpa.test.ts
+index 182d88fe..13ae6532 100644
+--- a/tests/unit/generate-dpa.test.ts
++++ b/tests/unit/generate-dpa.test.ts
+@@ -1,40 +1,54 @@
+ // @vitest-environment node
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+ import { createChain } from './helpers/supabase-chain-mock'
+ import { LAB_FIXTURE, CLIENTE_FIXTURE } from './helpers/pdf-fixtures'
+ 
+-const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
++const { mockFrom, mockInsert, mockUpload, mockProgressivo } = vi.hoisted(() => ({
++  mockFrom: vi.fn(), mockInsert: vi.fn(), mockUpload: vi.fn(), mockProgressivo: vi.fn(),
++}))
+ 
+ vi.mock('@/lib/supabase/server-service', () => ({
+-  getServiceClient: () => ({ from: mockFrom }),
++  getServiceClient: () => ({
++    from: mockFrom,
++    storage: { from: () => ({ upload: mockUpload }) },
++  }),
+ }))
++vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: mockProgressivo }))
+ 
+ import { generateDpa } from '../../src/lib/pdf/generate-dpa'
+ 
+ function mockTables(lab: typeof LAB_FIXTURE, cliente: typeof CLIENTE_FIXTURE) {
+   mockFrom.mockImplementation((table: string) => {
+     if (table === 'laboratori') return createChain({ data: lab, error: null })
+     if (table === 'clienti') return createChain({ data: cliente, error: null })
++    if (table === 'data_processing_agreements') {
++      const c = createChain({ data: null, error: null })
++      c.insert = mockInsert
++      return c
++    }
+     throw new Error(`Tabella inattesa nel mock: ${table}`)
+   })
+ }
+ 
+ describe('generateDpa', () => {
+   beforeEach(() => {
+     vi.clearAllMocks()
++    mockUpload.mockResolvedValue({ error: null })
++    mockProgressivo.mockResolvedValue(7)
++    mockInsert.mockReturnValue(createChain({ data: { id: 'em-1' }, error: null }))
+   })
+ 
+   it('genera una DPA con dati fiscali completi', async () => {
+     mockTables(LAB_FIXTURE, CLIENTE_FIXTURE)
+-    const buffer = await generateDpa('lab-test-001', 'cli-001')
+-    expect(buffer.length).toBeGreaterThan(0)
++    const r = await generateDpa('lab-test-001', 'cli-001')
++    expect(r.buffer.length).toBeGreaterThan(0)
+   })
+ 
+   it('rifiuta se il laboratorio non ha né Partita IVA né Codice Fiscale', async () => {
+     mockTables({ ...LAB_FIXTURE, partita_iva: null, codice_fiscale: null }, CLIENTE_FIXTURE)
+     await expect(generateDpa('lab-test-001', 'cli-001')).rejects.toThrow(
+       'DPA: laboratorio privo di Partita IVA e Codice Fiscale'
+     )
+   })
+ 
+   it('rifiuta se il cliente non ha né Partita IVA né Codice Fiscale', async () => {

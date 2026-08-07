@@ -1,0 +1,557 @@
+diff --git a/src/app/ds-v3.css b/src/app/ds-v3.css
+index d7f2ee4f..0f34d988 100644
+--- a/src/app/ds-v3.css
++++ b/src/app/ds-v3.css
+@@ -96,8 +96,16 @@
+    `--card` + `--sh-press: none` dentro un pannello anch'esso `--card`,
+    riga invisibile in dark) esteso alle righe medico di
+    ChiHaPrescrittoSheet.tsx (`.ds-medico-riga`, mini-foglio «Chi ha
+-   prescritto?»): stesso rimedio, stessa forma di regola. */
+-[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-medico-riga {
++   prescritto?»): stesso rimedio, stessa forma di regola.
++   🔁 TERZA volta, gate L2 del 05/08: le due vie del foglio D212
++   (`.ds-via-d212`, «avevo copiato male» / «lo stiamo cambiando noi») avevano
++   lo stesso difetto — interno `#211D18` su pannello `#211D18`, misurato allo
++   scatto. Una superficie premibile in dark deve AFFIORARE (spec §3.2), e a
++   distinguerla restava il solo bordo. Che il rimedio sia alla terza replica
++   dice che il difetto non è del componente ma del pattern: ogni premibile
++   dentro uno sheet lo eredita. */
++[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-medico-riga,
++[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-via-d212 {
+   --card: var(--elv);
+   --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
+ }
+diff --git a/src/components/ds/Avviso.tsx b/src/components/ds/Avviso.tsx
+index 8f1581a6..5d4e18d1 100644
+--- a/src/components/ds/Avviso.tsx
++++ b/src/components/ds/Avviso.tsx
+@@ -190,10 +190,23 @@ function CorpoAvviso(props: { voce: VoceAvviso; onRimuovi: (id: number) => void
+             fontWeight: tipografia.weight.bold,
+             color: 'var(--ink)',
+             margin: 0,
+-            display: '-webkit-box',
+-            WebkitLineClamp: 2,
+-            WebkitBoxOrient: 'vertical',
+-            overflow: 'hidden',
++            // D234 (gate L2, 05/08) — il taglio a 2 righe vale per i SUCCESSI,
++            // mai per gli errori. Un successo è effimero (sparisce da solo dopo
++            // 4s) e la sua frase è breve: due righe bastano. Un errore RESTA
++            // finché non lo chiudi, e il suo contratto è dire «cosa non è
++            // riuscito + cosa fare» (in testa a questo file): del 409 sulla
++            // foto-fonte si leggeva solo «…di questo lavoro — no…», cioè
++            // esattamente la metà che spiega perché. Un errore troncato non è
++            // un errore, è un lampeggio. Coerente col vincolo già ratificato
++            // «mai un'ellissi a metà» del verbale Cassetta.
++            ...(voce.tipo === 'errore'
++              ? {}
++              : {
++                  display: '-webkit-box',
++                  WebkitLineClamp: 2,
++                  WebkitBoxOrient: 'vertical' as const,
++                  overflow: 'hidden',
++                }),
+           }}
+         >
+           {voce.testo}
+diff --git a/src/components/ds/CardInfo.tsx b/src/components/ds/CardInfo.tsx
+index a51a0656..8ec284cd 100644
+--- a/src/components/ds/CardInfo.tsx
++++ b/src/components/ds/CardInfo.tsx
+@@ -5,14 +5,21 @@
+ // mai da sola se è urgente: `urgente` lo decide il chiamante SOLO per una
+ // consegna imminente (oggi o domani) — mai per altri significati generici di
+ // "importante". CardInfo inserisce il separatore tra le righe (mai dopo
+-// l'ultima) e avvisa in dev se il chiamante supera le 5 righe di legge: non
++// l'ultima) e avvisa in dev se il chiamante supera le 6 righe di legge (D230,
++// era 5 fino al gate L2 del 05/08/2026 — v. la costante sotto): non
+ // le nasconde mai, la regola di prodotto non è applicabile a runtime (come
+ // TastoPrimario §5.1 — mostra sempre, avvisa solo chi sviluppa).
+ 
+ import { Children, Fragment, useEffect, type ReactNode } from 'react'
+ import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
+ 
+-const MASSIMO_RIGHE = 5
++// D230 (05/08/2026) — SEI, non cinque. La carta «Il lavoro» della scheda che
++// Francesco ha approvato (D225②) ne porta sei: dentista · paziente · lavoro ·
++// colore · consegna · tecnico. Fino a oggi §5.10 ne dichiarava cinque e il
++// nodo era APERTO nella spec: ogni render della scheda in sviluppo stampava un
++// avviso in attesa di questa decisione. Ha vinto la carta scelta, non la regola
++// scritta prima di vederla.
++const MASSIMO_RIGHE = 6
+ 
+ /** I due toni ammessi per la pastiglia di una riga (v. `RigaDato.pastiglia`).
+  *  Chiuso apposta: la pastiglia dice PROVENIENZA o STATO, e i due significati
+diff --git a/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx b/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx
+index 788e9d06..85543d7f 100644
+--- a/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx
++++ b/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx
+@@ -90,6 +90,7 @@ import { scalaDelCodice } from '@/lib/domain/colore-dente'
+ import { uguagliaColore } from '@/lib/lavori/colore-riga-scheda'
+ import { MOTIVI_DIVERGENZA, type MotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
+ import { molla } from '@/design-system/v3/motion'
++import { vibra } from '@/design-system/v3/haptic'
+ import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
+ 
+ /** Le quattro pastiglie del motivo, testi VERBATIM dal mockup
+@@ -559,7 +560,11 @@ export function ModificaColoreSheet(props: {
+             label="Nota (se serve)"
+             valore={nota}
+             onCambia={setNota}
+-            placeholder="es. richiesta al telefono, 4 agosto"
++            // Gate L2 05/08 — a 390 il testo d'esempio precedente («es. richiesta
++            // al telefono, 4 agosto») veniva tagliato a metà glifo, senza ellissi
++            // né sfumatura: un esempio che finisce dentro una lettera si legge
++            // come un guasto. Più corto, ci sta intero.
++            placeholder="es. richiesta al telefono"
+           />
+ 
+           {/* Si torna DA DOVE SI È ARRIVATI: dal foglio D212 quando c'è passato,
+@@ -664,8 +669,9 @@ function Via(props: {
+           </span>
+           <span
+             style={{
++              // 13.5 era fuori scala §4.1 (label 13, poi 15.5): gate L2 05/08.
++              fontSize: tipografia.size.label,
+               display: 'block',
+-              fontSize: 13.5,
+               fontWeight: tipografia.weight.semibold,
+               color: 'var(--muted)',
+               marginTop: 2,
+@@ -696,7 +702,14 @@ function PastigliaMotivo(props: { testo: string; scelta: boolean; onScegli: () =
+         type="button"
+         className="ds-pastiglia-motivo ds-tap-v3"
+         aria-pressed={scelta}
+-        onClick={onScegli}
++        // Gate L2 05/08 — la pastiglia dichiara di specchiare FoglioCategoria
++        // §5.41 (FoglioCategoria.tsx:227) e ChipScelta, che vibrano a ogni
++        // selezione: stessa anatomia, stesso feedback. Solo `vibra`, mai
++        // `suona`: è una scelta fra opzioni esistenti, non una cosa che nasce.
++        onClick={() => {
++          vibra('selection')
++          onScegli()
++        }}
+         whileTap={{ scale: 0.97 }}
+         transition={molla.press}
+         style={{
+@@ -719,9 +732,11 @@ function PastigliaMotivo(props: { testo: string; scelta: boolean; onScegli: () =
+   )
+ }
+ 
++// 14.5 era fuori dalla scala chiusa §4.1 (fra 13 e 15.5 non c'è nulla): il ruolo
++// è quello della didascalia di foglio, che il sistema serve a 15.5 (gate L2 05/08).
+ const stileSotto = {
+   margin: 0,
+-  fontSize: 14.5,
++  fontSize: tipografia.size.callout,
+   fontWeight: tipografia.weight.semibold,
+   color: 'var(--muted)',
+   lineHeight: 1.45,
+@@ -759,15 +774,22 @@ const stileCambioFreccia = {
+   color: 'var(--faint)',
+ } as const
+ 
++// Gate L2 del 05/08 — DUE correzioni sulla stessa etichetta (TRASCRITTO/NUOVO):
++// ① 11.5 stava SOTTO il minimo della scala §4.1 (caption 12.5) — stesso difetto
++//    che D87 aveva già corretto su FoglioCategoria;
++// ② `--faint` su `--bg-deep` misura 4,17:1, sotto AA. Il fix di `--faint` della
++//    rev. 3.1 era stato verificato su `--bg` (4,56 ✓) ma non su `--bg-deep`:
++//    stesso buco che D193 ha chiuso in dark enumerando i fondi. Qui si sposta
++//    l'etichetta su `--muted` invece di ritoccare il token, che vive ovunque.
+ const stileCambioEtichetta = {
+   display: 'block',
+   textAlign: 'center',
+   marginTop: 3,
+-  fontSize: 11.5,
++  fontSize: tipografia.size.caption,
+   fontWeight: tipografia.weight.extrabold,
+   textTransform: 'uppercase',
+   letterSpacing: '0.1em',
+-  color: 'var(--faint)',
++  color: 'var(--muted)',
+ } as const
+ 
+ const stileGrigliaPastiglie = {
+diff --git a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+index e3c67c6a..f4fc56ec 100644
+--- a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
++++ b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+@@ -284,6 +284,13 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string |
+         //    si ricade sul generico invece di un errore non gestito.
+         if (res.status === 409) {
+           const corpo = (await res.json().catch(() => ({}))) as { error?: string }
++          // Gate L2 del 05/08 — il foglio di conferma si CHIUDE sul 409. Restare
++          // aperto significherebbe offrire un ELIMINA rosso pienamente armato su
++          // un'azione che, come dice il commento qui sopra, non può riuscire
++          // finché la foto resta collegata: il messaggio spiega perché no, e il
++          // tasto accanto continua a dire di sì. Il visore invece resta aperto —
++          // la foto c'è ancora, ed è giusto vederla.
++          setConfermaAperta(false)
+           errore(corpo?.error || 'Non sono riuscita a eliminare la foto. Riprova.')
+           return
+         }
+diff --git a/src/components/features/wizard/AllegaPrescrizioneSheet.tsx b/src/components/features/wizard/AllegaPrescrizioneSheet.tsx
+index 38e020a8..f6adf290 100644
+--- a/src/components/features/wizard/AllegaPrescrizioneSheet.tsx
++++ b/src/components/features/wizard/AllegaPrescrizioneSheet.tsx
+@@ -341,7 +341,11 @@ export function AllegaPrescrizioneSheet(props: {
+             label="Da dove arriva?"
+             valore={testo}
+             onCambia={setTesto}
+-            placeholder="es. email del 4 agosto dal Dr. Rossi"
++            // Gate L2 05/08 — misurato allo scatto a 390: il testo d'esempio
++            // finiva tagliato dentro il nome («dal Dr. Ros»), senza ellissi né
++            // sfumatura. Stesso difetto del placeholder del foglio motivo, e
++            // stessa cura: più corto, così ci sta intero sullo schermo stretto.
++            placeholder="es. email del 4 agosto"
+             aiuto="Facoltativo: serve solo a te, per ritrovarla."
+           />
+           {/* Conferma = TastoSecondario, MAI un secondo rosso: l'unico rosso è
+diff --git a/src/components/features/wizard/ChiHaPrescrittoSheet.tsx b/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
+index 4b3cc1f3..c30f1ec9 100644
+--- a/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
++++ b/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
+@@ -210,7 +210,12 @@ export function ChiHaPrescrittoSheet(props: {
+               // anch'esso `--card` rendeva la riga invisibile (restava solo il
+               // testo) — stesso difetto già chiuso per `.ds-chip-scelta`/
+               // `.ds-tasto-tondo`, qui esteso alle righe di questo foglio.
+-              <button key={m.id} type="button" onClick={() => scegli(m)} className="ds-medico-riga" style={stileMedico}>
++              // `ds-tap-v3` = l'anello di messa a fuoco del DS (D4): senza,
++              // navigando da tastiera queste righe avevano il solo outline
++              // nativo del browser. Il polish D4 l'aveva esteso alle «voci
++              // degli sheet» — queste sono nate dopo e ne erano rimaste fuori
++              // (gate L2 del 05/08).
++              <button key={m.id} type="button" onClick={() => scegli(m)} className="ds-medico-riga ds-tap-v3" style={stileMedico}>
+                 <Avatar nome={nomeCompleto(m)} diametro={46} />
+                 <span style={stileMedicoNome}>{nomeCompleto(m)}</span>
+               </button>
+diff --git a/src/components/features/wizard/FrameFatto.tsx b/src/components/features/wizard/FrameFatto.tsx
+index a7e560cb..d2884227 100644
+--- a/src/components/features/wizard/FrameFatto.tsx
++++ b/src/components/features/wizard/FrameFatto.tsx
+@@ -129,11 +129,33 @@ function elenca(pezzi: string[]): string {
+  * la direttiva «ogni campo del lavoro si corregge, fino alla consegna» la
+  * garantisce.
+  */
+-function messaggioAccessoriFalliti(accessoriFalliti: AccessorioFallito[]): string {
+-  const elenco = elenca(accessoriFalliti.map((a) => ETICHETTE_ACCESSORIO[a]))
+-  const pronome =
+-    accessoriFalliti.length === 1 ? PRONOME_SINGOLO[accessoriFalliti[0]] : 'Li'
+-  return `Non sono riuscita a salvare ${elenco}. ${pronome} aggiungi dalla scheda.`
++function messaggioAccessoriFalliti(
++  accessoriFalliti: AccessorioFallito[],
++  // D231① (gate L2 05/08, rilievo M3-T39-7): vero quando la carta «La
++  // prescrizione» sta MOSTRANDO il colore con la pastiglia «✓ dalla
++  // prescrizione». In quel caso il colore non è perduto — è perduto il colore
++  // del LAVORO (il codice non è in catalogo), mentre la trascrizione del foglio
++  // è scritta. Dire «non sono riuscita a salvare il colore» sopra una carta che
++  // lo mostra è una frase falsa, e chi la legge crede alla frase.
++  coloreTrascrittoSalvo = false,
++): string {
++  const coloreSoloDaApplicare = coloreTrascrittoSalvo && accessoriFalliti.includes('colore')
++  const persiDavvero = coloreSoloDaApplicare
++    ? accessoriFalliti.filter((a) => a !== 'colore')
++    : accessoriFalliti
++
++  const frasi: string[] = []
++  if (persiDavvero.length > 0) {
++    const elenco = elenca(persiDavvero.map((a) => ETICHETTE_ACCESSORIO[a]))
++    const pronome = persiDavvero.length === 1 ? PRONOME_SINGOLO[persiDavvero[0]] : 'Li'
++    frasi.push(`Non sono riuscita a salvare ${elenco}. ${pronome} aggiungi dalla scheda.`)
++  }
++  if (coloreSoloDaApplicare) {
++    frasi.push(
++      "Il colore l'ho trascritto dal foglio, ma non l'ho potuto applicare al lavoro: lo scegli dalla scheda.",
++    )
++  }
++  return frasi.join(' ')
+ }
+ 
+ /** La pastiglia di provenienza (D224): dice che quel dato viene dal foglio del
+@@ -260,7 +282,7 @@ export function FrameFatto(props: {
+     suona('fatta')
+     vibra('success')
+     if (accessoriFalliti.length > 0) {
+-      errore(messaggioAccessoriFalliti(accessoriFalliti))
++      errore(messaggioAccessoriFalliti(accessoriFalliti, mostraColoreTrascritto))
+     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [])
+@@ -340,7 +362,7 @@ export function FrameFatto(props: {
+       </div>
+ 
+       {/* ── Carta ① «Il lavoro» — la caption sta FUORI dalla carta (mockup) ── */}
+-      <section aria-labelledby={idCartaLavoro} style={{ marginTop: 24 }}>
++      <section aria-labelledby={idCartaLavoro} style={{ marginTop: 18 }}>
+         <p id={idCartaLavoro} style={stileCardTitolo}>Il lavoro</p>
+         <CardInfo>
+           <RigaDato chiave="Dentista" valore={dentista} />
+@@ -355,7 +377,7 @@ export function FrameFatto(props: {
+       </section>
+ 
+       {/* ── Carta ② «La prescrizione» — ciò che viene dal foglio del dentista ── */}
+-      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: 16 }}>
++      <section aria-labelledby={idCartaPrescrizione} style={{ marginTop: 14 }}>
+         <p id={idCartaPrescrizione} style={stileCardTitolo}>La prescrizione</p>
+         <CardInfo>
+           {dentiPrescritti.length > 0 && (
+@@ -397,7 +419,7 @@ export function FrameFatto(props: {
+         </CardInfo>
+       </section>
+ 
+-      <div style={{ marginTop: 16 }}>
++      <div style={{ marginTop: 14 }}>
+         <p style={stileCardTitolo}>Consegna suggerita</p>
+         <div style={stileConsegnaBox}>
+           <p style={stileFrase}>
+@@ -413,7 +435,7 @@ export function FrameFatto(props: {
+           Senza il foglio allegato l'unica cosa che vale un tasto rosso è il
+           foglio: la foto dell'impronta scende a link quieto e resta a un tap.
+           Con il foglio in archivio, il rosso torna quello di sempre. */}
+-      <div style={{ marginTop: 26 }}>
++      <div style={{ marginTop: 20 }}>
+         {fonteConImmagine ? (
+           <TastoPrimario onClick={apriFileInput} disabled={caricandoFoto} motivoDisabilitato="Un attimo…">
+             Fotografa l&apos;impronta
+@@ -465,13 +487,19 @@ export function FrameFatto(props: {
+   )
+ }
+ 
++// D233① «compattiamo» (Francesco, gate L2 05/08) — gli spazi neutri si stringono.
++// 🛑 NON si tocca: il cerchio Ø92 (valore verbatim del mockup approvato) né il
++//    gap 44 fra i due link quieti, che è un vincolo di SICUREZZA del pollice
++//    (0B-3: sotto quella misura le due aree da 44px si sovrappongono e il tap
++//    finisce sul bersaglio sbagliato). Sono le due sole leve capaci di
++//    recuperare molto, ed entrambe costerebbero una decisione, non un ritocco.
+ const stileHead: CSSProperties = {
+   display: 'flex',
+   flexDirection: 'column',
+   alignItems: 'center',
+   textAlign: 'center',
+-  gap: 14,
+-  marginTop: 10,
++  gap: 12,
++  marginTop: 4,
+ }
+ 
+ // wizard.html:179 .fatto-check — Ø92, tint verde.
+@@ -587,7 +615,7 @@ const stilePastigliaAmbraSola: CSSProperties = {
+ // spazio.sm (12) dava -14px (sovrapposizione, il secondo elemento del DOM
+ // vince il tap); con spazio.xxl (44) dà 18px d'aria vera.
+ const stileQuieti: CSSProperties = {
+-  marginTop: 18,
++  marginTop: 14,
+   display: 'flex',
+   flexDirection: 'column',
+   alignItems: 'center',
+diff --git a/src/components/features/wizard/WizardNuovoLavoro.tsx b/src/components/features/wizard/WizardNuovoLavoro.tsx
+index 19a5bf07..60f17e5d 100644
+--- a/src/components/features/wizard/WizardNuovoLavoro.tsx
++++ b/src/components/features/wizard/WizardNuovoLavoro.tsx
+@@ -637,26 +637,33 @@ function CorpoWizard(props: {
+   }, [stato, dati.giorniPerTipo, errore])
+ 
+   if (fatto) {
++    // Il «Fatto!» vive nella STESSA colonna dei passi (gate L2 del 05/08, D233①):
++    // senza questo wrapper le carte andavano da bordo a bordo — a 390 senza il
++    // respiro laterale, a 768/1280 stirate a tutta pagina col rosso incollato a
++    // sinistra (TastoPrimario è maxWidth 480 senza margin auto) mentre la testata
++    // restava centrata. Due assi diversi nella stessa schermata.
+     return (
+-      <FrameFatto
+-        lavoro={fatto.lavoro}
+-        accessoriFalliti={fatto.accessoriFalliti}
+-        elemento={fatto.elemento}
+-        colore={fatto.colore}
+-        coloreOrigine={fatto.coloreOrigine}
+-        // Task 10 (P37) — chiude il 🚧 lasciato dalla ondata B ③/T3: il
+-        // wizard ora HA una via per il prescrittore (il mini-foglio «Chi ha
+-        // prescritto?»). Stringa vuota quando assente — `FrameFatto` nasconde
+-        // da sola la riga «Prescritto da» in quel caso (0B-9).
+-        richiedenteNome={fatto.richiedenteNome}
+-        dentista={fatto.dentista}
+-        lavoroLabel={fatto.lavoroLabel}
+-        pz={fatto.pz}
+-        giorni={fatto.giorni}
+-        daStoria={fatto.daStoria}
+-        dataConsegna={fatto.dataConsegna}
+-        onTornaHome={onTornaHome}
+-      />
++      <div style={colonnaStile}>
++        <FrameFatto
++          lavoro={fatto.lavoro}
++          accessoriFalliti={fatto.accessoriFalliti}
++          elemento={fatto.elemento}
++          colore={fatto.colore}
++          coloreOrigine={fatto.coloreOrigine}
++          // Task 10 (P37) — chiude il 🚧 lasciato dalla ondata B ③/T3: il
++          // wizard ora HA una via per il prescrittore (il mini-foglio «Chi ha
++          // prescritto?»). Stringa vuota quando assente — `FrameFatto` nasconde
++          // da sola la riga «Prescritto da» in quel caso (0B-9).
++          richiedenteNome={fatto.richiedenteNome}
++          dentista={fatto.dentista}
++          lavoroLabel={fatto.lavoroLabel}
++          pz={fatto.pz}
++          giorni={fatto.giorni}
++          daStoria={fatto.daStoria}
++          dataConsegna={fatto.dataConsegna}
++          onTornaHome={onTornaHome}
++        />
++      </div>
+     )
+   }
+ 
+diff --git a/tests/unit/FrameFatto.test.tsx b/tests/unit/FrameFatto.test.tsx
+index c8d100f3..7668a4cd 100644
+--- a/tests/unit/FrameFatto.test.tsx
++++ b/tests/unit/FrameFatto.test.tsx
+@@ -623,3 +623,39 @@ describe('FrameFatto — "Torna alla home"', () => {
+     expect(onTornaHome).toHaveBeenCalledTimes(1)
+   })
+ })
++
++// D231① (gate L2 del 05/08, rilievo M3-T39-7) — l'avviso non può CONTRADDIRE la
++// carta che gli sta sotto. Quando il codice digitato non è in catalogo ma la
++// trascrizione è stata scritta lo stesso (le due strade sono indipendenti sul
++// server: `componiSnapshot` vs `risolviColoreCaso`), la carta «La prescrizione»
++// mostra il colore con la pastiglia «✓ dalla prescrizione» — e la vecchia frase
++// diceva «Non sono riuscita a salvare il colore». Delle due una è falsa, e a
++// essere falsa era la frase: il colore del LAVORO non si è potuto applicare, la
++// trascrizione del foglio c'è.
++describe('FrameFatto — la frase del colore non contraddice la carta (D231①)', () => {
++  it('trascrizione salva + colore fuori catalogo → dice che il colore è trascritto, non che è perduto', async () => {
++    renderFatto({ colore: 'A3,5', accessoriFalliti: ['colore'] })
++    const avviso = await screen.findByRole('alert')
++    // La riga con la pastiglia c'è: è quello che la frase non deve smentire.
++    expect(carta('La prescrizione').getByText('A3,5')).toBeInTheDocument()
++    expect(avviso).toHaveTextContent(/trascritto dal foglio/)
++    expect(avviso).not.toHaveTextContent(/Non sono riuscita a salvare il colore/)
++  })
++
++  it('sganciato + fuori catalogo → NIENTE è stato salvato: resta la frase storica', async () => {
++    // Qui la carta non mostra nulla (test sopra), quindi nessuna contraddizione:
++    // la perdita è vera e la frase deve continuare a dirla.
++    renderFatto({ colore: 'A3,5', coloreOrigine: 'lab', accessoriFalliti: ['colore'] })
++    expect(await screen.findByRole('alert')).toHaveTextContent(
++      'Non sono riuscita a salvare il colore. Lo aggiungi dalla scheda.'
++    )
++  })
++
++  it('elementi persi + colore trascritto → due frasi distinte, nessuna delle due falsa', async () => {
++    renderFatto({ colore: 'A3,5', elemento: 'pippo', accessoriFalliti: ['elementi', 'colore'] })
++    const avviso = await screen.findByRole('alert')
++    // Gli elementi sono persi davvero → frase storica, ma SENZA il colore dentro.
++    expect(avviso).toHaveTextContent('Non sono riuscita a salvare gli elementi. Li aggiungi dalla scheda.')
++    expect(avviso).toHaveTextContent(/trascritto dal foglio/)
++  })
++})
+diff --git a/tests/unit/ds-v3/componenti/Avviso.troncamento.test.tsx b/tests/unit/ds-v3/componenti/Avviso.troncamento.test.tsx
+new file mode 100644
+index 00000000..1e6b9c6e
+--- /dev/null
++++ b/tests/unit/ds-v3/componenti/Avviso.troncamento.test.tsx
+@@ -0,0 +1,60 @@
++import { describe, it, expect, afterEach } from 'vitest'
++import { render, screen, cleanup, act } from '@testing-library/react'
++import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
++
++// D234 (gate L2, 05/08/2026) — il difetto l'ha visto Francesco su uno scatto:
++// del 409 «fonte in uso» si leggeva «…di questo lavoro — no…», e la metà che
++// spiega PERCHÉ non si può eliminare era invisibile. `Avviso` tagliava OGNI
++// testo a due righe con `-webkit-line-clamp`.
++//
++// La regola decisa: il taglio resta sui SUCCESSI (spariscono da soli dopo 4s,
++// e la loro frase è corta) e cade sugli ERRORI (restano finché non li chiudi,
++// e il contratto scritto in testa al componente promette «cosa non è riuscito
++// + cosa fare»). Un errore troncato non è un errore: è un lampeggio.
++//
++// ⚠️ Il test guarda lo STILE, non il testo: jsdom non impagina, quindi «quante
++//    righe si vedono» non è misurabile qui — misurabile è la proprietà che le
++//    taglia. La prova visiva sta nello scatto `errore-fonte-in-uso-390-chiaro`.
++
++const LUNGO =
++  'Questa immagine è la fonte della prescrizione di questo lavoro — non si può eliminare finché resta collegata.'
++
++function Scintilla({ tipo, testo }: { tipo: 'errore' | 'ok'; testo: string }) {
++  const { errore, avvisa } = useAvvisi()
++  return (
++    <button onClick={() => (tipo === 'errore' ? errore(testo) : avvisa(testo))}>accendi</button>
++  )
++}
++
++function accendi(tipo: 'errore' | 'ok', testo = LUNGO) {
++  render(
++    <AvvisiProvider>
++      <Scintilla tipo={tipo} testo={testo} />
++    </AvvisiProvider>
++  )
++  act(() => {
++    screen.getByRole('button', { name: 'accendi' }).click()
++  })
++  return screen.getByText(testo)
++}
++
++afterEach(cleanup)
++
++describe('Avviso — il troncamento (D234)', () => {
++  it("un ERRORE non è tagliato: nessun clamp sul paragrafo", () => {
++    const p = accendi('errore')
++    expect(p.style.webkitLineClamp).toBe('')
++    expect(p.style.overflow).not.toBe('hidden')
++  })
++
++  it('un SUCCESSO resta tagliato a due righe: è effimero e breve', () => {
++    const p = accendi('ok')
++    expect(p.style.webkitLineClamp).toBe('2')
++    expect(p.style.overflow).toBe('hidden')
++  })
++
++  it("l'errore porta con sé la via d'uscita: senza «Chiudi» resterebbe per sempre", () => {
++    accendi('errore')
++    expect(screen.getByRole('button', { name: 'Chiudi' })).toBeInTheDocument()
++  })
++})
+diff --git a/tests/unit/ds-v3/componenti/righe.test.tsx b/tests/unit/ds-v3/componenti/righe.test.tsx
+index 52157cc9..cf101ded 100644
+--- a/tests/unit/ds-v3/componenti/righe.test.tsx
++++ b/tests/unit/ds-v3/componenti/righe.test.tsx
+@@ -139,7 +139,11 @@ describe('CardInfo — card di dati (§5.10)', () => {
+     expect(separatori.length).toBe(2) // 3 righe → 2 separatori, mai dopo l'ultima
+   })
+ 
+-  it('con 5 RigheDato (massimo di legge) nessun console.warn', () => {
++  // D230 (05/08/2026) — il massimo di legge è passato da 5 a 6: la carta «Il
++  // lavoro» approvata da Francesco (D225②) ne ha sei, e il conflitto §5.10 era
++  // dichiaratamente APERTO nella spec. La carta VERA della scheda è quindi il
++  // caso al limite, non un caso oltre il limite.
++  it('con 6 RigheDato (massimo di legge, D230) nessun console.warn', () => {
+     vi.stubEnv('NODE_ENV', 'development')
+     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+     render(
+@@ -149,12 +153,13 @@ describe('CardInfo — card di dati (§5.10)', () => {
+         <RigaDato chiave="C" valore="3" />
+         <RigaDato chiave="D" valore="4" />
+         <RigaDato chiave="E" valore="5" />
++        <RigaDato chiave="F" valore="6" />
+       </CardInfo>
+     )
+     expect(warnSpy).not.toHaveBeenCalled()
+   })
+ 
+-  it('con più di 5 RigheDato → console.warn in dev, ma le righe restano tutte visibili (mai nascoste)', () => {
++  it('con più di 6 RigheDato → console.warn in dev, ma le righe restano tutte visibili (mai nascoste)', () => {
+     vi.stubEnv('NODE_ENV', 'development')
+     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+     render(
+@@ -165,10 +170,11 @@ describe('CardInfo — card di dati (§5.10)', () => {
+         <RigaDato chiave="D" valore="4" />
+         <RigaDato chiave="E" valore="5" />
+         <RigaDato chiave="F" valore="6" />
++        <RigaDato chiave="G" valore="7" />
+       </CardInfo>
+     )
+     expect(warnSpy).toHaveBeenCalled()
+-    expect(screen.getByText('F')).toBeInTheDocument()
++    expect(screen.getByText('G')).toBeInTheDocument()
+   })
+ })
+ 

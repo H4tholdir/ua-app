@@ -1,0 +1,135 @@
+# Review package: 87beb287..b7d7802c
+
+## Commits
+b7d7802c fix(consegna): consegna_finalizza_atomica e import storico scrivono prima_immissione_at
+
+## Files changed
+ scripts/import-lavori-storici.ts                   | 14 +++++-
+ ...rrezione_prima_immissione_finalizza_atomica.sql | 58 ++++++++++++++++++++++
+ 2 files changed, 70 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/scripts/import-lavori-storici.ts b/scripts/import-lavori-storici.ts
+index b4ac60da..89e6f2cb 100644
+--- a/scripts/import-lavori-storici.ts
++++ b/scripts/import-lavori-storici.ts
+@@ -38,22 +38,20 @@ const CLIENT_MAP: Record<string, string> = {
+   '008': '34524a11-c6a9-45f2-a9bd-57011be1366c', // Vuolo Gianfranco
+   '09':  '8c1c2e21-7f95-4c76-89b5-4d6c90bbfb9d', // Studio Odontoiatrico Scienga
+   '21':  'd7ef4ba2-16a8-419a-8657-3e502ff256a1', // Studio Odontoiatrico (Muro Lucano)
+   '19':  '3b14a589-37c8-4cb2-a103-104bde089bf3', // Studio Odontoiatrico Piegari
+   '8':   '75da591b-acc7-43f2-b854-fedf28969512', // GDA STP S.R.L.
+   'RL':  '0b86ee01-9f5a-4d7b-997a-4f7d72b9467f', // Gianfranco Lanza
+   '10':  '95309bd2-73ff-4657-ac6f-2b456e7d9dde', // Studio Odontoiatrico Sica
+   '120': 'f8df10db-f2d1-4f95-9f42-39f922ccdbd3', // Dott. Mara Opromolla
+ }
+ 
+-type Stato = 'consegnato' | 'sospeso'
+-
+ interface LavoroStorico {
+   dm_cliente: string
+   dispositivo: string
+   data_ingresso: string     // DD/MM/YY
+   data_consegna?: string    // DD/MM/YY, opzionale
+   status: 'Fatturato' | 'Attivo'
+   importo?: number
+   cod_paz?: string
+ }
+ 
+@@ -156,20 +154,32 @@ async function main() {
+       numero_lavoro: numeroLavoro,
+       anno_lavoro: anno,
+       cliente_id: clienteId,
+       tipo_dispositivo: mapTipoDispositivo(l.dispositivo),
+       descrizione: l.cod_paz ? `${l.dispositivo} — Paz: ${l.cod_paz}` : l.dispositivo,
+       stato: 'consegnato' as const,
+       priorita: 'normale' as const,
+       data_ingresso: dataIngresso,
+       data_consegna_prevista: dataConsegna,
+       data_consegna_effettiva: dataConsegna,
++      // 🔑 Import storico = lavoro nato GIÀ consegnato: per questa riga
++      // dataConsegna È la prima (e unica) messa a disposizione, quindi
++      // prima_immissione_at si allinea a data_consegna_effettiva — stessa
++      // regola del backfill in 20260807172520_lavori_prima_immissione.sql
++      // (SET prima_immissione_at = data_consegna_effettiva WHERE
++      // stato='consegnato' AND data_consegna_effettiva IS NOT NULL). Senza
++      // questa riga, un import futuro di dati VERI (migrazione di un
++      // laboratorio che entra in UÀ) ricreerebbe in silenzio lo stesso buco
++      // che il Task 2 ha chiuso per l'orchestratore: righe 'consegnato'
++      // senza mai una data da cui contare i 10 anni di conservazione della
++      // dichiarazione (Allegato XIII p.4).
++      prima_immissione_at: dataConsegna,
+       classe_rischio: 'classe_iia',
+       da_conformare: false,
+       conformato: true,
+       incluso_in_fattura: l.status === 'Fatturato',
+       codice_iva: 'N4',
+       natura_iva: 'N4',
+       prezzo_unitario: l.importo ?? null,
+       note_interne: `IMPORT DentalMaster | Status DM: ${l.status}`,
+     })
+ 
+diff --git a/supabase/migrations/20260807174850_correzione_prima_immissione_finalizza_atomica.sql b/supabase/migrations/20260807174850_correzione_prima_immissione_finalizza_atomica.sql
+new file mode 100644
+index 00000000..03376c15
+--- /dev/null
++++ b/supabase/migrations/20260807174850_correzione_prima_immissione_finalizza_atomica.sql
+@@ -0,0 +1,58 @@
++-- supabase/migrations/20260807174850_correzione_prima_immissione_finalizza_atomica.sql
++-- Correzione del rilievo CRITICO della revisione sul Task 2 dell'ondata
++-- «si deve sempre poter intervenire» (20260807172520_lavori_prima_immissione.sql,
++-- già applicata). Non si tocca la migration precedente: il registro delle
++-- migration si disallinea.
++--
++-- 🔴 CRITICO — una seconda funzione che segna consegne non scrive la colonna
++-- nuova. public.consegna_finalizza_atomica(uuid,uuid), definita in
++-- 20260710150000_ondata0_pulizia_outbox.sql:28-51, fa
++--   UPDATE lavori SET stato='consegnato', ..., data_consegna_effettiva = now(), ...
++-- e non tocca prima_immissione_at. Oggi è dormiente (nessuna chiamata
++-- .rpc('consegna_finalizza_atomica'…) in src/), ma
++-- 20260721090000_parete_cassette.sql:152-155 la descrive già come possibile
++-- percorso di consegna futuro — una funzione che segna una consegna senza
++-- scrivere la data della prima immissione lascerebbe il buco aperto proprio
++-- sul percorso che conta.
++--
++-- Corpo ribattuto dal CATALOGO VIVO (pg_get_functiondef), non dal file di
++-- migration: provato che i due coincidono, invocazione sotto in fondo al file
++-- come nota. Unica differenza voluta: l'aggiunta della riga
++-- prima_immissione_at = COALESCE(lavori.prima_immissione_at, now()),
++-- simmetrica a src/lib/consegna/orchestrate.ts:337
++-- (prima_immissione_at: lavoro.prima_immissione_at ?? now). Stessa firma
++-- (uuid, uuid) → CREATE OR REPLACE, nessun overload orfano.
++CREATE OR REPLACE FUNCTION public.consegna_finalizza_atomica(
++  p_lavoro_id uuid, p_laboratorio_id uuid
++) RETURNS json
++LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++DECLARE
++  v_rows int;
++BEGIN
++  UPDATE lavori SET
++    stato = 'consegnato',
++    consegna_in_corso = false,
++    conformato = true,
++    data_conformazione = now(),
++    data_consegna_effettiva = now(),
++    -- 🔑 Simmetrico a orchestrate.ts:337 — la prima immissione sul mercato
++    -- si scrive UNA VOLTA SOLA (Allegato XIII p.4 + Art. 2(28)): se la
++    -- colonna è già piena (riconsegna dopo una riapertura), il valore
++    -- esistente vince sempre e il termine dei 10 anni non riparte da capo.
++    prima_immissione_at = COALESCE(lavori.prima_immissione_at, now()),
++    consegna_completata_at = now(),
++    consegna_precheck_passato_al_primo_tentativo = true
++  WHERE id = p_lavoro_id AND laboratorio_id = p_laboratorio_id AND deleted_at IS NULL;
++  GET DIAGNOSTICS v_rows = ROW_COUNT;
++  IF v_rows = 0 THEN
++    RAISE EXCEPTION 'consegna_finalizza: lavoro non trovato o eliminato';
++  END IF;
++
++  RETURN json_build_object('ok', true);
++END;
++$$;
++-- Rimessi esplicitamente (CREATE OR REPLACE conserva già l'ACL su Postgres,
++-- ma li si riafferma per lo stesso motivo per cui la migration originale li
++-- scriveva: dichiarati, non impliciti).
++REVOKE ALL ON FUNCTION public.consegna_finalizza_atomica(uuid, uuid) FROM PUBLIC, anon, authenticated;
++GRANT EXECUTE ON FUNCTION public.consegna_finalizza_atomica(uuid, uuid) TO service_role;

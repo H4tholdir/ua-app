@@ -1,0 +1,2257 @@
+# Review package: 2d3d54f7..93b19d5e
+
+## Commits
+93b19d5e test(scheda): il giro intero dal foglio alla riga (la cerniera che mancava)
+244b2d56 docs(ds): §5.10 la pastiglia di provenienza · §7.3 il rosso del «Fatto!»
+550c47c2 feat(scheda): la riga «Colore» coi suoi stati e il gesto D212
+
+## Files changed
+ ...6-07-07-design-system-v3-una-cosa-alla-volta.md |   2 +
+ src/app/(app)/lavori/[id]/page.tsx                 |  25 +
+ src/components/ds/CardInfo.tsx                     |   6 +-
+ .../lavori/scheda-v3/ModificaColoreSheet.tsx       | 650 +++++++++++++++++++++
+ .../lavori/scheda-v3/ModificaRigaSheet.tsx         |  32 +-
+ .../features/lavori/scheda-v3/SchedaLavoroV3.tsx   | 138 ++++-
+ src/lib/lavori/colore-riga-scheda.ts               | 172 ++++++
+ tests/unit/colore-riga-scheda.test.ts              | 226 +++++++
+ .../unit/scheda-v3/modifica-colore-sheet.test.tsx  | 353 +++++++++++
+ tests/unit/scheda-v3/scheda-riga-colore.test.tsx   | 251 ++++++++
+ 10 files changed, 1849 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md b/docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md
+index cedb4cd7..2e0a2e51 100644
+--- a/docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md
++++ b/docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md
+@@ -238,20 +238,21 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
+ ### 5.9 `PillTempo` / `PillStato`
+ - Pill · padding 7/13 · 15/800 (PillTempo) o 13.5/800/+0.1em (PillStato) · sfondo tint + testo colore famiglia.
+ - Vocabolario stati (chiuso, §2.3): DA CONSEGNARE · OGGI·hh:mm · IN FORNO · IN RIFINITURA · APPENA ARRIVATO · PRONTA ✓ · CONSEGNATO ✓ · DA INCASSARE · INCASSATA ✓ · INVIATA ✓ · STA PER FINIRE · **IN PROVA** (famiglia viola) · **FERMO** · **DA IERI** · **−N GIORNI** (PillTempo negative, famiglia rossa) (rev. 3.1).
+ - **Nota (rev. 3.1):** per i lavori in lavorazione la PillStato mostra la fase corrente del ciclo del lab (MAIUSCOLA), `STA PER FINIRE` sull'ultima fase (rev. 3.1 — P6 piano Ondata 1).
+ - **Nota (emendamento 20/07/2026, ondata A):** nelle righe di «Persone» (§7.14) compare la pill «PRRC ✓» — famiglia verde di PillTempo — sul tecnico designato.
+ 
+ ### 5.10 `RigaDato` (schede)
+ - Dentro `CardInfo` (card 22, padding 4/20): righe `padding 9px 0`, separatore 1.5 `--line`.
+ - Chiave: caption 12.5/800 MAIUSCOLA `--faint` a sinistra. Valore: 17/700 `--ink` allineato a destra (sub-valore 14/500 muted sotto).
+ - **Max 5 righe per card.** L'unico valore che può essere rosso è la consegna imminente (≤ domani).
++- **Emendamento 04/08/2026 (ondata B ③, D225② — riserva 8 del panel) — `RigaDato` con PASTIGLIA DI PROVENIENZA.** Sotto il valore, allineata a destra come lui, una pastiglia che dice **da dove viene** quel dato (`✓ dalla prescrizione`, `--green-tint`/`--green`) o **cosa gli manca** (`--amber-tint`/`--amber`). Due toni soltanto, chiusi: la pastiglia dice provenienza o stato, e non esiste un terzo significato senza una decisione. 🔑 **TENUTA SCARSA — solo dove la provenienza ESISTE:** colore ed elementi, cioè le caratteristiche che possono essere trascritte da un foglio (spec ondata B, V2: chiave presente = trascritta). **Mai generalizzata** alle altre righe: una pastiglia su ogni riga smette di dire qualcosa. Il valore **senza** provenienza usa il `sub` (14/500 muted) — «*scelto dal laboratorio*», «*prescritto: A3*» — perché l'assenza di pastiglia da sola non è un segnale (riserva 5 del panel). 🛑 **Mai `white-space: nowrap`**, benché il mockup ce l'abbia: a text-zoom 200% (§13.3) una pastiglia che non va a capo esce dalla carta — lezione misurata di D96 su `FoglioCategoria`. Mockup: `docs/design/mockups/2026-08-04-ondata-b3-schermate-vere.html`, scene `scheda-colore` e `p-fatto-*` (`.pill-presc`). Codice: `src/components/ds/CardInfo.tsx`. ⚠️ **Aperto, riferito e NON risolto qui:** con la riga «Colore» la `CardInfo` della scheda lavoro arriva a **sei** righe e questa sezione ne fissa cinque — il mockup approvato (scena 9) ne mostra sei. `CardInfo` non ne nasconde nessuna e avvisa solo chi sviluppa: il nodo resta visibile finché non lo scioglie una decisione, che non è di T7.
+ 
+ ### 5.11 `RigaFase`
+ - Riga: `CheckTondo` Ø 31 (fatto: `--green-tint` + check 3px; da fare: cerchio dashed 2.5 `#CBC1B0`) + nome 17/700 (fatto: 17/600 muted, MAI barrato) + sotto 13.5 faint "chi · quando" + `PillFase` a destra SOLO sulla prossima fase da fare.
+ - **Una sola fase alla volta mostra il tasto FATTA** (la prima non completata). Le altre future sono elencate senza azione.
+ 
+ ### 5.12 `TileScelta` (wizard)
+ - Card 22 · padding 20/12/17 · centrato · avatar Ø 60 (iniziali 21/800 bianco su colore) o glifo 64 in quadrato 20 tint · nome 17.5/700 · sotto 13 faint (frequenza: "12 lavori a giugno").
+ - Griglia 2 colonne, gap 15. **Massimo 4 tile + 1 "Nuovo" dashed + 1 riga-cerca.** L'ordinamento è per frequenza d'uso (ultimi 30 giorni).
+ - `TileNuovo`: bordo dashed 2.5 `#CBC1B0`, niente ombra.
+ 
+@@ -418,20 +419,21 @@ lavoro → CONSEGNA → conferma
+ ### 7.2 Pila aperta (liste lavori) — frame 2
+ - Titolo colore-famiglia + sub coi numeri utili ("2 lavori · il più vicino alle 16:00") · CardLavoro impilate, ordinate per urgenza · il PRIMO elemento della pila rossa porta il TastoConsegnaInline.
+ - "Appena arrivati": la card ha CTA "Conferma" che apre il wizard di conferma (data consegna proposta da UÀ, L5).
+ - **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile».
+ - **Nota (emendamento 20/07/2026, ondata A):** «Le pile» come vista bare è **eliminata** — `/lavori` senza `pila` fa redirect a `/dashboard` (§6.1). Il back della pila aperta torna a `/dashboard` (§6.2).
+ 
+ ### 7.3 Wizard "Nuovo lavoro" (dal TastoPiù) — frames 3-4
+ - Passi: **1 Dentista → 2 Tipo lavoro → 3 Paziente e dettagli (tutto opzionale) → Fatto.** Percorso minimo **3 tocchi**: tile dentista → tile tipo → TastoPrimario «Fotografa impronta e prescrizione» (rev. 3.2 — il piano Ondata 0 ne contava 4 col chip «Va bene ✓», rimosso su advisor UX, deviazione B7-2 ratificata 12/07). Ogni passo: back + ProgressDots (§5.32) + domanda (token `question` 35/800) + hint + griglia/`RigaCerca` + PillVoce.
+ - **Passo 2 = tassonomia granulare** (rev. 3.2, spec Ondata 2 §3): i tile mostrano i TIPI GRANULARI (`tipi-lavoro.ts`, 38 voci in 10 famiglie macro, ordinati per frequenza 30gg del lab); la macro resta il dominio di `lavori.tipo_dispositivo`; `descrizione` = label granulare; classe di rischio default per tipo.
+ - "Fatto!": check grande + riepilogo + **consegna suggerita RISOLTA** (rev. 3.2 — riga informativa + LinkQuieto «Cambia data» → sheet con ChipScelta §5.31 + CampoData §5.27) + TastoPrimario «Fotografa impronta e prescrizione» + LinkQuieto home. NIENTE chip di scelta sulla vista (L1: una decisione).
++- 🔄 **Emendamento 04/08/2026 (ondata B ③, D225① — riserva 7 del panel) — il primario del «Fatto!» CAMBIA MESTIERE.** La riga sopra fissa il rosso a «Fotografa impronta e prescrizione»: **non è più così**. Il «Fatto!» è a **due carte** (D224: «Il lavoro» + «La prescrizione») e **finché il foglio del dentista non è in archivio il primario è «Allega la prescrizione»** (apre il foglio a2, §D222); la foto dell'impronta scende a `LinkQuieto` e resta a un tap. **Con il foglio in archivio** il primario torna **«Fotografa l'impronta»** e il quieto gemello si toglie di mezzo — **uno solo per schermata, sempre** (§5.1 intatta: cambia il mestiere del rosso, non il loro numero). 🛑 **«In archivio» vuol dire UN'IMMAGINE, non una promessa** (vincolo 0B-4): la terza voce del foglio a2 registra soltanto da dove arriverà la prescrizione, la riga resta **ambra** e il rosso continua a chiederla — la Dichiarazione si appoggia all'originale, e un promemoria non lo è. ⚠️ **Deviazione dichiarata dal mockup:** i due `LinkQuieto` sono **impilati**, non affiancati a 28px (vincolo 0B-3: due bersagli da 44 così vicini si prendono l'uno per l'altro col pollice); l'ordine resta azione sopra, uscita sotto. Codice: `src/components/features/wizard/FrameFatto.tsx`. Verbale: `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md`.
+ - Abbandono: stato in localStorage 24h; alla riapertura sheet «Riprendo da dove eri? / Ricomincia da capo» (frame 5 mockup).
+ 
+ ### 7.4 Scheda lavoro (`/lavori/[id]`) — frame 2 del file A-materico-full
+ - Header: back, ⋯ (menu: modifica, foto, documenti, butta via) · `n.147` + PillStato · CardInfo (4-5 RigheDato: dentista, paziente, lavoro, consegna) · NotaDentista (se esiste) · CardFasi (RigheFase) · TastoPrimario CONSEGNA (visibile SOLO quando tutte le fasi sono fatte; altrimenti disabled con spiegazione §5.1).
+ - Le foto vivono dietro ⋯ o come strip orizzontale sotto la CardInfo SE presenti (thumbnail 72, radius 12, max 1 riga scrollabile).
+ - ⚠️ MDR: i dati clinici/di fase restano read-only qui — le modifiche passano dai flussi dedicati esistenti (nessun cambiamento alle API).
+ 
+ ### 7.5 Flusso Consegna (sacro) — frames 6
+ - Tap CONSEGNA → DialogConferma leggera: "Corona n.147 al Dr. Esposito?" (+ CONSEGNA / "Non ancora") → orchestrazione con skeleton (max 3s percepiti) → **Consegnato!**: check che si disegna (§8.3.4) + suono UÀ + CardUAHaFatto (DdC, fattura, magazzino — SOLO cose realmente avvenute, L5) + bottone WhatsApp verde esplicito (invariante: mai auto-popup) + LinkQuieto "Aspetta, annulla la consegna" (attivo 10 minuti, poi sparisce — coerente con vincoli fiscali: dopo l'invio SDI l'annullo spiega il limite).
+ 
+diff --git a/src/app/(app)/lavori/[id]/page.tsx b/src/app/(app)/lavori/[id]/page.tsx
+index 51193554..f4eb2158 100644
+--- a/src/app/(app)/lavori/[id]/page.tsx
++++ b/src/app/(app)/lavori/[id]/page.tsx
+@@ -1,15 +1,16 @@
+ import { notFound } from 'next/navigation'
+ import { getLabContext } from '@/lib/supabase/lab-context'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLavoroV3'
+ import { getSignedUrl } from '@/lib/storage/signed-url'
++import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
+ import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
+ 
+ type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
+ 
+ export default async function LavoroDettaglioPage({ params, searchParams }: PageProps) {
+   const { id } = await params
+   const { consegna } = await searchParams
+ 
+   // Auth
+   const context = await getLabContext()
+@@ -24,20 +25,22 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
+       *,
+       cliente:clienti(*),
+       paziente:pazienti(*),
+       tecnico:tecnici(*),
+       lavorazioni:lavori_lavorazioni(*),
+       appuntamenti:lavori_appuntamenti(*),
+       immagini:lavori_immagini(*),
+       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
+       materiali:lavori_materiali(*),
+       ddc:dichiarazioni_conformita(*),
++      denti:lavori_denti(*),
++      prescrizione:lavori_prescrizioni(*),
+       laboratorio:laboratori(nome, telefono)
+     `)
+     .eq('id', id)
+     .eq('laboratorio_id', context.laboratorioId)
+     .is('deleted_at', null)
+     .neq('ddc.stato', 'annullata')
+     .is('lavori_immagini.deleted_at', null)
+     .single()
+ 
+   if (error || !lavoro) {
+@@ -49,20 +52,42 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
+   // Fix trasversale B5: le "public URL" salvate in DB sono rotte (bucket
+   // documenti privato) — firma gli URL al momento del render, mai in anticipo.
+   // Normalizzazione difensiva: PostgREST può restituire `dichiarazioni_conformita`
+   // embedded come oggetto singolo o array a seconda della cardinalità inferita —
+   // non assumere una forma specifica per questo confine esterno (mai verificato
+   // empiricamente). Riassegna la proprietà così tutto il resto della pagina
+   // (incluso il passaggio a TabDocumenti) vede sempre un oggetto singolo coerente.
+   const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
+   lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
+ 
++  // T7 (ondata B ③) — la scheda legge lo SNAPSHOT della prescrizione e il
++  // COLORE VIVO, che è ciò che serve alla riga «Colore» (D225②).
++  //
++  // 🔑 Questa pagina NON passa dalla GET di `/api/lavori/[id]`: fa la sua
++  //    query. I due embed che il Task 6 ha aggiunto alla rotta vanno quindi
++  //    chiesti anche qui, o la scheda resta cieca — è la stessa asimmetria che
++  //    ha tenuto la prescrizione fuori dalla scheda fino a oggi.
++  // 🔑 `denti:lavori_denti(*)` è la STRADA DEL RITORNO del colore: dal Task 10
++  //    `lavori.colore_dente` non ha più scrittori, e il colore vivo si legge
++  //    dalle righe con la precedenza riga→caso di `@/lib/domain/colore-dente`.
++  //    Nessun filtro `deleted_at`: quella colonna su `lavori_denti` non esiste
++  //    (verificato su `database.types.ts`), e la GET della rotta la embedda
++  //    allo stesso modo.
++  // 🔑 `normalizzaPrescrizione` è la stessa funzione della rotta (modulo puro,
++  //    Task 6): normalizza la forma array-vs-oggetto dell'embed E le guardie
++  //    di dominio su `contenuto`/`divergenze`. Copiare qui un accesso diretto
++  //    a `lavoro.prescrizione` sarebbe una seconda lettura dello stesso
++  //    confine esterno, con le guardie in un posto solo.
++  lavoroDettaglio.prescrizione = normalizzaPrescrizione(
++    (lavoro as Record<string, unknown>).prescrizione
++  )
++
+   const [signedDdcUrl] = await Promise.all([
+     lavoroDettaglio.ddc?.storage_path_pdf
+       ? getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
+       : Promise.resolve(null),
+     Promise.all(
+       lavoroDettaglio.immagini.map(async (img) => {
+         const signedImgUrl = await getSignedUrl(svc, 'documenti', img.storage_path, 3600)
+         if (signedImgUrl) img.url = signedImgUrl
+       })
+     ),
+diff --git a/src/components/ds/CardInfo.tsx b/src/components/ds/CardInfo.tsx
+index 00fcbd19..a51a0656 100644
+--- a/src/components/ds/CardInfo.tsx
++++ b/src/components/ds/CardInfo.tsx
+@@ -31,21 +31,25 @@ export type TonoPastiglia = 'green' | 'amber'
+  * "importante" (es. non usarlo per un valore economico alto).
+  *
+  * `pastiglia` (ondata B ③, D224 — mockup `2026-08-04-ondata-b3-schermate-vere.html`,
+  * classi `.pill-presc` / `.fonte-stato`): una targhetta sotto il valore, allineata
+  * a destra come lui, che dice DA DOVE viene quel dato o COSA gli manca ancora.
+  * 🔑 Non è mai l'unica fonte del significato (L3): porta sempre la sua parola
+  * accanto al colore, e la riga resta leggibile anche senza tinta.
+  * ⚠️ NIENTE `white-space: nowrap`, benché il mockup ce l'abbia: a text-zoom
+  * 200% (§13.3) una pastiglia che non va a capo esce dalla carta — è la lezione
+  * misurata di D96 su `FoglioCategoria`, e non si ripete qui.
+- * 🚧 In attesa di ratifica in spec §5.10 (T7 dell'ondata B ③).
++ * ✅ RATIFICATA in spec §5.10 il 04/08/2026 (T7, emendamento «RigaDato con
++ * pastiglia di provenienza»). La spec dichiara anche la TENUTA SCARSA: la
++ * pastiglia va solo dove la provenienza esiste davvero — colore ed elementi —
++ * mai generalizzata alle altre righe. Dove la provenienza NON c'è si usa
++ * `sub`, che è un segnale positivo quieto e non un'assenza da interpretare.
+  */
+ export function RigaDato(props: {
+   chiave: string
+   valore: ReactNode
+   sub?: string
+   urgente?: boolean
+   pastiglia?: { testo: string; tono: TonoPastiglia }
+ }) {
+   const { chiave, valore, sub, urgente = false, pastiglia } = props
+   return (
+diff --git a/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx b/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx
+new file mode 100644
+index 00000000..06a88170
+--- /dev/null
++++ b/src/components/features/lavori/scheda-v3/ModificaColoreSheet.tsx
+@@ -0,0 +1,650 @@
++'use client'
++
++// Ondata B ③ — T7: il ramo «colore» di `ModificaRigaSheet`, con dentro il
++// GESTO D212 («era scritto così sulla prescrizione?»).
++//
++// ══ PERCHÉ UN COMPONENTE SOLO CON TRE PASSI, E NON TRE SHEET INCATENATI ═════
++// 🛑 Gli overlay v3 tengono UNA entry di history per l'INTERA pila aperta
++//    (`storia-overlay.ts`), e la disfano con `history.back()` quando la pila si
++//    svuota. Tre `Sheet` in catena — chiudo il primo, apro il secondo nello
++//    stesso commit — svuoterebbero la pila e la riempirebbero di nuovo: il
++//    `history.back()` è ASINCRONO e arriverebbe DOPO il `pushState` del foglio
++//    nuovo, che si chiuderebbe da solo. È esattamente la classe di difetto già
++//    pagata due volte su questo ramo (D-2, e il visore che si richiudeva da
++//    solo — v. il commento in `SchedaLavoroV3.tsx`).
++//    Un solo `Sheet` che resta APERTO mentre cambia `passo` = una entry sola,
++//    nessuna corsa, e corrisponde al mockup: i fogli si succedono nello stesso
++//    posto.
++//
++// ══ COSA SCRIVE OGNI VIA ════════════════════════════════════════════════════
++// Chi apre questo foglio sta cambiando IL COLORE DEL LAVORO. La domanda D212
++// non chiede SE cambiarlo: chiede CHE COSA sta succedendo, e da lì dipende
++// che cosa succede alla TRASCRIZIONE.
++//   · «Sul foglio c'è scritto X» (typo) → `POST …/prescrizione/typo` riscrive
++//     lo snapshot, POI la PATCH allinea il colore vivo. Entrambi: la
++//     trascrizione era sbagliata, quindi era sbagliato anche il colore che ne
++//     era stato derivato. Fermarsi al primo lascerebbe la Dichiarazione con
++//     prescritto ≠ realizzato e NESSUNA divergenza a registro — uno
++//     scostamento muto su un documento a valore legale.
++//   · «No: lo stiamo cambiando noi» (divergenza) → `POST …/prescrizione/
++//     divergenza` APPENDE al registro (la trascrizione NON si tocca: resta ciò
++//     che il dentista ha prescritto), POI la PATCH aggiorna il realizzato.
++//   · «Lascia stare» → niente, nessuna chiamata.
++// L'ORDINE non è indifferente: prima si REGISTRA, poi si scrive il vivo. Al
++// contrario, un fallimento della seconda chiamata lascerebbe il colore
++// cambiato senza nessuna traccia del perché — il verso peggiore.
++//
++// ══ IL GETTONE ══════════════════════════════════════════════════════════════
++// 🛑 `atteso_updated_at` è una STRINGA OPACA end-to-end: mai un `new Date()`,
++//    mai un riparsing. `timestamptz` ha i microsecondi, `Date` di JS no: un
++//    solo giro di riparsing renderebbe il 409 PERMANENTE (v. il cappello di
++//    `prescrizione/typo/route.ts`). Ogni scrittura che tocca `lavori.updated_at`
++//    — la rotta typo E la PATCH — restituisce il gettone nuovo, e da lì si
++//    riparte.
++//
++// ══ IL COLORE VIVO E IL CATALOGO ════════════════════════════════════════════
++// `PATCH /api/lavori/[id]` normalizza la coppia col catalogo `colori_dentali`
++// (`risolviColoreCaso`) e, se il codice non c'è, AZZERA la coppia e risponde
++// comunque 200: `scartato` non esce dalla rotta. Un `A3,5` (la virgola del
++// mockup!) cancellerebbe quindi il colore mentre l'utente legge «salvato».
++// Qui si controlla PRIMA con `scalaDelCodice` (lo specchio dei 48 codici che
++// vive in `@/lib/domain/colore-dente`, tenuto onesto da
++// `tests/unit/colore-dente-idratazione.test.ts`) e, se il codice non è del
++// catalogo, la PATCH NON parte e lo si DICE.
++// 🛑 La trascrizione invece si salva com'è, sempre: è testo del medico (D210),
++//    non un valore di catalogo. Le due cose hanno regole diverse apposta.
++// ⚠️ Rilievo riferito, NON corretto qui (R-E2): la PATCH scarta il colore in
++//    silenzio: `risolviColoreCaso` restituisce `scartato` e la rotta non lo
++//    legge né lo rimanda. Il controllo di qui è una rete del client, non la
++//    chiusura del buco.
++
++import { useState } from 'react'
++import { motion } from 'motion/react'
++import { Sheet } from '@/components/ds/Sheet'
++import { CampoTesto } from '@/components/ds/Campo'
++import { TastoPrimario } from '@/components/ds/TastoPrimario'
++import { TastoSecondario } from '@/components/ds/TastoSecondario'
++import { LinkQuieto } from '@/components/ds/LinkQuieto'
++import { scalaDelCodice } from '@/lib/domain/colore-dente'
++// 🔑 Il confronto trascritto↔digitato è UNO SOLO, e vive con gli stati della
++//    riga: se il gesto D212 e la riga della scheda decidessero «uguale» con due
++//    regole diverse, la scheda mostrerebbe uno scostamento che il foglio non
++//    chiede — o viceversa.
++import { uguagliaColore } from '@/lib/lavori/colore-riga-scheda'
++import { MOTIVI_DIVERGENZA, type MotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
++import { molla } from '@/design-system/v3/motion'
++import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
++
++/** Le quattro pastiglie del motivo, testi VERBATIM dal mockup
++ *  `2026-08-04-ondata-b-B-typo-divergenza.html` scena 2. 🛑 Le CHIAVI vengono
++ *  dal dizionario chiuso importato (`MOTIVI_DIVERGENZA`), mai riscritte a
++ *  mano: una quinta lista qui sarebbe l'unico posto in cui il dizionario può
++ *  divergere in silenzio. `Record<MotivoDivergenza, string>` fa fallire la
++ *  compilazione se il dizionario cresce e questa mappa no. */
++const ETICHETTA_MOTIVO: Record<MotivoDivergenza, string> = {
++  richiesta_dentista: "Me l'ha chiesto il dentista",
++  esigenza_tecnica: 'Esigenza tecnica',
++  materiale_non_disponibile: 'Materiale non disponibile',
++  altro: 'Altro',
++}
++
++const MSG_RETE = 'Non è stato possibile salvare. Riprova.'
++
++type Passo = 'valore' | 'gesto' | 'motivo'
++
++/** Che cosa il foglio ha cambiato davvero, per l'aggiornamento ottimistico
++ *  della scheda. Ogni chiave è indipendente: una via può riuscire a metà, e
++ *  il padre deve poter applicare solo la metà avvenuta. */
++export type EsitoColore = {
++  /** La coppia scritta su `lavori.colore_scala`/`colore_codice`. */
++  colore?: { scala: string; codice: string }
++  /** Il nuovo `contenuto.colore` dello snapshot (solo via typo). */
++  trascritto?: string
++  /** Una divergenza sul campo `colore` è entrata a registro. */
++  divergenza?: boolean
++  /** Il gettone nuovo — STRINGA OPACA, mai ricostruita. */
++  updatedAt?: string
++}
++
++export type DatiColore = {
++  /** Il colore VIVO attuale (quello che la riga mostra); '' se non c'è. */
++  valoreIniziale: string
++  /** `contenuto.colore` dello snapshot, `undefined` se non trascritto (V2). */
++  trascritto?: string
++  /** Come si chiama il dentista, per la frase di provenienza. */
++  dentista: string
++  /** `lavori.updated_at` — il gettone di partenza. STRINGA, mai una `Date`. */
++  updatedAt: string
++  onSalvato: (esito: EsitoColore) => void
++}
++
++/**
++ * ModificaColoreSheet — il foglio «Colore» della scheda e, dentro, il gesto
++ * D212. Mockup: `2026-08-04-ondata-b3-schermate-vere.html` scene
++ * `sheet-colore` e `gesto-d212`, più `2026-08-04-ondata-b-B-typo-divergenza.html`
++ * scena 2 per il ramo del motivo. I testi sono INVARIATI alla lettera; i
++ * VALORI dimostrativi del mockup («A3», «Dr. Colombo») sono dati di scena e
++ * qui arrivano dal lavoro vero — nota di fedeltà §4 di
++ * `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md`.
++ */
++export function ModificaColoreSheet(props: {
++  aperto: boolean
++  onChiudi: () => void
++  lavoroId: string
++  titolo: string
++  onErrore: (msg: string) => void
++} & DatiColore) {
++  const { aperto, onChiudi, lavoroId, titolo, trascritto, dentista, onSalvato, onErrore } = props
++
++  const [passo, setPasso] = useState<Passo>('valore')
++  const [valore, setValore] = useState(props.valoreIniziale)
++  const [motivo, setMotivo] = useState<MotivoDivergenza | null>(null)
++  const [nota, setNota] = useState('')
++  const [salvando, setSalvando] = useState(false)
++  // Il gettone VIVE QUI e avanza a ogni scrittura riuscita: dopo un 409 la
++  // rotta restituisce quello corrente, e la via si ripreme senza ricaricare.
++  const [gettone, setGettone] = useState(props.updatedAt)
++
++  /** Il valore digitato, ripulito solo dagli spazi ai bordi: è ciò che si
++   *  confronta e ciò che si manda. La trascrizione NON si normalizza oltre
++   *  (D210), il codice di catalogo lo fa il server. */
++  const nuovo = valore.trim()
++
++  const TITOLI_PASSO: Record<Passo, string> = {
++    valore: titolo,
++    gesto: 'Era scritto così sulla prescrizione?',
++    motivo: 'Perché cambia?',
++  }
++
++  /**
++   * Scrive il COLORE VIVO (default di caso) con `PATCH /api/lavori/[id]`.
++   * Ritorna che cosa è successo: il chiamante decide che cosa dire, perché la
++   * frase giusta dipende da che cosa era già riuscito prima.
++   */
++  async function scriviColoreVivo(
++    codiceGrezzo: string
++  ): Promise<
++    | { esito: 'ok'; colore: { scala: string; codice: string }; updatedAt?: string }
++    | { esito: 'fuori_catalogo' }
++    | { esito: 'errore' }
++  > {
++    // Stessa normalizzazione del wizard (`crea-lavoro.ts`): il catalogo
++    // distingue le maiuscole — «A3» c'è, «a3» no.
++    const codice = codiceGrezzo.trim().toUpperCase()
++    const scala = scalaDelCodice(codice)
++    if (scala === null) return { esito: 'fuori_catalogo' }
++
++    try {
++      const res = await fetch(`/api/lavori/${lavoroId}`, {
++        method: 'PATCH',
++        credentials: 'same-origin',
++        headers: { 'Content-Type': 'application/json' },
++        // La coppia viaggia SEMPRE INTERA: mezza coppia viola
++        // `lavori_colore_caso_coppia_ck`.
++        body: JSON.stringify({ colore_scala: scala, colore_codice: codice }),
++      })
++      if (!res.ok) return { esito: 'errore' }
++      // ⚠️ Questa rotta risponde con `error`, non `errore`: le due famiglie di
++      //    rotte hanno chiavi diverse e in questo file si incontrano. Qui non
++      //    si legge nessuna delle due — il messaggio è nostro — ma il gettone
++      //    sì: la PATCH riscrive `lavori.updated_at`, quindi quello vecchio è
++      //    già scaduto nel momento in cui questa risposta arriva.
++      const corpo = (await res.json().catch(() => null)) as { lavoro?: { updated_at?: string } } | null
++      const updatedAt = corpo?.lavoro?.updated_at
++      if (updatedAt) setGettone(updatedAt)
++      return { esito: 'ok', colore: { scala, codice }, updatedAt }
++    } catch {
++      return { esito: 'errore' }
++    }
++  }
++
++  /** «Il colore del lavoro non è cambiato», detto per la ragione giusta. */
++  function messaggioVivoNonScritto(esito: 'fuori_catalogo' | 'errore', codice: string): string {
++    return esito === 'fuori_catalogo'
++      ? `«${codice}» non è un codice del catalogo colori: il colore del lavoro non è cambiato.`
++      : 'Il colore del lavoro non si è aggiornato. Riprova dalla riga Colore.'
++  }
++
++  // ── Passo 1: il salvataggio del valore ───────────────────────────────────
++  async function salvaValore() {
++    if (nuovo === '') {
++      onErrore('Scrivi un colore, oppure chiudi senza salvare.')
++      return
++    }
++    // 🔑 Il gesto D212 si apre SOLO se c'è una trascrizione da difendere e il
++    //    valore se ne discosta. Senza snapshot non c'è nessuna domanda da
++    //    fare: è un salvataggio semplice (requisito 3).
++    // 🔑 Il confronto è tollerante (trim + maiuscole): il trascritto è come
++    //    digitato, il vivo è normalizzato dal catalogo — un confronto stretto
++    //    aprirebbe la domanda sul caso NORMALE.
++    if (trascritto !== undefined && !uguagliaColore(nuovo, trascritto)) {
++      setPasso('gesto')
++      return
++    }
++    setSalvando(true)
++    try {
++      const scritto = await scriviColoreVivo(nuovo)
++      if (scritto.esito !== 'ok') {
++        onErrore(messaggioVivoNonScritto(scritto.esito, nuovo))
++        return
++      }
++      onSalvato({ colore: scritto.colore, updatedAt: scritto.updatedAt })
++      onChiudi()
++    } finally {
++      setSalvando(false)
++    }
++  }
++
++  // ── Via A: «Sul foglio c'è scritto X» — il refuso di trascrizione ────────
++  async function viaTypo() {
++    setSalvando(true)
++    try {
++      let risposta: Response
++      try {
++        risposta = await fetch(`/api/lavori/${lavoroId}/prescrizione/typo`, {
++          method: 'POST',
++          credentials: 'same-origin',
++          headers: { 'Content-Type': 'application/json' },
++          // 🛑 Il gettone si spedisce COSÌ COM'È.
++          body: JSON.stringify({ campo: 'colore', valore: nuovo, atteso_updated_at: gettone }),
++        })
++      } catch {
++        onErrore(MSG_RETE)
++        return
++      }
++
++      // 🛑 Queste rotte rispondono `errore`, MAI `error`.
++      const corpo = (await risposta.json().catch(() => null)) as
++        | { errore?: string; esito?: string; updated_at?: string }
++        | null
++
++      if (!risposta.ok) {
++        if (corpo?.esito === 'conflitto' && typeof corpo.updated_at === 'string') {
++          // Il gettone nuovo arriva nel corpo del 409: si aggiorna e si
++          // RESTA qui. Riprovare da soli sovrascriverebbe in silenzio la
++          // modifica di un altro — la seconda pressione la decide l'utente.
++          setGettone(corpo.updated_at)
++          onErrore('Il lavoro è stato modificato da qualcun altro nel frattempo. Premi di nuovo per riprovare.')
++          return
++        }
++        onErrore(corpo?.errore ?? MSG_RETE)
++        return
++      }
++
++      if (typeof corpo?.updated_at === 'string') setGettone(corpo.updated_at)
++
++      // La trascrizione è corretta. Ora il colore vivo, che portava lo stesso
++      // refuso: se non si può scrivere, lo si dice — mai un «fatto» a metà.
++      const scritto = await scriviColoreVivo(nuovo)
++      if (scritto.esito !== 'ok') {
++        onSalvato({ trascritto: nuovo, updatedAt: corpo?.updated_at })
++        onErrore(`La trascrizione è corretta. ${messaggioVivoNonScritto(scritto.esito, nuovo)}`)
++        onChiudi()
++        return
++      }
++      onSalvato({ trascritto: nuovo, colore: scritto.colore, updatedAt: scritto.updatedAt })
++      onChiudi()
++    } finally {
++      setSalvando(false)
++    }
++  }
++
++  // ── Via B: «No: lo stiamo cambiando noi» — la divergenza ─────────────────
++  async function registraDivergenza() {
++    if (motivo === null) return
++    setSalvando(true)
++    try {
++      let risposta: Response
++      try {
++        risposta = await fetch(`/api/lavori/${lavoroId}/prescrizione/divergenza`, {
++          method: 'POST',
++          credentials: 'same-origin',
++          headers: { 'Content-Type': 'application/json' },
++          // 🛑 Niente `atteso_updated_at`: questa rotta lo rifiuta come chiave
++          //    ignota (è un APPEND, non una sovrascrittura). La nota parte solo
++          //    se c'è davvero: la rotta tratta vuoto e assente allo stesso modo,
++          //    ma il corpo dice quello che intende.
++          body: JSON.stringify({
++            campo: 'colore',
++            motivo,
++            ...(nota.trim() !== '' ? { nota } : {}),
++          }),
++        })
++      } catch {
++        onErrore(MSG_RETE)
++        return
++      }
++
++      if (!risposta.ok) {
++        const corpo = (await risposta.json().catch(() => null)) as { errore?: string } | null
++        onErrore(corpo?.errore ?? MSG_RETE)
++        return
++      }
++
++      const scritto = await scriviColoreVivo(nuovo)
++      if (scritto.esito !== 'ok') {
++        onSalvato({ divergenza: true })
++        onErrore(`Il cambio è registrato. ${messaggioVivoNonScritto(scritto.esito, nuovo)}`)
++        onChiudi()
++        return
++      }
++      onSalvato({ divergenza: true, colore: scritto.colore, updatedAt: scritto.updatedAt })
++      onChiudi()
++    } finally {
++      setSalvando(false)
++    }
++  }
++
++  return (
++    <Sheet aperto={aperto} onChiudi={onChiudi} titolo={TITOLI_PASSO[passo]}>
++      {passo === 'valore' && (
++        <>
++          <p style={stileSotto}>
++            Adesso è <b style={stileForte}>{props.valoreIniziale || '—'}</b>
++            {trascritto !== undefined
++              ? ` — trascritto dalla prescrizione di ${dentista}.`
++              : ' — scelto dal laboratorio.'}
++          </p>
++          <CampoTesto label="Colore" valore={valore} onCambia={setValore} autoFocus />
++          <TastoPrimario disabled={salvando} onClick={salvaValore}>
++            Salva
++          </TastoPrimario>
++        </>
++      )}
++
++      {passo === 'gesto' && trascritto !== undefined && (
++        <>
++          {/* Testo INVARIATO dal mockup, col solo nome del dentista al posto
++              del valore dimostrativo «Dr. Colombo» (nota di fedeltà §4). */}
++          <p style={stileSotto}>
++            Il colore di questo lavoro è <b style={stileForte}>trascritto dal foglio di {dentista}</b>. Dimmi
++            che cosa sta succedendo, così la Dichiarazione dice la verità.
++          </p>
++
++          {/* Il prima→dopo: il valore precedente resta LEGGIBILE, mai oscurato. */}
++          <div style={stileCambio}>
++            <span>
++              <span style={{ ...stileCambioValore, ...stileCambioPrima }}>{trascritto}</span>
++              <span style={stileCambioEtichetta}>trascritto</span>
++            </span>
++            <span aria-hidden="true" style={stileCambioFreccia}>
++              →
++            </span>
++            <span>
++              <span style={stileCambioValore}>{nuovo}</span>
++              <span style={stileCambioEtichetta}>nuovo</span>
++            </span>
++          </div>
++
++          {/* Le due vie: NESSUN default preselezionato — la scelta è un atto. */}
++          <Via
++            tono="blue"
++            nome={`Sul foglio c'è scritto ${nuovo}`}
++            sotto="avevo copiato male: correggo la trascrizione"
++            disabilitata={salvando}
++            onScegli={viaTypo}
++            icona={<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />}
++          />
++          <Via
++            tono="amber"
++            nome="No: lo stiamo cambiando noi"
++            sotto={`il foglio resta ${trascritto} — la Dichiarazione mostrerà prescritto e realizzato`}
++            disabilitata={salvando}
++            onScegli={() => setPasso('motivo')}
++            icona={
++              <>
++                <path d="M16 3h5v5" />
++                <path d="M8 3H3v5" />
++                <path d="M21 3l-7 7" />
++                <path d="M3 3l7 7" />
++                <path d="M12 22v-8" />
++              </>
++            }
++          />
++
++          {/* La terza via del mockup. Fa la stessa cosa del «Chiudi» che
++              `Sheet` mette sempre in fondo (L6: mai una X come unica uscita), e
++              la ripetizione è VOLUTA: qui «non cambio niente» è una RISPOSTA
++              alla domanda, non un'uscita generica — chi ha appena letto due vie
++              deve trovare la terza dove sono le altre due. */}
++          <div style={{ display: 'flex', justifyContent: 'center' }}>
++            <LinkQuieto onClick={onChiudi}>Lascia stare, non cambio niente</LinkQuieto>
++          </div>
++        </>
++      )}
++
++      {passo === 'motivo' && trascritto !== undefined && (
++        <>
++          <p style={stileSotto}>
++            Il prescritto resta <b style={stileForte}>{trascritto}</b>, il realizzato diventa{' '}
++            <b style={stileForte}>{nuovo}</b>. Una riga di motivo, e la differenza è coperta.
++          </p>
++
++          <div style={stileGrigliaPastiglie}>
++            {MOTIVI_DIVERGENZA.map((m) => (
++              <PastigliaMotivo
++                key={m}
++                testo={ETICHETTA_MOTIVO[m]}
++                scelta={motivo === m}
++                onScegli={() => setMotivo(m)}
++              />
++            ))}
++          </div>
++
++          <CampoTesto
++            label="Nota (se serve)"
++            valore={nota}
++            onCambia={setNota}
++            placeholder="es. richiesta al telefono, 4 agosto"
++          />
++
++          <TastoSecondario disabled={salvando} onClick={() => setPasso('gesto')}>
++            Torna indietro
++          </TastoSecondario>
++          <TastoPrimario
++            disabled={salvando || motivo === null}
++            motivoDisabilitato="Scegli prima perché il colore cambia"
++            onClick={registraDivergenza}
++          >
++            Registra il cambio
++          </TastoPrimario>
++        </>
++      )}
++    </Sheet>
++  )
++}
++
++/**
++ * Via — una delle due strade del gesto D212 (mockup `.via`). Bersaglio 64 di
++ * altezza, ben oltre i 44 di legge; il glifo è decorativo (`aria-hidden`), il
++ * significato sta tutto nelle due righe di testo — mai nel colore da solo (L3).
++ */
++function Via(props: {
++  tono: 'blue' | 'amber'
++  nome: string
++  sotto: string
++  icona: React.ReactNode
++  disabilitata: boolean
++  onScegli: () => void
++}) {
++  const { tono, nome, sotto, icona, disabilitata, onScegli } = props
++  return (
++    <>
++      <style>{`
++        .ds-via-d212:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
++      `}</style>
++      <motion.button
++        type="button"
++        className="ds-via-d212 ds-tap-v3"
++        disabled={disabilitata}
++        onClick={onScegli}
++        whileTap={disabilitata ? undefined : { scale: 0.98 }}
++        transition={molla.press}
++        style={{
++          display: 'flex',
++          alignItems: 'center',
++          gap: spazio.m - 2,
++          width: '100%',
++          minHeight: 64,
++          textAlign: 'left',
++          background: 'var(--card)',
++          border: '1.5px solid var(--line)',
++          borderRadius: raggio.riga,
++          boxShadow: 'var(--sh-press)',
++          cursor: disabilitata ? 'default' : 'pointer',
++          fontFamily: tipografia.famiglia,
++          padding: '12px 16px',
++          opacity: disabilitata ? 0.6 : 1,
++        }}
++      >
++        <span
++          aria-hidden="true"
++          style={{
++            width: 38,
++            height: 38,
++            flex: 'none',
++            borderRadius: 11,
++            display: 'flex',
++            alignItems: 'center',
++            justifyContent: 'center',
++            background: `var(--${tono}-tint)`,
++            color: `var(--${tono})`,
++          }}
++        >
++          <svg
++            width="19"
++            height="19"
++            viewBox="0 0 24 24"
++            fill="none"
++            stroke="currentColor"
++            strokeWidth="1.7"
++            strokeLinecap="round"
++            strokeLinejoin="round"
++          >
++            {icona}
++          </svg>
++        </span>
++        <span style={{ flex: 1 }}>
++          <span
++            style={{
++              display: 'block',
++              fontSize: tipografia.size.body,
++              fontWeight: tipografia.weight.extrabold,
++              color: 'var(--ink)',
++            }}
++          >
++            {nome}
++          </span>
++          <span
++            style={{
++              display: 'block',
++              fontSize: 13.5,
++              fontWeight: tipografia.weight.semibold,
++              color: 'var(--muted)',
++              marginTop: 2,
++              lineHeight: 1.35,
++            }}
++          >
++            {sotto}
++          </span>
++        </span>
++      </motion.button>
++    </>
++  )
++}
++
++/**
++ * PastigliaMotivo — una delle quattro scelte del motivo (mockup `.pastiglia`,
++ * stessa griglia di `FoglioCategoria` §5.41). `aria-pressed` porta lo stato:
++ * il colore non è mai l'unica fonte (L3).
++ */
++function PastigliaMotivo(props: { testo: string; scelta: boolean; onScegli: () => void }) {
++  const { testo, scelta, onScegli } = props
++  return (
++    <>
++      <style>{`
++        .ds-pastiglia-motivo:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
++      `}</style>
++      <motion.button
++        type="button"
++        className="ds-pastiglia-motivo ds-tap-v3"
++        aria-pressed={scelta}
++        onClick={onScegli}
++        whileTap={{ scale: 0.97 }}
++        transition={molla.press}
++        style={{
++          minHeight: 60,
++          borderRadius: raggio.riga,
++          border: 'none',
++          cursor: 'pointer',
++          background: scelta ? 'var(--ink)' : 'var(--bg-deep)',
++          color: scelta ? 'var(--bg)' : 'var(--ink)',
++          fontFamily: tipografia.famiglia,
++          fontSize: 15,
++          fontWeight: tipografia.weight.bold,
++          padding: '0 12px',
++          lineHeight: 1.25,
++        }}
++      >
++        {testo}
++      </motion.button>
++    </>
++  )
++}
++
++const stileSotto = {
++  margin: 0,
++  fontSize: 14.5,
++  fontWeight: tipografia.weight.semibold,
++  color: 'var(--muted)',
++  lineHeight: 1.45,
++} as const
++
++const stileForte = { color: 'var(--ink)', fontWeight: tipografia.weight.bold } as const
++
++const stileCambio = {
++  display: 'flex',
++  alignItems: 'center',
++  justifyContent: 'center',
++  gap: spazio.m - 2,
++  background: 'var(--bg-deep)',
++  borderRadius: raggio.riga,
++  padding: spazio.m,
++} as const
++
++const stileCambioValore = {
++  fontSize: tipografia.size.heading,
++  fontWeight: tipografia.weight.extrabold,
++  color: 'var(--ink)',
++} as const
++
++/** Il valore di prima resta LEGGIBILE: barrato, mai nascosto — chi corregge
++ *  deve poter vedere da dove viene. */
++const stileCambioPrima = {
++  color: 'var(--muted)',
++  textDecoration: 'line-through',
++  textDecorationThickness: 2,
++} as const
++
++const stileCambioFreccia = {
++  fontSize: tipografia.size.body,
++  fontWeight: tipografia.weight.extrabold,
++  color: 'var(--faint)',
++} as const
++
++const stileCambioEtichetta = {
++  display: 'block',
++  textAlign: 'center',
++  marginTop: 3,
++  fontSize: 11.5,
++  fontWeight: tipografia.weight.extrabold,
++  textTransform: 'uppercase',
++  letterSpacing: '0.1em',
++  color: 'var(--faint)',
++} as const
++
++const stileGrigliaPastiglie = {
++  display: 'grid',
++  gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
++  gap: spazio.s,
++} as const
+diff --git a/src/components/features/lavori/scheda-v3/ModificaRigaSheet.tsx b/src/components/features/lavori/scheda-v3/ModificaRigaSheet.tsx
+index 21cdb32d..20a36842 100644
+--- a/src/components/features/lavori/scheda-v3/ModificaRigaSheet.tsx
++++ b/src/components/features/lavori/scheda-v3/ModificaRigaSheet.tsx
+@@ -12,29 +12,36 @@
+ // — vedi piano §Task 6). Nessuna gestione di errore silenziosa: `onErrore`
+ // riceve sempre un messaggio in italiano, mai propagato lo `status`/l'oggetto
+ // errore grezzo (L6, coerente con `CardFasiV3`).
+ 
+ import { useEffect, useState, type ChangeEvent } from 'react'
+ import { Sheet } from '@/components/ds/Sheet'
+ import { CampoTesto, CampoData } from '@/components/ds/Campo'
+ import { TastoPrimario } from '@/components/ds/TastoPrimario'
+ import { TileScelta } from '@/components/ds/TileScelta'
+ import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
++import { ModificaColoreSheet, type DatiColore } from './ModificaColoreSheet'
+ import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
+ 
+-type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note'
++// T7 (ondata B ③): `colore` è il quinto campo, e non passa dalla PATCH come
++// gli altri quattro — porta con sé il gesto D212 (typo vs divergenza) e due
++// rotte in più. Per questo il suo ramo vive in `ModificaColoreSheet.tsx` e
++// questo componente gli cede il posto: un `Sheet` solo, mai due in catena
++// (v. il cappello di quel file per il perché non si incatenano).
++type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
+ 
+ const TITOLI: Record<Campo, string> = {
+   consegna: 'Data di consegna',
+   tecnico: 'Tecnico assegnato',
+   dentista: 'Dentista',
+   note: 'Note interne',
++  colore: 'Colore',
+ }
+ 
+ const MESSAGGIO_ERRORE = 'Non è stato possibile salvare la modifica. Riprova.'
+ 
+ /** Forma di `valoreIniziale`/stato interno per `campo="consegna"` — rispecchia
+  * di proposito i nomi delle colonne DB (`data_consegna_prevista`,
+  * `ora_consegna`), così il patch finale è lo stato stesso, senza rimappature:
+  * il chiamante (Task 6) passa direttamente i valori grezzi già presenti su
+  * `lavoro`, senza dover costruire `Date`. */
+ type ValoreConsegna = {
+@@ -78,20 +85,24 @@ interface TecnicoOpzione {
+  * duplicata per campo).
+  */
+ export function ModificaRigaSheet(props: {
+   aperto: boolean
+   onChiudi: () => void
+   lavoroId: string
+   campo: Campo
+   valoreIniziale: unknown
+   onSalvato: (patch: Record<string, unknown>) => void
+   onErrore: (msg: string) => void
++  /** Il corredo del ramo «colore» (T7): serve SOLO quando `campo === 'colore'`
++   *  — quel ramo ha bisogno dello snapshot, del gettone di concorrenza e del
++   *  nome del dentista, che gli altri quattro non usano. Assente altrove. */
++  colore?: DatiColore
+ }) {
+   const { aperto, onChiudi, lavoroId, campo, onSalvato, onErrore } = props
+   const [valore, setValore] = useState<unknown>(props.valoreIniziale)
+   const [salvando, setSalvando] = useState(false)
+   const [tecnici, setTecnici] = useState<TecnicoOpzione[]>([])
+ 
+   // «tecnico»: la lista si carica on-open (non al mount) — lo sheet può
+   // restare montato col padre mentre resta chiuso (§Task 6, un solo Sheet
+   // condiviso per campo attivo).
+   useEffect(() => {
+@@ -124,20 +135,39 @@ export function ModificaRigaSheet(props: {
+       }
+       onSalvato(patch)
+       onChiudi()
+     } catch {
+       onErrore(MESSAGGIO_ERRORE)
+     } finally {
+       setSalvando(false)
+     }
+   }
+ 
++  // Il ramo «colore» monta il PROPRIO `Sheet` (titolo che cambia coi tre passi
++  // del gesto D212). Il ritorno anticipato sta DOPO tutti gli hook, e l'ordine
++  // resta stabile perché il chiamante rimonta questo componente a ogni
++  // apertura (`key={campoAttivo}` in `SchedaLavoroV3`): `campo` non cambia mai
++  // sotto la stessa istanza.
++  if (campo === 'colore') {
++    if (!props.colore) return null
++    return (
++      <ModificaColoreSheet
++        aperto={aperto}
++        onChiudi={onChiudi}
++        lavoroId={lavoroId}
++        titolo={TITOLI.colore}
++        onErrore={onErrore}
++        {...props.colore}
++      />
++    )
++  }
++
+   return (
+     <Sheet aperto={aperto} onChiudi={onChiudi} titolo={TITOLI[campo]}>
+       {campo === 'note' && (
+         <>
+           <CampoTesto
+             label="Note interne"
+             valore={String(valore ?? '')}
+             onCambia={setValore as (v: string) => void}
+           />
+           <TastoPrimario
+diff --git a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+index 0d6dce61..ca813ea5 100644
+--- a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
++++ b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+@@ -62,45 +62,50 @@ import { CartaAlbum } from '@/components/ds/CartaAlbum'
+ // ⚠️ Il piano di T12 elencava «modifica VisoreFoto (aggancia menù e conferma)»:
+ // contraddice quel contratto, e si è seguito il contratto. Riferito (R-E2).
+ import { VisoreFoto, tondoVisore } from '@/components/ds/VisoreFoto'
+ import { TendinaMenu } from '@/components/ds/TendinaMenu'
+ import { FoglioConferma } from '@/components/ds/FoglioConferma'
+ import { FoglioCategoria } from '@/components/ds/FoglioCategoria'
+ import { isCategoriaFoto, type CategoriaFoto } from '@/lib/domain/categorie-foto'
+ import { TastoTondo } from '@/components/ds/TastoTondo'
+ import { TastoPrimario } from '@/components/ds/TastoPrimario'
+ import { TastoSecondario } from '@/components/ds/TastoSecondario'
+-import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
++import { CardInfo, RigaDato, type TonoPastiglia } from '@/components/ds/CardInfo'
+ import { PillTempo } from '@/components/ds/Pill'
+ import { CardFasiV3 } from './CardFasiV3'
+ import { RigaLavoroDenti } from './RigaLavoroDenti'
+ import { ModificaRigaSheet } from './ModificaRigaSheet'
+ import { MenuSchedaSheet } from './MenuSchedaSheet'
+ import { DocumentiSheet } from './DocumentiSheet'
+ import { DocumentiPannello } from './DocumentiPannello'
+ import { SchedaNavRail } from './SchedaNavRail'
+ import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
+ import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
+ import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
+ import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
+ import { pillStatoScheda } from '@/lib/lavori/stato-pill'
+ import { derivaUrgenza } from '@/lib/lavori/urgenza'
++import { derivaRigaColore } from '@/lib/lavori/colore-riga-scheda'
++import type { EsitoColore } from './ModificaColoreSheet'
+ import { molla } from '@/design-system/v3/motion'
+ import { raggio, sopraFoto, spazio, tipografia } from '@/design-system/v3/tokens'
+ import type { LavoroDettaglio, MaterialeIncompletoDettaglio } from '@/types/domain'
+ 
+ const MOTIVO_LABEL: Record<MaterialeIncompletoDettaglio['motivo'], string> = {
+   lotto_assente: 'nessun lotto disponibile in magazzino',
+   bom_mancante: 'distinta base (BOM) non definita nel listino',
+ }
+ 
+-type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note'
++// T7 (ondata B ③) — `colore` è il quinto campo correggibile dalla scheda.
++// L'elenco vive in DUE posti (anche in `ModificaRigaSheet.tsx`): i due si
++// muovono insieme, o il foglio non sa che cosa rendere.
++type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note' | 'colore'
+ 
+ const MS_GIORNO = 24 * 60 * 60 * 1000
+ 
+ /** studio_nome se c'è, altrimenti "nome cognome" — stessa etichetta usata da
+  * SegnalaProblemaSheet/DocumentiSheet per il cliente. */
+ function clienteDisplay(cliente: LavoroDettaglio['cliente']): string {
+   if (!cliente) return '—'
+   return cliente.studio_nome?.trim() || `${cliente.nome} ${cliente.cognome}`.trim()
+ }
+ 
+@@ -336,28 +341,100 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string |
+   function valoreInizialePer(campo: Campo): unknown {
+     switch (campo) {
+       case 'consegna':
+         return { data_consegna_prevista: lavoro.data_consegna_prevista, ora_consegna: lavoro.ora_consegna }
+       case 'tecnico':
+         return lavoro.tecnico_id ?? ''
+       case 'dentista':
+         return lavoro.cliente_id ?? ''
+       case 'note':
+         return lavoro.note_interne ?? ''
++      case 'colore':
++        // Il ramo «colore» non legge `valoreIniziale`: il suo corredo viaggia
++        // intero nella prop `colore` (serve anche il trascritto e il gettone).
++        return undefined
+     }
+   }
+ 
+   const pazienteTesto = lavoro.paziente_nome_snapshot ?? '—'
+   const tecnicoTesto = lavoro.tecnico
+     ? `${lavoro.tecnico.nome} ${lavoro.tecnico.cognome}`.trim()
+     : 'Non assegnato'
+ 
++  // ══ T7 (ondata B ③) — la riga «Colore» (D225②, vincolo 0B-5) ═════════════
++  // I cinque esiti della riga stanno in `derivaRigaColore` (modulo puro): qui
++  // si passano solo i quattro fatti che li decidono.
++  //
++  // 🔑 `congelata` si legge da `ddc`, e si può: la query di `page.tsx` filtra
++  //    `.neq('ddc.stato','annullata')`, quindi una `ddc` presente È una
++  //    dichiarazione ATTIVA — lo stesso fatto su cui le due rotte della
++  //    prescrizione rispondono `congelata` (v. `correggi_typo`, V8). La riga
++  //    smette allora di offrire il tocco invece di offrirne uno che tornerà
++  //    sempre con un 409: una voce spenta invita comunque.
++  // 🔑 `denti` e `prescrizione` sono EMBED OPZIONALI: `undefined` quando la
++  //    query non li chiede. La derivazione li tratta come «nessun colore» e
++  //    la riga sparisce — mai una riga vuota per un embed dimenticato.
++  const rigaColore = derivaRigaColore({
++    denti: lavoro.denti,
++    caso: { colore_scala: lavoro.colore_scala, colore_codice: lavoro.colore_codice },
++    prescrizione: lavoro.prescrizione,
++    congelata: lavoro.ddc !== null,
++  })
++
++  /**
++   * L'esito del foglio «Colore», applicato allo specchio locale in UN SOLO
++   * `setState`. Ogni chiave è indipendente perché una via può riuscire a metà
++   * (registro scritto, colore vivo no): si applica ciò che è AVVENUTO, non
++   * ciò che si sperava — chi legge la riga subito dopo deve vedere il vero.
++   *
++   * 🛑 `updatedAt` è il gettone di concorrenza: si tiene aggiornato o il gesto
++   *    successivo prenderebbe un 409 immeritato. Stringa opaca, mai una `Date`.
++   */
++  function handleColoreSalvato(esito: EsitoColore) {
++    setLavoroLocale((prev) => {
++      const prossimo: LavoroDettaglio = { ...prev }
++      if (esito.colore) {
++        prossimo.colore_scala = esito.colore.scala
++        prossimo.colore_codice = esito.colore.codice
++      }
++      if (esito.updatedAt) prossimo.updated_at = esito.updatedAt
++      if (esito.trascritto !== undefined && prev.prescrizione) {
++        prossimo.prescrizione = {
++          ...prev.prescrizione,
++          contenuto: { ...prev.prescrizione.contenuto, colore: esito.trascritto },
++        }
++      }
++      if (esito.divergenza && prossimo.prescrizione) {
++        // Voce ottimistica: basta a far passare la riga allo stato
++        // «divergente» (prescritto E realizzato). Il `router.refresh()` qui
++        // sotto rilegge subito quella VERA, con chi e quando dal server.
++        prossimo.prescrizione = {
++          ...prossimo.prescrizione,
++          divergenze: [
++            ...prossimo.prescrizione.divergenze,
++            {
++              campo: 'colore',
++              motivo: 'altro',
++              nota: null,
++              utente_id: null,
++              registrata_at: new Date().toISOString(),
++            },
++          ],
++        }
++      }
++      return prossimo
++    })
++    // Le due rotte della prescrizione scrivono dove lo specchio locale non
++    // arriva (il registro vero, chi e quando): si rilegge il server.
++    if (esito.trascritto !== undefined || esito.divergenza) router.refresh()
++  }
++
+   // Dati documenti condivisi: stesso oggetto per il DocumentiSheet (mobile) e
+   // per il DocumentiPannello (desktop, ≥1024). La URL firmata è già su
+   // `ddc.pdf_url` (page.tsx firma al render) — nessuna fetch nuova.
+   const documentiLavoro = {
+     id: lavoro.id,
+     numero_lavoro: lavoro.numero_lavoro,
+     cliente_display: clienteDisplay(lavoro.cliente),
+     haFasi: lavoro.fasi.length > 0,
+     haDdc: !!lavoro.ddc,
+     ddcUrl: lavoro.ddc?.pdf_url ?? undefined,
+@@ -401,20 +478,48 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string |
+               (dentista/consegna/tecnico) aprono ModificaRigaSheet; paziente e
+               lavoro sono di sola lettura. */}
+           <CardInfo>
+             <RigaEditabile chiave="Dentista" valore={clienteDisplay(lavoro.cliente)} ariaAzione="Modifica dentista" onApri={() => setCampoAttivo('dentista')} />
+             <RigaDato chiave="Paziente" valore={pazienteTesto} />
+             <RigaLavoroDenti
+               descrizione={lavoro.descrizione}
+               denti={lavoro.denti_coinvolti ?? []}
+               onApri={() => router.push(`/lavori/${lavoro.id}/modifica?tab=clinica`)}
+             />
++            {/* Colore (T7, D225②) — fra «Lavoro» e «Consegna», come la scena
++                `scheda-colore` del mockup. Compare solo se un colore esiste
++                davvero (vivo o trascritto); è tappabile solo dove il tocco può
++                atterrare (v. `derivaRigaColore`).
++                ⚠️ RIFERITO, non deciso qui (R-E2): con questa riga la carta
++                arriva a SEI righe e §5.10 ne fissa cinque. `CardInfo` per
++                progetto non ne nasconde nessuna e avvisa solo chi sviluppa —
++                quindi in sviluppo si vedrà l'avviso, ed è giusto che si veda:
++                il mockup approvato (scena 9) mostra sei righe, la spec ne
++                dichiara cinque, e chi scioglie il nodo non è questo task. */}
++            {rigaColore &&
++              (rigaColore.modificabile ? (
++                <RigaEditabile
++                  chiave="Colore"
++                  valore={rigaColore.valore}
++                  sub={rigaColore.sub}
++                  pastiglia={rigaColore.pastiglia}
++                  ariaAzione="Modifica colore"
++                  onApri={() => setCampoAttivo('colore')}
++                />
++              ) : (
++                <RigaDato
++                  chiave="Colore"
++                  valore={rigaColore.valore}
++                  sub={rigaColore.sub}
++                  pastiglia={rigaColore.pastiglia}
++                />
++              ))}
+             <RigaEditabile
+               chiave="Consegna"
+               valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
+               urgente={consegnaImminente(lavoro.data_consegna_prevista, oggi)}
+               ariaAzione="Modifica consegna"
+               onApri={() => setCampoAttivo('consegna')}
+             />
+             <RigaEditabile chiave="Tecnico" valore={tecnicoTesto} ariaAzione="Modifica tecnico" onApri={() => setCampoAttivo('tecnico')} />
+           </CardInfo>
+ 
+@@ -494,20 +599,40 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string |
+       {campoAttivo && (
+         <ModificaRigaSheet
+           key={campoAttivo}
+           aperto
+           onChiudi={() => setCampoAttivo(null)}
+           lavoroId={lavoro.id}
+           campo={campoAttivo}
+           valoreIniziale={valoreInizialePer(campoAttivo)}
+           onSalvato={handleSalvato}
+           onErrore={(msg) => errore(msg)}
++          colore={
++            rigaColore
++              ? {
++                  // Il valore VIVO, non quello mostrato: sullo stato
++                  // «divergente» senza colore vivo la riga mostra «—», che nel
++                  // campo di testo sarebbe un valore da cancellare a mano.
++                  valoreIniziale: rigaColore.stato === 'divergente' && rigaColore.valore === '—'
++                    ? ''
++                    : rigaColore.valore,
++                  trascritto: rigaColore.trascritto,
++                  dentista: clienteDisplay(lavoro.cliente),
++                  // 🛑 Il gettone è `lavori.updated_at` COSÌ COM'È — mai
++                  //    ricostruito con `new Date()`: `timestamptz` ha i
++                  //    microsecondi, `Date` di JS no, e un riparsing renderebbe
++                  //    il 409 permanente.
++                  updatedAt: lavoro.updated_at,
++                  onSalvato: handleColoreSalvato,
++                }
++              : undefined
++          }
+         />
+       )}
+ 
+       <MenuSchedaSheet
+         aperto={menuAperto}
+         onChiudi={() => setMenuAperto(false)}
+         lavoroId={lavoro.id}
+         onApriDocumenti={() => {
+           setMenuAperto(false)
+           setDocumentiAperto(true)
+@@ -853,25 +978,30 @@ function AvvisoTracciabilita(props: { dettaglio: MaterialeIncompletoDettaglio[]
+  * accessibile è «Modifica consegna» (polish L1, WCAG 2.5.3 label-in-name: il
+  * nome accessibile DEVE contenere il testo visibile "Consegna"). I test di
+  * quella riga la selezionano col nome esatto «Modifica consegna» per non
+  * collidere col TastoPrimario CONSEGNA (nome «Consegna»).
+  */
+ function RigaEditabile(props: {
+   chiave: string
+   valore: string
+   ariaAzione: string
+   urgente?: boolean
++  /** Sottotitolo 14/500 muted sotto il valore (§5.10). T7: è così che la riga
++   *  «Colore» dice «scelto dal laboratorio» o «prescritto: A3». */
++  sub?: string
++  /** Pastiglia di provenienza (§5.10, emendamento 04/08/2026). */
++  pastiglia?: { testo: string; tono: TonoPastiglia }
+   onApri: () => void
+ }) {
+-  const { chiave, valore, ariaAzione, urgente, onApri } = props
++  const { chiave, valore, ariaAzione, urgente, sub, pastiglia, onApri } = props
+   return (
+     <button
+       type="button"
+       className="ds-tap-v3"
+       onClick={onApri}
+       aria-label={ariaAzione}
+       style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
+     >
+-      <RigaDato chiave={chiave} valore={valore} urgente={urgente} />
++      <RigaDato chiave={chiave} valore={valore} urgente={urgente} sub={sub} pastiglia={pastiglia} />
+     </button>
+   )
+ }
+diff --git a/src/lib/lavori/colore-riga-scheda.ts b/src/lib/lavori/colore-riga-scheda.ts
+new file mode 100644
+index 00000000..c510bf89
+--- /dev/null
++++ b/src/lib/lavori/colore-riga-scheda.ts
+@@ -0,0 +1,172 @@
++// src/lib/lavori/colore-riga-scheda.ts
++//
++// T7 (ondata B ③) — gli STATI della riga «Colore» della scheda lavoro.
++// Funzione PURA, fuori dal componente sul modello di `stato-pill.ts` e
++// `urgenza.ts`: la riga ha CINQUE esiti possibili e ognuno ha una ragione
++// diversa — provarli montando la scheda intera vorrebbe dire non provarli.
++//
++// 🔑 IL VALORE VIVO NON SI RICALCOLA QUI. Arriva da `idrataColoreScheda`
++//    (`@/lib/domain/colore-dente`), che è l'UNICA casa della precedenza
++//    «riga di dente → default di caso». Due letture divergenti dello stesso
++//    fatto sono esattamente il difetto che quel modulo esiste per impedire —
++//    già pagato una volta con `numero_cassetta`.
++//    ⚠️ Quello che qui si deriva IN PIÙ è soltanto DA DOVE viene il colore
++//    (`daRiga`), che `idrataColoreScheda` non restituisce. Si usa lo STESSO
++//    predicato che usa lei per scegliere la riga («coppia COMPLETA: scala e
++//    codice»), non uno somigliante: se quel predicato cambiasse, questo va
++//    cambiato con lui — il test gemello in
++//    `tests/unit/colore-riga-scheda.test.ts` fissa l'accoppiamento.
++//
++// 🔴 PERCHÉ `daRiga` DECIDE LA SOLA LETTURA (limite dichiarato, riferito nel
++//    referto di T7). L'unica via di scrittura del colore vivo che esiste oggi
++//    è `PATCH /api/lavori/[id]` con la coppia `colore_scala`/`colore_codice`,
++//    e quella scrive il DEFAULT DI CASO. Se il colore vivo lo porta una riga
++//    di `lavori_denti`, la precedenza riga→caso continuerebbe a mostrare la
++//    riga: la scrittura sarebbe «una seconda verità che nessuno vede» (parole
++//    del commento della rotta stessa, `src/app/api/lavori/[id]/route.ts`).
++//    Quindi in quel caso la riga NON offre il tocco, invece di offrire un
++//    gesto che non può atterrare — stesso principio di `eliminabile` nella
++//    scheda: «una voce spenta invita comunque». La via per quei lavori resta
++//    la scheda clinica (`?tab=clinica` → `PUT /api/lavori/[id]/denti`).
++//
++// 🛑 IL CONFRONTO trascritto↔vivo NORMALIZZA SOLO PER DECIDERE, mai per
++//    salvare. Il trascritto è testo COME DIGITATO (D210: mai trim, mai
++//    uppercase), il colore vivo è un codice di catalogo normalizzato dal
++//    server (`risolviColoreCaso` fa `trim().toUpperCase()`): un confronto
++//    stretto direbbe che «a3 » e «A3» sono uno scostamento, e il gesto D212
++//    si aprirebbe sul caso NORMALE invece che sull'eccezione. Si applica la
++//    stessa regola che il wizard usa per derivare il vivo dal digitato
++//    (`crea-lavoro.ts`: `colore.trim().toUpperCase()`) — e NIENTE di più:
++//    piegare la virgola sul punto è una decisione da panel, non da qui, e
++//    farlo di nascosto lascerebbe la virgola nella trascrizione senza che
++//    nessuno l'abbia mai chiesto.
++
++import type { Divergenza, LavoroPrescrizione } from '@/types/domain'
++import { idrataColoreScheda, type DefaultCaso, type RigaColore } from '@/lib/domain/colore-dente'
++
++/** I cinque esiti della riga. `assente` non compare qui: è il `null` di ritorno. */
++export type StatoRigaColore =
++  /** (a) Il colore viene dalla prescrizione ed è quello che il lavoro porta. */
++  | 'trascritto'
++  /** (b) Il colore l'ha scelto il laboratorio: niente da trascrivere (V2). */
++  | 'laboratorio'
++  /** (c) Uno scostamento REGISTRATO: prescritto e realizzato convivono. */
++  | 'divergente'
++  /** (e) Vivo e trascritto differiscono e NESSUNO l'ha dichiarato. */
++  | 'scostato'
++
++export type RigaColoreScheda = {
++  stato: StatoRigaColore
++  /** Il valore grande della riga (`—` se una divergenza c'è ma il vivo manca). */
++  valore: string
++  /** Sottotitolo 14/500 `--muted` sotto il valore (§5.10 `sub`). */
++  sub?: string
++  /** Pastiglia di provenienza (§5.10, emendamento 04/08/2026) — SOLO dove la
++   *  provenienza esiste davvero, cioè sullo stato (a). */
++  pastiglia?: { testo: string; tono: 'green' }
++  /** La riga apre il foglio di correzione? (v. il blocco 🔴 in testa al file) */
++  modificabile: boolean
++  /** Il colore vivo lo porta una riga di dente, non il default di caso. */
++  daRiga: boolean
++  /** `contenuto.colore` dello snapshot, se trascritto: è il termine di
++   *  paragone del gesto D212 e il «prima» del suo prima→dopo. */
++  trascritto?: string
++}
++
++export const PASTIGLIA_PRESCRIZIONE = { testo: '✓ dalla prescrizione', tono: 'green' } as const
++const SUB_LABORATORIO = 'scelto dal laboratorio'
++/** Nessun colore vivo registrato: si dichiara il vuoto, non lo si nasconde. */
++const VALORE_ASSENTE = '—'
++
++/**
++ * Trascritto e vivo sono lo stesso colore? Normalizzazione MINIMA e solo per
++ * decidere (v. il blocco 🛑 in testa al file): `trim().toUpperCase()`, la
++ * stessa che il wizard applica per derivare il codice di catalogo dal testo
++ * digitato. La virgola NON si piega sul punto: `A3,5` e `A3.5` restano due
++ * digitazioni diverse, e la domanda del gesto D212 si fa.
++ */
++export function uguagliaColore(a: string, b: string): boolean {
++  return a.trim().toUpperCase() === b.trim().toUpperCase()
++}
++
++/** `true` se la divergenza è registrata SUL COLORE. Un `campo` fuori dal
++ *  dizionario arriva come `{ noto: false, valore }` (`ValoreDizionario`, Task
++ *  6) e non è mai `=== 'colore'`: una riga legacy col testo grezzo «colore»
++ *  NON si spaccia per una divergenza vera — nessun cast, nessun dubbio. */
++function eSulColore(d: Divergenza): boolean {
++  return d.campo === 'colore'
++}
++
++/** Il colore vivo lo porta una riga di dente? STESSO PREDICATO di
++ *  `idrataColoreScheda` («coppia completa»): se una riga ce l'ha, è lei che
++ *  quella funzione sceglie, quindi `risolviColore` risponde `da: 'dente'`. */
++function coloreDaUnaRiga(denti: readonly RigaColore[] | null | undefined): boolean {
++  return (denti ?? []).some((r) => r.scala !== null && r.codice !== null)
++}
++
++/**
++ * Gli stati della riga «Colore» della scheda (vincolo 0B-5).
++ *
++ * Ritorna `null` quando NON c'è colore da nessuna parte — né vivo né
++ * trascritto: la riga non compare affatto, invece di comparire vuota.
++ */
++export function derivaRigaColore(input: {
++  denti: readonly RigaColore[] | null | undefined
++  caso: DefaultCaso
++  prescrizione: LavoroPrescrizione | undefined
++  congelata: boolean
++}): RigaColoreScheda | null {
++  const { denti, caso, prescrizione, congelata } = input
++
++  const vivo = idrataColoreScheda(denti, caso).colore_dente
++  const trascritto = prescrizione?.contenuto.colore
++  const daRiga = coloreDaUnaRiga(denti)
++
++  // (d) — niente da nessuna parte: nessuna riga.
++  if (vivo === null && trascritto === undefined) return null
++
++  // 🔴 Il tocco si offre solo dove può atterrare (v. il blocco in testa).
++  const modificabile = !congelata && !daRiga
++  const comune = { modificabile, daRiga, trascritto }
++
++  // (b) — il colore c'è ma non è trascritto: è una scelta del laboratorio, e
++  // si DICE (l'assenza di pastiglia da sola non basta — riserva 5 del panel).
++  if (trascritto === undefined) {
++    return { ...comune, stato: 'laboratorio', valore: vivo as string, sub: SUB_LABORATORIO }
++  }
++
++  // (c) — uno scostamento registrato: la scheda mostra prescritto E
++  // realizzato, come la via «lo stiamo cambiando noi» di D212 promette.
++  // 🔑 Si guarda PRIMA dell'uguaglianza: un registro non si cancella perché
++  //    più tardi qualcuno è tornato sul valore prescritto — il fatto è
++  //    avvenuto, e la pastiglia verde su un lavoro con una divergenza a
++  //    registro sarebbe una provenienza che la riga non può garantire.
++  if ((prescrizione?.divergenze ?? []).some(eSulColore)) {
++    return {
++      ...comune,
++      stato: 'divergente',
++      valore: vivo ?? VALORE_ASSENTE,
++      sub: `prescritto: ${trascritto}`,
++    }
++  }
++
++  // (a) — trascritto, e il lavoro lo porta com'è. Il colore vivo può mancare
++  // (un codice fuori catalogo si perde alla creazione, `risolviColoreCaso`):
++  // la trascrizione resta comunque il dato vero, e si mostra lei.
++  if (vivo === null || uguagliaColore(vivo, trascritto)) {
++    return {
++      ...comune,
++      stato: 'trascritto',
++      valore: vivo ?? trascritto,
++      pastiglia: PASTIGLIA_PRESCRIZIONE,
++    }
++  }
++
++  // (e) — vivo e trascritto differiscono e NESSUNO l'ha dichiarato. Non è
++  // uno stato del brief, ma è RAGGIUNGIBILE oggi: la scheda clinica
++  // (`?tab=clinica`) cambia il colore senza passare per il gesto D212. Qui la
++  // pastiglia verde asserirebbe una provenienza che il dato non ha più: si
++  // mostrano i due valori e basta, senza inventare una divergenza che nessuno
++  // ha registrato.
++  return { ...comune, stato: 'scostato', valore: vivo, sub: `prescritto: ${trascritto}` }
++}
+diff --git a/tests/unit/colore-riga-scheda.test.ts b/tests/unit/colore-riga-scheda.test.ts
+new file mode 100644
+index 00000000..0a282940
+--- /dev/null
++++ b/tests/unit/colore-riga-scheda.test.ts
+@@ -0,0 +1,226 @@
++// tests/unit/colore-riga-scheda.test.ts
++//
++// T7 (ondata B ③) — gli STATI della riga «Colore» della scheda, vincolo 0B-5
++// (riserva 5 del panel in `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md`).
++// La derivazione è pura e vive fuori dal componente proprio per essere provata
++// qui senza montare la scheda.
++
++import { describe, it, expect } from 'vitest'
++import { derivaRigaColore, uguagliaColore } from '../../src/lib/lavori/colore-riga-scheda'
++import type { Divergenza, LavoroPrescrizione } from '../../src/types/domain'
++
++function presc(over: Partial<LavoroPrescrizione> = {}): LavoroPrescrizione {
++  return {
++    id: 'p1',
++    laboratorio_id: 'lab',
++    lavoro_id: 'lav',
++    contenuto: {},
++    divergenze: [],
++    fonte_tipo: null,
++    fonte_immagine_id: null,
++    fonte_riferimento: null,
++    numero_prescrizione: null,
++    confermata_da: null,
++    confermata_at: null,
++    created_at: '2026-08-04T10:00:00Z',
++    updated_at: '2026-08-04T10:00:00Z',
++    ...over,
++  }
++}
++
++function divergenza(over: Partial<Divergenza> = {}): Divergenza {
++  return {
++    campo: 'colore',
++    motivo: 'esigenza_tecnica',
++    nota: null,
++    utente_id: 'u1',
++    registrata_at: '2026-08-04T11:00:00Z',
++    ...over,
++  }
++}
++
++const NIENTE_CASO = { colore_scala: null, colore_codice: null }
++const CASO_A3 = { colore_scala: 'vita_classical', colore_codice: 'A3' }
++
++describe('derivaRigaColore — gli stati della riga (vincolo 0B-5)', () => {
++  it('(d) nessun colore da nessuna parte: la riga NON compare', () => {
++    expect(derivaRigaColore({ denti: [], caso: NIENTE_CASO, prescrizione: undefined, congelata: false })).toBeNull()
++  })
++
++  it('(a) trascritto e colore vivo coincidenti: pastiglia verde «✓ dalla prescrizione», nessun sottotitolo', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: CASO_A3,
++      prescrizione: presc({ contenuto: { colore: 'A3' } }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('trascritto')
++    expect(r?.valore).toBe('A3')
++    expect(r?.pastiglia).toEqual({ testo: '✓ dalla prescrizione', tono: 'green' })
++    expect(r?.sub).toBeUndefined()
++  })
++
++  it('(a-bis) trascritto ma nessun colore vivo: si mostra il trascritto, pastiglia verde', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: NIENTE_CASO,
++      prescrizione: presc({ contenuto: { colore: 'A3,5' } }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('trascritto')
++    expect(r?.valore).toBe('A3,5')
++    expect(r?.pastiglia?.tono).toBe('green')
++  })
++
++  it('(a) il confronto tollera spazi e maiuscole: «a3 » trascritto e «A3» vivo NON sono uno scostamento', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: CASO_A3,
++      prescrizione: presc({ contenuto: { colore: 'a3 ' } }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('trascritto')
++  })
++
++  it('(b) colore vivo senza trascrizione: segnale POSITIVO quieto «scelto dal laboratorio», nessuna pastiglia', () => {
++    const r = derivaRigaColore({ denti: [], caso: CASO_A3, prescrizione: undefined, congelata: false })
++    expect(r?.stato).toBe('laboratorio')
++    expect(r?.valore).toBe('A3')
++    expect(r?.sub).toBe('scelto dal laboratorio')
++    expect(r?.pastiglia).toBeUndefined()
++  })
++
++  it('(b) vale anche con una prescrizione SENZA la chiave colore (V2: l’assenza è un’informazione)', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: CASO_A3,
++      prescrizione: presc({ contenuto: { elementi: [26] } }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('laboratorio')
++  })
++
++  it('(c) post-divergenza: prescritto E realizzato visibili, MAI la pastiglia verde', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: { colore_scala: 'vita_classical', colore_codice: 'A3.5' },
++      prescrizione: presc({ contenuto: { colore: 'A3' }, divergenze: [divergenza()] }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('divergente')
++    expect(r?.valore).toBe('A3.5')
++    expect(r?.sub).toBe('prescritto: A3')
++    expect(r?.pastiglia).toBeUndefined()
++  })
++
++  it('(c-bis) divergenza registrata ma nessun colore vivo: valore «—», il prescritto resta leggibile', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: NIENTE_CASO,
++      prescrizione: presc({ contenuto: { colore: 'A3' }, divergenze: [divergenza()] }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('divergente')
++    expect(r?.valore).toBe('—')
++    expect(r?.sub).toBe('prescritto: A3')
++  })
++
++  it('(e) vivo diverso dal trascritto SENZA divergenza registrata: si mostrano entrambi, senza pastiglia verde', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: { colore_scala: 'vita_classical', colore_codice: 'B2' },
++      prescrizione: presc({ contenuto: { colore: 'A3' } }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('scostato')
++    expect(r?.valore).toBe('B2')
++    expect(r?.sub).toBe('prescritto: A3')
++    expect(r?.pastiglia).toBeUndefined()
++  })
++
++  it('una divergenza su un ALTRO campo non tocca la riga colore', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: CASO_A3,
++      prescrizione: presc({ contenuto: { colore: 'A3' }, divergenze: [divergenza({ campo: 'elementi' })] }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('trascritto')
++  })
++
++  it('una divergenza col campo FUORI DIZIONARIO non si spaccia per una divergenza sul colore', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: CASO_A3,
++      prescrizione: presc({
++        contenuto: { colore: 'A3' },
++        divergenze: [divergenza({ campo: { noto: false, valore: 'colore' } })],
++      }),
++      congelata: false,
++    })
++    expect(r?.stato).toBe('trascritto')
++  })
++})
++
++describe('derivaRigaColore — quando la riga si può correggere', () => {
++  it('di norma la riga è modificabile', () => {
++    const r = derivaRigaColore({ denti: [], caso: CASO_A3, prescrizione: undefined, congelata: false })
++    expect(r?.modificabile).toBe(true)
++  })
++
++  it('con una Dichiarazione di Conformità attiva la riga è di sola lettura (le due rotte rispondono «congelata»)', () => {
++    const r = derivaRigaColore({ denti: [], caso: CASO_A3, prescrizione: undefined, congelata: true })
++    expect(r?.modificabile).toBe(false)
++  })
++
++  it('quando il colore lo porta una RIGA di dente la riga è di sola lettura: la PATCH scriverebbe solo il caso', () => {
++    const r = derivaRigaColore({
++      denti: [{ fdi: 26, scala: 'vita_classical', codice: 'B2' }],
++      caso: CASO_A3,
++      prescrizione: undefined,
++      congelata: false,
++    })
++    expect(r?.daRiga).toBe(true)
++    expect(r?.modificabile).toBe(false)
++  })
++
++  it('il colore della riga di dente VINCE sul default di caso (stessa precedenza di idrataColoreScheda)', () => {
++    const r = derivaRigaColore({
++      denti: [{ fdi: 26, scala: 'vita_classical', codice: 'B2' }],
++      caso: CASO_A3,
++      prescrizione: undefined,
++      congelata: false,
++    })
++    expect(r?.valore).toBe('B2')
++  })
++
++  it('una riga di dente SENZA coppia completa non è il colore vivo: resta il caso', () => {
++    const r = derivaRigaColore({
++      denti: [{ fdi: 26, scala: null, codice: null }],
++      caso: CASO_A3,
++      prescrizione: undefined,
++      congelata: false,
++    })
++    expect(r?.daRiga).toBe(false)
++    expect(r?.valore).toBe('A3')
++  })
++
++  it('il trascritto viaggia con la riga: è il gettone del gesto D212', () => {
++    const r = derivaRigaColore({
++      denti: [],
++      caso: CASO_A3,
++      prescrizione: presc({ contenuto: { colore: 'A3' } }),
++      congelata: false,
++    })
++    expect(r?.trascritto).toBe('A3')
++  })
++})
++
++describe('uguagliaColore', () => {
++  it('ignora spazi e maiuscole', () => {
++    expect(uguagliaColore(' a3 ', 'A3')).toBe(true)
++  })
++  it('NON confonde la virgola col punto: sono due digitazioni diverse, la domanda si fa', () => {
++    expect(uguagliaColore('A3,5', 'A3.5')).toBe(false)
++  })
++})
+diff --git a/tests/unit/scheda-v3/modifica-colore-sheet.test.tsx b/tests/unit/scheda-v3/modifica-colore-sheet.test.tsx
+new file mode 100644
+index 00000000..a2cead96
+--- /dev/null
++++ b/tests/unit/scheda-v3/modifica-colore-sheet.test.tsx
+@@ -0,0 +1,353 @@
++// tests/unit/scheda-v3/modifica-colore-sheet.test.tsx
++//
++// T7 (ondata B ③) — il foglio «Colore» e il GESTO D212 (typo vs divergenza).
++// Testi del mockup `2026-08-04-ondata-b3-schermate-vere.html` (scene
++// `sheet-colore`, `gesto-d212`) e `2026-08-04-ondata-b-B-typo-divergenza.html`
++// (scena 2, il ramo del motivo).
++
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen, fireEvent, waitFor } from '@testing-library/react'
++import { ModificaColoreSheet } from '../../../src/components/features/lavori/scheda-v3/ModificaColoreSheet'
++
++/** Un gettone con i MICROSECONDI: se qualcuno lo facesse passare da `Date` si
++ *  troncherebbe a `.123`, e il 409 diventerebbe permanente. */
++const GETTONE = '2026-08-04T10:00:00.123456+00:00'
++const GETTONE_NUOVO = '2026-08-04T11:22:33.654321+00:00'
++
++type Risposta = { ok: boolean; status?: number; body?: unknown }
++
++/** Instrada le risposte per URL: le tre rotte in gioco hanno corpi diversi. */
++function montaFetch(rotte: { patch?: Risposta; typo?: Risposta; divergenza?: Risposta }) {
++  // La firma porta anche `init`: `patch()` qui sotto legge `c[1].method` per
++  // separare la PATCH del colore dalle due rotte della prescrizione, che
++  // vivono sotto lo stesso prefisso di URL.
++  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
++    void init
++    const scelta = url.includes('/prescrizione/typo')
++      ? (rotte.typo ?? { ok: true, body: { updated_at: GETTONE_NUOVO } })
++      : url.includes('/prescrizione/divergenza')
++        ? (rotte.divergenza ?? { ok: true, body: { divergenze: 1 } })
++        : (rotte.patch ?? { ok: true, body: { lavoro: { updated_at: GETTONE_NUOVO } } })
++    return {
++      ok: scelta.ok,
++      status: scelta.status ?? (scelta.ok ? 200 : 500),
++      json: async () => scelta.body ?? {},
++    } as unknown as Response
++  })
++  vi.stubGlobal('fetch', fetchMock)
++  return fetchMock
++}
++
++function chiamate(fetchMock: ReturnType<typeof montaFetch>, frammento: string) {
++  return fetchMock.mock.calls.filter((c) => String(c[0]).includes(frammento))
++}
++
++/** Le sole PATCH sul lavoro (il colore vivo). ⚠️ NON si filtra per URL: le tre
++ *  rotte in gioco cominciano tutte con `/api/lavori/lav` — un filtro per
++ *  frammento conterebbe anche typo e divergenza. */
++function patch(fetchMock: ReturnType<typeof montaFetch>) {
++  return fetchMock.mock.calls.filter((c) => (c[1] as { method?: string } | undefined)?.method === 'PATCH')
++}
++
++function corpoDi(chiamata: unknown[]) {
++  return JSON.parse((chiamata[1] as { body: string }).body)
++}
++
++function monta(over: Partial<Parameters<typeof ModificaColoreSheet>[0]> = {}) {
++  const onSalvato = vi.fn()
++  const onChiudi = vi.fn()
++  const onErrore = vi.fn()
++  render(
++    <ModificaColoreSheet
++      aperto
++      onChiudi={onChiudi}
++      lavoroId="lav"
++      titolo="Colore"
++      valoreIniziale="A3"
++      trascritto="A3"
++      dentista="Studio Bianchi"
++      updatedAt={GETTONE}
++      onSalvato={onSalvato}
++      onErrore={onErrore}
++      {...over}
++    />
++  )
++  return { onSalvato, onChiudi, onErrore }
++}
++
++function scrivi(valore: string) {
++  fireEvent.change(screen.getByLabelText('Colore', { selector: 'input' }), { target: { value: valore } })
++}
++
++beforeEach(() => {
++  vi.restoreAllMocks()
++})
++afterEach(() => {
++  vi.unstubAllGlobals()
++})
++
++describe('Foglio «Colore» — il salvataggio semplice (nessuna trascrizione da difendere)', () => {
++  it('senza colore nello snapshot il Salva NON apre il gesto D212: scrive e basta', async () => {
++    const fetchMock = montaFetch({})
++    const { onSalvato, onChiudi } = monta({ trascritto: undefined })
++    scrivi('B2')
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++
++    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
++    expect(screen.queryByText(/Era scritto così sulla prescrizione\?/)).not.toBeInTheDocument()
++    expect(corpoDi(patch(fetchMock)[0])).toEqual({
++      colore_scala: 'vita_classical',
++      colore_codice: 'B2',
++    })
++    await waitFor(() =>
++      expect(onSalvato).toHaveBeenCalledWith({
++        colore: { scala: 'vita_classical', codice: 'B2' },
++        updatedAt: GETTONE_NUOVO,
++      })
++    )
++    expect(onChiudi).toHaveBeenCalled()
++  })
++
++  it('senza trascrizione il sottotitolo dichiara la scelta del laboratorio', () => {
++    montaFetch({})
++    monta({ trascritto: undefined })
++    expect(screen.getByText(/scelto dal laboratorio/)).toBeInTheDocument()
++  })
++
++  it('col trascritto il sottotitolo dice da dove viene, col nome vero del dentista', () => {
++    montaFetch({})
++    monta()
++    expect(screen.getByText(/trascritto dalla prescrizione di Studio Bianchi/)).toBeInTheDocument()
++  })
++
++  it('un valore che coincide col trascritto a meno di spazi e maiuscole NON apre il gesto', async () => {
++    const fetchMock = montaFetch({})
++    monta({ trascritto: 'a3 ' })
++    scrivi('A3')
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
++    expect(screen.queryByText(/Era scritto così sulla prescrizione\?/)).not.toBeInTheDocument()
++  })
++
++  it('il campo vuoto non salva niente e lo dice', async () => {
++    const fetchMock = montaFetch({})
++    const { onErrore } = monta({ trascritto: undefined })
++    scrivi('   ')
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++    await waitFor(() => expect(onErrore).toHaveBeenCalled())
++    expect(fetchMock).not.toHaveBeenCalled()
++  })
++})
++
++describe('Il gesto D212 — la domanda a due vie', () => {
++  function apriGesto(over: Partial<Parameters<typeof ModificaColoreSheet>[0]> = {}) {
++    const r = monta(over)
++    scrivi('A3.5')
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++    return r
++  }
++
++  it('un valore diverso dal trascritto apre il foglio coi testi del mockup', () => {
++    montaFetch({})
++    apriGesto()
++    expect(screen.getByText('Era scritto così sulla prescrizione?')).toBeInTheDocument()
++    expect(screen.getByText(/Dimmi che cosa sta succedendo, così la Dichiarazione dice la verità/)).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: /Sul foglio c'è scritto A3\.5/ })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: /No: lo stiamo cambiando noi/ })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: 'Lascia stare, non cambio niente' })).toBeInTheDocument()
++  })
++
++  it('il valore di prima resta LEGGIBILE nel prima→dopo, con le sue etichette', () => {
++    montaFetch({})
++    apriGesto()
++    expect(screen.getByText('trascritto')).toBeInTheDocument()
++    expect(screen.getByText('nuovo')).toBeInTheDocument()
++    // «A3» barrato accanto ad «A3.5»: il precedente non si oscura mai.
++    const precedente = screen.getByText('A3')
++    expect(precedente).toBeInTheDocument()
++    expect(precedente.style.textDecoration).toContain('line-through')
++  })
++
++  it('nessuna via è preselezionata: aprire la domanda non scrive niente', () => {
++    const fetchMock = montaFetch({})
++    apriGesto()
++    expect(fetchMock).not.toHaveBeenCalled()
++  })
++
++  it('«Lascia stare, non cambio niente» chiude senza nessuna chiamata', () => {
++    const fetchMock = montaFetch({})
++    const { onChiudi } = apriGesto()
++    fireEvent.click(screen.getByRole('button', { name: 'Lascia stare, non cambio niente' }))
++    expect(onChiudi).toHaveBeenCalled()
++    expect(fetchMock).not.toHaveBeenCalled()
++  })
++
++  it('la via typo corregge la trascrizione col GETTONE OPACO e poi allinea il colore vivo', async () => {
++    const fetchMock = montaFetch({})
++    const { onSalvato } = apriGesto()
++    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3\.5/ }))
++
++    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/typo').length).toBe(1))
++    expect(corpoDi(chiamate(fetchMock, '/prescrizione/typo')[0])).toEqual({
++      campo: 'colore',
++      valore: 'A3.5',
++      // 🛑 La stringa arriva INTATTA, microsecondi compresi.
++      atteso_updated_at: GETTONE,
++    })
++    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
++    expect(corpoDi(patch(fetchMock)[0])).toEqual({
++      colore_scala: 'vita_classical',
++      colore_codice: 'A3.5',
++    })
++    await waitFor(() =>
++      expect(onSalvato).toHaveBeenCalledWith({
++        trascritto: 'A3.5',
++        colore: { scala: 'vita_classical', codice: 'A3.5' },
++        updatedAt: GETTONE_NUOVO,
++      })
++    )
++  })
++
++  it('typo in conflitto (409): niente PATCH, e la seconda pressione riparte col gettone NUOVO', async () => {
++    const fetchMock = montaFetch({
++      typo: { ok: false, status: 409, body: { errore: 'x', esito: 'conflitto', updated_at: GETTONE_NUOVO } },
++    })
++    const { onErrore, onSalvato } = apriGesto()
++    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3\.5/ }))
++
++    await waitFor(() => expect(onErrore).toHaveBeenCalled())
++    expect(patch(fetchMock).length).toBe(0)
++    expect(onSalvato).not.toHaveBeenCalled()
++
++    // Seconda pressione: il gettone è quello che il 409 ha restituito.
++    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3\.5/ }))
++    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/typo').length).toBe(2))
++    expect(corpoDi(chiamate(fetchMock, '/prescrizione/typo')[1]).atteso_updated_at).toBe(GETTONE_NUOVO)
++  })
++
++  it('typo riuscito ma colore vivo fuori catalogo: la trascrizione resta salvata e lo si DICE', async () => {
++    const fetchMock = montaFetch({})
++    const { onSalvato, onErrore } = monta()
++    scrivi('A3,5') // la virgola del mockup: NON è un codice del catalogo
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3,5/ }))
++
++    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/typo').length).toBe(1))
++    // La trascrizione parte COM'È DIGITATA (D210)…
++    expect(corpoDi(chiamate(fetchMock, '/prescrizione/typo')[0]).valore).toBe('A3,5')
++    // …ma la PATCH no: azzererebbe il colore in silenzio.
++    expect(patch(fetchMock).length).toBe(0)
++    await waitFor(() => expect(onSalvato).toHaveBeenCalledWith({ trascritto: 'A3,5', updatedAt: GETTONE_NUOVO }))
++    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('non è un codice del catalogo'))
++  })
++})
++
++describe('Il gesto D212 — il ramo della divergenza', () => {
++  function apriMotivo() {
++    const r = monta()
++    scrivi('A3.5')
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++    fireEvent.click(screen.getByRole('button', { name: /No: lo stiamo cambiando noi/ }))
++    return r
++  }
++
++  it('la seconda via porta al foglio del motivo, coi testi del mockup B', () => {
++    montaFetch({})
++    apriMotivo()
++    expect(screen.getByText('Perché cambia?')).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: "Me l'ha chiesto il dentista" })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: 'Esigenza tecnica' })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: 'Materiale non disponibile' })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: 'Altro' })).toBeInTheDocument()
++    expect(screen.getByLabelText(/Nota \(se serve\)/, { selector: 'input' })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: 'Torna indietro' })).toBeInTheDocument()
++  })
++
++  it('nessun motivo è preselezionato e «Registra il cambio» resta spento finché non se ne sceglie uno', () => {
++    montaFetch({})
++    apriMotivo()
++    for (const nome of ["Me l'ha chiesto il dentista", 'Esigenza tecnica', 'Materiale non disponibile', 'Altro']) {
++      expect(screen.getByRole('button', { name: nome })).toHaveAttribute('aria-pressed', 'false')
++    }
++    expect(screen.getByRole('button', { name: 'Registra il cambio' })).toBeDisabled()
++  })
++
++  it('«Torna indietro» riporta alla domanda a due vie senza scrivere niente', () => {
++    const fetchMock = montaFetch({})
++    apriMotivo()
++    fireEvent.click(screen.getByRole('button', { name: 'Torna indietro' }))
++    expect(screen.getByText('Era scritto così sulla prescrizione?')).toBeInTheDocument()
++    expect(fetchMock).not.toHaveBeenCalled()
++  })
++
++  it('registra la divergenza (campo, motivo, nota) e POI aggiorna il colore vivo — in quest’ordine', async () => {
++    const fetchMock = montaFetch({})
++    const { onSalvato } = apriMotivo()
++    fireEvent.click(screen.getByRole('button', { name: 'Esigenza tecnica' }))
++    fireEvent.change(screen.getByLabelText(/Nota \(se serve\)/, { selector: 'input' }), {
++      target: { value: 'spessore insufficiente' },
++    })
++    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
++
++    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(1))
++    expect(corpoDi(chiamate(fetchMock, '/prescrizione/divergenza')[0])).toEqual({
++      campo: 'colore',
++      motivo: 'esigenza_tecnica',
++      nota: 'spessore insufficiente',
++    })
++    await waitFor(() => expect(patch(fetchMock).length).toBe(1))
++    // Il registro PRIMA del colore vivo: al contrario, un colore cambiato
++    // senza traccia del perché è il verso peggiore del fallimento.
++    expect(String(fetchMock.mock.calls[0][0])).toContain('/prescrizione/divergenza')
++    await waitFor(() =>
++      expect(onSalvato).toHaveBeenCalledWith({
++        divergenza: true,
++        colore: { scala: 'vita_classical', codice: 'A3.5' },
++        updatedAt: GETTONE_NUOVO,
++      })
++    )
++  })
++
++  it('senza nota il corpo non porta la chiave: vuoto e assente non si confondono', async () => {
++    const fetchMock = montaFetch({})
++    apriMotivo()
++    fireEvent.click(screen.getByRole('button', { name: 'Altro' }))
++    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
++    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(1))
++    expect(corpoDi(chiamate(fetchMock, '/prescrizione/divergenza')[0])).toEqual({
++      campo: 'colore',
++      motivo: 'altro',
++    })
++  })
++
++  it('la divergenza NON manda mai il gettone: quella rotta lo rifiuta come chiave ignota', async () => {
++    const fetchMock = montaFetch({})
++    apriMotivo()
++    fireEvent.click(screen.getByRole('button', { name: 'Altro' }))
++    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
++    await waitFor(() => expect(chiamate(fetchMock, '/prescrizione/divergenza').length).toBe(1))
++    expect(corpoDi(chiamate(fetchMock, '/prescrizione/divergenza')[0])).not.toHaveProperty('atteso_updated_at')
++  })
++
++  it('divergenza registrata ma colore vivo non scritto: si applica ciò che è AVVENUTO e si dice il resto', async () => {
++    const fetchMock = montaFetch({ patch: { ok: false, status: 500 } })
++    const { onSalvato, onErrore } = apriMotivo()
++    fireEvent.click(screen.getByRole('button', { name: 'Altro' }))
++    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
++    await waitFor(() => expect(onSalvato).toHaveBeenCalledWith({ divergenza: true }))
++    expect(onErrore).toHaveBeenCalledWith(expect.stringContaining('Il cambio è registrato'))
++    expect(patch(fetchMock).length).toBe(1)
++  })
++
++  it('la divergenza fallita non tocca il colore vivo e riporta il messaggio della rotta (chiave `errore`)', async () => {
++    const fetchMock = montaFetch({
++      divergenza: { ok: false, status: 409, body: { errore: 'La trascrizione è congelata', esito: 'congelata' } },
++    })
++    const { onErrore, onSalvato } = apriMotivo()
++    fireEvent.click(screen.getByRole('button', { name: 'Altro' }))
++    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
++    await waitFor(() => expect(onErrore).toHaveBeenCalledWith('La trascrizione è congelata'))
++    expect(patch(fetchMock).length).toBe(0)
++    expect(onSalvato).not.toHaveBeenCalled()
++  })
++})
+diff --git a/tests/unit/scheda-v3/scheda-riga-colore.test.tsx b/tests/unit/scheda-v3/scheda-riga-colore.test.tsx
+new file mode 100644
+index 00000000..b4d4c3de
+--- /dev/null
++++ b/tests/unit/scheda-v3/scheda-riga-colore.test.tsx
+@@ -0,0 +1,251 @@
++// tests/unit/scheda-v3/scheda-riga-colore.test.tsx
++//
++// T7 (ondata B ③) — la riga «Colore» DENTRO la scheda (D225②): che compaia (o
++// non compaia) al momento giusto, che porti la pastiglia di provenienza solo
++// dove la provenienza esiste, e che apra il foglio solo dove il tocco può
++// atterrare. Gli stati sono provati uno per uno in
++// `tests/unit/colore-riga-scheda.test.ts`: qui si prova il CABLAGGIO.
++
++import { describe, it, expect, vi, afterEach } from 'vitest'
++import { render, screen, fireEvent, waitFor } from '@testing-library/react'
++
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
++  usePathname: () => '/lavori/lav',
++}))
++
++import { SchedaLavoroV3 } from '../../../src/components/features/lavori/scheda-v3/SchedaLavoroV3'
++import type { LavoroDettaglio, LavoroPrescrizione } from '../../../src/types/domain'
++
++function presc(over: Partial<LavoroPrescrizione> = {}): LavoroPrescrizione {
++  return {
++    id: 'p1', laboratorio_id: 'lab', lavoro_id: 'lav',
++    contenuto: {}, divergenze: [],
++    fonte_tipo: null, fonte_immagine_id: null, fonte_riferimento: null,
++    numero_prescrizione: null, confermata_da: null, confermata_at: null,
++    created_at: '2026-08-04T10:00:00Z', updated_at: '2026-08-04T10:00:00Z',
++    ...over,
++  }
++}
++
++function makeLavoro(over: Partial<LavoroDettaglio> = {}): LavoroDettaglio {
++  return {
++    id: 'lav', numero_lavoro: '2026-0147', stato: 'in_lavorazione',
++    data_consegna_prevista: '2026-08-20', ora_consegna: '16:00',
++    descrizione: 'Corona zirconia', paziente_nome_snapshot: 'PZ-147',
++    colore_scala: null, colore_codice: null,
++    updated_at: '2026-08-04T10:00:00.123456+00:00',
++    cliente: { studio_nome: 'Studio Bianchi', nome: 'Ada', cognome: 'Bianchi' },
++    paziente: null, tecnico: null,
++    fasi: [], immagini: [], lavorazioni: [], appuntamenti: [], materiali: [], ddc: null,
++    laboratorio: { nome: 'Lab', telefono: null },
++    ...over,
++  } as unknown as LavoroDettaglio
++}
++
++/** La riga «Colore» come la vede lo screen reader: bottone «Modifica colore»
++ *  quando è correggibile, altrimenti solo testo. */
++function bottoneColore() {
++  return screen.queryByRole('button', { name: 'Modifica colore' })
++}
++
++describe('La riga «Colore» nella scheda (D225②)', () => {
++  it('(d) senza colore né trascrizione la riga NON compare affatto', () => {
++    render(<SchedaLavoroV3 lavoro={makeLavoro()} />)
++    expect(screen.queryByText('Colore')).not.toBeInTheDocument()
++    expect(bottoneColore()).not.toBeInTheDocument()
++  })
++
++  it('(a) trascritto: valore vivo e pastiglia verde «✓ dalla prescrizione»', () => {
++    render(
++      <SchedaLavoroV3
++        lavoro={makeLavoro({
++          colore_scala: 'vita_classical', colore_codice: 'A3',
++          prescrizione: presc({ contenuto: { colore: 'A3' } }),
++        })}
++      />
++    )
++    expect(screen.getByText('Colore')).toBeInTheDocument()
++    expect(screen.getByText('A3')).toBeInTheDocument()
++    expect(screen.getByText('✓ dalla prescrizione')).toBeInTheDocument()
++  })
++
++  it('(b) «lo scegliamo noi»: segnale POSITIVO quieto, e MAI la pastiglia della prescrizione', () => {
++    render(
++      <SchedaLavoroV3 lavoro={makeLavoro({ colore_scala: 'vita_classical', colore_codice: 'B2' })} />
++    )
++    expect(screen.getByText('B2')).toBeInTheDocument()
++    expect(screen.getByText('scelto dal laboratorio')).toBeInTheDocument()
++    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
++  })
++
++  it('(c) post-divergenza: prescritto E realizzato visibili insieme, senza pastiglia verde', () => {
++    render(
++      <SchedaLavoroV3
++        lavoro={makeLavoro({
++          colore_scala: 'vita_classical', colore_codice: 'A3.5',
++          prescrizione: presc({
++            contenuto: { colore: 'A3' },
++            divergenze: [{ campo: 'colore', motivo: 'richiesta_dentista', nota: null, utente_id: 'u1', registrata_at: '2026-08-04T11:00:00Z' }],
++          }),
++        })}
++      />
++    )
++    expect(screen.getByText('A3.5')).toBeInTheDocument()
++    expect(screen.getByText('prescritto: A3')).toBeInTheDocument()
++    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
++  })
++
++  it('la riga è un controllo di modifica col suo nome accessibile (WCAG 2.5.3: contiene «colore»)', () => {
++    render(<SchedaLavoroV3 lavoro={makeLavoro({ colore_scala: 'vita_classical', colore_codice: 'A3' })} />)
++    expect(bottoneColore()).toBeInTheDocument()
++  })
++
++  it('il tap apre il foglio «Colore» col valore attuale già dentro', () => {
++    render(<SchedaLavoroV3 lavoro={makeLavoro({ colore_scala: 'vita_classical', colore_codice: 'A3' })} />)
++    fireEvent.click(bottoneColore() as HTMLElement)
++    expect(screen.getByRole('dialog')).toBeInTheDocument()
++    expect(screen.getByLabelText('Colore', { selector: 'input' })).toHaveValue('A3')
++  })
++
++  it('con una Dichiarazione di Conformità attiva la riga si vede ma NON si tocca (le rotte direbbero «congelata»)', () => {
++    render(
++      <SchedaLavoroV3
++        lavoro={makeLavoro({
++          colore_scala: 'vita_classical', colore_codice: 'A3',
++          ddc: { id: 'd1', stato: 'emessa' } as unknown as LavoroDettaglio['ddc'],
++        })}
++      />
++    )
++    expect(screen.getByText('A3')).toBeInTheDocument()
++    expect(bottoneColore()).not.toBeInTheDocument()
++  })
++
++  it('quando il colore lo porta una RIGA di dente la riga si vede ma NON si tocca (la PATCH scriverebbe solo il caso)', () => {
++    render(
++      <SchedaLavoroV3
++        lavoro={makeLavoro({
++          colore_scala: 'vita_classical', colore_codice: 'A3',
++          denti: [{ fdi: 26, scala: 'vita_classical', codice: 'B2' }] as unknown as LavoroDettaglio['denti'],
++        })}
++      />
++    )
++    // Il colore mostrato è quello della RIGA, non il default di caso.
++    expect(screen.getByText('B2')).toBeInTheDocument()
++    expect(bottoneColore()).not.toBeInTheDocument()
++  })
++
++  it('la riga sta fra «Lavoro» e «Consegna», come la scena 9 del mockup', () => {
++    render(
++      <SchedaLavoroV3 lavoro={makeLavoro({ colore_scala: 'vita_classical', colore_codice: 'A3' })} />
++    )
++    const chiavi = screen.getAllByText(/^(Dentista|Paziente|Colore|Consegna|Tecnico)$/).map((n) => n.textContent)
++    expect(chiavi.indexOf('Colore')).toBeGreaterThan(chiavi.indexOf('Paziente'))
++    expect(chiavi.indexOf('Colore')).toBeLessThan(chiavi.indexOf('Consegna'))
++  })
++})
++
++// ══ LA GIUNTURA ═══════════════════════════════════════════════════════════
++// I due blocchi qui sopra e `modifica-colore-sheet.test.tsx` provano le DUE
++// METÀ: il foglio chiama `onSalvato` col carico giusto, la riga si disegna
++// giusta a partire dai suoi dati. 🔑 Nessuno dei due prova la CERNIERA —
++// `handleColoreSalvato`, che applica quel carico allo specchio locale. È
++// esattamente lì che vive il requisito «post-divergenza la scheda mostra
++// prescritto E realizzato»: due metà verdi e il cardine mai girato.
++// Qui il giro è INTERO: dalla riga, dentro il foglio, fino alla riga di nuovo.
++describe('Dal foglio alla riga — il giro intero (l’aggiornamento ottimistico)', () => {
++  afterEach(() => {
++    vi.unstubAllGlobals()
++  })
++
++  function fetchDiSuccesso() {
++    const fetchMock = vi.fn(async (url: string) => ({
++      ok: true,
++      status: 200,
++      json: async () =>
++        url.includes('/prescrizione/typo')
++          ? { updated_at: '2026-08-04T12:00:00.999999+00:00' }
++          : url.includes('/prescrizione/divergenza')
++            ? { divergenze: 1 }
++            : { lavoro: { updated_at: '2026-08-04T12:00:00.999999+00:00' } },
++    }))
++    vi.stubGlobal('fetch', fetchMock)
++    return fetchMock
++  }
++
++  /** Un lavoro nello stato (a): trascritto A3, vivo A3, pastiglia verde. */
++  function lavoroTrascritto() {
++    return makeLavoro({
++      colore_scala: 'vita_classical',
++      colore_codice: 'A3',
++      prescrizione: presc({ contenuto: { colore: 'A3' } }),
++    })
++  }
++
++  function apriEScrivi(nuovo: string) {
++    fireEvent.click(screen.getByRole('button', { name: 'Modifica colore' }))
++    fireEvent.change(screen.getByLabelText('Colore', { selector: 'input' }), { target: { value: nuovo } })
++    fireEvent.click(screen.getByRole('button', { name: /^salva$/i }))
++  }
++
++  /** 🔑 SI ASPETTA CHE IL FOGLIO SIA CHIUSO PRIMA DI GUARDARE LA RIGA, e non è
++   *  pignoleria: il foglio D212 dipinge il valore nuovo nel suo prima→dopo,
++   *  quindi un `getByText('A3.5')` sparato mentre è ancora aperto lo trova
++   *  LÌ e passa anche se la riga non si è mossa di un millimetro.
++   *  ⚠️ MISURATO: con questa attesa mancante, la prova della via typo passava
++   *  con la cerniera (`handleColoreSalvato`) resa INERTE — cioè non provava
++   *  niente. È il difetto che il conteggio R-P4 esiste per far vedere. */
++  async function attendiChiusuraFoglio() {
++    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
++  }
++
++  it('via DIVERGENZA: la riga passa allo stato (c) e mostra prescritto E realizzato insieme', async () => {
++    fetchDiSuccesso()
++    render(<SchedaLavoroV3 lavoro={lavoroTrascritto()} />)
++    expect(screen.getByText('✓ dalla prescrizione')).toBeInTheDocument()
++
++    apriEScrivi('A3.5')
++    fireEvent.click(screen.getByRole('button', { name: /No: lo stiamo cambiando noi/ }))
++    fireEvent.click(screen.getByRole('button', { name: 'Esigenza tecnica' }))
++    fireEvent.click(screen.getByRole('button', { name: 'Registra il cambio' }))
++
++    await attendiChiusuraFoglio()
++    // Il realizzato è quello nuovo, il prescritto resta leggibile…
++    expect(screen.getByText('A3.5')).toBeInTheDocument()
++    expect(screen.getByText('prescritto: A3')).toBeInTheDocument()
++    // …e la pastiglia verde SPARISCE: con una divergenza a registro la riga
++    // non può più garantire quella provenienza.
++    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
++  })
++
++  it('via TYPO: trascrizione e colore vivo si muovono INSIEME, quindi la riga resta in (a) col nuovo valore', async () => {
++    fetchDiSuccesso()
++    render(<SchedaLavoroV3 lavoro={lavoroTrascritto()} />)
++
++    apriEScrivi('A3.5')
++    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3\.5/ }))
++
++    await attendiChiusuraFoglio()
++    expect(screen.getByText('A3.5')).toBeInTheDocument()
++    // 🔑 La prova che la via typo scrive ENTRAMBI: se muovesse solo la
++    //    trascrizione, la riga cadrebbe nello stato «scostato» e mostrerebbe
++    //    «prescritto: A3.5» accanto ad «A3» — cioè uno scostamento muto.
++    expect(screen.getByText('✓ dalla prescrizione')).toBeInTheDocument()
++    expect(screen.queryByText(/^prescritto: /)).not.toBeInTheDocument()
++  })
++
++  it('typo riuscito e colore vivo NON scritto: la riga dice il vero — scostato, senza pastiglia verde', async () => {
++    // Il codice col la virgola non è in catalogo: la trascrizione si salva,
++    // il colore vivo no. La riga NON deve fingere che sia andato tutto bene.
++    fetchDiSuccesso()
++    render(<SchedaLavoroV3 lavoro={lavoroTrascritto()} />)
++
++    apriEScrivi('A3,5')
++    fireEvent.click(screen.getByRole('button', { name: /Sul foglio c'è scritto A3,5/ }))
++
++    await attendiChiusuraFoglio()
++    expect(screen.getByText('prescritto: A3,5')).toBeInTheDocument()
++    expect(screen.getByText('A3')).toBeInTheDocument()
++    expect(screen.queryByText('✓ dalla prescrizione')).not.toBeInTheDocument()
++  })
++})

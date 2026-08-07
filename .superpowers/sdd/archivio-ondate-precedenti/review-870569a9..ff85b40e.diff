@@ -1,0 +1,963 @@
+# Review package: 870569a9a714c634272401699a97c89b6a3d1a5f..HEAD
+
+## Commits
+ff85b40e docs(memoria): gli accenti nei documenti sono fatti sul ramo — memoria, roadmap e sessione allineate (BP-1)
+a94fa335 fix(db): il DEFAULT della frase di conformità porta l'accento (D104)
+a6684349 test(prrc): l'asserzione pretende il titolo intero, non il suo inizio
+6bc7691b fix(prrc): l'accento nel titolo della nomina, e il test che ora legge il documento (D104)
+0cd99d47 fix(test): il §2 — Data di emissione prova per conteggio, non per presenza
+20673cdc docs(piano): il §2 nel piano cade sullo stesso scoglio del §7 — terzo difetto dello stesso tipo
+7348be8f feat(ddc): il §2 — Data di emissione entra nella numerazione (D106)
+930d757f fix(ddc): «è conforme» nella frase congelata — un solo carattere, il resto invariato (D104)
+cb999bac test(ddc): il commento della rete smette di promettere più di quanto misura
+05238264 docs(piano): corretto un difetto del piano trovato dall'esecutore del Task 2
+3e2e4521 fix(ddc): gli accenti nel documento — e il test smette di fissare il refuso (D104)
+333a8e47 fix(test): D102 — il describe fratello pulisce i mock, il commento smette di dire il falso
+50b0b72d docs(ddc): il registro delle versioni, e le due definizioni smettono di contraddirsi (D105)
+
+## Files changed
+ docs/roadmap/ROADMAP-UFFICIALE.md                  |  2 +-
+ .../plans/2026-08-03-accenti-documenti.md          | 26 ++++++--
+ .../specs/2026-08-03-accenti-documenti-design.md   |  4 +-
+ memory/MEMORY.md                                   |  4 +-
+ memory/SESSION_ACTIVE.md                           | 40 ++++++------
+ src/components/features/pdf/DdcTemplate.tsx        | 24 ++++---
+ src/components/features/pdf/NominaPrrcTemplate.tsx |  2 +-
+ src/lib/pdf/generate-ddc.ts                        | 25 ++++++--
+ ...03120000_default_testo_conformita_accentato.sql | 21 +++++++
+ supabase/schema.sql                                |  4 +-
+ tests/unit/ddc-pdf-content.test.ts                 | 73 ++++++++++++++++++++--
+ tests/unit/generate-ddc.test.ts                    | 52 +++++++++++++--
+ tests/unit/generate-nomina-prrc.test.ts            | 25 ++++++++
+ 13 files changed, 247 insertions(+), 55 deletions(-)
+
+## Diff
+diff --git a/docs/roadmap/ROADMAP-UFFICIALE.md b/docs/roadmap/ROADMAP-UFFICIALE.md
+index c7e33d2d..a0386d52 100644
+--- a/docs/roadmap/ROADMAP-UFFICIALE.md
++++ b/docs/roadmap/ROADMAP-UFFICIALE.md
+@@ -49,21 +49,21 @@
+ 
+ | # | Voce | Percorso |
+ |---|---|---|
+ | **1** | ✅ **Ripensamento del wizard «Nuovo lavoro» — SPEC RATIFICATA 27/07/2026, in TRE ONDATE.** **(a)** *🚀 **IN PRODUZIONE dal 28/07/2026** — merge `a3e52379` su `main`, **78 commit**, fast-forward pulito, autorizzato da Francesco **dopo** il collaudo. **13 task su 13 + 5 code + revisione indipendente + FASE 9 nel browser (5 prove su 5, più il controllo positivo che il conflitto scatta).** Il collaudo ha trovato e chiuso **un difetto suo**: le tre frasi dell'ondata non arrivavano all'utente, che leggeva solo «⚠ Errore — riprova» — la condizione che le mostrava era **irraggiungibile** e quel paragrafo era codice morto. Referto: `docs/roadmap/2026-07-28-collaudo-ondata-a-referto.md`. ~~Mancano ancora: review (FASE 8) e QA browser (FASE 9).~~ FASE 7 fatta con output reale: `tsc` 0 · `eslint` 0 · `next build` ok · **vitest 3584** · DB alla baseline. **R4 (isolamento fra laboratori) provato per intero sul database vero**; **R5 (cancellabilità) provato solo per `lavori_denti`** — la prova ha scoperto sei tabelle che rendono un laboratorio incancellabile, sezione dedicata in coda. Punto di ripresa e i 23 ritrovamenti: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`; evidenze: `docs/superpowers/plans/evidenze/2026-07-27-ondata-a-isolamento.md`. 🕛 **Fuori dal deploy, può seguire: T11-bis** (POST e PUT rispondono diversamente sugli stessi dati: `422` sul PUT, `500` sul POST)* — modello dati per-dente (`lavori_denti`, 52 codici FDI, `colori_dentali`), 2 RPC atomiche, `PUT /api/lavori/[id]/denti`, sentinelle sui 7 campi, i due scrittori reindirizzati **a grafica invariata**. Piano: `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md`, 13 task. **(b)** *🔨 **IN ESECUZIONE** sul ramo `ondata-b-schermate` (mai su `origin`): album delle foto sulla scheda del lavoro fatto fino a **T11-bis**, più la **settima categoria** (la prescrizione, D91-D97, 02/08). **Restano T12** (l'eliminazione dal visore) **e T13** (chiusura: FASE 7, collaudo nel browser, gate estetico L2). 🛑 **Non va in produzione prima di T12:** sulla scheda ci sono due bottoni veri che non aprono niente. Punto di ripresa: `docs/roadmap/2026-08-02-prescrizione-settima-categoria-brief.md` · piano: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`* — 📌 **eredita quattro cose dall'ondata (a), trovate eseguendo (dettaglio: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` §5-quinquies):** ① la **tendina della scheda offre 19 codici su 48** — un `2M2` che arriva dal colore di caso rende la casella **vuota a schermo** pur essendo il dato intatto, e da oggi quella tendina è anche **la penna** del colore di caso, non solo la sua vetrina; ② il **default di caso non è correggibile alla creazione**, solo dalla scheda; ③ le **tre zone del ceramista** (collo/corpo/incisale) **non hanno destinazione senza un dente selezionato** — oggi il form si ferma e lo dice, ma è un limite, non una soluzione; ④ il wizard scrive il **nome nel cognome** (metà rimasta della tappa 1) — wizard adattivo (tabella dei 38 tipi: il tipo decide **se** la domanda compare, e quando compare **si può saltare**), denti sulle illustrazioni con sagome, colore per dente, cassetta saltabile, `OdontogrammaFDI` rifatto in v3. **⚠️ FASE 9b obbligatoria.** 🔴 **L'ondata (b) chiude anche la metà rimasta della tappa 1 «nome e cognome paziente»** (il passo paziente deve scrivere le due parti separate: oggi il wizard mette tutto nel cognome, e **la targa della cassetta non è ancora migliorata**). Verificato il 27/07: la spec del wizard non lo nominava — annotato ora in spec §12. 🟡 **Aperto, da decidere sui mockup a inizio ondata (b):** cosa mostrare al posto di «passo 2 di 3», dato che i passi variano col tipo (`ProgressDots` presuppone un numero fisso). **(c)** *da pianificare* — 📌 **eredita tre pulizie dall'ondata (a)** (§5-quinquies dell'handoff): ① due `select` della fatturazione (`fatture/[id]/xml/route.ts:109-112`, `fatture/batch/route.ts:125-128`) chiedono le quattro colonne colore e **non le leggono mai** — verificato che nessun valore fermo finisce su un documento fiscale, ma vanno ripulite; ② la vista `lavori_dashboard` espone ancora `colore_dente`, colonna ferma dal T10, nessun chiamante; ③ la **sostituzione integrale** porta **tutte** le righe a `provenienza:'eseguito'` a ogni modifica clinica, anche i denti non toccati — rileva per il precheck W20/W22 — il colore nella Dichiarazione (collasso che **conosce le arcate**: «13-23» vale 6 denti, non 11), template che legge lo snapshot, gancio nel precheck. **Fuori perimetro, tracciato:** arrivo automatico da email e portali degli scanner (W1). | **GRANDE, con migration** — la migration sta **tutta nell'ondata (a)**. Spec: `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` · verbale (23 decisioni): `docs/design/decisions/2026-07-27-wizard-nuovo-lavoro-brainstorming.md` |
+ | **2** | **Avviso alla consegna su dente/colore mancanti** — avviso, mai blocco (una totale non ha elemento, un bite non ha colore). Oggi `precheck.ts` **non li nomina** e la DdC stampa il valore grezzo | Media, con panel su quali dispositivi esentare |
+ | **3** | ✅ ~~**Verificare se il colore compaia nella DdC**~~ — **CHIUSA (D101 · D102)**: il colore manca davvero, ma **la norma non lo nomina** — la riga di `ANALISI/17` che lo elencava fra gli obbligatori era **una nostra glossa**. Il buco vero è il **prescritto** (voce 9) | chiusa 03/08/2026 |
+ | **4** | **Assistente vocale completo** che sostituisca «Dimmelo a voce» (oggi non funziona) — voce e interrogazioni su tutta la PWA | GRANDE, tutto da progettare |
+ | **7** | 🆕 📎 **GLI ALLEGATI E LA LORO CONDIVISIONE — ondata propria, APERTA da Francesco il 30/07/2026 (D67).** Parole sue: «*l'inserimento di una foto nella scheda di un lavoro va di pari passo all'inserimento di un allegato qualsiasi, che possa esser un pdf, un stl, piuttosto che altro… valutiamo una differenziazione tra foto e altri tipi di allegati, il modo di allegarli, il modo di conservarli, rivederli e **condividerli**. (Non avevamo mai parlato della possibilità di condividere gli allegati, via whatsapp, via portale del medico al clinico, o nella chat generale con gli altri membri del laboratorio)*». ✅ **Già fermo e utilizzabile:** foto e allegato **non condividono la stessa superficie**; si allega **dalla scheda del lavoro**, e nel wizard — se ci sarà — è **dichiaratamente opzionale**. 🟡 **Tutto il resto è da progettare** (BP-2 pieno: brainstorming → gate FASE 3 → panel): come si **conservano** (un `.stl` non è un dato sanitario come una radiografia, e D61 ha classificato **la foto**, non l'allegato) · come si **rivedono** (un `.stl` non ha anteprima) · e come si **condividono**, su **tre canali con tre modelli di rischio diversi** — e la **chat interna del laboratorio non esiste** nel prodotto. 🔴 **QUESTA VOCE È LA DESTINAZIONE DI DUE COSE RINVIATE, e senza di lei il rinvio sarebbe una perdita:** ① **D75 — la durata dei collegamenti firmati alle foto.** Oggi valgono **un'ora** (`src/app/(app)/lavori/[id]/page.tsx:65`, `.../modifica/page.tsx:87`) e sono **al portatore**; il portale usa **300** e la PEC **60**, motivati per iscritto, mentre il 3600 è stato copiato. ⚠️ **Gradiente invertito:** dal portale le foto **non passano mai**, quindi impronte e **radiografie** hanno la finestra più lunga e nessuna alternativa più corta. 🛑 Una mitigazione da ~15 righe è stata **presentata e scartata consapevolmente**: l'uscita esisteva. ② **R20 — la public URL persistita.** `src/lib/storage/upload.ts:31` la costruisce e `src/app/api/lavori/[id]/immagini/route.ts:107` la salva in `lavori_immagini.url`: **inerte oggi** (bucket privato), ma è la riga che invita la correzione catastrofica «rendiamo pubblico il bucket» — e il progetto **ha davvero** un bucket pubblico con cui confonderla (`src/lib/utils/storage-url.ts:6-10`). ➡️ **È qui che quella tentazione nascerà davvero: si chiude prima di aprire la condivisione.** 📌 **Un fatto misurato che questa ondata eredita:** oggi un PDF caricato sta in banca dati come `tipo='foto'` e `descrizione='altro'` — **entrambe le colonne mentono sulla stessa riga**; il genere vero va ricostruito dall'estensione. **Assorbe anche R23** (percorsi storage `Date.now()` che collidono) e **R24** (il tipo di file è quello **dichiarato dal client**, i byte non si leggono mai — 🛑 **diventa bloccante** il giorno in cui i byte si servono dalla propria origine). ⚠️ **Da collocare:** accanto o dentro l'ondata (c) «Le foto, per bene», che porta già l'editor | **GRANDE, tutto da progettare** — verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` (**D67** · D75) · vincolo che l'ondata (b) si è imposta nell'attesa: `docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md` §11 |
+ | **5** | **Tappa 1-bis** (D9): la fotografia congelata `paziente_nome_snapshot` + correzione dalla scheda del lavoro | GRANDE, panel normativo |
+ | **6** | 🆕 🎨 **LE TINTE DEL MANUFATTO — ondata propria, ratificata da Francesco il 29/07/2026 (D42), da fare DOPO l'ondata (b).** Tre tipi su 38 hanno un colore che **non è dentale**: `placca_espansione` e `apparecchio_funzionale` (tinte della resina ortodontica) e `paradenti` (colori sportivi). **Oggi quel dato non si può registrare:** `colori_dentali` contiene solo colori dentali (`vita_classical` 16 · `vita_3d_master` 29 · `fuori_scala` 3, questi ultimi con `hex` a `NULL`), e **D3 vieta di inventare un colore fuori catalogo**. Nell'ondata (b) entra **solo** il flag `prevedeColore: 'catalogo' \| 'libero' \| 'nessuno'` (T2), e `'libero'` **non rende alcun passo**: meglio nessuna domanda che una domanda con la scala sbagliata. 🛑 **Due cose che questa ondata NON deve fare, e il panel dei tre advisor ha spiegato perché:** ① **niente esadecimale libero** — un `#FF8FAB` non ha nome, non si cerca e finirebbe illeggibile su un documento conservato dieci anni; è anche contro una scelta già fatta da Francesco sui colori delle cassette («*non ci conviene unificare, se questo permette la ricerca per colore*»); ② **niente scale nuove dentro `colori_dentali`** — cinque chiavi esterne puntano lì (`lavori_colore_caso_fk` + le quattro di `lavori_denti`) e **l'id fine dei 38 tipi non è persistito** (su `lavori` c'è solo `tipo_dispositivo`, 10 valori macro): una scala `sport` renderebbe scrivibile `('sport','rosso')` **sulla riga-dente di una corona**, senza che nessun vincolo se ne accorga. ➡️ **Catalogo separato, voci con un NOME** — la forma la indicano i moduli veri: «Pink / Clear» per la resina, «Clear, White, Black, Gold» per il paradenti. ✅ **Nessuna urgenza normativa:** il colore **non finisce oggi su nessun documento** — `src/lib/pdf/generate-ddc.ts:99` tiene `prescrizione_caratteristiche` a `null` fisso. **Serve prima:** mockup del passo (390/768/1280 × chiaro/scuro) e la forma del «lo scrivo dopo» (leva W17), che oggi non esiste in nessun componente | **GRANDE, con migration** — verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` (D40 · **D42**) |
+-| **8** | 🆕 🖋️ **I DUE DIFETTI DEL PDF DELLA DICHIARAZIONE, trovati guardando il documento vero (03/08/2026).** ① 🟠 **Gli accenti mancano dove si legge di più:** il foglio stampa «**DICHIARAZIONE DI CONFORMITA**» (titolo), «**Responsabile della Conformita (PRRC)**» (etichetta della firma) e «*il presente dispositivo **e'** conforme*» (frase di conformità). 🔑 **Non è un limite del carattere, ed è la prova che rende la voce non opinabile:** nello stesso foglio il §8 rende «*Il dispositivo **è** conforme*» correttamente, perché quel testo arriva dalla banca dati — gli altri sono scritti senza accento nel sorgente (`src/components/features/pdf/DdcTemplate.tsx:292,294,326,486,514` · `src/lib/pdf/generate-ddc.ts:117`). ⚠️ **Non è una correzione di battitura e per questo ha una voce invece di un commit:** il testo di conformità viene **congelato in banca dati** (`testo_conformita_snapshot`) ed entra **nell'impronta del payload**, quindi cambiarlo cambia `payload_sha256` per tutte le emissioni future e crea due grafie sullo stesso documento conservato dieci anni. Serve una decisione su **cosa fare delle dichiarazioni già emesse** (nulla, quasi certamente — ma va detto). ② 🟡 **La numerazione dei paragrafi salta il §2:** il foglio va `§1 → §3 → §4…`; la data di emissione (elemento 2 dell'Allegato XIII) è stampata in testa e in calce ma **senza il suo titoletto**, quindi chi legge con l'elenco in mano vede un buco che non c'è | **Piccola (② cosmetica), ma ① con panel** — referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §5 |
++| **8** | ✅ **FATTA (03/08/2026)** — ramo `accenti-documenti`, 7 task, 12 salvataggi, revisione indipendente fra l'uno e l'altro. Spec: `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md` · piano: `docs/superpowers/plans/2026-08-03-accenti-documenti.md`. **Dieci punti corretti**, `§2 — Data di emissione` nato, migration del DEFAULT applicata, versione del modello **restata `ddc-v1`** con il suo **registro** (D105). `vitest` **370 \| 3** file e **4274 \| 19** prove · `tsc` 0 · `next build` ok. 🔑 **Sette difetti trovati durante l'esecuzione, tre dei quali nel piano stesso** — nessuno arrivato al documento. ~~🆕 🖋️ **I DUE DIFETTI DEL PDF DELLA DICHIARAZIONE, trovati guardando il documento vero (03/08/2026).**~~ ① 🟠 **Gli accenti mancano dove si legge di più:** il foglio stampa «**DICHIARAZIONE DI CONFORMITA**» (titolo), «**Responsabile della Conformita (PRRC)**» (etichetta della firma) e «*il presente dispositivo **e'** conforme*» (frase di conformità). 🔑 **Non è un limite del carattere, ed è la prova che rende la voce non opinabile:** nello stesso foglio il §8 rende «*Il dispositivo **è** conforme*» correttamente, perché quel testo arriva dalla banca dati — gli altri sono scritti senza accento nel sorgente (`src/components/features/pdf/DdcTemplate.tsx:292,294,326,486,514` · `src/lib/pdf/generate-ddc.ts:117`). ⚠️ **Non è una correzione di battitura e per questo ha una voce invece di un commit:** il testo di conformità viene **congelato in banca dati** (`testo_conformita_snapshot`) ed entra **nell'impronta del payload**, quindi cambiarlo cambia `payload_sha256` per tutte le emissioni future e crea due grafie sullo stesso documento conservato dieci anni. Serve una decisione su **cosa fare delle dichiarazioni già emesse** (nulla, quasi certamente — ma va detto). ② 🟡 **La numerazione dei paragrafi salta il §2:** il foglio va `§1 → §3 → §4…`; la data di emissione (elemento 2 dell'Allegato XIII) è stampata in testa e in calce ma **senza il suo titoletto**, quindi chi legge con l'elenco in mano vede un buco che non c'è | **Piccola (② cosmetica), ma ① con panel** — referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §5 |
+ | **9** | 🆕 📋 **REGISTRARE CIÒ CHE IL DENTISTA PRESCRIVE — l'ondata a cui D101 rimanda.** Il dato «prescritto» **non esiste in banca dati**: il materiale prescritto non è persistito (`lavori_materiali` porta quello **usato**, con lotto — un altro fatto), l'ancoraggio su impianto neppure. C'è il seme: `lavori_denti.provenienza` (`prescritto`/`eseguito`). Serve per le **due righe distinte** sulla dichiarazione che l'Allegato XIII §1 chiede: «caratteristiche indicate nella prescrizione» e «dispositivo come realizzato» | **GRANDE, con migration** — verbale: **D101** |
+ 
+ ⚠️ **Nota che lega la voce 1 e la 5:** correggere il paziente **non** aggiorna lo snapshot sui lavori già creati. Probabilmente giusto per i lavori consegnati, quasi certamente sbagliato per quelli aperti — da sciogliere insieme.
+ 
+ **Aggiornamento precedente:** 27 luglio 2026 (18) — 🔎 **RICERCA (input per una decisione, nessuna riga di codice): «Elemento e colore vanno chiesti al Passo 3 del wizard "Nuovo lavoro"?»** Documento `docs/roadmap/2026-07-27-ricerca-presa-in-carico-lavoro.md` — quattro sezioni con fonte per ogni affermazione (ricerca web IT/EN, normativa `ANALISI/17`, codice `file:riga`, pattern UX con fonti Baymard/NN·g/GOV.UK), nessuna proposta: la decisione spetta a Francesco con un panel di 2-3 advisor (Regola Advisor). **Fatti principali:** elemento/colore **non sono mai parte della creazione del lavoro nel codice attuale** — `crea-lavoro.ts` li scrive con una PATCH separata e fail-soft dopo il POST, ed esiste già una schermata più ricca per correggerli dopo (`TabClinica.tsx`, tab «Clinica» di `/lavori/[id]/modifica`, con odontogramma FDI + scala VITA — molto più espressiva delle due righe di testo libero del wizard) · la fonte più diretta trovata è **interna**: `ANALISI/05_workflow_completo.md` (flusso reale del laboratorio di Filippo) mostra che «Registra Lavoro» non include mai elemento/colore, e il colore compare solo in «Completamento/Produzione fisica», due fasi dopo · normativamente (Allegato XIII MDR, `ANALISI/17_adempimenti_lab_2026.md`) dente/arcata e colore sono obbligatori per la Dichiarazione di Conformità **alla consegna**, non obbligo di legge trovato per l'apertura del lavoro. **Voce collegata a un punto già aperto in questa roadmap** (censimento `PATCHABLE_FIELDS`/D10 «ogni campo si corregge fino alla consegna», `arcata` oggi senza writer): stessa famiglia di campi, punti distinti. Dettaglio: MEMORY.md **voce 50**.
+ 
+ **Aggiornamento precedente:** 27 luglio 2026 (17) — ✅ **NOME E COGNOME DEL PAZIENTE: SPEC RATIFICATA, NIENTE CODICE.** Il punto 1 della coda dell'ondata parete/home è passato per BP-2 pieno (brainstorming → gate FASE 3 → panel 3×) e si esegue in **sessione nuova**: spec `docs/superpowers/specs/2026-07-27-nome-cognome-paziente-design.md`, handoff `docs/roadmap/2026-07-27-nome-cognome-paziente-execution-handoff.md`. **Le colonne `pazienti.nome`/`cognome` esistono già** e il trigger compone `COGNOME NOME`: niente migration, percorso Media, e la tappa 1 risolve la lamentela **senza toccare `Cassetta.tsx`**. Il panel (1 conferma con riserve, **2 «da rivedere»**) ha trovato tre trappole invisibili ai 3364 test — la peggiore avrebbe reso **non consegnabile** ogni lavoro creato dal wizard senza nome. **Decisioni nuove di Francesco:** D6 due caselle confermate · D7 lavoro in due tappe · D8 il tecnico continua a vedere il nome sulla parete (⚠️ `ANALISI/17` va allineata) · D9 correzione anche dalla scheda del lavoro (⚠️ **apre una tappa 1-bis GRANDE** sulla fotografia congelata). Dettaglio: MEMORY.md **voce 49**.
+ 
+ **Aggiornamento precedente:** 26 luglio 2026 (16) — ✅ **«UN TEMA SOLO»: TUTTE E TRE LE TAPPE IN PRODUZIONE.** Merge `e42601b8`, CI verde, deploy Vercel verde, **verificato su `uachelab.com`**: lo script legge `ua-tema` e **cancella** `ua-theme` senza mai leggerla, la pagina offline è alla chiave nuova, i due fondi sono serviti e del rosso non c'è traccia. L'app aveva **sette** posti che decidevano se essere chiara o scura, con **quattro** regole diverse: ora ne ha **uno** — Impostazioni → Aspetto → Tema (*Automatico* · *Sempre chiaro* · *Sempre scuro*). tsc 0 · vitest **3364 verdi / 19 skip** · build ok · QA **18/18** + prova dal vivo con Francesco dentro l'app. 📌 L'approvazione di `blocked`/`billing` è **CONDIZIONATA** alla revisione in **F2** (D6-bis): se F2 cambia, decade. ➕ Nuovo difetto di leggibilità appuntato a **F1** (token secondari v2.3 in tema scuro, §difetti). Dettaglio: MEMORY.md **voce 48**.
+ 
+diff --git a/docs/superpowers/plans/2026-08-03-accenti-documenti.md b/docs/superpowers/plans/2026-08-03-accenti-documenti.md
+index b2e284e2..7448d06b 100644
+--- a/docs/superpowers/plans/2026-08-03-accenti-documenti.md
++++ b/docs/superpowers/plans/2026-08-03-accenti-documenti.md
+@@ -62,21 +62,21 @@ L'elenco **non** è deciso dall'autore: viene dal censimento sotto.
+ 
+ | identificatore / stringa | dove | destinazione |
+ |---|---|---|
+ | `'Dichiarazione di Conformita …'` (title) | `DdcTemplate.tsx:292` | Task 2 |
+ | `"Dichiarazione di Conformita MDR 2017/745"` (subject) | `:294` | Task 2 |
+ | `Dichiarazione di Conformita` (titolo reso) | `:326` | Task 2 |
+ | `'Si — vedere documentazione allegata'` | `:446` | Task 2, **con il caso che lo raggiunge** |
+ | `§7 — Dichiarazione di Conformita` | `:486` | Task 2 |
+ | `Responsabile della Conformita (PRRC)` | `:514` | Task 2 |
+ | `Responsabilita ai sensi dell'Art. 15(1)…` | `NominaPrrcTemplate.tsx:341` | Task 5 |
+-| `testoConformita` (`…e' conforme…`) | `generate-ddc.ts:119` | Task 3 |
++| `testoConformita` (`…e' conforme…`) | `generate-ddc.ts:132` | Task 3 |
+ | DEFAULT di `testo_conformita_snapshot` | `002_fase2_schema.sql:188-189` | Task 6 (migration nuova) |
+ | `VERSIONE_TEMPLATE_DDC` | `generate-ddc.ts:41` | Task 1 — **resta `'ddc-v1'`**, cambia il commento |
+ | commento `-- Es. "ddc-v1.2.0"` | `supabase/schema.sql:1249` | Task 1 |
+ | intestazione `N. … | Data: …` | `DdcTemplate.tsx:337-339` | Task 4 — la data **esce di lì** |
+ | `VERSIONE_ATTESA = 'ddc-v1'` | `scripts/tmp/leggi-ddc.ts:32` | **nessuna**: file usa-e-getta, ignorato da git, resta valido perché la versione non cambia |
+ | `testo_conformita` in `seed.sql:196-198` | seed | **nessuna in questo piano**: è il referral ① (testo diverso nella sostanza) |
+ 
+ ---
+ 
+ ## Task 1 — Il registro delle versioni, e le due definizioni che si contraddicono
+@@ -187,29 +187,39 @@ Messaggio: `docs(ddc): il registro delle versioni, e le due definizioni smettono
+ 
+ In `tests/unit/ddc-pdf-content.test.ts`, sostituisci il test a riga 109-112 con:
+ 
+ ```ts
+   it('il titolo porta l\'accento: «DICHIARAZIONE DI CONFORMITÀ»', () => {
+     // textTransform:'uppercase' — react-pdf rende le maiuscole nel PDF, À compresa
+     // (provato: scripts/tmp/sonda-accenti.tsx). Questo test PRETENDE l'accento:
+     // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
+     // tornata silenziosa in entrambe le direzioni.
+     expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
+-    expect(pdfText).not.toContain('DICHIARAZIONE DI CONFORMITA ')
++    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: «CONFORMITA» senza
++    //    accento non è sottostringa di «CONFORMITÀ» (À ≠ A), quindi questa riga
++    //    si accende su qualunque occorrenza rimasta — comprese quelle che le
++    //    asserzioni puntuali non guardano.
++    expect(pdfText).not.toContain('CONFORMITA')
++    expect(pdfText).not.toContain('Conformita')
+   })
+ 
+   it('l\'etichetta della firma porta l\'accento', () => {
+     expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
+   })
+ 
+   it('il titolo del §7 porta l\'accento', () => {
+-    expect(pdfText).toContain('§7 — Dichiarazione di Conformità')
++    // ⚠️ CORRETTO IN CORSA (difetto del piano, trovato dall'esecutore del Task 2):
++    //    `styles.sectionTitle` (DdcTemplate.tsx:86) ha `textTransform:'uppercase'`,
++    //    quindi il foglio stampa il §7 in MAIUSCOLO. L'etichetta della firma no
++    //    (`firmaLabel` non ha uppercase): le due asserzioni hanno forme diverse
++    //    perché i due stili sono diversi, non per distrazione.
++    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
+   })
+ ```
+ 
+ - [ ] **Step 2: esegui e CONTA quanti rossi si accendono (R-P4)**
+ 
+ Run: `npx vitest run tests/unit/ddc-pdf-content.test.ts`
+ Atteso: **3 rossi su 3 asserzioni nuove**, con messaggi che mostrano il testo senza accento.
+ 🛑 Scrivi il numero che hai visto nel referto del task. Se i rossi sono meno di 3, una delle asserzioni non
+ misura quello che crede: fermati e riferisci.
+ 
+@@ -279,21 +289,21 @@ git add src/components/features/pdf/DdcTemplate.tsx tests/unit/ddc-pdf-content.t
+ git commit -F <messaggio fuori dal repo>
+ ```
+ 
+ Messaggio: `fix(ddc): gli accenti nel documento — e il test smette di fissare il refuso (D104)`
+ 
+ ---
+ 
+ ## Task 3 — La frase congelata: solo i segni, il resto byte per byte
+ 
+ **Files:**
+-- Modify: `src/lib/pdf/generate-ddc.ts:119`
++- Modify: `src/lib/pdf/generate-ddc.ts:132`
+ - Modify: `tests/unit/ddc-pdf-content.test.ts:68-69` (fixture)
+ 
+ **Interfaces:** nessuna. `testoConformita` resta una costante locale di `generateDdC`.
+ 
+ - [ ] **Step 1: la prova, prima**
+ 
+ In `tests/unit/generate-ddc.test.ts` aggiungi:
+ 
+ Stesso `describe` e stesso apparecchio del Task 1 (`mockInsert.mock.calls[0][0]` dopo `generateDdC`):
+ 
+@@ -308,21 +318,21 @@ Stesso `describe` e stesso apparecchio del Task 1 (`mockInsert.mock.calls[0][0]`
+   })
+ ```
+ 
+ - [ ] **Step 2: esegui e verifica il rosso**
+ 
+ Run: `npx vitest run tests/unit/generate-ddc.test.ts`
+ Atteso: **rosso**, con il testo attuale (`e' conforme`) nel messaggio.
+ 
+ - [ ] **Step 3: cambia UN SOLO carattere**
+ 
+-In `src/lib/pdf/generate-ddc.ts:119`:
++In `src/lib/pdf/generate-ddc.ts:132`:
+ 
+ ```ts
+   const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
+ ```
+ 
+ 🛑 **Confronta la stringa nuova con la vecchia carattere per carattere e dichiara la differenza nel referto:
+ deve essere `e'` → `è`, e nient'altro.** Comando suggerito, da eseguire e incollare:
+ 
+ ```bash
+ git diff -U0 --word-diff=porcelain src/lib/pdf/generate-ddc.ts | head -20
+@@ -369,21 +379,25 @@ Messaggio: `fix(ddc): «è conforme» nella frase congelata — un solo caratter
+ 
+ **Interfaces:** nessuna. `formatData` (`:198`) esiste già ed è quella che si usa.
+ 
+ - [ ] **Step 1: la prova, prima**
+ 
+ ```ts
+   it('il §2 — Data di emissione esiste e porta la data', () => {
+     // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
+     // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
+     // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
+-    expect(pdfText).toContain('§2 — Data di emissione')
++    // ⚠️ MAIUSCOLO, come ogni titolo di sezione: `styles.sectionTitle` ha
++    //    `textTransform:'uppercase'`. È il TERZO punto del piano caduto sullo
++    //    stesso scoglio (dopo il §7): quando il piano cita un titolo di sezione,
++    //    la forma attesa nel testo estratto è sempre quella maiuscola.
++    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
+     expect(pdfText).toContain('15/05/2026')     // data della fixture
+   })
+ ```
+ 
+ - [ ] **Step 2: esegui e verifica il rosso**
+ 
+ Run: `npx vitest run tests/unit/ddc-pdf-content.test.ts`
+ Atteso: **rosso** sul `§2 — Data di emissione` (la data invece è già presente: la stampa l'intestazione).
+ 🛑 Se fosse verde su entrambe le asserzioni, il test non misura la sezione: fermati e riferisci.
+ 
+diff --git a/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md b/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md
+index 317a14b0..8cb408e3 100644
+--- a/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md
++++ b/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md
+@@ -32,21 +32,21 @@ codifica giusta. Il gate non blocca più niente.
+ 
+ | # | file:riga | oggi | domani |
+ |---|---|---|---|
+ | 1 | `src/components/features/pdf/DdcTemplate.tsx:292` | `title` del file: `Dichiarazione di Conformita …` | `…Conformità…` |
+ | 2 | `DdcTemplate.tsx:294` | `subject` del file: `…Conformita MDR 2017/745` | `…Conformità…` |
+ | 3 | `DdcTemplate.tsx:326` | titolo stampato (reso maiuscolo): `DICHIARAZIONE DI CONFORMITA` | `…CONFORMITÀ` |
+ | 4 | `DdcTemplate.tsx:446` | `'Si — vedere documentazione allegata'` | `'Sì — …'` |
+ | 5 | `DdcTemplate.tsx:486` | `§7 — Dichiarazione di Conformita` | `…Conformità` |
+ | 6 | `DdcTemplate.tsx:514` | `Responsabile della Conformita (PRRC)` | `…Conformità (PRRC)` |
+ | 7 | `src/components/features/pdf/NominaPrrcTemplate.tsx:341` | `Responsabilita ai sensi dell'Art. 15(1)` | `Responsabilità…` |
+-| 8 | `src/lib/pdf/generate-ddc.ts:119` | frase congelata: `…dispositivo e' conforme…` | `…dispositivo è conforme…` |
++| 8 | `src/lib/pdf/generate-ddc.ts:132` | frase congelata: `…dispositivo e' conforme…` | `…dispositivo è conforme…` |
+ | 9 | `supabase/migrations/002_fase2_schema.sql:188-189` | **DEFAULT della colonna** `testo_conformita_snapshot`: seconda copia della frase con `e'` | allineato da una **migration nuova** |
+ | 10 | `DdcTemplate.tsx` (§1 a `:345`) | la numerazione salta: `§1 → §3` | compare **`§2 — Data di emissione`** |
+ 
+ ### 2.1 Il vincolo sul punto 8 — solo i segni, il resto byte per byte
+ 
+ 🛑 **Si cambia `e'` in `è` e NIENT'ALTRO.** Nessuna riformulazione, nessuna parola aggiunta o tolta. Una
+ modifica dentro la frase di un documento a valore legale è un invito a «già che ci siamo miglioriamo il
+ testo», e quella è una decisione diversa — che il panel ha già isolato (§5, referral ①).
+ 
+ Chi esegue confronta la stringa nuova con la vecchia **carattere per carattere** e dichiara la differenza:
+@@ -129,21 +129,21 @@ numerazione, e che il §2 non abbia spostato niente oltre il salto di pagina.
+ 
+ ---
+ 
+ ## 5. Fuori perimetro — riferiti, NON accorpati (R-E2)
+ 
+ Il panel, leggendo il documento contro l'Allegato XIII, ha trovato cose **più pesanti del refuso**. Nessuna
+ entra qui: ognuna è una voce propria.
+ 
+ | | ritrovamento | dove |
+ |---|---|---|
+-| ① | La frase del §7 dice il dispositivo conforme «**e ai disposti dell'Allegato XIII**»: quello è una **procedura che il fabbricante segue** (Art. 52(8)), non un requisito a cui un dispositivo è conforme. Il trattino 7 chiede la conformità ai soli RGSP dell'Allegato I. ⚠️ `supabase/seed.sql:198` porta una versione **migliore e già accentata** («…dichiara **sotto la propria responsabilità**…», senza la clausola): la stringa in uso è una **regressione**, non una scelta | `generate-ddc.ts:119` |
++| ① | La frase del §7 dice il dispositivo conforme «**e ai disposti dell'Allegato XIII**»: quello è una **procedura che il fabbricante segue** (Art. 52(8)), non un requisito a cui un dispositivo è conforme. Il trattino 7 chiede la conformità ai soli RGSP dell'Allegato I. ⚠️ `supabase/seed.sql:198` porta una versione **migliore e già accentata** («…dichiara **sotto la propria responsabilità**…», senza la clausola): la stringa in uso è una **regressione**, non una scelta | `generate-ddc.ts:132` |
+ | ② | **Il luogo di fabbricazione non è mai stampato**, ed è il **trattino 1**, obbligatorio: la colonna esiste (`schema.sql:1242`, default `'Italia'`) e non arriva sul foglio | `DdcTemplate.tsx` §1 |
+ | ③ | Il foglio **afferma «Sostanze / tessuti: No»** con un valore **codificato a mano** (`contiene_sostanze_o_tessuti: false`), mai raccolto né verificato. Il trattino 8 è condizionale: l'indicazione serve **solo se vero**. Una negazione affermata è surplus volontario, e su materiali di origine animale (Reg. UE 722/2012) è un falso negativo | `generate-ddc.ts:144` |
+ | ④ | **L'identificazione del paziente può svanire**: la catena termina in `?? ''`, la colonna è `NOT NULL` quindi `''` passa, e il template rende `—`. Un foglio che dichiara «esclusivamente per il paziente indicato» **senza indicare il paziente** viola il trattino 4 | `generate-ddc.ts:137` · `DdcTemplate.tsx:265-268` |
+ | ⑤ | Citazione errata: **«Art. 2(1)(3)»**. L'Art. 2 MDR non ha paragrafi (è «Definizioni», a punti): la forma corretta è **«Art. 2, punto 3»**. *(Art. 20(1) e Art. 52(8) nel documento sono invece esatti)* | `DdcTemplate.tsx:451` · `seed.sql:198` |
+ | ⑥ | **La nomina del PRRC non viene conservata e si riscrive la data a ogni scaricamento** (`new Date().toLocaleDateString('it-IT')`): due copie firmate dello stesso atto portano date diverse. E tiene in duro `prrc_cognome: ''`, `ha_accettato: false`, mentre la tabella `prrc_nomine` e la funzione `has_prrc_valido()` **esistono in banca dati e nessuno le legge** | `src/lib/pdf/generate-nomina-prrc.ts:15-23` |
+ | ⑦ | **`payload_sha256` oggi non è ricalcolabile**, misurato: `data_emissione` non sopravvive al giro di andata e ritorno (scritta `…983Z`, riletta `…983+00:00`) e `norma_riferimento` entra nell'impronta senza essere una colonna della riga. Verificatori esistenti: **zero** | `generate-ddc.ts:156` · voce 7 dell'handoff |
+ | ⑧ | **Contraddizione fra due panel, da sciogliere**: il parere normativo sostiene che la base della conservazione decennale sia l'**Allegato XIII punto 4 da solo**, perché l'Art. 10(5) rimanda alla documentazione tecnica (All. XIII **punto 2**), non alla dichiarazione. Il panel del 29/07 aveva ratificato «Art. 10(5) + Allegato XIII punto 4», e quella citazione vive in **tre documenti**. Non ratifico né scarto: **va verificata sul testo** | `../CLAUDE.md` §7 e i due documenti citati lì |
+ | ⑨ | Lo stesso refuso vive **fuori dai PDF**: «Non Conformita Recenti» in una schermata | `src/app/(app)/qualita/page.tsx:83` |
+ 
+ ---
+diff --git a/memory/MEMORY.md b/memory/MEMORY.md
+index f0ede506..eba9a7ca 100644
+--- a/memory/MEMORY.md
++++ b/memory/MEMORY.md
+@@ -1,12 +1,14 @@
+ # UÀ — Project Memory
+-**Ultimo aggiornamento:** verifica dal vivo delle due impronte della DdC (92) — ✅ **LA §0 DELL'HANDOFF È CHIUSA: UNA DICHIARAZIONE NUOVA NASCE DAVVERO CON LE SUE DUE IMPRONTE, PROVATO IN PRODUZIONE.** Referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`. Consegnato `TEST-DdC-001` (`7d5343a8`) su uachelab.com: `DDC-2026-0002` nasce con `payload_sha256` = 64 cifre esadecimali e `template_version` = **`ddc-v1`** (il valore che `generate-ddc.ts:41` scrive oggi, non un non-`NULL` qualsiasi), mentre `DDC-2026-0001` — stessa tabella, stesso lavoro, emessa il 22/07 **prima** di D102 — le ha **entrambe `NULL`**: il prima e il dopo della riparazione, uno sopra l'altro. In più il PDF scaricato dall'archivio ha esattamente l'impronta `pdf_sha256` che la riga dichiara (4922 byte, sha coincidente). **Giro annullato**: lavoro tornato `pronto`, `data_consegna_effettiva` di nuovo `null`, DdC `annullata` come storia. 🛑 **Il lavoro indicato dall'handoff (`7dba9a57`) NON era usabile e la prova sarebbe stata muta:** stato `ricevuto` (fuori da `STATI_CONSEGNABILI`) e **senza paziente** (elemento 4 dell'Allegato XIII → il precheck blocca prima di generare). 🔑 **Il controllo che ha reso la prova valida:** `generateDdC` ha un **guard di idempotenza** (`generate-ddc.ts:85-95`) — su un lavoro con una DdC attiva la consegna riesce, **non scrive niente** e restituisce la riga vecchia: si sarebbe letto un **rosso falso** indistinguibile da un difetto vero. `TEST-DdC-001` aveva zero DdC attive, verificato prima di premere. ⚠️ **Ritrovamenti fuori mandato, riferiti e NON corretti (R-E2):** ① **il PDF della dichiarazione stampa «DICHIARAZIONE DI CONFORMITA», «Responsabile della Conformita (PRRC)» e «il presente dispositivo e' conforme» — senza accenti**, e **non è un limite del carattere**: nello stesso foglio il §8 rende «*Il dispositivo **è** conforme*» perché quel testo viene dalla banca dati, mentre gli altri sono scritti così nel sorgente (`DdcTemplate.tsx:292,294,326,486,514` · `generate-ddc.ts:117`). Non corretto perché il testo di conformità finisce **in banca dati e nell'impronta del payload**: è una decisione sul contenuto di un documento conservato dieci anni, non una battitura; ② la numerazione dei paragrafi del PDF **salta il §2** (la data c'è, il titoletto no). 🕐 **Sull'orologio: adesso c'è un fatto misurato** — la dichiarazione emessa porta stampato **31/07/2026**, cioè l'ora della macchina, non la data dei nomi dei file. 📎 **D103** (`.env.local` per l'accesso al banco, «*logga tranquillamente con i dati nel file env e ricordati di questa cosa*») → scritta in `CLAUDE.md` §9 con la ricetta del link monouso; verbale a **centotré** decisioni in **trentadue** tornate, la prossima è **D104**. ✅ **E POI È STATA CHIUSA ANCHE LA SECONDA COSA DELLA §0 — ma la guardia ha dovuto essere RIPARATA per poterlo fare.** Preparata la fixture `E2E-CAS-002` (`pronto` + data di oggi) e rimessa com'era subito dopo, con un giro che **rilegge la riga vera** prima di toccarla invece di fidarsi dei valori scritti nella ricetta del 26/07, e che ripristina in un `finally` — utile davvero, perché **alla prima corsa la guardia è esplosa**. 🔴 **Due difetti dello strumento, nessuno dei quali era un difetto dell'app:** ① `firma()` faceva un `page.evaluate` nudo e la **seconda pressione «indietro» dei bracci 1-2 è una traversal CROSS-document** (si atterra su `/tutto-il-resto`): se è in volo, Chromium distrugge il contesto e la lettura **lancia** — l'attesa che doveva coprirla era un `waitForTimeout(900)`, cioè **una scommessa sulla velocità della macchina**, che a freddo si perde. `provato:` sonda a 12 tentativi per versione → nuda **12 rotture su 12**, col rimedio **0 su 12**; e nella direzione opposta, azzerando le attese la guardia diventa **rossa sistematicamente** (2 su 2), il che prova che è il tempo la variabile. ② **Un'eccezione di un braccio uccideva l'INTERA guardia** — nessun verdetto per gli altri tre, nessun nome del colpevole, e il disegno delle uscite (0/1/2) scavalcato: la lezione ⑤ del 02/08 («si controlla anche COME la rete si spegne») applicata allo strumento. `provato:` guasto finto nel primo braccio → è nominato lui e **gli altri tre misurano lo stesso**. ✅ **Esito finale: quattro bracci su quattro verdi, due corse di fila** — il primo braccio, mai misurato prima, dice «destinazione raggiunta, profondità 4 → 4». 🔑 **La lezione:** *una rete mai eseguita non è una rete, è una promessa* — questa era in casa da giorni a protezione di una direttiva permanente, e alla prima esecuzione vera si è rotta in due punti. **FASE 7 dopo la riparazione:** `vitest` **370 | 3** file e **4267 | 19** prove, `tsc` **0**.
++**Ultimo aggiornamento:** gli accenti nei documenti generati — la voce di roadmap sugli accenti è FATTA sul ramo (93) — ✅ **RAMO `accenti-documenti` PRONTO, NON MERGIATO: 7 task, 12 salvataggi, una revisione indipendente fra l'uno e l'altro.** Spec `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md` · piano `docs/superpowers/plans/2026-08-03-accenti-documenti.md` · decisioni **D104-D107**. **Che cosa cambia sul foglio:** il titolo dice **DICHIARAZIONE DI CONFORMITÀ**, il §7 e l'etichetta della firma portano l'accento, «**Sì** — vedere documentazione allegata», la frase congelata dice «il presente dispositivo **è** conforme» (un solo carattere, `provato:` word-diff → UNA differenza), il titolo di sezione della **nomina PRRC** è accentato, e nasce **`§2 — Data di emissione`**: il documento saltava da §1 a §3 pur avendo il dato, e ora la numerazione ricalca gli otto elementi dell'Allegato XIII senza buchi (la data esce dall'intestazione: resta in due posti, non in tre). **In banca dati:** migration `20260803120000` **applicata**, il DEFAULT di `testo_conformita_snapshot` era una **seconda copia della frase sbagliata** che dormiva nello schema — il revisore ha riletto il valore dal catalogo e l'ha confrontato col generatore carattere per carattere: **190/190 identici**, le due verità canoniche sono una sola. 🔢 **D105 — la versione del modello RESTA `ddc-v1`**, e poiché così la definizione scritta nel codice sarebbe diventata falsa, la decisione si è realizzata scrivendo il **registro delle versioni** accanto alla costante (che cosa contiene v1, e che il salto a v2 è riservato al primo cambiamento di **sostanza**) e allineando `schema.sql:1249`, che prometteva un formato a tre numeri mai usato. 🔑 **SETTE DIFETTI TROVATI ESEGUENDO, TRE DEI QUALI NEL PIANO STESSO — nessuno arrivato al documento:** ① un test leggeva `mockInsert.mock.calls[0][0]` di **un altro test** (il `describe` non puliva i mock): funzionava per coincidenza, e il commento dichiarava un meccanismo falso — `provato:` chiamate accumulate 3→1 e 2→1; ② un'asserzione **morta** (`not.toContain('…CONFORMITA ')` con uno spazio finale che l'estrattore non emette mai); ③④⑤ il piano pretendeva la **forma mista** su titoli che lo stile rende **MAIUSCOLI** — **tre volte**, perché la prima l'ho corretta come occorrenza invece che come classe; ⑥ `toContain('15/05/2026')` restava **verde anche svuotando la sezione §2**, perché la data compare comunque sopra la firma (sostituita con un **conteggio**: esattamente due occorrenze, `provato:` mutazioni «1 to be 2» e «3 to be 2»); ⑦ un commento che prometteva «nessun refuso in NESSUN punto del foglio» mentre la fixture non rende §6-bis e §8. 🔑 **La riga da tenere:** in tutti e sette i casi il difetto è stato trovato **da chi non aveva scritto il pezzo** — l'esecutore fresco che si è fermato invece di adattare l'asserzione al risultato, o il revisore che ha guastato il codice per vedere se la prova si accendeva. **FASE 7:** `vitest` **370 | 3** file e **4274 | 19** prove (erano 4267: +7) · `tsc` **0** · `next build` ok. **Il documento è stato GUARDATO**, non solo misurato, con tutte le sezioni popolate: una pagina, §1→§8 in fila, accenti al loro posto. ⚠️ **Riferiti e non corretti:** i **nove** della spec §5 — fra cui il **luogo di fabbricazione mai stampato** benché sia il trattino 1 obbligatorio, il foglio che **afferma «Sostanze/tessuti: No»** con un valore codificato a mano, e la **nomina PRRC che si riscrive la data a ogni scaricamento** — più il **§6-bis e il §7 attaccati** quando ci sono norme armonizzate (preesistente, invisibile ai test perché la fixture non le popola).
++
++**Aggiornamento precedente:** verifica dal vivo delle due impronte della DdC (92) — ✅ **LA §0 DELL'HANDOFF È CHIUSA: UNA DICHIARAZIONE NUOVA NASCE DAVVERO CON LE SUE DUE IMPRONTE, PROVATO IN PRODUZIONE.** Referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`. Consegnato `TEST-DdC-001` (`7d5343a8`) su uachelab.com: `DDC-2026-0002` nasce con `payload_sha256` = 64 cifre esadecimali e `template_version` = **`ddc-v1`** (il valore che `generate-ddc.ts:41` scrive oggi, non un non-`NULL` qualsiasi), mentre `DDC-2026-0001` — stessa tabella, stesso lavoro, emessa il 22/07 **prima** di D102 — le ha **entrambe `NULL`**: il prima e il dopo della riparazione, uno sopra l'altro. In più il PDF scaricato dall'archivio ha esattamente l'impronta `pdf_sha256` che la riga dichiara (4922 byte, sha coincidente). **Giro annullato**: lavoro tornato `pronto`, `data_consegna_effettiva` di nuovo `null`, DdC `annullata` come storia. 🛑 **Il lavoro indicato dall'handoff (`7dba9a57`) NON era usabile e la prova sarebbe stata muta:** stato `ricevuto` (fuori da `STATI_CONSEGNABILI`) e **senza paziente** (elemento 4 dell'Allegato XIII → il precheck blocca prima di generare). 🔑 **Il controllo che ha reso la prova valida:** `generateDdC` ha un **guard di idempotenza** (`generate-ddc.ts:85-95`) — su un lavoro con una DdC attiva la consegna riesce, **non scrive niente** e restituisce la riga vecchia: si sarebbe letto un **rosso falso** indistinguibile da un difetto vero. `TEST-DdC-001` aveva zero DdC attive, verificato prima di premere. ⚠️ **Ritrovamenti fuori mandato, riferiti e NON corretti (R-E2):** ① **il PDF della dichiarazione stampa «DICHIARAZIONE DI CONFORMITA», «Responsabile della Conformita (PRRC)» e «il presente dispositivo e' conforme» — senza accenti**, e **non è un limite del carattere**: nello stesso foglio il §8 rende «*Il dispositivo **è** conforme*» perché quel testo viene dalla banca dati, mentre gli altri sono scritti così nel sorgente (`DdcTemplate.tsx:292,294,326,486,514` · `generate-ddc.ts:117`). Non corretto perché il testo di conformità finisce **in banca dati e nell'impronta del payload**: è una decisione sul contenuto di un documento conservato dieci anni, non una battitura; ② la numerazione dei paragrafi del PDF **salta il §2** (la data c'è, il titoletto no). 🕐 **Sull'orologio: adesso c'è un fatto misurato** — la dichiarazione emessa porta stampato **31/07/2026**, cioè l'ora della macchina, non la data dei nomi dei file. 📎 **D103** (`.env.local` per l'accesso al banco, «*logga tranquillamente con i dati nel file env e ricordati di questa cosa*») → scritta in `CLAUDE.md` §9 con la ricetta del link monouso; verbale a **centotré** decisioni in **trentadue** tornate, la prossima è **D104**. ✅ **E POI È STATA CHIUSA ANCHE LA SECONDA COSA DELLA §0 — ma la guardia ha dovuto essere RIPARATA per poterlo fare.** Preparata la fixture `E2E-CAS-002` (`pronto` + data di oggi) e rimessa com'era subito dopo, con un giro che **rilegge la riga vera** prima di toccarla invece di fidarsi dei valori scritti nella ricetta del 26/07, e che ripristina in un `finally` — utile davvero, perché **alla prima corsa la guardia è esplosa**. 🔴 **Due difetti dello strumento, nessuno dei quali era un difetto dell'app:** ① `firma()` faceva un `page.evaluate` nudo e la **seconda pressione «indietro» dei bracci 1-2 è una traversal CROSS-document** (si atterra su `/tutto-il-resto`): se è in volo, Chromium distrugge il contesto e la lettura **lancia** — l'attesa che doveva coprirla era un `waitForTimeout(900)`, cioè **una scommessa sulla velocità della macchina**, che a freddo si perde. `provato:` sonda a 12 tentativi per versione → nuda **12 rotture su 12**, col rimedio **0 su 12**; e nella direzione opposta, azzerando le attese la guardia diventa **rossa sistematicamente** (2 su 2), il che prova che è il tempo la variabile. ② **Un'eccezione di un braccio uccideva l'INTERA guardia** — nessun verdetto per gli altri tre, nessun nome del colpevole, e il disegno delle uscite (0/1/2) scavalcato: la lezione ⑤ del 02/08 («si controlla anche COME la rete si spegne») applicata allo strumento. `provato:` guasto finto nel primo braccio → è nominato lui e **gli altri tre misurano lo stesso**. ✅ **Esito finale: quattro bracci su quattro verdi, due corse di fila** — il primo braccio, mai misurato prima, dice «destinazione raggiunta, profondità 4 → 4». 🔑 **La lezione:** *una rete mai eseguita non è una rete, è una promessa* — questa era in casa da giorni a protezione di una direttiva permanente, e alla prima esecuzione vera si è rotta in due punti. **FASE 7 dopo la riparazione:** `vitest` **370 | 3** file e **4267 | 19** prove, `tsc` **0**.
+ 
+ **Aggiornamento precedente:** sessione dopo la chiusura dell'ondata (b) (91) — 🚪 **PUNTO DI RIPRESA STORICO: `docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md`** (la sua §0 è ora chiusa, v. sopra). 📜 **LA TERZA VOCE APERTA DELL'HANDOFF DELL'ONDATA (b) È CHIUSA, E HA TROVATO UNA LACUNA VERA MA DIVERSA DA QUELLA IPOTIZZATA (D101 · D102).** La domanda era «il colore compare nella Dichiarazione di Conformità?». **Risposta: no** — non nel PDF, non nelle 55 colonne dello snapshot. 🛑 **Ma la roadmap sbagliava il MOTIVO, e la differenza è tutto:** la norma **non nomina il colore**. L'Allegato XIII §1 (testo **italiano**, che fa fede in Italia) elenca due voci distinte — «*i dati che consentono di identificare il dispositivo in questione*» (= il pezzo **come realizzato**, e quello **è già coperto** dal §5 del PDF) e «*le caratteristiche specifiche del prodotto indicate nella prescrizione*» (= **il prescritto**, e quello è il buco). La riga di `ANALISI/17:127` che elenca «colore» fra i contenuti obbligatori è **una nostra glossa presentata come norma** e va corretta. 🔑 **Francesco ha imposto la svolta metodologica:** «*visto che questa pwa la useranno inizialmente solo in italia e sarà cosi per anni, ci interessa la normativa vigente in italia, fai ricerche specializzate in merito*» — le fonti inglesi sono state **buttate e rifatte in italiano** (MDR versione IT · D.Lgs. 137/2022 artt. 7 e 27 · modello DdC del GL MDR SNO Veneto per odontotecnici, che porta un campo intitolato **«Caratteristiche specifiche indicate nella prescrizione»**). 🛑 **D101 — SCARTATA la proposta di comporre quel testo dai campi di caso, demolita da un PANEL DI TRE con mandato di confutare** (normativo · dominio odontotecnico · architettura del dato), affermazioni portanti **riverificate a mano**: riempire il trattino del *prescritto* con l'as-built **afferma che quel colore era prescritto** quando spesso lo sceglie il laboratorio — attribuzione falsa al medico su un documento conservato 10 anni — **e lascia il trattino vero scoperto lo stesso**. In più due errori di fatto: `proposta_dentista` è `fatturare`/`non_fatturare` (una decisione commerciale su un documento sanitario), e le quattro colonne `lavori.colore_*` sono **senza scrittore dal Task 10** (avrebbero stampato un colore morto accanto a denti vivi). 🛑 **E chiusa la via di fuga «scrivo *nessuna caratteristica prescritta*»: è autolesionista** — Art. 2(3) MDR definisce su misura il dispositivo la cui prescrizione **indica** le caratteristiche di progettazione, quindi quella frase metterebbe per iscritto che il presupposto dell'esenzione dalla marcatura CE non c'è. ✅ **D102 — FATTE E IN PRODUZIONE le riparazioni indipendenti dal modello in movimento** (`main` = **`30f6f3e7`**, CI verde, deploy Vercel `success`): ① **`template_version` e `payload_sha256` non erano MAI stati scritti** — colonne dichiarate come prova e vuote su **ogni** DdC mai emessa; ora scritte, con impronta **canonica** (chiavi ordinate: un refactoring del builder non deve cambiare l'impronta di un documento identico) e calcolata su **`ddcConNorma`**, l'oggetto davvero reso — su `ddc` avrebbe certificato un payload diverso da quello stampato; ③ **il PDF congelato leggeva dati VIVI in quattro punti**, e la **causa radice** era il contratto `ddc: Partial<DichiarazioneConformita>` (tutto facoltativo → il template non poteva fidarsi di niente): ora richiede `tipo_dispositivo` e `classe_rischio` e chi li dimentica **si rompe alla compilazione**; ② **migration `20260803090000` APPLICATA sul progetto reale** — `denti_snapshot`/`denti_snapshot_at` spostate da `lavori` a `dichiarazioni_conformita` (uno per lavoro contro **N** dichiarazioni: la seconda emissione sovrascriveva la prima, e la DdC annullata restava senza la prova di ciò che dichiarò). **Verificato sul database vero, non dedotto**; nessun dato perso (grep: una sola occorrenza in tutto il repo, la migration che le aveva create); ④ **DECADUTA con motivo scritto** — `arcata` in `PATCHABLE_FIELDS` serviva solo perché sarebbe entrata nel testo, e con D101 non ci entra; la correzione vera è la voce di roadmap sui **sedici** campi. ⚠️ **Tre prove mie sbagliate, trovate e corrette:** due **tautologiche** (`expect(undefined).not.toBe(...)`, verdi sul difetto vivo) e una **falsa** (pretendeva la stessa impronta da due emissioni, ma dentro c'è la data: due emissioni sono due documenti). 💰 **Tre correzioni di CIFRA lasciate in eredità:** nessun comma sanziona una DdC incompleta; il comma «senza ricorrere a una procedura» punisce l'**omissione**, non l'esecuzione difettosa (e in materia punitiva non si ragiona per analogia); l'esposizione reale è **in ispezione, 24.200-145.000 €**; e il **«48.500 €»** dell'ITCA scritto nelle regole di casa va accompagnato dalla **riduzione di un terzo** per le microimprese e dall'**aggiornamento ISTAT biennale**. ⚠️ **Riferiti e NON toccati (R-E2):** l'Art. 21(2) vuole la dichiarazione **messa a disposizione del PAZIENTE** e da noi arriva solo al portale del dentista (**da ratificare, non da ereditare**) · si scrive il **nome completo del paziente** dove l'Allegato XIII ammette «un acronimo o un codice numerico» · `prescrizioni_digitali` **non ha firma né numero d'albo** · il termine di conservazione della **prescrizione** non ha fonte primaria sotto MDR (i «5 anni» erano dell'abrogato D.Lgs. 46/97). ✅ **~~NON verificato dal vivo~~ → VERIFICATO il 03/08:** la catena completa in produzione è stata provata consegnando `TEST-DdC-001` e annullando (v. aggiornamento 92 in testa).
+ 
+ **Aggiornamento precedente:** sessione dopo la chiusura dell'ondata (b) (90) — ⏱️ **L'USCITA DEI QUATTRO STRATI SOPRA LA FOTO È FATTA (D99 · D100), ed era la §0 dell'handoff: la decisione d'ondata che il gate estetico L2 di T13 doveva portare a Francesco e non gli aveva mai portato.** Visore, tendina, foglio di conferma e foglio della categoria **sparivano di taglio**: nessuno montava `AnimatePresence`, e per i due FOGLI l'uscita era perfino **già scritta** (`coreografie.sheetSu.exit` + variante ridotta) e **inerte da sempre**. 🔑 **L'uscita è SIMMETRICA — `molla.smooth` in entrata e in uscita — ed ESEGUE §5.39, non la corregge:** la spec diceva già «entra **ed esce** con `molla.smooth`» (D89, 30/07), quindi **nessun emendamento**. 🛑 **E qui una cosa detta sbagliata in chat è stata corretta con la fonte:** la proposta era stata portata a Francesco come «l'uscita più svelta è quello che fa l'iPhone» — **è falso**, quella regola è di **Material Design** (225 ms in entrata contro 195 in uscita, [m1.material.io](https://m1.material.io/motion/duration-easing.html)); **Apple fa il contrario**, in SwiftUI una transizione è **simmetrica per costruzione** e `.asymmetric` esiste perché l'asimmetria è il caso da dichiarare a mano — e le molle di `src/design-system/v3/motion.ts` **sono** le molle di sistema di iOS. Francesco, messo davanti alla contraddizione, ha **delegato al criterio**: «*poiché ci siamo detti che le animazioni di tutta la pwa devono essere alla apple, in base a questo concetto, decidi*». **D99: niente anteprima** (deroga esplicita a §0B, vale solo lì) — quindi il giudizio estetico arriva a cose fatte. **Che cosa è cambiato:** `src/components/ds/StratoRadice.tsx` (**nuovo**) = la radice comune dei quattro, con `pointerEvents` guidato da **`useIsPresent()` e NON dalla prop `aperto`** — mentre un figlio esce, `AnimatePresence` rende gli elementi dell'**ultimo render** e le props non si aggiornano più: quel che arriva all'albero uscente è il **contesto di presenza**. Serve a togliere la **finestra morta ai tocchi**, che era il vero prezzo di un'uscita lenta, ed è il modo in cui la toglie iOS (una vista che si rimuove esce dal hit-testing **subito**). `src/components/ds/useScorrimentoBloccato.ts` (**nuovo**) = stesso contatore di `blocca-scorrimento.ts` con **rilascio differito a `onExitComplete`**: sbloccare a metà uscita fa ricomparire la barra e la **pagina dietro slitta**, sotto un velo ancora in dissolvenza. `exit` aggiunto ai **quattro veli** (non è stile: un pannello che scende su uno sfondo già sparito è **peggio** del taglio secco). Il `return null` si sposta **dentro** l'`AnimatePresence`; il **montaggio non cambia** — gli strati restano montati sempre e pilotati da `aperto` (lezione ① del 02/08), o si riapre il visore che si richiudeva da solo. 🔴 **E il collaudo nel browser ha trovato un difetto che i numeri non vedevano — l'ha visto l'OCCHIO:** con l'uscita solo su velo e scena, i comandi del **capo** (✕, pastiglia, ⋯) e il **piede** restavano a **piena opacità** per tutta l'uscita, appoggiati su una pagina che riaffiorava; a 1280 era vistoso. Causa: il contenuto visibile del visore è diviso fra **quattro fratelli** e solo due avevano un `exit` — il taglio secco sopravvissuto **dentro il proprio rimedio**. Rimedio: la dissolvenza si sposta sul **pannello** (`role="dialog"`), che contiene capo, scena e piede insieme; la scena tiene nell'uscita **solo `scale`** (le opacità annidate si moltiplicano). ⚠️ **Tre prove dello scorrimento passano da `await act` a `waitFor`:** con un `exit` in più il rosso **andava e veniva** (1 in una corsa, 2 nella successiva) — un numero fisso di tick lega la prova a *quante* animazioni ci sono. **Prove:** `tests/unit/ds-v3/componenti/uscita-strati.test.tsx` (**nuovo**, 22) è **l'unico file della suite che SPEGNE `MotionGlobalConfig.skipAnimations`**: con le animazioni spente un'uscita che non esiste e una che funziona sono **indistinguibili** (lezione ② applicata a un altro strumento). Le asserzioni **non dipendono da un tempo**: due fatti sincroni nel commit dopo la chiusura (lo strato è ancora nel documento; la radice ha `pointer-events: none`). **Sul difetto vivo: 16 asserzioni su 22 rosse.** **Verifiche:** `tsc` **0** · `vitest` **370 | 3** file e **4256 | 19** prove (erano 369|3 e 4234|19), verdi in due corse · `next build` ok · **guardia navigazione-overlay: il braccio dell'album è VERDE** («indietro chiude la tendina e lascia il visore aperto sotto»), col `LAVORO_ID` di un lavoro che ha foto — resta non misurato **solo il primo braccio** (fixture `E2E-CAS-002` in banca dati, non tocca l'album). **Misurato nel browser vero** (build di produzione, 390/768/1280 × chiaro/scuro): velo 0,99 → 0,96 → 0,76 → 0,41 → 0,14 → 0,03, foto che rientra a 0,98, **tocchi spenti già a +30 ms**, corpo sbloccato solo dopo. **Commit:** `ceb5f222` + `009d002d` + `6fe3d81c` + `8ad360db`, mergiati in avanti su `main` = **`8ad360db`**. 🚀 **IN PRODUZIONE, e verificato dal vivo su uachelab.com** (CI verde, deploy Vercel `success`): a metà uscita velo **0,27** e pannello **0,27** — si dissolvono insieme, che è la prova che la correzione dell'occhio ha attecchito — tocchi già `none` a +40 ms, e a uscita finita il corpo è libero. 🔧 **Nello stesso giro è stata riparata la guardia dei documenti** (`scripts/guardia-coerenza-documenti.mjs`, autorizzata da Francesco): i numeri a parole si **costruiscono** da 0 a 999 con le regole della lingua (elisione davanti a «uno»/«otto», le due grafie di «…tre»/«…tré») — **1107 grafie invece di 108** — e soprattutto «dichiarato ma illeggibile» **non si traveste più da «non dichiarato»**: era un avviso che diceva il falso, cioè il MODO in cui quel controllo si è spento tre volte, e adesso è un errore che dice la cosa vera. `provato:` dodici casi sul generatore (12/12) e la guardia accesa apposta in tre modi, poi rimessa. ⚠️ **Ritrovamenti fuori mandato, riferiti e NON corretti (R-E2):** ① `Sheet` non è passato a `useScorrimentoBloccato` (condiviso e in produzione) — candidato all'unificazione; ② ~~la tabella dei numeri a parole~~ **RIPARATA nello stesso giro, su decisione di Francesco** (v. sopra); ③ l'orologio del Mac dice **31 luglio** mentre i documenti dicono **2 agosto**.
+ 
+ **Aggiornamento precedente:** 2 agosto 2026 (89) — ✅ **LA PRESCRIZIONE È LA SETTIMA CATEGORIA, ED È FATTA (D91 → D92-D97).** Francesco ha chiuso tutte e quattro le domande del brief: nome **«Prescrizione»** (D93) · emoji **🩺** (D94) · **posto QUINTO, subito prima della radiografia** (D92) · **la spaiata è «Altro», riga di chiusura a tutta larghezza — variante A2 sul mockup** (D95). 🛑 **D92 è una RETTIFICA e va letta prima di «sistemare» l'ordine:** il brief proponeva la prescrizione **in testa** (D71 è cronologico), Francesco ha deciso il contrario — «*sennò l'operatore vede sempre la foto della prescrizione*» — perché la prima foto del primo gruppo è quella che finisce **grande** sulla carta dell'album, e la copertina deve dire com'è il lavoro, non chi l'ha ordinato. Da oggi l'ordine è cronologico **con una deroga motivata**. 🔴 **E misurando il mockup è saltato fuori un difetto di RILASCIO che c'era GIÀ con sei categorie:** a testo ingrandito al 200 % la griglia del foglio **usciva dal foglio di 56 px** (con sette: 144), perché `gridTemplateColumns: '1fr 1fr'` lascia alla colonna un minimo pari alla parola più lunga non spezzabile — e «Radiografia» non ha spazi dove andare a capo. La riga di commento del componente diceva il contrario, ed è ciò che ha fatto credere per tre task che la prova di §13.3 fosse superata. **Francesco ha deciso di ripararlo qui (D96):** `minmax(0,1fr)` + `overflowWrap:'anywhere'` → **0 px fuori**, e le due chiavi sono ora fissate da prove unitarie. ⚠️ **La prova nel browser resta a T13:** il foglio non è montato su nessuna route pubblica (il catalogo NON lo monta), quindi §13.3 non era eseguibile senza accesso. **Che cosa è cambiato nel codice:** migration nuova `supabase/migrations/20260802090000_lavori_immagini_categoria_prescrizione.sql` (`DROP CONSTRAINT` + `ADD CONSTRAINT` a sette, **nessun backfill**: le sei vecchie restano valide) · `src/lib/domain/categorie-foto.ts` (settima voce quinta) · `src/components/ds/FoglioCategoria.tsx` (emoji, riga di chiusura, rimedio, tre commenti falsi corretti) · `src/components/features/wizard/FrameFatto.tsx:170` **torna a `'prescrizione'`** (D97 — è il valore che mandava prima, T11-bis l'aveva messo su `'altro'` come ripiego dichiarato) · la **spia** ora punta alla migration nuova (🛑 **scartata la scansione automatica della cartella**: scambierebbe un rosso rumoroso con un verde silenzioso). 🚦 **FASE 7 verde, output vero:** `tsc` **0** · `vitest` **368 | 3** file e **4219 | 19** prove (+12; nessun file fuori dai tredici del censimento è andato rosso) · `next build` ok. **FASE 6b eseguita:** i tipi rigenerati sono **identici** — `categoria` esce `string` comunque, il `CHECK` non restringe il tipo (R27). ✅ **La prova R-P1 del vincolo È STATA FATTA**, su transazione **annullata** (ledger fermo, niente applicato): `'pippo'` **rifiutato** con `23514`, **`'Prescrizione'` con la maiuscola RIFIUTATO** (il valore è `'prescrizione'`, l'etichetta è un'altra cosa), `'prescrizione'` e `'rx'` accettati — output incollato in testa alla migration. ✅ **E LA MIGRATION È STATA APPLICATA** il 02/08 (`supabase db push`, autorizzato da Francesco — era l'unica delle 90 non ancora registrata): vincolo in vigore a **sette voci**, `categoria` ancora `NOT NULL` senza default, `'pippo'`/`'Prescrizione'`/stringa vuota **rifiutati** `23514`, ledger con `20260802090000` in testa; FASE 6b ripetuta dopo l'apply, tipi **identici**. 🔴 **RESTA DA FARE:** · ② **T12** (l'eliminazione dal visore) e **T13** (chiusura + gate estetico L2), che restano i due task aperti del piano dell'album. Verbale: **novantasette decisioni in ventinove tornate**. 🔨 **E L'ONDATA (b) È ARRIVATA IN FONDO AL PIANO DELL'ALBUM: T12 e T13 FATTI (02/08).** **T12** ha collegato i due bottoni della scheda che non aprivano niente (visore e correzione categoria) e l'eliminazione dal ⋯ con la conferma di §5.42 — commit `08366325`. 🔴 **E il collaudo nel browser ha trovato un difetto che 4.230 prove non vedevano:** gli overlay montati *dentro una condizione* si aprivano e si richiudevano da soli (il `popstate` di un `history.back()` in ritardo). **REGOLA GENERALE: gli overlay v3 si montano SEMPRE e si pilotano con `aperto`.** ⚠️ jsdom non esegue la traversal di `history.back()`, quindi la prova ovvia restava verde: la rete ora conta gli **ingressi nella storia degli overlay** (uno per apertura). **T13:** FASE 7 verde · 🚦 **la guardia degli overlay ha girato per la prima volta da T6 ed è VERDE**, con un **quarto braccio** nuovo per l'album e un **rosso falso** corretto nel terzo (cliccava una cassetta occupata, che porta al lavoro invece di aprire lo sheet) · FASE 9 su 390/768/1280 × chiaro e scuro, banco riportato com'era · **gate estetico L2**: risolto il contrasto di «Annulla» in scuro con una regola **scoped** in `ds-v3.css`. 🔴 **Resta solo il Passo 4-bis, che dipende dal merge:** caricare una foto vera su uachelab.com (oggi risponde 500 — D81/R29). 🚀 **E L'ONDATA (b) È IN PRODUZIONE (02/08):** `main` pubblicata (`d890545a`, 120 commit), CI verde, deploy Vercel **success**. ✅ **Il guasto vivo dal 30/07 è CHIUSO e misurato:** una foto vera caricata su uachelab.com risponde **201** dove prima dava **500**, il foglio chiede la categoria con **sette** pastiglie, e in produzione ha girato anche l'eliminazione (visore → tendina → conferma). 🔒 **Prima del merge sono stati chiusi TOK-1 e CLI-1** (D53): la chiave del portale non esce più dall'elenco dei dentisti — due fonti, proiezione + allowlist in uscita. ⚠️ **Un rilievo estetico nuovo, riferito:** in tema chiaro il velo del visore lascia leggere il testo della scheda dietro la foto (misurato: non è un'animazione, è il 6% di trasparenza del valore ratificato). 🚪 **PUNTO DI RIPRESA per la sessione nuova: `docs/roadmap/2026-08-02-ondata-b-chiusa-handoff.md`** — e la sua **§0 va per prima**: 🔴 **nessuno dei quattro strati sopra la foto anima l'USCITA** (`AnimatePresence` non è montato da nessuno), ed era una **decisione d'ondata da prendere al gate estetico L2 di T13 che NON è stata portata a Francesco**. In §2 dell'handoff stanno le **quattro lezioni** di questa giornata, che valgono per il codice futuro: gli overlay v3 si montano **sempre** e si pilotano con `aperto` · jsdom non esegue la traversal di `history.back()`, quindi certe prove vanno spostate di bersaglio · un commento che afferma una protezione inesistente è peggio del silenzio · con foto finte non si dà un giudizio estetico.
+ 
+ **Aggiornamento precedente:** 1 agosto 2026 (86) — 📤 **T11 + T11-bis SONO FATTI: CARICARE UNA FOTO TORNA A FUNZIONARE.** Sul ramo era **rotto**: il server, riparato in T3, **pretende** il campo `categoria` e rifiuta chi non lo manda, mentre il client spediva ancora `descrizione`. 🔴 **E i chiamanti rotti erano TRE, non uno:** T11 ne ha riparato uno (la scheda), **la revisione ne ha trovati altri due VIVI** con un `grep` su tutto il repo che nessuno aveva fatto — `src/lib/wizard/crea-lavoro.ts:393` e `src/components/features/wizard/FrameFatto.tsx:170`, cioè **il caricamento dal wizard «Nuovo lavoro»** — da cui **T11-bis**. 🛑 **Trappola nel secondo:** mandava `'prescrizione'`, che **non è una delle sei categorie** (elenco chiuso, D72): rinominare il campo non sarebbe bastato. Ora è `'altro'`. ⚠️ **Conseguenza da sapere: il dettaglio «era la prescrizione» non è più registrato da nessuna parte** — un dato che prima esisteva e ora no; se serve, va deciso dove tenerlo. **Che altro cambia:** l'elenco locale delle categorie sparisce (si importa quello unico) · la riga che **indovinava** la categoria dalla sorgente sparisce e al suo posto **`FoglioCategoria` la CHIEDE**, una volta per gruppo (è il suo primo chiamante vero, e la trappola dell'**identità di `ancoraFocus`** si chiude qui: ref stabile, mai un letterale inline) · due gestori quasi identici diventano uno · la foto locale **sparisce quando arriva quella vera** (prima restava: doppia a schermo e contata due volte) · un **PDF** si rende come tessera documento. **FASE 7:** `tsc` **0** · `vitest` **368 | 3** file e **4207 | 19** prove · `next build` ok. 📐 **R-P4: 15 su 16**, numero **riprodotto dal revisore** e non creduto; l'unica verde è una prova di **assenza**. **Mutazioni: l'esecutore ne dichiarava una, il revisore ne ha fatte OTTO** — e tre sue hanno trovato comportamenti **non sorvegliati** (il foglio che non si chiude · i PDF fra le anteprime · il rilascio dell'anteprima temporanea: codice giusto, rete mancante). 🔑 **E L'ESECUTORE HA TROVATO UN DIFETTO NEL PROPRIO LAVORO:** la sua prova sull'àncora del focus **passava per la ragione sbagliata** (sparava un ridimensionamento **senza cambiare davvero la larghezza**, quindi React non ri-renderizzava). Il revisore l'ha verificato nel modo giusto — ha messo il difetto sotto la **prima** versione del test: **16 su 16 verdi**, cioè la prova era davvero cieca. 🔴 **Difetti del piano confermati:** la tabella del Task 11 si dichiara censimento completo (R-P6) ma **non nomina il montaggio di `FoglioCategoria`**, **non nomina mai `ancoraFocus`** — cioè proprio la trappola — e **non porta il requisito del PDF**, che pure sta nel testo del task; e la riga «il contatore conta doppio» è **fuorviante** (quel contatore non ha resa visibile: il suo unico lettore è la soglia della vista a elenco). 🔴 **Reso osservabile da T11, ma è di T9:** l'**animazione d'uscita di `FoglioCategoria` è morta** — dichiara la variante ma torna `null` alla chiusura e non ha `AnimatePresence`, né dentro né nel chiamante. Vale per **tutti e quattro** gli strati nuovi: si decide **insieme** al gate estetico L2. Referto: `docs/roadmap/2026-08-01-t11-referto.md`.
+ 
+ **Aggiornamento ancora precedente:** 1 agosto 2026 (85) — 🖼️ **T10 È FATTO: LA CARTA ALBUM È SULLA SCHEDA, E LA STRISCIA NON ESISTE PIÙ.** `FotoStrip` (§5.33, dichiarata superata) esce da **tutti** i suoi siti e al suo posto entra `CartaAlbum` (§5.38), sulla scheda lavoro e nel catalogo del design system; il file e il suo test sono **rimossi**. 🔑 **È il primo commit dell'ondata che cambia qualcosa di VISIBILE su una rotta di produzione** (`/lavori/[id]`). 🔴 **Il censimento del piano era incompleto: i siti erano CINQUE, non tre** — il quarto (la **voce dell'indice del catalogo**, `ds-v3-catalogo/page.tsx:81`) l'ho trovato io prima del dispatch, il quinto (`tests/unit/ds-v3/componenti/catalogo.test.tsx:128`, che confronta l'indice come stringhe letterali) l'ha trovato l'esecutore eseguendo. 🔴 **E LA REVISIONE HA TROVATO CHE LA SOLA COSA DI CUI QUESTO TASK ERA RESPONSABILE NON ERA PROVATA:** distruggendo il passaggio di `categoria` e `created_at` alla carta, **11 prove su 11 restavano verdi** — le tre asserzioni dell'innesto sopravvivono a una categoria sbagliata perché la funzione che la traduce **ripiega sul valore grezzo** invece di fallire. Non era un difetto vivo, era **una guardia mancante**: chiusa con due guardie **indipendenti** (le etichette di gruppo via `getByRole('group')` e una terza foto che rende `created_at` osservabile), ognuna provata per mutazione e **rifatta dal revisore**. **FASE 7:** `tsc` **0** · `vitest` **367 | 3** file e **4191 | 19** prove · `next build` ok. ⚠️ **Il totale CALA di uno ed è giusto:** −3 (il test della striscia, eliminato col suo componente) +1 (`objectFit: cover`, l'unica delle tre misure ereditate non già coperta) +1 (la prova d'innesto). **Le altre due misure verificate una per una: raggio 12 era già coperto; il 72×72 NON esiste più sulla carta ed è DICHIARATO, non fatto sparire.** 🛑 **STATO INTERMEDIO DA SAPERE:** sulla scheda ci sono ora **due bottoni veri che non aprono niente** («⤢ Apri», che vibra, e la pastiglia della categoria) — §5.38 li mette nell'anatomia ratificata e le callback sono prop **obbligatorie**, quindi non esisteva un appiglio per non renderli: **li collega T12**, e il ramo non ha nulla su `origin`. 🔴 **Riferito e corretto nello stesso turno: una voce ORFANA scritta da me** — `SESSION_ACTIVE` diceva «T10 monta l'innesco della tendina», ma il ⋯ vive dentro `VisoreFoto`, che monta **T12**: la riga non è mai arrivata nel brief e nessuno l'ha eseguita. **Un documento vivo che assegna un lavoro a un task che non lo farà è il modo in cui un lavoro si perde.** 🔴 **E una deriva chiusa:** tredici file di `.superpowers/` erano **tracciati in git contro il `.gitignore`, che li ignora due volte**; l'esecutore ne aveva aggiunto un altro con `git add -f` citando il precedente. Rimossi dal tracciamento i due di questa sessione. **L'argomento che chiude la questione è del revisore:** i `PREFISSI` di `guardia-coerenza-documenti.mjs:50` **non includono `.superpowers/`** — un rapporto tracciato lì resta nel repo per sempre **senza nessuna protezione di coerenza**, libero di marcire citando file che non esistono più. Ciò che deve durare va in un **referto in `docs/roadmap/`**. ⚠️ Restano **undici** file tracciati da prima: da ripulire prima del merge. Referto: `docs/roadmap/2026-08-01-t10-referto.md`.
+diff --git a/memory/SESSION_ACTIVE.md b/memory/SESSION_ACTIVE.md
+index 5a80bc13..7a91abb0 100644
+--- a/memory/SESSION_ACTIVE.md
++++ b/memory/SESSION_ACTIVE.md
+@@ -1,24 +1,24 @@
+-# Sessione attiva — la §0 dell'handoff è chiusa PER INTERO (le due impronte + la guardia overlay)
++# Sessione attiva — la §0 chiusa per intero, e gli accenti FATTI sul ramo
+ 
+-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`** — le due impronte in
+-§1-§7, la guardia overlay in §8. Per ciò che resta da fare:
+-`docs/roadmap/2026-08-03-uscita-strati-e-ddc-handoff.md` §3 (righe 2, 4 e seguenti: la §0 non è più aperta).
++🚪 **PUNTO DI RIPRESA: `docs/superpowers/plans/2026-08-03-accenti-documenti.md`** — il ramo
++`accenti-documenti` è pronto e **NON mergiato**: 12 salvataggi, `vitest` **370 | 3** file e **4274 | 19**
++prove · `tsc` 0 · `next build` ok. Spec: `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`.
+ 
+-✅ **① Le due impronte della DdC, provate in produzione.** Consegnato `TEST-DdC-001` su uachelab.com →
+-`DDC-2026-0002` nasce con `payload_sha256` (64 hex) e `template_version='ddc-v1'`; la `DDC-2026-0001`
+-(pre-D102) le ha **entrambe NULL**. Consegna **annullata**, lavoro tornato `pronto`. In produzione:
+-`main` = `17535613`, CI verde, deploy `success`, uachelab.com risponde.
++✅ **Fatto prima:** la §0 dell'handoff, **per intero** — le due impronte della DdC provate in produzione
++(consegna + annullo) e il primo braccio della guardia overlay, che ha richiesto di **riparare la guardia**.
++Referto: `docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md`.
+ 
+-✅ **② Il primo braccio della guardia navigazione-overlay ha misurato** — quattro bracci su quattro verdi,
+-due corse di fila, con la fixture `E2E-CAS-002` preparata e **rimessa com'era**.
+-🔴 **Ma la guardia si rompeva, e nessuno dei due difetti era dell'app:** la lettura non reggeva una
+-traversal cross-document (sonda: **12 rotture su 12**, col rimedio **0 su 12**) e **un'eccezione di un
+-braccio uccideva l'intera guardia**. Riparata, con prova che ogni rimedio morde. 🔑 *Una rete mai eseguita
+-non è una rete: è una promessa.*
++✅ **Fatto poi (gli accenti nei documenti, D104-D107):** dieci punti senza accento corretti nei due documenti generati; nasce
++**`§2 — Data di emissione`** (il foglio saltava da §1 a §3); il DEFAULT della frase in banca dati allineato
++con una **migration nuova, applicata**; la versione del modello **resta `ddc-v1`** (D105) e per la prima volta
++ha un **registro** che dice cosa contiene.
+ 
+-📎 Verbale: **centotré** decisioni in trentadue tornate — **D103** (accesso al banco con i dati di
+-`.env.local`; in `CLAUDE.md` §9). La prossima è **D104**.
+-🟠 **Riferiti, non corretti (R-E2):** il PDF della DdC stampa «CONFORMITA» / «e' conforme» **senza accenti**
+-— e non è il carattere, il §8 rende «è» correttamente · la numerazione salta il **§2**. Voce 8 di roadmap.
+-📌 **FASE 7 dopo la riparazione:** `vitest` **370 | 3** file e **4267 | 19** prove · `tsc` **0**.
+-⚠️ La DdC emessa porta stampato **31/07/2026**: l'orologio dei documenti è quello della macchina.
++🔑 **Sette difetti trovati eseguendo, TRE dei quali nel piano stesso** — nessuno arrivato al documento:
++un test che leggeva il dato di un altro test · un'asserzione morta (spazio finale che non esiste) · il piano
++che pretendeva forma mista su titoli resi MAIUSCOLI (**tre volte**) · un'asserzione sulla data che restava
++verde anche svuotando la sezione · un commento che prometteva più di quanto la prova misurasse.
++
++📎 Verbale: **centosette** decisioni in trentatré tornate. La prossima è **D108**.
++🟠 Riferiti e non corretti: i **nove** della spec §5 (fra cui il luogo di fabbricazione mai stampato e il
++«Sostanze/tessuti: No» affermato senza dato) · il §6-bis e il §7 **attaccati** quando ci sono norme
++armonizzate (preesistente, invisibile ai test perché la fixture non le popola).
+diff --git a/src/components/features/pdf/DdcTemplate.tsx b/src/components/features/pdf/DdcTemplate.tsx
+index da004cdd..27b018f0 100644
+--- a/src/components/features/pdf/DdcTemplate.tsx
++++ b/src/components/features/pdf/DdcTemplate.tsx
+@@ -282,23 +282,23 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+     ? lavoro.materiali
+         .map((m) => {
+           const parts = [m.nome_materiale_snapshot, m.numero_lotto_snapshot, m.produttore_snapshot].filter(Boolean)
+           return parts.join(' – ')
+         })
+         .join('\n')
+     : null
+ 
+   return (
+     <Document
+-      title={`Dichiarazione di Conformita ${ddc.numero_ddc ?? ''}`}
++      title={`Dichiarazione di Conformità ${ddc.numero_ddc ?? ''}`}
+       author={ddc.fabbricante_nome ?? lab.ragione_sociale ?? lab.nome}
+-      subject="Dichiarazione di Conformita MDR 2017/745"
++      subject="Dichiarazione di Conformità MDR 2017/745"
+       keywords="DDC MDR 2017/745 Allegato XIII"
+       creator="UA PWA"
+     >
+       <Page size="A4" style={styles.page}>
+ 
+         {/* ── HEADER ── */}
+         <View style={styles.header}>
+           <View style={styles.headerLeft}>
+             <Text style={styles.labNome}>
+               {ddc.fabbricante_nome ?? lab.ragione_sociale ?? lab.nome}
+@@ -316,34 +316,33 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           <View style={styles.headerRight}>
+             {logoUrl ? (
+               // eslint-disable-next-line jsx-a11y/alt-text
+               <Image src={logoUrl} style={styles.logo} />
+             ) : null}
+           </View>
+         </View>
+ 
+         {/* ── TITOLO ── */}
+         <View style={styles.titoloWrapper}>
+-          <Text style={styles.titolo}>Dichiarazione di Conformita</Text>
++          <Text style={styles.titolo}>Dichiarazione di Conformità</Text>
+         </View>
+         <Text style={styles.sottotitolo}>
+           Ai sensi dell&apos;Art. 52(8) e Allegato XIII del Regolamento UE 2017/745
+         </Text>
+ 
+         {/* ── SEPARATORE ── */}
+         <View style={styles.separator} />
+ 
+         {/* ── NUMERO DDC ── */}
+         {ddc.numero_ddc ? (
+           <Text style={styles.numeroDdc}>
+             N. {ddc.numero_ddc}
+-            {ddc.data_emissione ? `   |   Data: ${formatData(ddc.data_emissione)}` : ''}
+           </Text>
+         ) : null}
+ 
+         {/* ── §1 FABBRICANTE ── */}
+         <View style={styles.section}>
+           <Text style={styles.sectionTitle}>§1 — Fabbricante</Text>
+           <View style={styles.row}>
+             <Text style={styles.label}>Ragione sociale:</Text>
+             <Text style={styles.valueBold}>{ddc.fabbricante_nome ?? '—'}</Text>
+           </View>
+@@ -366,20 +365,31 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+               <Text style={styles.label}>SRN EUDAMED:</Text>
+               <Text style={styles.value}>{lab.srn_eudamed}</Text>
+             </View>
+           ) : null}
+           <View style={styles.row}>
+             <Text style={styles.label}>Luogo emissione:</Text>
+             <Text style={styles.value}>{ddc.luogo_emissione || '—'}</Text>
+           </View>
+         </View>
+ 
++        {/* ── §2 DATA DI EMISSIONE ── */}
++        <View style={styles.section}>
++          <Text style={styles.sectionTitle}>§2 — Data di emissione</Text>
++          <View style={styles.row}>
++            <Text style={styles.label}>Data:</Text>
++            <Text style={styles.valueBold}>
++              {ddc.data_emissione ? formatData(ddc.data_emissione) : '—'}
++            </Text>
++          </View>
++        </View>
++
+         {/* ── §3 PRESCRITTORE ── */}
+         <View style={styles.section}>
+           <Text style={styles.sectionTitle}>§3 — Prescrittore</Text>
+           <View style={styles.row}>
+             <Text style={styles.label}>Nome prescrittore:</Text>
+             <Text style={styles.valueBold}>{ddc.prescrittore_nome || '—'}</Text>
+           </View>
+           {ddc.prescrizione_id ? (
+             <View style={styles.row}>
+               <Text style={styles.label}>N. prescrizione:</Text>
+@@ -436,21 +446,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           {ddc.prescrizione_caratteristiche ? (
+             <View style={styles.row}>
+               <Text style={styles.label}>Caratteristiche prescritte:</Text>
+               <Text style={styles.value}>{ddc.prescrizione_caratteristiche}</Text>
+             </View>
+           ) : null}
+           <View style={styles.row}>
+             <Text style={styles.label}>Sostanze / tessuti:</Text>
+             <Text style={styles.value}>
+               {ddc.contiene_sostanze_o_tessuti
+-                ? (ddc.sostanze_tessuti_dettaglio ?? 'Si — vedere documentazione allegata')
++                ? (ddc.sostanze_tessuti_dettaglio ?? 'Sì — vedere documentazione allegata')
+                 : 'No'}
+             </Text>
+           </View>
+           <Text style={styles.rischiText}>
+             Dispositivo su misura ai sensi dell&apos;Art. 2(1)(3) MDR — non soggetto a marcatura CE ai sensi dell&apos;Art. 20(1) MDR 2017/745.
+           </Text>
+         </View>
+ 
+         {/* ── §6 CLASSIFICAZIONE ── */}
+         <View style={styles.section}>
+@@ -476,21 +486,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+             {ddc.norme_json.map((norma, i) => (
+               <Text key={i} style={styles.value}>
+                 • {norma.codice} — {norma.titolo}{norma.anno ? ` (${norma.anno})` : ''}
+               </Text>
+             ))}
+           </View>
+         ) : null}
+ 
+         {/* ── §7 CONFORMITA ── */}
+         <View style={styles.section}>
+-          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformita</Text>
++          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformità</Text>
+           <View style={styles.conformitaBox}>
+             <Text style={styles.conformitaText}>
+               {ddc.testo_conformita_snapshot ?? '—'}
+             </Text>
+           </View>
+         </View>
+ 
+         {/* ── §8 RISCHI RESIDUI ── */}
+         {ddc.rischi_residui_snapshot ? (
+           <View style={styles.section}>
+@@ -504,21 +514,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           <View style={styles.firmaLeft}>
+             <Text style={styles.firmaLabel}>Data di emissione:</Text>
+             <Text style={styles.firmaNome}>
+               {ddc.data_emissione ? formatData(ddc.data_emissione) : '—'}
+             </Text>
+             {ddc.luogo_emissione ? (
+               <Text style={styles.firmaQualifica}>{ddc.luogo_emissione}</Text>
+             ) : null}
+           </View>
+           <View style={styles.firmaRight}>
+-            <Text style={styles.firmaLabel}>Responsabile della Conformita (PRRC)</Text>
++            <Text style={styles.firmaLabel}>Responsabile della Conformità (PRRC)</Text>
+             {ddc.firma_ddc_storage_path ? (
+               // eslint-disable-next-line jsx-a11y/alt-text
+               <Image src={ddc.firma_ddc_storage_path} style={styles.firmaImage} />
+             ) : (
+               <View style={styles.firmaLinea} />
+             )}
+             <Text style={styles.firmaNome}>{ddc.prrc_nome || '—'}</Text>
+             {ddc.prrc_qualifica ? (
+               <Text style={styles.firmaQualifica}>{ddc.prrc_qualifica}</Text>
+             ) : null}
+diff --git a/src/components/features/pdf/NominaPrrcTemplate.tsx b/src/components/features/pdf/NominaPrrcTemplate.tsx
+index ea79e67e..0991a1eb 100644
+--- a/src/components/features/pdf/NominaPrrcTemplate.tsx
++++ b/src/components/features/pdf/NominaPrrcTemplate.tsx
+@@ -331,21 +331,21 @@ export function NominaPrrcTemplate({ lab, nominaPrrc }: NominaPrrcTemplateProps)
+           {nominaPrrc.prrc_numero_albo ? (
+             <View style={styles.row}>
+               <Text style={styles.label}>N. Albo/Registro:</Text>
+               <Text style={styles.valueNormal}>{nominaPrrc.prrc_numero_albo}</Text>
+             </View>
+           ) : null}
+         </View>
+ 
+         {/* ── RESPONSABILITA ART. 15(1) ── */}
+         <Text style={styles.sectionTitle}>
+-          Responsabilita ai sensi dell&apos;Art. 15(1) MDR 2017/745
++          Responsabilità ai sensi dell&apos;Art. 15(1) MDR 2017/745
+         </Text>
+ 
+         {RESPONSABILITA_ART15.map((item) => (
+           <View key={item.lettera} style={styles.responsabilitaItem}>
+             <Text style={styles.responsabilitaLettera}>{item.lettera}</Text>
+             <Text style={styles.responsabilitaText}>{item.testo}</Text>
+           </View>
+         ))}
+ 
+         {/* ── DATA NOMINA ── */}
+diff --git a/src/lib/pdf/generate-ddc.ts b/src/lib/pdf/generate-ddc.ts
+index 5aa4f25a..389219de 100644
+--- a/src/lib/pdf/generate-ddc.ts
++++ b/src/lib/pdf/generate-ddc.ts
+@@ -23,28 +23,41 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
+     const res = await fetch(url)
+     if (!res.ok) return null
+     const buf = Buffer.from(await res.arrayBuffer())
+     return crypto.createHash('sha256').update(buf).digest('hex')
+   } catch (err) {
+     console.error('[DdC] hash firma non calcolato:', err instanceof Error ? err.message : err)
+     return null
+   }
+ }
+ 
+-/** La versione della FORMA del documento. Cambia quando cambia ciò che il PDF
+- *  rende — non a ogni ritocco di codice.
++/** La versione della FORMA del documento. Cambia quando cambia **ciò che il
++ *  documento dice** — non a ogni ritocco di codice, e non per un glifo.
+  *
+  *  🛑 Introdotta con D102, e «introdotta» è la parola giusta: la colonna
+  *  `template_version` esiste in `supabase/schema.sql` dal primo giorno e non
+- *  l'ha mai scritta nessuno. Ogni DdC emessa fino a oggi la porta `NULL` —
+- *  cioè il documento non dice di che forma è. Fra dieci anni (quindici per gli
+- *  impiantabili) è la riga che permette di rileggerlo sapendo come andava letto. */
++ *  l'ha mai scritta nessuno. Fra dieci anni (quindici per gli impiantabili) è la
++ *  riga che permette di rileggere un documento sapendo come andava letto.
++ *
++ *  ═══ REGISTRO DELLE VERSIONI ═════════════════════════════════════════════
++ *  `ddc-v1` — dalla prima emissione con le impronte (03/08/2026) a oggi.
++ *     Comprende, per decisione **D105**, anche la correzione ortografica del
++ *     03/08 (gli accenti in titolo, §7 ed etichetta della firma, e `e'` → `è`
++ *     nel testo di conformità) e la comparsa del **§2 — Data di emissione**:
++ *     nessuna delle due cambia ciò che il documento DICE.
++ *  🔑 Il salto a `ddc-v2` è riservato al primo cambiamento di **sostanza** —
++ *     un contenuto dell'Allegato XIII che entra, esce o cambia significato.
++ *     I candidati sono già in `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`
++ *     §5 (referral ①②③④): la clausola «e ai disposti dell'Allegato XIII», il
++ *     luogo di fabbricazione mancante, il «Sostanze/tessuti: No» affermato senza
++ *     dato, l'identificazione del paziente che può ridursi a un trattino.
++ *  ═════════════════════════════════════════════════════════════════════════ */
+ const VERSIONE_TEMPLATE_DDC = 'ddc-v1'
+ 
+ /** Serializzazione CANONICA: le chiavi degli oggetti in ordine alfabetico, gli
+  *  array nel loro ordine (che è un dato, non una casualità).
+  *
+  *  🔑 Perché canonica e non `JSON.stringify` nudo: l'impronta deve certificare
+  *  i DATI, non l'ordine in cui un refactoring futuro capita di dichiararli. Con
+  *  la stringa nuda, spostare due righe nel builder cambierebbe l'impronta di un
+  *  documento identico — e un'impronta che cambia senza che cambi niente non
+  *  prova più niente. */
+@@ -109,21 +122,21 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
+   // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+   // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+   const lab = labRaw as Laboratorio
+ 
+   // Genera progressivo
+   const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'ddc', anno)
+   const numero = `DDC-${anno}-${String(progressivo).padStart(4, '0')}`
+ 
+   // MDR §8: dichiarazione esplicita di conformità (colonna NOT NULL senza default
+   // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
+-  const testoConformita = "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
++  const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
+ 
+   const firmaSha256 = await hashFirmaDdc((lab.firma_ddc_url ?? null) as string | null)
+ 
+   // Prepara dati snapshot
+   const ddc = {
+     numero_ddc: numero,
+     anno_ddc: anno,
+     progressivo_ddc: progressivo,
+     fabbricante_nome: (lab.ragione_sociale ?? lab.nome) as string,
+     fabbricante_indirizzo: (lab.indirizzo ?? '') as string,
+diff --git a/supabase/migrations/20260803120000_default_testo_conformita_accentato.sql b/supabase/migrations/20260803120000_default_testo_conformita_accentato.sql
+new file mode 100644
+index 00000000..592e618f
+--- /dev/null
++++ b/supabase/migrations/20260803120000_default_testo_conformita_accentato.sql
+@@ -0,0 +1,21 @@
++-- D104 — il DEFAULT di `testo_conformita_snapshot` porta la stessa frase del
++-- generatore, e fino a oggi portava la stessa frase SENZA accento.
++--
++-- ═══ PERCHÉ ESISTE QUESTO FILE ═══════════════════════════════════════════════
++-- La frase vive in due posti: `src/lib/pdf/generate-ddc.ts` (che la scrive a ogni
++-- emissione) e il DEFAULT di questa colonna, messo da `002_fase2_schema.sql:188-189`.
++-- Oggi il default NON spara mai — il generatore valorizza sempre entrambe le
++-- colonne (`generate-ddc.ts:147-148`) — ma `supabase/seed.sql` inserisce righe
++-- senza lo snapshot, e quelle lo prendono. Correggendo solo il TypeScript
++-- resterebbero in casa DUE verità canoniche, e la seconda tornerebbe a valere il
++-- giorno in cui un writer futuro omettesse la colonna: una dichiarazione marcata
++-- con la forma nuova, e dentro il testo vecchio.
++--
++-- 🛑 La migration del 2026-05 NON si riscrive: è il registro di ciò che è
++--    successo. Si allinea qui.
++-- 🛑 Non si usa DROP DEFAULT, che pure sarebbe più pulito: la colonna è NOT NULL
++--    e il seme inserisce righe senza valorizzarla — toglierlo lo romperebbe.
++
++ALTER TABLE public.dichiarazioni_conformita
++  ALTER COLUMN testo_conformita_snapshot SET DEFAULT
++    'Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all''Allegato I e ai disposti dell''Allegato XIII del Reg. (UE) 2017/745.';
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index fc1fde65..b56fa0b0 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -1239,21 +1239,23 @@ CREATE TABLE dichiarazioni_conformita (
+                     DEFAULT 'Dispositivo su misura: non soggetto a marcatura CE ai sensi dell''Art. 20(1) MDR 2017/745',
+ 
+   -- Luogo di fabbricazione (presente nella DdC reale DentalMaster: "Luogo di fabbricazione: Italia")
+   luogo_fabbricazione TEXT NOT NULL DEFAULT 'Italia',
+ 
+   -- PDF archiviato con integrità verificabile
+   -- FIX (2026-05-12 — adversarial review #9): aggiunto hash per prova integrità
+   pdf_url               TEXT,               -- Supabase Storage URL
+   pdf_sha256            TEXT,               -- SHA-256 del blob PDF al momento della generazione
+   payload_sha256        TEXT,               -- SHA-256 del JSON input usato per generare il PDF
+-  template_version      TEXT,               -- Es. "ddc-v1.2.0" — versione template react-pdf
++  template_version      TEXT,               -- Es. "ddc-v1" — versione della FORMA del documento; il registro
++                                            -- di cosa contiene ogni versione vive accanto alla costante in
++                                            -- src/lib/pdf/generate-ddc.ts. NON è un semver: si conta 1, 2, 3.
+   pdf_generato_at       TIMESTAMPTZ,
+   generated_by          UUID REFERENCES utenti(id), -- chi ha premuto "Consegna"
+   storage_object_version TEXT,             -- versione oggetto Supabase Storage (per audit)
+ 
+   stato             TEXT NOT NULL DEFAULT 'bozza'
+                     CHECK (stato IN ('bozza','generata','firmata','consegnata')),
+ 
+   -- Rischi non eliminabili (4 rischi standard da Odontec/DentalMaster)
+   rischi_json       JSONB,
+ 
+diff --git a/tests/unit/ddc-pdf-content.test.ts b/tests/unit/ddc-pdf-content.test.ts
+index 0acd7588..c3900c85 100644
+--- a/tests/unit/ddc-pdf-content.test.ts
++++ b/tests/unit/ddc-pdf-content.test.ts
+@@ -59,21 +59,21 @@ const DDC_FIXTURE: DichiarazioneConformita = {
+   uso_esclusivo_paziente:
+     'Dispositivo fabbricato su misura esclusivamente per il paziente indicato',
+   prescrizione_caratteristiche: null,
+   contiene_sostanze_o_tessuti: false,
+   sostanze_tessuti_dettaglio: null,
+   // §6 Classificazione
+   classe_rischio: 'classe_iia',
+   norma_riferimento: null,
+   // §7 Conformità
+   testo_conformita_snapshot:
+-    "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
++    "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
+   // §8 PRRC
+   prrc_nome: 'Filippo Opromolla',
+   prrc_qualifica: 'Odontotecnico abilitato',
+   firma_ddc_storage_path: null,
+   firma_ddc_sha256: null,
+   rischi_residui_snapshot: null,
+   norme_json: null,
+ }
+ 
+ // ─── Test suite ───────────────────────────────────────────────────────────────
+@@ -99,23 +99,50 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)',
+   it('PDF > 1 KB', async () => {
+     const element = createElement(DdcTemplate, {
+       lavoro: LAVORO_FIXTURE,
+       lab: LAB_FIXTURE,
+       ddc: DDC_FIXTURE,
+     })
+     const buffer = await renderPdfDocument(element)
+     expect(buffer.length).toBeGreaterThan(1024)
+   })
+ 
+-  it('titolo contiene "dichiarazione di conformita" (case-insensitive)', () => {
+-    // textTransform: 'uppercase' — react-pdf rende le lettere maiuscole nel PDF
+-    expect(pdfText.toLowerCase()).toContain('dichiarazione di conformita')
++  it('il titolo porta l\'accento: «DICHIARAZIONE DI CONFORMITÀ»', () => {
++    // textTransform:'uppercase' — react-pdf rende le maiuscole nel PDF, À compresa
++    // (provato: scripts/tmp/sonda-accenti.tsx). Questo test PRETENDE l'accento:
++    // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
++    // tornata silenziosa in entrambe le direzioni.
++    expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
++    // 🛑 Nessun refuso residuo nei punti che questa fixture RENDE: la rete si
++    //    accende su qualunque occorrenza rimasta lì, comprese quelle che le
++    //    asserzioni puntuali non guardano (provato per mutazione su due punti
++    //    diversi, §7 e etichetta della firma).
++    // ⚠️ Il limite, scritto perché nessuno legga più di quanto la prova misuri:
++    //    `pdfText` nasce da DDC_FIXTURE, che lascia a `null` norme_json,
++    //    rischi_residui_snapshot, firma_ddc_storage_path e le righe di
++    //    prescrizione — quindi §6-bis, §8 e quei blocchi NON sono renderizzati, e
++    //    un refuso che vivesse lì dentro questa rete non lo vedrebbe. Oggi non ce
++    //    n'è (verificato), ma la rete copre il foglio reso, non «il foglio».
++    expect(pdfText).not.toContain('CONFORMITA')
++    expect(pdfText).not.toContain('Conformita')
++  })
++
++  it('l\'etichetta della firma porta l\'accento', () => {
++    // styles.firmaLabel NON ha textTransform: 'uppercase' (a differenza di
++    // styles.sectionTitle) — qui la forma attesa resta mista.
++    expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
++  })
++
++  it('il titolo del §7 porta l\'accento', () => {
++    // styles.sectionTitle ha textTransform: 'uppercase' (DdcTemplate.tsx:86) —
++    // il §7, come ogni titolo di sezione, esce in maiuscolo nel PDF.
++    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
+   })
+ 
+   // ── §1 Fabbricante ────────────────────────────────────────────────────────
+ 
+   it('§1 stampa ragione sociale del fabbricante', () => {
+     expect(pdfText).toContain('Laboratorio Odontotecnico Opromolla S.r.l.')
+   })
+ 
+   it('§1 stampa indirizzo del fabbricante', () => {
+     expect(pdfText).toContain('Via Roma 12')
+@@ -155,20 +182,43 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)',
+   // ── §2 Numero DdC e data emissione ───────────────────────────────────────
+ 
+   it('§2 stampa numero DdC', () => {
+     expect(pdfText).toContain('DDC-2026-0001')
+   })
+ 
+   it('§2 stampa data di emissione formattata (dd/mm/yyyy)', () => {
+     expect(pdfText).toContain('15/05/2026')
+   })
+ 
++  it('il §2 — Data di emissione esiste e porta la data', () => {
++    // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
++    // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
++    // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
++    // ⚠️ Il brief del task proponeva questa stringa in maiuscole/minuscole miste,
++    // ma styles.sectionTitle ha textTransform: 'uppercase' (come per ogni altra
++    // sezione, es. il §7 alla riga 138) — il titolo esce in maiuscolo nel PDF.
++    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
++
++    // Rilievo di revisione: un semplice toContain('15/05/2026') non
++    // discrimina niente qui — la data compare comunque nel blocco firma
++    // (DdcTemplate.tsx:515-518), quindi svuotare il valore della sola sezione §2
++    // (formatData(ddc.data_emissione) → '—', titoletto intatto) lasciava questo
++    // test verde. La prova vera è il CONTEGGIO delle occorrenze nel foglio: la
++    // data deve comparire esattamente due volte — una nella sezione §2
++    // (DdcTemplate.tsx:381) e una sopra la firma (DdcTemplate.tsx:517). Così il
++    // test si accende in entrambe le direzioni: se la §2 perde il valore →
++    // 1 occorrenza (rosso); se la data tornasse anche in intestazione (disfacendo
++    // il passo dello Step 4 che l'ha tolta da lì) → 3 occorrenze (rosso).
++    const occorrenzeData = pdfText.split('15/05/2026').length - 1
++    expect(occorrenzeData).toBe(2)
++  })
++
+   // ── §3 Prescrittore ───────────────────────────────────────────────────────
+ 
+   it('§3 stampa nome prescrittore', () => {
+     expect(pdfText).toContain('Dott. Mario Rossi')
+   })
+ 
+   // ── §4 Paziente ───────────────────────────────────────────────────────────
+ 
+   it('§4 stampa nome paziente (pseudonimizzato)', () => {
+     expect(pdfText).toContain('M.R.')
+@@ -346,10 +396,25 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)',
+       })
+       const buffer = await renderPdfDocument(element)
+       const parser = new PDFParse({ data: buffer })
+       const result = await parser.getText()
+       await parser.destroy()
+       expect(result.text).not.toContain('38, 37')
+       expect(result.text.toLowerCase()).not.toContain('denti coinvolti')
+     })
+   })
+ })
++
++describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 03/08/2026)', () => {
++  it('rende «Sì» con l\'accento quando il dispositivo contiene sostanze o tessuti', async () => {
++    const element = createElement(DdcTemplate, {
++      lavoro: LAVORO_FIXTURE,
++      lab: LAB_FIXTURE,
++      ddc: { ...DDC_FIXTURE, contiene_sostanze_o_tessuti: true, sostanze_tessuti_dettaglio: null },
++    })
++    const buffer = await renderPdfDocument(element)
++    const parser = new PDFParse({ data: buffer })
++    const result = await parser.getText()
++    await parser.destroy()
++    expect(result.text).toContain('Sì — vedere documentazione allegata')
++  }, 30_000)
++})
+diff --git a/tests/unit/generate-ddc.test.ts b/tests/unit/generate-ddc.test.ts
+index 14ad2886..374a8bca 100644
+--- a/tests/unit/generate-ddc.test.ts
++++ b/tests/unit/generate-ddc.test.ts
+@@ -179,40 +179,71 @@ describe('generateDdC', () => {
+     mockInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
+ 
+     const result = await generateDdC(LAVORO_FIXTURE)
+ 
+     expect(result).toEqual({ numero: 'DDC-2026-0007', url: 'https://example.test/ddc-vincitrice.pdf' })
+   })
+ })
+ 
+ describe('D102 ① — le due firme del documento, che non erano MAI state scritte', () => {
+   // 🛑 IL FATTO: `template_version` e `payload_sha256` esistono in
+-  //    `supabase/schema.sql` dal primo giorno e NESSUNO le ha mai valorizzate —
+-  //    ogni DdC mai emessa le ha `NULL`. Sono le due colonne che, fra dieci anni
+-  //    (quindici per gli impiantabili), dicono «questo PDF è quello di allora e
+-  //    nasce da QUESTI dati». Una colonna dichiarata come prova e mai scritta è
+-  //    la stessa classe di difetto della guardia dichiarata come rete e mai
+-  //    agganciata (CLAUDE.md §9, 28/07).
++  //    `supabase/schema.sql` dal primo giorno e per anni NESSUNO le ha
++  //    valorizzate. ⚠️ Non è più vero per OGNI riga in archivio: verificato
++  //    con una query di sola lettura sul DB live (non solo riletto dal
++  //    referto), su 4 dichiarazioni presenti in `dichiarazioni_conformita`
++  //    una sola porta `template_version = 'ddc-v1'` (e `payload_sha256`
++  //    valorizzato) — è la DdC emessa e subito annullata durante il collaudo
++  //    dal vivo del 03/08/2026, le altre tre (tutte antecedenti) restano
++  //    NULL (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
++  //    CLAUDE.md §9 «Collaudo dal vivo»). Sono le due colonne che, fra dieci
++  //    anni (quindici per gli impiantabili), dicono «questo PDF è quello di
++  //    allora e nasce da QUESTI dati». Una colonna dichiarata come prova e
++  //    mai scritta è la stessa classe di difetto della guardia dichiarata
++  //    come rete e mai agganciata (CLAUDE.md §9, 28/07).
+   // 🔑 `pdf_sha256` c'era già e NON basta: è l'impronta del FILE. Prova che il
+   //    byte non è stato toccato, non da quali dati sia nato. Le due domande sono
+   //    diverse e servono due impronte.
+   beforeEach(() => {
++    // Questo describe è FRATELLO di `describe('generateDdC', …)` sopra, non
++    // figlio: il `beforeEach` di quel blocco (che fa `vi.clearAllMocks()` +
++    // rimette le resolved value di default) non gira per i test qui dentro.
++    // Senza pulizia esplicita, `mockInsert.mock.calls[0]` in corsa piena è
++    // una riga residua di un test eseguito prima (misurato: 2-3 chiamate
++    // accumulate al momento dell'asserzione) — e in isolamento (`vitest -t`)
++    // mancano anche le resolved value di upload/insert/getPublicUrl/progressivo,
++    // mai impostate da nessun beforeEach: `generateDdC` esplode con TypeError
++    // su `generate-ddc.ts:184` (destructuring di un mock non risolto).
++    vi.clearAllMocks()
++    mockInsert.mockResolvedValue({ error: null })
++    mockUpload.mockResolvedValue({ error: null })
++    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
++    mockGeneraProgressivo.mockResolvedValue(1)
+     mockTables(LAB_FIXTURE)
+   })
+ 
+   it('l\'insert porta `template_version` e `payload_sha256` valorizzati', async () => {
+     await generateDdC(LAVORO_FIXTURE)
+     const riga = mockInsert.mock.calls[0][0]
+     expect(riga.template_version).toBeTruthy()
+     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+   })
+ 
++  it('template_version resta `ddc-v1` — il salto è riservato a un cambiamento di SOSTANZA (D105)', async () => {
++    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:202`) chiede solo
++    // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
++    // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
++    // costante gli dice quando è lecito farlo.
++    await generateDdC(LAVORO_FIXTURE)
++    const riga = mockInsert.mock.calls[0][0]
++    expect(riga.template_version).toBe('ddc-v1')
++  })
++
+   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
+     await generateDdC(LAVORO_FIXTURE)
+     const riga = mockInsert.mock.calls[0][0]
+     expect(riga.pdf_sha256).toMatch(/^[0-9a-f]{64}$/)
+     // 🛑 Questa riga PRIMA del confronto, e non è pignoleria: senza,
+     //    `expect(undefined).not.toBe(<hash>)` è VERDE sul difetto vivo — la
+     //    prova tautologica che le regole di casa vietano (R-P4). Misurato: sul
+     //    codice non ancora corretto questa prova passava.
+     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+     expect(riga.payload_sha256).not.toBe(riga.pdf_sha256)
+@@ -274,20 +305,29 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
+     await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
+     const conNorma = mockInsert.mock.calls[0][0].payload_sha256
+ 
+     expect(conNorma).not.toBe(senzaNorma)
+   })
+ 
+   it('`norma_riferimento` resta comunque FUORI dalle colonne dell\'insert (non esiste in tabella)', async () => {
+     await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
+     expect(mockInsert.mock.calls[0][0]).not.toHaveProperty('norma_riferimento')
+   })
++
++  it('il testo di conformità porta «è conforme», non «e\' conforme»', async () => {
++    await generateDdC(LAVORO_FIXTURE)
++    const riga = mockInsert.mock.calls[0][0]
++    expect(riga.testo_conformita).toContain('dispositivo è conforme')
++    expect(riga.testo_conformita).not.toContain("dispositivo e' conforme")
++    // le due colonne ricevono lo stesso letterale (generate-ddc.ts:160-161)
++    expect(riga.testo_conformita_snapshot).toBe(riga.testo_conformita)
++  })
+ })
+ 
+ describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () => {
+   const STORAGE_BASE = 'https://example-project.supabase.co'
+   const FIRMA_URL = `${STORAGE_BASE}/storage/v1/object/public/documenti/lab-test-001/firma.png`
+   beforeEach(() => { vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', STORAGE_BASE) })
+   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
+ 
+   it('con firma configurata scarica il file e inserisce lo SHA-256 esadecimale', async () => {
+     const bytes = new TextEncoder().encode('firma-png-finta')
+diff --git a/tests/unit/generate-nomina-prrc.test.ts b/tests/unit/generate-nomina-prrc.test.ts
+index 23ac5d2a..e7e10a6b 100644
+--- a/tests/unit/generate-nomina-prrc.test.ts
++++ b/tests/unit/generate-nomina-prrc.test.ts
+@@ -1,12 +1,13 @@
+ // @vitest-environment node
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
++import { PDFParse } from 'pdf-parse'
+ import { createChain } from './helpers/supabase-chain-mock'
+ import { LAB_FIXTURE } from './helpers/pdf-fixtures'
+ 
+ const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
+ 
+ vi.mock('@/lib/supabase/server-service', () => ({
+   getServiceClient: () => ({ from: mockFrom }),
+ }))
+ 
+ import { generateNominaPrrc } from '../../src/lib/pdf/generate-nomina-prrc'
+@@ -25,11 +26,35 @@ describe('generateNominaPrrc', () => {
+     expect(buffer.length).toBeGreaterThan(0)
+   })
+ 
+   it('rifiuta se il laboratorio non ha prrc_nome configurato (comportamento esistente)', async () => {
+     mockFrom.mockImplementation((table: string) => {
+       if (table === 'laboratori') return createChain({ data: { ...LAB_FIXTURE, prrc_nome: null }, error: null })
+       throw new Error(`Tabella inattesa nel mock: ${table}`)
+     })
+     await expect(generateNominaPrrc('lab-test-001')).rejects.toThrow('Dati PRRC non configurati')
+   })
++
++  it('il titolo di sezione porta l\'accento: «Responsabilità ai sensi dell\'Art. 15(1)»', async () => {
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'laboratori') return createChain({ data: LAB_FIXTURE, error: null })
++      throw new Error(`Tabella inattesa nel mock: ${table}`)
++    })
++    const buffer = await generateNominaPrrc('lab-test-001')
++    const parser = new PDFParse({ data: buffer })
++    const result = await parser.getText()
++    await parser.destroy()
++    // styles.sectionTitle ha textTransform: 'uppercase' (NominaPrrcTemplate.tsx:111) —
++    // il titolo, come ogni titolo di sezione in questo template, esce in maiuscolo
++    // nel PDF: verificato leggendo lo stile prima di scrivere l'asserzione (vedi
++    // anche DdcTemplate/ddc-pdf-content.test.ts, stesso comportamento provato lì).
++    // Il titolo INTERO, non il solo inizio: costa uguale e chiude in una riga
++    // tre cose invece di una — l'accento, il numero d'articolo, e il fatto che
++    // l'apostrofo di `dell&apos;Art.` sia sopravvissuto alla resa (che è la sola
++    // prova di quell'apostrofo in tutto il progetto).
++    expect(result.text).toContain("RESPONSABILITÀ AI SENSI DELL'ART. 15(1) MDR 2017/745")
++    // Stem nudo, non solo la frase intera — stessa rete di ddc-pdf-content.test.ts
++    // (righe 125-126): si accende su qualunque residuo non accentato nel foglio
++    // reso, non solo su quello che l'asserzione positiva già copre.
++    expect(result.text).not.toContain('RESPONSABILITA')
++  }, 30_000)
+ })

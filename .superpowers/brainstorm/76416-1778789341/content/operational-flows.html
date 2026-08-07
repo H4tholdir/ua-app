@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Flow Operativi Completi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #0c0f1a; color: #e2e8f0; padding: 28px; }
+  h1 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #475569; margin-bottom: 28px; }
+
+  .flows { display: flex; flex-direction: column; gap: 20px; }
+  .flow { background: #141825; border-radius: 14px; padding: 20px; border: 1px solid #1e2440; }
+  .flow-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .flow-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+  .flow-meta { flex: 1; }
+  .flow-name { font-size: 16px; font-weight: 700; color: #fff; }
+  .flow-subtitle { font-size: 12px; margin-top: 2px; }
+  .flow-who { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  .steps { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+  .step { display: flex; align-items: flex-start; gap: 0; flex-shrink: 0; }
+  .step-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 10px 14px; min-width: 140px; max-width: 180px; }
+  .step-num { font-size: 9px; font-weight: 700; color: #475569; margin-bottom: 3px; text-transform: uppercase; }
+  .step-title { font-size: 12px; font-weight: 600; color: #e2e8f0; line-height: 1.3; }
+  .step-detail { font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4; }
+  .step-system { font-size: 9px; color: #1d4ed8; margin-top: 4px; font-style: italic; }
+  .arrow { color: #334155; font-size: 18px; align-self: center; margin: 0 6px; flex-shrink: 0; }
+
+  .step-box.hero { background: rgba(217, 0, 18, 0.1); border-color: rgba(217, 0, 18, 0.3); }
+  .step-box.auto { background: rgba(22, 163, 74, 0.08); border-color: rgba(22, 163, 74, 0.2); }
+  .step-box.trigger { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.2); }
+  .step-box.decision { background: rgba(180, 83, 9, 0.1); border-color: rgba(180, 83, 9, 0.3); }
+
+  /* colors per flow */
+  .f1 .flow-num { background: #D90012; color: #fff; }
+  .f1 .flow-subtitle { color: #ef4444; }
+  .f2 .flow-num { background: #16A34A; color: #fff; }
+  .f2 .flow-subtitle { color: #22c55e; }
+  .f3 .flow-num { background: #2563EB; color: #fff; }
+  .f3 .flow-subtitle { color: #60a5fa; }
+  .f4 .flow-num { background: #7C3AED; color: #fff; }
+  .f4 .flow-subtitle { color: #a78bfa; }
+  .f5 .flow-num { background: #B45309; color: #fff; }
+  .f5 .flow-subtitle { color: #f59e0b; }
+  .f6 .flow-num { background: #0891B2; color: #fff; }
+  .f6 .flow-subtitle { color: #22d3ee; }
+  .f7 .flow-num { background: #475569; color: #fff; }
+  .f7 .flow-subtitle { color: #94a3b8; }
+  .f8 .flow-num { background: #D90012; color: #fff; }
+  .f8 .flow-subtitle { color: #ef4444; }
+
+  .outcomes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .outcome { font-size: 10px; padding: 3px 10px; border-radius: 4px; }
+  .outcome-ok { background: #064e3b; color: #34d399; }
+  .outcome-doc { background: #1e3a5f; color: #93c5fd; }
+  .outcome-notif { background: #3b1f6e; color: #c4b5fd; }
+  .outcome-auto { background: #422006; color: #fdba74; }
+
+  .note { background: rgba(255,200,0,0.05); border: 1px solid rgba(255,200,0,0.15); border-radius: 8px; padding: 8px 12px; margin-top: 10px; font-size: 11px; color: #fbbf24; }
+  .note strong { color: #fcd34d; }
+
+  .separator { border: none; border-top: 1px solid #1e2440; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>UÀ — Flow Operativi Completi</h1>
+<p class="subtitle">8 flow · Verifica che ogni passo sia corretto per il laboratorio di Filippo</p>
+
+<div class="flows">
+
+  <!-- FLOW 1 -->
+  <div class="flow f1">
+    <div class="flow-header">
+      <div class="flow-num">1</div>
+      <div class="flow-meta">
+        <div class="flow-name">Nuovo Lavoro</div>
+        <div class="flow-subtitle">~30–90 secondi · dal ricevimento prescrizione</div>
+        <div class="flow-who">👤 Chi: titolare, front_desk, tecnico</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box trigger">
+          <div class="step-num">01</div>
+          <div class="step-title">Riceve prescrizione</div>
+          <div class="step-detail">Dentista porta il lavoro fisicamente o via link/QR (Portale)</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">02</div>
+          <div class="step-title">Tap "+ Nuovo"</div>
+          <div class="step-detail">FAB rosso nella nav pill</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">03</div>
+          <div class="step-title">Seleziona dentista</div>
+          <div class="step-detail">Autocomplete da clienti · può creare nuovo</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">04</div>
+          <div class="step-title">Inserisce paziente</div>
+          <div class="step-detail">Testo o voce (mic) · pseudonimizzato GDPR</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">05</div>
+          <div class="step-title">Tipo dispositivo</div>
+          <div class="step-detail">6 tile: fissa, mobile, impl., CAD, schel., orto</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">06</div>
+          <div class="step-title">Lavorazioni</div>
+          <div class="step-detail">Dal listino · quantità · colore</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">07</div>
+          <div class="step-title">Data consegna</div>
+          <div class="step-detail">Oggi / Domani / +3gg o calendario touch</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box hero">
+          <div class="step-num">08</div>
+          <div class="step-title">CREA LAVORO</div>
+          <div class="step-detail">Assegna numero progressivo auto</div>
+          <div class="step-system">→ numero_lavoro generato · stato: ricevuto</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-ok">Lavoro creato in DB</span>
+      <span class="outcome outcome-auto">Numero progressivo assegnato</span>
+      <span class="outcome outcome-notif">Notifica al tecnico assegnato</span>
+    </div>
+    <div class="note"><strong>⚠️ BUG ATTUALE:</strong> il form non ha il campo cliente_id — il CREA fallisce sempre. Da fixare prima di qualsiasi test.</div>
+  </div>
+
+  <!-- FLOW 2 -->
+  <div class="flow f2">
+    <div class="flow-header">
+      <div class="flow-num">2</div>
+      <div class="flow-meta">
+        <div class="flow-name">Tracking Produzione (fasi)</div>
+        <div class="flow-subtitle">~20–30 secondi per fase · durante la giornata lavorativa</div>
+        <div class="flow-who">👤 Chi: tecnico assegnato al lavoro</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">01</div>
+          <div class="step-title">Dashboard mattina</div>
+          <div class="step-detail">Tecnico vede lavori assegnati a lui oggi</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">02</div>
+          <div class="step-title">Apre lavoro</div>
+          <div class="step-detail">Tab "Fasi" nel dettaglio</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">03</div>
+          <div class="step-title">Esegue fase</div>
+          <div class="step-detail">Tap su fase → segna eseguita</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">04</div>
+          <div class="step-title">Annota note</div>
+          <div class="step-detail">Opzionale — problemi riscontrati</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">05</div>
+          <div class="step-title">% completamento</div>
+          <div class="step-detail">Barra progresso aggiornata automaticamente</div>
+          <div class="step-system">→ 100% = stato diventa "pronto" automatico</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">06</div>
+          <div class="step-title">Notifica "pronto"</div>
+          <div class="step-detail">Push al titolare/front_desk</div>
+          <div class="step-system">→ appare in dashboard urgente</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-ok">Fase tracciata · tecnico loggato</span>
+      <span class="outcome outcome-notif">Push notification stato pronto</span>
+    </div>
+  </div>
+
+  <!-- FLOW 3 — HERO -->
+  <div class="flow f2" style="border-color: rgba(22,163,74,0.4);">
+    <div class="flow-header">
+      <div class="flow-num" style="background: #D90012; font-size:20px;">★</div>
+      <div class="flow-meta">
+        <div class="flow-name">TAP CONSEGNA — Operazione CORE</div>
+        <div class="flow-subtitle" style="color:#D90012;">1–3 secondi · operazione più importante della giornata</div>
+        <div class="flow-who">👤 Chi: titolare, front_desk · Stato lavoro: "pronto"</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">01</div>
+          <div class="step-title">Lavoro "pronto"</div>
+          <div class="step-detail">Badge verde visibile in dashboard o lista</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box hero">
+          <div class="step-num">02</div>
+          <div class="step-title">1 TAP CONSEGNA</div>
+          <div class="step-detail">Pulsante rosso grande · schermata dedicata</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">03</div>
+          <div class="step-title">Precheck MDR</div>
+          <div class="step-detail">8 campi obbligatori verificati in 0.2 sec</div>
+          <div class="step-system">materiali, ITCA, paziente, lavorazioni...</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">04</div>
+          <div class="step-title">Genera 3 PDF</div>
+          <div class="step-detail">In parallelo:</div>
+          <div class="step-system">DdC MDR + Buono consegna + Fattura PA</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">05</div>
+          <div class="step-title">Upload + Invio</div>
+          <div class="step-detail">Storage Supabase → PEC a SDI → link WhatsApp</div>
+          <div class="step-system">Stato: "consegnato" · lock idempotenza</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box hero">
+          <div class="step-num">06</div>
+          <div class="step-title">Animazione successo</div>
+          <div class="step-detail">Confetti + suono · bottom sheet azioni</div>
+          <div class="step-system">"Apri WhatsApp" | "Scarica DdC" | "Chiudi"</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-doc">DdC PDF archiviata 10 anni</span>
+      <span class="outcome outcome-doc">Buono consegna PDF</span>
+      <span class="outcome outcome-auto">FatturaPA XML → SDI</span>
+      <span class="outcome outcome-notif">WhatsApp al dentista</span>
+      <span class="outcome outcome-ok">Stato: consegnato · lock idempotenza</span>
+    </div>
+  </div>
+
+  <!-- FLOW 4 -->
+  <div class="flow f4">
+    <div class="flow-header">
+      <div class="flow-num">4</div>
+      <div class="flow-meta">
+        <div class="flow-name">Portale Dentista</div>
+        <div class="flow-subtitle">Zero login per il dentista · link temporaneo con token</div>
+        <div class="flow-who">👤 Chi: dentista (esterno) · Genera: titolare/front_desk</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">01</div>
+          <div class="step-title">Lab genera link</div>
+          <div class="step-detail">Token univoco per cliente · scade in X giorni</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">02</div>
+          <div class="step-title">Condivide</div>
+          <div class="step-detail">Via WhatsApp o email · link /portale/[token]</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">03</div>
+          <div class="step-title">Dentista apre link</div>
+          <div class="step-detail">No login · vede i suoi lavori aperti</div>
+          <div class="step-system">stato, data consegna prevista, tipo</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">04</div>
+          <div class="step-title">Scarica DdC</div>
+          <div class="step-detail">PDF dichiarazione di conformità</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">05</div>
+          <div class="step-title">Feedback PMCF</div>
+          <div class="step-detail">Form semplice post-consegna · obbligatorio MDR</div>
+          <div class="step-system">→ alimenta PSUR annuale automaticamente</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-ok">Dentista sempre aggiornato</span>
+      <span class="outcome outcome-doc">DdC scaricata · accesso loggato</span>
+      <span class="outcome outcome-auto">Feedback PMCF registrato per PSUR</span>
+    </div>
+  </div>
+
+  <!-- FLOW 5 -->
+  <div class="flow f5">
+    <div class="flow-header">
+      <div class="flow-num">5</div>
+      <div class="flow-meta">
+        <div class="flow-name">Fatturazione</div>
+        <div class="flow-subtitle">Automatica alla CONSEGNA o manuale · FatturaPA XML → SDI</div>
+        <div class="flow-who">👤 Chi: titolare, front_desk</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">01</div>
+          <div class="step-title">Generazione</div>
+          <div class="step-detail">Auto al tap CONSEGNA OPPURE manuale da /fatture</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">02</div>
+          <div class="step-title">Calcolo importi</div>
+          <div class="step-detail">Da listino + prezzo_tier cliente · bollo €2 se >€77,47</div>
+          <div class="step-system">Natura N4 · Art.10 n.18 DPR 633/72</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">03</div>
+          <div class="step-title">XML FatturaPA</div>
+          <div class="step-detail">Genera XML v1.2 · nome file IT+CF+progressivo</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">04</div>
+          <div class="step-title">Invio SDI</div>
+          <div class="step-detail">Via PEC a sdi01@pec.fatturapa.it</div>
+          <div class="step-system">→ stato: inviata</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box decision">
+          <div class="step-num">05</div>
+          <div class="step-title">Ricevuta SDI</div>
+          <div class="step-detail">8 stati possibili: accettata, scartata, mancata consegna...</div>
+          <div class="step-system">→ notifica push se scartata</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-doc">FatturaPA XML archiviata</span>
+      <span class="outcome outcome-auto">Stato SDI tracciato</span>
+      <span class="outcome outcome-notif">Alert se scartata</span>
+    </div>
+    <div class="note"><strong>⚠️ Gap DB:</strong> colonna fatture.stato_sdi non ancora nella migration · da aggiungere</div>
+  </div>
+
+  <!-- FLOW 6 -->
+  <div class="flow f6">
+    <div class="flow-header">
+      <div class="flow-num">6</div>
+      <div class="flow-meta">
+        <div class="flow-name">Onboarding Nuovo Laboratorio</div>
+        <div class="flow-subtitle">Wizard 6 step · attivato da Francesco dall'admin</div>
+        <div class="flow-who">👤 Chi: Francesco (crea) → titolare (completa)</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">01</div>
+          <div class="step-title">Francesco crea lab</div>
+          <div class="step-detail">/admin/labs → + Nuovo · stato: trial</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">02</div>
+          <div class="step-title">Invito email</div>
+          <div class="step-detail">Token univoco → email al titolare</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">03</div>
+          <div class="step-title">Registrazione</div>
+          <div class="step-detail">Titolare clicca link → crea account + passkey</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">04</div>
+          <div class="step-title">Wizard step 1-3</div>
+          <div class="step-detail">Dati lab (P.IVA, ITCA, indirizzo) + logo + firma DdC</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">05</div>
+          <div class="step-title">Wizard step 4-6</div>
+          <div class="step-detail">Nomina PRRC + PEC SMTP + primo cliente + listino base</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">06</div>
+          <div class="step-title">Lab attivo</div>
+          <div class="step-detail">Stripe trial 30gg · dashboard pronta</div>
+          <div class="step-system">→ webhook Stripe → stato: trial</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-ok">Lab configurato e operativo</span>
+      <span class="outcome outcome-auto">Trial Stripe attivato</span>
+    </div>
+  </div>
+
+  <!-- FLOW 7 -->
+  <div class="flow f7">
+    <div class="flow-header">
+      <div class="flow-num">7</div>
+      <div class="flow-meta">
+        <div class="flow-name">Gestione Magazzino e Tracciabilità MDR</div>
+        <div class="flow-subtitle">Tracciabilità lotto obbligatoria MDR · consumo automatico</div>
+        <div class="flow-who">👤 Chi: titolare, tecnico</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">01</div>
+          <div class="step-title">Ricevimento materiale</div>
+          <div class="step-detail">Aggiunge lotto: fornitore, n° lotto, scadenza, quantità</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">02</div>
+          <div class="step-title">Consumo auto</div>
+          <div class="step-detail">Al tap CONSEGNA · listino_materiali_auto scarica</div>
+          <div class="step-system">→ riduce giacenza · traccia lotto usato per DdC</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box decision">
+          <div class="step-num">03</div>
+          <div class="step-title">Scorta minima</div>
+          <div class="step-detail">Alert push se sotto soglia configurata</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">04</div>
+          <div class="step-title">Report lotti</div>
+          <div class="step-detail">Traccia quale lotto è finito in quale DdC · per recall MDR</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-ok">Tracciabilità MDR garantita</span>
+      <span class="outcome outcome-auto">Scarico automatico lotto per DdC</span>
+      <span class="outcome outcome-notif">Alert scorta minima</span>
+    </div>
+    <div class="note"><strong>⚠️ Gap:</strong> listino_materiali_auto non ancora implementata · consumo è manuale ora</div>
+  </div>
+
+  <!-- FLOW 8 -->
+  <div class="flow f8">
+    <div class="flow-header">
+      <div class="flow-num">8</div>
+      <div class="flow-meta">
+        <div class="flow-name">Conformità MDR — PSUR + Incidenti + Rischi</div>
+        <div class="flow-subtitle">Adempimenti annuali obbligatori · sanzione fino €145.000</div>
+        <div class="flow-who">👤 Chi: PRRC (Responsabile MDR)</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">01</div>
+          <div class="step-title">Accumulo dati</div>
+          <div class="step-detail">Ogni DdC, feedback PMCF, incidente registrato alimenta il PSUR automaticamente</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">02</div>
+          <div class="step-title">Segnalazione incidente</div>
+          <div class="step-detail">Form rapido: tipo, gravità, dispositivo, paziente (pseudonimizzato)</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box">
+          <div class="step-num">03</div>
+          <div class="step-title">Analisi rischi</div>
+          <div class="step-detail">Registro rischi per tipo dispositivo</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">04</div>
+          <div class="step-title">PSUR annuale</div>
+          <div class="step-detail">Generazione automatica da dati accumulati</div>
+          <div class="step-system">→ PDF firmato dal PRRC · archiviato 10 anni</div>
+        </div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-box auto">
+          <div class="step-num">05</div>
+          <div class="step-title">Reminder annuale</div>
+          <div class="step-detail">Push 30 giorni prima della scadenza PSUR</div>
+          <div class="step-system">→ data entrata in vigore MDR: 26/05/2024</div>
+        </div>
+      </div>
+    </div>
+    <div class="outcomes">
+      <span class="outcome outcome-doc">PSUR PDF firmato e archiviato</span>
+      <span class="outcome outcome-ok">Registro incidenti MDR</span>
+      <span class="outcome outcome-notif">Reminder scadenze MDR</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

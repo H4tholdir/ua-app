@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ DS v6 — Tasto+ 1:1, Incavo, Dark fix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   LIGHT — pixel-verified da uachelab.com
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --bg:  #DDD8D3;
+  --sfc: #E4DFD9;
+  --elv: #EDEDEA;
+  --prs: #D4CFC9;   /* più scuro = recessed/pressed */
+  --t1:  #1C1916;  --t2: #968D85;  --t3: #B8B3AE;
+  --primary: #D90012;
+  --success: #3DCB5C;
+
+  /* Rainbow semantic */
+  --c-blue:   #3B82F6;
+  --c-green:  #22C55E;
+  --c-amber:  #F59E0B;
+  --c-orange: #F97316;
+  --c-red:    #EF4444;
+  --c-purple: #8B5CF6;
+
+  /* Shadows — pixel-verified da uachelab.com */
+  --sh-raised:
+    rgba(255,255,255,.88) 0px 1px 0px 0px inset,
+    rgba(0,0,0,.04) 0px -1px 2px 0px inset,
+    rgba(255,255,255,.72) -5px -5px 11px 0px,
+    rgba(148,128,118,.40) 9px 12px 22px -4px,
+    rgba(148,128,118,.22) 3px 5px 10px -2px;
+
+  --sh-raised-sm:
+    rgba(255,255,255,.90) 0px 1px 0px 0px inset,
+    rgba(0,0,0,.05) 0px -2px 3px 0px inset,
+    rgba(255,255,255,.78) -5px -5px 11px 0px,
+    rgba(148,128,118,.44) 9px 13px 22px -4px,
+    rgba(148,128,118,.26) 3px 5px 9px -1px;
+
+  /* Recessed / cavity — inset */
+  --sh-inset:
+    rgba(148,128,118,.32) 4px 4px 9px 0px inset,
+    rgba(255,255,255,.66) -3px -3px 7px 0px inset;
+
+  --sh-inset-deep:
+    rgba(148,128,118,.50) 5px 5px 12px 0px inset,
+    rgba(255,255,255,.55) -4px -4px 9px 0px inset;
+
+  --sh-float:
+    rgba(255,255,255,.72) -8px -8px 18px 0px,
+    rgba(148,128,118,.55) 10px 12px 24px -4px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK — stile admin (flat, zero glow, card leggermente più chiara)
+   ══════════════════════════════════════════════════════════════ */
+.dark {
+  --bg:  #1A1916;
+  --sfc: #232018;   /* card: +1 stop sopra il bg */
+  --prs: #141210;   /* più scuro = recessed */
+  --t1:  #F0EDE8;  --t2: #8A8580;  --t3: #5A5652;
+  --primary: #E8001A;
+  --success: #22C55E;
+
+  --sh-raised: none;
+  --sh-raised-sm: none;
+  --sh-inset:
+    rgba(4,3,2,.92) 4px 4px 9px 0px inset,
+    rgba(40,37,32,.50) -3px -3px 7px 0px inset;
+  --sh-inset-deep:
+    rgba(3,2,1,.98) 5px 5px 12px 0px inset,
+    rgba(36,33,28,.45) -4px -4px 9px 0px inset;
+  --sh-float:
+    rgba(0,0,0,.70) 0px 12px 28px 0px,
+    rgba(0,0,0,.40) 0px 4px 8px 0px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #C2BDB8; }
+body { font-family: 'DM Sans', sans-serif; padding: 16px 14px 60px; }
+
+.plane {
+  background: var(--bg);
+  border-radius: 18px;
+  padding: 16px;
+}
+.plane:not(.dark) { box-shadow: var(--sh-raised); }
+.dark.plane {
+  box-shadow: var(--sh-float);
+  border: 1px solid rgba(255,255,255,.04);
+}
+
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.lbl  { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .55; margin-bottom: 6px; }
+
+.sec {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .10em; color: rgba(90,80,70,.60);
+  margin: 22px 0 10px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  display: flex; align-items: center; gap: 8px;
+}
+.sec button {
+  font-size: 9px; font-weight: 700; padding: 2px 8px;
+  border-radius: 100px; background: rgba(34,197,94,.12);
+  color: #22C55E; border: none; cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STANDARD BUTTONS — 3 stati
+   ══════════════════════════════════════════════════════════════ */
+.btn {
+  background: var(--bg); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--t1); border-radius: 12px; padding: 12px 14px; width: 100%;
+  transition: box-shadow 100ms, transform 80ms, background 100ms;
+}
+/* LIGHT */
+.btn-raised      { box-shadow: var(--sh-raised-sm); }
+.btn-raised:hover { box-shadow: rgba(255,255,255,.72) -3px -3px 8px, rgba(148,128,118,.32) 5px 6px 12px -2px; }
+.btn-raised:active { box-shadow: var(--sh-inset); transform: scale(0.982); }
+
+/* DARK — FIX: zero border, zero light hover — solo cambio bg */
+.dark .btn-raised {
+  background: var(--sfc);  /* #232018 — leggermente più chiaro del bg */
+  box-shadow: none;
+  border: none;            /* NESSUN BORDER */
+}
+.dark .btn-raised:hover  { background: #2A2720; } /* solo bg — niente light */
+.dark .btn-raised:active { box-shadow: var(--sh-inset); background: var(--prs); transform: scale(0.982); }
+
+.btn-flat        { color: var(--t2); background: transparent; }
+.dark .btn-flat  { color: var(--t3); }
+.btn-pressed     { box-shadow: var(--sh-inset); color: var(--t3); background: var(--prs); }
+.dark .btn-pressed { box-shadow: var(--sh-inset); color: var(--t3); background: var(--prs); }
+
+/* ══════════════════════════════════════════════════════════════
+   INCAVO — rifatto: cavità vera
+   La chiave: bg più SCURO del surface (è dentro la materia)
+   Shadow: scura top-left, chiara bottom-right (inverso di raised)
+   ══════════════════════════════════════════════════════════════ */
+.incavo {
+  display: block; width: 100%;
+  border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 600;
+  color: var(--t2);          /* testo muted: è nella cavità */
+  border-radius: 100px;
+  padding: 13px 28px;
+  text-align: center;
+
+  /* BG più scuro del --bg: sembra incassato nel piano */
+  background: #CBC6C1;       /* --prs circa */
+
+  /* Inset shadows: buio entra dall'angolo top-left */
+  box-shadow:
+    rgba(148,128,118,.55) 5px 5px 12px 0px inset,   /* dark inside top-left */
+    rgba(255,255,255,.52) -4px -4px 9px 0px inset;   /* light inside bottom-right */
+
+  /* Gradiente di profondità: angolo top-left leggermente più scuro */
+  background-image: linear-gradient(145deg,
+    rgba(148,128,118,.12) 0%,    /* angolo scuro = profondo */
+    rgba(255,255,255,.04) 100%); /* angolo chiaro = fondo della cavità */
+  background-color: #CBC6C1;
+
+  transition: box-shadow 100ms ease, transform 60ms ease, background-color 100ms;
+}
+.incavo:hover {
+  box-shadow:
+    rgba(148,128,118,.62) 5px 5px 14px 0px inset,
+    rgba(255,255,255,.45) -4px -4px 10px 0px inset;
+}
+.incavo:active {
+  transform: scale(0.97);
+  box-shadow: var(--sh-inset-deep);
+}
+
+/* Incavo PRIMARY */
+.incavo-red {
+  background-color: #B8000F;   /* red scuro = pressed in */
+  background-image: linear-gradient(145deg,
+    rgba(60,0,5,.30) 0%,
+    rgba(255,120,100,.05) 100%);
+  box-shadow:
+    rgba(60,0,5,.68) 5px 5px 12px 0px inset,
+    rgba(255,140,120,.18) -3px -3px 8px 0px inset;
+  color: rgba(255,255,255,.92);
+  font-weight: 700;
+}
+.incavo-red:hover {
+  box-shadow:
+    rgba(60,0,5,.75) 5px 5px 14px 0px inset,
+    rgba(255,140,120,.14) -3px -3px 8px 0px inset;
+}
+.incavo-red:active { transform: scale(0.97); }
+
+/* Incavo GREEN */
+.incavo-green {
+  background-color: #18753A;
+  background-image: linear-gradient(145deg,
+    rgba(10,50,20,.30) 0%,
+    rgba(120,220,150,.05) 100%);
+  box-shadow:
+    rgba(10,50,20,.68) 5px 5px 12px 0px inset,
+    rgba(120,220,150,.18) -3px -3px 8px 0px inset;
+  color: rgba(255,255,255,.92);
+  font-weight: 700;
+}
+
+/* Dark incavo */
+.dark .incavo {
+  background-color: var(--prs);
+  background-image: linear-gradient(145deg,
+    rgba(4,3,2,.35) 0%, rgba(40,37,32,.08) 100%);
+  box-shadow:
+    rgba(4,3,2,.92) 5px 5px 12px 0px inset,
+    rgba(42,39,36,.48) -4px -4px 9px 0px inset;
+  color: var(--t2);
+}
+.dark .incavo-red {
+  background-color: #8A0008;
+  background-image: linear-gradient(145deg,
+    rgba(40,0,4,.40) 0%, rgba(200,50,40,.06) 100%);
+  box-shadow:
+    rgba(40,0,4,.88) 5px 5px 12px 0px inset,
+    rgba(200,80,60,.14) -3px -3px 8px 0px inset;
+  color: rgba(255,255,255,.88);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PUSH BUTTON — 3D fisico (immutato, funziona bene)
+   ══════════════════════════════════════════════════════════════ */
+.push { all:unset; display:block; width:100%; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:14px; position:relative; transition:filter 250ms ease; user-select:none; touch-action:manipulation; }
+.push__s { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:14px; background:rgba(100,20,10,.42); transform:translateY(5px); filter:blur(2px); transition:transform 600ms cubic-bezier(.3,.7,.4,1); }
+.push__e { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:14px; background:linear-gradient(to left,hsl(4,100%,20%) 0%,hsl(4,100%,32%) 6%,hsl(4,100%,32%) 94%,hsl(4,100%,20%) 100%); }
+.push__f { display:block; position:relative; padding:14px 24px; border-radius:14px; font-size:14px; font-weight:700; color:#fff; text-align:center; background:var(--primary); transform:translateY(-8px); transition:transform 600ms cubic-bezier(.3,.7,.4,1); box-shadow:inset 0 1px 0 rgba(255,160,140,.22); }
+.push:hover { filter:brightness(106%); }
+.push:hover .push__f { transform:translateY(-11px); transition:transform 250ms cubic-bezier(.3,.7,.4,1.5); }
+.push:hover .push__s { transform:translateY(8px); transition:transform 250ms cubic-bezier(.3,.7,.4,1.5); }
+.push:active .push__f { transform:translateY(-1px); transition:transform 34ms; filter:brightness(88%); }
+.push:active .push__s { transform:translateY(1px); transition:transform 34ms; }
+.push__s--g { background:rgba(110,90,78,.20); }
+.push__e--g { background:linear-gradient(to left,rgba(100,80,68,.45) 0%,rgba(120,100,88,.32) 6%,rgba(120,100,88,.32) 94%,rgba(100,80,68,.45) 100%); }
+.push__f--g { background:var(--bg); color:var(--t1); box-shadow:var(--sh-raised-sm); }
+.dark .push__s { background:rgba(0,0,0,.75); }
+.dark .push__e { background:linear-gradient(to left,hsl(4,100%,14%) 0%,hsl(4,90%,22%) 6%,hsl(4,90%,22%) 94%,hsl(4,100%,14%) 100%); }
+.dark .push__f { box-shadow:inset 0 1px 0 rgba(255,100,80,.16); }
+.dark .push__e--g { background:linear-gradient(to left,rgba(44,41,37,.70) 0%,rgba(50,47,44,.50) 6%,rgba(50,47,44,.50) 94%,rgba(44,41,37,.70) 100%); }
+.dark .push__f--g { background:var(--sfc); color:var(--t1); box-shadow:none; }
+
+/* ══════════════════════════════════════════════════════════════
+   FCOLOMBATI PILL (immutato)
+   ══════════════════════════════════════════════════════════════ */
+.cta,.ghost { all:unset; font-size:16px; cursor:pointer; display:block; width:100%; border-radius:100em; position:relative; -webkit-tap-highlight-color:transparent; }
+.cta { background:rgba(128,4,8,.88); box-shadow:-0.15em -0.15em 0.15em -0.075em rgba(180,10,12,.28),0.04em 0.04em 0.07em 0 rgba(50,0,4,.22); }
+.cta::after { content:""; position:absolute; z-index:0; width:calc(100% + 0.3em); height:calc(100% + 0.3em); top:-0.15em; left:-0.15em; border-radius:inherit; background:linear-gradient(-135deg,rgba(50,0,4,.45),transparent 20%); filter:blur(0.012em); opacity:.28; mix-blend-mode:multiply; }
+.cta .outer { position:relative; z-index:1; border-radius:inherit; transition:box-shadow 300ms ease; box-shadow:0 0.05em 0.05em -0.01em rgba(50,0,4,1),0 0.01em 0.01em -0.01em rgba(50,0,4,.55),0.15em 0.3em 0.1em -0.01em rgba(50,0,4,.35); }
+.cta:hover .outer { box-shadow:none; }
+.cta .inner { position:relative; z-index:1; border-radius:inherit; padding:0.875em 1.75em; background:linear-gradient(135deg,#D90012,#A0000E); transition:box-shadow 300ms ease,clip-path 250ms ease,background 250ms ease,transform 120ms ease; overflow:clip; clip-path:inset(0 0 0 0 round 100em); box-shadow:0 0 0 0 inset rgba(50,0,4,.12),-0.05em -0.05em 0.05em 0 inset rgba(50,0,4,.35),0 0 0 0 inset rgba(50,0,4,.12),0 0 0.05em .20em inset rgba(255,150,130,.16),0.025em 0.05em 0.1em 0 inset rgba(255,170,150,.28),0.12em 0.12em 0.12em inset rgba(255,150,130,.10),-0.075em -0.25em 0.25em 0.1em inset rgba(50,0,4,.40); }
+.cta:hover .inner { clip-path:inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em); background:linear-gradient(135deg,#A0000E,#780008); }
+.cta:active .inner { transform:scale(0.975); }
+.cta .inner span { position:relative; z-index:4; display:block; text-align:center; font-family:'DM Sans',sans-serif; font-size:0.9375em; font-weight:700; letter-spacing:-0.02em; color:transparent; background:linear-gradient(135deg,#fff,rgba(255,228,222,.92)); -webkit-background-clip:text; background-clip:text; transition:transform 250ms ease; user-select:none; }
+.cta:hover .inner span { transform:scale(0.975); }
+.ghost { background:rgba(155,148,141,.82); box-shadow:-0.15em -0.15em 0.15em -0.075em rgba(200,190,182,.35),0.04em 0.04em 0.07em 0 rgba(100,86,76,.25); }
+.ghost::after { content:""; position:absolute; z-index:0; width:calc(100% + 0.3em); height:calc(100% + 0.3em); top:-0.15em; left:-0.15em; border-radius:inherit; background:linear-gradient(-135deg,rgba(80,65,55,.40),transparent 20%); filter:blur(0.012em); opacity:.20; mix-blend-mode:multiply; }
+.ghost .outer { position:relative; z-index:1; border-radius:inherit; transition:box-shadow 300ms ease; box-shadow:0 0.05em 0.05em -0.01em rgba(100,86,76,1),0 0.01em 0.01em -0.01em rgba(100,86,76,.55),0.15em 0.3em 0.1em -0.01em rgba(100,86,76,.32); }
+.ghost:hover .outer { box-shadow:none; }
+.ghost .inner { position:relative; z-index:1; border-radius:inherit; padding:0.875em 1.75em; background:linear-gradient(135deg,#E4DFD9,#C8C3BD); transition:box-shadow 300ms ease,clip-path 250ms ease,background 250ms ease,transform 120ms ease; overflow:clip; clip-path:inset(0 0 0 0 round 100em); box-shadow:0 0 0 0 inset rgba(100,86,76,.10),-0.05em -0.05em 0.05em 0 inset rgba(100,86,76,.28),0 0 0 0 inset rgba(100,86,76,.10),0 0 0.05em .20em inset rgba(240,237,234,.28),0.025em 0.05em 0.1em 0 inset rgba(240,237,234,.30),0.12em 0.12em 0.12em inset rgba(240,237,234,.18),-0.075em -0.25em 0.25em 0.1em inset rgba(100,86,76,.30); }
+.ghost:hover .inner { clip-path:inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em); background:linear-gradient(135deg,#C8C3BD,#B8B3AD); }
+.ghost:active .inner { transform:scale(0.975); }
+.ghost .inner span { position:relative; z-index:4; display:block; text-align:center; font-family:'DM Sans',sans-serif; font-size:0.9375em; font-weight:600; letter-spacing:-0.02em; color:transparent; background:linear-gradient(135deg,#1C1916,#4A3D33); -webkit-background-clip:text; background-clip:text; transition:transform 250ms ease; user-select:none; }
+.ghost:hover .inner span { transform:scale(0.975); }
+.dark .ghost { background:rgba(30,27,23,.95); box-shadow:0 1px 3px rgba(0,0,0,.50); }
+.dark .ghost::after { display:none; }
+.dark .ghost .outer { box-shadow:0 0.05em 0.05em -0.01em rgba(3,2,1,1),0 0.01em 0.01em -0.01em rgba(3,2,1,.60),0.15em 0.3em 0.1em -0.01em rgba(3,2,1,.42); }
+.dark .ghost:hover .outer { box-shadow:none; }
+.dark .ghost .inner { background:linear-gradient(135deg,#2C2925,#1C1A16); box-shadow:0 0 0 0 inset rgba(3,2,1,.25),-0.05em -0.05em 0.05em 0 inset rgba(3,2,1,.55),0 0 0 0 inset rgba(3,2,1,.25),0 0 0.05em .20em inset rgba(44,41,37,.48),0.025em 0.05em 0.1em 0 inset rgba(50,47,43,.55),0.12em 0.12em 0.12em inset rgba(44,41,37,.30),-0.075em -0.25em 0.25em 0.1em inset rgba(3,2,1,.55); }
+.dark .ghost:hover .inner { background:linear-gradient(135deg,#1A1814,#0E0D0B); }
+.dark .ghost .inner span { background:linear-gradient(135deg,#F0EDE8,rgba(200,196,190,.90)); -webkit-background-clip:text; background-clip:text; }
+
+/* ══════════════════════════════════════════════════════════════
+   TASTO + — riproduzione 1:1 dall'immagine tasto+.png
+   Colori: off-white warm, ring grigio scuro, + grigio medio
+   ══════════════════════════════════════════════════════════════ */
+.tasto {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #EFEEEB;  /* off-white warm — come nell'immagine */
+
+  box-shadow:
+    /* Raised: luce top-left, ombra bottom-right */
+    rgba(255,255,255,.82) -7px -7px 15px 0px,
+    rgba(155,142,130,.58)  9px 10px 20px 0px,
+    rgba(148,128,118,.22)  3px  4px  8px 0px,
+    /* Il ring scuro visibile nell'immagine */
+    rgba(85,75,65,.32) 0px 0px 0px 1.5px inset,
+    /* Inner top highlight sottile */
+    rgba(255,255,255,.70) 0px 2px 3px 0px inset;
+
+  transition: box-shadow 80ms ease, transform 80ms ease;
+  position: relative;
+}
+
+/* Il ring esterno che appare nell'immagine come "corona" del tasto */
+.tasto::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  box-shadow:
+    rgba(255,255,255,.75) -5px -5px 12px,
+    rgba(148,128,118,.45)  6px  7px 14px;
+  pointer-events: none;
+}
+
+.tasto:hover { filter: brightness(102%); }
+
+.tasto:active {
+  transform: scale(0.92);
+  box-shadow:
+    rgba(148,128,118,.52) 4px 4px 10px 0px inset,
+    rgba(255,255,255,.45) -3px -3px 7px 0px inset,
+    rgba(85,75,65,.32) 0px 0px 0px 1.5px inset;
+}
+.tasto:active::before { box-shadow: none; }
+
+/* Variante con rosso (per la nav CTA) */
+.tasto-red {
+  background: var(--primary);
+  box-shadow:
+    rgba(255,255,255,.22) -5px -5px 12px 0px,
+    rgba(80,0,5,.70)       8px  9px 18px 0px,
+    rgba(80,0,5,.35)       3px  4px  8px 0px,
+    rgba(60,0,4,.42) 0px 0px 0px 1.5px inset,
+    rgba(255,160,140,.22) 0px 2px 3px 0px inset;
+}
+.tasto-red:active {
+  box-shadow:
+    rgba(80,0,5,.65) 4px 4px 10px 0px inset,
+    rgba(255,140,120,.16) -3px -3px 6px 0px inset,
+    rgba(60,0,4,.42) 0px 0px 0px 1.5px inset;
+}
+.dark .tasto-red {
+  box-shadow:
+    rgba(42,39,36,.55) -4px -4px 10px 0px,
+    rgba(3,2,1,.95)     6px  7px 16px 0px,
+    rgba(60,0,4,.45) 0px 0px 0px 1.5px inset,
+    rgba(255,100,80,.18) 0px 2px 3px 0px inset;
+}
+
+/* Taglie */
+.tasto-lg { width: 60px; height: 60px; }
+.tasto-md { width: 48px; height: 48px; }
+.tasto-sm { width: 40px; height: 40px; }
+.tasto-sm::before, .tasto-md::before { display: none; }
+
+/* KPI, card, field */
+@keyframes kpiIn { from{opacity:0;transform:translateY(-14px) scale(.95);}to{opacity:1;transform:none;} }
+.kpi-row { display:flex; gap:7px; margin-bottom:10px; }
+.kpi-box { flex:1; background:var(--bg); border-radius:11px; padding:11px 12px; opacity:0; }
+.kpi-box:not(.dark *) { box-shadow:var(--sh-raised-sm); }
+.dark .kpi-box { background:var(--sfc); border:1px solid rgba(255,255,255,.05); }
+.kpi-box.go { animation:kpiIn 0.42s cubic-bezier(0,0,.2,1) both; }
+.kpi-box.go:nth-child(1){animation-delay:.10s;} .kpi-box.go:nth-child(2){animation-delay:.16s;} .kpi-box.go:nth-child(3){animation-delay:.22s;}
+.kpi-n { font-family:'Playfair Display',serif; font-size:30px; font-weight:300; line-height:1; }
+.kpi-l { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--t3); margin-top:3px; }
+.card { background:var(--bg); border-radius:13px; padding:12px 13px; margin-bottom:7px; }
+.card:not(.dark *) { box-shadow:var(--sh-raised-sm); }
+.dark .card { background:var(--sfc); border:1px solid rgba(255,255,255,.05); }
+.card-row { display:flex; justify-content:space-between; align-items:flex-start; }
+.cn{font-size:14px;font-weight:600;color:var(--t1);} .cs{font-size:12px;color:var(--t2);margin-top:2px;} .ch{font-size:11px;color:var(--t3);margin-top:2px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;}
+.field { background:var(--bg); border:none; outline:none; width:100%; padding:11px 13px; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--t1); margin-bottom:10px; transition:box-shadow 150ms ease; }
+.field:not(.dark *) { box-shadow:var(--sh-inset); }
+.dark .field { box-shadow:var(--sh-inset); background:var(--prs); }
+.field::placeholder{color:var(--t3);}
+
+/* Nav */
+.nav { background:var(--bg); border-radius:100px; padding:7px 10px; display:flex; align-items:center; justify-content:space-around; gap:2px; }
+.nav:not(.dark *) { box-shadow:var(--sh-float); }
+.dark .nav { box-shadow:var(--sh-float); border:1px solid rgba(255,255,255,.07); }
+.nt { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 11px; border-radius:100px; cursor:pointer; border:none; background:transparent; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:600; color:var(--t2); position:relative; transition:color 150ms; }
+.nt.on { color:var(--primary); }
+.nt.on::before { content:""; position:absolute; inset:0; background:rgba(217,0,18,.08); border-radius:100px; }
+.dark .nt.on::before { background:rgba(232,0,26,.12); }
+.nt > * { position:relative; z-index:1; }
+.nt:active svg { transform:scale(0.85); }
+</style>
+</head>
+<body>
+
+<!-- ══ 1. STANDARD BUTTONS ══ -->
+<div class="sec" style="margin-top:0;">Standard button — 3 stati</div>
+<div class="col2">
+  <div class="plane">
+    <div class="col3">
+      <div><div class="lbl" style="color:#6B5C51;">Raised</div><button class="btn btn-raised">Default</button></div>
+      <div><div class="lbl" style="color:#6B5C51;">Flat</div><button class="btn btn-flat">Hover</button></div>
+      <div><div class="lbl" style="color:#6B5C51;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+    </div>
+  </div>
+  <div class="plane dark">
+    <div class="col3">
+      <!-- DARK: no border, no white glow -->
+      <div><div class="lbl" style="color:#5A5652;">Raised</div><button class="btn btn-raised">Default</button></div>
+      <div><div class="lbl" style="color:#5A5652;">Flat</div><button class="btn btn-flat">Hover</button></div>
+      <div><div class="lbl" style="color:#5A5652;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 2. INCAVO — rifatto ══ -->
+<div class="sec">Incavo — cavità fisica (premi per sentire la profondità)</div>
+<div class="col2">
+  <div class="plane">
+    <div style="margin-bottom:10px;"><div class="lbl" style="color:#6B5C51; margin-bottom:8px;">Neutro — secondary</div><button class="incavo">Conferma lavoro</button></div>
+    <div style="margin-bottom:10px;"><div class="lbl" style="color:#6B5C51; margin-bottom:8px;">Primary — CTA incassata</div><button class="incavo incavo-red">+ Nuovo lavoro</button></div>
+    <div><div class="lbl" style="color:#6B5C51; margin-bottom:8px;">Success — azione positiva</div><button class="incavo incavo-green">Segna consegnato</button></div>
+  </div>
+  <div class="plane dark">
+    <div style="margin-bottom:10px;"><div class="lbl" style="color:#5A5652; margin-bottom:8px;">Neutro dark</div><button class="incavo">Conferma lavoro</button></div>
+    <div style="margin-bottom:10px;"><div class="lbl" style="color:#5A5652; margin-bottom:8px;">Primary dark</div><button class="incavo incavo-red">+ Nuovo lavoro</button></div>
+    <div><div class="lbl" style="color:#5A5652; margin-bottom:8px;">Note uso incavo</div>
+      <div style="font-size:11px; color:var(--t3); line-height:1.6;">Uso: azioni secondarie, stati "già attivi", filtri selezionati, confirm inline.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 3. PUSH 3D ══ -->
+<div class="sec">Push 3D — CTA isolata (premi!)</div>
+<div class="col2">
+  <div class="plane">
+    <div class="lbl" style="color:#6B5C51; margin-bottom:10px;">Light</div>
+    <button class="push" style="margin-bottom:12px;"><span class="push__s"></span><span class="push__e"></span><span class="push__f">Nuova consegna</span></button>
+    <button class="push"><span class="push__s push__s--g"></span><span class="push__e push__e--g"></span><span class="push__f push__f--g">Annulla</span></button>
+  </div>
+  <div class="plane dark">
+    <div class="lbl" style="color:#5A5652; margin-bottom:10px;">Dark</div>
+    <button class="push dark" style="margin-bottom:12px;"><span class="push__s"></span><span class="push__e"></span><span class="push__f">Nuova consegna</span></button>
+    <button class="push dark"><span class="push__s push__s--g"></span><span class="push__e push__e--g"></span><span class="push__f push__f--g">Annulla</span></button>
+  </div>
+</div>
+
+<!-- ══ 4. FCOLOMBATI PILL ══ -->
+<div class="sec">FColombati pill — hover per animazione</div>
+<div class="col2">
+  <div class="plane"><div class="col2"><div><div class="lbl" style="color:#6B5C51;">Primary</div><button class="cta"><div class="outer"><div class="inner"><span>Nuova consegna</span></div></div></button></div><div><div class="lbl" style="color:#6B5C51;">Ghost</div><button class="ghost"><div class="outer"><div class="inner"><span>Annulla</span></div></div></button></div></div></div>
+  <div class="plane dark"><div class="col2"><div><div class="lbl" style="color:#5A5652;">Primary dark</div><button class="cta"><div class="outer"><div class="inner"><span>Nuova consegna</span></div></div></button></div><div><div class="lbl" style="color:#5A5652;">Ghost dark</div><button class="ghost"><div class="outer"><div class="inner"><span>Annulla</span></div></div></button></div></div></div>
+</div>
+
+<!-- ══ 5. TASTO + — riproduzione 1:1 ══ -->
+<div class="sec">Tasto + — riproduzione 1:1 (premi per sentire il click)</div>
+<div class="col2">
+  <!-- BIANCO/GRIGIO — esatta riproduzione -->
+  <div class="plane" style="display:flex; flex-direction:column; gap:16px;">
+    <div>
+      <div class="lbl" style="color:#6B5C51; margin-bottom:12px;">Originale — esatta riproduzione tasto+.png</div>
+      <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+        <div style="text-align:center;">
+          <div style="font-size:9px; color:#6B5C51; margin-bottom:8px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">80px</div>
+          <button class="tasto">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#ADADAD" stroke-width="2" stroke-linecap="round">
+              <line x1="14" y1="6" x2="14" y2="22"/><line x1="6" y1="14" x2="22" y2="14"/>
+            </svg>
+          </button>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:9px; color:#6B5C51; margin-bottom:8px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">60px</div>
+          <button class="tasto tasto-lg">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ADADAD" stroke-width="2" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:9px; color:#6B5C51; margin-bottom:8px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">48px nav</div>
+          <button class="tasto tasto-md">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ADADAD" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="lbl" style="color:#6B5C51; margin-bottom:12px;">Versione rossa — per CTA nav (mantiene stile fisico)</div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <button class="tasto tasto-red tasto-lg">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <button class="tasto tasto-red tasto-md">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <div style="font-size:10px; color:#6B5C51; font-style:italic; line-height:1.6;">Stesso stile fisico del tasto+.png<br>adattato al rosso #D90012</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DARK tasto -->
+  <div class="plane dark" style="display:flex; flex-direction:column; gap:16px;">
+    <div>
+      <div class="lbl" style="color:#5A5652; margin-bottom:12px;">Dark — stile fisico</div>
+      <div style="display:flex; gap:16px; align-items:center;">
+        <button class="tasto tasto-lg dark" style="background:#2C2925; box-shadow: rgba(42,39,36,.55) -5px -5px 12px, rgba(3,2,1,.95) 7px 8px 18px, rgba(90,80,68,.40) 0px 0px 0px 1.5px inset, rgba(50,47,43,.55) 0px 2px 3px 0px inset;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6560" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <button class="tasto tasto-red tasto-md dark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <div style="font-size:10px; color:#5A5652; font-style:italic; line-height:1.6;">In dark: shadow scura<br>dominante, niente glow</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 6. FULL MOCKUP light + dark ══ -->
+<div class="sec">
+  Full mockup <button onclick="replay()">↺ REPLAY KPI</button>
+</div>
+<div class="col2">
+  <div class="plane">
+    <div style="margin-bottom:12px;"><div style="font-size:20px;font-weight:700;color:var(--t1);">Dashboard</div><div style="font-size:12px;color:var(--t3);margin-top:2px;">Aggiornato ora · Francesco</div></div>
+    <div class="kpi-row" id="k-l">
+      <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div><span class="badge" style="background:rgba(239,68,68,.12);color:#EF4444;">Urgente</span></div></div>
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div><div class="ch">29 mag · 2 fasi</div></div><span class="badge" style="background:rgba(34,197,94,.12);color:#22C55E;">Pronto</span></div></div>
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0845</div><div class="cs">Bridge · Dr. Ferrari</div></div><span class="badge" style="background:rgba(245,158,11,.12);color:#F59E0B;">Sospeso</span></div></div>
+    <div style="display:flex;justify-content:center;margin:12px 0 10px;">
+      <button class="tasto tasto-red tasto-lg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="nav" id="nav-l">
+      <button class="nt on" onclick="navSw('nav-l',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Oggi</span></button>
+      <button class="nt" onclick="navSw('nav-l',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg><span>Lavori</span></button>
+      <button class="tasto tasto-red tasto-sm" style="flex-shrink:0;" title="Nuovo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="nt" onclick="navSw('nav-l',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Clienti</span></button>
+      <button class="nt" onclick="navSw('nav-l',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Fatture</span></button>
+    </div>
+  </div>
+
+  <div class="plane dark">
+    <div style="margin-bottom:12px;"><div style="font-size:20px;font-weight:700;color:var(--t1);">Dashboard</div><div style="font-size:12px;color:var(--t3);margin-top:2px;">Aggiornato ora · Francesco</div></div>
+    <div class="kpi-row" id="k-d">
+      <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div><span class="badge" style="background:rgba(239,68,68,.18);color:#EF4444;">Urgente</span></div></div>
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div><div class="ch">29 mag · 2 fasi</div></div><span class="badge" style="background:rgba(34,197,94,.18);color:#22C55E;">Pronto</span></div></div>
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0845</div><div class="cs">Bridge · Dr. Ferrari</div></div><span class="badge" style="background:rgba(245,158,11,.18);color:#F59E0B;">Sospeso</span></div></div>
+    <div style="display:flex;justify-content:center;margin:12px 0 10px;">
+      <button class="tasto tasto-red tasto-lg dark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="nav" id="nav-d">
+      <button class="nt on" onclick="navSw('nav-d',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Oggi</span></button>
+      <button class="nt" onclick="navSw('nav-d',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg><span>Lavori</span></button>
+      <button class="tasto tasto-red tasto-sm dark" style="flex-shrink:0;" title="Nuovo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="nt" onclick="navSw('nav-d',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Clienti</span></button>
+      <button class="nt" onclick="navSw('nav-d',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Fatture</span></button>
+    </div>
+  </div>
+</div>
+
+<p style="font-size:10px;color:rgba(0,0,0,.28);text-align:center;margin-top:18px;line-height:1.8;font-style:italic;">
+  Incavo: premi per sentire la cavità · Tasto+ bianco: riproduzione 1:1 · Dark raised: zero border/glow
+</p>
+
+<script>
+function navSw(id,el){var n=document.getElementById(id);n.querySelectorAll('.nt').forEach(function(t){t.classList.remove('on');});el.classList.add('on');}
+function replay(){['k-l','k-d'].forEach(function(id){var r=document.getElementById(id);r.querySelectorAll('.kpi-box').forEach(function(b){b.classList.remove('go');void b.offsetWidth;b.classList.add('go');});});}
+window.addEventListener('load',replay);
+</script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+# Review package: e8626269..0e3c9e74
+
+## Commits
+0e3c9e74 feat(wizard): la riga «Colore» del Passo 3 racconta il framing D223 e lo sgancio
+
+## Files changed
+ src/components/features/wizard/PassoPaziente.tsx   | 224 ++++++++++++++++-----
+ .../features/wizard/WizardNuovoLavoro.tsx          |   1 +
+ tests/unit/PassoPaziente.test.tsx                  | 155 ++++++++++----
+ 3 files changed, 289 insertions(+), 91 deletions(-)
+
+## Diff
+diff --git a/src/components/features/wizard/PassoPaziente.tsx b/src/components/features/wizard/PassoPaziente.tsx
+index bf9aafe3..8db818ed 100644
+--- a/src/components/features/wizard/PassoPaziente.tsx
++++ b/src/components/features/wizard/PassoPaziente.tsx
+@@ -1,129 +1,106 @@
+ 'use client'
+ 
+-// DS v3 §7.3/§5.27/§5.5/§5.3/§5.15 (Ondata 2, Task 11) — PassoPaziente: il
+-// Passo 3 del wizard «Nuovo lavoro». Copy VERBATIM da wizard.html:356-388
+-// (frame «Passo 3 · paziente»): domanda, hint, CampoTesto «Codice paziente»
+-// precompilato + nota GDPR, blocco «Se vuoi, aggiungi» (Elemento/Colore/Nome
+-// o alias, ciascuno "Salta"-abile), riga foto impronta dashed, «Continua».
++// DS v3 §7.3/§5.27/§5.5/§5.3 (Ondata 2, Task 11; framing D223 Task 2) —
++// PassoPaziente: il Passo 3 del wizard «Nuovo lavoro». Copy VERBATIM da
++// wizard.html:356-388 (frame «Passo 3 · paziente»): domanda, hint, CampoTesto
++// «Codice paziente» precompilato + nota GDPR, blocco «Se vuoi, aggiungi»
++// (Elemento/Colore/Nome o alias, ciascuno "Salta"-abile), riga foto impronta
++// dashed, «Continua».
+ //
+ // GDPR (A8, ratificato §2.1): il default paziente resta SOLO il codice
+ // PZ-#### proposto da UÀ — nessun nome è mai richiesto. L'alias (riga «Nome o
+ // alias») è opt-in: chi lo compila lo fa scegliendo di farlo, non perché il
+ // campo lo chieda con urgenza (stessa anatomia "Salta" delle altre due righe
+ // opzionali, nessuna enfasi visiva diversa).
+ //
+ // «Continua» = TastoSecondario, MAI TastoPrimario/rosso (piano Task 11): non
+ // è il percorso minimo del laboratorio (fotografare l'impronta lo è, Task 13),
+ // è solo l'uscita di chi non aggiunge nulla d'altro qui. Il Task 12 cablerà
+ // `onContinua`/`inCreazione` reali (creazione del lavoro) — qui restano
+ // contratto puro, consumato da WizardNuovoLavoro con uno stub.
+ //
+-// PillVoce (§5.15) compila il "campo attivo": di default il Codice paziente,
+-// ma se l'odontotecnico ha appena aperto/messo a fuoco Elemento/Colore/Nome o
+-// alias, la dettatura va lì — tracciato con `onFocus` sul contenitore di ogni
+-// campo (l'evento React è basato su `focusin`, quindi risale dal figlio reale
+-// senza bisogno che CampoTesto esponga una prop `onFocus` propria).
++// PillVoce RIMOSSA (Task 2 — §5.15 della spec DS v3 è ABROGATA, D13): con lei
++// sparisce anche il tracciamento del "campo attivo" (`campoAttivo`/`onFocus`
++// per instradare la dettatura) — era codice vivo SOLO per alimentarla, non
++// serve a nient'altro nel file.
++//
++// La riga «Colore» (Task 2, D223 — variante B «nome asciutto»): nome
++// asciutto in stato chiuso, framing pieno di D210 in stato aperto (etichetta
++// + aiuto + sgancio/ritorno su `coloreOrigine`). Vive in `RigaColore` qui
++// sotto, distinta dalla `RigaOpzionale` generica che regge Elemento/Alias —
++// le due righe sorelle non hanno stati di provenienza da raccontare.
+ 
+ import { useId, useState, type ChangeEvent, type CSSProperties } from 'react'
+ import { tipografia, raggio, spazio, gradiente } from '@/design-system/v3/tokens'
+ import { CampoTesto } from '@/components/ds/Campo'
+ import { LinkQuieto } from '@/components/ds/LinkQuieto'
+ import { TastoSecondario } from '@/components/ds/TastoSecondario'
+-import { PillVoce } from '@/components/ds/PillVoce'
+-import type { StatoWizard } from './WizardNuovoLavoro'
+-
+-type CampoOpzionale = 'elemento' | 'colore' | 'alias'
+-type CampoAttivo = 'pz' | CampoOpzionale
++import type { StatoWizard, ColoreOrigine } from './WizardNuovoLavoro'
+ 
+ export function PassoPaziente(props: {
+   pz: string
+   alias: string
+   elemento: string
+   colore: string
++  /** OPZIONALE apposta, come `StatoWizard.coloreOrigine` — v. Task 1: assente
++   *  E `'prescrizione'` sono lo stesso significato (D223, "scrivere è
++   *  trascrivere"). */
++  coloreOrigine?: ColoreOrigine
+   foto: File | null
+   onCambia: (patch: Partial<StatoWizard>) => void
+   onContinua: () => void
+   inCreazione: boolean
+ }) {
+-  const { pz, alias, elemento, colore, foto, onCambia, onContinua, inCreazione } = props
+-  const [campoAttivo, setCampoAttivo] = useState<CampoAttivo>('pz')
+-
+-  // Instrada il trascritto di PillVoce verso l'ultimo campo su cui è caduto
+-  // il focus (default 'pz' — vedi commento in testa).
+-  function pillOnTesto(testo: string) {
+-    switch (campoAttivo) {
+-      case 'pz':
+-        onCambia({ pz: testo })
+-        break
+-      case 'elemento':
+-        onCambia({ elemento: testo })
+-        break
+-      case 'colore':
+-        onCambia({ colore: testo })
+-        break
+-      case 'alias':
+-        onCambia({ alias: testo })
+-        break
+-    }
+-  }
++  const { pz, alias, elemento, colore, coloreOrigine, foto, onCambia, onContinua, inCreazione } = props
+ 
+   return (
+     <div>
+       <h1 style={stileDomanda}>Chi è il paziente?</h1>
+       <p style={stileHint}>Il codice è già pronto. Cambialo solo se serve.</p>
+ 
+-      <div style={stileCampoWrap} onFocus={() => setCampoAttivo('pz')}>
++      <div style={stileCampoWrap}>
+         <CampoTesto label="Codice paziente" valore={pz} onCambia={(v) => onCambia({ pz: v })} />
+         <p style={stileNota}>UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+       </div>
+ 
+       <div style={stileOpz}>
+         <p style={stileOpzCap}>Se vuoi, aggiungi</p>
+ 
+         <RigaOpzionale
+           nome="Elemento"
+           esempio="es. 2.6"
+           valore={elemento}
+           ultima={false}
+-          onAttiva={() => setCampoAttivo('elemento')}
+           onCambia={(v) => onCambia({ elemento: v })}
+         />
+-        <RigaOpzionale
+-          nome="Colore"
+-          esempio="es. A2"
++        <RigaColore
+           valore={colore}
+-          ultima={false}
+-          onAttiva={() => setCampoAttivo('colore')}
++          origine={coloreOrigine}
+           onCambia={(v) => onCambia({ colore: v })}
++          onCambiaOrigine={(o) => onCambia({ coloreOrigine: o })}
+         />
+         <RigaOpzionale
+           nome="Nome o alias"
+           valore={alias}
+           ultima
+-          onAttiva={() => setCampoAttivo('alias')}
+           onCambia={(v) => onCambia({ alias: v })}
+         />
+ 
+         <RigaFoto foto={foto} onCambia={(f) => onCambia({ foto: f })} />
+       </div>
+ 
+       <div style={{ marginTop: 22 }}>
+         <TastoSecondario onClick={onContinua} disabled={inCreazione}>
+           Continua
+         </TastoSecondario>
+       </div>
+-
+-      {/* wizard.html:390 .pv-wrap margin-top:22px — sempre in fondo al passo (§5.15). */}
+-      <div style={{ marginTop: 22 }}>
+-        <PillVoce onTesto={pillOnTesto} />
+-      </div>
+     </div>
+   )
+ }
+ 
+ /**
+  * RigaOpzionale — una riga del blocco «Se vuoi, aggiungi» (Elemento/Colore/
+  * Nome o alias), mockup `.opz-riga` (wizard.html:154-161).
+  *
+  * Chiusa: nome + esempio (tap → apre) + LinkQuieto «Salta» (L6, no-op se già
+  * vuota). Aperta: CampoTesto inline al posto della riga (autoFocus, cambia
+@@ -133,72 +110,177 @@ export function PassoPaziente(props: {
+  *
+  * `aperto` parte da `valore !== ''`: se il wizard torna al Passo 3 con un
+  * valore già presente (indietro poi di nuovo avanti), la riga non nasconde
+  * ciò che l'odontotecnico ha già scritto dentro una riga chiusa.
+  */
+ function RigaOpzionale(props: {
+   nome: string
+   esempio?: string
+   valore: string
+   ultima: boolean
+-  onAttiva: () => void
+   onCambia: (v: string) => void
+ }) {
+-  const { nome, esempio, valore, ultima, onAttiva, onCambia } = props
++  const { nome, esempio, valore, ultima, onCambia } = props
+   const [aperto, setAperto] = useState(valore !== '')
+ 
+   function salta() {
+     setAperto(false)
+     onCambia('')
+   }
+ 
+   const stileRiga: CSSProperties = {
+     display: 'flex',
+     alignItems: 'center',
+     gap: spazio.sm,
+     padding: '14px 0',
+     borderBottom: ultima ? 'none' : '1.5px solid var(--line)',
+   }
+ 
+   if (aperto) {
+     return (
+-      <div style={stileRiga} onFocus={onAttiva}>
++      <div style={stileRiga}>
+         <div style={{ flex: 1 }}>
+           <CampoTesto label={nome} valore={valore} onCambia={onCambia} autoFocus />
+         </div>
+         <LinkQuieto onClick={salta}>Salta</LinkQuieto>
+       </div>
+     )
+   }
+ 
+   function apri() {
+     setAperto(true)
+-    onAttiva()
+   }
+ 
+   return (
+     <div style={stileRiga}>
+       <style>{`
+         .ds-riga-opzionale-bottone:focus-visible {
+           outline: 2px solid var(--blue);
+           outline-offset: 2px;
+         }
+       `}</style>
+       <button type="button" className="ds-riga-opzionale-bottone" onClick={apri} style={stileRigaBottone}>
+         <span style={stileOpzNome}>{nome}</span>
+         {esempio && <span style={stileOpzEsempio}>{esempio}</span>}
+       </button>
+       <LinkQuieto onClick={salta}>Salta</LinkQuieto>
+     </div>
+   )
+ }
+ 
++/**
++ * RigaColore — la riga «Colore» del blocco «Se vuoi, aggiungi» (D223,
++ * variante B «nome asciutto»): chiusa mostra nome + un sottotitolo che
++ * ANTICIPA il framing (chi trascrive vs chi sceglie), aperta ripete il
++ * framing PIENO di D210 (etichetta + aiuto + sgancio/ritorno). Testi
++ * VERBATIM dal mockup `docs/design/mockups/2026-08-04-ondata-b3-schermate-
++ * vere.html` (scene p3-riga-b / p3-aperta / p3-sganciata) — D223 li fissa
++ * alla lettera, non si parafrasano, con UNA sostituzione dichiarata: il
++ * mockup e la riga D223 del verbale scrivono l'esempio come "es. A3"
++ * (valore dimostrativo della scena); qui è "es. A2", per risoluzione
++ * esplicita del controllore in `task-2-brief.md` ("l'esempio resta «es. A2»
++ * come oggi in produzione"). Un futuro confronto codice↔mockup che trova
++ * questa differenza non ha trovato un difetto.
++ *
++ * Il sottotitolo chiuso per `coloreOrigine==='lab'` ("lo scegliamo noi") non
++ * è nel mockup (nessuna scena mostra "chiusa + sganciata"): deriva dalla
++ * coda dell'etichetta aperta della scena p3-sganciata, stesso pattern della
++ * chiusa in trascrizione (nome + coda del framing) — derivazione dichiarata
++ * dal brief del Task 2, non un'invenzione silenziosa.
++ *
++ * 🔑 Vincolo D223 a verbale (riserva del panel, decisione 0B §3.1): la
++ * variante B regge SOLO finché lo stato APERTO ripete per intero il framing
++ * di D210. Se il campo diventasse compilabile IN-PLACE, da chiuso, senza mai
++ * passare per lo stato aperto — questa scelta va RIPENSATA, non solo
++ * aggiustata: il sottotitolo chiuso da solo non è un consenso informato.
++ */
++function RigaColore(props: {
++  valore: string
++  origine: ColoreOrigine | undefined
++  onCambia: (v: string) => void
++  onCambiaOrigine: (origine: ColoreOrigine) => void
++}) {
++  const { valore, origine, onCambia, onCambiaOrigine } = props
++  const [aperto, setAperto] = useState(valore !== '')
++  const sganciato = origine === 'lab'
++
++  function salta() {
++    setAperto(false)
++    onCambia('')
++  }
++
++  function apri() {
++    setAperto(true)
++  }
++
++  if (aperto) {
++    return (
++      <div style={stileRigaColoreAperta}>
++        <style>{`
++          .ds-riga-colore-aiuto b {
++            color: var(--ink);
++            font-weight: 700;
++          }
++        `}</style>
++        <div style={stileRigaColoreApertaTop}>
++          <div style={{ flex: 1 }}>
++            <CampoTesto
++              label={sganciato ? 'Colore — lo scegliamo noi' : 'Colore — come scritto sulla prescrizione'}
++              valore={valore}
++              onCambia={onCambia}
++              autoFocus
++            />
++          </div>
++          <LinkQuieto onClick={salta}>Salta</LinkQuieto>
++        </div>
++        <p className="ds-riga-colore-aiuto" style={stileAiutoColore}>
++          {sganciato ? (
++            <>
++              Scelta del laboratorio: resta <b>fuori</b> dalla Dichiarazione, perché non è sulla prescrizione.
++            </>
++          ) : (
++            <>
++              Quello che scrivi qui vale come <b>trascrizione</b> del foglio del dentista, e finisce così sulla
++              Dichiarazione.
++            </>
++          )}
++        </p>
++        <div style={{ marginTop: 10 }}>
++          <LinkQuieto onClick={() => onCambiaOrigine(sganciato ? 'prescrizione' : 'lab')}>
++            {sganciato
++              ? 'In realtà è sulla prescrizione: torno a trascrivere'
++              : 'Non è sulla prescrizione: lo scegliamo noi'}
++          </LinkQuieto>
++        </div>
++      </div>
++    )
++  }
++
++  return (
++    <div style={stileRigaColoreChiusa}>
++      <style>{`
++        .ds-riga-opzionale-bottone:focus-visible {
++          outline: 2px solid var(--blue);
++          outline-offset: 2px;
++        }
++      `}</style>
++      <button type="button" className="ds-riga-opzionale-bottone" onClick={apri} style={stileRigaBottone}>
++        <span style={stileOpzNome}>Colore</span>
++        <span style={stileOpzEsempio}>
++          {sganciato ? 'lo scegliamo noi' : 'come scritto sulla prescrizione · es. A2'}
++        </span>
++      </button>
++      <LinkQuieto onClick={salta}>Salta</LinkQuieto>
++    </div>
++  )
++}
++
+ /**
+  * RigaFoto — riga dashed «Aggiungi la foto dell'impronta» (mockup `.foto-add`,
+  * wizard.html:162-170), stesso dashed di TileNuovo (§5.12, `gradiente.dashedGuida`).
+  *
+  * `<input type="file">` reale (accept image/*, capture environment — apre
+  * fotocamera su mobile) NON nidificato dentro la `<label>`: sono fratelli
+  * nello stesso contenitore, associati esplicitamente via `htmlFor`/`id`
+  * (un solo meccanismo di associazione a11y, non doppio). `:focus-within` è
+  * sul contenitore (ascendente comune) e mostra l'anello di focus sulla
+  * label quando l'input (visually-hidden) riceve il focus da tastiera.
+@@ -323,20 +405,56 @@ const stileOpzNome: CSSProperties = {
+ }
+ 
+ // wizard.html:160 .opz-eg — 14.5/600 faint, margin-top 1.
+ const stileOpzEsempio: CSSProperties = {
+   fontSize: 14.5,
+   fontWeight: tipografia.weight.semibold,
+   color: 'var(--faint)',
+   marginTop: 1,
+ }
+ 
++// mockup .opz-riga (wizard.html:154-161) — riga chiusa di RigaColore, MAI
++// "ultima" (Colore sta sempre fra Elemento e Nome o alias): border-bottom
++// sempre presente, a differenza di `stileRiga` (locale a RigaOpzionale).
++const stileRigaColoreChiusa: CSSProperties = {
++  display: 'flex',
++  alignItems: 'center',
++  gap: spazio.sm,
++  padding: '14px 0',
++  borderBottom: '1.5px solid var(--line)',
++}
++
++// mockup .riga-aperta (2026-08-04-ondata-b3-schermate-vere.html:103) — la
++// riga aperta di RigaColore, a blocco (non flex): campo+Salta in cima, poi
++// aiuto, poi sgancio/ritorno, ciascuno sulla propria riga.
++const stileRigaColoreAperta: CSSProperties = {
++  padding: '14px 0',
++  borderBottom: '1.5px solid var(--line)',
++}
++
++// mockup .riga-aperta-top (stesso file:104) — campo + «Salta» affiancati.
++const stileRigaColoreApertaTop: CSSProperties = {
++  display: 'flex',
++  alignItems: 'center',
++  gap: spazio.sm,
++}
++
++// mockup .aiuto (stesso file:92) — 13/regolare muted, margin-top 6; la
++// parola marcata (`<b>`) diventa `--ink`/700 via la regola scoped nel
++// `<style>` di RigaColore (stesso pattern di FoglioConferma.tsx).
++const stileAiutoColore: CSSProperties = {
++  margin: '6px 0 0',
++  fontSize: 13,
++  lineHeight: 1.35,
++  color: 'var(--muted)',
++}
++
+ // wizard.html:163-169 .foto-add — H64, dashed 2.5 `gradiente.dashedGuida`
+ // (stesso di TileNuovo, §5.12), radius `raggio.riga` (18), margin-top 16.
+ const stileFotoAdd: CSSProperties = {
+   display: 'flex',
+   alignItems: 'center',
+   gap: spazio.sm,
+   width: '100%',
+   height: 64,
+   marginTop: 16,
+   padding: '0 20px',
+diff --git a/src/components/features/wizard/WizardNuovoLavoro.tsx b/src/components/features/wizard/WizardNuovoLavoro.tsx
+index ad1aac3c..0410a229 100644
+--- a/src/components/features/wizard/WizardNuovoLavoro.tsx
++++ b/src/components/features/wizard/WizardNuovoLavoro.tsx
+@@ -548,20 +548,21 @@ function RenderPasso(props: {
+ 
+   // Task 11: PassoPaziente per intero (codice PZ, dettagli opzionali, foto).
+   // Task 12: `onContinua`/`inCreazione` sono ora la persistenza reale
+   // (`continuaPaziente` in CorpoWizard sopra), non più uno stub.
+   return (
+     <PassoPaziente
+       pz={stato.pz}
+       alias={stato.alias}
+       elemento={stato.elemento}
+       colore={stato.colore}
++      coloreOrigine={stato.coloreOrigine}
+       foto={stato.foto}
+       onCambia={onCambiaPaziente}
+       onContinua={onContinuaPaziente}
+       inCreazione={inCreazione}
+     />
+   )
+ }
+ 
+ /**
+  * EntrataRidotta — variante reduced-motion dell'entrata shell (§8.4), stesso
+diff --git a/tests/unit/PassoPaziente.test.tsx b/tests/unit/PassoPaziente.test.tsx
+index 0b7d7879..cc66429d 100644
+--- a/tests/unit/PassoPaziente.test.tsx
++++ b/tests/unit/PassoPaziente.test.tsx
+@@ -1,38 +1,32 @@
+ import { useState } from 'react'
+ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+-import { render, screen, act } from '@testing-library/react'
++import { render, screen } from '@testing-library/react'
+ import userEvent from '@testing-library/user-event'
+ import { PassoPaziente } from '@/components/features/wizard/PassoPaziente'
+ import type { StatoWizard } from '@/components/features/wizard/WizardNuovoLavoro'
+ 
+ // Mock minimo del Web Speech API — stesso approccio di PassoTipo.test.tsx /
+-// WizardNuovoLavoro.test.tsx.
+-type Evento = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
+-const istanzeCostruite: MockSpeechRecognition[] = []
++// WizardNuovoLavoro.test.tsx. PillVoce non è più montata in questo passo
++// (Task 2, D13): resta solo per la prova FORTE di assenza qui sotto (§5.15
++// abrogata) — non serve più pilotare `onresult` a mano, quindi né
++// `istanzeCostruite` né un lettore "ultima istanza" sono utili in questo file.
+ class MockSpeechRecognition {
+   lang = ''
+   start = vi.fn()
+   stop = vi.fn()
+-  onresult: ((evento: Evento) => void) | null = null
++  onresult: ((evento: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null = null
+   onerror: (() => void) | null = null
+   onend: (() => void) | null = null
+-  constructor() {
+-    istanzeCostruite.push(this)
+-  }
+-}
+-function ultimaIstanza(): MockSpeechRecognition | null {
+-  return istanzeCostruite[istanzeCostruite.length - 1] ?? null
+ }
+ 
+ beforeEach(() => {
+-  istanzeCostruite.length = 0
+   delete (window as unknown as Record<string, unknown>).SpeechRecognition
+   delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+ })
+ afterEach(() => {
+   delete (window as unknown as Record<string, unknown>).SpeechRecognition
+   delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+ })
+ 
+ function props(overrides: Partial<Parameters<typeof PassoPaziente>[0]> = {}) {
+   return {
+@@ -69,21 +63,23 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
+     await userEvent.setup().type(screen.getByLabelText('Codice paziente'), 'X')
+     expect(onCambia).toHaveBeenCalledWith({ pz: 'X' })
+   })
+ 
+   it('blocco "Se vuoi, aggiungi" mostra le 3 righe opzionali con esempio e Salta', () => {
+     render(<PassoPaziente {...props()} />)
+     expect(screen.getByText('Se vuoi, aggiungi')).toBeInTheDocument()
+     expect(screen.getByText('Elemento')).toBeInTheDocument()
+     expect(screen.getByText('es. 2.6')).toBeInTheDocument()
+     expect(screen.getByText('Colore')).toBeInTheDocument()
+-    expect(screen.getByText('es. A2')).toBeInTheDocument()
++    // variante B (D223): il sottotitolo chiuso porta framing + esempio
++    // insieme, non più un "es. A2" isolato come le altre righe.
++    expect(screen.getByText('come scritto sulla prescrizione · es. A2')).toBeInTheDocument()
+     expect(screen.getByText('Nome o alias')).toBeInTheDocument()
+     expect(screen.getAllByRole('button', { name: 'Salta' })).toHaveLength(3)
+   })
+ 
+   it('tap sulla riga "Elemento" → si apre un CampoTesto inline con autoFocus', async () => {
+     render(<PassoPaziente {...props()} />)
+     await userEvent.setup().click(screen.getByText('Elemento'))
+     const campo = screen.getByLabelText('Elemento')
+     expect(campo).toBeInTheDocument()
+     expect(campo).toHaveFocus()
+@@ -107,21 +103,23 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
+     const salta = screen.getAllByRole('button', { name: 'Salta' })[0]
+     await user.click(salta)
+     expect(onCambia).toHaveBeenCalledWith({ elemento: '' })
+     // la riga richiusa torna a mostrare il nome/esempio, non più il CampoTesto.
+     expect(screen.queryByLabelText('Elemento')).not.toBeInTheDocument()
+     expect(screen.getByText('Elemento')).toBeInTheDocument()
+   })
+ 
+   it('riga già valorizzata (es. tornando indietro) è aperta di default', () => {
+     render(<PassoPaziente {...props({ colore: 'A2' })} />)
+-    expect(screen.getByLabelText('Colore')).toHaveValue('A2')
++    // D223: la riga aperta porta l'etichetta col framing intero, non più il
++    // solo "Colore" — v. describe dedicato più sotto per gli altri stati.
++    expect(screen.getByLabelText('Colore — come scritto sulla prescrizione')).toHaveValue('A2')
+   })
+ 
+   it('riga foto: input file nascosto ma label-associato, accept image/*, capture environment', () => {
+     render(<PassoPaziente {...props()} />)
+     const input = screen.getByLabelText(/Aggiungi la foto dell.impronta/) as HTMLInputElement
+     expect(input).toHaveAttribute('type', 'file')
+     expect(input).toHaveAttribute('accept', 'image/*')
+     expect(input).toHaveAttribute('capture', 'environment')
+   })
+ 
+@@ -189,50 +187,131 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
+     expect(tasto).not.toBeDisabled()
+     await userEvent.setup().click(tasto)
+     expect(onContinua).toHaveBeenCalled()
+   })
+ 
+   it('"Continua" con inCreazione=true è disabled', () => {
+     render(<PassoPaziente {...props({ inCreazione: true })} />)
+     expect(screen.getByRole('button', { name: 'Continua' })).toBeDisabled()
+   })
+ 
+-  it('PillVoce presente e di default compila il campo "Codice paziente"', async () => {
+-    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
++  // PillVoce RIMOSSA da questo passo (Task 2, D13 — §5.15 abrogata): i due
++  // test che qui verificavano "PillVoce presente e di default compila…" /
++  // "…compila il campo attivo diverso…" sono spariti con lei, non solo il
++  // loro assert positivo — un test che verificasse ancora un mount rimosso
++  // sarebbe un test falso. La prova di RIMOZIONE vive nel describe D223 qui
++  // sotto ("PillVoce assente dal Passo 3").
++})
++
++describe('PassoPaziente — riga «Colore» variante B, framing D223 + sgancio (Task 2)', () => {
++  it('chiusa, coloreOrigine ASSENTE (default trascrizione): nome «Colore» + sottotitolo con framing prescrizione', () => {
++    render(<PassoPaziente {...props()} />)
++    expect(screen.getByText('Colore')).toBeInTheDocument()
++    expect(screen.getByText('come scritto sulla prescrizione · es. A2')).toBeInTheDocument()
++  })
++
++  it('chiusa, coloreOrigine="prescrizione" esplicito: stesso sottotitolo del default (D223: assente = trascrizione)', () => {
++    render(<PassoPaziente {...props({ coloreOrigine: 'prescrizione' })} />)
++    expect(screen.getByText('come scritto sulla prescrizione · es. A2')).toBeInTheDocument()
++  })
++
++  it('chiusa, coloreOrigine="lab": sottotitolo mostra la scelta di laboratorio, non più la prescrizione', () => {
++    render(<PassoPaziente {...props({ coloreOrigine: 'lab' })} />)
++    expect(screen.getByText('Colore')).toBeInTheDocument()
++    expect(screen.getByText('lo scegliamo noi')).toBeInTheDocument()
++    expect(screen.queryByText('come scritto sulla prescrizione · es. A2')).not.toBeInTheDocument()
++  })
++
++  it('aperta (valore presente), coloreOrigine assente: etichetta + aiuto con «trascrizione» in evidenza + sgancio', () => {
++    render(<PassoPaziente {...props({ colore: 'A2' })} />)
++    expect(screen.getByLabelText('Colore — come scritto sulla prescrizione')).toHaveValue('A2')
++    expect(screen.getByText('trascrizione').tagName).toBe('B')
++    expect(screen.getByText(/Quello che scrivi qui vale come/)).toBeInTheDocument()
++    expect(
++      screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' })
++    ).toBeInTheDocument()
++  })
++
++  it('sgancio: click sul LinkQuieto chiama onCambia({ coloreOrigine: "lab" })', async () => {
+     const onCambia = vi.fn()
+-    render(<PassoPaziente {...props({ pz: '', onCambia })} />)
+-    const user = userEvent.setup()
+-    await user.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+-    const istanza = ultimaIstanza()
+-    expect(istanza).not.toBeNull()
+-    act(() => {
+-      istanza!.onresult?.({ results: [[{ transcript: 'PZ-0500' }]] })
+-    })
+-    expect(onCambia).toHaveBeenCalledWith({ pz: 'PZ-0500' })
++    render(<PassoPaziente {...props({ colore: 'A2', onCambia })} />)
++    await userEvent
++      .setup()
++      .click(screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' }))
++    expect(onCambia).toHaveBeenCalledWith({ coloreOrigine: 'lab' })
+   })
+ 
+-  it('PillVoce compila il campo attivo diverso da quello di default dopo un focus esplicito', async () => {
+-    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
++  it('aperta, coloreOrigine="lab": etichetta «lo scegliamo noi» + aiuto laboratorio con «fuori» in evidenza + ritorno', () => {
++    render(<PassoPaziente {...props({ colore: 'A2', coloreOrigine: 'lab' })} />)
++    expect(screen.getByLabelText('Colore — lo scegliamo noi')).toHaveValue('A2')
++    expect(screen.getByText('fuori').tagName).toBe('B')
++    expect(
++      screen.getByRole('button', { name: 'In realtà è sulla prescrizione: torno a trascrivere' })
++    ).toBeInTheDocument()
++  })
++
++  it('ritorno: click sul LinkQuieto chiama onCambia({ coloreOrigine: "prescrizione" })', async () => {
+     const onCambia = vi.fn()
+-    render(<PassoPaziente {...props({ onCambia })} />)
++    render(<PassoPaziente {...props({ colore: 'A2', coloreOrigine: 'lab', onCambia })} />)
++    await userEvent
++      .setup()
++      .click(screen.getByRole('button', { name: 'In realtà è sulla prescrizione: torno a trascrivere' }))
++    expect(onCambia).toHaveBeenCalledWith({ coloreOrigine: 'prescrizione' })
++  })
++
++  it('giro di boa reale: chiusa → apri → sgancio → la riga resta APERTA col framing di laboratorio (componente controllato, non solo lo spy su onCambia)', async () => {
++    // I due test "sgancio"/"ritorno" sopra provano solo la CHIAMATA a
++    // onCambia — non che il round-trip funzioni davvero: se il patch si
++    // perdesse per strada, o se `aperto` si richiudesse quando `origine`
++    // cambia (bug plausibile: sono due stati diversi, uno locale uno prop),
++    // quei due test resterebbero verdi lo stesso. Harness stateful (stesso
++    // pattern delle prove sulla foto sopra) che SIMULA il giro di boa vero:
++    // onCambia aggiorna la prop, PassoPaziente la rilegge, si verifica che la
++    // riga sia ancora aperta col framing giusto — non solo che l'evento sia
++    // partito.
++    function Harness() {
++      const [colore, setColore] = useState('')
++      const [coloreOrigine, setColoreOrigine] = useState<StatoWizard['coloreOrigine']>('prescrizione')
++      return (
++        <PassoPaziente
++          {...props({
++            colore,
++            coloreOrigine,
++            onCambia: (patch) => {
++              if ('colore' in patch) setColore(patch.colore ?? '')
++              if ('coloreOrigine' in patch && patch.coloreOrigine) setColoreOrigine(patch.coloreOrigine)
++            },
++          })}
++        />
++      )
++    }
++    render(<Harness />)
+     const user = userEvent.setup()
+-    // Apre la riga Colore e ci fa focus (tap apre + porta il focus per l'autoFocus).
++    // Chiusa → tap apre la riga (framing prescrizione, la riga era vuota).
+     await user.click(screen.getByText('Colore'))
+-    expect(screen.getByLabelText('Colore')).toHaveFocus()
+-
+-    await user.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+-    const istanza = ultimaIstanza()
+-    act(() => {
+-      istanza!.onresult?.({ results: [[{ transcript: 'A2' }]] })
+-    })
+-    expect(onCambia).toHaveBeenCalledWith({ colore: 'A2' })
+-    expect(onCambia).not.toHaveBeenCalledWith({ pz: 'A2' })
++    await user.type(screen.getByLabelText('Colore — come scritto sulla prescrizione'), 'A2')
++    // Sgancio: la riga NON si richiude — resta aperta, framing capovolto.
++    await user.click(screen.getByRole('button', { name: 'Non è sulla prescrizione: lo scegliamo noi' }))
++    expect(screen.getByLabelText('Colore — lo scegliamo noi')).toHaveValue('A2')
++    expect(
++      screen.getByRole('button', { name: 'In realtà è sulla prescrizione: torno a trascrivere' })
++    ).toBeInTheDocument()
++  })
++
++  it('PillVoce assente dal Passo 3 (§5.15 abrogata, D13): nessun bottone «Dimmelo a voce» ANCHE con la Web Speech API disponibile', () => {
++    // Prova forte, non quella debole "il browser di jsdom non ha l'API": si
++    // inietta il mock (stesso di sopra) PRIMA del render, così se il mount di
++    // PillVoce fosse ancora lì comparirebbe comunque il bottone — l'assenza
++    // qui prova la rimozione del componente, non un caso limite del jsdom.
++    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
++    render(<PassoPaziente {...props()} />)
++    expect(screen.queryByRole('button', { name: /dimmelo a voce/i })).not.toBeInTheDocument()
+   })
+ })
+ 
+ // Type-check di contratto (compilazione, non a runtime): assicura che
+ // StatoWizard e le props di PassoPaziente restino allineate al piano.
+ type _Contratto = {
+   pz: StatoWizard['pz']
+   alias: StatoWizard['alias']
+   elemento: StatoWizard['elemento']
+   colore: StatoWizard['colore']

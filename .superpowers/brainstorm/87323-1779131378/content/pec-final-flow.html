@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PEC Verification Loop — Design Finale</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: #111827; color: #F0EDE8; padding: 24px 20px 40px; }
+h1 { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+.sub { font-size: 12px; color: #6B7280; margin-bottom: 32px; }
+
+/* ── Architecture diagram ── */
+.arch { background: #1F2937; border-radius: 16px; padding: 24px; margin-bottom: 32px; }
+.arch h2 { font-size: 12px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 20px; }
+.flow-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; gap: 6px; }
+.node { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.node-box { padding: 10px 14px; border-radius: 10px; font-size: 11px; font-weight: 700; text-align: center; min-width: 100px; line-height: 1.4; }
+.node-lab { background: #374151; color: #F0EDE8; border: 1.5px solid #4B5563; }
+.node-ua { background: rgba(217,0,18,.15); color: #FCA5A5; border: 1.5px solid rgba(217,0,18,.4); }
+.node-cf { background: rgba(249,115,22,.15); color: #FED7AA; border: 1.5px solid rgba(249,115,22,.35); }
+.node-edge { background: rgba(16,185,129,.15); color: #6EE7B7; border: 1.5px solid rgba(16,185,129,.35); }
+.node-db { background: rgba(99,102,241,.15); color: #C7D2FE; border: 1.5px solid rgba(99,102,241,.35); }
+.node-fe { background: rgba(234,179,8,.15); color: #FDE68A; border: 1.5px solid rgba(234,179,8,.35); }
+.arrow-h { font-size: 16px; color: #4B5563; padding: 0 2px; margin-top: -18px; }
+.node-label { font-size: 9px; color: #6B7280; text-align: center; }
+.arrow-label { font-size: 9px; color: #9CA3AF; font-style: italic; white-space: nowrap; }
+
+/* ── Phone mockups ── */
+.phones-section h2 { font-size: 12px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 16px; }
+.phones { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+.phone-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.step-tag { font-size: 9px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .06em; text-align: center; }
+.phone { width: 210px; background: #DDD8D3; border-radius: 28px; padding: 18px 14px; box-shadow: 0 20px 50px rgba(0,0,0,.6); min-height: 380px; display: flex; flex-direction: column; gap: 10px; }
+
+.ph { font-size: 13px; font-weight: 800; color: #1C1916; }
+.pb { width: 24px; height: 24px; background: #EDEDEA; border-radius: 7px; display: grid; place-items: center; font-size: 11px; }
+.fld { display: flex; flex-direction: column; gap: 3px; }
+.flbl { font-size: 9px; font-weight: 700; color: #96918D; text-transform: uppercase; letter-spacing: .07em; }
+.finp { background: #D4CFC9; border-radius: 9px; padding: 9px 11px; font-size: 12px; color: #1C1916; box-shadow: inset 2px 2px 6px rgba(0,0,0,.11), inset -1px -1px 4px rgba(255,255,255,.66); }
+.finp.row { display: flex; justify-content: space-between; align-items: center; }
+.badge { font-size: 9px; font-weight: 700; color: #fff; padding: 2px 6px; border-radius: 4px; }
+.badge.green { background: #16A34A; }
+.badge.gray { background: #6B7280; }
+.btn { background: #D90012; color: #fff; border: none; border-radius: 10px; padding: 11px; font-size: 12px; font-weight: 700; width: 100%; cursor: pointer; box-shadow: 0 5px 14px -2px rgba(180,0,0,.38); }
+.btn.off { opacity: .45; }
+.skip { background: none; border: none; color: #96918D; font-size: 10px; text-align: center; width: 100%; cursor: pointer; padding: 3px; }
+.info { background: rgba(22,163,74,.09); border-radius: 9px; padding: 8px 10px; font-size: 10px; color: #16A34A; display: flex; gap: 5px; }
+.hint { background: #EDEDEA; border-radius: 9px; padding: 8px 11px; font-size: 10px; color: #96918D; line-height: 1.6; }
+
+/* verify panel */
+.vpanel { background: #EDEDEA; border-radius: 10px; padding: 11px; }
+.vtitle { font-size: 9px; font-weight: 700; color: #96918D; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.vstep { display: flex; align-items: center; gap: 7px; font-size: 10px; padding: 3px 0; }
+.vdot { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 8px; flex-shrink: 0; }
+.vdot.done { background: rgba(22,163,74,.15); color: #16A34A; }
+.vdot.spin { background: rgba(217,166,0,.15); color: #B45309; animation: spin 1.2s linear infinite; }
+.vdot.wait { background: rgba(150,145,141,.1); color: #96918D; }
+@keyframes spin { 0%,100%{opacity:1}50%{opacity:.35} }
+
+/* token highlight */
+.token-addr { background: #374151; border-radius: 8px; padding: 8px 10px; font-size: 10px; font-family: monospace; color: #6EE7B7; display: flex; flex-direction: column; gap: 3px; }
+.token-to { font-size: 9px; color: #6B7280; }
+
+/* success */
+.success { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 10px; }
+.sring { width: 52px; height: 52px; border-radius: 50%; background: rgba(22,163,74,.12); border: 2px solid rgba(22,163,74,.3); display: grid; place-items: center; font-size: 22px; }
+.stitle { font-size: 15px; font-weight: 900; color: #16A34A; text-align: center; }
+.ssub { font-size: 10px; color: #96918D; text-align: center; line-height: 1.5; }
+.slist { background: rgba(22,163,74,.07); border-radius: 9px; padding: 10px 12px; width: 100%; }
+.srow { font-size: 10px; color: #16A34A; display: flex; align-items: center; gap: 5px; padding: 2px 0; }
+.prog { height: 3px; background: #D4CFC9; border-radius: 99px; width: 100%; overflow: hidden; margin-top: 4px; }
+.progfill { height: 100%; background: #16A34A; border-radius: 99px; animation: progadd 2s linear forwards; width: 0; }
+@keyframes progadd { to { width: 100%; } }
+
+/* error + accordion */
+.errbx { background: rgba(217,0,18,.07); border-radius: 10px; padding: 11px; }
+.errtitle { font-size: 11px; font-weight: 700; color: #D90012; margin-bottom: 4px; }
+.errmsg { font-size: 10px; color: #4A4845; line-height: 1.5; margin-bottom: 8px; }
+.wabtn { background: #25D366; color: #fff; border: none; border-radius: 9px; padding: 9px 12px; font-size: 11px; font-weight: 700; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+.accordion { background: #EDEDEA; border-radius: 10px; padding: 11px; }
+.acctitle { font-size: 10px; font-weight: 700; color: #96918D; display: flex; align-items: center; gap: 5px; margin-bottom: 8px; }
+.accfield { display: flex; flex-direction: column; gap: 3px; margin-bottom: 7px; }
+.acclbl { font-size: 8px; font-weight: 700; color: #96918D; text-transform: uppercase; letter-spacing: .06em; }
+.accinp { background: #D4CFC9; border-radius: 7px; padding: 6px 9px; font-size: 10px; font-family: monospace; color: #1C1916; box-shadow: inset 2px 2px 4px rgba(0,0,0,.09); }
+.divider { font-size: 10px; color: #96918D; text-align: center; display: flex; align-items: center; gap: 8px; }
+.divider::before,.divider::after { content:''; flex:1; height:1px; background:#D4CFC9; }
+
+/* arrow between phones */
+.harrow { display: flex; align-items: center; padding-top: 165px; color: #374151; font-size: 16px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<h1>PEC Setup — Inbound Verification Loop</h1>
+<div class="sub">Design finale approvato · Sistema end-to-end verificato da UÀ</div>
+
+<!-- ARCHITECTURE -->
+<div class="arch">
+  <h2>Architettura — Come funziona il loop</h2>
+  <div class="flow-row">
+    <div class="node">
+      <div class="node-box node-lab">📧 Lab PEC<br><span style="font-size:9px;font-weight:400;">lab@pec.aruba.it</span></div>
+      <div class="node-label">Laboratorio</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:-18px;">
+      <div class="arrow-label">sendMail() →</div>
+      <div class="arrow-h">──────→</div>
+    </div>
+    <div class="node">
+      <div class="node-box node-ua">📬 verify+{token}<br><span style="font-size:9px;font-weight:400;">@uachelab.com</span></div>
+      <div class="node-label">Email UÀ</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:-18px;">
+      <div class="arrow-label">Email Routing →</div>
+      <div class="arrow-h">──────→</div>
+    </div>
+    <div class="node">
+      <div class="node-box node-cf">☁️ Cloudflare<br><span style="font-size:9px;font-weight:400;">Email Routing</span></div>
+      <div class="node-label">Già sul tuo DNS</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:-18px;">
+      <div class="arrow-label">webhook →</div>
+      <div class="arrow-h">──────→</div>
+    </div>
+    <div class="node">
+      <div class="node-box node-edge">⚡ Edge Function<br><span style="font-size:9px;font-weight:400;">/pec-verify</span></div>
+      <div class="node-label">Supabase</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:-18px;">
+      <div class="arrow-label">UPDATE →</div>
+      <div class="arrow-h">──────→</div>
+    </div>
+    <div class="node">
+      <div class="node-box node-db">🗄️ laboratori<br><span style="font-size:9px;font-weight:400;">pec_verificata=true</span></div>
+      <div class="node-label">Postgres</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:-18px;">
+      <div class="arrow-label">polling 2s →</div>
+      <div class="arrow-h">──────→</div>
+    </div>
+    <div class="node">
+      <div class="node-box node-fe">✅ Frontend<br><span style="font-size:9px;font-weight:400;">auto-avanza</span></div>
+      <div class="node-label">PecSetupWidget</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:flex;gap:20px;flex-wrap:wrap;">
+    <div style="font-size:10px;color:#9CA3AF;"><strong style="color:#F0EDE8;">Token:</strong> UUID univoco per tentativo → impossibile falsificare</div>
+    <div style="font-size:10px;color:#9CA3AF;"><strong style="color:#F0EDE8;">Timeout:</strong> 60 secondi → poi mostra errore + supporto</div>
+    <div style="font-size:10px;color:#9CA3AF;"><strong style="color:#F0EDE8;">Costo:</strong> Cloudflare Email Routing gratuito · 0 dipendenze esterne</div>
+  </div>
+</div>
+
+<!-- PHONE STATES -->
+<div class="phones-section">
+  <h2>Stati UI — PecSetupWidget</h2>
+  <div class="phones">
+
+    <!-- STATE 1: IDLE -->
+    <div class="phone-col">
+      <div class="step-tag">① Idle</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="pb">←</div><div class="ph">Configura PEC</div></div>
+        <div style="font-size:10px;color:#96918D;line-height:1.6;">UÀ invierà le fatture via PEC in automatico. Servono solo 2 dati.</div>
+        <div class="fld">
+          <div class="flbl">Indirizzo PEC</div>
+          <div class="finp" style="color:#96918D;font-size:11px;">lab@pec.it</div>
+        </div>
+        <div class="fld">
+          <div class="flbl">Password PEC</div>
+          <div class="finp" style="color:#96918D;font-size:11px;">••••••••</div>
+        </div>
+        <div class="hint">Supportiamo: Aruba · Legalmail · Namirial · Tim · Poste e altri</div>
+        <div style="flex:1"></div>
+        <button class="btn off" disabled>Connetti e verifica →</button>
+      </div>
+    </div>
+
+    <div class="harrow">→</div>
+
+    <!-- STATE 2: PROVIDER DETECTED -->
+    <div class="phone-col">
+      <div class="step-tag">② Provider rilevato</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="pb">←</div><div class="ph">Configura PEC</div></div>
+        <div style="font-size:10px;color:#96918D;line-height:1.6;">UÀ invierà le fatture via PEC in automatico. Servono solo 2 dati.</div>
+        <div class="fld">
+          <div class="flbl">Indirizzo PEC</div>
+          <div class="finp row">
+            <span style="font-size:12px;">lab@pec.aruba.it</span>
+            <span class="badge green">✓ Aruba PEC</span>
+          </div>
+        </div>
+        <div class="info"><span>✅</span><span>Impostazioni SMTP precompilate in automatico</span></div>
+        <div class="fld">
+          <div class="flbl">Password PEC</div>
+          <div class="finp" style="font-size:12px;">••••••••••</div>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn">Connetti e verifica →</button>
+        <button class="skip">Configura dopo</button>
+      </div>
+    </div>
+
+    <div class="harrow">→</div>
+
+    <!-- STATE 3: VERIFYING with token -->
+    <div class="phone-col">
+      <div class="step-tag">③ Verifica in corso</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="pb" style="opacity:.3;">←</div><div class="ph">Verifica PEC</div></div>
+        <div class="vpanel">
+          <div class="vtitle">Verifica in corso</div>
+          <div class="vstep"><div class="vdot done">✓</div><span style="color:#16A34A;">Connessione SMTP</span></div>
+          <div class="vstep"><div class="vdot done">✓</div><span style="color:#16A34A;">Autenticazione</span></div>
+          <div class="vstep"><div class="vdot done">✓</div><span style="color:#16A34A;">Email inviata a UÀ</span></div>
+          <div class="vstep"><div class="vdot spin">⟳</div><span style="color:#B45309;">Attendo conferma da UÀ…</span></div>
+        </div>
+        <div class="token-addr">
+          <span class="token-to">Email inviata a:</span>
+          <span>verify+a3f8...@uachelab.com</span>
+        </div>
+        <div style="font-size:10px;color:#96918D;text-align:center;line-height:1.5;">
+          UÀ riceve l'email e conferma<br>che tutto funziona. Max 60 secondi.
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn off" disabled>In attesa di conferma…</button>
+      </div>
+    </div>
+
+    <div class="harrow">→</div>
+
+    <!-- STATE 4: SUCCESS -->
+    <div class="phone-col">
+      <div class="step-tag">④ Confermata da UÀ ✅</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="pb" style="opacity:.3;">←</div><div class="ph">PEC verificata</div></div>
+        <div class="success">
+          <div class="sring">✅</div>
+          <div class="stitle">PEC confermata!</div>
+          <div class="ssub">UÀ ha ricevuto la tua email PEC<br>e verificato l'intera catena.</div>
+          <div class="slist">
+            <div class="srow"><span>✓</span> Connessione SMTP</div>
+            <div class="srow"><span>✓</span> Autenticazione</div>
+            <div class="srow"><span>✓</span> Invio email</div>
+            <div class="srow"><span>✓</span> <strong>Ricezione confermata da UÀ</strong></div>
+          </div>
+          <div style="font-size:10px;color:#96918D;text-align:center;">Avanzamento automatico…</div>
+          <div class="prog"><div class="progfill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;padding-top:80px;flex-shrink:0;color:#374151;flex-direction:column;justify-content:center;gap:6px;">
+      <div style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;writing-mode:vertical-rl;">stati errore</div>
+    </div>
+
+    <!-- STATE 5: UNKNOWN PROVIDER -->
+    <div class="phone-col">
+      <div class="step-tag">⑤ Provider sconosciuto</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="pb">←</div><div class="ph">Configura PEC</div></div>
+        <div class="fld">
+          <div class="flbl">Indirizzo PEC</div>
+          <div class="finp row">
+            <span style="font-size:11px;">lab@peclocale.it</span>
+            <span class="badge gray">? Non riconosciuto</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#B45309;background:rgba(180,83,9,.07);border-radius:8px;padding:7px 10px;">⚠️ Inserisci manualmente le impostazioni SMTP</div>
+        <div class="accordion">
+          <div class="acctitle">⚙️ Impostazioni avanzate</div>
+          <div class="accfield">
+            <div class="acclbl">Host SMTP</div>
+            <div class="accinp">smtp.peclocale.it</div>
+          </div>
+          <div style="display:grid;grid-template-columns:72px 1fr;gap:7px;">
+            <div class="accfield"><div class="acclbl">Porta</div><div class="accinp">465</div></div>
+            <div class="accfield"><div class="acclbl">Utente</div><div class="accinp" style="font-size:9px;">lab@peclocale.it</div></div>
+          </div>
+        </div>
+        <div class="fld">
+          <div class="flbl">Password PEC</div>
+          <div class="finp" style="font-size:12px;">••••••••••</div>
+        </div>
+        <button class="btn">Connetti e verifica →</button>
+      </div>
+    </div>
+
+    <div class="harrow">→</div>
+
+    <!-- STATE 6: ERROR + SUPPORT -->
+    <div class="phone-col">
+      <div class="step-tag">⑥ Fallback — supporto admin</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="pb">←</div><div class="ph">Configura PEC</div></div>
+        <div class="errbx">
+          <div class="errtitle">❌ Verifica non riuscita</div>
+          <div class="errmsg">Non riusciamo a confermare la connessione PEC.<br><br><strong>Causa più comune:</strong> la password della casella PEC è diversa da quella del sito web del provider.</div>
+          <div style="font-size:10px;color:#96918D;margin-bottom:8px;">Francesco ti aiuta a risolvere in pochi minuti.</div>
+          <button class="wabtn">💬 Contatta il supporto</button>
+        </div>
+        <div style="text-align:center;"><button style="background:none;border:none;color:#96918D;font-size:10px;cursor:pointer;">← Riprova con credenziali diverse</button></div>
+        <div class="hint">
+          <strong style="color:#1C1916;">Errori comuni PEC:</strong><br>
+          · Password sbagliata (usa quella della casella)<br>
+          · Account non attivato dal provider<br>
+          · Limiti invio SMTP non abilitati
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:28px;background:#1F2937;border-radius:12px;padding:16px 20px;font-size:11px;color:#9CA3AF;line-height:2;">
+  <strong style="color:#F0EDE8;">Componente unico:</strong> <code>PecSetupWidget</code> — usato sia nell'onboarding wizard (step 4) sia in /impostazioni/pec<br>
+  <strong style="color:#F0EDE8;">Provider auto-detect:</strong> 8 provider italiani hardcoded + fallback accordion<br>
+  <strong style="color:#F0EDE8;">Verifica:</strong> nodemailer.verify() + sendMail() → Cloudflare Email Routing → Supabase Edge Function<br>
+  <strong style="color:#F0EDE8;">DB:</strong> colonna <code>pec_verificata BOOLEAN</code> + <code>pec_verify_token UUID</code> in tabella <code>laboratori</code><br>
+  <strong style="color:#F0EDE8;">Polling:</strong> GET /api/impostazioni/pec/verify-status ogni 2s · timeout 60s
+</div>
+
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Accent Color</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #DDD8D3; --sfc: #E4DFD9; --elv: #EDEDEA; --prs: #D4CFC9;
+  --t1: #1C1916; --t2: #4A3D33; --t3: #6B5C51;
+  --primary: #D90012;
+  --sh: inset 0 1px 0 rgba(255,255,255,.90),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-sm: inset 0 1px 0 rgba(255,255,255,.88),-3px -3px 7px rgba(255,255,255,.72),5px 7px 14px -2px rgba(148,128,118,.38);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); font-family: 'DM Sans', sans-serif; padding: 20px 16px 60px; }
+
+h2 { font-size: 16px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--t2); margin-bottom: 24px; line-height: 1.5; }
+
+.section-head {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em;
+  color: var(--t3); margin: 20px 0 12px;
+  border-bottom: 1px solid var(--prs); padding-bottom: 6px;
+}
+
+/* Card opzione */
+.option-card {
+  background: var(--sfc); border-radius: 18px; padding: 16px;
+  box-shadow: var(--sh); margin-bottom: 14px;
+  cursor: pointer; border: 2.5px solid transparent;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.option-card.selected { border-color: var(--primary); }
+.option-card.selected::after {
+  content: '✓'; position: absolute; top: 14px; right: 14px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.opt-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.swatch-lg { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,.08); }
+.opt-name { font-size: 14px; font-weight: 700; color: var(--t1); }
+.opt-sub  { font-size: 11px; color: var(--t3); }
+
+.ratio-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 100px;
+}
+.chip-aaa { background: rgba(22,163,74,.12); color: #155A2A; }
+.chip-aa  { background: rgba(22,163,74,.08); color: #2D7A40; }
+.chip-fail{ background: rgba(217,0,18,.12); color: #B30000; }
+
+/* Mini UI demo */
+.mini-ui { background: var(--bg); border-radius: 12px; padding: 12px; box-shadow: inset 3px 3px 7px rgba(148,128,118,.22), inset -2px -2px 5px rgba(255,255,255,.66); }
+
+.kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.kpi-box { flex: 1; background: var(--sfc); border-radius: 10px; padding: 9px 11px; box-shadow: var(--sh-sm); }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--t3); margin-top: 2px; }
+
+.mini-list-item {
+  background: var(--sfc); border-radius: 10px; padding: 9px 11px;
+  box-shadow: var(--sh-sm); margin-bottom: 6px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.item-n { font-size: 13px; font-weight: 600; color: var(--t1); }
+.item-m { font-size: 11px; color: var(--t2); margin-top: 1px; }
+
+.badge {
+  font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: 100px; white-space: nowrap;
+}
+
+.nav-pill {
+  display: flex; justify-content: space-around;
+  background: var(--sfc); border-radius: 100px; padding: 7px 10px;
+  box-shadow: var(--sh-sm); margin-top: 8px;
+}
+.nav-i { font-size: 10px; font-weight: 600; text-align: center; }
+
+/* Divider */
+.divider { height: 1px; background: var(--prs); margin: 20px 0; }
+
+.note { font-size: 11px; color: var(--t3); font-style: italic; text-align: center; margin-top: 20px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h2>Colore accent — quale funziona?</h2>
+<p class="subtitle">Il gold attuale #D4A843 ha contrasto 1.6:1 — invisibile. Queste 4 alternative mantengono il calore ma sono leggibili.</p>
+
+<!-- ─── OPZIONE 0: ATTUALE per confronto ─── -->
+<div class="section-head">0 — Attuale (da sostituire)</div>
+<div class="option-card" onclick="this.classList.toggle('selected')" style="opacity:.8;">
+  <div class="opt-header">
+    <div class="swatch-lg" style="background:#D4A843;"></div>
+    <div>
+      <div class="opt-name" style="color:#D4A843;">#D4A843 — Gold attuale</div>
+      <div class="opt-sub">Quasi invisibile su sfondo panna &nbsp;<span class="ratio-chip chip-fail">1.6:1 ✗</span></div>
+    </div>
+  </div>
+  <div class="mini-ui">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D4A843;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="mini-list-item">
+      <div>
+        <div class="item-n">#LAV-2024-0847</div>
+        <div class="item-m">Consegnato il 27 mag</div>
+      </div>
+      <span class="badge" style="background:rgba(212,168,67,.15); color:#D4A843;">Pronto</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── OPZIONE A: Mogano Dorato ─── -->
+<div class="section-head">A — Mogano dorato (raccomandato)</div>
+<div class="option-card" onclick="this.classList.toggle('selected')">
+  <div class="opt-header">
+    <div class="swatch-lg" style="background:#5C3D00;"></div>
+    <div>
+      <div class="opt-name" style="color:#5C3D00;">#5C3D00 — Mogano dorato</div>
+      <div class="opt-sub">Caldo, premium, artigianale &nbsp;<span class="ratio-chip chip-aaa">7.0:1 ✓ AAA</span></div>
+    </div>
+  </div>
+  <div class="mini-ui">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#5C3D00;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="mini-list-item">
+      <div>
+        <div class="item-n">#LAV-2024-0847</div>
+        <div class="item-m">Consegnato il 27 mag</div>
+      </div>
+      <span class="badge" style="background:rgba(92,61,0,.12); color:#5C3D00;">Pronto</span>
+    </div>
+    <div class="nav-pill">
+      <div class="nav-i" style="color:#D90012;">Dashboard</div>
+      <div class="nav-i" style="color:var(--t2);">Lavori</div>
+      <div class="nav-i" style="color:var(--t2);">Clienti</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── OPZIONE B: Oro Bruciato ─── -->
+<div class="section-head">B — Oro bruciato</div>
+<div class="option-card" onclick="this.classList.toggle('selected')">
+  <div class="opt-header">
+    <div class="swatch-lg" style="background:#7A5200;"></div>
+    <div>
+      <div class="opt-name" style="color:#7A5200;">#7A5200 — Oro bruciato</div>
+      <div class="opt-sub">Più "dorato" ma margine stretto &nbsp;<span class="ratio-chip chip-aa">4.9:1 ✓ AA</span></div>
+    </div>
+  </div>
+  <div class="mini-ui">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#7A5200;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="mini-list-item">
+      <div>
+        <div class="item-n">#LAV-2024-0847</div>
+        <div class="item-m">Consegnato il 27 mag</div>
+      </div>
+      <span class="badge" style="background:rgba(122,82,0,.12); color:#7A5200;">Pronto</span>
+    </div>
+    <div class="nav-pill">
+      <div class="nav-i" style="color:#D90012;">Dashboard</div>
+      <div class="nav-i" style="color:var(--t2);">Lavori</div>
+      <div class="nav-i" style="color:var(--t2);">Clienti</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── OPZIONE C: Ambra scura ─── -->
+<div class="section-head">C — Ambra scura</div>
+<div class="option-card" onclick="this.classList.toggle('selected')">
+  <div class="opt-header">
+    <div class="swatch-lg" style="background:#6B4A0E;"></div>
+    <div>
+      <div class="opt-name" style="color:#6B4A0E;">#6B4A0E — Ambra scura</div>
+      <div class="opt-sub">Caldo miele, via di mezzo &nbsp;<span class="ratio-chip chip-aa">5.7:1 ✓ AA</span></div>
+    </div>
+  </div>
+  <div class="mini-ui">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#6B4A0E;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="mini-list-item">
+      <div>
+        <div class="item-n">#LAV-2024-0847</div>
+        <div class="item-m">Consegnato il 27 mag</div>
+      </div>
+      <span class="badge" style="background:rgba(107,74,14,.12); color:#6B4A0E;">Pronto</span>
+    </div>
+    <div class="nav-pill">
+      <div class="nav-i" style="color:#D90012;">Dashboard</div>
+      <div class="nav-i" style="color:var(--t2);">Lavori</div>
+      <div class="nav-i" style="color:var(--t2);">Clienti</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── OPZIONE D: Doppio gold ─── -->
+<div class="section-head">D — Sistema doppio: decorativo + testo</div>
+<div class="option-card" onclick="this.classList.toggle('selected')">
+  <div class="opt-header">
+    <div style="display:flex; gap:4px;">
+      <div class="swatch-lg" style="background:#D4A843; width:28px; height:28px;"></div>
+      <div class="swatch-lg" style="background:#5C3D00; width:28px; height:28px;"></div>
+    </div>
+    <div>
+      <div class="opt-name">#D4A843 decorativo + #5C3D00 testo</div>
+      <div class="opt-sub">Gold pallido solo per icone/bordi, mogano per testo &nbsp;<span class="ratio-chip chip-aaa">7.0:1 ✓</span></div>
+    </div>
+  </div>
+  <div class="mini-ui">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <!-- Gold chiaro come sfondo badge, mogano come testo -->
+        <div class="kpi-n" style="color:#5C3D00;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="mini-list-item">
+      <div>
+        <div class="item-n">#LAV-2024-0847</div>
+        <div class="item-m">Consegnato il 27 mag</div>
+      </div>
+      <!-- Badge con gold chiaro come fill, mogano come testo -->
+      <span class="badge" style="background:rgba(212,168,67,.22); color:#5C3D00; border: 1px solid rgba(212,168,67,.4);">Pronto</span>
+    </div>
+    <div class="nav-pill">
+      <div class="nav-i" style="color:#D90012;">Dashboard</div>
+      <div class="nav-i" style="color:var(--t2);">Lavori</div>
+      <div class="nav-i" style="color:var(--t2);">Clienti</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+<p class="note">Clicca quella che preferisci, poi scrivi nel terminale.<br>Stesso sfondo, stesso rosso — cambia solo l'accent.</p>
+
+</body>
+</html>

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UÀ — Config 1 Spotlight FINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,400&family=Playfair+Display:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#DDD8D3;--sfc:#E4DFD9;--elv:#EDEDEA;--prs:#D4CFC9;
+  --t1:#1C1916;--t2:#96918D;--t3:#B8B3AE;
+  --primary:#D90012;--gold:#D4A843;--success:#3DCB5C;--info:#5A5FCC;--warning:#B45309;
+  --sh-c:inset 0 1px 0 rgba(255,255,255,.88),inset 0 -1px 2px rgba(0,0,0,.04),-5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.90),inset 0 -2px 3px rgba(0,0,0,.05),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i:inset 4px 4px 9px rgba(148,128,118,.32),inset -3px -3px 7px rgba(255,255,255,.66);
+  --dm:'DM Sans',system-ui,sans-serif;--pf:'Playfair Display',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--dm);background:#B8B3AE;padding:24px 12px 80px;min-height:100vh}
+
+.page-head{text-align:center;margin-bottom:8px}
+.page-head h1{font-family:var(--pf);font-size:20px;font-weight:400;color:#1C1916;letter-spacing:-.02em}
+.page-head p{font-size:11px;color:#96918D;margin-top:4px}
+
+/* Grid layout: 3 phones side by side */
+.row{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;align-items:flex-start;margin-top:24px}
+.col{display:flex;flex-direction:column;align-items:center;gap:14px}
+.col-head{text-align:center}
+.col-label{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#96918D}
+.col-name{font-family:var(--pf);font-size:16px;font-weight:400;color:#1C1916;margin-top:2px}
+.col-vp{font-size:10px;color:#96918D;margin-top:2px}
+
+/* Phone frame */
+.phone{overflow:hidden;border-radius:36px;
+  box-shadow:0 20px 56px rgba(0,0,0,.30),0 5px 16px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.35);
+  border:5px solid #1E1E1E}
+.phone.mobile{width:310px}
+.phone.tablet{width:440px}
+.phone.desktop{width:620px}
+.notch{height:22px;background:#1E1E1E;display:flex;align-items:center;justify-content:center;gap:7px}
+.ns{width:44px;height:5px;background:#151515;border-radius:3px}
+.nc{width:8px;height:8px;background:#151515;border-radius:50%}
+.scr{background:var(--bg)}
+.hp{height:20px;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.hb{width:80px;height:4px;background:rgba(0,0,0,.13);border-radius:2px}
+
+/* ─── ATOMS ─────────────────────────────────────────── */
+
+/* Header */
+.H{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 6px}
+.H-left{display:flex;align-items:center;gap:8px}
+.lname{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t2)}
+.sync{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:500;color:var(--t2);background:var(--sfc);padding:3px 8px;border-radius:100px;box-shadow:var(--sh-b)}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--success);animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.av{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-b);flex-shrink:0}
+
+/* Greeting */
+.gr{padding:4px 18px 12px}
+.gt{font-size:11px;color:var(--t2);margin-bottom:2px}
+.gn{font-family:var(--pf);font-size:22px;font-weight:400;color:var(--t1);letter-spacing:-.02em;line-height:1.1}
+
+/* Role tabs */
+.rtabs{margin:0 14px 12px;background:var(--prs);border-radius:15px;padding:3px;display:flex;box-shadow:var(--sh-i)}
+.rtab{flex:1;padding:7px 5px;border-radius:12px;font-size:11px;font-weight:600;text-align:center;color:var(--t2);line-height:1.2}
+.rtab small{display:block;font-size:8.5px;opacity:.55;margin-top:1px;font-weight:400}
+.rtab.on{background:var(--elv);color:var(--t1);box-shadow:var(--sh-b)}
+
+/* ─── SPOTLIGHT CARD ─────────────────────────────────── */
+.spotlight{margin:0 14px 12px;background:var(--sfc);border-radius:20px;padding:16px 18px;box-shadow:var(--sh-c);cursor:pointer;transition:transform .15s cubic-bezier(.2,0,0,1),box-shadow .15s cubic-bezier(.2,0,0,1);-webkit-tap-highlight-color:transparent}
+.spotlight:active{transform:scale(.97);box-shadow:var(--sh-i)}
+.spot-eye{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.spot-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);animation:pulse 2.5s infinite}
+.spot-title{font-family:var(--pf);font-size:17px;font-weight:400;color:var(--t1);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px}
+.spot-meta{font-size:12px;color:var(--t2);line-height:1.4}
+.spot-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.spot-cta{background:var(--primary);color:#fff;border-radius:100px;padding:8px 18px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(217,0,18,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+.spot-ts{font-size:9px;color:var(--t3)}
+
+/* ─── KPI CARDS (cliccabili come filtri) ─────────────── */
+/* REGOLA: ogni KPI è una card intera cliccabile → naviga a lista filtrata */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 10px}
+.kpi-grid.three{grid-template-columns:1fr 1fr 1fr}
+.kpi{background:var(--sfc);border-radius:16px;padding:12px 13px;box-shadow:var(--sh-b);cursor:pointer;display:flex;flex-direction:column;gap:0;-webkit-tap-highlight-color:transparent;transition:transform .12s cubic-bezier(.2,0,0,1),box-shadow .12s cubic-bezier(.2,0,0,1);user-select:none}
+.kpi:active{transform:scale(.95);box-shadow:var(--sh-i)}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between}
+.kpi-num{font-family:var(--pf);font-size:38px;font-weight:300;line-height:1;letter-spacing:-.02em}
+.kpi-num.red{color:var(--primary)}
+.kpi-num.blue{color:var(--info)}
+.kpi-num.gold{color:var(--gold)}
+.kpi-num.green{color:var(--success)}
+.kpi-num.grey{color:var(--t2)}
+.kpi-arrow{font-size:11px;color:var(--t3);margin-top:6px;flex-shrink:0}
+.kpi-label{font-size:11px;font-weight:600;color:var(--t2);margin-top:2px;line-height:1.3}
+.kpi-action{font-size:10px;color:var(--t3);margin-top:3px;display:flex;align-items:center;gap:3px}
+
+/* ─── SECTION HEADER ─────────────────────────────────── */
+.sec{padding:5px 18px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3)}
+
+/* ─── TASK LIST ──────────────────────────────────────── */
+.tasks{padding:0 14px 8px;display:flex;flex-direction:column;gap:6px}
+.task{background:var(--sfc);border-radius:14px;padding:11px 13px;display:flex;gap:10px;align-items:center;box-shadow:var(--sh-b);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s cubic-bezier(.2,0,0,1)}
+.task:active{transform:scale(.97);box-shadow:var(--sh-i)}
+.task-num{font-family:var(--pf);font-size:14px;font-weight:300;color:var(--t3);width:18px;text-align:center;flex-shrink:0}
+.task-body{flex:1;min-width:0}
+.task-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.task-phase{font-size:11px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:5px}
+.task-right{text-align:right;flex-shrink:0}
+.task-time{font-size:12px;font-weight:700;color:var(--t1);line-height:1.2}
+.task-date{font-size:10px;color:var(--t3);margin-top:2px}
+.prog{height:3px;background:var(--prs);border-radius:2px;margin-top:5px;overflow:hidden}
+.pf2{height:100%;border-radius:2px}
+
+/* ─── NAV PILL ───────────────────────────────────────── */
+.nav{margin:6px 14px 0;background:var(--elv);border-radius:100px;display:flex;align-items:center;padding:5px 6px;box-shadow:var(--sh-b);gap:2px;position:relative}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 8px;border-radius:100px;min-width:48px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .12s cubic-bezier(.2,0,0,1);position:relative}
+.ni:active{transform:scale(.92)}
+.ni.on{background:var(--prs);box-shadow:var(--sh-i)}
+.ni-ic{font-size:15px;line-height:1}
+.ni-lb{font-size:9px;font-weight:600;color:var(--t2)}
+.ni.on .ni-lb{color:var(--primary);font-weight:700}
+.ncta{width:46px;height:46px;border-radius:50%;background:var(--elv);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-b);color:var(--primary);font-size:22px;font-weight:700;flex-shrink:0;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent;transition:transform .1s cubic-bezier(.2,0,0,1)}
+.ncta:active{transform:scale(.88);box-shadow:var(--sh-i)}
+/* Tooltip permanente sul + */
+.tip{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);background:var(--t1);color:var(--elv);font-size:9.5px;font-weight:600;padding:5px 11px;border-radius:8px;white-space:nowrap;box-shadow:var(--sh-b);pointer-events:none}
+.tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--t1)}
+/* Pin badge */
+.pin{position:absolute;top:1px;right:1px;font-size:7px}
+/* Drag handle hint */
+.drag-hint{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:8px;color:var(--t3);font-weight:500}
+
+/* ─── TABLET SPECIFIC ────────────────────────────────── */
+.tablet .scr { padding-bottom:4px }
+.tablet .kpi-num { font-size:42px }
+.tablet .task-name { font-size:15px }
+.tablet .gn { font-size:24px }
+.tablet .kpi-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+/* ─── DESKTOP SPECIFIC ───────────────────────────────── */
+.desktop .scr { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto; column-gap: 0; }
+.desktop .scr-left { padding-bottom: 8px; }
+.desktop .scr-right { border-left: 1px solid rgba(0,0,0,.06); padding-bottom:8px; }
+.desktop .H { grid-column: 1 / -1; border-bottom: 1px solid rgba(0,0,0,.05); padding-bottom:10px; }
+.desktop .gr-row { grid-column: 1 / -1; display: flex; align-items: flex-end; justify-content:space-between; padding: 6px 20px 10px; }
+.desktop .rtabs { grid-column: 1 / -1; margin: 0 20px 12px; }
+.desktop .kpi-num { font-size:44px }
+.desktop .task-name { font-size:14px }
+
+/* ─── ANNOTATION ─────────────────────────────────────── */
+.ann{background:rgba(255,255,255,.58);border-radius:14px;padding:13px 14px;backdrop-filter:blur(10px)}
+.ann h4{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:9px}
+.ann-r{display:flex;gap:7px;align-items:flex-start;margin-bottom:6px;font-size:11px;color:var(--t2);line-height:1.5}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.dr{background:var(--primary)}.db{background:var(--info)}.dg{background:var(--success)}.dw{background:var(--gold)}.d_{background:var(--t3)}
+
+/* Bottom bar */
+.bot{position:fixed;bottom:0;left:0;right:0;background:rgba(28,25,22,.95);backdrop-filter:blur(18px);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;z-index:100}
+.bot-t{color:#F0EDE8;font-size:14px;font-weight:600;font-family:var(--dm)}
+.bot-s{color:rgba(240,237,232,.40);font-size:10px;margin-top:2px}
+.bot-btn{background:var(--primary);color:#fff;border:none;border-radius:100px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--dm);box-shadow:0 4px 14px rgba(217,0,18,.30)}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Config 1 — Spotlight · Tre Viewport</h1>
+  <p>KPI cliccabili come filtri · Playfair 38–44px · DM Sans 14px body · Touch target 52px · Nav drag&drop + pin + tooltip</p>
+</div>
+
+<div class="row">
+
+<!-- ══════════════════════════════
+     MOBILE 390px
+════════════════════════════════ -->
+<div class="col">
+  <div class="col-head">
+    <div class="col-label">Viewport 1</div>
+    <div class="col-name">Mobile 390px</div>
+    <div class="col-vp">Titolare + Tecnico ibrido</div>
+  </div>
+
+  <div class="phone mobile">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr">
+
+      <div class="H">
+        <div class="H-left">
+          <div class="lname">Lab Opromolla</div>
+          <div class="sync"><div class="sdot"></div>Aggiornato ora</div>
+        </div>
+        <div class="av">FO</div>
+      </div>
+
+      <div class="gr">
+        <div class="gt">venerdì 22 maggio · pomeriggio</div>
+        <div class="gn">Filippo</div>
+      </div>
+
+      <div class="rtabs">
+        <div class="rtab">📊 Gestione<small>business</small></div>
+        <div class="rtab on">🔧 Produzione<small>i miei lavori</small></div>
+      </div>
+
+      <!-- SPOTLIGHT CARD -->
+      <div class="spotlight">
+        <div class="spot-eye" style="color:var(--primary)">
+          <div class="spot-dot"></div>Blocco attivo
+        </div>
+        <div class="spot-title">Impronta non idonea</div>
+        <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002<br>Consegna <strong style="color:var(--primary)">oggi ore 17:00</strong></div>
+        <div class="spot-footer">
+          <div class="spot-cta">Risolvi subito →</div>
+          <div class="spot-ts">segnalato 12 min fa</div>
+        </div>
+      </div>
+
+      <!-- KPI GRID — 2x2, cliccabili come filtri -->
+      <div class="kpi-grid">
+        <div class="kpi" onclick="" title="Vai alle consegne di oggi">
+          <div class="kpi-top">
+            <div class="kpi-num blue">3</div>
+            <div class="kpi-arrow">›</div>
+          </div>
+          <div class="kpi-label">Da consegnare</div>
+          <div class="kpi-action">oggi →</div>
+        </div>
+        <div class="kpi" onclick="" title="Vai ai lavori in ritardo">
+          <div class="kpi-top">
+            <div class="kpi-num red">0</div>
+            <div class="kpi-arrow">›</div>
+          </div>
+          <div class="kpi-label">In ritardo</div>
+          <div class="kpi-action">vedi tutti →</div>
+        </div>
+        <div class="kpi" onclick="" title="Vai alle fatture da emettere">
+          <div class="kpi-top">
+            <div class="kpi-num gold">5</div>
+            <div class="kpi-arrow">›</div>
+          </div>
+          <div class="kpi-label">Da fatturare</div>
+          <div class="kpi-action">fattura →</div>
+        </div>
+        <div class="kpi" onclick="" title="Vai ai materiali esauriti">
+          <div class="kpi-top">
+            <div class="kpi-num grey">4</div>
+            <div class="kpi-arrow">›</div>
+          </div>
+          <div class="kpi-label">Materiali</div>
+          <div class="kpi-action">ordina →</div>
+        </div>
+      </div>
+
+      <!-- TASK LIST -->
+      <div class="sec">I miei lavori — per scadenza</div>
+      <div class="tasks">
+        <div class="task">
+          <div class="task-num">1</div>
+          <div class="task-body">
+            <div class="task-name">Studio Dentistico Rossi</div>
+            <div class="task-phase">🟡 Finitura · lucidatura</div>
+            <div class="prog"><div class="pf2" style="width:78%;background:var(--gold)"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time">18:30</div>
+            <div class="task-date">oggi</div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-num">2</div>
+          <div class="task-body">
+            <div class="task-name">Di Santi Caterina</div>
+            <div class="task-phase">🟢 Pronta · da imballare</div>
+            <div class="prog"><div class="pf2" style="width:96%;background:var(--success)"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time">09:00</div>
+            <div class="task-date">dom</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NAV PILL con tooltip + pin + drag hint -->
+      <div style="position:relative;padding:0 0 8px">
+        <div class="nav">
+          <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+          <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+          <div class="ncta">+<div class="tip">Nuovo lavoro</div></div>
+          <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+          <div class="ni"><div class="ni-ic">⋯</div><div class="ni-lb">Altro</div><div class="pin">📌</div></div>
+        </div>
+        <div class="drag-hint">Tieni premuto un tab per spostarlo o sostituirlo</div>
+      </div>
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="ann" style="width:310px">
+    <h4>Mobile 390px — decision flow</h4>
+    <div class="ann-r"><div class="dot dr"></div>Spotlight: azione obbligata (blocco), 1 CTA primaria rossa</div>
+    <div class="ann-r"><div class="dot db"></div>KPI 2×2: Playfair 38px, ogni card tap → lista filtrata</div>
+    <div class="ann-r"><div class="dot dg"></div>Task list: font 14px body, progress bar da lavori_fasi reali</div>
+    <div class="ann-r"><div class="dot d_"></div>Tooltip "Nuovo lavoro" permanente sul "+"</div>
+    <div class="ann-r"><div class="dot dw"></div>Drag hint sotto nav: "Tieni premuto per spostare"</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     TABLET 768px
+════════════════════════════════ -->
+<div class="col">
+  <div class="col-head">
+    <div class="col-label">Viewport 2</div>
+    <div class="col-name">Tablet 768px</div>
+    <div class="col-vp">Front desk · segreteria</div>
+  </div>
+
+  <div class="phone tablet" style="width:440px">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr">
+
+      <div class="H" style="padding:12px 22px 8px">
+        <div class="H-left">
+          <div class="lname">Lab Opromolla</div>
+          <div class="sync"><div class="sdot"></div>Aggiornato ora</div>
+        </div>
+        <div class="av">FO</div>
+      </div>
+
+      <div class="gr" style="padding:4px 22px 10px">
+        <div class="gt">venerdì 22 maggio</div>
+        <div class="gn" style="font-size:24px">Filippo</div>
+      </div>
+
+      <div class="rtabs" style="margin:0 18px 10px">
+        <div class="rtab">📊 Gestione</div>
+        <div class="rtab on">🔧 Produzione</div>
+      </div>
+
+      <!-- Spotlight full width -->
+      <div class="spotlight" style="margin:0 18px 10px;padding:14px 18px">
+        <div class="spot-eye" style="color:var(--primary)"><div class="spot-dot"></div>Blocco attivo</div>
+        <div class="spot-title" style="font-size:18px">Impronta non idonea — ESPOSITO MASSIMO</div>
+        <div class="spot-meta">#2026/0002 · Consegna <strong style="color:var(--primary)">oggi ore 17:00</strong></div>
+        <div class="spot-footer">
+          <div class="spot-cta">Risolvi subito →</div>
+          <div class="spot-ts">12 min fa</div>
+        </div>
+      </div>
+
+      <!-- KPI 4 in riga — Playfair 42px -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 18px 10px">
+        <div class="kpi" style="padding:11px 12px">
+          <div class="kpi-top"><div class="kpi-num blue" style="font-size:42px">3</div><div class="kpi-arrow">›</div></div>
+          <div class="kpi-label">Da consegnare</div>
+          <div class="kpi-action">oggi →</div>
+        </div>
+        <div class="kpi" style="padding:11px 12px">
+          <div class="kpi-top"><div class="kpi-num red" style="font-size:42px">0</div><div class="kpi-arrow">›</div></div>
+          <div class="kpi-label">In ritardo</div>
+          <div class="kpi-action">vedi →</div>
+        </div>
+        <div class="kpi" style="padding:11px 12px">
+          <div class="kpi-top"><div class="kpi-num gold" style="font-size:42px">5</div><div class="kpi-arrow">›</div></div>
+          <div class="kpi-label">Da fatturare</div>
+          <div class="kpi-action">fattura →</div>
+        </div>
+        <div class="kpi" style="padding:11px 12px">
+          <div class="kpi-top"><div class="kpi-num grey" style="font-size:42px">4</div><div class="kpi-arrow">›</div></div>
+          <div class="kpi-label">Materiali</div>
+          <div class="kpi-action">ordina →</div>
+        </div>
+      </div>
+
+      <!-- 2 task in row su tablet -->
+      <div class="sec" style="padding:5px 22px 4px">I miei lavori</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 18px 8px">
+        <div class="task">
+          <div class="task-num">1</div>
+          <div class="task-body">
+            <div class="task-name" style="font-size:13px">Studio Rossi</div>
+            <div class="task-phase" style="font-size:10px">🟡 Finitura 78%</div>
+            <div class="prog"><div class="pf2" style="width:78%;background:var(--gold)"></div></div>
+          </div>
+          <div class="task-right"><div class="task-time">18:30</div></div>
+        </div>
+        <div class="task">
+          <div class="task-num">2</div>
+          <div class="task-body">
+            <div class="task-name" style="font-size:13px">Di Santi</div>
+            <div class="task-phase" style="font-size:10px">🟢 Pronta 96%</div>
+            <div class="prog"><div class="pf2" style="width:96%;background:var(--success)"></div></div>
+          </div>
+          <div class="task-right"><div class="task-time">09:00</div></div>
+        </div>
+      </div>
+
+      <div style="position:relative;padding:0 0 8px">
+        <div class="nav" style="margin:6px 18px 0">
+          <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+          <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+          <div class="ncta">+<div class="tip">Nuovo lavoro</div></div>
+          <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+          <div class="ni"><div class="ni-ic">🧾</div><div class="ni-lb">Fatture</div></div>
+          <div class="ni"><div class="ni-ic">⋯</div><div class="ni-lb">Altro</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="ann" style="width:440px">
+    <h4>Tablet 768px — più spazio, più info</h4>
+    <div class="ann-r"><div class="dot dr"></div>KPI 4 in riga orizzontale: Playfair 42px — visibili tutti senza scroll</div>
+    <div class="ann-r"><div class="dot db"></div>Task in griglia 2 colonne — più compresso, più lavori above fold</div>
+    <div class="ann-r"><div class="dot d_"></div>Nav pill si espande — voce aggiuntiva "Fatture" sempre visibile</div>
+    <div class="ann-r"><div class="dot dg"></div>Spotlight si allarga su piena larghezza — testo più leggibile</div>
+  </div>
+</div>
+
+</div><!-- end row -->
+
+<!-- ══════════════════════════════
+     DESKTOP 1280px — in sezione separata
+════════════════════════════════ -->
+<div style="display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:32px">
+  <div class="col-head">
+    <div class="col-label">Viewport 3</div>
+    <div class="col-name" style="font-family:var(--pf);font-size:17px;font-weight:400;color:#1C1916">Desktop 1280px — Layout 2 colonne</div>
+    <div class="col-vp" style="font-size:11px;color:#96918D;margin-top:2px">Titolare · scrivania · uso intensivo</div>
+  </div>
+
+  <div class="phone" style="width:min(980px,calc(100vw - 32px));border-radius:24px">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr" style="display:grid;grid-template-columns:1fr 1fr;min-height:500px">
+
+      <!-- LEFT COLUMN: Produzione -->
+      <div style="padding:16px 20px 16px;border-right:1px solid rgba(0,0,0,.06)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div class="lname">Lab Opromolla</div>
+            <div style="font-family:var(--pf);font-size:22px;font-weight:400;color:var(--t1);letter-spacing:-.02em;line-height:1.1;margin-top:2px">Produzione</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="sync"><div class="sdot"></div>Aggiornato ora</div>
+            <div class="av">FO</div>
+          </div>
+        </div>
+
+        <!-- Spotlight compresso per desktop -->
+        <div class="spotlight" style="margin:0 0 10px;padding:13px 16px">
+          <div class="spot-eye" style="color:var(--primary);font-size:9px"><div class="spot-dot"></div>Blocco · ESPOSITO MASSIMO · #2026/0002</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+            <div class="spot-title" style="font-size:15px">Impronta non idonea — consegna oggi 17:00</div>
+            <div class="spot-cta" style="font-size:11px;padding:6px 14px;flex-shrink:0;margin-left:12px">Risolvi →</div>
+          </div>
+        </div>
+
+        <!-- Task list desktop -->
+        <div class="sec" style="padding:4px 0 6px">I miei lavori</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="task" style="padding:10px 12px">
+            <div class="task-num">1</div>
+            <div class="task-body"><div class="task-name">Studio Dentistico Rossi</div><div class="task-phase">🟡 Finitura · lucidatura · 78%</div><div class="prog"><div class="pf2" style="width:78%;background:var(--gold)"></div></div></div>
+            <div class="task-right"><div class="task-time">18:30</div><div class="task-date">oggi</div></div>
+          </div>
+          <div class="task" style="padding:10px 12px">
+            <div class="task-num">2</div>
+            <div class="task-body"><div class="task-name">Di Santi Caterina</div><div class="task-phase">🟢 Pronta · da imballare · 96%</div><div class="prog"><div class="pf2" style="width:96%;background:var(--success)"></div></div></div>
+            <div class="task-right"><div class="task-time">09:00</div><div class="task-date">dom</div></div>
+          </div>
+          <div class="task" style="padding:10px 12px">
+            <div class="task-num">3</div>
+            <div class="task-body"><div class="task-name">Studi Medici Di Santi</div><div class="task-phase">🔵 Modellazione · 42%</div><div class="prog"><div class="pf2" style="width:42%;background:var(--info)"></div></div></div>
+            <div class="task-right"><div class="task-time">14:00</div><div class="task-date">ven 25</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Gestione (business) -->
+      <div style="padding:16px 20px 16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:12px">Gestione Lab</div>
+
+        <!-- KPI 2×2 griglia desktop con numeri grandi -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div class="kpi"><div class="kpi-top"><div class="kpi-num blue" style="font-size:44px">3</div><div class="kpi-arrow">›</div></div><div class="kpi-label">Da consegnare oggi</div><div class="kpi-action">filtra lavori →</div></div>
+          <div class="kpi"><div class="kpi-top"><div class="kpi-num red" style="font-size:44px">0</div><div class="kpi-arrow">›</div></div><div class="kpi-label">In ritardo</div><div class="kpi-action">filtra lavori →</div></div>
+          <div class="kpi"><div class="kpi-top"><div class="kpi-num gold" style="font-size:44px">5</div><div class="kpi-arrow">›</div></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">vai a fatture →</div></div>
+          <div class="kpi"><div class="kpi-top"><div class="kpi-num grey" style="font-size:44px">4</div><div class="kpi-arrow">›</div></div><div class="kpi-label">Materiali sotto scorta</div><div class="kpi-action">ordina →</div></div>
+        </div>
+
+        <!-- Pagamenti + fatturato -->
+        <div class="sec" style="padding:4px 0 6px">Finanziario</div>
+        <div style="background:var(--sfc);border-radius:14px;padding:12px 14px;box-shadow:var(--sh-b);margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:6px">Fatturato mensile</div>
+          <div style="font-family:var(--pf);font-size:28px;font-weight:300;color:var(--t1);line-height:1">€ 0</div>
+          <div style="display:flex;gap:4px;align-items:flex-end;height:32px;margin-top:8px">
+            <div style="flex:1;border-radius:3px 3px 0 0;background:rgba(217,0,18,.18);height:55%"></div>
+            <div style="flex:1;border-radius:3px 3px 0 0;background:rgba(217,0,18,.18);height:72%"></div>
+            <div style="flex:1;border-radius:3px 3px 0 0;background:rgba(217,0,18,.18);height:40%"></div>
+            <div style="flex:1;border-radius:3px 3px 0 0;background:rgba(217,0,18,.18);height:88%"></div>
+            <div style="flex:1;border-radius:3px 3px 0 0;background:rgba(217,0,18,.18);height:50%"></div>
+            <div style="flex:1;border-radius:3px 3px 0 0;background:var(--primary);height:18%"></div>
+          </div>
+        </div>
+
+        <!-- Scorciatoia: nav personalizzata solo su desktop -->
+        <div class="sec" style="padding:4px 0 6px">Accessi rapidi (personalizzabili)</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+          <div style="background:var(--sfc);border-radius:12px;padding:8px 6px;box-shadow:var(--sh-b);text-align:center;cursor:pointer">
+            <div style="font-size:18px">🧾</div><div style="font-size:9px;font-weight:600;color:var(--t2);margin-top:3px">Fatture</div>
+          </div>
+          <div style="background:var(--sfc);border-radius:12px;padding:8px 6px;box-shadow:var(--sh-b);text-align:center;cursor:pointer">
+            <div style="font-size:18px">👥</div><div style="font-size:9px;font-weight:600;color:var(--t2);margin-top:3px">Tecnici</div>
+          </div>
+          <div style="background:var(--sfc);border-radius:12px;padding:8px 6px;box-shadow:var(--sh-b);text-align:center;cursor:pointer">
+            <div style="font-size:18px">📦</div><div style="font-size:9px;font-weight:600;color:var(--t2);margin-top:3px">Magazzino</div>
+          </div>
+          <div style="background:var(--sfc);border-radius:12px;padding:8px 6px;box-shadow:var(--sh-b);text-align:center;cursor:pointer;opacity:.5">
+            <div style="font-size:18px">+</div><div style="font-size:9px;font-weight:600;color:var(--t2);margin-top:3px">Aggiungi</div>
+          </div>
+        </div>
+
+      </div><!-- end right column -->
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="ann" style="width:min(980px,calc(100vw-32px))">
+    <h4>Desktop 1280px — 2 colonne, tutto visibile senza scroll</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="ann-r"><div class="dot dr"></div>Colonna sinistra: Produzione (spotlight + task list). Colonna destra: Gestione (KPI 2×2 + finanziario)</div>
+      <div class="ann-r"><div class="dot db"></div>KPI Playfair 44px — visibili da lontano anche su monitor da lavoro</div>
+      <div class="ann-r"><div class="dot dg"></div>Accessi rapidi personalizzabili: griglia 4 icone drag&droppabili</div>
+      <div class="ann-r"><div class="dot dw"></div>Nav pill nascosta su desktop (≥1024px) — navigazione da sidebar o links diretti</div>
+      <div class="ann-r"><div class="dot d_"></div>Ogni KPI: tap → naviga a lista pre-filtrata (no step aggiuntivi)</div>
+      <div class="ann-r"><div class="dot dr"></div>Spotlight compresso su desktop — più info nella stessa altezza</div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary bottom -->
+<div style="max-width:min(980px,calc(100vw-32px));margin:32px auto 0;background:rgba(255,255,255,.55);border-radius:16px;padding:18px 24px;backdrop-filter:blur(10px)">
+  <div style="font-family:var(--pf);font-size:15px;font-weight:400;color:var(--t1);margin-bottom:12px">KPI come filtri attivi — come funziona</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;font-size:11px;color:var(--t2);line-height:1.5">
+    <div><strong style="color:var(--t1)">Tap su "3 Da consegnare"</strong> → naviga a <code style="background:rgba(0,0,0,.07);padding:1px 5px;border-radius:4px">/lavori?filter=consegne-oggi</code> con filtro già attivo. La lista mostra solo i 3 lavori di oggi.</div>
+    <div><strong style="color:var(--t1)">Tap su "5 Da fatturare"</strong> → naviga a <code style="background:rgba(0,0,0,.07);padding:1px 5px;border-radius:4px">/fatture</code> con sezione "batch" aperta automaticamente.</div>
+    <div><strong style="color:var(--t1)">Tap su "4 Materiali"</strong> → naviga a <code style="background:rgba(0,0,0,.07);padding:1px 5px;border-radius:4px">/magazzino?filter=sotto-scorta</code> — solo i materiali che richiedono ordine.</div>
+    <div><strong style="color:var(--t1)">Affordance</strong>: chevron "›" nell'angolo in alto a destra del KPI card comunica che è cliccabile, senza richiedere esperienza mobile pregressa.</div>
+  </div>
+</div>
+
+<div class="bot">
+  <div><div class="bot-t">Questa è la direzione giusta?</div><div class="bot-s">Risposta nel terminale — poi scriviamo la spec</div></div>
+</div>
+
+</body>
+</html>

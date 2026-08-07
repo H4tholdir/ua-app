@@ -1,0 +1,1035 @@
+# Review package: 5c80db03..3f66b8ed
+
+## Commits
+3f66b8ed feat(clienti): P31/D183-D185 — il tasto WhatsApp chiede il cellulare che manca e lo salva PRIMA di inviare
+
+## Files changed
+ .../features/clienti/ChiediCellulareSheet.tsx      | 105 ++++++++++++++++
+ .../lavori/consegna-v3/FrameConsegnato.tsx         |  36 +++++-
+ .../features/scadenzario/EstrattoContoView.tsx     | 137 +++++++++++++++------
+ .../features/scadenzario/ScadenzarioList.tsx       | 112 ++++++++++++-----
+ tests/unit/consegna-chiede-il-cellulare.test.tsx   | 102 +++++++++++++++
+ .../unit/scadenzario-chiede-il-cellulare.test.tsx  | 130 +++++++++++++++++++
+ 6 files changed, 554 insertions(+), 68 deletions(-)
+
+## Diff
+diff --git a/src/components/features/clienti/ChiediCellulareSheet.tsx b/src/components/features/clienti/ChiediCellulareSheet.tsx
+new file mode 100644
+index 00000000..e463ad5c
+--- /dev/null
++++ b/src/components/features/clienti/ChiediCellulareSheet.tsx
+@@ -0,0 +1,105 @@
++'use client'
++
++// P31 — D183 · D185. Il cellulare WhatsApp del cliente può mancare: il tasto
++// che manda un messaggio (consegna, o un sollecito dallo scadenzario) non
++// deve morire. Chiede il numero, lo SALVA in anagrafica, POI il chiamante
++// apre WhatsApp.
++//
++// 🔄 D185 (03/08/2026): questo foglio nasce CONDIVISO — lo montano quattro
++// schermate (consegna + tre punti dello scadenzario), non solo la consegna.
++// Per questo vive in `features/clienti/` (è un pezzo di anagrafica) e NON
++// sa nulla di "consegna" o "sollecito": riceve `clienteId` e restituisce il
++// cellulare salvato con `onSalvato`, il chiamante decide come usarlo.
++//
++// 🛑 L'ORDINE È VINCOLANTE (D183). Salvare dopo l'invio separerebbe due fatti
++// che devono restare insieme: se il salvataggio fallisce dopo che WhatsApp è
++// già partito, alla consegna/sollecito successivo il programma richiederebbe
++// di nuovo lo stesso numero. Qui si salva PRIMA (`await fetch` risolto,
++// `res.ok` verificato) e SOLO allora si chiama `onSalvato`, che è quanto il
++// chiamante userà per aprire WhatsApp.
++//
++// Componenti: SOLO da `src/components/ds/` (v3). `Sheet` porta con sé
++// `data-ds="v3"` sul proprio portale (v. Sheet.tsx) — è per questo che può
++// montare da una pagina v2.3 (i tre punti dello scadenzario) senza mischiare
++// i due design system nella stessa pagina: il suo DOM vive fuori dallo scope
++// della pagina che lo apre. `TastoPrimario`, invece, NON si auto-scopa — resta
++// dentro questo foglio (che eredita `data-ds="v3"` dal portale di `Sheet`), e
++// NON viene riusato come tasto-trigger nelle pagine v2.3: lì il trigger resta
++// uno stile locale del chiamante (§14 DS v3 — migrazione per route, mai per
++// componente).
++import { useState } from 'react'
++import { Sheet } from '@/components/ds/Sheet'
++import { CampoTesto } from '@/components/ds/Campo'
++import { TastoPrimario } from '@/components/ds/TastoPrimario'
++import { tipografia } from '@/design-system/v3/tokens'
++
++export function ChiediCellulareSheet(props: {
++  aperto: boolean
++  clienteId: string
++  /** Nome di chi riceverà il messaggio (dentista/studio) — riga di contesto
++   *  sopra il campo, fedele al mockup approvato (D186): «Manca ancora un
++   *  cellulare per Studio Piegari…». Generico apposta (mai "per lo"/"per il"):
++   *  il nome è testo libero, l'articolo giusto in italiano dipende dal genere
++   *  del nome e questo componente non può saperlo. */
++  nomeDestinatario: string
++  onChiudi: () => void
++  onSalvato: (cellulare: string) => void
++}) {
++  const { aperto, clienteId, nomeDestinatario, onChiudi, onSalvato } = props
++  const [cellulare, setCellulare] = useState('')
++  const [invio, setInvio] = useState(false)
++  const [guasto, setGuasto] = useState(false)
++
++  async function salvaEInvia() {
++    if (!cellulare.trim()) return
++    setInvio(true)
++    setGuasto(false)
++    try {
++      const res = await fetch(`/api/clienti/${clienteId}`, {
++        method: 'PATCH',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ cellulare_whatsapp: cellulare.trim() }),
++      })
++      if (!res.ok) {
++        setGuasto(true)
++        setInvio(false)
++        return
++      }
++      // 🛑 onSalvato PRIMA di ogni reset locale: è qui che il chiamante apre
++      // WhatsApp — l'ordine salva→apri (D183) è già garantito dall'await sopra.
++      onSalvato(cellulare.trim())
++    } catch {
++      setGuasto(true)
++      setInvio(false)
++    }
++  }
++
++  return (
++    <Sheet aperto={aperto} onChiudi={onChiudi} titolo="Il cellulare per WhatsApp">
++      <p style={{ fontSize: 15.5, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', lineHeight: 1.4, margin: 0 }}>
++        Manca ancora un cellulare per <strong style={{ color: 'var(--ink)', fontWeight: tipografia.weight.extrabold }}>{nomeDestinatario}</strong>: il messaggio parte da qui.
++      </p>
++      <CampoTesto
++        label="Cellulare WhatsApp"
++        valore={cellulare}
++        onCambia={setCellulare}
++        placeholder="333 1234567"
++        inputMode="tel"
++        aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio."
++        autoFocus
++      />
++      {guasto && (
++        <p role="alert" style={{ margin: 0, fontSize: 14.5, fontWeight: tipografia.weight.semibold, color: 'var(--red)' }}>
++          Non sono riuscita a salvare il numero. Riprova.
++        </p>
++      )}
++      <TastoPrimario
++        onClick={() => void salvaEInvia()}
++        disabled={invio || !cellulare.trim()}
++        motivoDisabilitato={invio ? 'Un attimo…' : 'Scrivi il cellulare'}
++      >
++        Salva e apri WhatsApp
++      </TastoPrimario>
++    </Sheet>
++  )
++}
+diff --git a/src/components/features/lavori/consegna-v3/FrameConsegnato.tsx b/src/components/features/lavori/consegna-v3/FrameConsegnato.tsx
+index 212d70fc..81f180ee 100644
+--- a/src/components/features/lavori/consegna-v3/FrameConsegnato.tsx
++++ b/src/components/features/lavori/consegna-v3/FrameConsegnato.tsx
+@@ -11,26 +11,29 @@
+ //
+ // ⚠️ Adattamenti vs brief (contratti reali):
+ //  - LinkQuieto: contratto reale con `onClick` (rende un <button>) — l'annullo
+ //    apre il dialog via `onClick`, coerente col brief.
+ //  - `tipografia.size.question` (= 35) esiste: usato per il titolo, mai inline.
+ 
+ import { useEffect, useRef, useState } from 'react'
+ import { createPortal } from 'react-dom'
+ import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
+ import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
++import { TastoPrimario } from '@/components/ds/TastoPrimario'
+ import { LinkQuieto } from '@/components/ds/LinkQuieto'
+ import { TastoTondo } from '@/components/ds/TastoTondo'
+ import { DialogConferma } from '@/components/ds/DialogConferma'
++import { ChiediCellulareSheet } from '@/components/features/clienti/ChiediCellulareSheet'
+ import { tipografia, spazio } from '@/design-system/v3/tokens'
+ import { suona } from '@/design-system/v3/sound'
+ import { vibra } from '@/design-system/v3/haptic'
++import { numeroPerWhatsapp } from '@/lib/consegna/whatsapp-template'
+ import type { ConsegnaResult } from '@/types/domain'
+ 
+ const FINESTRA_MS = 10 * 60 * 1000
+ 
+ export function FrameConsegnato(props: {
+   esito: ConsegnaResult
+   lavoroId: string
+   descrizione: string
+   dentista: string
+   onChiudi: () => void
+@@ -39,20 +42,24 @@ export function FrameConsegnato(props: {
+    *  fallita, fail-soft) — in quel caso NIENTE riga, mai raccontare ciò che
+    *  non è successo. */
+   cassettaLiberata?: string | null
+ }) {
+   const { esito, lavoroId, descrizione, dentista, onChiudi, cassettaLiberata } = props
+   const titoloRef = useRef<HTMLHeadingElement>(null)
+   const [t0] = useState(() => Date.now())
+   const [rimasti, setRimasti] = useState(FINESTRA_MS)
+   const [annulloAperto, setAnnulloAperto] = useState(false)
+   const [annulloInCorso, setAnnulloInCorso] = useState(false)
++  // D183/D185: il cellulare WhatsApp può mancare — il tasto non sparisce,
++  // apre questo foglio (condiviso, `features/clienti/`) che lo chiede e lo
++  // salva PRIMA di aprire WhatsApp.
++  const [chiediAperto, setChiediAperto] = useState(false)
+   // Feedback D-6 sul fallimento dell'annullo: il dialog RESTA aperto con una
+   // nota ambra generica (mai la stringa server) — un'azione che annulla DdC e
+   // buono non può fallire in silenzio. Reset alla riapertura del dialog.
+   const [annulloFallito, setAnnulloFallito] = useState(false)
+ 
+   // §9.1: «ua» è LA FIRMA del Consegnato! (palette chiusa dei 5 suoni) —
+   // abbinamento notification-success (§9.3). Una volta sola, al mount.
+   useEffect(() => { titoloRef.current?.focus(); suona('ua'); vibra('success') }, [])
+   useEffect(() => {
+     const timer = setInterval(() => {
+@@ -113,21 +120,32 @@ export function FrameConsegnato(props: {
+             ...(cassettaLiberata ? [{ nome: `UÀ ha liberato la cassetta ${cassettaLiberata}` }] : []),
+           ]} />
+         </div>
+ 
+         {/* D-2 — riga quieta STATICA, stile proprio (mai LinkQuieto §5.5) */}
+         <p style={{ fontSize: 14.5, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', textAlign: 'center', margin: `${spazio.m}px 0 0` }}>
+           La fatturazione si decide con il dentista
+         </p>
+ 
+         <div style={{ marginTop: spazio.m, display: 'flex', justifyContent: 'center' }}>
+-          <TastoWhatsApp waUrl={esito.whatsapp_url}>Invia messaggio WhatsApp</TastoWhatsApp>
++          {/* D183 — il segnale che il cellulare manca è nell'URL: server-side
++              (orchestrate.ts) `buildWhatsappUrl` produce `https://wa.me/?text=…`
++              (senza cifre) quando non c'è un cellulare da comporre. TastoWhatsApp
++              è un collegamento e rifiuta comunque un waUrl del genere (contratto
++              di sicurezza, v. il suo commento): qui serve un TASTO, non un
++              collegamento — non si allenta quel controllo per farci passare un
++              caso che non è il suo. */}
++          {esito.whatsapp_url.startsWith('https://wa.me/?') ? (
++            <TastoPrimario onClick={() => setChiediAperto(true)}>Invia messaggio WhatsApp</TastoPrimario>
++          ) : (
++            <TastoWhatsApp waUrl={esito.whatsapp_url}>Invia messaggio WhatsApp</TastoWhatsApp>
++          )}
+         </div>
+ 
+         {/* Annullo (Frame 3): LinkQuieto + countdown NON-live; sparisce a 0 */}
+         {rimasti > 0 && (
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+             <LinkQuieto onClick={() => { setAnnulloFallito(false); setAnnulloAperto(true) }}>Annulla la consegna</LinkQuieto>
+             <span aria-hidden="true" style={{ fontSize: 14.5, fontWeight: tipografia.weight.bold, color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>{mm}:{ss}</span>
+           </div>
+         )}
+       </div>
+@@ -137,14 +155,30 @@ export function FrameConsegnato(props: {
+       <DialogConferma
+         aperto={annulloAperto}
+         titolo="Annullo la consegna?"
+         testo={`Annullando, la Dichiarazione di Conformità e il buono vengono annullati. La ${descrizione} n.${esito.numero_lavoro} torna sul banco.`}
+         etichettaDistruttiva={annulloInCorso ? 'Annullo…' : 'Annulla la consegna'}
+         etichettaSicura="No, resta consegnato"
+         nota={annulloFallito ? 'Non è andata a buon fine — la consegna resta valida. Riprova.' : undefined}
+         onConferma={() => void annulla()}
+         onAnnulla={() => setAnnulloAperto(false)}
+       />
++
++      <ChiediCellulareSheet
++        aperto={chiediAperto}
++        clienteId={esito.cliente_id}
++        nomeDestinatario={dentista}
++        onChiudi={() => setChiediAperto(false)}
++        onSalvato={(cellulare) => {
++          setChiediAperto(false)
++          const numero = numeroPerWhatsapp(cellulare)
++          if (!numero) return
++          // Stesso testo già pronto server-side (orchestrate.ts): si ricompone
++          // solo il numero mancante, non si ricostruisce il messaggio.
++          const testo = esito.whatsapp_url.split('?text=')[1] ?? ''
++          window.open(`https://wa.me/${numero}?text=${testo}`, '_blank', 'noopener,noreferrer')
++        }}
++      />
+     </div>,
+     document.body,
+   )
+ }
+diff --git a/src/components/features/scadenzario/EstrattoContoView.tsx b/src/components/features/scadenzario/EstrattoContoView.tsx
+index 57647bb3..8cd21966 100644
+--- a/src/components/features/scadenzario/EstrattoContoView.tsx
++++ b/src/components/features/scadenzario/EstrattoContoView.tsx
+@@ -1,19 +1,20 @@
+ // src/components/features/scadenzario/EstrattoContoView.tsx
+ 'use client'
+ 
+ import { useState, useCallback } from 'react'
+ import { useRouter } from 'next/navigation'
+ import { motion, AnimatePresence } from 'motion/react'
+ import Link from 'next/link'
+ import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
+ import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
++import { ChiediCellulareSheet } from '@/components/features/clienti/ChiediCellulareSheet'
+ import type { EstrattoContoResponse, DovutoEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
+ import { RegistraPagamentoSheet, type TargetPagamento } from './RegistraPagamentoSheet'
+ import { FatturaCard } from './FatturaCard'
+ import { KpiBar } from './KpiBar'
+ import { TabellaFatture } from './TabellaFatture'
+ import { ClienteInfoCard } from './ClienteInfoCard'
+ import { LavoriInAttesaSection } from './LavoriInAttesaSection'
+ import { CreditoDisponibileSection } from './CreditoDisponibileSection'
+ import {
+   DS, fmt, urgencyColor, urgencyEmoji, urgencyLabel, urgencyPillBg, urgencyPillBorder,
+@@ -21,28 +22,39 @@ import {
+ } from './estratto-conto-shared'
+ 
+ // ─── DovutoBottomSheet ────────────────────────────────────────────────────────
+ 
+ interface BottomSheetProps {
+   dovuto: DovutoEstratto | null
+   /** P31: cellulare per WhatsApp, MAI il telefono fisso dello studio — una
+    *  prop chiamata "telefono" che doveva ricevere il cellulare è esattamente
+    *  come è nato il difetto P31. */
+   cellulare: string | null
++  /** D185 — serve a salvare il cellulare quando manca (`ChiediCellulareSheet`
++   *  chiama `PATCH /api/clienti/[id]`): senza, il tasto non saprebbe a chi
++   *  salvarlo. */
++  clienteId: string
+   studioNome: string
+   onClose: () => void
+   onRegistraPagamento: (target: TargetPagamento) => void
++  /** D185 — dopo il salvataggio il cliente ha di nuovo un cellulare: si
++   *  aggiorna la vista (stessa `router.refresh()` di `handleRegistrato`)
++   *  così il sollecito globale non chiede di nuovo un numero già salvato. */
++  onCellulareSalvato: () => void
+ }
+ 
+-function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
++function DovutoBottomSheet({ dovuto, cellulare, clienteId, studioNome, onClose, onRegistraPagamento, onCellulareSalvato }: BottomSheetProps) {
+   const reducedMotion = useReducedMotion()
+   const color = dovuto ? urgencyColor(dovuto) : DS.t2
++  // D183/D185: il cellulare può mancare — il tasto non sparisce più (il gate
++  // era `cellulare && !dovuto.pagata`, compito 4), chiede il numero e lo salva.
++  const [chiediAperto, setChiediAperto] = useState(false)
+ 
+   const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo }) : ''
+   const whatsappUrl = (dovuto && cellulare && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, cellulare) : ''
+ 
+   return (
+     <AnimatePresence>
+       {dovuto && (
+         <>
+           <motion.div
+             key="sheet-overlay"
+@@ -101,36 +113,40 @@ function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraP
+               <KpiMini label={dovuto.pagata ? 'Importo' : 'Residuo'} value={fmt.format(dovuto.pagata ? dovuto.totale : dovuto.residuo)} color={color} />
+               <KpiMini label="Giorni" value={dovuto.pagata ? '—' : `${dovuto.giorni_ritardo}gg`} color={DS.t1} />
+               {dovuto.origine === 'fattura' ? (
+                 <KpiMini label="Stato SDI" value={labelStatoSDI(dovuto.stato_sdi ?? 'draft')} color={DS.t2} />
+               ) : (
+                 <KpiMini label="Origine" value="Lavoro diretto" color={DS.t2} />
+               )}
+             </div>
+ 
+             <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+-              {cellulare && !dovuto.pagata && (
+-                <a
+-                  href={whatsappUrl}
+-                  target="_blank"
+-                  rel="noopener noreferrer"
+-                  onClick={onClose}
+-                  style={{
+-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+-                    minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+-                    borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+-                    textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+-                  }}
+-                >
+-                  <WhatsAppIcon />
+-                  Invia sollecito WhatsApp
+-                </a>
++              {!dovuto.pagata && (
++                cellulare ? (
++                  <a
++                    href={whatsappUrl}
++                    target="_blank"
++                    rel="noopener noreferrer"
++                    onClick={onClose}
++                    style={whatsappCtaStyle}
++                  >
++                    <WhatsAppIcon />
++                    Invia sollecito WhatsApp
++                  </a>
++                ) : (
++                  // D183/D185 — il cellulare manca: il tasto CHIEDE il numero
++                  // invece di sparire (era il gate del compito 4).
++                  <button type="button" onClick={() => setChiediAperto(true)} style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}>
++                    <WhatsAppIcon />
++                    Invia sollecito WhatsApp
++                  </button>
++                )
+               )}
+ 
+               {!dovuto.pagata && (
+                 <button
+                   type="button"
+                   onClick={() => {
+                     onRegistraPagamento({
+                       tipo: dovuto.origine === 'fattura' ? 'fattura' : 'lavoro',
+                       id: dovuto.id,
+                       residuo: dovuto.residuo,
+@@ -158,26 +174,49 @@ function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraP
+                     minHeight: 52, padding: '12px 20px', background: DS.elv, color: DS.t1,
+                     borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+                     textDecoration: 'none', boxShadow: DS.shB,
+                   }}
+                 >
+                   📄 Apri fattura
+                 </Link>
+               )}
+             </div>
+           </motion.div>
++
++          <ChiediCellulareSheet
++            aperto={chiediAperto}
++            clienteId={clienteId}
++            nomeDestinatario={studioNome}
++            onChiudi={() => setChiediAperto(false)}
++            onSalvato={(cell) => {
++              setChiediAperto(false)
++              const url = buildWhatsappUrl(whatsappMsg, cell)
++              window.open(url, '_blank', 'noopener,noreferrer')
++              onCellulareSalvato()
++            }}
++          />
+         </>
+       )}
+     </AnimatePresence>
+   )
+ }
+ 
++// Stile condiviso del CTA WhatsApp (link diretto o tasto che chiede il
++// cellulare, D183/D185): STESSA faccia in entrambi i rami — la scelta fra
++// "apre" e "chiede" non deve leggersi anche nell'aspetto.
++const whatsappCtaStyle: React.CSSProperties = {
++  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
++  minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
++  borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
++  textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
++}
++
+ function KpiMini({ label, value, color }: { label: string; value: string; color: string }) {
+   return (
+     <div style={{ background: DS.elv, borderRadius: 14, padding: '10px 12px', boxShadow: DS.shB, textAlign: 'center' }}>
+       <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 10, fontWeight: 600, color: DS.t3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+         {label}
+       </div>
+       <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', wordBreak: 'break-word' }}>
+         {value}
+       </div>
+     </div>
+@@ -201,20 +240,23 @@ function SezioneHeader({ label }: { label: string }) {
+ 
+ interface Props {
+   dati: EstrattoContoResponse
+ }
+ 
+ export function EstrattoContoView({ dati }: Props) {
+   const router = useRouter()
+   const reducedMotion = useReducedMotion()
+   const [selectedDovuto, setSelectedDovuto] = useState<DovutoEstratto | null>(null)
+   const [targetPagamento, setTargetPagamento] = useState<TargetPagamento | null>(null)
++  // D183/D185: sollecito globale — il cellulare può mancare, il tasto chiede
++  // invece di sparire (era il gate del compito 4: `whatsappUrlGlobale` null).
++  const [chiediGlobaleAperto, setChiediGlobaleAperto] = useState(false)
+ 
+   const nonSaldati = dati.dovuti.filter((d) => !d.pagata)
+   const saldati = dati.dovuti.filter((d) => d.pagata)
+ 
+   const openSheet = useCallback((d: DovutoEstratto) => setSelectedDovuto(d), [])
+   const closeSheet = useCallback(() => setSelectedDovuto(null), [])
+ 
+   const handleRegistrato = useCallback(() => {
+     router.refresh()
+   }, [router])
+@@ -308,66 +350,87 @@ export function EstrattoContoView({ dati }: Props) {
+           </div>
+ 
+           <LavoriInAttesaSection lavori={dati.lavoriInAttesa} studioNome={dati.cliente.studio_nome} />
+ 
+           <CreditoDisponibileSection
+             disponibile={dati.creditoCliente.disponibile}
+             clienteId={dati.cliente.id}
+             dovutiApplicabili={nonSaldati}
+           />
+ 
+-          {dati.creditoCliente.confermato > 0 && whatsappUrlGlobale && (
++          {dati.creditoCliente.confermato > 0 && (
+             <div style={{ padding: '0 16px 24px' }} className="estratto-card-list">
+-              <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={{
+-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+-                minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+-                borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+-                textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+-              }}>
+-                <WhatsAppIcon />
+-                Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
+-              </a>
++              {whatsappUrlGlobale ? (
++                <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={whatsappCtaStyle}>
++                  <WhatsAppIcon />
++                  Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
++                </a>
++              ) : (
++                // D183/D185 — il cellulare manca: il tasto CHIEDE il numero
++                // invece di sparire (era il gate del compito 4).
++                <button type="button" onClick={() => setChiediGlobaleAperto(true)} style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}>
++                  <WhatsAppIcon />
++                  Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
++                </button>
++              )}
+             </div>
+           )}
+         </div>
+ 
+         <div className="estratto-col-sidebar">
+           <ClienteInfoCard cliente={dati.cliente} saldo_insoluto={dati.creditoCliente.confermato} />
+-          {dati.creditoCliente.confermato > 0 && whatsappUrlGlobale && (
++          {dati.creditoCliente.confermato > 0 && (
+             <div style={{ marginTop: 12 }}>
+-              <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={{
+-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+-                minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+-                borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+-                textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+-              }}>
+-                <WhatsAppIcon />
+-                Invia sollecito WhatsApp
+-              </a>
++              {whatsappUrlGlobale ? (
++                <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={whatsappCtaStyle}>
++                  <WhatsAppIcon />
++                  Invia sollecito WhatsApp
++                </a>
++              ) : (
++                <button type="button" onClick={() => setChiediGlobaleAperto(true)} style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}>
++                  <WhatsAppIcon />
++                  Invia sollecito WhatsApp
++                </button>
++              )}
+             </div>
+           )}
+         </div>
+       </div>
+ 
+       <DovutoBottomSheet
+         dovuto={selectedDovutoAggiornato}
+         cellulare={dati.cliente.cellulare_whatsapp}
++        clienteId={dati.cliente.id}
+         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
+         onClose={closeSheet}
+         onRegistraPagamento={setTargetPagamento}
++        onCellulareSalvato={() => router.refresh()}
+       />
+ 
+       <RegistraPagamentoSheet
+         target={targetPagamento}
+         onClose={() => setTargetPagamento(null)}
+         onRegistrato={handleRegistrato}
+       />
++
++      <ChiediCellulareSheet
++        aperto={chiediGlobaleAperto}
++        clienteId={dati.cliente.id}
++        nomeDestinatario={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
++        onChiudi={() => setChiediGlobaleAperto(false)}
++        onSalvato={(cell) => {
++          setChiediGlobaleAperto(false)
++          const url = buildWhatsappUrl(whatsappMsgGlobale, cell)
++          window.open(url, '_blank', 'noopener,noreferrer')
++          router.refresh()
++        }}
++      />
+     </>
+   )
+ }
+ 
+ function WhatsAppIcon() {
+   return (
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+       <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.87 9.87 0 0 0 12.04 2Z" />
+     </svg>
+   )
+diff --git a/src/components/features/scadenzario/ScadenzarioList.tsx b/src/components/features/scadenzario/ScadenzarioList.tsx
+index c39f791e..f726afd0 100644
+--- a/src/components/features/scadenzario/ScadenzarioList.tsx
++++ b/src/components/features/scadenzario/ScadenzarioList.tsx
+@@ -1,17 +1,18 @@
+ 'use client'
+ 
+ import { useEffect, useMemo, useState } from 'react'
+ import { motion } from 'motion/react'
+ import Link from 'next/link'
+ import { t, useReducedMotion } from '@/design-system/motion'
+ import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
++import { ChiediCellulareSheet } from '@/components/features/clienti/ChiediCellulareSheet'
+ 
+ // ─── Types ────────────────────────────────────────────────────────────────────
+ 
+ interface ClienteSnap {
+   id: string
+   nome: string
+   cognome: string
+   studio_nome: string | null
+   telefono: string | null
+   cellulare_whatsapp: string | null
+@@ -42,30 +43,67 @@ function urgencyColor(giorni: number): string {
+   if (giorni >= 30) return 'var(--c-amber, #F59E0B)'  // oro / amber
+   return 'var(--t2, #4A3D33)'                    // blu cobalto normale
+ }
+ 
+ function urgencyLabel(giorni: number): string {
+   if (giorni > 60) return 'Urgente'
+   if (giorni >= 30) return 'In ritardo'
+   return 'In sospeso'
+ }
+ 
++// Stile condiviso del CTA WhatsApp (link diretto o tasto che chiede il
++// cellulare, D183/D185): STESSA faccia in entrambi i rami.
++const whatsappCtaStyle: React.CSSProperties = {
++  display: 'flex',
++  alignItems: 'center',
++  justifyContent: 'center',
++  gap: '8px',
++  minHeight: '52px',
++  padding: '12px 20px',
++  background: '#25D366',
++  color: '#fff',
++  borderRadius: '100px',
++  fontFamily: 'DM Sans, sans-serif',
++  fontWeight: 600,
++  fontSize: '15px',
++  textDecoration: 'none',
++  boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
++}
++
++function IconaWhatsApp() {
++  return (
++    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
++      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
++    </svg>
++  )
++}
++
+ // ─── Card ─────────────────────────────────────────────────────────────────────
+ 
+ function InsolutoCard({
+   item,
+   index,
++  onCellulareSalvato,
+ }: {
+   item: InsolutoCliente
+   index: number
++  /** D183/D185 — dopo il salvataggio il cliente in lista ha di nuovo un
++   *  cellulare: si aggiorna lo stato locale (nessuna chiamata in più, il
++   *  valore è già quello appena salvato) così un secondo sollecito nella
++   *  stessa sessione trova già il collegamento diretto. */
++  onCellulareSalvato: (clienteId: string, cellulare: string) => void
+ }) {
+   const [expanded, setExpanded] = useState(false)
++  // D183/D185: il cellulare può mancare — il tasto non sparisce più (era il
++  // gate del compito 4: `item.cliente.cellulare_whatsapp &&`), chiede il
++  // numero e lo salva.
++  const [chiediAperto, setChiediAperto] = useState(false)
+   const reducedMotion = useReducedMotion()
+   const color = urgencyColor(item.giorni_max_ritardo)
+   const label = urgencyLabel(item.giorni_max_ritardo)
+   const nomeDisplay =
+     item.cliente.studio_nome ?? `${item.cliente.nome} ${item.cliente.cognome}`
+ 
+   // Capture render time once via lazy useState initializer
+   // (ESLint react-hooks/purity disallows Date.now() in render body directly)
+   const [now] = useState<number>(() => Date.now())
+   const dovutiConGiorni = useMemo(
+@@ -300,62 +338,63 @@ function InsolutoCard({
+                   fontSize: '14px',
+                   fontWeight: 600,
+                   textDecoration: 'none',
+                   marginBottom: '8px',
+                   boxShadow: '-3px -3px 8px rgba(255,255,255,.72), 5px 6px 14px -2px rgba(148,128,118,.40)',
+                 }}
+               >
+                 📊 Estratto conto completo →
+               </Link>
+ 
+-              {/* WhatsApp sollecito CTA — P31: mostrato solo se c'è un
+-                  cellulare, non solo perché c'è un fisso (altrimenti il
+-                  tasto comparirebbe e produrrebbe un link senza destinatario). */}
+-              {item.cliente.cellulare_whatsapp && (
++              {/* WhatsApp sollecito CTA — D183/D185: il cellulare può mancare,
++                  il tasto non sparisce (era il gate del compito 4:
++                  `item.cliente.cellulare_whatsapp &&`) — chiede il numero e
++                  lo salva invece di produrre un link senza destinatario. */}
++              {item.cliente.cellulare_whatsapp ? (
+                 <a
+                   href={whatsappUrl}
+                   target="_blank"
+                   rel="noopener noreferrer"
+-                  style={{
+-                    display: 'flex',
+-                    alignItems: 'center',
+-                    justifyContent: 'center',
+-                    gap: '8px',
+-                    minHeight: '52px',
+-                    padding: '12px 20px',
+-                    background: '#25D366',
+-                    color: '#fff',
+-                    borderRadius: '100px',
+-                    fontFamily: 'DM Sans, sans-serif',
+-                    fontWeight: 600,
+-                    fontSize: '15px',
+-                    textDecoration: 'none',
+-                    boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+-                  }}
++                  style={whatsappCtaStyle}
+                   onClick={(e) => e.stopPropagation()}
+                   aria-label={`Invia sollecito WhatsApp a ${nomeDisplay}`}
+                 >
+-                  <svg
+-                    width="20"
+-                    height="20"
+-                    viewBox="0 0 24 24"
+-                    fill="currentColor"
+-                    aria-hidden="true"
+-                  >
+-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+-                  </svg>
++                  <IconaWhatsApp />
+                   Invia sollecito
+                 </a>
++              ) : (
++                <button
++                  type="button"
++                  onClick={(e) => { e.stopPropagation(); setChiediAperto(true) }}
++                  style={{ ...whatsappCtaStyle, border: 'none', cursor: 'pointer', width: '100%', WebkitTapHighlightColor: 'transparent' }}
++                  aria-label={`Invia sollecito WhatsApp a ${nomeDisplay}`}
++                >
++                  <IconaWhatsApp />
++                  Invia sollecito
++                </button>
+               )}
+             </div>
+         </div>
+       </div>
++
++      <ChiediCellulareSheet
++        aperto={chiediAperto}
++        clienteId={item.cliente.id}
++        nomeDestinatario={nomeDisplay}
++        onChiudi={() => setChiediAperto(false)}
++        onSalvato={(cellulare) => {
++          setChiediAperto(false)
++          onCellulareSalvato(item.cliente.id, cellulare)
++          const url = buildWhatsappUrl(whatsappMsg, cellulare)
++          window.open(url, '_blank', 'noopener,noreferrer')
++        }}
++      />
+     </motion.div>
+   )
+ }
+ 
+ // ─── ScadenzarioList ──────────────────────────────────────────────────────────
+ 
+ export function ScadenzarioList() {
+   const [items, setItems] = useState<InsolutoCliente[] | null>(null)
+   const [error, setError] = useState<string | null>(null)
+ 
+@@ -369,20 +408,33 @@ export function ScadenzarioList() {
+       })
+       .then(setItems)
+       .catch((err: unknown) => {
+         if (err instanceof Error && err.name === 'AbortError') return
+         setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+       })
+ 
+     return () => controller.abort()
+   }, [])
+ 
++  // D183/D185 — dopo il salvataggio il cellulare è già quello vero (nessuna
++  // chiamata in più: il valore arriva da `ChiediCellulareSheet`, non dal
++  // server) — si aggiorna solo lo stato locale della lista.
++  function patchCellulare(clienteId: string, cellulare: string) {
++    setItems((prev) =>
++      prev?.map((it) =>
++        it.cliente.id === clienteId
++          ? { ...it, cliente: { ...it.cliente, cellulare_whatsapp: cellulare } }
++          : it
++      ) ?? prev
++    )
++  }
++
+   if (error) {
+     return (
+       <div
+         style={{
+           padding: '20px',
+           color: '#D90012',
+           fontFamily: 'DM Sans, sans-serif',
+           fontSize: '15px',
+         }}
+       >
+@@ -514,16 +566,16 @@ export function ScadenzarioList() {
+             }}
+           >
+             {items.length}
+           </p>
+         </div>
+       </div>
+ 
+       {/* Cards */}
+       <div>
+         {items.map((item, index) => (
+-          <InsolutoCard key={item.cliente.id} item={item} index={index} />
++          <InsolutoCard key={item.cliente.id} item={item} index={index} onCellulareSalvato={patchCellulare} />
+         ))}
+       </div>
+     </div>
+   )
+ }
+diff --git a/tests/unit/consegna-chiede-il-cellulare.test.tsx b/tests/unit/consegna-chiede-il-cellulare.test.tsx
+new file mode 100644
+index 00000000..828cfefc
+--- /dev/null
++++ b/tests/unit/consegna-chiede-il-cellulare.test.tsx
+@@ -0,0 +1,102 @@
++// P31 Compito 8 — D183/D185: quando il cellulare WhatsApp manca, il tasto
++// «Invia messaggio WhatsApp» non sparisce: chiede il numero, lo SALVA in
++// anagrafica (PRIMA di aprire WhatsApp), poi apre WhatsApp.
++//
++// Copie esatte verificate contro il mockup approvato (D186):
++// docs/design/mockups/2026-08-03-p31-due-numeri.html + screenshot
++// consegna-390-light.png — il brief (.superpowers/sdd/p31-compito-8-brief.md)
++// portava ancora «Salva e invia»: qui si usa il testo REALE approvato,
++// «Salva e apri WhatsApp», nomina entrambe le cose che succedono nell'ordine
++// in cui succedono (D186).
++import { render, screen } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++
++vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
++vi.mock('@/design-system/v3/haptic', () => ({ vibra: vi.fn() }))
++
++import { FrameConsegnato } from '@/components/features/lavori/consegna-v3/FrameConsegnato'
++import type { ConsegnaResult } from '@/types/domain'
++
++const esitoBase: ConsegnaResult = {
++  ok: true,
++  lavoro_id: 'L1',
++  cliente_id: 'CLI-1',
++  numero_lavoro: '214',
++  ddc: { numero: 'DDC-2026-0214', url: 'x', signed_url: 'https://s/x' },
++  buono: { numero: 'BUO-2026-0214', url: 'y', signed_url: 'https://s/y' },
++  fattura: null,
++  whatsapp_url: 'https://wa.me/393331234567?text=ciao',
++  tempo_ms: 900,
++}
++
++function montaFrame(esito: ConsegnaResult) {
++  return render(
++    <FrameConsegnato
++      esito={esito}
++      lavoroId={esito.lavoro_id}
++      descrizione="Corona in disilicato di litio"
++      dentista="Studio Piegari"
++      onChiudi={vi.fn()}
++    />
++  )
++}
++
++describe('D183 — se il cellulare manca, il tasto lo chiede e lo salva', () => {
++  beforeEach(() => {
++    vi.restoreAllMocks()
++  })
++
++  it('col cellulare presente il tasto apre WhatsApp e NON chiede niente', async () => {
++    const user = userEvent.setup()
++    montaFrame({ ...esitoBase, whatsapp_url: 'https://wa.me/393331234567?text=x' })
++    const link = screen.getByRole('link', { name: /invia messaggio whatsapp/i })
++    expect(link).toHaveAttribute('href', 'https://wa.me/393331234567?text=x')
++    await user.click(link)
++    expect(screen.queryByLabelText('Cellulare WhatsApp')).not.toBeInTheDocument()
++  })
++
++  it('senza cellulare il tasto CI SIA LO STESSO e apra il foglio', async () => {
++    const user = userEvent.setup()
++    montaFrame({ ...esitoBase, whatsapp_url: 'https://wa.me/?text=x' })
++    const tasto = screen.getByRole('button', { name: /invia messaggio whatsapp/i })
++    expect(tasto).toBeInTheDocument()
++    await user.click(tasto)
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
++  })
++
++  // 🔑 IL VINCOLO DI D183: si salva PRIMA di aprire WhatsApp.
++  it('salva il numero PRIMA di aprire WhatsApp', async () => {
++    const user = userEvent.setup()
++    const ordine: string[] = []
++    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async () => {
++      ordine.push('salvato')
++      return new Response('{}', { status: 200 })
++    })
++    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {
++      ordine.push('whatsapp')
++      return null
++    })
++    montaFrame({ ...esitoBase, whatsapp_url: 'https://wa.me/?text=x' })
++    await user.click(screen.getByRole('button', { name: /invia messaggio whatsapp/i }))
++    await user.type(screen.getByLabelText('Cellulare WhatsApp'), '333 1234567')
++    await user.click(screen.getByRole('button', { name: /salva e apri whatsapp/i }))
++    expect(ordine).toEqual(['salvato', 'whatsapp'])
++    expect(fetchSpy.mock.calls[0][0]).toContain(`/api/clienti/${esitoBase.cliente_id}`)
++    expect(openSpy).toHaveBeenCalledTimes(1)
++  })
++
++  // 🔑 IL VALORE CHE DEVE ESSERE RIFIUTATO: se il salvataggio fallisce,
++  //    WhatsApp NON si apre — o si separano i due fatti.
++  it('se il salvataggio fallisce, WhatsApp NON si apre e lo dice', async () => {
++    const user = userEvent.setup()
++    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }))
++    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
++    montaFrame({ ...esitoBase, whatsapp_url: 'https://wa.me/?text=x' })
++    await user.click(screen.getByRole('button', { name: /invia messaggio whatsapp/i }))
++    await user.type(screen.getByLabelText('Cellulare WhatsApp'), '333 1234567')
++    await user.click(screen.getByRole('button', { name: /salva e apri whatsapp/i }))
++    expect(openSpy).not.toHaveBeenCalled()
++    expect(await screen.findByRole('alert')).toBeInTheDocument()
++  })
++})
+diff --git a/tests/unit/scadenzario-chiede-il-cellulare.test.tsx b/tests/unit/scadenzario-chiede-il-cellulare.test.tsx
+new file mode 100644
+index 00000000..e26b9ed1
+--- /dev/null
++++ b/tests/unit/scadenzario-chiede-il-cellulare.test.tsx
+@@ -0,0 +1,130 @@
++// P31 Compito 8 — D183/D185: allargato dalla consegna ai tre punti dello
++// scadenzario che mandano un sollecito WhatsApp. Il compito 4 li aveva resi
++// condizionati a `cellulare_whatsapp` (il tasto SPARISCE se manca); D185 dice
++// che devono restare e CHIEDERE, come alla consegna — stessa scelta fra
++// tasto-che-apre-WhatsApp e tasto-che-chiede-il-numero, stesso foglio
++// condiviso `ChiediCellulareSheet`.
++//
++// Qui si prova solo il RAMO (cellulare presente → link; assente → tasto che
++// apre il foglio): l'ordine salva→apri WhatsApp è già provato una volta sola
++// in tests/unit/consegna-chiede-il-cellulare.test.tsx — la garanzia vive
++// dentro il foglio condiviso, non va riprovata a ogni punto di montaggio.
++import { render, screen, within } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++
++vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
++vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
++vi.mock('@/design-system/v3/haptic', () => ({ vibra: vi.fn() }))
++
++import { EstrattoContoView } from '@/components/features/scadenzario/EstrattoContoView'
++import { ScadenzarioList } from '@/components/features/scadenzario/ScadenzarioList'
++import type { EstrattoContoResponse } from '@/app/api/scadenzario/[cliente_id]/route'
++
++function datiBase(cellulare: string | null): EstrattoContoResponse {
++  return {
++    cliente: {
++      id: 'CLI-1',
++      nome: 'Vincenzo',
++      cognome: 'Telesca',
++      studio_nome: 'Studio Piegari',
++      telefono: '0976 74210',
++      cellulare_whatsapp: cellulare,
++      indirizzo: null,
++      cap: null,
++      citta: null,
++    },
++    dovuti: [
++      { id: 'D1', origine: 'fattura', numero: 'FT-2026-0001', data: '2026-07-01', totale: 500, residuo: 500, pagata: false, giorni_ritardo: 20, stato_sdi: 'draft' },
++    ],
++    lavoriInAttesa: [],
++    creditoCliente: { confermato: 500, potenziale: 0, disponibile: 0, totale: 500 },
++  }
++}
++
++describe('EstrattoContoView — sollecito globale (D183/D185, punto ②)', () => {
++  beforeEach(() => vi.restoreAllMocks())
++
++  // Nota: la variante nella colonna laterale (`.estratto-col-sidebar`, solo
++  // desktop) usa lo stesso `whatsappUrlGlobale`/stessa scelta link-o-tasto —
++  // qui si prova la variante nella card-list («Sollecito totale — …»), che
++  // jsdom non nasconde dietro il suo `@media` (limite noto dell'ambiente di
++  // test, non del componente): stessa sorgente di verità, un solo punto
++  // d'osservazione basta a coprire il ramo.
++  it('col cellulare presente: link diretto, nessun tasto che chiede', () => {
++    render(<EstrattoContoView dati={datiBase('333 1234567')} />)
++    expect(screen.getByRole('link', { name: /sollecito totale/i })).toBeInTheDocument()
++    expect(screen.queryByLabelText('Cellulare WhatsApp')).not.toBeInTheDocument()
++  })
++
++  it('senza cellulare: il tasto CI SIA LO STESSO (non un link) e apra il foglio', async () => {
++    const user = userEvent.setup()
++    render(<EstrattoContoView dati={datiBase(null)} />)
++    const tasto = screen.getByRole('button', { name: /sollecito totale/i })
++    expect(tasto).toBeInTheDocument()
++    expect(screen.queryByRole('link', { name: /sollecito totale/i })).not.toBeInTheDocument()
++    await user.click(tasto)
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
++  })
++})
++
++describe('EstrattoContoView — sollecito sul singolo dovuto (D183/D185, punto ③, DovutoBottomSheet)', () => {
++  beforeEach(() => vi.restoreAllMocks())
++
++  it('col cellulare presente: link diretto dentro il dettaglio del dovuto', async () => {
++    const user = userEvent.setup()
++    render(<EstrattoContoView dati={datiBase('333 1234567')} />)
++    await user.click(screen.getByRole('button', { name: /FT-2026-0001/ }))
++    const dialogo = await screen.findByRole('dialog', { name: /FT-2026-0001/ })
++    expect(within(dialogo).getByRole('link', { name: /invia sollecito whatsapp/i })).toBeInTheDocument()
++  })
++
++  it('senza cellulare: il tasto nel dettaglio del dovuto CHIEDE il numero invece di sparire', async () => {
++    const user = userEvent.setup()
++    render(<EstrattoContoView dati={datiBase(null)} />)
++    await user.click(screen.getByRole('button', { name: /FT-2026-0001/ }))
++    const dialogo = await screen.findByRole('dialog', { name: /FT-2026-0001/ })
++    const tasto = within(dialogo).getByRole('button', { name: /invia sollecito whatsapp/i })
++    expect(within(dialogo).queryByRole('link', { name: /invia sollecito whatsapp/i })).not.toBeInTheDocument()
++    await user.click(tasto)
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
++  })
++})
++
++describe('ScadenzarioList — sollecito dall\'elenco (D183/D185, punto ④)', () => {
++  beforeEach(() => vi.restoreAllMocks())
++
++  function mockLista(cellulare: string | null) {
++    const item = {
++      cliente: { id: 'CLI-2', nome: 'Anna', cognome: 'Bianchi', studio_nome: 'Studio Bianchi', telefono: null, cellulare_whatsapp: cellulare },
++      dovuti: [{ id: 'D2', origine: 'lavoro_diretto' as const, numero: 'L-0099', data: '2026-06-01', importo: 250, stato_sdi: null }],
++      totale_insoluto: 250,
++      giorni_max_ritardo: 45,
++    }
++    global.fetch = vi.fn(async () => new Response(JSON.stringify([item]), { status: 200 })) as unknown as typeof fetch
++  }
++
++  it('col cellulare presente: link diretto', async () => {
++    const user = userEvent.setup()
++    mockLista('333 1234567')
++    render(<ScadenzarioList />)
++    // Espande la card (nome esatto sulla riga sommario — NON il regex generico,
++    // che matcherebbe anche l'aria-label "Invia sollecito WhatsApp a Studio
++    // Bianchi" del tasto dentro il pannello espanso).
++    const riga = await screen.findByText('Studio Bianchi')
++    await user.click(riga)
++    expect(screen.getByRole('link', { name: /invia sollecito whatsapp a studio bianchi/i })).toBeInTheDocument()
++  })
++
++  it('senza cellulare: il tasto CI SIA LO STESSO e apra il foglio', async () => {
++    const user = userEvent.setup()
++    mockLista(null)
++    render(<ScadenzarioList />)
++    const riga = await screen.findByText('Studio Bianchi')
++    await user.click(riga)
++    const tasto = screen.getByRole('button', { name: /invia sollecito whatsapp a studio bianchi/i })
++    expect(screen.queryByRole('link', { name: /invia sollecito whatsapp a studio bianchi/i })).not.toBeInTheDocument()
++    await user.click(tasto)
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
++  })
++})

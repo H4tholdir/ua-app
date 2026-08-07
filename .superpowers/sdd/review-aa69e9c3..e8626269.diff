@@ -1,0 +1,503 @@
+# Review package: aa69e9c3..e8626269
+
+## Commits
+e8626269 feat(wizard): il wizard manda la trascrizione della prescrizione e lo stato dello sgancio
+
+## Files changed
+ .../features/wizard/WizardNuovoLavoro.tsx          |  19 +++
+ src/lib/wizard/crea-lavoro.ts                      |  25 +++-
+ src/lib/wizard/persistenza.ts                      |   7 +
+ tests/unit/WizardNuovoLavoro.test.tsx              |  35 +++++
+ tests/unit/crea-lavoro-prescrizione.test.ts        | 155 +++++++++++++++++++++
+ 5 files changed, 239 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/src/components/features/wizard/WizardNuovoLavoro.tsx b/src/components/features/wizard/WizardNuovoLavoro.tsx
+index c0398c46..ad1aac3c 100644
+--- a/src/components/features/wizard/WizardNuovoLavoro.tsx
++++ b/src/components/features/wizard/WizardNuovoLavoro.tsx
+@@ -40,39 +40,55 @@ import {
+   stimaGiorni,
+   descrizioneTipo,
+   type AccessorioFallito,
+ } from '@/lib/wizard/crea-lavoro'
+ import { dataSuggerita } from '@/lib/lavori/tempi-medi'
+ import { salvaStato, leggiStato, azzeraStato, type StatoSalvato } from '@/lib/wizard/persistenza'
+ import type { DatiWizard } from '@/lib/wizard/dati-wizard'
+ 
+ export type TipoScelto = { kind: 'catalogo'; tipoId: string } | { kind: 'libero'; testo: string }
+ 
++/**
++ * Lo stato dello sgancio del colore (Task 1, Ondata B ②). UNA SOLA CASA per
++ * l'unione — la consumano sia `StatoWizard.coloreOrigine` qui sotto sia
++ * l'input di `creaLavoroDaWizard` (`crea-lavoro.ts`), così i due non possono
++ * disallinearsi.
++ *
++ * `'prescrizione'` (o campo ASSENTE, stesso significato — D223: scrivere È
++ * trascrivere) = il colore è la trascrizione del foglio del dentista.
++ * `'lab'` = sganciato: è una scelta di laboratorio, non una prescrizione — la
++ * UI che lo mette a `'lab'` è il Task 2 (framing), non questo file.
++ */
++export type ColoreOrigine = 'prescrizione' | 'lab'
++
+ export type StatoWizard = {
+   passo: 1 | 2 | 3
+   cliente: { id: string; label: string } | null
+   tipo: TipoScelto | null
+   pz: string
+   alias: string
+   elemento: string
+   colore: string
++  /** OPZIONALE apposta: i salvataggi `v: 1` scritti prima del Task 1 non lo hanno — v. persistenza.ts. */
++  coloreOrigine?: ColoreOrigine
+   foto: File | null
+ }
+ 
+ const STATO_INIZIALE: StatoWizard = {
+   passo: 1,
+   cliente: null,
+   tipo: null,
+   pz: '',
+   alias: '',
+   elemento: '',
+   colore: '',
++  coloreOrigine: 'prescrizione',
+   foto: null,
+ }
+ 
+ /**
+  * WizardNuovoLavoro — shell del wizard «Nuovo lavoro» (§7.3), montata dalla
+  * RSC `page.tsx` con i dati server (`getDatiWizard`, Task 7).
+  *
+  * `contesto` (userId/labId) — consumato dal Task 13 (persistenza abbandono
+  * 24h, spec §9): guardia "dispositivo condiviso" di `leggiStato` e chiave
+  * scritta da `salvaStato`. Vedi task-8-brief.md per il perché è nel
+@@ -163,35 +179,37 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
+       salvatoA: Date.now(),
+       userId: contesto.userId,
+       labId: contesto.labId,
+       passo: stato.passo,
+       cliente: stato.cliente,
+       tipo: stato.tipo,
+       pz: stato.pz,
+       alias: stato.alias,
+       elemento: stato.elemento,
+       colore: stato.colore,
++      coloreOrigine: stato.coloreOrigine,
+     })
+   }, [pronto, stato, contesto.userId, contesto.labId])
+ 
+   // 'Riprendi': ripristina lo stato al passo salvato — `foto` resta `null`
+   // (perdita accettata, spec §9: non persistita, quindi non ripristinabile).
+   const riprendi = useCallback(() => {
+     if (!statoSalvato) return
+     setStato({
+       passo: statoSalvato.passo,
+       cliente: statoSalvato.cliente,
+       tipo: statoSalvato.tipo,
+       pz: statoSalvato.pz,
+       alias: statoSalvato.alias,
+       elemento: statoSalvato.elemento,
+       colore: statoSalvato.colore,
++      coloreOrigine: statoSalvato.coloreOrigine,
+       foto: null,
+     })
+     setSheetRipresaAperto(false)
+     setPronto(true)
+   }, [statoSalvato])
+ 
+   // Chiusura NON distruttiva (fix round 1): tap-scrim/Esc/swipe/«Chiudi»
+   // chiudono solo l'overlay SENZA azzerare il salvataggio — lo stato resta in
+   // localStorage e ricomparirà al prossimo mount. `pronto` resta `false`
+   // (nessuna interazione decisa): il wizard, di fatto vuoto a Passo 1, non
+@@ -368,20 +386,21 @@ function CorpoWizard(props: {
+     setInCreazione(true)
+     const { giorni, daStoria } = stimaGiorni(tipo, dati.giorniPerTipo)
+     const dataConsegna = dataSuggerita(giorni)
+     const esito = await creaLavoroDaWizard({
+       cliente,
+       tipo,
+       pz: stato.pz,
+       alias: stato.alias,
+       elemento: stato.elemento,
+       colore: stato.colore,
++      coloreOrigine: stato.coloreOrigine,
+       foto: stato.foto,
+       dataConsegna,
+     })
+     setInCreazione(false)
+     if (!esito.lavoro) {
+       // Z1 (30/07) — testo RATIFICATO da Francesco, **D37**: si scrive alla
+       // lettera, non si parafrasa.
+       //
+       // Perché ne serviva uno diverso: «Riprova» qui era un anello chiuso. Il
+       // codice `pz` non si ricalcola mai (`:258`: viene da `dati.prossimoPz`,
+diff --git a/src/lib/wizard/crea-lavoro.ts b/src/lib/wizard/crea-lavoro.ts
+index cceaefc6..8f6753cc 100644
+--- a/src/lib/wizard/crea-lavoro.ts
++++ b/src/lib/wizard/crea-lavoro.ts
+@@ -42,21 +42,21 @@
+ // (il codice), MAI `nome_cognome`, quindi lo spazio finale che il trigger
+ // produce (`upper(cognome) || ' ' || upper(nome)`) resta un dettaglio
+ // cosmetico del campo interno, invisibile in UI.
+ //
+ // isoDataLocale è duplicata da dati-wizard.ts (Task 7): quel file è
+ // `server-only`, non importabile da qui. Stessa convenzione W7 (mai
+ // `toISOString().split('T')[0]`, che usa il fuso UTC).
+ 
+ import { trovaTipo, labelTipo } from '@/lib/domain/tipi-lavoro'
+ import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
+-import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
++import type { TipoScelto, ColoreOrigine } from '@/components/features/wizard/WizardNuovoLavoro'
+ import type { TipoDispositivo, ClasseRischio } from '@/types/domain'
+ 
+ /**
+  * Ciò che può andare perso SENZA portarsi via il lavoro. Nell'ordine in cui
+  * compare nella schermata («Elemento», «Colore», la foto), che è anche l'ordine
+  * in cui le tre cose si perdono.
+  *
+  * · `'elementi'` = la casella «Elemento» conteneva qualcosa che non è un dente
+  *   (v. `mappaElementi`);
+  * · `'colore'` = il codice digitato non è in catalogo — al banco si scrive
+@@ -230,24 +230,28 @@ async function motivoDalCorpo(res: Response): Promise<MotivoBloccante | null> {
+  * decide cosa fare con `lavoro: null` (bloccante, resta al Passo 3) o con
+  * `accessoriFalliti` non vuoto (il lavoro esiste, si segnala e si prosegue).
+  */
+ export async function creaLavoroDaWizard(input: {
+   cliente: { id: string }
+   tipo: TipoScelto
+   pz: string
+   alias: string
+   elemento: string
+   colore: string
++  // Ondata B ②/T1 — assente o 'prescrizione' = il colore è trascrizione del
++  // foglio (D223: scrivere È trascrivere); 'lab' = sganciato, scelta di
++  // laboratorio, quindi NIENTE da trascrivere anche se `colore` è compilato.
++  coloreOrigine?: ColoreOrigine
+   foto: File | null
+   dataConsegna: Date
+ }): Promise<EsitoCreazione> {
+-  const { cliente, tipo, pz, alias, elemento, colore, foto, dataConsegna } = input
++  const { cliente, tipo, pz, alias, elemento, colore, coloreOrigine, foto, dataConsegna } = input
+ 
+   // Passi 1-2: risolvi (o crea) il paziente. Qualunque fallimento qui è
+   // BLOCCANTE (spec §7: il paziente fa parte del percorso primario) — nessun
+   // POST /api/lavori viene tentato.
+   let pazienteId: string
+   try {
+     const resGet = await fetch(`/api/pazienti?cliente_id=${encodeURIComponent(cliente.id)}`, {
+       credentials: 'same-origin',
+     })
+     if (!resGet.ok) return ESITO_BLOCCANTE
+@@ -315,20 +319,36 @@ export async function creaLavoroDaWizard(input: {
+   // Due sorgenti dello stesso fatto clinico: la classe di difetto già pagata
+   // con `numero_cassetta`.
+   //
+   // La SCALA non si manda: l'interfaccia non la chiede e il client non la può
+   // inventare. La deduce il server dal catalogo `colori_dentali` (i 48 codici
+   // sono distinti fra le tre scale). Il `.trim().toUpperCase()` qui costa nulla,
+   // ma NON è lì che sta la garanzia: `lavori_colore_caso_fk` morde nel database,
+   // quindi normalizzazione e degradazione vivono nel POST /api/lavori.
+   const coloreCodice = colore.trim().toUpperCase()
+ 
++  // La trascrizione della prescrizione (Task 1, gate D216 — server GIÀ pronto,
++  // `route.ts:211-245`). GREZZA (D210): `colore` qui è la variabile COME
++  // DIGITATA, non `coloreCodice` — un colore fuori catalogo si scarta dal
++  // CASO (sopra) ma resta trascritto (fatto del censimento). La chiave
++  // `prescrizione` parte SOLO se c'è qualcosa da dire: `coloreOrigine`
++  // assente o `'prescrizione'` (D223: scrivere È trascrivere) E il colore non
++  // è vuoto DOPO trim (M-T5-4 — "solo spazi" è trattato come vuoto qui,
++  // gate client-side, indipendente da come il server tratterebbe la stringa
++  // se la ricevesse). `'lab'` = sganciato: niente da trascrivere, anche a
++  // colore compilato — ma `colore_codice` (sopra) viaggia comunque, in
++  // ENTRAMBI gli esiti dello sgancio (task-1-brief.md riga 7).
++  //
++  // Il wizard oggi non ha una casella per `numero_prescrizione`: la chiave
++  // resta fuori da questo corpo (non si inventa un campo che non esiste).
++  const trascriviPrescrizione = coloreOrigine !== 'lab' && colore.trim() !== ''
++
+   let lavoro: { id: string; numero_lavoro: string }
+   let coloreScartato = false
+   try {
+     const res = await fetch('/api/lavori', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         cliente_id: cliente.id,
+         paziente_id: pazienteId,
+@@ -351,20 +371,21 @@ export async function creaLavoroDaWizard(input: {
+                 // dichiarano dalla scheda. Le due RPC hanno già gli stessi
+                 // default (`COALESCE(d->>'ruolo','elemento')` e
+                 // `COALESCE(d->>'provenienza','prescritto')`): si mandano
+                 // espliciti perché il corpo dica cosa sta affermando.
+                 ruolo: 'elemento',
+                 provenienza: 'prescritto',
+               })),
+             }
+           : {}),
+         ...(coloreCodice ? { colore_codice: coloreCodice } : {}),
++        ...(trascriviPrescrizione ? { prescrizione: { colore } } : {}),
+       }),
+     })
+     if (!res.ok) return ESITO_BLOCCANTE
+     const dati = (await res.json()) as {
+       lavoro: { id: string; numero_lavoro: string }
+       colore_scartato?: boolean
+     }
+     lavoro = { id: dati.lavoro.id, numero_lavoro: dati.lavoro.numero_lavoro }
+     // `=== true` e non un troncamento a booleano: chi non riceve la parola non
+     // la inventa. Una risposta che non nomina il campo (server più vecchio, o
+diff --git a/src/lib/wizard/persistenza.ts b/src/lib/wizard/persistenza.ts
+index 9ec89e84..3be451bb 100644
+--- a/src/lib/wizard/persistenza.ts
++++ b/src/lib/wizard/persistenza.ts
+@@ -14,20 +14,27 @@ export type StatoSalvato = {
+   salvatoA: number
+   userId: string
+   labId: string
+   passo: StatoWizard['passo']
+   cliente: StatoWizard['cliente']
+   tipo: TipoScelto | null
+   pz: string
+   alias: string
+   elemento: string
+   colore: string
++  /**
++   * OPZIONALE (Task 1, Ondata B ②): i salvataggi `v: 1` scritti PRIMA di
++   * questo task non hanno questa chiave — restano validi, `v` non cambia
++   * (il campo nuovo è additivo). Assente = stessa semantica di `'prescrizione'`
++   * (v. `ColoreOrigine` in WizardNuovoLavoro.tsx).
++   */
++  coloreOrigine?: StatoWizard['coloreOrigine']
+ }
+ 
+ export const CHIAVE_WIZARD = 'ua:wizard-lavoro:v1'
+ 
+ const VENTIQUATTRO_ORE_MS = 24 * 60 * 60 * 1000
+ 
+ /** Scrive lo stato — try/catch silenzioso (quota superata, storage disabilitato, iframe sandboxato, ecc.). */
+ export function salvaStato(s: StatoSalvato): void {
+   try {
+     window.localStorage.setItem(CHIAVE_WIZARD, JSON.stringify(s))
+diff --git a/tests/unit/WizardNuovoLavoro.test.tsx b/tests/unit/WizardNuovoLavoro.test.tsx
+index 28173589..17e0a397 100644
+--- a/tests/unit/WizardNuovoLavoro.test.tsx
++++ b/tests/unit/WizardNuovoLavoro.test.tsx
+@@ -441,20 +441,55 @@ describe('WizardNuovoLavoro — persistenza abbandono 24h + sheet «Riprendo da
+     const user = userEvent.setup()
+     await user.click(screen.getByRole('button', { name: 'Riprendi' }))
+ 
+     expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument()
+     expect(screen.getByDisplayValue('PZ-9999')).toBeInTheDocument()
+     await waitFor(() =>
+       expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+     )
+   })
+ 
++  // Task 1 — guardia contro la trappola nota (fatto 3 del censimento):
++  // `salvaStato` (l'effect qui sopra) e `riprendi` ENUMERANO le chiavi a
++  // mano, e `coloreOrigine` è un campo in più da dimenticare in uno dei due
++  // punti — un test a livello di `persistenza.ts` NON lo scoprirebbe (quelle
++  // funzioni sono un passthrough generico, l'omissione avviene qui). Il giro
++  // Riprendi → un vero avanzamento (Indietro, che già esiste, nessuna UI
++  // nuova) → localStorage copre ENTRAMBE le metà della trappola in un colpo
++  // solo: se `riprendi` dimenticasse la chiave, `stato.coloreOrigine` sarebbe
++  // `undefined` da subito; se `salvaStato` la dimenticasse, la riscrittura
++  // dopo «Indietro» la butterebbe comunque fuori.
++  it("coloreOrigine sopravvive al giro Riprendi → un vero avanzamento → salvaStato (trappola nota, fatto 3)", async () => {
++    seedStatoSalvato({
++      passo: 3,
++      cliente: { id: '1', label: 'Dr. Esposito' },
++      tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
++      pz: 'PZ-9999',
++      coloreOrigine: 'lab',
++    })
++    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: 'Riprendi' }))
++    await waitFor(() => expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument())
++
++    // «Indietro» è un vero avanzamento/cambiamento (imposta interazioneAvvenutaRef
++    // e cambia `stato.passo`): fa scattare una riscrittura reale di salvaStato.
++    await user.click(screen.getByRole('button', { name: 'Indietro' }))
++
++    await waitFor(() => {
++      const salvato = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato | null
++      expect(salvato).not.toBeNull()
++      expect(salvato!.passo).toBe(2)
++      expect(salvato!.coloreOrigine).toBe('lab')
++    })
++  })
++
+   it('chiusura accidentale (Esc) NON è distruttiva: conserva localStorage, wizard a Passo 1, e rimontando lo sheet ricompare', async () => {
+     seedStatoSalvato()
+     const { unmount } = render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+     const user = userEvent.setup()
+ 
+     expect(screen.getByRole('dialog', { name: 'Riprendo da dove eri?' })).toBeInTheDocument()
+     // Esc → onChiudi dello Sheet (via di fuga L6) — NON deve azzerare il salvataggio.
+     await user.keyboard('{Escape}')
+ 
+     // Overlay chiuso, wizard al Passo 1 pulito.
+diff --git a/tests/unit/crea-lavoro-prescrizione.test.ts b/tests/unit/crea-lavoro-prescrizione.test.ts
+new file mode 100644
+index 00000000..b2e660bc
+--- /dev/null
++++ b/tests/unit/crea-lavoro-prescrizione.test.ts
+@@ -0,0 +1,155 @@
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { creaLavoroDaWizard } from '@/lib/wizard/crea-lavoro'
++import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
++
++// Task 1 (Ondata B, sessione ③) — il wizard manda la trascrizione
++// (`prescrizione`, gate D216 già in produzione lato server) e lo stato dello
++// sgancio. QUESTO FILE è client-only, NIENTE UI (framing = Task 2): copre
++// SOLO `creaLavoroDaWizard`, cioè il punto che compone il body del POST
++// /api/lavori.
++//
++// Le SEI forme d'input di `coloreOrigine` × `colore` enumerate dal brief
++// (R-P4): assente · 'prescrizione' · 'lab' · colore vuoto · colore solo
++// spazi · colore fuori catalogo. Ognuna ha il suo caso qui sotto.
++//
++// 🔑 Perché il colore nella busta prescrizione è GREZZO (' a3 ', con gli
++// spazi): fedeltà D210, verificata leggendo `componiSnapshot`
++// (`src/lib/prescrizione/componi-snapshot.ts:8`) — il server non fa MAI
++// trim/uppercase sul colore trascritto, lo confronta byte a byte con ciò che
++// il medico ha scritto. `colore_codice` (il DATO DI CASO, normalizzato) è
++// un'altra cosa: viaggia SEMPRE quando c'è un colore, in ENTRAMBI gli esiti
++// dello sgancio (task-1-brief.md riga 7) — ogni caso qui sotto lo controlla
++// insieme a `prescrizione`, per non confondere le due garanzie.
++
++beforeEach(() => {
++  vi.stubGlobal('fetch', vi.fn())
++})
++afterEach(() => {
++  vi.unstubAllGlobals()
++})
++
++const CLIENTE = { id: 'cli-1' }
++const TIPO: TipoScelto = { kind: 'catalogo', tipoId: 'corona_zirconia' }
++const DATA_CONSEGNA = new Date(2026, 6, 16)
++
++function mockFetch() {
++  return fetch as unknown as ReturnType<typeof vi.fn>
++}
++function jsonOk(status: number, body: unknown) {
++  return { ok: true, status, json: async () => body }
++}
++
++/** GET pazienti (vuoto) + POST pazienti + POST lavori: il percorso primario. */
++function percorsoPrimarioOk(m: ReturnType<typeof mockFetch>) {
++  m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
++  m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-1' } }))
++  m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-1', numero_lavoro: '2026/0042' } }))
++}
++
++/** Il corpo del POST /api/lavori (sempre la 3ª chiamata sul percorso primario). */
++function corpoPostLavori(m: ReturnType<typeof mockFetch>): Record<string, unknown> {
++  const chiamata = m.mock.calls.find((c) => c[0] === '/api/lavori' && c[1]?.method === 'POST')
++  if (!chiamata) throw new Error('POST /api/lavori non è mai stato chiamato')
++  return JSON.parse(chiamata[1].body)
++}
++
++async function crea(patch: { colore?: string; coloreOrigine?: 'prescrizione' | 'lab' }) {
++  return creaLavoroDaWizard({
++    cliente: CLIENTE,
++    tipo: TIPO,
++    pz: 'PZ-0001',
++    alias: '',
++    elemento: '',
++    colore: '',
++    foto: null,
++    dataConsegna: DATA_CONSEGNA,
++    ...patch,
++  })
++}
++
++describe('creaLavoroDaWizard — prescrizione (Task 1, D216/D223/D210)', () => {
++  // 1. ASSENTE — nessun `coloreOrigine` passato (il wizard di oggi, prima del
++  // Task 2, non lo passa mai): semantica di riposo = 'prescrizione'.
++  it('coloreOrigine ASSENTE + colore compilato → prescrizione trascritta GREZZA, colore_codice normalizzato', async () => {
++    const m = mockFetch()
++    percorsoPrimarioOk(m)
++
++    await crea({ colore: ' a3 ' })
++
++    const corpo = corpoPostLavori(m)
++    expect(corpo.prescrizione).toEqual({ colore: ' a3 ' })
++    expect(corpo.colore_codice).toBe('A3')
++  })
++
++  // 2. 'prescrizione' ESPLICITO — stesso esito dell'assente (D223: scrivere È
++  // trascrivere).
++  it("coloreOrigine:'prescrizione' esplicito + colore compilato → stesso esito dell'assente", async () => {
++    const m = mockFetch()
++    percorsoPrimarioOk(m)
++
++    await crea({ colore: 'A2', coloreOrigine: 'prescrizione' })
++
++    const corpo = corpoPostLavori(m)
++    expect(corpo.prescrizione).toEqual({ colore: 'A2' })
++    expect(corpo.colore_codice).toBe('A2')
++  })
++
++  // 3. 'lab' — sganciato: NIENTE da trascrivere, anche se la casella «Colore»
++  // è compilata. `colore_codice` (il caso) continua a viaggiare com'è
++  // (task-1-brief.md riga 7, «in ENTRAMBI gli esiti dello sgancio»).
++  it("coloreOrigine:'lab' + colore compilato → NESSUNA prescrizione, colore_codice normalizzato viaggia comunque", async () => {
++    const m = mockFetch()
++    percorsoPrimarioOk(m)
++
++    await crea({ colore: 'A2', coloreOrigine: 'lab' })
++
++    const corpo = corpoPostLavori(m)
++    expect(corpo).not.toHaveProperty('prescrizione')
++    expect(corpo.colore_codice).toBe('A2')
++  })
++
++  // 4. colore VUOTO ('') — stringa vuota = assente (M-T5-4): niente da
++  // trascrivere, a prescindere da coloreOrigine.
++  it("colore VUOTO ('') → nessuna prescrizione (M-T5-4), e nessun colore_codice", async () => {
++    const m = mockFetch()
++    percorsoPrimarioOk(m)
++
++    await crea({ colore: '' })
++
++    const corpo = corpoPostLavori(m)
++    expect(corpo).not.toHaveProperty('prescrizione')
++    expect(corpo).not.toHaveProperty('colore_codice')
++  })
++
++  // 5. colore SOLO SPAZI ('   ') — vuoto DOPO trim: stesso esito del caso 4.
++  // 🔑 Deliberatamente diverso dalla regola del server (`componiSnapshot`
++  // preserva «solo spazi» come trascrizione legittima): qui il gate è tutto
++  // client-side, e il client giudica «solo spazi» = niente da trascrivere
++  // PRIMA di mandare la chiave — il server non vede mai questo caso.
++  it("colore SOLO SPAZI ('   ') → vuoto dopo trim, nessuna prescrizione", async () => {
++    const m = mockFetch()
++    percorsoPrimarioOk(m)
++
++    await crea({ colore: '   ' })
++
++    const corpo = corpoPostLavori(m)
++    expect(corpo).not.toHaveProperty('prescrizione')
++    expect(corpo).not.toHaveProperty('colore_codice')
++  })
++
++  // 6. colore FUORI CATALOGO — il client non decide cosa è in catalogo (quello
++  // è mestiere del server, `lavori_colore_caso_fk`): un colore scartato dal
++  // CASO resta comunque TRASCRITTO, grezzo, com'è digitato.
++  it('colore FUORI CATALOGO → trascritto comunque (il client non giudica il catalogo), colore_codice normalizzato parte lo stesso', async () => {
++    const m = mockFetch()
++    percorsoPrimarioOk(m)
++
++    await crea({ colore: 'zz9' })
++
++    const corpo = corpoPostLavori(m)
++    expect(corpo.prescrizione).toEqual({ colore: 'zz9' })
++    // Normalizzato per il CASO (trim+uppercase) — se il server lo scarta
++    // (fuori catalogo) lo dice con `colore_scartato`, non affare di questo test.
++    expect(corpo.colore_codice).toBe('ZZ9')
++  })
++})

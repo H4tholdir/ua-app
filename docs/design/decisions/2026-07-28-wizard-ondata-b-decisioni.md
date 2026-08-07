@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentatreesima tornata (D312: «persona sbagliata» prende la sua azione dentro il Task 6)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentaquattresima tornata (D313: la mappa di recupero e i resoconti entrano sotto git)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**312 decisioni in centotrentatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**313 decisioni in centotrentaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3332,3 +3332,48 @@ difetti: il T6 dichiara, il T7 esegue. Il divieto riguarda i rami finti che semb
 sempre**, non la dichiarazione che il compito successivo cabla. In quella finestra la rotta continua a
 smistare solo `riapri_lavoro` (`eventi-qualita/route.ts:383-386`), quindi **niente si muove per
 sbaglio** — ed è ciò che la terza asserzione corretta afferma per iscritto.
+
+---
+
+### Centotrentaquattresima tornata — D313: la mappa di recupero e i resoconti entrano sotto git (07/08/2026, 22:53)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 22:53 CEST`**, comando separato.
+
+**Nasce da:** una verifica di chiusura del Task 6. L'esecutore aveva scritto, di passaggio, che il suo
+resoconto «*è su disco ma non versionato*». Controllato invece di essere creduto.
+
+**Il fatto, misurato.** `provato:` `git check-ignore -v .superpowers/sdd/progress.md` → ignorato da
+**due** regole insieme: `.gitignore` (dove `.superpowers/` compariva **due volte**, righe 118 e 140) e
+un `.superpowers/sdd/.gitignore` contenente la sola riga `*`. `provato:` `git ls-files .superpowers/`
+→ **vuoto**: nessuno di quei 282 file è mai entrato in git.
+🔑 **E `progress.md` non è uno scarto di lavorazione: è LA MAPPA DI RECUPERO.** `provato:`
+`grep -rl "superpowers/sdd/progress.md" docs/roadmap/*.md memory/MEMORY.md | wc -l` → **21 documenti
+vivi** la nominano come il posto da cui riprendere. Con lei erano fuori da git i resoconti di esecutori
+e revisori — cioè i numeri misurati, le mutazioni provate, i ritrovamenti fuori mandato.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D313** | 📦 **`.superpowers/` si versiona PER INTERO** — mappa **e** resoconti | «*fai la 2*», scelta esplicita fra tre: solo la mappa (40 KB) · tutto (7,2 MB) · lasciare com'è e smettere di chiamarla «mappa» | Tolte **entrambe** le regole; `.superpowers/sdd/.gitignore` conservato ma **svuotato con la spiegazione dentro**, così una riscrittura dello strumento si vede in `git status`. **215 file** entrano nel primo salvataggio. |
+
+**🛑 Perché non era un dettaglio di configurazione.** È la **terza volta** che questo progetto scopre
+un artefatto che *sembra* durevole e non lo è: il collegamento di `/chiudi` (**D255**, fuori da git,
+non sopravvive a un cambio di computer) e lo script del link d'accesso (**D103**, che viveva in
+`scripts/tmp/`, cartella ignorata). 🔑 **Un artefatto che sembra durevole è peggio della sua assenza**,
+perché nessuno lo cerca altrove: un passaggio di consegne che dice «la mappa è lì» manda la sessione
+nuova a cercare un file che su quella macchina non esiste.
+
+**⚠️ E la riga era scritta DUE VOLTE, il che ha quasi fatto passare il ripensamento per inefficace.**
+Tolta quella in fondo, `git check-ignore` continuava a rispondere «ignorato» indicando la riga 118. Chi
+si fosse fermato al primo tentativo avrebbe concluso che la modifica non funzionava.
+🔑 **Le liste scritte due volte non divergono solo nel codice** — è la stessa famiglia della riga 22
+della coda di ROADMAP, e qui il costo sarebbe stato una decisione ratificata e non applicata.
+
+**📌 Due correzioni a me stesso, e la seconda è più utile della prima.**
+① Il primo controllo sulle credenziali ha dato **verde a torto**: lo stesso identico comando,
+rilanciato **senza `2>/dev/null`**, ha trovato tre file. 🛑 *Un controllo che nasconde i propri errori
+può tornare vuoto perché non è mai partito*, e il vuoto si legge come «pulito».
+② Ho letto l'uscita di un controllo **dietro una pipe** — cioè quella di `cut`, non del `grep`: la
+regola è scritta in `CLAUDE.md` e ci sono cascato lo stesso. Rifatto leggendola da variabile.
+✅ **Esito vero, su 103.888 righe di contenuto in salvataggio: nessuna credenziale.** Le uniche
+corrispondenze sono il segnaposto `sk_live_xyz`, che vive già in `tests/unit/dpa-registro.test.ts` — un
+file versionato e pubblicato da giorni — dentro prove che verificano che l'app **non** lo lasci uscire.

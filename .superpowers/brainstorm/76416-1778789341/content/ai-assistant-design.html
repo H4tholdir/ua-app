@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ AI Assistant — Design Completo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background: #080c14; color: #e2e8f0; padding: 28px; }
+  h1 { font-size: 24px; font-weight: 900; color: #fff; letter-spacing: -0.5px; }
+  .sub { font-size: 13px; color: #475569; margin-top: 4px; margin-bottom: 28px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .full { grid-column: 1 / -1; }
+  .card { background: #111827; border-radius: 14px; padding: 18px; border: 1px solid #1f2937; }
+  .card-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* HERO */
+  .hero-box { background: linear-gradient(135deg, #0a0020 0%, #0f1520 50%, #020a10 100%); border: 1px solid rgba(139,92,246,0.4); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+  .hero-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+  .hero-sub { font-size: 13px; color: #8b5cf6; margin-bottom: 18px; }
+  .hero-tagline { font-size: 15px; color: #c4b5fd; font-style: italic; border-left: 3px solid #7c3aed; padding-left: 14px; }
+
+  /* CHAT MOCKUP */
+  .chat-mock { background: #0d1117; border-radius: 12px; padding: 16px; border: 1px solid #1f2937; font-size: 12px; }
+  .chat-msg { padding: 8px 12px; border-radius: 10px; margin-bottom: 8px; max-width: 85%; line-height: 1.5; }
+  .msg-user { background: #1d4ed8; color: #fff; margin-left: auto; border-radius: 10px 10px 2px 10px; }
+  .msg-ai { background: #1f2937; color: #e2e8f0; border-radius: 10px 10px 10px 2px; }
+  .msg-ai.action { background: #064e3b; color: #6ee7b7; border: 1px solid rgba(34,197,94,0.2); }
+  .msg-ai.confirm { background: #1a1a35; color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
+  .msg-label { font-size: 9px; color: #475569; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .confirm-btns { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-yes { background: #16a34a; color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .btn-no { background: #374151; color: #9ca3af; padding: 4px 12px; border-radius: 6px; font-size: 11px; }
+  .chat-input { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; background: #1f2937; border-radius: 8px; }
+  .chat-input-text { flex: 1; font-size: 11px; color: #6b7280; }
+  .mic-btn { background: #D90012; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+
+  /* TOOLS */
+  .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .tool { background: #0f1520; border-radius: 8px; padding: 10px 12px; border: 1px solid #1f2937; }
+  .tool-name { font-size: 11px; font-weight: 700; color: #7c3aed; font-family: monospace; margin-bottom: 3px; }
+  .tool-desc { font-size: 10px; color: #6b7280; line-height: 1.4; }
+  .tool-type { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 700; display: inline-block; margin-top: 4px; }
+  .t-read { background: #1e3a5f; color: #93c5fd; }
+  .t-write { background: #7c2d12; color: #fca5a5; }
+  .t-hero { background: #7f1d1d; color: #fca5a5; }
+
+  /* PERMISSION MODEL */
+  .perm-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .perm-mode { background: #0f1520; border-radius: 10px; padding: 14px; border: 2px solid; }
+  .perm-auto { border-color: #7c3aed; }
+  .perm-conf { border-color: #1d4ed8; }
+  .perm-title { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .perm-sub { font-size: 11px; color: #6b7280; margin-bottom: 8px; }
+  .perm-item { font-size: 11px; color: #94a3b8; padding: 3px 0; padding-left: 14px; position: relative; }
+  .perm-item::before { content: "→"; position: absolute; left: 0; color: #475569; }
+
+  /* COST MODEL */
+  .cost-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cost-table th { text-align: left; padding: 8px 10px; background: #1f2937; color: #9ca3af; font-weight: 600; font-size: 10px; text-transform: uppercase; }
+  .cost-table td { padding: 8px 10px; border-bottom: 1px solid #111827; }
+  .cost-table tr:last-child td { border-bottom: none; }
+  .highlight-row { background: rgba(34,197,94,0.05); }
+  .green { color: #22c55e; font-weight: 700; }
+  .red { color: #ef4444; }
+  .yellow { color: #f59e0b; font-weight: 700; }
+
+  /* PRICING */
+  .pricing-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .pricing-card { background: #0f1520; border-radius: 12px; padding: 16px; border: 1px solid #1f2937; text-align: center; }
+  .pricing-card.recommended { border-color: #16a34a; background: #020f07; }
+  .pricing-name { font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
+  .pricing-price { font-size: 28px; font-weight: 900; color: #fff; }
+  .pricing-per { font-size: 11px; color: #475569; }
+  .pricing-margin { font-size: 12px; color: #22c55e; font-weight: 700; margin-top: 8px; }
+  .pricing-cost { font-size: 10px; color: #475569; margin-top: 4px; }
+  .pricing-features { margin-top: 12px; text-align: left; }
+  .pf { font-size: 10px; color: #94a3b8; padding: 2px 0; padding-left: 14px; position: relative; }
+  .pf::before { content: "✓"; position: absolute; left: 0; color: #16a34a; }
+  .badge-rec { background: #166534; color: #86efac; font-size: 9px; padding: 2px 8px; border-radius: 3px; font-weight: 700; display: inline-block; margin-bottom: 6px; }
+
+  /* ARCH */
+  .arch-flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 12px; }
+  .arch-box { background: #0f1520; border: 1px solid #1f2937; border-radius: 8px; padding: 10px 14px; min-width: 120px; text-align: center; }
+  .arch-box .arch-icon { font-size: 20px; }
+  .arch-box .arch-name { font-size: 11px; font-weight: 700; color: #e2e8f0; margin-top: 4px; }
+  .arch-box .arch-tech { font-size: 9px; color: #475569; margin-top: 2px; font-family: monospace; }
+  .arch-arrow { color: #334155; font-size: 20px; margin: 0 6px; }
+  .arch-box.model { border-color: rgba(139,92,246,0.4); background: #0d0a1a; }
+  .arch-box.db { border-color: rgba(34,197,94,0.3); background: #020f07; }
+
+  /* BILLING */
+  .billing-flow { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .billing-step { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: #0f1520; border-radius: 8px; }
+  .billing-n { width: 20px; height: 20px; border-radius: 50%; background: #7c3aed; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .billing-text { font-size: 11px; color: #94a3b8; }
+  .billing-code { font-family: monospace; font-size: 10px; color: #7c3aed; margin-top: 3px; }
+
+  .section-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #1f2937; }
+
+  .note-box { background: #1a1200; border-left: 3px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 11px; color: #fde68a; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero-box">
+  <div class="hero-title">UÀ AI Assistant — "U"</div>
+  <div class="hero-sub">Modulo add-on premium · AI con accesso completo al laboratorio</div>
+  <div class="hero-tagline">"Filippo, quante consegne ho oggi?" — "Crea un lavoro per Bianchi, paziente Rossi, corona 14, venerdì" — "Quanto mi deve il dottor Esposito?" — tutto in italiano, tutto in voce, tutto subito.</div>
+</div>
+
+<!-- CHAT MOCKUP + PERMESSI -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">💬 Esempio conversazione reale</div>
+    <div class="chat-mock">
+      <div class="msg-label">Filippo (voce)</div>
+      <div class="chat-msg msg-user">Crea un lavoro per il dottor Bianchi, paziente Mario Rossi, corona ceramica sul 14, consegna venerdì</div>
+      <div class="msg-label" style="margin-top:6px;">U (AI)</div>
+      <div class="chat-msg msg-ai confirm">
+        ✅ Ho trovato: Dr. Bianchi → Studio GDA<br>
+        📋 Corona ceramica 14 · listino €110,00<br>
+        📅 Consegna: venerdì 17 maggio<br>
+        Procedo?
+        <div class="confirm-btns"><span class="btn-yes">Sì, crea</span><span class="btn-no">Modifica</span></div>
+      </div>
+      <div class="chat-msg msg-ai action">Lavoro 2026/0094 creato ✓<br>Vuoi che mando WhatsApp al dottor Bianchi?</div>
+
+      <div style="margin-top:10px; border-top:1px solid #1f2937; padding-top:10px;">
+      <div class="msg-label">Filippo (testo)</div>
+      <div class="chat-msg msg-user">Quanto mi deve il dottor Esposito?</div>
+      <div class="chat-msg msg-ai">Dr. Esposito ha:<br>• Fattura 2026/031 · €340 · scaduta 15 giorni<br>• Fattura 2026/044 · €220 · scade domani<br>Totale: <strong>€560</strong>. Mando sollecito WhatsApp?</div>
+      </div>
+
+      <div style="margin-top:10px; border-top:1px solid #1f2937; padding-top:10px;">
+      <div class="msg-label">Filippo (voce)</div>
+      <div class="chat-msg msg-user">Segna come completata la fase di sinterizzazione del lavoro di Rossi</div>
+      <div class="chat-msg msg-ai action">✅ Fase "Sinterizzazione zirconia" completata · Lavoro 2026/0094<br>Progresso: 7/12 fasi (58%) · prossima: Colorazione dessetto</div>
+      </div>
+
+      <div class="chat-input">
+        <div class="chat-input-text">Scrivi o parla...</div>
+        <div class="mic-btn">🎤 Tieni</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔐 Modello permessi — scelto una volta</div>
+    <div class="perm-modes">
+      <div class="perm-mode perm-auto">
+        <div class="perm-title">⚡ Modalità AUTONOMA</div>
+        <div class="perm-sub">L'IA esegue e poi ti dice cosa ha fatto</div>
+        <div class="perm-item">Crea lavoro → esegue</div>
+        <div class="perm-item">Aggiorna fase → esegue</div>
+        <div class="perm-item">Registra pagamento → esegue</div>
+        <div class="perm-item">Cancella → chiede sempre</div>
+        <div class="perm-item">Consegna finale → chiede sempre</div>
+        <div style="margin-top:8px; font-size:10px; color:#7c3aed;">Per utenti esperti · velocità massima</div>
+      </div>
+      <div class="perm-mode perm-conf">
+        <div class="perm-title">✅ Modalità CONFERMA</div>
+        <div class="perm-sub">L'IA mostra cosa vuole fare e aspetta</div>
+        <div class="perm-item">Crea lavoro → mostra card → attende sì</div>
+        <div class="perm-item">Aggiorna fase → mostra → attende sì</div>
+        <div class="perm-item">Registra pagamento → mostra → attende</div>
+        <div class="perm-item">Letture → esegue sempre senza chiedere</div>
+        <div style="margin-top:8px; font-size:10px; color:#1d4ed8;">Per chi inizia · zero errori</div>
+      </div>
+    </div>
+    <div class="note-box" style="margin-top:10px;">⚠️ Regola di sicurezza assoluta: CONSEGNA definitiva e CANCELLAZIONE richiedono SEMPRE conferma esplicita, in entrambe le modalità. Non si fa in autonomia.</div>
+
+    <div style="margin-top:14px;">
+      <div class="card-title" style="margin-top:0;">🔒 Cosa l'IA può fare (e non può fare)</div>
+      <table style="width:100%; font-size:11px; border-collapse:collapse;">
+        <tr><td style="padding:4px 0; color:#e2e8f0; font-weight:600;">Legge tutti i dati del lab</td><td style="color:#22c55e; text-align:right;">✓ sempre</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Crea/modifica lavori, clienti, pazienti</td><td style="color:#22c55e; text-align:right;">✓</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Segna fasi completate</td><td style="color:#22c55e; text-align:right;">✓</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Registra pagamenti</td><td style="color:#22c55e; text-align:right;">✓</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Manda link WhatsApp</td><td style="color:#22c55e; text-align:right;">✓</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Genera consegna definitiva (DdC+Fattura)</td><td style="color:#f59e0b; text-align:right;">⚠️ conferma sempre</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Cancella dati</td><td style="color:#f59e0b; text-align:right;">⚠️ conferma sempre</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Accesso ad altri laboratori</td><td style="color:#ef4444; text-align:right;">✗ mai (RLS)</td></tr>
+        <tr><td style="padding:4px 0; color:#e2e8f0;">Invia FatturaPA a SDI</td><td style="color:#f59e0b; text-align:right;">⚠️ conferma sempre</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- STRUMENTI IA (TOOL CALLING) -->
+<div class="section-label">STRUMENTI CHE L'IA PUÒ USARE (Tool Calling)</div>
+<div class="card full">
+  <div class="card-title">⚙️ 24 tool definitions — le operazioni che Claude può eseguire sul DB di Filippo</div>
+  <div class="tools-grid">
+    <div class="tool"><div class="tool-name">get_dashboard_oggi()</div><div class="tool-desc">Ritardi, consegne oggi, prove fuori, materiali mancanti, pagamenti scaduti</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">cerca_lavori(filtri)</div><div class="tool-desc">Per dentista, paziente, stato, data, tipo dispositivo, numero</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">get_lavoro(id)</div><div class="tool-desc">Dettaglio completo: dati, fasi, documenti, storico prove, pagamenti</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">crea_lavoro(dati)</div><div class="tool-desc">Nuovo lavoro con cliente, paziente, tipo, lavorazioni, data consegna</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">aggiorna_lavoro(id, campi)</div><div class="tool-desc">Modifica data consegna, note, tecnico assegnato, lavorazioni</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">cambia_stato_lavoro(id, stato)</div><div class="tool-desc">ricevuto → in_lavorazione → pronto (consegna richiede tool separato)</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">completa_fase(lavoro_id, fase_id, note)</div><div class="tool-desc">Segna fase eseguita · traccia tecnico e timestamp</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">manda_in_prova(lavoro_id, data_rientro)</div><div class="tool-desc">Stato → in_prova_esterna + data prevista rientro</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">registra_rientro_prova(prova_id, esito, note)</div><div class="tool-desc">Esito: OK / modifiche / rifare / sospeso</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">cerca_clienti(query)</div><div class="tool-desc">Ricerca dentisti per nome, studio, P.IVA</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">crea_cliente(dati)</div><div class="tool-desc">Nuovo dentista/studio con dati fiscali, PEC, SDI, tier prezzo</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">get_scadenzario_cliente(cliente_id)</div><div class="tool-desc">Fatture aperte, pagamenti, saldo totale, insoluti</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">registra_pagamento(fattura_id, importo, modalita)</div><div class="tool-desc">Bonifico / contante / assegno · aggiorna partitario</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">cerca_pazienti(query)</div><div class="tool-desc">Ricerca per nome · restituisce codice GDPR</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">crea_paziente(nome)</div><div class="tool-desc">Nuovo paziente · genera codice GDPR automaticamente</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">get_magazzino()</div><div class="tool-desc">Giacenze, lotti in scadenza, materiali sotto soglia minima</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">cerca_fatture(filtri)</div><div class="tool-desc">Per cliente, stato SDI, periodo, importo</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">get_kpi_mese()</div><div class="tool-desc">Fatturato, lavori completati, media giorni produzione, top clienti</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">genera_link_whatsapp(testo, numero)</div><div class="tool-desc">Link wa.me pre-compilato pronto da aprire</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">aggiungi_nota(lavoro_id, testo)</div><div class="tool-desc">Nota libera sul lavoro con timestamp e autore IA</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">crea_rifacimento(lavoro_id, motivo)</div><div class="tool-desc">Registra non conformità + crea lavoro di rifacimento collegato</div><span class="tool-type t-write">WRITE</span></div>
+    <div class="tool"><div class="tool-name">get_storico_lavori_cliente(cliente_id)</div><div class="tool-desc">Storico completo con stato, importi, pagamenti</div><span class="tool-type t-read">READ</span></div>
+    <div class="tool"><div class="tool-name">triggera_consegna(lavoro_id)</div><div class="tool-desc">SOLO con conferma esplicita: avvia DdC+Buono+Fattura</div><span class="tool-type t-hero">HERO · CONFIRM</span></div>
+    <div class="tool"><div class="tool-name">annulla_lavoro(id, motivo)</div><div class="tool-desc">SOLO con conferma: annulla con motivo obbligatorio</div><span class="tool-type t-hero">WRITE · CONFIRM</span></div>
+  </div>
+</div>
+
+<!-- ARCHITETTURA TECNICA -->
+<div class="section-label">ARCHITETTURA TECNICA</div>
+<div class="card full">
+  <div class="card-title">🏗️ Stack tecnologico</div>
+  <div class="arch-flow">
+    <div class="arch-box"><div class="arch-icon">🎤</div><div class="arch-name">Voce / Testo</div><div class="arch-tech">Web Speech API</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box"><div class="arch-icon">⚛️</div><div class="arch-name">Chat UI</div><div class="arch-tech">useChat (AI SDK)</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box model"><div class="arch-icon">🤖</div><div class="arch-name">Claude Sonnet 4</div><div class="arch-tech">claude-sonnet-4-6</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box"><div class="arch-icon">⚙️</div><div class="arch-name">Tool Execution</div><div class="arch-tech">Vercel AI SDK tools</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box db"><div class="arch-icon">🗄️</div><div class="arch-name">Supabase DB</div><div class="arch-tech">RPC + RLS</div></div>
+  </div>
+  <div style="margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div style="background:#0f1520; border-radius:8px; padding:12px; font-size:11px;">
+      <div style="font-weight:700; color:#7c3aed; margin-bottom:6px;">System prompt cacheato (Anthropic)</div>
+      <div style="color:#6b7280; line-height:1.6;">Il prompt di sistema (~8.000 token) descrive l'intera PWA: tutti i flow, le regole MDR, la struttura del DB, i 24 tool, le regole di sicurezza. Viene cacheato da Anthropic (5 min TTL) → 90% risparmio sui token di sistema.</div>
+    </div>
+    <div style="background:#0f1520; border-radius:8px; padding:12px; font-size:11px;">
+      <div style="font-weight:700; color:#16a34a; margin-bottom:6px;">RLS garantisce isolamento dati</div>
+      <div style="color:#6b7280; line-height:1.6;">L'IA usa il JWT dell'utente autenticato per tutte le query. Row Level Security di Supabase si applica automaticamente: l'IA di Filippo non può mai vedere dati di altri laboratori, anche se lo chiede.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODELLO COSTO -->
+<div class="section-label">MODELLO COSTO — Come guadagni tu Francesco</div>
+
+<div class="card full">
+  <div class="card-title">💰 Analisi costi reali e margini</div>
+  <table class="cost-table">
+    <thead>
+      <tr><th>Scenario</th><th>Messaggi/mese per lab</th><th>Costo Anthropic</th><th>Token totali</th><th>Note</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Lab piccolo (Filippo)</td><td>~150 msg/mese</td><td class="red">~$0,45/mese</td><td>~75k token</td><td>Solo Filippo, uso quotidiano moderato</td></tr>
+      <tr><td>Lab attivo (2 tecnici)</td><td>~400 msg/mese</td><td class="red">~$1,20/mese</td><td>~200k token</td><td>Uso intenso, tutti i flow</td></tr>
+      <tr class="highlight-row"><td><strong>Lab con 3+ tecnici</strong></td><td>~800 msg/mese</td><td class="red">~$2,40/mese</td><td>~400k token</td><td>Uso molto attivo · max scenario</td></tr>
+    </tbody>
+  </table>
+  <div class="note-box" style="margin-top:10px;">
+    <strong>Calcolo:</strong> Claude Sonnet 4 · ~500 token input/msg (con cache) + ~200 token output · $3/MTok input (cached $0.30) + $15/MTok output · system prompt 8k token cacheato → costo effettivo ~$0.003/messaggio
+  </div>
+</div>
+
+<div class="section-label">PRICING PER I LABORATORI</div>
+<div class="pricing-cards">
+  <div class="pricing-card">
+    <div class="pricing-name">Crediti mensili</div>
+    <div class="pricing-price">€9<span style="font-size:16px;">/mese</span></div>
+    <div class="pricing-per">200 messaggi inclusi · poi €0.05 cad.</div>
+    <div class="pricing-margin green">Margine: ~85%</div>
+    <div class="pricing-cost">Tuo costo reale: ~€1,20/mese</div>
+    <div class="pricing-features">
+      <div class="pf">200 msg AI inclusi</div>
+      <div class="pf">Voce + testo</div>
+      <div class="pf">Lettura + scrittura</div>
+      <div class="pf">Extra a consumo</div>
+    </div>
+  </div>
+
+  <div class="pricing-card recommended">
+    <div class="badge-rec">RACCOMANDATO</div>
+    <div class="pricing-name">Illimitato</div>
+    <div class="pricing-price">€19<span style="font-size:16px;">/mese</span></div>
+    <div class="pricing-per">messaggi illimitati · fair use 1.000/mese</div>
+    <div class="pricing-margin green">Margine: ~87% (scenario medio)</div>
+    <div class="pricing-cost">Tuo costo reale: ~€1,20-2,40/mese</div>
+    <div class="pricing-features">
+      <div class="pf">Messaggi illimitati (fair use)</div>
+      <div class="pf">Voce + testo + multi-step</div>
+      <div class="pf">Lettura + scrittura piena</div>
+      <div class="pf">Storico conversazioni 90gg</div>
+      <div class="pf">Report uso mensile</div>
+    </div>
+  </div>
+
+  <div class="pricing-card">
+    <div class="pricing-name">Pack annuale</div>
+    <div class="pricing-price">€159<span style="font-size:16px;">/anno</span></div>
+    <div class="pricing-per">= €13.25/mese · risparmio €72</div>
+    <div class="pricing-margin green">Margine: ~85%</div>
+    <div class="pricing-cost">Tuo costo reale: ~€14-29/anno</div>
+    <div class="pricing-features">
+      <div class="pf">Tutto del piano Illimitato</div>
+      <div class="pf">Onboarding dedicato AI</div>
+      <div class="pf">Priorità nuove feature</div>
+      <div class="pf">Cash flow anticipato per te</div>
+    </div>
+  </div>
+</div>
+
+<!-- BILLING TRACKING -->
+<div class="section-label">BILLING TRACKING — Come tracci e fatturi i token</div>
+<div class="card full">
+  <div class="card-title">📊 Flusso di fatturazione token per laboratorio</div>
+  <div class="billing-flow">
+    <div class="billing-step">
+      <div class="billing-n">1</div>
+      <div>
+        <div class="billing-text">Ogni chiamata IA logga il consumo nella tabella <code style="color:#7c3aed;">ai_usage</code></div>
+        <div class="billing-code">{ lab_id, tokens_input, tokens_output, model, costo_usd, timestamp, tool_chiamati }</div>
+      </div>
+    </div>
+    <div class="billing-step">
+      <div class="billing-n">2</div>
+      <div>
+        <div class="billing-text">Dashboard Francesco in /admin: vede consumo per lab, trend, messaggi/giorno, costo vs revenue</div>
+        <div class="billing-code">SELECT lab_id, SUM(tokens_input+tokens_output), SUM(costo_usd) GROUP BY lab_id</div>
+      </div>
+    </div>
+    <div class="billing-step">
+      <div class="billing-n">3</div>
+      <div>
+        <div class="billing-text">Piano "Illimitato": se un lab supera 1.000 msg/mese (caso estremo), soft cap → notifica → upgrade o throttling</div>
+      </div>
+    </div>
+    <div class="billing-step">
+      <div class="billing-n">4</div>
+      <div>
+        <div class="billing-text">Piano "Crediti": Stripe Metered Billing → fattura automatica a fine mese per i messaggi extra</div>
+        <div class="billing-code">stripe.subscriptions.create({ items: [{ price: 'price_ai_extra', billing_scheme: 'per_unit' }] })</div>
+      </div>
+    </div>
+    <div class="billing-step">
+      <div class="billing-n">5</div>
+      <div>
+        <div class="billing-text">Modello ibrido raccomandato: il piano SaaS base (es. €29/mese) NON include l'IA. L'IA è add-on separato +€19/mese. Lab attiva solo se vuole.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

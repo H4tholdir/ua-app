@@ -1,0 +1,750 @@
+# Review package: 3dd7dd1e..d3c00faa
+
+## Commits
+d3c00faa feat(api): la scheda può leggere lo snapshot — embed lavori_prescrizioni + tipi di dominio
+
+## Files changed
+ src/app/api/lavori/[id]/route.ts                   |  43 ++++-
+ src/lib/domain/prescrizione-mapper.ts              |  89 ++++++++++
+ src/types/domain.ts                                |  51 +++++-
+ .../unit/lavori-id-route-get-prescrizione.test.ts  | 174 ++++++++++++++++++++
+ tests/unit/prescrizione-mapper.test.ts             | 179 +++++++++++++++++++++
+ 5 files changed, 526 insertions(+), 10 deletions(-)
+
+## Diff
+diff --git a/src/app/api/lavori/[id]/route.ts b/src/app/api/lavori/[id]/route.ts
+index d768d2d9..acd37ceb 100644
+--- a/src/app/api/lavori/[id]/route.ts
++++ b/src/app/api/lavori/[id]/route.ts
+@@ -2,37 +2,46 @@ import { NextResponse } from 'next/server'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
+ import { withServerTiming } from '@/lib/api/server-timing'
+ import { isSameOrigin } from '@/lib/utils/csrf'
+ import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+ import { triggerPushToUser } from '@/lib/notifications/trigger'
+ // Stessa normalizzazione del colore di caso che usa `POST /api/lavori` (Task
+ // 11): una sola casa, due chiamanti. Vedi GRUPPO C nella tabella qui sotto.
+ import { risolviColoreCaso } from '@/lib/api/colore-caso'
++// La lettura dello snapshot della prescrizione (Task 6, ondata B ③): la GET
++// non aveva alcun embed su `lavori_prescrizioni` — la funzione normalizza la
++// forma array-vs-oggetto che PostgREST restituisce (vedi il commento sopra
++// `GET` più sotto). NON costruisce UI: la scheda (T7) legge da qui.
++import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
+ 
+ // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
+ const LOCKED_PRICE_FIELDS = [
+   'prezzo_unitario',
+   'listino_id',
+   'codice_iva',
+   'natura_iva',
+ ] as const
+ 
+ // Allowlist esplicita dei campi di `lavori` scrivibili via questa route.
+ // CLAUDE.md: "PATCH allowlist: API PATCH di risorse lab usa sempre allowlist
+ // esplicita di campi — MAI blocklist". Qualunque chiave del body non presente
+ // qui viene scartata silenziosamente (incluse le relazioni annidate che il
+ // GET restituisce via embed PostgREST — appuntamenti, fasi, immagini, cliente,
+-// paziente, tecnico, lavorazioni, materiali, ddc — che NON sono colonne dirette
+-// della tabella `lavori` e causavano un 500 "column not found" se inoltrate,
+-// perché la blocklist precedente non le conosceva.
++// paziente, tecnico, lavorazioni, materiali, ddc, prescrizione (Task 6, ondata
++// B ③) — che NON sono colonne dirette della tabella `lavori` e causavano un
++// 500 "column not found" se inoltrate, perché la blocklist precedente non le
++// conosceva. ⚠️ `denti` manca da questo elenco da prima del Task 6 (embed
++// presente dal Task 10, mai aggiunto qui) — trovato scrivendo questa riga,
++// FUORI dal mandato di T6 (R-E2): riferito in task-6-report.md, non corretto
++// qui.
+ //
+ // Fonti verificate per ogni campo (grep mirati sul form + su altri caller
+ // della stessa route):
+ // - TabDati.tsx:        tipo_dispositivo, descrizione, richiedente_nome,
+ //                        data_consegna_prevista, ora_consegna, priorita,
+ //                        dispositivo_semilavorato, note_interne
+ // - TabAccettazione.tsx: tipo_impronte, disinfettante_usato,
+ //                        lotto_disinfettante, materiali_allegati,
+ //                        anamnesi_bruxismo, anamnesi_difficolta_manuali,
+ //                        anamnesi_precauzioni
+@@ -270,20 +279,40 @@ async function notificaAssegnazione(
+ 
+ /**
+  * Lettura del lavoro.
+  *
+  * 🔴 `denti:lavori_denti(*)` è la STRADA DEL RITORNO del colore. Dal Task 10 le
+  * quattro `lavori.colore_*` non hanno più alcuno scrittore (vedi GRUPPO B nella
+  * tabella di destinazione qui sopra): restano nella riga per lo snapshot della
+  * fatturazione, ma non sono più il dato vivo. Chi legge il colore da questa
+  * risposta lo prende dalle righe, con la precedenza riga → caso di
+  * `src/lib/domain/colore-dente.ts` — mai dalle quattro colonne.
++ *
++ * 🔴 `prescrizione:lavori_prescrizioni(*)` (Task 6, ondata B ③): prima di
++ * questo task la scheda non aveva NESSUNA via di lettura dello snapshot
++ * della prescrizione — il `select('*')` non lo embeddava affatto. S8 ha
++ * provato che la lettura è permessa (RLS per tenant + GRANT SELECT,
++ * 20260804150306:73-80): mancava solo la richiesta dell'embed.
++ * `lavori_prescrizioni` porta `UNIQUE(lavoro_id)` — relazione uno-a-uno per
++ * costruzione — ma la FK usata per l'embed è composita
++ * (lavoro_id, laboratorio_id) e lo UNIQUE non copre la coppia esatta: i tipi
++ * generati marcano la relazione `isOneToOne: false`
++ * (database.types.ts:3421-3426), quindi l'ATTESA è che PostgREST restituisca
++ * questo embed come array, non oggetto singolo (stesso caso già gestito, con
++ * la STESSA riserva, per `ddc` in `lavori/[id]/page.tsx:51-55`: «mai
++ * verificato empiricamente» — qui non lo è stato nemmeno a banco, R-P1:
++ * NON provato, quindi non marcato come fatto). `normalizzaPrescrizione`
++ * (`@/lib/domain/prescrizione-mapper`) per questo normalizza ENTRAMBE le
++ * forme, non solo quella attesa — se PostgREST sorprendesse restituendo un
++ * oggetto singolo, il codice resta corretto lo stesso. Passa dalla stessa
++ * funzione anche il caso «nessuna riga»: `undefined`, mai un oggetto vuoto
++ * (V2).
+  */
+ export async function GET(_req: Request, { params }: RouteContext) {
+   const { id } = await params
+ 
+   return withServerTiming(async (t) => {
+     const { context, timings } = await getLabContextWithTimings()
+     Object.assign(t, timings)
+     if (!context) {
+       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+     }
+@@ -304,37 +333,43 @@ export async function GET(_req: Request, { params }: RouteContext) {
+         *,
+         cliente:clienti(*),
+         paziente:pazienti(*),
+         tecnico:tecnici(*),
+         lavorazioni:lavori_lavorazioni(*),
+         appuntamenti:lavori_appuntamenti(*),
+         immagini:lavori_immagini(*),
+         fasi:lavori_fasi(*, fase:fasi_produzione(*)),
+         materiali:lavori_materiali(*),
+         ddc:dichiarazioni_conformita(*),
+-        denti:lavori_denti(*)
++        denti:lavori_denti(*),
++        prescrizione:lavori_prescrizioni(*)
+       `)
+       .eq('id', id)
+       .eq('laboratorio_id', labId)
+       .is('deleted_at', null)
+       .neq('ddc.stato', 'annullata')
+       .is('lavori_immagini.deleted_at', null)
+       .single()
+ 
+     if (error || !lavoro) {
+       const status = error?.code === 'PGRST116' ? 404 : 500
+       return NextResponse.json(
+         { error: error?.message ?? 'Lavoro non trovato' },
+         { status }
+       )
+     }
+ 
++    // Normalizzazione array-vs-oggetto dell'embed (vedi commento sopra) — si
++    // riassegna la proprietà così tutto il resto della risposta vede sempre
++    // un `LavoroPrescrizione` singolo o `undefined`, mai la forma grezza.
++    lavoro.prescrizione = normalizzaPrescrizione(lavoro.prescrizione)
++
+     return NextResponse.json({ lavoro })
+   })
+ }
+ 
+ export async function PATCH(req: Request, { params }: RouteContext) {
+   const { id } = await params
+ 
+   // CSRF check
+   if (!isSameOrigin(req)) {
+     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
+diff --git a/src/lib/domain/prescrizione-mapper.ts b/src/lib/domain/prescrizione-mapper.ts
+new file mode 100644
+index 00000000..eeb03a4a
+--- /dev/null
++++ b/src/lib/domain/prescrizione-mapper.ts
+@@ -0,0 +1,89 @@
++// src/lib/domain/prescrizione-mapper.ts
++//
++// normalizzaPrescrizione — la lettura dell'embed `lavori_prescrizioni` per
++// GET /api/lavori/[id] (ondata B, Task 6). Funzione PURA, sul modello di
++// `risolviColore` (colore-dente.ts): vive fuori dalla route così da essere
++// testabile senza montare la catena Supabase, e riusabile da chi altro
++// leggerà lo stesso embed (T7 — la scheda).
++//
++// 🔴 LA FORMA DELL'EMBED NON È SCONTATA, ed è il motivo per cui questa
++// funzione esiste invece di un accesso diretto a `lavoro.prescrizione`.
++// `lavori_prescrizioni` porta `UNIQUE(lavoro_id)` (20260804150306:48) — una
++// riga per lavoro, sempre — ma la FK usata per l'embed
++// (`prescrizione:lavori_prescrizioni(*)`) è COMPOSITA
++// (lavoro_id, laboratorio_id) → lavori(id, laboratorio_id)
++// (20260804150306:51-52), e lo UNIQUE non copre la coppia esatta: i tipi
++// generati marcano perciò la relazione `isOneToOne: false`
++// (database.types.ts:3421-3426), quindi l'ATTESA è che PostgREST restituisca
++// l'embed come ARRAY (0 o 1 elementi), non un oggetto singolo — stesso caso
++// già gestito, con la STESSA riserva, per `ddc:dichiarazioni_conformita(*)`
++// in `lavori/[id]/page.tsx:51-55`: «mai verificato empiricamente». Qui non è
++// stato verificato nemmeno a banco (R-P1: non provato, quindi non marcato
++// come fatto) — per questo la funzione normalizza ENTRAMBE le forme, non
++// solo quella attesa: se PostgREST sorprendesse restituendo un oggetto
++// singolo, il risultato resta corretto lo stesso. Questa funzione normalizza
++// QUALUNQUE forma arrivi (array, oggetto, null, undefined, o un valore del
++// tutto inatteso) in un `LavoroPrescrizione | undefined` — `undefined`
++// quando il lavoro non ha ancora una trascrizione, MAI un oggetto vuoto (V2:
++// l'assenza è un'informazione, non un default silenzioso).
++//
++// 🔑 GUARDIA RUNTIME SOLO SU `fonte_tipo`. I tipi generati lo dichiarano
++// `string | null` (più largo del dominio — R27, prescrizione-costanti.ts:6-13:
++// i client Supabase di questo repo non passano il generico <Database>),
++// mentre il CHECK di tabella (20260804150306:31) impedisce già in banca dati
++// qualunque valore fuori dalle 4 forme di D202. Un valore fuori unione qui è
++// quindi un IMPOSSIBILE DIFESO, non un caso atteso a monte: si registra con
++// `console.warn` (stessa spia di annulla-consegna/route.ts:84) e si legge
++// come `null` — la stessa forma legittima di V7 ("in attesa di conferma
++// scritta") — MAI un cast cieco che propaghi un valore fuori dizionario a
++// valle.
++//
++// `contenuto` e `divergenze` NON hanno una guardia equivalente: sono scritti
++// SOLO dalle RPC `lavoro_crea_atomico` / `lavoro_prescrizione_*`
++// (`lavori_prescrizioni` è REVOKE ALL, service_role compreso —
++// 20260804150306:79), e `divergenze` è validata voce per voce all'INSERT da
++// `lavoro_prescrizione_registra_divergenza` (campo/motivo,
++// 20260804211256:77-83). Un cast diretto sul valore jsonb è quindi una scelta
++// dichiarata — il perimetro scrivibile è già chiuso a monte — non una svista.
++
++import type { Divergenza, LavoroPrescrizione, PrescrizioneContenuto } from '@/types/domain'
++import { isFonteTipo } from './prescrizione-costanti'
++
++export function normalizzaPrescrizione(raw: unknown): LavoroPrescrizione | undefined {
++  const riga = Array.isArray(raw) ? raw[0] : raw
++
++  if (riga === null || riga === undefined || typeof riga !== 'object') {
++    return undefined
++  }
++
++  const r = riga as Record<string, unknown>
++
++  let fonte_tipo: LavoroPrescrizione['fonte_tipo'] = null
++  const fonteGrezza = r.fonte_tipo
++  if (fonteGrezza !== null && fonteGrezza !== undefined) {
++    if (isFonteTipo(fonteGrezza)) {
++      fonte_tipo = fonteGrezza
++    } else {
++      console.warn(
++        '[normalizzaPrescrizione] fonte_tipo fuori dal dizionario chiuso (D202) — letto come null:',
++        fonteGrezza
++      )
++    }
++  }
++
++  return {
++    id: r.id as string,
++    laboratorio_id: r.laboratorio_id as string,
++    lavoro_id: r.lavoro_id as string,
++    contenuto: (r.contenuto ?? {}) as PrescrizioneContenuto,
++    divergenze: (r.divergenze ?? []) as Divergenza[],
++    fonte_tipo,
++    fonte_immagine_id: (r.fonte_immagine_id as string | null) ?? null,
++    fonte_riferimento: (r.fonte_riferimento as string | null) ?? null,
++    numero_prescrizione: (r.numero_prescrizione as string | null) ?? null,
++    confermata_da: (r.confermata_da as string | null) ?? null,
++    confermata_at: (r.confermata_at as string | null) ?? null,
++    created_at: r.created_at as string,
++    updated_at: r.updated_at as string,
++  }
++}
+diff --git a/src/types/domain.ts b/src/types/domain.ts
+index be128d7f..4e436340 100644
+--- a/src/types/domain.ts
++++ b/src/types/domain.ts
+@@ -1,14 +1,23 @@
+ // UÀ — Domain Types
+ // Fonte: ANALISI/31_fase2_spec_completo.md §11
+ // Aggiornato: 2026-05-14 (patch v1.1: stato ricevuto, tracking spedizioni)
+ 
++// Le CASE UNICHE dei dizionari chiusi vivono in `src/lib/domain/*` — questo
++// file importa i tipi, non li ridichiara (Task 6, ondata B ③): `fonte_tipo`
++// aveva una QUARTA copia a mano dell'unione prima di questo import, e una
++// copia scritta qui non la vedrebbe la spia di migrazione
++// (`tests/unit/prescrizione-costanti-spia-migration.test.ts`), che sorveglia
++// solo `src/lib/domain/prescrizione-costanti.ts`.
++import type { CategoriaFoto } from '@/lib/domain/categorie-foto'
++import type { CampoTypo, FonteTipo, MotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
++
+ // ============================================================
+ // LABORATORIO
+ // ============================================================
+ export interface Laboratorio {
+   id: string;
+   nome: string;
+   ragione_sociale: string | null;
+   partita_iva: string | null;
+   codice_fiscale: string | null;
+   indirizzo: string | null;
+@@ -393,49 +402,79 @@ export interface LavoroDente {
+   updated_at: string;
+ }
+ 
+ // ============================================================
+ // LAVORO PRESCRIZIONE — la trascrizione della prescrizione (ondata B, D214)
+ // ============================================================
+ // Scrittura SOLO via le RPC dedicate (`lavoro_crea_atomico`,
+ // `lavoro_prescrizione_*`): la tabella è in REVOKE ALL, service_role compreso.
+ // `contenuto`: chiave presente = caratteristica TRASCRITTA (V2, l'assenza è
+ // un'informazione); il colore vive lì COME DIGITATO (D210); `tipo` entra SOLO
+-// alla conferma di consegna (D213).
++// alla conferma di consegna (D213, copiato da `lavori.tipo_dispositivo` in
++// `lavoro_prescrizione_conferma_consegna`, 20260804152403:357-360).
++export interface PrescrizioneContenuto {
++  /** Denti PRESCRITTI (provenienza 'prescritto', W20) — vedi componiSnapshot. */
++  elementi?: number[];
++  /** COME DIGITATO dall'addetta (D210): mai trim, mai uppercase. */
++  colore?: string;
++  /** Entra SOLO alla conferma di consegna (D213) — mai alla creazione. */
++  tipo?: string;
++}
++
++// Una voce del registro divergenze prescritto/eseguito (V9, D212). Forma
++// fissata dalla RPC `lavoro_prescrizione_registra_divergenza`
++// (jsonb_build_object, migration 20260804211256:85-91) — NON si inventa qui.
++export interface Divergenza {
++  /** Uno dei tre campi correggibili dello snapshot — stesso dizionario di CAMPI_TYPO. */
++  campo: CampoTypo;
++  /** Dizionario chiuso — vedi MOTIVI_DIVERGENZA. */
++  motivo: MotivoDivergenza;
++  nota: string | null;
++  utente_id: string;
++  /** ISO timestamp — `now()` lato RPC. */
++  registrata_at: string;
++}
++
+ export interface LavoroPrescrizione {
+   id: string;
+   laboratorio_id: string;
+   lavoro_id: string;
+-  contenuto: Record<string, unknown>;
++  contenuto: PrescrizioneContenuto;
+   // Il registro delle divergenze (gesto typo-vs-divergenza, spec §4.3):
+-  // jsonb '[]' di default; la forma delle voci arriva con la sua ondata.
+-  divergenze: unknown[];
+-  fonte_tipo: 'foglio' | 'email' | 'modulo' | 'piattaforma' | null;
++  // jsonb '[]' di default.
++  divergenze: Divergenza[];
++  fonte_tipo: FonteTipo | null;
+   fonte_immagine_id: string | null;
+   fonte_riferimento: string | null;
+   // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
+   // (colonna legacy, esclusa dalla PATCH con la sua ragione).
+   numero_prescrizione: string | null;
+   confermata_da: string | null;
+   confermata_at: string | null;
+   created_at: string;
+   updated_at: string;
+ }
+ 
+ // ============================================================
+ // LAVORO DETTAGLIO — con join
+ // ============================================================
+ export interface LavoroDettaglio extends Lavoro {
+   // Opzionale perché è un embed: c'è solo dove la query lo chiede
+   // (`denti:lavori_denti(*)`). Chi mostra o corregge il colore DEVE chiederlo —
+   // guardia in `tests/unit/lavoro-form-colore-idratazione.test.tsx`.
+   denti?: LavoroDente[];
++  // Opzionale sullo stesso modello di `denti?` (Task 6, ondata B ③): c'è solo
++  // dove la query chiede l'embed (`prescrizione:lavori_prescrizioni(*)`), ed
++  // è `undefined` — MAI un oggetto vuoto — quando il lavoro non ha ancora una
++  // trascrizione. Normalizzazione della forma array-vs-oggetto dell'embed:
++  // `src/lib/domain/prescrizione-mapper.ts` (`normalizzaPrescrizione`).
++  prescrizione?: LavoroPrescrizione;
+   cliente: Cliente;
+   paziente: Paziente | null;
+   tecnico: Tecnico | null;
+   lavorazioni: LavoroLavorazione[];
+   appuntamenti: LavoroAppuntamento[];
+   immagini: LavoroImmagine[];
+   fasi: LavoroFase[];
+   materiali: LavoroMateriale[];
+   ddc: DichiarazioneConformita | null;
+   laboratorio: Pick<Laboratorio, 'nome' | 'telefono'> | null;
+@@ -511,21 +550,21 @@ export interface LavoroImmagine {
+   id: string;
+   laboratorio_id: string;
+   lavoro_id: string;
+   url: string;
+   storage_path: string;
+   nome_file: string | null;
+   descrizione: string | null;
+   data_scatto: string | null;
+   /** Categoria fotografica — elenco chiuso, D72. La fonte dei valori è
+    *  src/lib/domain/categorie-foto.ts — mai una copia locale. */
+-  categoria: string;
++  categoria: CategoriaFoto;
+   /** Serve a ordinare DENTRO il gruppo (D71). Esiste in banca dati da sempre
+    *  (`002_fase2_schema.sql:254`) ma mancava da questo tipo. */
+   created_at: string;
+   ordine: number;
+ }
+ 
+ // ============================================================
+ // FASE DI PRODUZIONE (esecuzione per singolo lavoro)
+ // ============================================================
+ export interface LavoroFase {
+diff --git a/tests/unit/lavori-id-route-get-prescrizione.test.ts b/tests/unit/lavori-id-route-get-prescrizione.test.ts
+new file mode 100644
+index 00000000..3453be79
+--- /dev/null
++++ b/tests/unit/lavori-id-route-get-prescrizione.test.ts
+@@ -0,0 +1,174 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++import { createChain } from './helpers/supabase-chain-mock'
++
++// Task 6 (ondata B, sessione ③) — la lettura per la scheda (server).
++//
++// PERCHÉ UN FILE NUOVO E NON UN'AGGIUNTA a `lavori-id-route.test.ts`.
++// Quel file testa SOLO `PATCH` (nessun `import { GET }` in tutto il repo,
++// censito prima di scrivere questo file): il nome generico avrebbe nascosto
++// che il GET non aveva ancora nessuna prova. `tests/unit/prescrizione-mapper.test.ts`
++// prova la funzione pura `normalizzaPrescrizione` in isolamento; QUESTO file
++// prova che la route la usi davvero — una funzione di mapping scritta ma mai
++// collegata è la stessa classe di difetto silenzioso di un campo tolto da
++// un'allowlist senza destinazione (R-P6).
++//
++// 🛑 IL FINTO È GRASSO. La riga finta di `lavori` porta molte più colonne di
++// quelle strettamente necessarie a QUESTI test (stesso principio di
++// `api-pazienti-get-ricerca.test.ts:14-22`): con una riga magra, un domani un
++// refactor della route potrebbe smettere di restituire `lavoro` per intero e
++// questi test resterebbero verdi senza accorgersene.
++//
++// 📏 R-P4 — MISURA CON L'ABBOZZO INERTE.
++// Abbozzo: si commenta la riga `lavoro.prescrizione =
++// normalizzaPrescrizione(lavoro.prescrizione)` in
++// `src/app/api/lavori/[id]/route.ts` (la route torna a restituire la forma
++// grezza dell'embed, esattamente come prima del Task 6).
++// Comando: `npx vitest run tests/unit/lavori-id-route-get-prescrizione.test.ts`
++// Esito misurato il 04/08/2026: **3 rosse su 5**. Le due verdi a vuoto sono
++// legittime: sono i due casi (senza embed nel select-mock, e senza campo
++// affatto) in cui l'abbozzo e l'implementazione vera producono lo stesso
++// risultato per costruzione — non provano la normalizzazione, provano solo
++// che la route non esplode. Le tre rosse sono la prova vera: l'array con un
++// elemento va spacchettato, l'array vuoto sparisce dalla risposta JSON, e il
++// select deve nominare esplicitamente l'embed.
++
++const { mockGetLabContextWithTimings } = vi.hoisted(() => ({
++  mockGetLabContextWithTimings: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/lab-context', () => ({
++  getFreshLabContext: vi.fn(),
++  getLabContextWithTimings: mockGetLabContextWithTimings,
++}))
++
++const mockFrom = vi.fn()
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ from: mockFrom }),
++}))
++
++import { GET } from '../../src/app/api/lavori/[id]/route'
++
++const LAB_ID = 'lab-1'
++const LAVORO_ID = 'lavoro-1'
++const CONTEXT = {
++  userId: 'user-1',
++  email: null,
++  ruolo: 'titolare',
++  laboratorioId: LAB_ID,
++  nome: null,
++  cognome: null,
++  lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
++}
++
++const params = Promise.resolve({ id: LAVORO_ID })
++
++const RIGA_LAVORO_BASE = {
++  id: LAVORO_ID,
++  laboratorio_id: LAB_ID,
++  numero_lavoro: '2026/0001',
++  stato: 'in_lavorazione',
++  tipo_dispositivo: 'corona',
++  descrizione: 'Corona ceramica 14',
++  cliente: { id: 'cli-1', nome: 'Studio Rossi' },
++  paziente: null,
++  tecnico: null,
++  lavorazioni: [],
++  appuntamenti: [],
++  immagini: [],
++  fasi: [],
++  materiali: [],
++  ddc: null,
++  denti: [],
++}
++
++const RIGA_PRESCRIZIONE = {
++  id: 'presc-1',
++  laboratorio_id: LAB_ID,
++  lavoro_id: LAVORO_ID,
++  contenuto: { elementi: [14], colore: 'A3' },
++  divergenze: [],
++  fonte_tipo: 'foglio',
++  fonte_immagine_id: null,
++  fonte_riferimento: 'foglio in cartella',
++  numero_prescrizione: 'P-2026-001',
++  confermata_da: null,
++  confermata_at: null,
++  created_at: '2026-08-04T09:00:00Z',
++  updated_at: '2026-08-04T09:00:00Z',
++}
++
++function mockLavoriFrom(prescrizioneRaw: unknown) {
++  return vi.fn((table: string) => {
++    if (table === 'lavori') {
++      return createChain({
++        data: { ...RIGA_LAVORO_BASE, prescrizione: prescrizioneRaw },
++        error: null,
++      })
++    }
++    throw new Error(`Unexpected table: ${table}`)
++  })
++}
++
++describe('GET /api/lavori/[id] — embed lavori_prescrizioni (Task 6)', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: {} })
++  })
++
++  it('il select nomina esplicitamente l\'embed prescrizione:lavori_prescrizioni(*)', async () => {
++    const from = mockLavoriFrom([RIGA_PRESCRIZIONE])
++    mockFrom.mockImplementation(from)
++
++    await GET(new Request(`http://localhost/api/lavori/${LAVORO_ID}`), { params })
++
++    const chain = from.mock.results[0].value as ReturnType<typeof createChain>
++    const selectCall = chain.calls.find((c) => c.method === 'select')
++    expect(selectCall).toBeDefined()
++    expect(String(selectCall!.args[0])).toContain('prescrizione:lavori_prescrizioni(*)')
++  })
++
++  it('riga presente come array (forma REALE PostgREST, isOneToOne:false) → lavoro.prescrizione è un oggetto singolo normalizzato', async () => {
++    mockFrom.mockImplementation(mockLavoriFrom([RIGA_PRESCRIZIONE]))
++
++    const res = await GET(new Request(`http://localhost/api/lavori/${LAVORO_ID}`), { params })
++    const body = await res.json()
++
++    expect(res.status).toBe(200)
++    expect(Array.isArray(body.lavoro.prescrizione)).toBe(false)
++    expect(body.lavoro.prescrizione).toMatchObject({
++      id: 'presc-1',
++      numero_prescrizione: 'P-2026-001',
++      fonte_tipo: 'foglio',
++    })
++  })
++
++  it('array vuoto (nessuna trascrizione per questo lavoro) → prescrizione assente dal JSON di risposta', async () => {
++    mockFrom.mockImplementation(mockLavoriFrom([]))
++
++    const res = await GET(new Request(`http://localhost/api/lavori/${LAVORO_ID}`), { params })
++    const body = await res.json()
++
++    expect(res.status).toBe(200)
++    expect('prescrizione' in body.lavoro).toBe(false)
++  })
++
++  it('null (imbarazzo ipotetico se PostgREST lo trattasse one-to-one) → prescrizione assente dal JSON', async () => {
++    mockFrom.mockImplementation(mockLavoriFrom(null))
++
++    const res = await GET(new Request(`http://localhost/api/lavori/${LAVORO_ID}`), { params })
++    const body = await res.json()
++
++    expect(res.status).toBe(200)
++    expect('prescrizione' in body.lavoro).toBe(false)
++  })
++
++  it('resto della risposta (numero_lavoro, descrizione) resta intatto — la normalizzazione tocca solo prescrizione', async () => {
++    mockFrom.mockImplementation(mockLavoriFrom([RIGA_PRESCRIZIONE]))
++
++    const res = await GET(new Request(`http://localhost/api/lavori/${LAVORO_ID}`), { params })
++    const body = await res.json()
++
++    expect(body.lavoro.numero_lavoro).toBe('2026/0001')
++    expect(body.lavoro.descrizione).toBe('Corona ceramica 14')
++  })
++})
+diff --git a/tests/unit/prescrizione-mapper.test.ts b/tests/unit/prescrizione-mapper.test.ts
+new file mode 100644
+index 00000000..4536dfcf
+--- /dev/null
++++ b/tests/unit/prescrizione-mapper.test.ts
+@@ -0,0 +1,179 @@
++import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
++import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
++// Le 4 forme si IMPORTANO dalla casa unica (prescrizione-costanti.ts), non si
++// ricopiano qui: una lista hardcoded nel test non è sorvegliata dalla spia di
++// migrazione (`prescrizione-costanti-spia-migration.test.ts`) — una quinta
++// forma aggiunta in banca dati passerebbe qui senza che il test la copra.
++import { FONTE_TIPI } from '@/lib/domain/prescrizione-costanti'
++
++// Task 6 (ondata B, sessione ③) — la lettura per la scheda (server).
++//
++// PERCHÉ QUESTO FILE. `GET /api/lavori/[id]` oggi non ha alcuna via di
++// lettura dello snapshot della prescrizione: il select non lo embedda. Il
++// Task 6 aggiunge `prescrizione:lavori_prescrizioni(*)` e la normalizzazione
++// che questo modulo isola in una funzione pura, testabile senza montare la
++// catena Supabase — la stessa ragione per cui `risolviColore`
++// (src/lib/domain/colore-dente.ts) vive fuori dalla route che lo chiama.
++//
++// LA FORMA DELL'EMBED NON È SCONTATA. `lavori_prescrizioni` porta
++// UNIQUE(lavoro_id) (20260804150306:48) — una riga per lavoro, sempre — ma la
++// FK usata per l'embed è COMPOSITA (lavoro_id, laboratorio_id)
++// (20260804150306:51-52), e lo UNIQUE non copre la coppia esatta: i tipi
++// generati marcano la relazione `isOneToOne: false`
++// (database.types.ts:3421-3426), quindi PostgREST restituisce l'embed come
++// ARRAY (0 o 1 elementi), non un oggetto singolo. Il primo blocco di test
++// prova ENTRAMBE le forme, non solo quella "comoda".
++
++const RIGA_BASE = {
++  id: 'presc-1',
++  laboratorio_id: 'lab-1',
++  lavoro_id: 'lavoro-1',
++  contenuto: { elementi: [11, 12], colore: 'A3 come da foglio' },
++  divergenze: [
++    {
++      campo: 'colore',
++      motivo: 'richiesta_dentista',
++      nota: 'colore corretto a voce',
++      utente_id: 'utente-1',
++      registrata_at: '2026-08-04T10:00:00Z',
++    },
++  ],
++  fonte_tipo: 'foglio',
++  fonte_immagine_id: null,
++  fonte_riferimento: 'foglio cartaceo allegato',
++  numero_prescrizione: 'P-2026-042',
++  confermata_da: null,
++  confermata_at: null,
++  created_at: '2026-08-04T09:00:00Z',
++  updated_at: '2026-08-04T09:00:00Z',
++}
++
++describe('normalizzaPrescrizione — riga presente', () => {
++  it('oggetto singolo (embed one-to-one, se mai PostgREST lo restituisse così) → popolata e normalizzata', () => {
++    const risultato = normalizzaPrescrizione(RIGA_BASE)
++    expect(risultato).toEqual(RIGA_BASE)
++  })
++
++  it("array con un elemento (forma REALE data isOneToOne:false) → stesso risultato dell'oggetto singolo — l'unwrap non deve cambiare i valori", () => {
++    const risultato = normalizzaPrescrizione([RIGA_BASE])
++    expect(risultato).toEqual(RIGA_BASE)
++  })
++
++  it("array con un elemento diverso da quello dell'oggetto singolo → il valore usato è quello dell'array, non un placeholder", () => {
++    const altro = { ...RIGA_BASE, id: 'presc-2', numero_prescrizione: 'P-2026-099' }
++    const risultato = normalizzaPrescrizione([altro])
++    expect(risultato?.id).toBe('presc-2')
++    expect(risultato?.numero_prescrizione).toBe('P-2026-099')
++  })
++
++  it('array con PIÙ di un elemento (impossibile per UNIQUE(lavoro_id), ma il tipo non lo esclude) → si prende il primo, comportamento dichiarato', () => {
++    const primo = { ...RIGA_BASE, id: 'presc-primo' }
++    const secondo = { ...RIGA_BASE, id: 'presc-secondo' }
++    const risultato = normalizzaPrescrizione([primo, secondo])
++    expect(risultato?.id).toBe('presc-primo')
++  })
++})
++
++describe('normalizzaPrescrizione — riga assente', () => {
++  it('null (imbarazzo one-to-one ipotetico) → undefined', () => {
++    expect(normalizzaPrescrizione(null)).toBeUndefined()
++  })
++
++  it('undefined (chiave non richiesta / assente dalla risposta) → undefined', () => {
++    expect(normalizzaPrescrizione(undefined)).toBeUndefined()
++  })
++
++  it('array vuoto (forma REALE quando il lavoro non ha ancora una trascrizione) → undefined, MAI un oggetto vuoto', () => {
++    expect(normalizzaPrescrizione([])).toBeUndefined()
++  })
++})
++
++describe('normalizzaPrescrizione — divergenze tipizzate', () => {
++  it('più divergenze passano intatte, con tutti e cinque i campi della RPC (migration 20260804211256)', () => {
++    const conDue = {
++      ...RIGA_BASE,
++      divergenze: [
++        {
++          campo: 'elementi',
++          motivo: 'esigenza_tecnica',
++          nota: null,
++          utente_id: 'utente-2',
++          registrata_at: '2026-08-04T11:00:00Z',
++        },
++        {
++          campo: 'tipo',
++          motivo: 'materiale_non_disponibile',
++          nota: 'materiale non in giacenza',
++          utente_id: 'utente-3',
++          registrata_at: '2026-08-04T12:00:00Z',
++        },
++      ],
++    }
++    const risultato = normalizzaPrescrizione(conDue)
++    expect(risultato?.divergenze).toHaveLength(2)
++    expect(risultato?.divergenze[0]).toEqual({
++      campo: 'elementi',
++      motivo: 'esigenza_tecnica',
++      nota: null,
++      utente_id: 'utente-2',
++      registrata_at: '2026-08-04T11:00:00Z',
++    })
++    expect(risultato?.divergenze[1].motivo).toBe('materiale_non_disponibile')
++  })
++
++  it('nessuna divergenza mai registrata (default DB \'[]\') → array vuoto, non undefined', () => {
++    const senza = { ...RIGA_BASE, divergenze: [] }
++    const risultato = normalizzaPrescrizione(senza)
++    expect(risultato?.divergenze).toEqual([])
++  })
++})
++
++describe('normalizzaPrescrizione — fonte_tipo fuori unione (comportamento dichiarato)', () => {
++  let warnSpy: ReturnType<typeof vi.spyOn>
++
++  beforeEach(() => {
++    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++  })
++
++  afterEach(() => {
++    warnSpy.mockRestore()
++  })
++
++  it('valore fuori dalle 4 forme di D202 (impossibile per il CHECK, ma il tipo generato è string|null, R27) → letto come null', () => {
++    const fuoriUnione = { ...RIGA_BASE, fonte_tipo: 'whatsapp' }
++    const risultato = normalizzaPrescrizione(fuoriUnione)
++    expect(risultato?.fonte_tipo).toBeNull()
++  })
++
++  it('valore fuori unione → registra una spia (console.warn), non un cast cieco e silenzioso', () => {
++    const fuoriUnione = { ...RIGA_BASE, fonte_tipo: 'whatsapp' }
++    normalizzaPrescrizione(fuoriUnione)
++    expect(warnSpy).toHaveBeenCalledTimes(1)
++  })
++
++  it('null è una FORMA LEGITTIMA (V7 — prescrizione a voce, in attesa di conferma scritta), non fuori unione: nessuna spia', () => {
++    const senzaFonte = { ...RIGA_BASE, fonte_tipo: null }
++    const risultato = normalizzaPrescrizione(senzaFonte)
++    expect(risultato?.fonte_tipo).toBeNull()
++    expect(warnSpy).not.toHaveBeenCalled()
++  })
++
++  it('ognuna delle 4 forme del dizionario chiuso (FONTE_TIPI) passa intatta', () => {
++    expect(FONTE_TIPI.length).toBe(4) // sentinella: se la casa unica cresce, questo test lo segnala
++    for (const valore of FONTE_TIPI) {
++      const riga = { ...RIGA_BASE, fonte_tipo: valore }
++      expect(normalizzaPrescrizione(riga)?.fonte_tipo).toBe(valore)
++    }
++    expect(warnSpy).not.toHaveBeenCalled()
++  })
++})
++
++describe('normalizzaPrescrizione — forme d\'input inattese (censimento R-P4)', () => {
++  it('numero al posto della riga → undefined, non un lancio d\'eccezione', () => {
++    expect(normalizzaPrescrizione(42)).toBeUndefined()
++  })
++
++  it('stringa al posto della riga → undefined', () => {
++    expect(normalizzaPrescrizione('non-un-oggetto')).toBeUndefined()
++  })
++})

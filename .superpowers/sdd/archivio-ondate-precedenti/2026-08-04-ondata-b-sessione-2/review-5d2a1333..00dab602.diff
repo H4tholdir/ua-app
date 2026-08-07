@@ -1,0 +1,120 @@
+# Review package: 5d2a1333..00dab602
+
+## Commits
+00dab602 feat(api): P31 — il campo nuovo entra nelle allowlist, e quella dell'elenco porta la sua ragione
+
+## Files changed
+ src/app/api/clienti/[id]/route.ts                   |  2 +-
+ src/app/api/clienti/route.ts                        |  8 +++++++-
+ .../clienti-cellulare-whatsapp-allowlist.test.ts    | 21 +++++++++++++++++++++
+ 3 files changed, 29 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/src/app/api/clienti/[id]/route.ts b/src/app/api/clienti/[id]/route.ts
+index f66563be..5be875c5 100644
+--- a/src/app/api/clienti/[id]/route.ts
++++ b/src/app/api/clienti/[id]/route.ts
+@@ -7,21 +7,21 @@ import { isSameOrigin } from '@/lib/utils/csrf'
+ import { validaPinNuovo, hashPin } from '@/lib/portale/pin'
+ import { logPortaleAudit, type AzionePortale } from '@/lib/portale/audit'
+ import { oggiRomaISO, mesiFaISO } from '@/lib/utils/data-roma'
+ 
+ type RouteContext = { params: Promise<{ id: string }> }
+ 
+ // I-2 (spec portale-dentista-v2 §6): allowlist esplicita — MAI blocklist (CLAUDE.md §9).
+ // I campi portale (portale_fatturazione_attiva, portale_pin) hanno gestione
+ // dedicata con controllo ruolo: vedi più sotto, NON aggiungerli qui.
+ export const PATCHABLE_FIELDS_CLIENTE = [
+-  'studio_nome', 'nome', 'cognome', 'telefono', 'email',
++  'studio_nome', 'nome', 'cognome', 'telefono', 'cellulare_whatsapp', 'email',
+   'partita_iva', 'codice_fiscale', 'codice_sdi', 'pec',
+   'indirizzo', 'cap', 'citta', 'provincia', 'paese',
+   'listino_numero', 'sconto_percentuale', 'tecnico_default_id',
+   'modalita_pagamento', 'non_soggetto_fe', 'fatturare_al_paziente',
+   'laboratorio_odontotecnico', 'iban', 'note',
+ ] as const
+ 
+ export async function GET(_req: Request, { params }: RouteContext) {
+   const { id } = await params
+ 
+diff --git a/src/app/api/clienti/route.ts b/src/app/api/clienti/route.ts
+index dd5becca..d2469601 100644
+--- a/src/app/api/clienti/route.ts
++++ b/src/app/api/clienti/route.ts
+@@ -2,21 +2,26 @@ import { NextResponse } from 'next/server'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
+ import { withServerTiming } from '@/lib/api/server-timing'
+ import { isSameOrigin } from '@/lib/utils/csrf'
+ import { ilikeLiterale, pgrestQuote } from '@/lib/utils/escape-postgrest'
+ 
+ /** I campi che questo ELENCO può mostrare. Vive in un posto solo perché serve
+  *  due volte — per chiedere al database e per rispondere al browser — e due
+  *  copie divergerebbero.
+- *  🛑 `portale_token` NON è qui, e non ci torna: v. il commento in `select`. */
++ *  🛑 `portale_token` NON è qui, e non ci torna: v. il commento in `select`.
++ *  🛑 `cellulare_whatsapp` NON è qui, ed è una SCELTA (P31, spec §4.4):
++ *     l'elenco mostra UN numero sotto ogni studio, ed è quello da CHIAMARE.
++ *     Due numeri in una riga d'elenco sono rumore su una schermata fatta per
++ *     TROVARE un cliente, non per contattarlo. Il cellulare si vede sulla
++ *     scheda. Se un giorno servisse qui, questa riga è il punto da cambiare. */
+ const CAMPI_ELENCO = [
+   'id', 'studio_nome', 'nome', 'cognome', 'telefono', 'email', 'citta', 'provincia',
+   'partita_iva', 'codice_fiscale', 'codice_sdi', 'pec', 'listino_numero',
+   'sconto_percentuale', 'note',
+ ] as const
+ 
+ export async function GET(req: Request) {
+   const { searchParams } = new URL(req.url)
+   const q = searchParams.get('q')
+ 
+@@ -116,20 +121,21 @@ export async function POST(req: Request) {
+   if (!body.cognome || typeof body.cognome !== 'string' || !body.cognome.trim()) {
+     return NextResponse.json({ error: 'Il campo "cognome" è obbligatorio' }, { status: 422 })
+   }
+ 
+   const insertData = {
+     laboratorio_id: labId,
+     nome: (body.nome as string).trim(),
+     cognome: (body.cognome as string).trim(),
+     studio_nome: body.studio_nome ?? null,
+     telefono: body.telefono ?? null,
++    cellulare_whatsapp: body.cellulare_whatsapp ?? null,
+     email: body.email ?? null,
+     partita_iva: body.partita_iva ?? null,
+     codice_fiscale: body.codice_fiscale ?? null,
+     codice_sdi: body.codice_sdi ?? null,
+     pec: body.pec ?? null,
+     indirizzo: body.indirizzo ?? null,
+     cap: body.cap ?? null,
+     citta: body.citta ?? null,
+     provincia: body.provincia ?? null,
+     paese: (body.paese as string) ?? 'IT',
+diff --git a/tests/unit/clienti-cellulare-whatsapp-allowlist.test.ts b/tests/unit/clienti-cellulare-whatsapp-allowlist.test.ts
+new file mode 100644
+index 00000000..50c0bbf1
+--- /dev/null
++++ b/tests/unit/clienti-cellulare-whatsapp-allowlist.test.ts
+@@ -0,0 +1,21 @@
++// tests/unit/clienti-cellulare-whatsapp-allowlist.test.ts
++import { describe, it, expect } from 'vitest'
++import { PATCHABLE_FIELDS_CLIENTE } from '@/app/api/clienti/[id]/route'
++
++describe('allowlist PATCH cliente (P31, R-P6)', () => {
++  it('contiene il campo nuovo — senza, la rotta scarta la chiave SENZA errore', () => {
++    expect(PATCHABLE_FIELDS_CLIENTE).toContain('cellulare_whatsapp')
++  })
++
++  it('contiene ancora il telefono dello studio', () => {
++    expect(PATCHABLE_FIELDS_CLIENTE).toContain('telefono')
++  })
++
++  // 🔑 IL VALORE CHE DEVE ESSERE RIFIUTATO — senza questa riga la prova
++  //    sopra passerebbe anche con un'allowlist che accetta tutto.
++  it('NON contiene un campo che non deve essere modificabile dal browser', () => {
++    expect(PATCHABLE_FIELDS_CLIENTE).not.toContain('portale_token')
++    expect(PATCHABLE_FIELDS_CLIENTE).not.toContain('laboratorio_id')
++    expect(PATCHABLE_FIELDS_CLIENTE).not.toContain('id')
++  })
++})

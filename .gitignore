@@ -115,7 +115,11 @@ Thumbs.db
 coverage/
 .nyc_output/
 dist/
-.superpowers/
+# 🔄 D313 — qui c'era la SECONDA copia di `.superpowers/`, e si è fatta sentire:
+# tolta quella in fondo, questa ha continuato a valere da sola e il ripensamento
+# è sembrato non aver avuto effetto. La spiegazione sta in fondo al file, dove
+# stava la copia che si vedeva. 🔑 Le liste scritte due volte non divergono solo
+# nel codice.
 .vercel/
 
 # === GRAPHIFY ===
@@ -136,8 +140,15 @@ memory/SESSION_ACTIVE.md
 # === MOCKUP ALTRO CLIENTE (Lello — potenziale cliente esterno a UÀ, non appartiene a questo repo) ===
 docs/design/mockups/*lello*
 
-# SDD scratch (subagent-driven-development ledger, briefs, review packages)
-.superpowers/
+# ⚖️ D313 (07/08/2026) — `.superpowers/` NON SI IGNORA PIÙ, e la riga resta qui a
+# dire perché. Era nata come «scratch» (ledger SDD, brief, pacchetti di revisione),
+# e nel frattempo `.superpowers/sdd/progress.md` è diventata LA MAPPA DI RECUPERO:
+# `provato:` 21 documenti vivi la nominano come il posto da cui riprendere. Ignorata,
+# quella mappa — e con lei i resoconti di esecutori e revisori, cioè i numeri e le
+# prove — viveva su UN COMPUTER SOLO. Stessa famiglia già pagata due volte: il
+# collegamento di /chiudi (D255) e lo script del link d'accesso (D103).
+# 🛑 Chi volesse rimetterla legga prima quei tre precedenti: il peso (~7 MB di testo)
+# è stato messo in conto e scelto da Francesco.
 scripts/tmp/
 
 # Mockup GENERATI: incorporano le illustrazioni in base64 e pesano ~30 MB.

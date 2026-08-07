@@ -1,0 +1,64 @@
+# Review package: 471922c1..a3164212
+
+## Commits
+a3164212 fix(whatsapp): numeroPerWhatsapp non restituisce più stringa vuota al posto di null
+
+## Files changed
+ src/lib/consegna/whatsapp-template.ts  | 2 +-
+ tests/unit/numero-per-whatsapp.test.ts | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+## Diff
+diff --git a/src/lib/consegna/whatsapp-template.ts b/src/lib/consegna/whatsapp-template.ts
+index 39488584..c7103719 100644
+--- a/src/lib/consegna/whatsapp-template.ts
++++ b/src/lib/consegna/whatsapp-template.ts
+@@ -51,21 +51,21 @@ export function buildWhatsappMessage({
+  * italiano: limitazione dichiarata (in banca dati non ci sono clienti
+  * stranieri), e la strada è chiedere il «+», non indovinare.
+  */
+ export function numeroPerWhatsapp(grezzo: string | null | undefined): string | null {
+   if (!grezzo) return null
+   const conPiu = grezzo.trim().startsWith('+')
+   const cifre = grezzo.replace(/\D/g, '')
+   if (!cifre) return null
+ 
+   if (conPiu) return cifre                                  // il paese è dichiarato: si rispetta
+-  if (cifre.startsWith('00')) return cifre.slice(2)          // forma internazionale con 00
++  if (cifre.startsWith('00')) return cifre.slice(2) || null  // forma internazionale con 00
+   if (cifre.startsWith('39') && cifre.length >= 11) return cifre  // già internazionale
+   return `39${cifre}`                                        // nazionale italiano
+ }
+ 
+ export function buildWhatsappUrl(message: string, phone?: string): string {
+   const encoded = encodeURIComponent(message)
+   const numero = numeroPerWhatsapp(phone)
+   return numero ? `https://wa.me/${numero}?text=${encoded}` : `https://wa.me/?text=${encoded}`
+ }
+ 
+diff --git a/tests/unit/numero-per-whatsapp.test.ts b/tests/unit/numero-per-whatsapp.test.ts
+index e3b484b3..dbe61688 100644
+--- a/tests/unit/numero-per-whatsapp.test.ts
++++ b/tests/unit/numero-per-whatsapp.test.ts
+@@ -21,19 +21,19 @@ describe('numeroPerWhatsapp — prepara un numero per wa.me (P31, D182)', () =>
+   it('la forma internazionale con 00', () => {
+     expect(numeroPerWhatsapp('00 39 333 1234567')).toBe('393331234567')
+   })
+ 
+   // 🔑 IL CASO CHE SMONTA «comincia per 39»: 391 è un prefisso di
+   //    cellulare italiano (Wind). 10 cifre -> è NAZIONALE.
+   it("un cellulare 391… senza prefisso e' NAZIONALE, non internazionale", () => {
+     expect(numeroPerWhatsapp('391 2345678')).toBe('393912345678')
+   })
+ 
+-  // ...e il verso opposto: 11 cifre che cominciano per 39 -> gia' internazionale
++  // ...e il verso opposto: 11 cifre che cominciano per 39 -> già internazionale
+   it("un fisso gia' internazionale resta intatto", () => {
+     expect(numeroPerWhatsapp('39 0976 71439')).toBe('39097671439')
+   })
+ 
+-  it.each([null, undefined, '', '   ', '---', '()'])('senza un numero usabile da null: %s', (v) => {
++  it.each([null, undefined, '', '   ', '---', '()', '00'])('senza un numero usabile da null: %s', (v) => {
+     expect(numeroPerWhatsapp(v as string | null | undefined)).toBeNull()
+   })
+ })

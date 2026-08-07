@@ -1,0 +1,100 @@
+# Review package: cb999bac..HEAD
+
+## Commits
+930d757f fix(ddc): «è conforme» nella frase congelata — un solo carattere, il resto invariato (D104)
+
+## Files changed
+ src/lib/pdf/generate-ddc.ts        | 2 +-
+ tests/unit/ddc-pdf-content.test.ts | 2 +-
+ tests/unit/generate-ddc.test.ts    | 9 +++++++++
+ 3 files changed, 11 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/src/lib/pdf/generate-ddc.ts b/src/lib/pdf/generate-ddc.ts
+index dd87aeef..389219de 100644
+--- a/src/lib/pdf/generate-ddc.ts
++++ b/src/lib/pdf/generate-ddc.ts
+@@ -122,21 +122,21 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
+   // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+   // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+   const lab = labRaw as Laboratorio
+ 
+   // Genera progressivo
+   const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'ddc', anno)
+   const numero = `DDC-${anno}-${String(progressivo).padStart(4, '0')}`
+ 
+   // MDR §8: dichiarazione esplicita di conformità (colonna NOT NULL senza default
+   // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
+-  const testoConformita = "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
++  const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
+ 
+   const firmaSha256 = await hashFirmaDdc((lab.firma_ddc_url ?? null) as string | null)
+ 
+   // Prepara dati snapshot
+   const ddc = {
+     numero_ddc: numero,
+     anno_ddc: anno,
+     progressivo_ddc: progressivo,
+     fabbricante_nome: (lab.ragione_sociale ?? lab.nome) as string,
+     fabbricante_indirizzo: (lab.indirizzo ?? '') as string,
+diff --git a/tests/unit/ddc-pdf-content.test.ts b/tests/unit/ddc-pdf-content.test.ts
+index bc022d50..e40d32a2 100644
+--- a/tests/unit/ddc-pdf-content.test.ts
++++ b/tests/unit/ddc-pdf-content.test.ts
+@@ -59,21 +59,21 @@ const DDC_FIXTURE: DichiarazioneConformita = {
+   uso_esclusivo_paziente:
+     'Dispositivo fabbricato su misura esclusivamente per il paziente indicato',
+   prescrizione_caratteristiche: null,
+   contiene_sostanze_o_tessuti: false,
+   sostanze_tessuti_dettaglio: null,
+   // §6 Classificazione
+   classe_rischio: 'classe_iia',
+   norma_riferimento: null,
+   // §7 Conformità
+   testo_conformita_snapshot:
+-    "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
++    "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
+   // §8 PRRC
+   prrc_nome: 'Filippo Opromolla',
+   prrc_qualifica: 'Odontotecnico abilitato',
+   firma_ddc_storage_path: null,
+   firma_ddc_sha256: null,
+   rischi_residui_snapshot: null,
+   norme_json: null,
+ }
+ 
+ // ─── Test suite ───────────────────────────────────────────────────────────────
+diff --git a/tests/unit/generate-ddc.test.ts b/tests/unit/generate-ddc.test.ts
+index e8d4d181..374a8bca 100644
+--- a/tests/unit/generate-ddc.test.ts
++++ b/tests/unit/generate-ddc.test.ts
+@@ -305,20 +305,29 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
+     await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
+     const conNorma = mockInsert.mock.calls[0][0].payload_sha256
+ 
+     expect(conNorma).not.toBe(senzaNorma)
+   })
+ 
+   it('`norma_riferimento` resta comunque FUORI dalle colonne dell\'insert (non esiste in tabella)', async () => {
+     await generateDdC({ ...LAVORO_FIXTURE, norma_riferimento: 'UNI EN ISO 22674' })
+     expect(mockInsert.mock.calls[0][0]).not.toHaveProperty('norma_riferimento')
+   })
++
++  it('il testo di conformità porta «è conforme», non «e\' conforme»', async () => {
++    await generateDdC(LAVORO_FIXTURE)
++    const riga = mockInsert.mock.calls[0][0]
++    expect(riga.testo_conformita).toContain('dispositivo è conforme')
++    expect(riga.testo_conformita).not.toContain("dispositivo e' conforme")
++    // le due colonne ricevono lo stesso letterale (generate-ddc.ts:160-161)
++    expect(riga.testo_conformita_snapshot).toBe(riga.testo_conformita)
++  })
+ })
+ 
+ describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () => {
+   const STORAGE_BASE = 'https://example-project.supabase.co'
+   const FIRMA_URL = `${STORAGE_BASE}/storage/v1/object/public/documenti/lab-test-001/firma.png`
+   beforeEach(() => { vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', STORAGE_BASE) })
+   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
+ 
+   it('con firma configurata scarica il file e inserisce lo SHA-256 esadecimale', async () => {
+     const bytes = new TextEncoder().encode('firma-png-finta')

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Accent distinto dal rosso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #DDD8D3; --sfc: #E4DFD9; --elv: #EDEDEA; --prs: #D4CFC9;
+  --t1: #1C1916; --t2: #4A3D33; --t3: #6B5C51;
+  --primary: #D90012;
+  --sh: inset 0 1px 0 rgba(255,255,255,.90),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-sm: inset 0 1px 0 rgba(255,255,255,.88),-3px -3px 7px rgba(255,255,255,.72),5px 7px 14px -2px rgba(148,128,118,.38);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); font-family: 'DM Sans', sans-serif; padding: 20px 16px 60px; color: var(--t1); }
+
+h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--t2); margin-bottom: 24px; line-height: 1.5; }
+
+.section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em;
+  color: var(--t3); margin: 18px 0 10px;
+  border-bottom: 1px solid var(--prs); padding-bottom: 6px;
+}
+
+.chip { display: inline-flex; align-items: center; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 100px; letter-spacing: 0.04em; }
+.chip-aaa { background: rgba(22,163,74,.12); color: #155A2A; }
+.chip-aa  { background: rgba(22,163,74,.08); color: #2D7A40; }
+
+/* Option card */
+.card {
+  background: var(--sfc); border-radius: 18px; padding: 16px;
+  box-shadow: var(--sh); margin-bottom: 14px;
+  cursor: pointer; border: 2.5px solid transparent;
+  transition: border-color 0.15s; position: relative;
+}
+.card.selected { border-color: var(--primary); }
+.card.selected::after {
+  content: '✓'; position: absolute; top: 12px; right: 12px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--primary); color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.swatch { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,.08); }
+
+.kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.kpi-box { flex: 1; background: var(--sfc); border-radius: 10px; padding: 9px 11px; box-shadow: var(--sh-sm); }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--t3); margin-top: 2px; }
+
+.row { display: flex; justify-content: space-between; align-items: center; background: var(--sfc); border-radius: 10px; padding: 9px 11px; box-shadow: var(--sh-sm); margin-bottom: 6px; }
+.row-info .name { font-size: 13px; font-weight: 600; }
+.row-info .meta { font-size: 11px; color: var(--t2); margin-top: 1px; }
+.badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+
+.frame { background: var(--bg); border-radius: 12px; padding: 12px; box-shadow: inset 3px 3px 7px rgba(148,128,118,.22), inset -2px -2px 5px rgba(255,255,255,.66); }
+
+.note { font-size: 11px; color: var(--t3); text-align: center; font-style: italic; line-height: 1.6; margin-top: 20px; }
+.divider { height: 1px; background: var(--prs); margin: 20px 0; }
+
+/* Legenda semantica */
+.legend { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--t2); }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h2>Accent distinto dal rosso</h2>
+<p class="subtitle">I toni ambra erano troppo vicini al <strong style="color:#D90012;">#D90012</strong>. Queste opzioni usano hue diverse — verde foresta, teal, cobalto — mantenendo il calore del sistema.</p>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#D90012;"></div> Rosso = urgenza/CTA</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#888;"></div> Accent = valore/successo/€</div>
+</div>
+
+<!-- ─── A: Verde Foresta ─── -->
+<div class="section-label">A — Verde foresta (classico per valori €)</div>
+<div class="card" onclick="this.classList.toggle('selected')">
+  <div class="card-header">
+    <div class="swatch" style="background:#2D5C3F;"></div>
+    <div>
+      <div style="font-size:14px; font-weight:700; color:#2D5C3F;">#2D5C3F — Verde foresta</div>
+      <div style="font-size:11px; color:var(--t3);">Classico per valori monetari, caldo naturale &nbsp;<span class="chip chip-aaa">5.4:1 ✓ AA</span></div>
+    </div>
+  </div>
+  <div class="frame">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#2D5C3F;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0847</div>
+        <div class="meta">Corona zirconio · Dr. Bianchi</div>
+      </div>
+      <span class="badge" style="background:rgba(45,92,63,.12); color:#2D5C3F;">Pronto</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0846</div>
+        <div class="meta">Scheletrato · Dr. Russo</div>
+      </div>
+      <span class="badge" style="background:rgba(217,0,18,.10); color:#D90012;">Urgente</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── B: Teal profondo ─── -->
+<div class="section-label">B — Teal profondo (moderno, sofisticato)</div>
+<div class="card" onclick="this.classList.toggle('selected')">
+  <div class="card-header">
+    <div class="swatch" style="background:#1F5C58;"></div>
+    <div>
+      <div style="font-size:14px; font-weight:700; color:#1F5C58;">#1F5C58 — Teal profondo</div>
+      <div style="font-size:11px; color:var(--t3);">Sofisticato, professionale, warm undertone &nbsp;<span class="chip chip-aaa">5.5:1 ✓ AA</span></div>
+    </div>
+  </div>
+  <div class="frame">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#1F5C58;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0847</div>
+        <div class="meta">Corona zirconio · Dr. Bianchi</div>
+      </div>
+      <span class="badge" style="background:rgba(31,92,88,.12); color:#1F5C58;">Pronto</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0846</div>
+        <div class="meta">Scheletrato · Dr. Russo</div>
+      </div>
+      <span class="badge" style="background:rgba(217,0,18,.10); color:#D90012;">Urgente</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── C: Cobalto (già nel DS) ─── -->
+<div class="section-label">C — Cobalto scuro (già nel tuo design system)</div>
+<div class="card" onclick="this.classList.toggle('selected')">
+  <div class="card-header">
+    <div class="swatch" style="background:#1B2D6B;"></div>
+    <div>
+      <div style="font-size:14px; font-weight:700; color:#1B2D6B;">#1B2D6B — Cobalto (già in DS)</div>
+      <div style="font-size:11px; color:var(--t3);">Attualmente usato per nav pill active &nbsp;<span class="chip chip-aaa">8.1:1 ✓ AAA</span></div>
+    </div>
+  </div>
+  <div class="frame">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#1B2D6B;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0847</div>
+        <div class="meta">Corona zirconio · Dr. Bianchi</div>
+      </div>
+      <span class="badge" style="background:rgba(27,45,107,.12); color:#1B2D6B;">Pronto</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0846</div>
+        <div class="meta">Scheletrato · Dr. Russo</div>
+      </div>
+      <span class="badge" style="background:rgba(217,0,18,.10); color:#D90012;">Urgente</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── D: Oliva scuro ─── -->
+<div class="section-label">D — Oliva scuro (earth tone, Italian craft)</div>
+<div class="card" onclick="this.classList.toggle('selected')">
+  <div class="card-header">
+    <div class="swatch" style="background:#4A5A1A;"></div>
+    <div>
+      <div style="font-size:14px; font-weight:700; color:#4A5A1A;">#4A5A1A — Oliva scuro</div>
+      <div style="font-size:11px; color:var(--t3);">Artigianale, terra, warm-green &nbsp;<span class="chip chip-aa">5.2:1 ✓ AA</span></div>
+    </div>
+  </div>
+  <div class="frame">
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#4A5A1A;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0847</div>
+        <div class="meta">Corona zirconio · Dr. Bianchi</div>
+      </div>
+      <span class="badge" style="background:rgba(74,90,26,.12); color:#4A5A1A;">Pronto</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="name">#LAV-2024-0846</div>
+        <div class="meta">Scheletrato · Dr. Russo</div>
+      </div>
+      <span class="badge" style="background:rgba(217,0,18,.10); color:#D90012;">Urgente</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+<p class="note">Clicca quella che preferisci.<br>Rosso = urgenza/CTA · Accent = valore positivo/€/successo</p>
+</body>
+</html>

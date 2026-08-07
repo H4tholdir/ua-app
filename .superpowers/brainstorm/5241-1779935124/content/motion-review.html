@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Revisione Sistema Animazioni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #DDD8D3; --sfc: #E4DFD9; --prs: #D4CFC9;
+  --t1: #1C1916; --t2: #4A3D33; --t3: #6B5C51;
+  --primary: #D90012; --c-green: #22C55E; --c-blue: #3B82F6; --c-red: #EF4444;
+  --sh-sm: rgba(255,255,255,.90) 0 1px 0 0 inset, rgba(0,0,0,.05) 0 -2px 3px 0 inset, rgba(255,255,255,.78) -5px -5px 11px, rgba(148,128,118,.44) 9px 13px 22px -4px;
+  --sh-in: rgba(148,128,118,.32) 4px 4px 9px 0 inset, rgba(255,255,255,.66) -3px -3px 7px 0 inset;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #C2BDB8; }
+body { font-family: 'DM Sans', sans-serif; padding: 16px 14px 80px; color: var(--t1); }
+
+/* Layout */
+.plane { background: var(--bg); border-radius: 18px; padding: 16px; box-shadow: var(--sh-sm); margin-bottom: 16px; }
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sec { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: rgba(90,80,70,.60); margin: 24px 0 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,.08); }
+
+/* Demo button */
+.demo-btn {
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700;
+  padding: 8px 16px; border-radius: 100px; border: none; cursor: pointer;
+  background: rgba(59,130,246,.12); color: #3B82F6; margin-bottom: 12px;
+  transition: background 150ms;
+}
+.demo-btn:hover { background: rgba(59,130,246,.22); }
+
+/* Philosophy chips */
+.phil { display: inline-flex; gap: 4px; margin-bottom: 14px; flex-wrap: wrap; }
+.chip { padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+.j { background: rgba(34,197,94,.14); color: #16A34A; }
+.e { background: rgba(217,0,18,.12); color: var(--primary); }
+.h { background: rgba(139,92,246,.12); color: #8B5CF6; }
+
+/* Stage area */
+.stage {
+  background: var(--bg); border-radius: 14px; padding: 20px;
+  box-shadow: var(--sh-in); min-height: 120px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; gap: 16px; flex-wrap: wrap;
+}
+
+/* ─── CAT 1: MICRO ─── */
+/* Button tap */
+.nm-btn {
+  background: var(--bg); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--t1); border-radius: 12px; padding: 12px 20px;
+  box-shadow: var(--sh-sm);
+  transition: box-shadow 80ms cubic-bezier(0.34,1.56,0.64,1), transform 80ms cubic-bezier(0.34,1.56,0.64,1);
+}
+.nm-btn:active {
+  box-shadow: var(--sh-in);
+  transform: scale(0.97);
+  transition-duration: 34ms;
+}
+
+/* Badge count */
+@keyframes badgePop {
+  0%   { opacity: 0; transform: translateY(-8px) scale(0.8); }
+  60%  { transform: translateY(1px) scale(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+.badge-demo {
+  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px;
+  background: rgba(239,68,68,.12); color: #EF4444;
+  animation: badgePop 0.22s cubic-bezier(0,0,.2,1) both;
+}
+.badge-demo.replay { animation: none; }
+
+/* Icon swap */
+@keyframes iconIn {
+  from { opacity: 0; transform: scale(0.85); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes iconOut {
+  from { opacity: 1; transform: none; filter: none; }
+  to   { opacity: 0; transform: scale(0.85); filter: blur(3px); }
+}
+.icon-wrap { position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.icon-check { animation: iconIn 0.14s cubic-bezier(0,0,.2,1) both; }
+
+/* Toggle */
+.tog-track {
+  width: 52px; height: 28px; border-radius: 100px; cursor: pointer;
+  border: none; background: var(--bg); box-shadow: var(--sh-in); position: relative;
+  transition: background 200ms;
+}
+.tog-track.on { background: rgba(34,197,94,.15); }
+.tog-thumb {
+  position: absolute; top: 4px; left: 4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--bg); box-shadow: var(--sh-sm);
+  transition: transform 180ms cubic-bezier(.2,0,0,1), background 200ms;
+}
+.tog-track.on .tog-thumb { transform: translateX(24px); background: #22C55E; }
+
+/* ─── CAT 2: FEEDBACK ─── */
+/* Toast */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: none; filter: none; }
+  to   { opacity: 0; transform: translateY(-8px) scale(0.97); filter: blur(4px); }
+}
+.toast {
+  background: var(--sfc); border-radius: 12px; padding: 10px 14px;
+  box-shadow: var(--sh-sm); font-size: 13px; font-weight: 600; color: var(--t1);
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.in  { animation: toastIn  0.28s cubic-bezier(0,0,.2,1) both; }
+.toast.out { animation: toastOut 0.14s cubic-bezier(0.4,0,1,1) both; }
+
+/* Error shake */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  35% { transform: translateX(8px); }
+  50% { transform: translateX(-6px); }
+  65% { transform: translateX(6px); }
+  80% { transform: translateX(-3px); }
+  90% { transform: translateX(3px); }
+}
+.shake-demo.shaking { animation: shake 0.25s cubic-bezier(.2,0,0,1) both; }
+.error-input {
+  background: var(--bg); border: 2px solid var(--c-red); border-radius: 10px;
+  padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--t1); outline: none; width: 100%; box-shadow: var(--sh-in);
+}
+
+/* Success pop */
+@keyframes successPop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  50%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.success-badge {
+  padding: 8px 16px; border-radius: 100px;
+  background: rgba(34,197,94,.15); color: #22C55E;
+  font-size: 14px; font-weight: 700;
+}
+.success-badge.pop { animation: successPop 0.22s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* ─── CAT 3: NAVIGAZIONE ─── */
+/* Page slide */
+@keyframes pageIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+@keyframes pageOut {
+  from { transform: translateX(-30%); opacity: 0.5; }
+  to   { transform: translateX(-30%); opacity: 0.5; }
+}
+.page-demo {
+  width: 100%; height: 80px; background: var(--sfc); border-radius: 10px;
+  box-shadow: var(--sh-sm); display: flex; align-items: center; padding: 0 16px;
+  font-size: 14px; font-weight: 600;
+}
+.page-demo.slide { animation: pageIn 0.36s cubic-bezier(0.32,0.72,0,1) both; }
+
+/* Bottom sheet */
+@keyframes sheetIn  { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheetOut { from { transform: none; opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+.sheet-demo {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--bg); border-radius: 16px 16px 0 0; padding: 16px;
+  box-shadow: rgba(255,255,255,.72) -8px -8px 18px, rgba(148,128,118,.55) 10px 12px 24px -4px;
+}
+.sheet-demo.open  { animation: sheetIn  0.32s cubic-bezier(0.32,0.72,0,1) both; }
+.sheet-demo.close { animation: sheetOut 0.22s cubic-bezier(0.32,0.72,0,1) both; }
+.handle { width: 32px; height: 4px; border-radius: 2px; background: var(--prs); margin: 0 auto 10px; }
+
+/* Modal */
+@keyframes modalIn  { from { opacity:0; transform:scale(.94) translateY(8px); filter:blur(4px); } to { opacity:1; transform:none; filter:none; } }
+@keyframes modalOut { from { opacity:1; transform:none; filter:none; } to { opacity:0; transform:scale(.97) translateY(-4px); filter:blur(4px); } }
+.modal-overlay {
+  position: absolute; inset: 0; background: rgba(28,25,22,.35);
+  display: flex; align-items: center; justify-content: center;
+  animation: none;
+}
+.modal-box {
+  background: var(--sfc); border-radius: 16px; padding: 16px; width: 80%;
+  box-shadow: var(--sh-sm);
+}
+.modal-box.in  { animation: modalIn  0.35s cubic-bezier(0,0,.2,1) both; }
+.modal-box.out { animation: modalOut 0.14s cubic-bezier(0.4,0,1,1) both; }
+
+/* Tab content */
+@keyframes tabFade { from { opacity: 0; } to { opacity: 1; } }
+.tab-content.fade { animation: tabFade 0.14s cubic-bezier(0,0,.2,1) both; }
+.tab-bar { display: flex; gap: 2px; background: var(--bg); border-radius: 100px; padding: 5px; box-shadow: var(--sh-in); margin-bottom: 10px; }
+.tab-item { flex: 1; padding: 7px 0; border-radius: 100px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--t2); cursor: pointer; transition: all 150ms; }
+.tab-item.on { background: var(--bg); color: var(--primary); box-shadow: var(--sh-sm); }
+
+/* ─── CAT 4: STORYTELLING ─── */
+/* KPI stagger */
+@keyframes kpiIn {
+  from { opacity: 0; transform: translateY(-14px) scale(0.95); }
+  to   { opacity: 1; transform: none; }
+}
+.kpi-row { display: flex; gap: 8px; width: 100%; }
+.kpi-box {
+  flex: 1; background: var(--bg); border-radius: 11px; padding: 11px 12px;
+  box-shadow: var(--sh-sm); opacity: 0;
+}
+.kpi-box.go { animation: kpiIn 0.42s cubic-bezier(0,0,.2,1) both; }
+.kpi-box.go:nth-child(1) { animation-delay: .10s; }
+.kpi-box.go:nth-child(2) { animation-delay: .16s; }
+.kpi-box.go:nth-child(3) { animation-delay: .22s; }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--t3); margin-top: 3px; }
+
+/* Onboarding */
+@keyframes onbIn {
+  from { opacity: 0; transform: translateY(-24px); filter: blur(8px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+.onb-box.appear { animation: onbIn 0.55s cubic-bezier(.3,.7,.4,1.08) both; }
+
+/* Consegna success */
+@keyframes ringExpand {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+@keyframes checkDraw {
+  from { stroke-dashoffset: 100; opacity: 0; }
+  to   { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes textPop {
+  from { opacity: 0; transform: translateY(16px) scale(0.9); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+.consegna-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 3px solid #22C55E; display: flex; align-items: center; justify-content: center;
+  position: relative; flex-shrink: 0;
+}
+.consegna-ring.animate { animation: ringExpand 0.80s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
+.consegna-check { stroke-dasharray: 100; stroke-dashoffset: 100; }
+.consegna-check.draw { animation: checkDraw 0.36s cubic-bezier(0,0,.2,1) 0s both; }
+.consegna-text { font-size: 18px; font-weight: 700; color: #22C55E; opacity: 0; }
+.consegna-text.appear { animation: textPop 0.5s cubic-bezier(0.3,0.7,0.4,1.12) 0.35s both; }
+
+/* Timing label */
+.timing { font-size: 10px; color: var(--t3); font-family: monospace; margin-top: 8px; text-align: center; }
+.note { font-size: 11px; color: var(--t3); font-style: italic; margin-top: 6px; line-height: 1.6; }
+
+/* Frequency badge */
+.freq { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 100px; margin-bottom: 8px; }
+.freq-high { background: rgba(217,0,18,.10); color: var(--primary); }
+.freq-med  { background: rgba(245,158,11,.12); color: #D97706; }
+.freq-low  { background: rgba(139,92,246,.12); color: #7C3AED; }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="plane">
+  <div style="font-size:18px; font-weight:700; margin-bottom:8px;">Sistema Animazioni UÀ — Review</div>
+  <p style="font-size:13px; color:var(--t2); line-height:1.6; margin-bottom:12px;">
+    Basato su tre filosofie: ogni animazione deve guadagnarsi il suo posto.
+  </p>
+  <div class="phil">
+    <span class="chip j">Jakub 50% — polish production-ready</span>
+    <span class="chip e">Emil 40% — frequency gate: >50x/giorno = no animazione</span>
+    <span class="chip h">Jhey 10% — delighter solo per CONSEGNA + onboarding</span>
+  </div>
+  <p style="font-size:11px; color:var(--t3); font-style:italic;">
+    Clicca i pulsanti ▶ DEMO per vedere ogni animazione in movimento.
+  </p>
+</div>
+
+<!-- ═══ CAT 1: MICRO ═══ -->
+<div class="sec">Categoria 1 — Micro-interazioni (&lt;150ms) · Emil rule: CSS only, no JS</div>
+
+<div class="col2">
+  <!-- Button tap -->
+  <div class="plane">
+    <div class="freq freq-high">>50x/giorno — CSS transition</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Button tap neumorphic</div>
+    <p class="note" style="margin-bottom:10px;">Press → shadow si inverte (raised→inset). 80ms, cubic-bezier spring. <strong>CSS puro, non Motion JS.</strong></p>
+    <div class="stage">
+      <button class="nm-btn">Conferma lavoro</button>
+      <button class="nm-btn" style="background:var(--primary); color:#fff; box-shadow: 0 4px 12px rgba(180,0,0,.35);">+ Nuovo lavoro</button>
+    </div>
+    <div class="timing">80ms · cubic-bezier(0.34, 1.56, 0.64, 1) · CSS transition</div>
+  </div>
+
+  <!-- Toggle -->
+  <div class="plane">
+    <div class="freq freq-high">>50x/giorno — CSS transition</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Toggle on/off</div>
+    <p class="note" style="margin-bottom:10px;">Solo translateX. Zero opacity, zero blur. 180ms linear.</p>
+    <div class="stage">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="tog-track" id="tog1" onclick="this.classList.toggle('on')"><div class="tog-thumb"></div></button>
+        <span style="font-size:13px; color:var(--t2);">Vista ibrida dashboard</span>
+      </div>
+    </div>
+    <div class="timing">180ms · cubic-bezier(.2,0,0,1) · CSS transition · translateX only</div>
+  </div>
+
+  <!-- Badge count -->
+  <div class="plane">
+    <div class="freq freq-med">~10x/giorno — Motion JS OK</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Badge count change</div>
+    <p class="note" style="margin-bottom:10px;">Numero pop dal centro — translateY + scale + opacity.</p>
+    <button class="demo-btn" onclick="replayBadge()">▶ REPLAY</button>
+    <div class="stage">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:14px; font-weight:600;">#LAV-2024-0847</span>
+        <span class="badge-demo" id="badge1">Urgente</span>
+      </div>
+    </div>
+    <div class="timing">220ms · spring stiffness:700 damping:22</div>
+  </div>
+
+  <!-- Icon swap -->
+  <div class="plane">
+    <div class="freq freq-med">~5x/giorno — Motion JS OK</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Icon swap (copy→check)</div>
+    <p class="note" style="margin-bottom:10px;">opacity + scale + blur. 140ms, no bounce.</p>
+    <button class="demo-btn" onclick="replayIcon()">▶ REPLAY</button>
+    <div class="stage">
+      <div class="icon-wrap">
+        <div id="icon-box" class="icon-check">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+      <span style="font-size:13px; color:var(--t2);">Copiato!</span>
+    </div>
+    <div class="timing">140ms · spring duration:0.14 bounce:0 · blur(3px)→blur(0)</div>
+  </div>
+</div>
+
+<!-- ═══ CAT 2: FEEDBACK ═══ -->
+<div class="sec">Categoria 2 — Feedback (150–300ms) · Jakub: exit sempre più sottile dell'enter</div>
+
+<div class="col2">
+  <!-- Toast -->
+  <div class="plane">
+    <div class="freq freq-med">~5x/giorno</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Toast notification</div>
+    <p class="note" style="margin-bottom:10px;">Enter: sale dal basso + blur. Exit: esce in alto, più sottile.</p>
+    <button class="demo-btn" onclick="replayToast()">▶ DEMO</button>
+    <div class="stage" style="overflow:hidden; min-height:80px;">
+      <div id="toast-container"></div>
+    </div>
+    <div class="timing">Enter 280ms spring bounce:0 · Exit 140ms ease-out · Jakub recipe</div>
+  </div>
+
+  <!-- Error shake -->
+  <div class="plane">
+    <div class="freq freq-med">~3x/giorno</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Error shake</div>
+    <p class="note" style="margin-bottom:10px;">Shake orizzontale x=[0,-8,8,-6,6,-3,3,0]. <strong>No bounce</strong> — la rigidità è il messaggio.</p>
+    <button class="demo-btn" onclick="replayShake()">▶ DEMO</button>
+    <div class="stage">
+      <div class="shake-demo" id="shake1" style="width:100%;">
+        <input class="error-input" value="Partita IVA non valida" readonly>
+      </div>
+    </div>
+    <div class="timing">250ms · cubic-bezier(.2,0,0,1) · x keyframes · NO bounce</div>
+  </div>
+
+  <!-- Success pop -->
+  <div class="plane">
+    <div class="freq freq-med">~2x/giorno</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Success state</div>
+    <p class="note" style="margin-bottom:10px;">Scale [0.85→1.08→1] + opacity. Overshoot lieve.</p>
+    <button class="demo-btn" onclick="replaySuccess()">▶ REPLAY</button>
+    <div class="stage">
+      <div class="success-badge" id="success1">✓ Lavoro consegnato</div>
+    </div>
+    <div class="timing">220ms · cubic-bezier(0.34,1.56,0.64,1) · scale keyframes</div>
+  </div>
+
+  <!-- Nessuna animazione -->
+  <div class="plane">
+    <div class="freq freq-high">Regola Emil assoluta</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Azioni ad alta frequenza</div>
+    <p class="note">Queste azioni NON hanno animazione:<br><br>
+    • Cambio tab nella nav bar<br>
+    • Input focus/blur (solo CSS ring)<br>
+    • Checkbox/radio select<br>
+    • Ogni azione ripetuta >50x/giorno in officina<br><br>
+    Motivo: il tecnico tocca questi elementi centinaia di volte. L'animazione diventerebbe rumore.</p>
+  </div>
+</div>
+
+<!-- ═══ CAT 3: NAVIGAZIONE ═══ -->
+<div class="sec">Categoria 3 — Navigazione (250–400ms) · iOS native feel</div>
+
+<div class="col2">
+  <!-- Page slide -->
+  <div class="plane">
+    <div class="freq freq-med">~20x/giorno</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Page transition (lista→dettaglio)</div>
+    <p class="note" style="margin-bottom:10px;">Detail entra da destra, lista esce leggermente a sinistra. iOS cubic-bezier.</p>
+    <button class="demo-btn" onclick="replayPage()">▶ DEMO</button>
+    <div class="stage" style="min-height:100px; overflow:hidden; flex-direction:column; align-items:stretch; gap:8px;">
+      <div class="page-demo" id="page1">#LAV-2024-0847 · Corona zirconio · Dr. Bianchi</div>
+    </div>
+    <div class="timing">360ms · cubic-bezier(0.32, 0.72, 0, 1) · iOS native · x 100%→0</div>
+  </div>
+
+  <!-- Bottom sheet -->
+  <div class="plane">
+    <div class="freq freq-med">~10x/giorno</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Bottom sheet</div>
+    <p class="note" style="margin-bottom:10px;">Spring soft da sotto. Drag-to-dismiss: velocity >300 (non distance).</p>
+    <button class="demo-btn" onclick="replaySheet()">▶ DEMO</button>
+    <div class="stage" style="min-height:140px; overflow:hidden; position:relative; padding:0;">
+      <div id="sheet-container"></div>
+    </div>
+    <div class="timing">Enter: spring stiffness:280 damping:30 · Exit: 220ms iOS cubic</div>
+  </div>
+
+  <!-- Modal -->
+  <div class="plane">
+    <div class="freq freq-med">~5x/giorno</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Modal (Jakub recipe)</div>
+    <p class="note" style="margin-bottom:10px;">Materializza dal centro + blur. transform-origin: top center.</p>
+    <button class="demo-btn" onclick="replayModal()">▶ DEMO</button>
+    <div class="stage" style="min-height:140px; overflow:hidden; position:relative; padding:0;" id="modal-stage">
+    </div>
+    <div class="timing">Enter: spring 350ms bounce:0 · Exit: 140ms · blur(4px)→blur(0)</div>
+  </div>
+
+  <!-- Tab switch -->
+  <div class="plane">
+    <div class="freq freq-high">Emil: solo fade, no slide</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Tab content switch</div>
+    <p class="note" style="margin-bottom:8px;">Contenuto: solo opacity fade (no slide — evita confusione direzionale). Pill indicator: layoutId FLIP.</p>
+    <div class="tab-bar">
+      <button class="tab-item on" onclick="switchTab(this,'Gestione')">Gestione</button>
+      <button class="tab-item" onclick="switchTab(this,'Produzione')">Produzione</button>
+    </div>
+    <div class="tab-content" id="tab-content" style="font-size:13px; color:var(--t2); padding:8px 4px;">Vista Gestione — KPI, fatture, crediti</div>
+    <div class="timing">140ms · opacity fade ONLY · pill indicator: Motion layoutId</div>
+  </div>
+</div>
+
+<!-- ═══ CAT 4: STORYTELLING ═══ -->
+<div class="sec">Categoria 4 — Storytelling (400–800ms) · Jhey lens: solo CONSEGNA + onboarding</div>
+
+<div class="col2">
+  <!-- KPI stagger -->
+  <div class="plane">
+    <div class="freq freq-low">1x/sessione (caricamento dashboard)</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Dashboard load — KPI stagger</div>
+    <p class="note" style="margin-bottom:8px;">Massimo 6 elementi. Gap 60ms tra card. Dopo il 6°: istantaneo.</p>
+    <button class="demo-btn" onclick="replayKpi()">▶ REPLAY</button>
+    <div class="stage" style="flex-direction:column; align-items:stretch;">
+      <div class="kpi-row" id="kpi-demo">
+        <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+        <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+        <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+      </div>
+    </div>
+    <div class="timing">420ms spring bounce:0 · stagger 60ms/card · max 6 card</div>
+  </div>
+
+  <!-- Onboarding -->
+  <div class="plane">
+    <div class="freq freq-low">1 volta in assoluto per utente</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Onboarding step</div>
+    <p class="note" style="margin-bottom:8px;">Materializza dall'alto con blur. Bounce lieve (0.08) consentito — contesto raro.</p>
+    <button class="demo-btn" onclick="replayOnb()">▶ REPLAY</button>
+    <div class="stage">
+      <div class="onb-box" id="onb1" style="text-align:center;">
+        <div style="font-size:22px; font-weight:700; margin-bottom:4px;">Benvenuto in UÀ</div>
+        <div style="font-size:13px; color:var(--t2);">Il tuo laboratorio digitale</div>
+      </div>
+    </div>
+    <div class="timing">550ms spring duration:0.55 bounce:0.08 · from: y:-24px blur:8px</div>
+  </div>
+
+  <!-- Consegna success -->
+  <div class="plane" style="grid-column: 1/-1;">
+    <div class="freq freq-low" style="background:rgba(139,92,246,.12); color:#7C3AED;">Jhey lens — 1-5x/giorno · il momento più emotivo dell'app</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">CONSEGNA completata — 3 fasi sequenziali</div>
+    <p class="note" style="margin-bottom:10px;">Fase 1 (0-360ms): checkmark SVG draw. Fase 2 (200-1000ms): ring verde esplosione. Fase 3 (350ms+): testo "Consegnato!" materializza. Confetti: GSAP (50+ elementi).</p>
+    <button class="demo-btn" onclick="replayConsegna()">▶ REPLAY CONSEGNA</button>
+    <div class="stage" style="min-height:120px; gap:20px;">
+      <div class="consegna-ring" id="c-ring">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <polyline class="consegna-check" id="c-check" points="8 21 17 30 32 12" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="consegna-text" id="c-text">Consegnato!</div>
+    </div>
+    <div class="timing">
+      Fase 1: checkDraw 360ms · Fase 2: ringExpand 800ms delay:200ms spring · Fase 3: textPop spring delay:350ms<br>
+      Confetti: GSAP fromTo() con stagger:0.02s e random() — non Motion (troppi elementi)
+    </div>
+  </div>
+</div>
+
+<!-- TOOL DECISIONS -->
+<div class="sec">Quale strumento per quale animazione</div>
+<div class="plane">
+  <div style="font-size:13px; color:var(--t2); line-height:2;">
+    <div style="display:grid; grid-template-columns:2fr 1fr 2fr; gap:0 12px; font-size:12px;">
+      <div style="font-weight:700; color:var(--t1); padding-bottom:4px; border-bottom:1px solid var(--prs);">Caso d'uso</div>
+      <div style="font-weight:700; color:var(--t1); padding-bottom:4px; border-bottom:1px solid var(--prs);">Strumento</div>
+      <div style="font-weight:700; color:var(--t1); padding-bottom:4px; border-bottom:1px solid var(--prs);">Perché</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">Button tap, toggle, input focus</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04); color:var(--primary);">CSS transition</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">Interrompibile, zero JS, alta frequenza</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">Toast, modal, bottom sheet, page transition</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04); color:#3B82F6;">Motion 12.x</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">AnimatePresence, drag, spring nativi</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">Tab pill indicator</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04); color:#3B82F6;">Motion layoutId</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">FLIP automatico tra posizioni</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">Confetti consegna</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04); color:#F59E0B;">GSAP</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">50+ elementi, stagger(), random() performance</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04);">Skeleton, spinner loop</div>
+      <div style="padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04); color:var(--t2);">CSS @keyframes</div>
+      <div style="padding:6px 0;">Loop infiniti → no JS in CPU hot path</div>
+    </div>
+  </div>
+</div>
+
+<p style="font-size:11px; color:rgba(0,0,0,.28); text-align:center; margin-top:16px; font-style:italic; line-height:1.8;">
+  Scrivi nel terminale se qualcosa non ti convince o vuoi modifiche prima di approvare.
+</p>
+
+<script>
+// Badge
+function replayBadge(){var b=document.getElementById('badge1');b.classList.remove('badge-demo');void b.offsetWidth;b.classList.add('badge-demo');}
+
+// Icon swap
+function replayIcon(){var i=document.getElementById('icon-box');i.classList.remove('icon-check');void i.offsetWidth;i.classList.add('icon-check');}
+
+// Toast
+var toastT;
+function replayToast(){
+  clearTimeout(toastT);
+  var c=document.getElementById('toast-container');
+  c.innerHTML='<div class="toast in" style="font-size:13px;"><span style="color:#22C55E;">✓</span> Lavoro consegnato</div>';
+  toastT=setTimeout(function(){
+    var t=c.querySelector('.toast');
+    if(t){t.classList.remove('in');t.classList.add('out');setTimeout(function(){c.innerHTML='';},200);}
+  },1800);
+}
+
+// Shake
+function replayShake(){var s=document.getElementById('shake1');s.classList.remove('shaking');void s.offsetWidth;s.classList.add('shaking');setTimeout(function(){s.classList.remove('shaking');},300);}
+
+// Success
+function replaySuccess(){var s=document.getElementById('success1');s.classList.remove('pop');void s.offsetWidth;s.classList.add('pop');}
+
+// Page
+function replayPage(){var p=document.getElementById('page1');p.classList.remove('slide');void p.offsetWidth;p.classList.add('slide');}
+
+// Sheet
+var sheetT;
+function replaySheet(){
+  clearTimeout(sheetT);
+  var c=document.getElementById('sheet-container');
+  c.innerHTML='<div class="sheet-demo open"><div class="handle"></div><div style="font-size:14px;font-weight:600;">Crea rifacimento</div><div style="font-size:12px;color:var(--t2);margin-top:4px;">#LAV-2024-0847 · Seleziona motivo</div></div>';
+  sheetT=setTimeout(function(){
+    var s=c.querySelector('.sheet-demo');
+    if(s){s.classList.remove('open');s.classList.add('close');setTimeout(function(){c.innerHTML='';},300);}
+  },2000);
+}
+
+// Modal
+var modalT;
+function replayModal(){
+  clearTimeout(modalT);
+  var stage=document.getElementById('modal-stage');
+  stage.innerHTML='<div class="modal-overlay"><div class="modal-box in"><div style="font-size:14px;font-weight:700;margin-bottom:8px;">Conferma eliminazione</div><div style="font-size:12px;color:var(--t2);">Questa azione non può essere annullata.</div></div></div>';
+  modalT=setTimeout(function(){
+    var m=stage.querySelector('.modal-box');
+    if(m){m.classList.remove('in');m.classList.add('out');setTimeout(function(){stage.innerHTML='';},200);}
+  },2000);
+}
+
+// Tab switch
+var tabContents={'Gestione':'Vista Gestione — KPI, fatture, crediti','Produzione':'Vista Produzione — lavori oggi, in ritardo, consegne'};
+function switchTab(el,name){
+  document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  var c=document.getElementById('tab-content');
+  c.classList.remove('fade');void c.offsetWidth;c.classList.add('fade');
+  c.textContent=tabContents[name];
+}
+
+// KPI
+function replayKpi(){
+  document.querySelectorAll('#kpi-demo .kpi-box').forEach(function(b){b.classList.remove('go');void b.offsetWidth;b.classList.add('go');});
+}
+
+// Onboarding
+function replayOnb(){var o=document.getElementById('onb1');o.classList.remove('appear');void o.offsetWidth;o.classList.add('appear');}
+
+// Consegna
+function replayConsegna(){
+  var ring=document.getElementById('c-ring');
+  var check=document.getElementById('c-check');
+  var text=document.getElementById('c-text');
+  ring.classList.remove('animate');
+  check.classList.remove('draw');
+  text.classList.remove('appear');
+  void ring.offsetWidth;
+  check.classList.add('draw');
+  setTimeout(function(){ring.classList.add('animate');},200);
+  setTimeout(function(){text.classList.add('appear');},350);
+}
+
+// Auto-start
+window.addEventListener('load',function(){
+  replayKpi();
+  replayOnb();
+  setTimeout(replayConsegna, 500);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,850 @@
+# Review package: ce0d289c..c8b63adf
+
+## Commits
+c8b63adf feat(lavori): snapshot prescrizione server-side nel POST + istituzione_sanitaria patchabile (ondata B ②, V3)
+
+## Files changed
+ src/app/api/lavori/[id]/route.ts                   |  10 +-
+ src/app/api/lavori/route.ts                        |  51 +++++
+ src/lib/prescrizione/componi-snapshot.ts           |  52 +++++
+ src/types/domain.ts                                |  31 +++
+ tests/unit/componi-snapshot.test.ts                | 145 ++++++++++++
+ tests/unit/helpers/pdf-fixtures.ts                 |   1 +
+ .../lavori-patch-istituzione-sanitaria.test.ts     |  65 ++++++
+ tests/unit/lavori-post-prescrizione.test.ts        | 244 +++++++++++++++++++++
+ 8 files changed, 598 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/app/api/lavori/[id]/route.ts b/src/app/api/lavori/[id]/route.ts
+index 3c35e4a8..d768d2d9 100644
+--- a/src/app/api/lavori/[id]/route.ts
++++ b/src/app/api/lavori/[id]/route.ts
+@@ -45,29 +45,34 @@ const LOCKED_PRICE_FIELDS = [
+ // - TabDate.tsx:         data_prima_prova, data_seconda_prova,
+ //                        data_terza_prova, spedizione_corriere,
+ //                        spedizione_tracking, spedizione_data_prevista
+ // - LavoroCard.tsx:      tecnico_id, priorita (assegnazione tecnico/priorità
+ //                        dalla lista lavori, stessa route PATCH root)
+ // - FK_FIELDS validati sotto: cliente_id, paziente_id, tecnico_id, ciclo_id
+ // - LOCKED_PRICE_FIELDS applicati dopo il filtro: prezzo_unitario, listino_id,
+ //   codice_iva, natura_iva (editabili finché non incluso_in_fattura)
+ //
+ // Esclusi deliberatamente (verificato: nessun writer nel form React attuale):
+-// arcata, colorazione_esterna, impronta_digitale, numero_prescrizione,
++// arcata, colorazione_esterna, impronta_digitale,
+ // norma_riferimento, richiedente_email, stato_fisico, tipo_arco,
+ // codice_interno, anamnesi_note, classe_rischio, paziente_nascita_snapshot,
+ // paziente_nome_snapshot, prescrizione_digitale_id, spedizione_note,
+ // spedizione_stato — oltre a IMMUTABLE, segnalazione_* (route dedicata
+ // /segnala e /segnala/risolvi), is_rifacimento/rifacimento_motivo (RPC
+ // crea_rifacimento_atomico), tracciabilita_materiali_ok/da_conformare/
+ // materiali_incompleti_dettaglio (calcolati server-side in orchestrate.ts),
+ // buono_*/file_stl_url/immagini_urls (gestiti da altri processi/route).
++// numero_prescrizione: escluso CON ragione (non più «nessun writer») — vive
++// su lavori_prescrizioni, scrittura via RPC dedicate (ondata B, spec §3). La
++// colonna omonima su `lavori` è legacy: riaprirla qui sarebbe una seconda
++// penna sullo stesso fatto, la classe già pagata con numero_cassetta.
++// Test di regressione: tests/unit/lavori-patch-istituzione-sanitaria.test.ts.
+ // ═══ SENTINELLA D7 (spec portale-dentista-v2 §7) ══════════════════════════
+ // proposta_dentista e proposta_at NON devono MAI entrare in questa allowlist:
+ // si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).
+ // Test di regressione: tests/unit/lavori-patch-invariante-d7.test.ts
+ // ═══════════════════════════════════════════════════════════════════════════
+ // ═══ SENTINELLA CASSETTA (spec parete-cassette §10, modello invariante D7) ══
+ // numero_cassetta NON deve MAI rientrare in questa allowlist: da qui in avanti
+ // si scrive SOLO tramite le RPC atomiche cassetta_assegna_atomica/
+ // cassetta_libera_atomica (POST /api/lavori/[id]/cassetta), mai con un UPDATE
+ // diretto — altrimenti si desincronizza dalla riga viva di `cassette_lavori`.
+@@ -172,20 +177,23 @@ const LOCKED_PRICE_FIELDS = [
+ // denormalizzazione, scritta dalle due RPC insieme alle righe di `lavori_denti`.
+ // La Dichiarazione di Conformità (DdcTemplate.tsx:258) e la scheda
+ // (SchedaLavoroV3.tsx:286) le leggono ancora fino all'ondata (c). «Sentinella»
+ // qui vuol dire: nessuno le scrive A MANO. Non: nessuno le scrive.
+ // Test di regressione: tests/unit/lavori-patch-sentinella-denti.test.ts
+ // ═══════════════════════════════════════════════════════════════════════════
+ export const PATCHABLE_FIELDS = [
+   'tipo_dispositivo',
+   'descrizione',
+   'richiedente_nome',
++  // P37 (ondata B ②): l'istituzione sanitaria del prescrittore — nasce dal
++  // POST e si corregge da qui fino alla consegna (direttiva §9).
++  'istituzione_sanitaria',
+   'data_consegna_prevista',
+   'ora_consegna',
+   'priorita',
+   'dispositivo_semilavorato',
+   'note_interne',
+   'tipo_impronte',
+   'disinfettante_usato',
+   'lotto_disinfettante',
+   'materiali_allegati',
+   'anamnesi_bruxismo',
+diff --git a/src/app/api/lavori/route.ts b/src/app/api/lavori/route.ts
+index 47f92d74..854065c3 100644
+--- a/src/app/api/lavori/route.ts
++++ b/src/app/api/lavori/route.ts
+@@ -9,20 +9,24 @@ import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+ import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+ // La validazione dei denti è UNA SOLA e vive in `lib/domain`: la chiamano
+ // questa creazione e la sostituzione integrale (`PUT /api/lavori/[id]/denti`).
+ // Fino al 28/07/2026 viveva solo nel PUT, e qui si controllavano `fdi` e i
+ // duplicati e basta — con l'oggetto grezzo che finiva alla RPC (rilievo G2).
+ import { validaDenti, type DenteNormalizzato } from '@/lib/domain/denti-validazione'
+ // La normalizzazione del colore di caso è UNA SOLA e vive in `lib/api`: la
+ // chiamano questa creazione e la correzione dalla scheda (PATCH /api/lavori/
+ // [id], Task 12-bis). Due copie della stessa regola sono la classe R3.
+ import { risolviColoreCaso } from '@/lib/api/colore-caso'
++// Lo snapshot della prescrizione si compone QUI, server-side (ondata B ②, V3):
++// il client manda dati grezzi (colore come digitato, numero), mai testo MDR
++// composto. La semantica (V2, W20, D210, D213) vive nel modulo.
++import { componiSnapshot, type PrescrizioneInput } from '@/lib/prescrizione/componi-snapshot'
+ 
+ export async function GET(req: Request) {
+   const { searchParams } = new URL(req.url)
+   const stato = searchParams.get('stato')
+   const q = searchParams.get('q')
+ 
+   return withServerTiming(async (t) => {
+     const { context, timings } = await getLabContextWithTimings()
+     Object.assign(t, timings)
+     if (!context) {
+@@ -197,20 +201,56 @@ export async function POST(req: Request) {
+   // PUT la lista è il corpo stesso della richiesta) e va vista dove sta.
+   let dentiIn: DenteNormalizzato[] = []
+   if (body.denti !== undefined) {
+     const esitoDenti = validaDenti(body.denti)
+     if (!esitoDenti.ok) {
+       return NextResponse.json({ error: esitoDenti.errore, valore: esitoDenti.valore }, { status: 422 })
+     }
+     dentiIn = esitoDenti.denti
+   }
+ 
++  // La trascrizione della prescrizione (ondata B ②). Il GATE è la presenza
++  // della chiave `prescrizione`: la trascrizione nasce SOLO se il client la
++  // dichiara. Senza questo gate ogni body legacy CON denti produrrebbe una
++  // riga di `lavori_prescrizioni` dal giorno del deploy del server, prima che
++  // il wizard nuovo esista — e la retro-compatibilità chiede la chiamata RPC
++  // IDENTICA a oggi per i body senza i campi nuovi.
++  // Stessa regola di `denti` (sopra): presente ma della forma sbagliata è un
++  // 422, mai un «niente da trascrivere» — anche `null` cade qui, chi non
++  // trascrive OMETTE la chiave.
++  let prescrizioneIn: PrescrizioneInput | undefined
++  if (body.prescrizione !== undefined) {
++    const grezzaP = body.prescrizione
++    if (grezzaP === null || typeof grezzaP !== 'object' || Array.isArray(grezzaP)) {
++      return NextResponse.json({ error: 'prescrizione deve essere un oggetto' }, { status: 422 })
++    }
++    const p = grezzaP as Record<string, unknown>
++    // Il colore si trascrive COME DIGITATO (D210) — ma solo se è un testo: un
++    // numero o un oggetto non sono una trascrizione, e passarli stringificati
++    // sarebbe inventare un testo che il medico non ha scritto.
++    if (p.colore !== undefined && typeof p.colore !== 'string') {
++      return NextResponse.json({ error: 'colore della prescrizione non valido', valore: p.colore }, { status: 422 })
++    }
++    if (p.numero_prescrizione !== undefined && typeof p.numero_prescrizione !== 'string') {
++      return NextResponse.json({ error: 'numero_prescrizione non valido', valore: p.numero_prescrizione }, { status: 422 })
++    }
++    prescrizioneIn = {
++      colore: p.colore as string | undefined,
++      numero_prescrizione: p.numero_prescrizione as string | undefined,
++    }
++  }
++  // null = NIENTE di prescritto (V2): nessuna riga. Un contenuto `{}` con
++  // numero presente è invece una riga legittima (M-T3-3) — la distinzione la
++  // fa `componiSnapshot`, qui si rispetta l'esito.
++  const snapshotPrescrizione =
++    prescrizioneIn !== undefined ? componiSnapshot(dentiIn, prescrizioneIn) : null
++
+   // Creazione ATOMICA: progressivo + lavoro + denti in una transazione sola.
+   // Motivo NORMATIVO, non di comodità (spec §4, rischio R1): un colore perso in
+   // silenzio produce una Dichiarazione priva di un contenuto obbligatorio
+   // dell'Allegato XIII. Prima di questa modifica il lavoro nasceva con un
+   // INSERT e i denti arrivavano dopo con una PATCH fail-soft: se quella
+   // falliva, il lavoro esisteva e il dato no.
+   // L'anno è quello del giorno civile di ROMA, non dell'orologio del processo:
+   // in produzione il server gira in UTC, e `new Date().getFullYear()` fra le
+   // 00:00 e l'01:00 di Roma del 1° gennaio è ancora indietro di un anno. Qui non
+   // sarebbe un dettaglio estetico: questo valore diventa `v_anno` dentro
+@@ -224,38 +264,49 @@ export async function POST(req: Request) {
+   const { data: esitoRpc, error: rpcError } = await callRpcWithRetry(() =>
+     svc.rpc('lavoro_crea_atomico', {
+       p_lab: labId,
+       p_lavoro: {
+         anno_lavoro: anno,
+         tipo_dispositivo: body.tipo_dispositivo,
+         descrizione: body.descrizione,
+         data_consegna_prevista: body.data_consegna_prevista,
+         ora_consegna: body.ora_consegna ?? null,
+         richiedente_nome: body.richiedente_nome ?? null,
++        // P37 (ondata B ②): l'istituzione sanitaria del prescrittore. Il
++        // `?? null` è il pattern di ogni facoltativo qui sopra: per la RPC
++        // `p_lavoro->>'istituzione_sanitaria'` la chiave a null e la chiave
++        // assente sono lo stesso SQL NULL.
++        istituzione_sanitaria: body.istituzione_sanitaria ?? null,
+         priorita: body.priorita ?? 'normale',
+         dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
+         note_interne: body.note_interne ?? null,
+         cliente_id: body.cliente_id,
+         paziente_id: body.paziente_id ?? null,
+         tecnico_id: body.tecnico_id ?? null,
+         ciclo_id: body.ciclo_id ?? null,
+         classe_rischio: body.classe_rischio ?? 'classe_i',
+         da_conformare: body.da_conformare ?? true,
+         codice_iva: body.codice_iva ?? 'N4',
+         natura_iva: body.natura_iva ?? 'N4',
+         data_ingresso: oggiRomaISO(),
+         // Già passati dal catalogo: al database arriva una coppia che ESISTE,
+         // oppure due null. Mai il grezzo del client (v. risolviColoreCaso).
+         colore_scala: colore.colore_scala,
+         colore_codice: colore.colore_codice,
+       },
+       p_denti: dentiIn,
++      // 🛑 M-T3-2: quando non c'è niente di trascritto la chiave si OMETTE,
++      // non si manda `p_prescrizione: null`. Con PostgREST un JSON null
++      // diventa `'null'::jsonb`, che NON è SQL NULL: l'`IF p_prescrizione IS
++      // NOT NULL` della RPC scatterebbe e nascerebbe una riga fantasma di
++      // `lavori_prescrizioni` per ogni lavoro senza trascrizione.
++      ...(snapshotPrescrizione !== null ? { p_prescrizione: snapshotPrescrizione } : {}),
+     })
+   )
+ 
+   // postgrest NON lancia: l'errore si controlla, non si aspetta in un catch.
+   if (rpcError) {
+     return NextResponse.json({ error: rpcError.message }, { status: 500 })
+   }
+ 
+   const esito = esitoRpc as {
+     esito?: string
+diff --git a/src/lib/prescrizione/componi-snapshot.ts b/src/lib/prescrizione/componi-snapshot.ts
+new file mode 100644
+index 00000000..1e33e4fa
+--- /dev/null
++++ b/src/lib/prescrizione/componi-snapshot.ts
+@@ -0,0 +1,52 @@
++// componiSnapshot — compone il jsonb `p_prescrizione` per `lavoro_crea_atomico`
++// (ondata B ②, spec V2/V3). Funzione PURA: il client manda dati grezzi, è il
++// server che compone lo snapshot — il client non manda MAI testo MDR composto.
++//
++// La semantica dello snapshot, ed è vincolante:
++// - chiave presente in `contenuto` = caratteristica TRASCRITTA dalla
++//   prescrizione; l'assenza è un'informazione (V2) — MAI `colore: null`.
++// - il colore resta COME DIGITATO (D210): nessun trim, nessun uppercase.
++//   La fedeltà è il punto — è il testo del medico, non un valore di catalogo.
++//   Unica eccezione: la stringa VUOTA, che non è una trascrizione di niente
++//   («solo spazi» invece si preserva: giudicarlo vuoto richiederebbe il trim).
++// - `elementi` = SOLO i denti con provenienza 'prescritto' (W20; il default
++//   di `validaDenti` è 'prescritto'), nell'ordine d'ingresso.
++// - `tipo` NON entra mai qui: entra SOLO alla conferma di consegna (D213).
++// - ritorno `null` = NIENTE di prescritto → il chiamante OMETTE p_prescrizione
++//   dalla chiamata RPC (M-T3-2: un jsonb 'null' NON è SQL NULL, e la RPC
++//   inserirebbe una riga fantasma). `contenuto: {}` con numero presente è
++//   invece una riga LEGITTIMA (M-T3-3): i due casi non si confondono.
++
++export interface PrescrizioneInput {
++  /** Testo del colore COME DIGITATO dall'addetta (D210) — mai normalizzato qui. */
++  colore?: string
++  numero_prescrizione?: string
++}
++
++export interface DentiInput {
++  fdi: number
++  provenienza?: string
++}
++
++export function componiSnapshot(
++  denti: DentiInput[],
++  p?: PrescrizioneInput
++): { contenuto: Record<string, unknown>; numero_prescrizione: string | null } | null {
++  const elementi = denti
++    .filter((d) => (d.provenienza ?? 'prescritto') === 'prescritto')
++    .map((d) => d.fdi)
++
++  const contenuto: Record<string, unknown> = {}
++  if (elementi.length > 0) contenuto.elementi = elementi
++  if (p?.colore !== undefined && p.colore !== '') contenuto.colore = p.colore
++
++  const numero =
++    p?.numero_prescrizione !== undefined && p.numero_prescrizione !== ''
++      ? p.numero_prescrizione
++      : null
++
++  // Niente di trascritto e nessun numero: NESSUNA riga (V2), non una vuota.
++  if (Object.keys(contenuto).length === 0 && numero === null) return null
++
++  return { contenuto, numero_prescrizione: numero }
++}
+diff --git a/src/types/domain.ts b/src/types/domain.ts
+index eeccbf42..89bb51bc 100644
+--- a/src/types/domain.ts
++++ b/src/types/domain.ts
+@@ -266,20 +266,23 @@ export interface Lavoro {
+   paziente_nascita_snapshot: string | null;
+   tipo_dispositivo: TipoDispositivo;
+   descrizione: string;
+   note_interne: string | null;
+   // Ondata 3b — nota del dentista (portale) separata da note_interne del lab
+   note_dentista: string | null;
+   da_portale: boolean;
+   paziente_codice_richiesta: string | null;
+   richiedente_nome: string | null;
+   richiedente_email: string | null;
++  // P37 (ondata B ②): l'istituzione sanitaria del prescrittore — nasce dal
++  // POST /api/lavori e si corregge dalla PATCH fino alla consegna (direttiva §9).
++  istituzione_sanitaria: string | null;
+   // Campi colore (tab Clinica)
+   // ⚠️ ORFANE dal Task 10 (ondata a): nessuno le scrive più — le due RPC
+   // denormalizzano solo i tre `denti_*`. Restano nel tipo perché sono ancora
+   // colonne di `lavori` e la fatturazione le legge nello snapshot, ma la
+   // scheda si idrata da `lavori_denti` via `idrataColoreScheda`.
+   colore_dente: string | null;
+   colore_collo: string | null;
+   colore_corpo: string | null;
+   colore_incisale: string | null;
+   // Default di caso (ondata a): la coppia colore del lavoro, scritta alla
+@@ -383,20 +386,48 @@ export interface LavoroDente {
+   scala: string | null;
+   codice: string | null;
+   codice_collo: string | null;
+   codice_corpo: string | null;
+   codice_incisale: string | null;
+   provenienza: 'prescritto' | 'eseguito';
+   created_at: string;
+   updated_at: string;
+ }
+ 
++// ============================================================
++// LAVORO PRESCRIZIONE — la trascrizione della prescrizione (ondata B, D214)
++// ============================================================
++// Scrittura SOLO via le RPC dedicate (`lavoro_crea_atomico`,
++// `lavoro_prescrizione_*`): la tabella è in REVOKE ALL, service_role compreso.
++// `contenuto`: chiave presente = caratteristica TRASCRITTA (V2, l'assenza è
++// un'informazione); il colore vive lì COME DIGITATO (D210); `tipo` entra SOLO
++// alla conferma di consegna (D213).
++export interface LavoroPrescrizione {
++  id: string;
++  laboratorio_id: string;
++  lavoro_id: string;
++  contenuto: Record<string, unknown>;
++  // Il registro delle divergenze (gesto typo-vs-divergenza, spec §4.3):
++  // jsonb '[]' di default; la forma delle voci arriva con la sua ondata.
++  divergenze: unknown[];
++  fonte_tipo: 'foglio' | 'email' | 'modulo' | 'piattaforma' | null;
++  fonte_immagine_id: string | null;
++  fonte_riferimento: string | null;
++  // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
++  // (colonna legacy, esclusa dalla PATCH con la sua ragione).
++  numero_prescrizione: string | null;
++  confermata_da: string | null;
++  confermata_at: string | null;
++  created_at: string;
++  updated_at: string;
++}
++
+ // ============================================================
+ // LAVORO DETTAGLIO — con join
+ // ============================================================
+ export interface LavoroDettaglio extends Lavoro {
+   // Opzionale perché è un embed: c'è solo dove la query lo chiede
+   // (`denti:lavori_denti(*)`). Chi mostra o corregge il colore DEVE chiederlo —
+   // guardia in `tests/unit/lavoro-form-colore-idratazione.test.tsx`.
+   denti?: LavoroDente[];
+   cliente: Cliente;
+   paziente: Paziente | null;
+diff --git a/tests/unit/componi-snapshot.test.ts b/tests/unit/componi-snapshot.test.ts
+new file mode 100644
+index 00000000..cd7c634b
+--- /dev/null
++++ b/tests/unit/componi-snapshot.test.ts
+@@ -0,0 +1,145 @@
++import { describe, it, expect } from 'vitest'
++import { componiSnapshot } from '@/lib/prescrizione/componi-snapshot'
++
++// Task 5 (ondata B ②) — `componiSnapshot` compone il jsonb `p_prescrizione`
++// per `lavoro_crea_atomico`. La semantica è quella dello snapshot V2/V3
++// (D210, W20, D213): chiave presente in `contenuto` = caratteristica
++// TRASCRITTA dalla prescrizione; l'assenza è un'informazione, mai un `null`.
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) ═══════════════════════════════
++// Ogni forma col suo caso, o col suo «non coperta, perché».
++//
++//  ① denti [] + p assente                → null (NIENTE di prescritto, V2)
++//  ② denti [{fdi:11},{fdi:12}] senza
++//    provenienza (default 'prescritto')  → contenuto {elementi:[11,12]}
++//  ③ provenienza 'prescritto' esplicita  → incluso negli elementi
++//  ④ provenienza 'eseguito'              → ESCLUSO dagli elementi (W20)
++//  ⑤ TUTTI i denti 'eseguito' + p assente→ null (nessuna trascrizione)
++//  ⑥ colore " a3 "                       → PRESERVATO ESATTO, spazi compresi
++//                                          (fedeltà D210: il testo del medico)
++//  ⑦ colore assente                      → chiave `colore` ASSENTE (mai null)
++//  ⑧ colore "" (stringa vuota)           → chiave ASSENTE: un testo vuoto non
++//                                          è una trascrizione (V2)
++//  ⑨ colore " " (solo spazi)             → PRESERVATO: decidere che « » è
++//                                          vuoto richiederebbe un trim, cioè
++//                                          la normalizzazione che D210 vieta
++//  ⑩ solo numero_prescrizione            → riga LEGITTIMA: contenuto {} +
++//                                          numero (M-T3-3: {} ≠ null)
++//  ⑪ numero ""                           → come assente; da solo → null
++//  ⑫ numero " 123 "                      → preservato come digitato
++//  ⑬ `tipo`                              → MAI presente (entra SOLO alla
++//                                          conferma di consegna, D213)
++//  ⑭ denti 'eseguito' + colore           → contenuto {colore} SENZA la chiave
++//                                          `elementi` (niente di prescritto
++//                                          fra i denti, ma il colore sì)
++//  ⑮ ordine degli elementi               → quello d'ingresso (fedeltà: non è
++//                                          compito dello snapshot riordinare)
++//  ⑯ fdi duplicati                       → NON coperta: l'unico chiamante
++//     (POST /api/lavori) passa la lista già validata da `validaDenti`, che
++//     rifiuta i duplicati con 422 (denti-validazione.ts:139-141) prima di
++//     arrivare qui.
++//  ⑰ fdi non-numero / dente non-oggetto  → NON coperta: stessa ragione della
++//     ⑯ — funzione pura tipata, riceve `DenteNormalizzato[]` già validati.
++//  ⑱ p non-oggetto (stringa/array/null)  → NON coperta QUI (firma tipata
++//     `PrescrizioneInput | undefined`); coperta ALLA PORTA: la route valida
++//     `body.prescrizione` con un 422 — tests/unit/lavori-post-prescrizione.test.ts.
++// ═══════════════════════════════════════════════════════════════════════════
++
++describe('componiSnapshot — quando NON c\'è niente di prescritto', () => {
++  it('① denti vuoti e nessuna prescrizione → null (nessuna riga, non una riga vuota)', () => {
++    expect(componiSnapshot([], undefined)).toBeNull()
++  })
++
++  it('⑤ soli denti "eseguito" e nessuna prescrizione → null', () => {
++    expect(componiSnapshot([{ fdi: 11, provenienza: 'eseguito' }])).toBeNull()
++  })
++
++  it('⑪ numero_prescrizione stringa vuota, e nient\'altro → null', () => {
++    expect(componiSnapshot([], { numero_prescrizione: '' })).toBeNull()
++  })
++})
++
++describe('componiSnapshot — gli elementi (W20: solo i prescritti)', () => {
++  it('② denti senza provenienza → elementi [11,12] (il default è "prescritto")', () => {
++    expect(componiSnapshot([{ fdi: 11 }, { fdi: 12 }])).toEqual({
++      contenuto: { elementi: [11, 12] },
++      numero_prescrizione: null,
++    })
++  })
++
++  it('③④ "prescritto" entra, "eseguito" resta fuori', () => {
++    const esito = componiSnapshot([
++      { fdi: 11, provenienza: 'prescritto' },
++      { fdi: 21, provenienza: 'eseguito' },
++      { fdi: 12 },
++    ])
++    expect(esito).toEqual({
++      contenuto: { elementi: [11, 12] },
++      numero_prescrizione: null,
++    })
++  })
++
++  it('⑮ l\'ordine degli elementi è quello d\'ingresso, non si riordina', () => {
++    const esito = componiSnapshot([{ fdi: 12 }, { fdi: 11 }])
++    expect(esito?.contenuto.elementi).toEqual([12, 11])
++  })
++
++  it('⑭ soli denti "eseguito" ma colore presente → {colore}, SENZA la chiave elementi', () => {
++    const esito = componiSnapshot([{ fdi: 11, provenienza: 'eseguito' }], { colore: 'A3' })
++    expect(esito).toEqual({
++      contenuto: { colore: 'A3' },
++      numero_prescrizione: null,
++    })
++    expect(esito?.contenuto).not.toHaveProperty('elementi')
++  })
++})
++
++describe('componiSnapshot — il colore, COME DIGITATO (D210)', () => {
++  it('⑥ " a3 " resta " a3 ": mai trim, mai uppercase — la fedeltà è il punto', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], { colore: ' a3 ' })
++    expect(esito?.contenuto.colore).toBe(' a3 ')
++  })
++
++  it('⑦ colore assente → chiave ASSENTE nel contenuto, MAI colore:null (V2)', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], {})
++    expect(esito?.contenuto).not.toHaveProperty('colore')
++  })
++
++  it('⑧ colore "" → chiave assente: un testo vuoto non è una trascrizione', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], { colore: '' })
++    expect(esito?.contenuto).not.toHaveProperty('colore')
++  })
++
++  it('⑨ colore " " (solo spazi) → preservato: giudicarlo vuoto sarebbe un trim', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], { colore: ' ' })
++    expect(esito?.contenuto.colore).toBe(' ')
++  })
++})
++
++describe('componiSnapshot — il numero di prescrizione', () => {
++  it('⑩ SOLO il numero → riga legittima: contenuto {} con numero (M-T3-3)', () => {
++    expect(componiSnapshot([], { numero_prescrizione: 'RX-2026-042' })).toEqual({
++      contenuto: {},
++      numero_prescrizione: 'RX-2026-042',
++    })
++  })
++
++  it('⑫ " 123 " resta " 123 ": la fedeltà vale anche per il numero', () => {
++    const esito = componiSnapshot([], { numero_prescrizione: ' 123 ' })
++    expect(esito?.numero_prescrizione).toBe(' 123 ')
++  })
++})
++
++describe('componiSnapshot — ⑬ `tipo` non entra MAI alla creazione (D213)', () => {
++  it('nessuna combinazione d\'ingresso produce la chiave `tipo`', () => {
++    const esiti = [
++      componiSnapshot([{ fdi: 11 }, { fdi: 12 }], { colore: 'A2', numero_prescrizione: '7' }),
++      componiSnapshot([{ fdi: 11 }]),
++      componiSnapshot([], { numero_prescrizione: 'X' }),
++    ]
++    for (const esito of esiti) {
++      expect(esito).not.toBeNull()
++      expect(esito?.contenuto).not.toHaveProperty('tipo')
++    }
++  })
++})
+diff --git a/tests/unit/helpers/pdf-fixtures.ts b/tests/unit/helpers/pdf-fixtures.ts
+index 2baffa0e..0746d77a 100644
+--- a/tests/unit/helpers/pdf-fixtures.ts
++++ b/tests/unit/helpers/pdf-fixtures.ts
+@@ -78,20 +78,21 @@ export const LAVORO_FIXTURE: LavoroDettaglio = {
+   paziente_nome_snapshot: 'M.R.',
+   paziente_nascita_snapshot: null,
+   tipo_dispositivo: 'protesi_fissa',
+   descrizione: 'Corona ceramica su impianto elemento 14 colore A2',
+   note_interne: null,
+   note_dentista: null,
+   da_portale: false,
+   paziente_codice_richiesta: null,
+   richiedente_nome: null,
+   richiedente_email: null,
++  istituzione_sanitaria: null,
+   colore_dente: 'A2',
+   colore_collo: null,
+   colore_corpo: null,
+   colore_incisale: null,
+   // Default di caso, colonne dell'ondata (a) — la fixture è tipata stretta
+   // (nessun `as unknown as`), quindi le dichiara entrambe.
+   colore_scala: null,
+   colore_codice: null,
+   effetti_speciali: null,
+   tecnica_colore: null,
+diff --git a/tests/unit/lavori-patch-istituzione-sanitaria.test.ts b/tests/unit/lavori-patch-istituzione-sanitaria.test.ts
+new file mode 100644
+index 00000000..1391a336
+--- /dev/null
++++ b/tests/unit/lavori-patch-istituzione-sanitaria.test.ts
+@@ -0,0 +1,65 @@
++// Task 5 (ondata B ②) — `istituzione_sanitaria` entra nell'allowlist della
++// PATCH (P37: si corregge fino alla consegna, direttiva §9), mentre
++// `numero_prescrizione` resta FUORI con la sua ragione nuova: vive su
++// `lavori_prescrizioni`, scrittura via RPC dedicate (ondata B, spec §3).
++// La colonna omonima su `lavori` è legacy e non deve diventare una seconda
++// penna dello stesso fatto — la classe di difetto già pagata con
++// `numero_cassetta`.
++import { it, expect, vi, beforeEach } from 'vitest'
++
++const { mockGetUser, mockFrom } = vi.hoisted(() => ({ mockGetUser: vi.fn(), mockFrom: vi.fn() }))
++vi.mock('@/lib/supabase/server-user', () => ({ getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }) }))
++vi.mock('@/lib/supabase/server-service', () => ({ getServiceClient: () => ({ from: mockFrom }) }))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
++
++import { PATCH } from '../../src/app/api/lavori/[id]/route'
++
++let updatePayload: Record<string, unknown> | null
++
++beforeEach(() => {
++  updatePayload = null
++  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
++  mockFrom.mockImplementation((table: string) => {
++    if (table === 'utenti') {
++      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
++    }
++    // lavori: select existing (incluso_in_fattura) + update
++    return {
++      select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }),
++      update: (p: Record<string, unknown>) => {
++        updatePayload = p
++        return { eq: () => ({ eq: () => ({ select: () => ({ single: async () => ({ data: { id: 'lav-1', numero_lavoro: 'x', stato: 'pronto', updated_at: 'x' }, error: null }) }) }) }) }
++      },
++    }
++  })
++})
++
++it('istituzione_sanitaria si salva; numero_prescrizione resta scartato (penna sulle RPC di ondata B)', async () => {
++  const res = await PATCH(
++    new Request('http://localhost/api/lavori/lav-1', {
++      method: 'PATCH',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({
++        istituzione_sanitaria: 'ASL Napoli 1 Centro',
++        numero_prescrizione: 'RX-77',
++      }),
++    }),
++    { params: Promise.resolve({ id: 'lav-1' }) },
++  )
++  expect(res.status).toBe(200)
++  expect(updatePayload).toHaveProperty('istituzione_sanitaria', 'ASL Napoli 1 Centro')
++  expect(updatePayload).not.toHaveProperty('numero_prescrizione')
++})
++
++it('istituzione_sanitaria si azzera con null: la correzione include il ripensamento', async () => {
++  const res = await PATCH(
++    new Request('http://localhost/api/lavori/lav-1', {
++      method: 'PATCH',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ istituzione_sanitaria: null }),
++    }),
++    { params: Promise.resolve({ id: 'lav-1' }) },
++  )
++  expect(res.status).toBe(200)
++  expect(updatePayload).toHaveProperty('istituzione_sanitaria', null)
++})
+diff --git a/tests/unit/lavori-post-prescrizione.test.ts b/tests/unit/lavori-post-prescrizione.test.ts
+new file mode 100644
+index 00000000..902ebc12
+--- /dev/null
++++ b/tests/unit/lavori-post-prescrizione.test.ts
+@@ -0,0 +1,244 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++
++// Task 5 (ondata B ②) — POST /api/lavori compone lo snapshot della
++// prescrizione SERVER-SIDE (V3: il client manda dati grezzi, mai testo MDR
++// composto) e lo passa a `lavoro_crea_atomico` come `p_prescrizione`.
++//
++// ⚠️ LA GUARDIA M-T3-2 (review Task 3), ed è il cuore di questo file: la route
++// non deve MAI passare un jsonb 'null' come p_prescrizione. `'null'::jsonb IS
++// NOT NULL` è VERO in Postgres: la RPC entrerebbe nell'IF e inserirebbe una
++// riga fantasma di lavori_prescrizioni per ogni lavoro legacy. Quando non c'è
++// niente da trascrivere, la CHIAVE si omette dall'oggetto args — non si manda
++// `p_prescrizione: null`.
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) — il body della route ═════════
++//  ① body legacy (senza `prescrizione` né `istituzione_sanitaria`), CON denti
++//    → chiamata RPC IDENTICA a oggi: p_prescrizione ASSENTE dagli args.
++//    🔑 È il gate: la trascrizione nasce SOLO se il client la dichiara
++//    (chiave `prescrizione` presente). Senza gate, ogni body legacy con denti
++//    produrrebbe una riga di lavori_prescrizioni al deploy del server, prima
++//    che il wizard nuovo esista.
++//  ② prescrizione completa (colore + numero) + denti misti → p_prescrizione
++//    FEDELE: elementi = solo i 'prescritto' (W20), colore come digitato (D210)
++//  ③ prescrizione {} SENZA denti → componiSnapshot torna null → chiave OMESSA
++//  ④ prescrizione {} CON denti → dichiarare la trascrizione basta: gli
++//    elementi prescritti entrano nello snapshot
++//  ⑤ istituzione_sanitaria → p_lavoro, fedele (P37)
++//  ⑥ prescrizione stringa → 422, RPC mai chiamata
++//  ⑦ prescrizione array → 422
++//  ⑧ prescrizione null → 422 (chi non trascrive OMETTE la chiave — stessa
++//    regola di `denti`, route.ts:190-197)
++//  ⑨ prescrizione.colore non-stringa → 422
++//  ⑩ prescrizione.numero_prescrizione non-stringa → 422
++//  ⑪ `tipo` mai in p_prescrizione (D213) → coperto dai deep-equal di ②④
++//  ⑫ body non-JSON / null / array alla radice → NON coperta qui: guardia già
++//    esistente e già provata in lavori-post-atomico.test.ts (400 prima di
++//    qualsiasi lettura del body)
++// ═══════════════════════════════════════════════════════════════════════════
++
++const { mockGetUser, mockFrom, mockRpc } = vi.hoisted(() => ({
++  mockGetUser: vi.fn(),
++  mockFrom: vi.fn(),
++  mockRpc: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/server-user', () => ({
++  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
++}))
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
++}))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
++
++import { POST } from '../../src/app/api/lavori/route'
++
++const LAB_ID = 'lab-1'
++
++const UTENTE_ROW = {
++  laboratorio_id: LAB_ID,
++  ruolo: 'titolare',
++  laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
++}
++
++const ESITO_OK = {
++  esito: 'ok',
++  id: 'lavoro-1',
++  numero_lavoro: '2026/0042',
++  stato: 'ricevuto',
++}
++
++const CORPO_BASE = {
++  cliente_id: 'cliente-1',
++  tipo_dispositivo: 'protesi_fissa',
++  descrizione: 'Corona 14',
++  data_consegna_prevista: '2026-08-30',
++}
++
++function richiesta(body: unknown) {
++  return new Request('http://localhost/api/lavori', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json', origin: 'http://localhost', host: 'localhost' },
++    body: JSON.stringify(body),
++  })
++}
++
++/** select → eq → is → single: la catena usata sia dal lookup utenti sia dalle FK. */
++function singolo(data: unknown) {
++  return {
++    select: () => ({
++      eq: () => ({ is: () => ({ single: async () => ({ data, error: null }) }) }),
++    }),
++  }
++}
++
++function setup() {
++  mockFrom.mockImplementation((table: string) => {
++    if (table === 'utenti') return singolo(UTENTE_ROW)
++    if (table === 'clienti') return singolo({ laboratorio_id: LAB_ID })
++    throw new Error(`Tabella inattesa: ${table}`)
++  })
++}
++
++/** Gli argomenti dell'unica chiamata a `lavoro_crea_atomico`, chiavi comprese. */
++function argomentiRpc() {
++  const chiamata = mockRpc.mock.calls.find((c) => c[0] === 'lavoro_crea_atomico')
++  if (!chiamata) throw new Error('lavoro_crea_atomico non è mai stata chiamata')
++  return chiamata[1] as Record<string, unknown>
++}
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
++  mockRpc.mockResolvedValue({ data: ESITO_OK, error: null })
++})
++
++describe('POST /api/lavori — retro-compatibilità: il body legacy non cambia la chiamata', () => {
++  it('① body senza i campi nuovi, CON denti → p_prescrizione ASSENTE dagli args', async () => {
++    setup()
++
++    const res = await POST(
++      richiesta({ ...CORPO_BASE, denti: [{ fdi: 11, ruolo: 'elemento', provenienza: 'prescritto' }] })
++    )
++
++    expect(res.status).toBe(201)
++    const args = argomentiRpc()
++    // 🔑 La chiave DEVE mancare, non valere null: `'null'::jsonb IS NOT NULL`
++    // è vero, e la RPC inserirebbe una riga fantasma (M-T3-2).
++    expect(Object.keys(args).sort()).toEqual(['p_denti', 'p_lab', 'p_lavoro'])
++    // `istituzione_sanitaria: null` dentro p_lavoro è equivalente alla chiave
++    // assente per la RPC (`p_lavoro->>'istituzione_sanitaria'` → SQL NULL in
++    // entrambi i casi) — è il pattern `?? null` di ogni campo facoltativo del
++    // file (richiedente_nome, ora_consegna, …).
++    expect((args.p_lavoro as Record<string, unknown>).istituzione_sanitaria).toBeNull()
++  })
++})
++
++describe('POST /api/lavori — lo snapshot composto dal server (V3)', () => {
++  it('② prescrizione completa + denti misti → p_prescrizione fedele, solo i prescritti (W20, D210)', async () => {
++    setup()
++
++    const res = await POST(
++      richiesta({
++        ...CORPO_BASE,
++        denti: [
++          { fdi: 11, ruolo: 'elemento', provenienza: 'prescritto' },
++          { fdi: 21, ruolo: 'elemento', provenienza: 'eseguito' },
++        ],
++        prescrizione: { colore: ' a3 chiaro ', numero_prescrizione: 'RX-77' },
++      })
++    )
++
++    expect(res.status).toBe(201)
++    // Deep-equal, non objectContaining: prova anche che `tipo` NON c'è (D213)
++    // e che il colore arriva COME DIGITATO — spazi e minuscole compresi.
++    expect(argomentiRpc().p_prescrizione).toEqual({
++      contenuto: { elementi: [11], colore: ' a3 chiaro ' },
++      numero_prescrizione: 'RX-77',
++    })
++  })
++
++  it('③ prescrizione {} senza denti → niente di trascritto: chiave OMESSA, mai jsonb null', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: {} }))
++
++    expect(res.status).toBe(201)
++    expect(Object.keys(argomentiRpc()).sort()).toEqual(['p_denti', 'p_lab', 'p_lavoro'])
++  })
++
++  it('④ prescrizione {} con denti → gli elementi prescritti entrano (il default di provenienza è "prescritto")', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, denti: [{ fdi: 14 }], prescrizione: {} }))
++
++    expect(res.status).toBe(201)
++    expect(argomentiRpc().p_prescrizione).toEqual({
++      contenuto: { elementi: [14] },
++      numero_prescrizione: null,
++    })
++  })
++
++  it('⑤ istituzione_sanitaria → dentro p_lavoro, fedele (P37)', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, istituzione_sanitaria: 'ASL Napoli 1 Centro' }))
++
++    expect(res.status).toBe(201)
++    expect((argomentiRpc().p_lavoro as Record<string, unknown>).istituzione_sanitaria).toBe(
++      'ASL Napoli 1 Centro'
++    )
++  })
++})
++
++describe('POST /api/lavori — le forme patologiche di `prescrizione`', () => {
++  it('⑥ prescrizione stringa → 422, RPC mai chiamata', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: 'RX-77' }))
++    const json = await res.json()
++
++    expect(res.status).toBe(422)
++    expect(json.error).toBe('prescrizione deve essere un oggetto')
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑦ prescrizione array → 422', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: [] }))
++
++    expect(res.status).toBe(422)
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑧ prescrizione null → 422 (chi non trascrive omette la chiave, come per `denti`)', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: null }))
++
++    expect(res.status).toBe(422)
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑨ colore non-stringa → 422: il tipo sbagliato non si trascrive in silenzio', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: { colore: 3 } }))
++    const json = await res.json()
++
++    expect(res.status).toBe(422)
++    expect(json.error).toBe('colore della prescrizione non valido')
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑩ numero_prescrizione non-stringa → 422', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: { numero_prescrizione: 77 } }))
++    const json = await res.json()
++
++    expect(res.status).toBe(422)
++    expect(json.error).toBe('numero_prescrizione non valido')
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++})

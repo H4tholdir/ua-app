@@ -1,0 +1,129 @@
+# Review package: 310f8c4b..e6eed248
+
+## Commits
+e6eed248 fix(pdf): l'etichetta passa dal codice paziente come IFU e ricevuta
+
+## Files changed
+ src/components/features/pdf/EtichettaTemplate.tsx | 33 ++++++++++++++++-------
+ tests/unit/etichetta-paziente.test.ts             | 33 +++++++++++++++++++++++
+ 2 files changed, 57 insertions(+), 9 deletions(-)
+
+## Diff
+diff --git a/src/components/features/pdf/EtichettaTemplate.tsx b/src/components/features/pdf/EtichettaTemplate.tsx
+index 4a53b889..36659de5 100644
+--- a/src/components/features/pdf/EtichettaTemplate.tsx
++++ b/src/components/features/pdf/EtichettaTemplate.tsx
+@@ -107,28 +107,43 @@ function formatDataBreve(isoString: string | null | undefined): string {
+     return new Date(isoString).toLocaleDateString('it-IT', {
+       day: '2-digit',
+       month: '2-digit',
+       year: 'numeric',
+     })
+   } catch {
+     return isoString
+   }
+ }
+ 
+-function inizialeCognomePaziente(lavoro: LavoroDettaglio): string {
+-  const snap = lavoro.paziente_nome_snapshot
+-  if (snap) return snap
+-  const paz = lavoro.paziente
+-  if (!paz) return '—'
+-  const cognome = paz.cognome ?? ''
+-  const inizialeNome = paz.nome ? paz.nome.charAt(0).toUpperCase() + '.' : ''
+-  return [inizialeNome, cognome].filter(Boolean).join(' ') || '—'
++/**
++ * Il paziente sull'etichetta. Allineata verbatim a `codiceGDPR` di
++ * IFUTemplate.tsx:169-185 e RicevutaConsegnaTemplate.tsx:186-193 (riserva
++ * G1): dei tre template questo era l'UNICO che non passava mai da
++ * `codice_paziente`, e stampava direttamente cognome + iniziale. Ora l'ordine
++ * è lo stesso ovunque: prima il codice pseudonimizzato, poi (solo se manca)
++ * l'iniziale + cognome, poi lo snapshot abbreviato.
++ *
++ * Esportata per il test; il template la usa internamente.
++ */
++export function pazienteEtichetta(lavoro: LavoroDettaglio): string {
++  if (lavoro.paziente?.codice_paziente) return `PAZ-${lavoro.paziente.codice_paziente}`
++  if (lavoro.paziente) {
++    const iniziale = lavoro.paziente.nome ? lavoro.paziente.nome.charAt(0).toUpperCase() + '.' : ''
++    const cognome = lavoro.paziente.cognome ?? ''
++    if (iniziale || cognome) return `${iniziale} ${cognome}`.trim()
++  }
++  if (lavoro.paziente_nome_snapshot) {
++    const parts = lavoro.paziente_nome_snapshot.split(' ')
++    if (parts.length > 1) return `${parts[0].charAt(0).toUpperCase()}. ${parts.slice(1).join(' ')}`
++    return lavoro.paziente_nome_snapshot
++  }
++  return 'N.A. (GDPR)'
+ }
+ 
+ // ─── Component ─────────────────────────────────────────────────────────────
+ 
+ export function EtichettaTemplate({ lavoro, lab, installareEntro }: EtichettaTemplateProps) {
+   const primoMateriale = lavoro.materiali?.[0] ?? null
+   const tipoFormatted = lavoro.tipo_dispositivo.replace(/_/g, ' ')
+ 
+   return (
+     <Document
+@@ -154,21 +169,21 @@ export function EtichettaTemplate({ lavoro, lab, installareEntro }: EtichettaTem
+           {lab.codice_itca ? (
+             <Text style={styles.itcaBadge}>ITCA: {lab.codice_itca}</Text>
+           ) : null}
+         </View>
+ 
+         <View style={styles.separatorTop} />
+ 
+         {/* ── PAZIENTE ── */}
+         <View style={styles.row}>
+           <Text style={styles.label}>Paziente</Text>
+-          <Text style={styles.valueBold}>{inizialeCognomePaziente(lavoro)}</Text>
++          <Text style={styles.valueBold}>{pazienteEtichetta(lavoro)}</Text>
+         </View>
+ 
+         {/* ── TIPO DISPOSITIVO ── */}
+         <View style={styles.row}>
+           <Text style={styles.label}>Dispositivo</Text>
+           <Text style={styles.value}>{tipoFormatted}</Text>
+         </View>
+ 
+         {/* ── DATA PRODUZIONE ── */}
+         <View style={styles.row}>
+diff --git a/tests/unit/etichetta-paziente.test.ts b/tests/unit/etichetta-paziente.test.ts
+new file mode 100644
+index 00000000..4fb4689d
+--- /dev/null
++++ b/tests/unit/etichetta-paziente.test.ts
+@@ -0,0 +1,33 @@
++import { describe, it, expect } from 'vitest'
++import { pazienteEtichetta } from '@/components/features/pdf/EtichettaTemplate'
++import type { LavoroDettaglio, Paziente } from '@/types/domain'
++
++const l = (p: Partial<LavoroDettaglio>) => p as LavoroDettaglio
++
++describe('EtichettaTemplate — il paziente, allineato a IFU e Ricevuta (G1)', () => {
++  it('il CODICE viene per primo, come negli altri due template', () => {
++    expect(pazienteEtichetta(l({
++      paziente_nome_snapshot: 'BAGHERIA GIUSEPPE',
++      paziente: { codice_paziente: 'PZ-0042', nome: 'Giuseppe', cognome: 'Bagheria' } as Paziente,
++    }))).toBe('PAZ-PZ-0042')
++  })
++
++  it('senza codice: iniziale del nome + cognome (anonimizzazione parziale)', () => {
++    expect(pazienteEtichetta(l({
++      paziente_nome_snapshot: null,
++      paziente: { codice_paziente: null, nome: 'Giuseppe', cognome: 'Bagheria' } as Paziente,
++    }))).toBe('G. Bagheria')
++  })
++
++  it('senza codice e senza nome/cognome: si ricade sullo snapshot, abbreviato', () => {
++    expect(pazienteEtichetta(l({
++      paziente_nome_snapshot: 'BAGHERIA GIUSEPPE',
++      paziente: { codice_paziente: null, nome: null, cognome: null } as Paziente,
++    }))).toBe('B. GIUSEPPE')
++  })
++
++  it('niente di niente → la stessa sentinella degli altri due', () => {
++    expect(pazienteEtichetta(l({ paziente_nome_snapshot: null, paziente: null })))
++      .toBe('N.A. (GDPR)')
++  })
++})

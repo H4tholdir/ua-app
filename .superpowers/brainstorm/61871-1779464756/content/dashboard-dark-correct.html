@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UÀ — Dark Mode Corretto (da login + admin)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,400&family=Playfair+Display:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────
+   LIGHT MODE TOKENS — DS v2.2 warm panna
+───────────────────────────────────────────────────── */
+.light-mode {
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#96918D; --t3:#B8B3AE;
+  --primary:#D90012; --gold:#D4A843; --success:#3DCB5C; --info:#5A5FCC;
+  --sh-c:inset 0 1px 0 rgba(255,255,255,.88),inset 0 -1px 2px rgba(0,0,0,.04),-5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.90),inset 0 -2px 3px rgba(0,0,0,.05),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i:inset 4px 4px 9px rgba(148,128,118,.32),inset -3px -3px 7px rgba(255,255,255,.66);
+  --sh-p:inset 3px 4px 8px rgba(148,128,118,.40),inset -2px -2px 5px rgba(255,255,255,.52);
+  --sh-red:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -2px 3px rgba(0,0,0,.22),0 6px 18px -2px rgba(180,0,0,.40),0 2px 6px rgba(180,0,0,.26);
+  /* Dividers */
+  --border:rgba(0,0,0,.06);
+  --border-inv:rgba(255,255,255,.12);
+}
+
+/* ─────────────────────────────────────────────────────
+   DARK MODE TOKENS — esatti da admin.css + login globals.css
+   Carbonio caldo: la fisica della pietra si inverte
+   Le ombre diventano nere profonde, gli highlight quasi impercettibili
+───────────────────────────────────────────────────── */
+.dark-mode {
+  --bg:#1A1916;      /* carbonio caldo base */
+  --sfc:#222019;     /* surface: 8 punti più chiaro */
+  --elv:#2C2A27;     /* elevated: secondo livello */
+  --prs:#121110;     /* pressed: più scuro del base */
+  --t1:#F0EDE8;      /* avorio caldo — MAI bianco puro */
+  --t2:#8A8580;      /* grigio-caldo secondario */
+  --t3:#555250;      /* muto */
+  --primary:#E8001A; /* rosso +9% luminosità su fondo scuro */
+  --gold:#D4A843;    /* oro rimane uguale — già caldo */
+  --success:#2ECC7A; /* verde più luminoso */
+  --info:#6A70E8;    /* indigo più luminoso */
+  /* ── OMBRE DARK: il segreto del neumorphismo carbonio ──
+     Highlight bianco quasi invisibile (.04-.06)
+     Ombra nera profonda (.52-.75)
+     Questa asimmetria estrema crea la fisica della pietra nera */
+  --sh-c:
+    inset 0 1px 0 rgba(255,255,255,.055),   /* micro-highlight top */
+    inset 0 -1px 2px rgba(0,0,0,.22),       /* profondità bottom */
+    -5px -5px 11px rgba(255,255,255,.018),  /* highlight angolo quasi invisibile */
+    9px 12px 28px -4px rgba(0,0,0,.60),     /* ombra principale profonda */
+    3px 5px 12px -2px rgba(0,0,0,.38);      /* ombra secondaria */
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.05),    /* highlight top minimo */
+    inset 0 -2px 3px rgba(0,0,0,.28),       /* profondità bottom */
+    9px 13px 28px -4px rgba(0,0,0,.52),     /* ombra principale */
+    3px 5px 12px -1px rgba(0,0,0,.34);      /* ombra secondaria */
+  --sh-i:
+    inset 4px 4px 9px rgba(0,0,0,.60),      /* affossamento profondo */
+    inset -3px -3px 7px rgba(255,255,255,.04); /* highlight interno minimo */
+  --sh-p:
+    inset 3px 4px 8px rgba(0,0,0,.65),      /* pressed: ancora più profondo */
+    inset -2px -2px 5px rgba(255,255,255,.04),
+    2px 2px 5px rgba(0,0,0,.40);
+  --sh-red:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 3px rgba(0,0,0,.32),
+    0 6px 18px -2px rgba(232,0,26,.38),
+    0 2px 6px rgba(232,0,26,.22);
+  /* Dividers */
+  --border:rgba(255,255,255,.06);
+  --border-inv:rgba(0,0,0,.20);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#151411;padding:24px 12px 80px;min-height:100vh}
+
+/* ─── PAGE ─── */
+.page-head{text-align:center;margin-bottom:8px}
+.page-head h1{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:400;color:#F0EDE8;letter-spacing:-.02em}
+.page-head p{font-size:11px;color:#555250;margin-top:4px}
+
+.row{display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-start;margin-top:28px}
+.col{display:flex;flex-direction:column;align-items:center;gap:14px}
+.col-label{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#555250}
+.col-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:400;color:#F0EDE8;text-align:center;margin-top:2px}
+.col-desc{font-size:10px;color:#555250;text-align:center;margin-top:2px;max-width:310px;line-height:1.4}
+
+/* ─── PHONE SHELL ─── */
+.phone{overflow:hidden;border-radius:36px;
+  box-shadow:0 24px 64px rgba(0,0,0,.65),0 8px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10);
+  border:5px solid #0E0D0B}
+.notch{height:22px;background:#0E0D0B;display:flex;align-items:center;justify-content:center;gap:7px}
+.ns{width:44px;height:5px;background:#080807;border-radius:3px}
+.nc{width:8px;height:8px;background:#080807;border-radius:50%}
+.scr{min-height:600px}
+.hp{height:20px;display:flex;align-items:center;justify-content:center}
+.hb{width:80px;height:4px;border-radius:2px}
+
+/* ─── ATOMS (background/shadow apply via parent .light-mode/.dark-mode) ─── */
+.H{display:flex;align-items:center;justify-content:space-between;padding:12px 17px 6px}
+.lname{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t2)}
+.sync{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t2);background:var(--sfc);padding:3px 8px;border-radius:100px;box-shadow:var(--sh-b)}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--success);animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.av{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-red)}
+
+.gr{padding:4px 17px 10px}
+.gt{font-size:10px;color:var(--t2)}
+.gn{font-family:'Playfair Display',Georgia,serif;font-size:21px;font-weight:400;color:var(--t1);letter-spacing:-.02em;line-height:1.1;margin-top:2px}
+
+.rtabs{margin:0 13px 10px;background:var(--prs);border-radius:14px;padding:3px;display:flex;box-shadow:var(--sh-i)}
+.rtab{flex:1;padding:7px 5px;border-radius:11px;font-size:10.5px;font-weight:600;text-align:center;color:var(--t2);line-height:1.2}
+.rtab small{display:block;font-size:8px;opacity:.5;margin-top:1px;font-weight:400}
+.rtab.on{background:var(--elv);color:var(--t1);box-shadow:var(--sh-b)}
+
+/* SPOTLIGHT */
+.spot{margin:0 13px 10px;background:var(--sfc);border-radius:18px;padding:14px 16px;box-shadow:var(--sh-c)}
+.spot-eye{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.spot-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);animation:pulse 2.5s infinite}
+.spot-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:400;color:var(--t1);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px}
+.spot-meta{font-size:11px;color:var(--t2);line-height:1.4}
+.spot-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.spot-cta{background:var(--primary);color:#fff;border-radius:100px;padding:7px 16px;font-size:11.5px;font-weight:700;box-shadow:var(--sh-red)}
+.spot-ts{font-size:8.5px;color:var(--t3)}
+
+/* KPI GRID */
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 13px 9px}
+.kpi{background:var(--sfc);border-radius:15px;padding:11px 12px;box-shadow:var(--sh-b)}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between}
+.kpi-num{font-family:'Playfair Display',serif;font-size:36px;font-weight:300;line-height:1}
+.kpi-arr{font-size:12px;color:var(--t3);margin-top:4px}
+.kpi-label{font-size:10.5px;font-weight:600;color:var(--t2);margin-top:2px}
+.kpi-act{font-size:9.5px;color:var(--t3);margin-top:3px}
+
+/* SECTION */
+.sec{padding:5px 17px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3)}
+
+/* TASKS */
+.tlist{padding:0 13px 7px;display:flex;flex-direction:column;gap:5px}
+.task{background:var(--sfc);border-radius:13px;padding:10px 12px;display:flex;gap:9px;align-items:center;box-shadow:var(--sh-b)}
+.tnum{font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--t3);width:16px;flex-shrink:0;text-align:center}
+.tbody{flex:1;min-width:0}
+.tname{font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tph{font-size:10px;color:var(--t2);margin-top:2px}
+.tr2{text-align:right;flex-shrink:0}
+.ttime{font-size:11px;font-weight:700;color:var(--t1)}
+.tdate{font-size:9px;color:var(--t3)}
+.prog{height:3px;background:var(--prs);border-radius:2px;margin-top:4px;overflow:hidden}
+.pf{height:100%;border-radius:2px}
+
+/* NAV */
+.nav{margin:5px 13px 0;background:var(--elv);border-radius:100px;display:flex;align-items:center;padding:4px 5px;box-shadow:var(--sh-b);gap:2px;position:relative}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 7px;border-radius:100px;min-width:46px}
+.ni.on{background:var(--prs);box-shadow:var(--sh-i)}
+.ni-ic{font-size:14px;line-height:1}
+.ni-lb{font-size:8.5px;font-weight:600;color:var(--t2)}
+.ni.on .ni-lb{color:var(--primary);font-weight:700}
+.ncta{width:44px;height:44px;border-radius:50%;background:var(--elv);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-b);color:var(--primary);font-size:20px;font-weight:700;flex-shrink:0;position:relative}
+.tip{position:absolute;bottom:54px;left:50%;transform:translateX(-50%);background:var(--t1);color:var(--bg);font-size:9px;font-weight:600;padding:4px 10px;border-radius:7px;white-space:nowrap}
+.tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--t1)}
+
+/* HP (home pill) */
+.hp-light{background:#DDD8D3}
+.hp-dark{background:#1A1916}
+.hb-light{background:rgba(0,0,0,.13)}
+.hb-dark{background:rgba(255,255,255,.12)}
+
+/* COMPARISON badge */
+.badge-wrong{background:rgba(217,0,18,.15);border:1px solid rgba(217,0,18,.25);color:#E8001A;font-size:10px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-bottom:8px}
+.badge-right{background:rgba(61,203,92,.15);border:1px solid rgba(61,203,92,.25);color:#2ECC7A;font-size:10px;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-bottom:8px}
+
+/* ANNOTATION */
+.ann{border-radius:14px;padding:13px 14px;width:310px}
+.ann.dark-ann{background:rgba(44,42,39,.85);border:1px solid rgba(255,255,255,.05)}
+.ann.light-ann{background:rgba(255,255,255,.55);backdrop-filter:blur(8px)}
+.ann h4{font-size:11px;font-weight:700;margin-bottom:9px}
+.ann.dark-ann h4{color:#F0EDE8}
+.ann-r{display:flex;gap:7px;align-items:flex-start;margin-bottom:6px;font-size:10.5px;line-height:1.45}
+.ann.dark-ann .ann-r{color:#8A8580}
+.ann.light-ann .ann-r{color:#96918D}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dr{background:#E8001A}.dg{background:#2ECC7A}.db{background:#6A70E8}.dw{background:#D4A843}.d_{background:#555250}
+
+/* Bottom bar */
+.bot{position:fixed;bottom:0;left:0;right:0;background:rgba(14,13,11,.97);backdrop-filter:blur(20px);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;z-index:100;border-top:1px solid rgba(255,255,255,.05)}
+.bot-t{color:#F0EDE8;font-size:14px;font-weight:600}
+.bot-s{color:rgba(240,237,232,.35);font-size:10px;margin-top:2px}
+
+/* Diff comparison strip */
+.diff-strip{background:rgba(44,42,39,.6);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px 18px;margin:0 auto;max-width:700px;margin-top:28px}
+.diff-strip h3{font-family:'Playfair Display',serif;font-size:14px;font-weight:400;color:#F0EDE8;margin-bottom:12px}
+.diff-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;font-size:11px;line-height:1.4}
+.diff-wrong{color:#8A4A4A}
+.diff-right{color:#4A8A68}
+.diff-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;width:80px;flex-shrink:0;margin-top:2px}
+</style>
+</head>
+<body style="background:#151411">
+
+<div class="page-head">
+  <h1>Dark Mode Corretto — Token da login + admin</h1>
+  <p style="color:#555250">Confronto: dark sbagliato vs carbonio warm (neumorphismo fisico in dark)</p>
+</div>
+
+<div class="row">
+
+<!-- ════════════════════════════════════════════
+     DARK SBAGLIATO — per mostrare la differenza
+═════════════════════════════════════════════ -->
+<div class="col">
+  <div class="col-label">Prima</div>
+  <div class="col-name">Dark Sbagliato</div>
+  <div class="badge-wrong">❌ Ombre grigio-piatte, contrasti bassi</div>
+
+  <div class="phone" style="width:280px">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <!-- Wrong dark: generic dark gray, not warm carbon, wrong shadows -->
+    <div class="scr" style="background:#1E1E1E;min-height:520px">
+
+      <div class="H" style="padding:10px 14px 5px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="font-size:8px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#666">LAB OPROMOLLA</div>
+          <div style="display:flex;align-items:center;gap:3px;font-size:8px;color:#666;background:#2A2A2A;padding:2px 6px;border-radius:100px;box-shadow:0 1px 3px rgba(0,0,0,.3)"><div class="sdot"></div>LIVE</div>
+        </div>
+        <div style="width:26px;height:26px;border-radius:50%;background:#CC0000;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">FO</div>
+      </div>
+
+      <div style="padding:4px 14px 8px">
+        <div style="font-size:8px;color:#666">venerdì 22 maggio</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:400;color:#DDD">Filippo</div>
+      </div>
+
+      <!-- Wrong: uniform gray tabs, barely distinguishable -->
+      <div style="margin:0 10px 8px;background:#282828;border-radius:12px;padding:3px;display:flex;box-shadow:inset 0 2px 4px rgba(0,0,0,.3)">
+        <div style="flex:1;padding:6px 4px;border-radius:9px;font-size:9.5px;font-weight:600;text-align:center;color:#555">📊 Gestione<br><small style="font-size:7.5px;opacity:.5">business</small></div>
+        <div style="flex:1;padding:6px 4px;border-radius:9px;font-size:9.5px;font-weight:600;text-align:center;background:#333;color:#CCC;box-shadow:0 1px 3px rgba(0,0,0,.4)">🔧 Produzione<br><small style="font-size:7.5px;opacity:.5">i miei lavori</small></div>
+      </div>
+
+      <!-- Wrong spotlight: hard black border, no warmth -->
+      <div style="margin:0 10px 8px;background:#282828;border-radius:14px;padding:12px 13px;border:1px solid rgba(255,255,255,.08);box-shadow:0 4px 12px rgba(0,0,0,.4)">
+        <div style="font-size:8.5px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⛔ Blocco attivo</div>
+        <div style="font-family:'Playfair Display',serif;font-size:14px;color:#DDD;margin-bottom:3px">Impronta non idonea</div>
+        <div style="font-size:10px;color:#666">ESPOSITO MASSIMO · oggi 17:00</div>
+        <div style="margin-top:8px;background:#CC0000;border-radius:100px;padding:6px 14px;font-size:10.5px;font-weight:700;color:#fff;display:inline-flex">Risolvi →</div>
+      </div>
+
+      <!-- Wrong KPI: flat cards, barely readable -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 8px">
+        <div style="background:#282828;border-radius:12px;padding:10px 11px;border:1px solid rgba(255,255,255,.07)">
+          <div style="font-family:'Playfair Display',serif;font-size:30px;font-weight:300;color:#5577CC">3</div>
+          <div style="font-size:9.5px;font-weight:600;color:#555;margin-top:2px">Da consegnare</div>
+        </div>
+        <div style="background:#282828;border-radius:12px;padding:10px 11px;border:1px solid rgba(255,255,255,.07)">
+          <div style="font-family:'Playfair Display',serif;font-size:30px;font-weight:300;color:#CC0000">0</div>
+          <div style="font-size:9.5px;font-weight:600;color:#555;margin-top:2px">In ritardo</div>
+        </div>
+      </div>
+
+      <!-- Wrong nav: flat dark, no physicality -->
+      <div style="margin:4px 10px 0;background:#2A2A2A;border-radius:100px;display:flex;align-items:center;padding:4px 5px;box-shadow:0 4px 12px rgba(0,0,0,.4);gap:2px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:100px;background:#383838">
+          <div style="font-size:13px">⊞</div><div style="font-size:7.5px;font-weight:600;color:#CC0000">Oggi</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px">
+          <div style="font-size:13px">≡</div><div style="font-size:7.5px;color:#555">Lavori</div>
+        </div>
+        <div style="width:40px;height:40px;border-radius:50%;background:#2A2A2A;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.5);color:#CC0000;font-size:18px;font-weight:700">+</div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px">
+          <div style="font-size:13px">👤</div><div style="font-size:7.5px;color:#555">Clienti</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px">
+          <div style="font-size:13px">⋯</div><div style="font-size:7.5px;color:#555">Altro</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="hp hp-dark" style="background:#1E1E1E"><div class="hb hb-dark" style="background:rgba(255,255,255,.10)"></div></div>
+  </div>
+
+  <div class="ann dark-ann">
+    <h4 style="color:#E8001A">Cosa non va</h4>
+    <div class="ann-r"><div class="dot dr"></div>Sfondo: grigio neutro #1E1E1E — non ha il calore del carbonio</div>
+    <div class="ann-r"><div class="dot dr"></div>Ombre: flat black shadow senza fisica neumorphica</div>
+    <div class="ann-r"><div class="dot dr"></div>Cards: border bianco visibile invece di ombre stratificate</div>
+    <div class="ann-r"><div class="dot dr"></div>Testo: grigio #DDD (freddo), non avorio #F0EDE8 (caldo)</div>
+    <div class="ann-r"><div class="dot dr"></div>Tab active: senza sh-b corretto, sembra solo "più scuro"</div>
+    <div class="ann-r"><div class="dot dr"></div>KPI: cards identiche senza distinzione di elevazione</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     DARK CORRETTO — token esatti da admin.css / login globals
+═════════════════════════════════════════════ -->
+<div class="col">
+  <div class="col-label">Adesso</div>
+  <div class="col-name">Dark Carbonio Corretto</div>
+  <div class="badge-right">✓ Neumorphismo fisico in carbonio caldo</div>
+
+  <div class="phone dark-mode" style="width:310px">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr" style="background:var(--bg)">
+
+      <div class="H">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="lname">LAB OPROMOLLA</div>
+          <div class="sync"><div class="sdot"></div>Aggiornato ora</div>
+        </div>
+        <div class="av">FO</div>
+      </div>
+
+      <div class="gr">
+        <div class="gt">venerdì 22 maggio · sera</div>
+        <div class="gn">Filippo</div>
+      </div>
+
+      <!-- TABS in dark corretto: prs è #121110, active su elv #2C2A27 -->
+      <div class="rtabs">
+        <div class="rtab" style="color:var(--t2)">📊 Gestione<small>business</small></div>
+        <div class="rtab on">🔧 Produzione<small>i miei lavori</small></div>
+      </div>
+
+      <!-- SPOTLIGHT dark: sfc #222019 raised su bg #1A1916 con sh-c dark -->
+      <div class="spot">
+        <div class="spot-eye">
+          <div class="spot-dot"></div>Blocco attivo
+        </div>
+        <div class="spot-title">Impronta non idonea</div>
+        <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002<br>Consegna <strong style="color:var(--primary)">oggi ore 17:00</strong></div>
+        <div class="spot-footer">
+          <div class="spot-cta">Risolvi subito →</div>
+          <div class="spot-ts">12 min fa</div>
+        </div>
+      </div>
+
+      <!-- KPI GRID dark: sfc su bg, sh-b dark (nessun border, solo ombre) -->
+      <div class="kgrid">
+        <div class="kpi">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--info)">3</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">Da consegnare</div>
+          <div class="kpi-act">oggi →</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--primary)">0</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">In ritardo</div>
+          <div class="kpi-act">vedi →</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--gold)">5</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">Da fatturare</div>
+          <div class="kpi-act">fattura →</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--t2)">4</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">Materiali</div>
+          <div class="kpi-act">ordina →</div>
+        </div>
+      </div>
+
+      <!-- TASK LIST dark -->
+      <div class="sec">I miei lavori</div>
+      <div class="tlist">
+        <div class="task">
+          <div class="tnum">1</div>
+          <div class="tbody">
+            <div class="tname">Studio Dentistico Rossi</div>
+            <div class="tph">🟡 Finitura · lucidatura</div>
+            <div class="prog"><div class="pf" style="width:78%;background:var(--gold)"></div></div>
+          </div>
+          <div class="tr2"><div class="ttime">18:30</div><div class="tdate">oggi</div></div>
+        </div>
+        <div class="task">
+          <div class="tnum">2</div>
+          <div class="tbody">
+            <div class="tname">Di Santi Caterina</div>
+            <div class="tph">🟢 Pronta · da imballare</div>
+            <div class="prog"><div class="pf" style="width:96%;background:var(--success)"></div></div>
+          </div>
+          <div class="tr2"><div class="ttime">09:00</div><div class="tdate">dom</div></div>
+        </div>
+      </div>
+
+      <!-- NAV dark: elv #2C2A27 su bg #1A1916, sh-b dark, active su prs #121110 sh-i dark -->
+      <div style="position:relative;padding:0 0 8px">
+        <div class="nav">
+          <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+          <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+          <div class="ncta">+<div class="tip">Nuovo lavoro</div></div>
+          <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+          <div class="ni"><div class="ni-ic">⋯</div><div class="ni-lb">Altro</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="hp hp-dark"><div class="hb hb-dark"></div></div>
+  </div>
+
+  <div class="ann dark-ann">
+    <h4 style="color:#2ECC7A">Cosa è corretto</h4>
+    <div class="ann-r"><div class="dot dg"></div>BG: #1A1916 carbonio caldo con sfumatura brunastra</div>
+    <div class="ann-r"><div class="dot dg"></div>Cards: #222019 su #1A1916 — distinzione sottile ma fisica</div>
+    <div class="ann-r"><div class="dot dg"></div>Ombre: nere profonde (.52-.60) + highlight bianco minimo (.04-.05)</div>
+    <div class="ann-r"><div class="dot dg"></div>Testo: #F0EDE8 avorio caldo — non grigio freddo</div>
+    <div class="ann-r"><div class="dot dg"></div>Rosso: #E8001A più luminoso del light per contrasto</div>
+    <div class="ann-r"><div class="dot dg"></div>Nessun border — la fisica del carbonio usa SOLO ombre</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     CONFRONTO AFFIANCATO — light vs dark corretto
+═════════════════════════════════════════════ -->
+<div class="col">
+  <div class="col-label">Light vs Dark</div>
+  <div class="col-name">Stessa schermata</div>
+  <div class="col-desc">Due momenti della giornata: mattina (chiaro), sera (carbonio). Stesso design, stessa fisica.</div>
+
+  <!-- LIGHT compact -->
+  <div class="phone light-mode" style="width:280px">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr" style="background:var(--bg)">
+      <div class="H" style="padding:10px 14px 5px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="lname">LAB OPROMOLLA</div>
+          <div class="sync"><div class="sdot"></div>Aggiornato ora</div>
+        </div>
+        <div class="av">FO</div>
+      </div>
+      <div class="gr" style="padding:3px 14px 8px">
+        <div class="gt">mattina</div>
+        <div class="gn" style="font-size:19px">Filippo</div>
+      </div>
+      <div class="kgrid" style="padding:0 11px 7px;gap:6px">
+        <div class="kpi" style="padding:10px 11px">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--info);font-size:32px">3</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">Da consegnare</div><div class="kpi-act">oggi →</div>
+        </div>
+        <div class="kpi" style="padding:10px 11px">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--primary);font-size:32px">0</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">In ritardo</div><div class="kpi-act">vedi →</div>
+        </div>
+      </div>
+      <div class="tlist" style="padding:0 11px 6px">
+        <div class="task" style="padding:9px 11px">
+          <div class="tnum">1</div>
+          <div class="tbody"><div class="tname" style="font-size:12px">Studio Rossi</div><div class="tph">🟡 Finitura</div><div class="prog"><div class="pf" style="width:78%;background:var(--gold)"></div></div></div>
+          <div class="tr2"><div class="ttime" style="font-size:10px">18:30</div></div>
+        </div>
+      </div>
+      <div class="nav" style="margin:4px 11px 0">
+        <div class="ni on" style="min-width:38px"><div class="ni-ic" style="font-size:12px">⊞</div><div class="ni-lb">Oggi</div></div>
+        <div class="ni" style="min-width:38px"><div class="ni-ic" style="font-size:12px">≡</div><div class="ni-lb">Lavori</div></div>
+        <div class="ncta" style="width:38px;height:38px;font-size:18px">+</div>
+        <div class="ni" style="min-width:38px"><div class="ni-ic" style="font-size:12px">👤</div><div class="ni-lb">Clienti</div></div>
+        <div class="ni" style="min-width:38px"><div class="ni-ic" style="font-size:12px">⋯</div><div class="ni-lb">Altro</div></div>
+      </div>
+      <div style="height:6px"></div>
+    </div>
+    <div class="hp hp-light"><div class="hb hb-light"></div></div>
+  </div>
+
+  <!-- DARK compact -->
+  <div class="phone dark-mode" style="width:280px">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr" style="background:var(--bg)">
+      <div class="H" style="padding:10px 14px 5px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="lname">LAB OPROMOLLA</div>
+          <div class="sync"><div class="sdot"></div>Aggiornato ora</div>
+        </div>
+        <div class="av">FO</div>
+      </div>
+      <div class="gr" style="padding:3px 14px 8px">
+        <div class="gt">sera</div>
+        <div class="gn" style="font-size:19px">Filippo</div>
+      </div>
+      <div class="kgrid" style="padding:0 11px 7px;gap:6px">
+        <div class="kpi" style="padding:10px 11px">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--info);font-size:32px">3</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">Da consegnare</div><div class="kpi-act">oggi →</div>
+        </div>
+        <div class="kpi" style="padding:10px 11px">
+          <div class="kpi-top"><div class="kpi-num" style="color:var(--primary);font-size:32px">0</div><div class="kpi-arr">›</div></div>
+          <div class="kpi-label">In ritardo</div><div class="kpi-act">vedi →</div>
+        </div>
+      </div>
+      <div class="tlist" style="padding:0 11px 6px">
+        <div class="task" style="padding:9px 11px">
+          <div class="tnum">1</div>
+          <div class="tbody"><div class="tname" style="font-size:12px">Studio Rossi</div><div class="tph">🟡 Finitura</div><div class="prog"><div class="pf" style="width:78%;background:var(--gold)"></div></div></div>
+          <div class="tr2"><div class="ttime" style="font-size:10px">18:30</div></div>
+        </div>
+      </div>
+      <div class="nav" style="margin:4px 11px 0">
+        <div class="ni on" style="min-width:38px"><div class="ni-ic" style="font-size:12px">⊞</div><div class="ni-lb">Oggi</div></div>
+        <div class="ni" style="min-width:38px"><div class="ni-ic" style="font-size:12px">≡</div><div class="ni-lb">Lavori</div></div>
+        <div class="ncta" style="width:38px;height:38px;font-size:18px">+</div>
+        <div class="ni" style="min-width:38px"><div class="ni-ic" style="font-size:12px">👤</div><div class="ni-lb">Clienti</div></div>
+        <div class="ni" style="min-width:38px"><div class="ni-ic" style="font-size:12px">⋯</div><div class="ni-lb">Altro</div></div>
+      </div>
+      <div style="height:6px"></div>
+    </div>
+    <div class="hp hp-dark"><div class="hb hb-dark"></div></div>
+  </div>
+
+  <div class="ann dark-ann" style="width:280px">
+    <h4 style="color:#F0EDE8">Stessa fisica, due materiali</h4>
+    <div class="ann-r"><div class="dot dg"></div>Light: pietra panna, ombre warm-tinted</div>
+    <div class="ann-r"><div class="dot dg"></div>Dark: carbonio caldo, ombre nere profonde</div>
+    <div class="ann-r"><div class="dot d_"></div>Cambio automatico con sistema OS</div>
+    <div class="ann-r"><div class="dot d_"></div>Override in /impostazioni — nessun toggle in app</div>
+  </div>
+</div>
+
+</div><!-- end row -->
+
+<!-- DIFF TABLE -->
+<div class="diff-strip">
+  <h3>Token dark: cosa cambia rispetto al light</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">BG</div><div><span class="diff-wrong">❌ #1E1E1E generico</span><br><span class="diff-right">✓ #1A1916 carbonio warm (ha sfumatura brunastra)</span></div></div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">SURFACE</div><div><span class="diff-wrong">❌ #282828 neutral</span><br><span class="diff-right">✓ #222019 (warm delta = #08)</span></div></div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">TESTO</div><div><span class="diff-wrong">❌ #DDD / #CCCCCC freddo</span><br><span class="diff-right">✓ #F0EDE8 avorio (bruciato warm)</span></div></div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">ROSSO</div><div><span class="diff-wrong">❌ #CC0000 (stesso del light)</span><br><span class="diff-right">✓ #E8001A (+9% luminosità per contrasto su bg scuro)</span></div></div>
+    </div>
+    <div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">SH-B</div><div><span class="diff-wrong">❌ box-shadow:0 4px 12px rgba(0,0,0,.4)</span><br><span class="diff-right">✓ inset top rgba(255,255,255,.05) + 9px 13px 28px rgba(0,0,0,.52)</span></div></div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">SH-I</div><div><span class="diff-wrong">❌ inset rgba(0,0,0,.3) uniforme</span><br><span class="diff-right">✓ inset rgba(0,0,0,.60) + inset highlight rgba(255,255,255,.04)</span></div></div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">BORDER</div><div><span class="diff-wrong">❌ rgba(255,255,255,.08) su tutti</span><br><span class="diff-right">✓ ZERO border — solo ombre fanno il lavoro</span></div></div>
+      <div class="diff-row"><div class="diff-label" style="color:#555250">DIVIDER</div><div><span class="diff-wrong">❌ rgba(0,0,0,.06) invisibile su dark</span><br><span class="diff-right">✓ rgba(255,255,255,.06) (invertito per dark)</span></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="bot">
+  <div><div class="bot-t" style="font-family:'DM Sans',system-ui">Questa è la dark mode giusta?</div><div class="bot-s">Risposta nel terminale</div></div>
+</div>
+
+</body>
+</html>

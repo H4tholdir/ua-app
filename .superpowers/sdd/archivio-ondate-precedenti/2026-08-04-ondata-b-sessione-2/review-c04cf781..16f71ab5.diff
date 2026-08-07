@@ -1,0 +1,2485 @@
+# Review package: c04cf78160e36406fd42cb690976842274c09b3a..HEAD
+
+## Commits
+16f71ab5 fix(schema): via gli abbinamenti Allegato XIII p.1 non provati dai commenti classificazione/tipo (review Task 7)
+9e352972 docs(schema): fotografia DdC allineata (Allegato XIII, stato annullata, indice parziale) + union domain (ondata B ②)
+c8b63adf feat(lavori): snapshot prescrizione server-side nel POST + istituzione_sanitaria patchabile (ondata B ②, V3)
+ce0d289c chore(db): rigenera database.types.ts — FASE 6b del Task 3 non era mai girata
+39a782d0 feat(db): immutabilita DdC — chiusa la policy ddc_laboratorio_update (ondata B ②, V8)
+18e60bb8 feat(db): RPC prescrizione (crea/fonte/typo/divergenza/conferma V5) + clone nel rifacimento (ondata B ②)
+04578edd chore(db): FASE 6b — tipi rigenerati dopo tabella lavori_prescrizioni + P37 (ondata B ②)
+85e41487 feat(db): tabella lavori_prescrizioni + colonna P37 istituzione_sanitaria (ondata B ②, spec §3)
+3fc71e70 docs(piano): sessione ② ondata B — migration + RPC + server, coi tre registri (R-P1/R-P2/R-P6)
+
+## Files changed
+ ...2026-08-04-ondata-b-sessione-2-migration-rpc.md | 506 ++++++++++++++++++++
+ src/app/api/lavori/[id]/route.ts                   |  10 +-
+ src/app/api/lavori/route.ts                        |  51 ++
+ src/lib/prescrizione/componi-snapshot.ts           |  52 ++
+ src/types/database.types.ts                        | 122 ++++-
+ src/types/domain.ts                                |  33 +-
+ ...20260804150306_ondata_b_lavori_prescrizioni.sql |  92 ++++
+ .../20260804152403_ondata_b_prescrizioni_rpc.sql   | 522 +++++++++++++++++++++
+ ...20260804154232_ondata_b_ddc_chiusura_update.sql |  25 +
+ supabase/schema.sql                                |  33 +-
+ tests/unit/componi-snapshot.test.ts                | 145 ++++++
+ tests/unit/generate-ddc.test.ts                    |  13 +-
+ tests/unit/helpers/pdf-fixtures.ts                 |   1 +
+ .../lavori-patch-istituzione-sanitaria.test.ts     |  65 +++
+ tests/unit/lavori-post-prescrizione.test.ts        | 244 ++++++++++
+ 15 files changed, 1897 insertions(+), 17 deletions(-)
+
+## Diff
+diff --git a/docs/superpowers/plans/2026-08-04-ondata-b-sessione-2-migration-rpc.md b/docs/superpowers/plans/2026-08-04-ondata-b-sessione-2-migration-rpc.md
+new file mode 100644
+index 00000000..f535350f
+--- /dev/null
++++ b/docs/superpowers/plans/2026-08-04-ondata-b-sessione-2-migration-rpc.md
+@@ -0,0 +1,506 @@
++# Piano sessione ② ondata B — migration + RPC + server (P38 + P37)
++
++> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
++
++**Quando:** 4 agosto 2026, pomeriggio (`provato:` `date` → `Tue Aug 4 14:34:27 CEST 2026`).
++**Spec madre:** `docs/superpowers/specs/2026-08-04-ondata-b-prescrizione-design.md` (RATIFICATA, D214).
++**Goal:** la casa dello snapshot prescrizione (`lavori_prescrizioni`), le colonne P37, le RPC dedicate (creazione, fonte, typo, divergenza, conferma, clone nel rifacimento), la chiusura della policy `ddc_laboratorio_update` — con FASE 6b in coda.
++**Architettura:** tabella figlia di `lavori` sul modello ESATTO di `lavori_denti` (FK composite, REVOKE ALL anche a `service_role`, scritture solo via RPC SECURITY DEFINER); lo snapshot si compone SERVER-SIDE (route → RPC) nella stessa transazione della creazione (V3); l'immutabilità della DdC passa da convenzione a struttura (DROP della policy UPDATE, modello DPA).
++**Tech stack:** Postgres/Supabase (migration SQL, PL/pgSQL), Next.js route handlers, vitest.
++
++## Vincoli globali
++
++- **V1-V9 di D207** (spec §2) — in questa sessione mordono: V3 (snapshot server-side, stessa transazione), V8 (congelamento DENTRO le RPC · fonte non cancellabile con DdC attiva · chiusura policy), il clone nel rifacimento (spec §3).
++- **Niente backfill** (spec §1, A18): il 58% di prescrittori sbagliati e le 2 DdC `generata` di era vecchia NON si sanano. Si ripara il meccanismo.
++- **Migration additiva**: rollback = drop (spec §7). NON aggiungere `BEGIN;/COMMIT;` nelle migration (il runner le avvolge — `20260727120300:2-3`).
++- **MAI worktree** — branch nel repo (`git checkout -b`).
++- **CREATE OR REPLACE con firma diversa = overload, non sostituzione** — `provato:` sonda S10 sotto. Cambio firma ⇒ DROP esplicito (lezione P2-9, precedente in `20260710150000:26`).
++- Citazioni normative: «MDCG 2021-3, marzo 2021» (MAI «Rev.1»).
++- Dopo ogni migration: FASE 6b (`supabase gen types` + `tsc --noEmit`).
++- I dati in DB sono di TEST (`ua-app/CLAUDE.md` §8): fedeltà del dato migrato non richiesta; correttezza di schema/RLS a peso pieno.
++
++---
++
++## §A Registro delle prove (R-P1)
++
++Sonde eseguite il 04/08/2026 su DB vivo, **tutte in transazione annullata** (script:
++`scripts/tmp/sonda-lp-r-p1.mjs`, verifica post-rollback inclusa) o in sola lettura.
++
++### A.0 Il cancello §0① — conteggio DdC fresco (sola lettura)
++
++`provato:` `npx tsx scripts/tmp/verifica-conteggio-ddc.ts` →
++
++```
++=== TOTALE dichiarazioni_conformita in archivio: 6 ===
++DDC-2026-0002    stato=generata   template_version=NULL payload_sha256=NULL created_at=2026-07-06T15:36:15
++DDC-2026-0003    stato=generata   template_version=NULL payload_sha256=NULL created_at=2026-07-06T15:48:02
++DDC-2026-0001    stato=annullata  template_version=NULL payload_sha256=NULL created_at=2026-07-22T14:05:33
++DDC-2026-0002    stato=annullata  template_version=ddc-v1 payload_sha256=(valorizzato) created_at=2026-07-31
++DDC-2026-0003    stato=annullata  template_version=ddc-v1 payload_sha256=(valorizzato) created_at=2026-08-01
++DDC-2026-0004    stato=annullata  template_version=ddc-v1 payload_sha256=(valorizzato) created_at=2026-08-03
++Righe con template_version NON NULL: 3 su 6
++```
++
++⚠️ **Il ricordo era sbagliato**: non «3, tutte annullate» (referti 03/08) ma **6, di cui 2 ancora
++`generata`** (era pre-v1, senza impronta). Conseguenze sul piano: ① la chiusura della policy NON
++strandeggia quelle 2 righe — l'annullo resta possibile via `annulla_consegna_atomica` (SECURITY
++DEFINER, catalogo vivo sonda sotto); ② per l'indice `ddc_lavoro_attiva_unique` quei 2 lavori non
++possono ricevere una DdC nuova finché la vecchia non è annullata — dati di test, nessuna sanatoria
++(A18); ③ il commento di `tests/unit/generate-ddc.test.ts:190-196` («su 4 dichiarazioni…») è
++superato: si aggiorna (Task 7).
++
++### A.1 Catalogo vivo (sola lettura, `scripts/tmp/sql.mjs`)
++
++- **Policy vive su `dichiarazioni_conformita`**: `ddc_laboratorio_select` (SELECT, tenant+`deleted_at IS NULL`) · `ddc_laboratorio_insert` (INSERT, tenant) · `ddc_laboratorio_update` (**UPDATE, tenant pieno — il bersaglio**). Nessuna DELETE.
++- **CHECK stato vivo**: `('bozza','generata','firmata','consegnata','annullata')` — `'annullata'` C'È nel DB; manca solo nelle fotografie (`schema.sql:1265-1266`, `domain.ts:574`) → Task 7.
++- **FK di `dichiarazioni_conformita.lavoro_id`**: SEMPLICE (non composita).
++- **RPC vive** (`pg_proc`): `lavoro_crea_atomico(p_lab uuid, p_lavoro jsonb, p_denti jsonb)` SECDEF · `lavoro_denti_sostituisci_atomica(p_lab, p_lavoro, p_denti, p_atteso_updated_at)` SECDEF · `crea_rifacimento_atomico(p_lavoro_originale_id, p_motivo, p_rilevato_in, p_costo_interno, p_note)` SECDEF · `consegna_finalizza_atomica(uuid,uuid)` SECDEF · `annulla_consegna_atomica(uuid,uuid,integer)` SECDEF · `genera_numero_ddc(p_lab)` NON secdef.
++- **`to_regclass('public.lavori_prescrizioni')` → NULL** (nome libero).
++- **`lavori`**: esiste `lavori_id_lab_uk UNIQUE (id, laboratorio_id)` (nato in `20260727120000:8`) — il supporto FK composita c'è. Colonne `numero_prescrizione` e `richiedente_nome` presenti (text, nullable); `istituzione_sanitaria` ASSENTE.
++- **`lavori_immagini`**: CHECK categoria vivo a 7 valori con `'prescrizione'`; **UNIQUE (id, laboratorio_id) ASSENTE** → lo istituisce la Migration A (sonda S1).
++- **GRANT UPDATE su `dichiarazioni_conformita`**: `authenticated` e `anon` lo HANNO — la policy è l'unica barriera: per questo si chiude (sonda S9).
++- **`current_lab_id()`**: risolve da `public.utenti` via `auth.uid()` (prosrc incollato in sessione).
++- **CHECK vivo su `lavori.stato`**: 9 valori (`ricevuto`, `in_prova_esterna`, `sospeso` inclusi) — `schema.sql:926-930` ne fotografa 6. FUORI mandato: si riferisce (handoff §3-bis).
++- **Scrittori applicativi della DdC**: `grep "from('dichiarazioni_conformita')" src/` → 6 hit, **nessuna `.update()`**; unico `.insert` a `generate-ddc.ts:201`. L'unico UPDATE è dentro `annulla_consegna_atomica`.
++
++### A.2 Le 11 sonde della DDL e della chiusura (transazione annullata)
++
++`provato:` `node scripts/tmp/sonda-lp-r-p1.mjs` →
++
++```
++✅ S1 UNIQUE lavori_immagini(id,laboratorio_id): ALTER TABLE riuscito
++✅ S2 CREATE TABLE lavori_prescrizioni: riuscito con FK composite verso lavori e lavori_immagini
++✅ S3 INSERT valido: 1 riga inserita (fonte email + riferimento)
++✅ S4 fonte_tipo=pippo: rifiutato — 23514 violates check "lavori_prescrizioni_fonte_tipo_check"
++✅ S5 fonte senza corpo: rifiutato — 23514 violates check "lavori_prescrizioni_fonte_ck"
++✅ S6 cross-tenant: rifiutato — 23503 violates foreign key "lavori_prescrizioni_lavoro_fk"
++✅ S7 doppia riga stesso lavoro: rifiutato — 23505 duplicate key "lavori_prescrizioni_lavoro_uk"
++✅ S8 conferma monca: rifiutato — 23514 violates check "lavori_prescrizioni_conferma_ck"
++✅ S9 chiusura policy: UPDATE client: prima=1 riga, dopo il DROP=0 righe
++✅ S10 overload RPC: dopo CREATE OR REPLACE a 4 parametri: 2 funzioni; dopo DROP della vecchia: 1
++✅ S11 helper updated_at: presenti: apply_updated_at_trigger, trigger_set_updated_at
++── DOPO IL ROLLBACK: lavori_prescrizioni=NULL · policy update PRESENTE · lavoro_crea_atomico=1 firma
++```
++
++Ogni vincolo istituito dal piano ha il suo valore rifiutato con l'errore vero incollato (R-P1).
++I corpi PL/pgSQL dei task sono marcati `non eseguito` col comando di collaudo accanto.
++
++---
++
++## §B Registro delle letture (R-P2)
++
++Censimento → 8 lettori paralleli con domande falsificabili (referto integrale con tutte le
++citazioni: output del workflow `letture-r-p2-sessione-2`, sintetizzato qui; ogni riga sotto porta
++la sua citazione). Più tre letture dirette in sessione.
++
++| Percorso | Esito |
++|---|---|
++| `supabase/schema.sql` (sez. lavori 860-935, DdC 1150-1310, progressivi 90-140, 2040-2130) | letto (L1+L2+diretta). Policy 1283-1294; CHECK stato DdC 1265-1266 (STANTIO, senza `annullata`); commenti Allegato IV a 878, 903, 919 (la 1189 è la negazione GIUSTA: non si tocca); `numero_prescrizione` a 888 |
++| `supabase/migrations/20260727120100_lavori_denti_tabella.sql` | letto INTERO (diretta): il modello (FK composita 54-55, REVOKE E8 91-92, GRANT SELECT) |
++| `supabase/migrations/20260727120300_lavori_denti_rpc.sql` | letto INTERO (diretta): `lavoro_crea_atomico` 132-215 (INSERT lavori 150-179 CON `richiedente_nome` a 163; denti 184-195; denormalizzazione 205-212; REVOKE/GRANT 222-226); gettone concorrenza 61-63 |
++| `supabase/migrations/20260728103000_rifacimento_clona_denti_colore.sql` | letto (L3): firma vigente 68-77; clone lavori 103-147, denti 169-178; **innesto del clone snapshot fra riga 188 e 190**; REVOKE/GRANT 209-210 |
++| `supabase/migrations/20260710150000` + `20260710180000` + `20260710091500` | letti (L4): `consegna_finalizza_atomica` vigente (150000:23-53, **dormiente** — la consegna vera passa da `orchestrate.ts`, dichiarato in `20260721090000:153-156`); `annulla_consegna_atomica` vigente (180000:60-132; porta la DdC a `annullata` a 114-116); precedente DROP-per-cambio-firma a 150000:26 |
++| `supabase/migrations/20260710090000_ddc_annullata_unique_parziale.sql` | letto (L1): CHECK con `annullata` (:9) + `ddc_lavoro_attiva_unique` UNIQUE parziale (15-17) |
++| `supabase/migrations/20260803090000` + `20260803150000` + `20260804120000` | letti (L6): `denti_snapshot` jsonb sulla DdC SENZA writer («schema prima del writer», 44-45) — il precedente strutturale; registro emissioni DPA; **il precedente ESATTO della chiusura: policy DPA ridotta a FOR SELECT (20260804120000:30-34)** + `emesso_da` (58-62) |
++| `src/lib/wizard/crea-lavoro.ts` | letto INTERO (L5). ⚠️ il percorso `src/lib/lavori/crea-lavoro.ts` NON esiste. Orchestrazione client fail-soft; il POST /api/lavori è l'UNICO confine atomico (22-27, 378-380); colore normalizzato client-side a 323; nessun `richiedente_nome`/`numero_prescrizione` mandato (grep 0 hit) |
++| `src/app/api/lavori/route.ts` (POST) | letto (L7, mirato): `richiedente_nome: body.richiedente_nome ?? null` a :233 dentro `p_lavoro`; `colore_scartato` a 306-311 |
++| `src/app/api/lavori/[id]/route.ts` | letto INTERO (L7): `PATCHABLE_FIELDS` a 178-213 (34 campi, `richiedente_nome` a 181); commento esclusi a 54-63 (⚠️ le «259-264» delle regole sono slittate: il filtro è a 370-379); nessun gettone concorrenza (E5 confermata: updated_at forzato a 464-465, UPDATE per id+lab a 467-471) |
++| `src/lib/pdf/generate-ddc.ts` | letto (L6): guard idempotenza 93-107 (`.neq('stato','annullata')` a 102 — NON 85-95: citazione CLAUDE.md stantia); INSERT 199-213; `prescrizione_caratteristiche: null` CABLATO a 156; `prescrizione_id` da `lavoro.numero_prescrizione` a 148 (resta vivo in ②: la colonna su `lavori` NON si droppa) |
++| `src/lib/consegna/precheck.ts` + `costanti.ts` + chiamanti | letto INTERO (L7): 6 bloccanti (21-92), warning mdr_* (94-101), output 103-108; innesto bloccanti nuovi fra r.92 e r.94 (④, non ②); chiamanti server-side: `precheck-consegna/route.ts:58`, `orchestrate.ts:226` |
++| `src/types/domain.ts` (Lavoro 251-368, DdC 558-609) | letto (L8): union stato DdC a 574 SENZA `annullata`; `numero_prescrizione` 259, `richiedente_nome` 274, `richiedente_email` 275; `prescrittore_nome`/`prescrizione_id`/`prescrizione_caratteristiche` sono della DdC (582-592) |
++| `tests/unit/precheck.test.ts` | letto INTERO (L8): 9 test, fixture con doppio cast a 113 |
++| `tests/unit/generate-ddc.test.ts` (sez. conteggio) | letto (L8): commento conteggio a 190-196 («su 4 dichiarazioni») — superato dal cancello A.0 |
++| `src/lib/domain/categorie-foto.ts` | letto (L8): `CategoriaFoto` con `'prescrizione'` a 34 |
++| `supabase/migrations/002_fase2_schema.sql` (lavori_immagini 242-263, trigger 600-639) | letto (L2): FK semplici + trigger `assert_same_lab_lavoro`; RLS con `get_lab_id()` (§3-bis n.3) |
++| NON letti (dichiarato): `src/lib/consegna/orchestrate.ts` intero, superfici UI wizard/scheda | fuori mandato ② (③/④); del primo sono letti i punti citati dai lettori (:226) |
++
++**Sorprese R-E2 dei lettori** (censite, NON corrette qui — vanno nell'handoff di chiusura §3-bis):
++14 nuove, le più gravi: ① `consegna_lavoro_lock(uuid,uuid)` vigente NON ha corpo nel repo (solo
++marker `004`) — irreplicabile da migration; ② il rifacimento vigente NON clona
++`paziente_nome_snapshot` (007 lo faceva); ③ `dichiarazioni_conformita.generated_by` mai scritto
++da nessun percorso (il «chi» dell'emissione DdC non è registrato — il DPA l'ha sanato con
++`emesso_da`, la DdC no); ④ commenti advisory-lock in `schema.sql:91` e `:2038` smentiti dal corpo
++(FIX a 104-109); ⑤ `genera_progressivo` dichiarata SECURITY DEFINER nei commenti (`schema.sql:121`)
++ma non nel DDL della fotografia; ⑥ policy UPDATE DdC non filtra `deleted_at` (muore col DROP);
++⑦ paziente creato dal wizard senza compensazione se il POST lavori fallisce; ⑧ `template_version`
++(DdC) vs `template_versione` (DPA); ⑨ CHECK `lavori.stato` fotografato a 6 valori, vivo a 9;
++⑩ `LavoroImmagine.categoria` tipizzata `string` invece di `CategoriaFoto`; ⑪ CLAUDE.md:557 cita
++il guard a 85-95 (vero: 93-107) e le regole citano il filtro allowlist a 259-264 (vero: 370-379);
++⑫ fixture precheck con doppio cast che nasconde la deriva; ⑬ `consegna_precheck_passato_al_primo_tentativo`
++scritto incondizionatamente; ⑭ commento «Una DoC per lavoro» su vincolo che non lo impone
++(`schema.sql:1275`) — quest'ultimo si corregge nel Task 7 perché parte della fotografia DdC già a mandato.
++
++---
++
++## §C Censimento (R-P6)
++
++Conteggi con `grep -rn` su `src/ supabase/ scripts/ tests/` (04/08/2026):
++
++| Identificatore | Hit | Che cosa se ne fa il piano |
++|---|---|---|
++| `lavori_prescrizioni` | **0** | nasce (Migration A) |
++| `istituzione_sanitaria` | **0** | nasce su `lavori` (Migration A); scrittori: RPC creazione + POST + PATCH allowlist (Task 5) |
++| `fonte_tipo` / `fonte_immagine_id` / `fonte_riferimento` | **0/0/0** | nascono su `lavori_prescrizioni` |
++| `numero_prescrizione` | 18 | la colonna su `lavori` RESTA (la legge `generate-ddc.ts:148`; drop = ondata ④ o mai); la casa NUOVA è `lavori_prescrizioni.numero_prescrizione`; il commento-ragione in `route.ts:54-63` si aggiorna (Task 5) |
++| `richiedente_nome` | 47 | NON si tocca (già scritto da RPC:163, POST:233, PATCH:181) — P37 vi affianca l'istituzione |
++| `ddc_laboratorio_update` | 1 (`schema.sql:1292`) | DROP (Migration C) + fotografia aggiornata (Task 7) |
++| `crea_rifacimento_atomico` | 48 | CREATE OR REPLACE **stessa firma** col clone (Migration B) |
++| `lavoro_crea_atomico` | (3 file migration) | DROP firma (uuid,jsonb,jsonb) + CREATE (uuid,jsonb,jsonb,jsonb DEFAULT NULL) — S10 |
++| `Allegato IV` | 4 | si correggono 878/903/919; la 1189 è già giusta e NON si tocca |
++| `template_version` / `payload_sha256` | 53/64 | non toccati (lettura di contesto) |
++| `current_lab_id` | 131 | pattern RLS della tabella nuova |
++| `provenienza` | 33 | non toccata: lo snapshot vive in tabella propria (spec §3) |
++| `'annullata'` (stato DdC) | vivo nel DB, assente da `domain.ts:574` e `schema.sql:1265` | fotografie allineate (Task 7 — igiene già censita in handoff §3-bis n.4) |
++
++**Nomi NUOVI istituiti** (dizionario): tabella `lavori_prescrizioni` · colonne `contenuto`,
++`divergenze`, `fonte_tipo` (valori: `'foglio'`=foglio a mano, `'email'`, `'modulo'`,
++`'piattaforma'` — le 4 forme di D202), `fonte_immagine_id`, `fonte_riferimento`,
++`numero_prescrizione`, `confermata_da`, `confermata_at` · vincoli `lavori_prescrizioni_{lavoro_uk,lavoro_fk,fonte_img_fk,fonte_ck,conferma_ck}`,
++`lavori_immagini_id_lab_uk` · RPC `lavoro_prescrizione_allega_fonte`,
++`lavoro_prescrizione_correggi_typo`, `lavoro_prescrizione_registra_divergenza`,
++`lavoro_prescrizione_conferma_consegna` · chiavi JSONB di `contenuto`: `elementi` (int[]),
++`colore` (testo COME DIGITATO — fedeltà, MAI normalizzato), `tipo` (entra SOLO alla conferma,
++D213), `numero` NO (ha la sua colonna) · chiavi di `divergenze[]`: `campo`, `motivo`
++(`'richiesta_dentista'|'esigenza_tecnica'|'materiale_non_disponibile'|'altro'`, D212), `nota`,
++`utente_id`, `registrata_at`.
++**Semantica di `contenuto`** (V2): chiave presente = trascritta dalla prescrizione; assente = non
++prescritta. MAI una dicitura «niente prescritto» (D101). **Stato V7** («in attesa di conferma
++scritta»): `fonte_riferimento` valorizzato con `fonte_tipo IS NULL`.
++**Nessun nome esce da allowlist**; UNO vi entra: `istituzione_sanitaria` in `PATCHABLE_FIELDS`
++(direttiva §9: ogni campo nasce con la sua via di correzione).
++
++---
++
++## §D Decisioni di disegno (ognuna con la sua fonte)
++
++1. **La riga snapshot nasce con `lavoro_crea_atomico`** quando la route passa `p_prescrizione`
++   (V3: stessa transazione); per lavori nati prima (o senza), le RPC successive fanno UPSERT
++   (`ON CONFLICT (lavoro_id) DO UPDATE`). Niente backfill (A18).
++2. **`p_prescrizione jsonb DEFAULT NULL`**: la nuova firma resta chiamabile dai client esistenti
++   (PostgREST risolve col default) — migration indipendente dal deploy della route.
++3. **La fonte è UNA per riga** (spec §3); le immagini aggiuntive vivono già in `lavori_immagini`
++   categoria `'prescrizione'`. Il caso V6 (solo scansione) si legge in ④ come «fonte presente MA
++   `contenuto` vuoto»; il rimedio (conferma scritta) = nuova fonte + trascrizione.
++4. **Congelamento V8**: ogni RPC di scrittura sullo snapshot rifiuta con esito `'congelata'` se
++   esiste una DdC con `stato <> 'annullata'` per il lavoro. `allega_fonte` rifiuta la
++   SOSTITUZIONE con DdC attiva (fonte non cancellabile); prima dell'emissione tutto si corregge
++   (direttiva §9).
++5. **Il rifacimento clona** `contenuto`, fonte (tipo+immagine+riferimento) e
++   `numero_prescrizione`; **azzera** `divergenze` e la conferma. La FK dell'immagine regge il
++   clone (vincola al laboratorio, non al lavoro): il documento del medico vale anche per il
++   rifacimento.
++6. **`istituzione_sanitaria` vive su `lavori`** accanto a `richiedente_nome` (All. XIII p.1: due
++   caselle unite da «e»; D206: nullable, il dottore singolo la lascia vuota).
++7. **La conferma V5 nasce come struttura + RPC** (`confermata_da/at`, modello `emesso_da` del
++   DPA); l'aggancio a `orchestrate.ts` è della ④ (lì vive la consegna vera — la RPC
++   `consegna_finalizza_atomica` è dormiente, `20260721090000:153-156`).
++8. **Le route dei gesti (typo/divergenza/conferma) NON nascono in ②**: nascono in ③/④ accanto
++   alle loro UI (niente API orfane). In ② nascono le RPC e il lato server della creazione.
++
++---
++
++## Task 1 — FASE 5: branch dedicata
++
++**Files:** nessuno (git).
++
++- [ ] **Step 1.1** `git -C ua-app checkout -b ondata-b-sessione-2` (MAI worktree).
++- [ ] **Step 1.2** `git status` → albero pulito prima di cominciare (a parte `scripts/tmp/` di sonda).
++
++## Task 2 — Migration A: strutture (tabella + P37)
++
++**Files:**
++- Create: `supabase/migrations/<TS>_ondata_b_lavori_prescrizioni.sql` (TS = `date +%Y%m%d%H%M%S` — D155: la data si legge dall'orologio)
++
++**Interfaces (produce):** tabella `lavori_prescrizioni` (DDL sotto), vincolo
++`lavori_immagini_id_lab_uk`, colonna `lavori.istituzione_sanitaria text`.
++
++- [ ] **Step 2.1** Scrivere la migration — contenuto INTEGRALE (DDL `provato:` sonde S1-S8; RLS/REVOKE `non eseguito`, collaudo in Step 2.3):
++
++```sql
++-- <TS>_ondata_b_lavori_prescrizioni.sql — Ondata B, sessione ②, parte 1/3.
++-- Spec §3 (D214). NON aggiungere BEGIN;/COMMIT;.
++-- Modello: lavori_denti (20260727120100) — FK composite, scrittura solo via RPC.
++
++-- Il supporto per la FK composita verso l'immagine fonte (assente fino a oggi;
++-- su lavori esiste già come lavori_id_lab_uk, 20260727120000:8).
++ALTER TABLE lavori_immagini
++  ADD CONSTRAINT lavori_immagini_id_lab_uk UNIQUE (id, laboratorio_id);
++
++-- La casa dello snapshot: la trascrizione della prescrizione, fotografata al
++-- momento T (D204). JSONB deliberato: fedeltà > integrità referenziale — il
++-- vincolo UNIQUE(lavoro_id,fdi) + DELETE&INSERT di lavoro_denti_sostituisci_atomica
++-- cancellerebbe la trascrizione alla prima modifica in lavorazione (spec §3).
++CREATE TABLE lavori_prescrizioni (
++  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
++  laboratorio_id      uuid NOT NULL REFERENCES laboratori(id),
++  lavoro_id           uuid NOT NULL,
++
++  -- Chiave presente = trascritta dal documento; assente = non prescritta (V2).
++  -- MAI una dicitura "nessuna caratteristica prescritta" (D101).
++  -- Chiavi note: elementi int[] · colore testo COME DIGITATO (mai normalizzato)
++  -- · tipo (entra SOLO alla conferma di consegna, D213).
++  contenuto           jsonb NOT NULL DEFAULT '{}'::jsonb,
++
++  -- Divergenze prescritto/eseguito col motivo (V9, D212): array di
++  -- {campo, motivo, nota, utente_id, registrata_at}. Il rifacimento le azzera.
++  divergenze          jsonb NOT NULL DEFAULT '[]'::jsonb,
++
++  -- Le 4 forme di D202. NULL con fonte_riferimento valorizzato = V7,
++  -- "in attesa di conferma scritta" (a voce/telefono non è MAI una fonte).
++  fonte_tipo          text CHECK (fonte_tipo IN ('foglio','email','modulo','piattaforma')),
++  fonte_immagine_id   uuid,
++  fonte_riferimento   text,
++
++  -- P38: il numero facoltativo trova casa QUI; lavori.numero_prescrizione resta
++  -- (la legge generate-ddc.ts:148) con la sua ragione scritta nella route.
++  numero_prescrizione text,
++
++  -- V5: la conferma guardando il foglio, registrata server-side (chi, quando).
++  -- Modello: data_processing_agreements.emesso_da (20260804120000:58-62).
++  confermata_da       uuid REFERENCES utenti(id),
++  confermata_at       timestamptz,
++
++  created_at          timestamptz NOT NULL DEFAULT now(),
++  updated_at          timestamptz NOT NULL DEFAULT now(),
++
++  -- Una trascrizione per lavoro; il rifacimento è un ALTRO lavoro e clona.
++  CONSTRAINT lavori_prescrizioni_lavoro_uk UNIQUE (lavoro_id),
++
++  -- FK COMPOSITE anti cross-tenant (modello lavori_denti_lavoro_fk).
++  CONSTRAINT lavori_prescrizioni_lavoro_fk FOREIGN KEY (lavoro_id, laboratorio_id)
++    REFERENCES lavori (id, laboratorio_id),
++  CONSTRAINT lavori_prescrizioni_fonte_img_fk FOREIGN KEY (fonte_immagine_id, laboratorio_id)
++    REFERENCES lavori_immagini (id, laboratorio_id),
++
++  -- Una fonte dichiarata deve avere un corpo: immagine o riferimento (V1 morde
++  -- al precheck; qui si impedisce solo la forma vuota).
++  CONSTRAINT lavori_prescrizioni_fonte_ck CHECK (
++    fonte_tipo IS NULL OR fonte_immagine_id IS NOT NULL OR fonte_riferimento IS NOT NULL
++  ),
++
++  -- Il "chi" e il "quando" della conferma viaggiano insieme.
++  CONSTRAINT lavori_prescrizioni_conferma_ck CHECK ((confermata_da IS NULL) = (confermata_at IS NULL))
++);
++
++CREATE INDEX lavori_prescrizioni_lab_idx ON lavori_prescrizioni (laboratorio_id);
++
++SELECT apply_updated_at_trigger('lavori_prescrizioni');
++
++-- ============ RLS: lettura per tenant, scrittura SOLO via RPC ============
++ALTER TABLE lavori_prescrizioni ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY lavori_prescrizioni_tenant_select ON lavori_prescrizioni
++  FOR SELECT USING (laboratorio_id = public.current_lab_id());
++
++-- E8: service_role nella lista del REVOKE (default privileges Supabase gli
++-- darebbero tutto; il DELETE cross-tenant è già stato riprodotto — nota E8,
++-- 20260721090000). Le RPC scrivono perché SECURITY DEFINER.
++REVOKE ALL ON lavori_prescrizioni FROM anon, authenticated, service_role;
++GRANT SELECT ON lavori_prescrizioni TO authenticated, service_role;
++
++COMMENT ON TABLE lavori_prescrizioni IS
++  'Trascrizione della prescrizione (spec ondata B §3, D214). Scrittura SOLO via RPC lavoro_crea_atomico / lavoro_prescrizione_*: REVOKE ALL, service_role compreso. Il rifacimento clona contenuto+fonte+numero, azzera divergenze e conferma.';
++
++-- ============ P37: la seconda casella dell'Allegato XIII p.1 ============
++-- "il nome della persona che ha prescritto ... e, se del caso, il nome
++-- dell'istituzione sanitaria" — due caselle unite da "e" (spec §0).
++-- Nullable: il dottore singolo la lascia legittimamente vuota (D206②).
++ALTER TABLE lavori ADD COLUMN istituzione_sanitaria text;
++
++COMMENT ON COLUMN lavori.istituzione_sanitaria IS
++  'All. XIII p.1: istituzione sanitaria "se del caso" (P37, D206). Persona: richiedente_nome.';
++```
++
++- [ ] **Step 2.2** Applicare: `npx supabase db push` (progetto `iagibumwjstnveqpjbwq`). Expected: `Applying migration <TS>_ondata_b_lavori_prescrizioni.sql... Finished`.
++- [ ] **Step 2.3** Collaudo strutture vive (sola lettura):
++`node scripts/tmp/sql.mjs "SELECT conname FROM pg_constraint WHERE conrelid='public.lavori_prescrizioni'::regclass ORDER BY conname"` → attesi i 5 vincoli + PK + FK lab/utenti;
++`node scripts/tmp/sql.mjs "SELECT policyname, cmd FROM pg_policies WHERE tablename='lavori_prescrizioni'"` → SOLO `lavori_prescrizioni_tenant_select, SELECT`;
++`node scripts/tmp/sql.mjs "SELECT column_name FROM information_schema.columns WHERE table_name='lavori' AND column_name='istituzione_sanitaria'"` → 1 riga.
++- [ ] **Step 2.4** Commit: `git add supabase/migrations/ && git commit -m "feat(db): tabella lavori_prescrizioni + colonna P37 istituzione_sanitaria (ondata B ②, spec §3)"`.
++
++## Task 3 — Migration B: le RPC
++
++**Files:**
++- Create: `supabase/migrations/<TS2>_ondata_b_prescrizioni_rpc.sql`
++- Create: `scripts/tmp/collaudo-lp-rpc.mjs` (collaudo usa-e-getta, transazione annullata)
++
++**Interfaces (produce):**
++`lavoro_crea_atomico(p_lab uuid, p_lavoro jsonb, p_denti jsonb, p_prescrizione jsonb DEFAULT NULL) RETURNS json`
++· `lavoro_prescrizione_allega_fonte(p_lab uuid, p_lavoro uuid, p_fonte_tipo text, p_fonte_immagine_id uuid, p_fonte_riferimento text) RETURNS json`
++· `lavoro_prescrizione_correggi_typo(p_lab uuid, p_lavoro uuid, p_campo text, p_valore jsonb, p_atteso_updated_at timestamptz) RETURNS json`
++· `lavoro_prescrizione_registra_divergenza(p_lab uuid, p_lavoro uuid, p_campo text, p_motivo text, p_nota text, p_utente uuid) RETURNS json`
++· `lavoro_prescrizione_conferma_consegna(p_lab uuid, p_lavoro uuid, p_utente uuid) RETURNS json`
++· `crea_rifacimento_atomico` (stessa firma, clona lo snapshot).
++Esiti json: `{esito:'ok'|...}` con `'non_trovato'`, `'conflitto'`, `'congelata'`,
++`'senza_prescrizione'`, `'motivo_non_valido'`, `'fonte_congelata'` — stile
++`lavoro_denti_sostituisci_atomica`.
++
++Blocchi `non eseguito` — collaudo: Step 3.3. Punti fermi già provati: S10 (DROP prima del
++CREATE a firma nuova), innesto clone fra le righe 188-190 della definizione vigente (L3).
++
++- [ ] **Step 3.1** Scrivere la migration. Scheletro vincolante (corpi completi nel file, qui i punti di legge):
++
++```sql
++-- <TS2>_ondata_b_prescrizioni_rpc.sql — Ondata B, sessione ②, parte 2/3.
++-- NON aggiungere BEGIN;/COMMIT;. Tutte SECURITY DEFINER SET search_path = public, pg_temp.
++-- REVOKE FROM PUBLIC, anon, authenticated + GRANT TO service_role per OGNI firma (modello 20260727120300:222-226).
++
++-- 1) Firma nuova: DROP esplicito, MAI CREATE OR REPLACE con firma diversa
++--    (provato in sonda: l'OR REPLACE crea un overload — 2 funzioni).
++DROP FUNCTION public.lavoro_crea_atomico(uuid, jsonb, jsonb);
++CREATE FUNCTION public.lavoro_crea_atomico(
++  p_lab uuid, p_lavoro jsonb, p_denti jsonb, p_prescrizione jsonb DEFAULT NULL
++) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++  -- Corpo IDENTICO al vigente (20260727120300:136-215) con DUE aggiunte:
++  -- a) nell'INSERT INTO lavori: istituzione_sanitaria = p_lavoro->>'istituzione_sanitaria'
++  -- b) dopo la denormalizzazione, prima del RETURN:
++  --    IF p_prescrizione IS NOT NULL THEN
++  --      INSERT INTO lavori_prescrizioni (laboratorio_id, lavoro_id, contenuto, numero_prescrizione)
++  --      VALUES (p_lab, v_id,
++  --              COALESCE(p_prescrizione->'contenuto', '{}'::jsonb),
++  --              p_prescrizione->>'numero_prescrizione');
++  --    END IF;
++$$;
++
++-- 2) allega_fonte: UPSERT sulla riga del lavoro (i lavori nati prima non hanno
++--    la riga: ON CONFLICT (lavoro_id) DO UPDATE). Guardie in ordine:
++--    lock lavoro (FOR UPDATE, tenant) → 'non_trovato';
++--    fonte_tipo valido o NULL (IN lista) → 'fonte_tipo_non_valido';
++--    se DdC attiva (stato <> 'annullata') E la riga ha già fonte_tipo/immagine/riferimento
++--      → 'fonte_congelata' (V8: la fonte non si cancella né si sostituisce);
++--    altrimenti scrive fonte_tipo/fonte_immagine_id/fonte_riferimento.
++-- 3) correggi_typo: gettone p_atteso_updated_at (modello lavoro_denti_sostituisci_atomica:61-63)
++--    → 'conflitto'; DdC attiva → 'congelata' (V8); riga assente → 'senza_prescrizione';
++--    p_campo IN ('elementi','colore','tipo') → altrimenti 'campo_non_valido';
++--    contenuto = jsonb_set(contenuto, ARRAY[p_campo], p_valore). Il valore NULL
++--    jsonb ('null') RIMUOVE la chiave (contenuto - p_campo): "non era sulla prescrizione".
++-- 4) registra_divergenza: DdC attiva → 'congelata'; riga assente → 'senza_prescrizione';
++--    p_motivo IN ('richiesta_dentista','esigenza_tecnica','materiale_non_disponibile','altro')
++--      → altrimenti 'motivo_non_valido' (D212);
++--    divergenze = divergenze || jsonb_build_object('campo',p_campo,'motivo',p_motivo,
++--      'nota',p_nota,'utente_id',p_utente,'registrata_at',now());
++-- 5) conferma_consegna: riga assente → 'senza_prescrizione'; DdC attiva → 'congelata';
++--    scrive confermata_da=p_utente, confermata_at=now() E
++--    contenuto = jsonb_set(contenuto, '{tipo}', to_jsonb(v_tipo_dispositivo))
++--    (D213: il TIPO entra nello snapshot alla conferma, dalla riga viva di lavori).
++-- 6) crea_rifacimento_atomico: CREATE OR REPLACE (STESSA firma) — corpo vigente
++--    (20260728103000:78-215) con l'innesto FRA il clone denti e il registro:
++--      INSERT INTO lavori_prescrizioni (laboratorio_id, lavoro_id, contenuto,
++--        fonte_tipo, fonte_immagine_id, fonte_riferimento, numero_prescrizione)
++--      SELECT laboratorio_id, v_nuovo_id, contenuto, fonte_tipo, fonte_immagine_id,
++--             fonte_riferimento, numero_prescrizione
++--        FROM lavori_prescrizioni
++--       WHERE lavoro_id = p_lavoro_originale_id AND laboratorio_id = v_lavoro.laboratorio_id;
++--    (divergenze e conferma NON si clonano: default '[]' e NULL.)
++```
++
++- [ ] **Step 3.2** Applicare: `npx supabase db push`. Expected: `Finished`.
++- [ ] **Step 3.3** Scrivere ed eseguire `scripts/tmp/collaudo-lp-rpc.mjs` (pattern `sonda-lp-r-p1.mjs`: BEGIN → casi → ROLLBACK, dati veri di test). Casi MINIMI, ciascuno con l'esito atteso asserito e contato (R-P4 applicato al collaudo — le forme d'input enumerate):
++  1. `lavoro_crea_atomico` a 4 argomenti con `p_prescrizione` `{contenuto:{elementi:[11],colore:"a3 chiaro"},numero_prescrizione:"RX-77"}` → riga in `lavori_prescrizioni` con contenuto FEDELE (minuscole preservate);
++  2. stessa RPC a 3 argomenti (default) → lavoro creato, NESSUNA riga snapshot;
++  3. `allega_fonte` su lavoro senza riga → UPSERT crea la riga; `fonte_tipo='pippo'` → `'fonte_tipo_non_valido'`; senza corpo → errore CHECK 23514 (fonte_ck);
++  4. `correggi_typo` con gettone stantio → `'conflitto'`; con valore `'null'` → chiave rimossa;
++  5. `registra_divergenza` con motivo `'pippo'` → `'motivo_non_valido'`; valido → array cresce di 1 con `utente_id` e `registrata_at`;
++  6. simulare DdC attiva (INSERT DdC minima in transazione) → `correggi_typo`/`registra_divergenza`/`conferma_consegna` → `'congelata'`; `allega_fonte` su riga con fonte → `'fonte_congelata'`;
++  7. `conferma_consegna` valida → `confermata_da/at` scritti E `contenuto->>'tipo'` = tipo del lavoro;
++  8. `crea_rifacimento_atomico` su lavoro con snapshot+fonte+divergenze → il nuovo lavoro ha snapshot e fonte clonati, `divergenze='[]'`, conferma NULL;
++  9. `SELECT count(*) FROM pg_proc WHERE proname='lavoro_crea_atomico'` → **1**.
++  Expected: tutti ✅, e il conteggio dei casi verdi stampato (`N su N`).
++- [ ] **Step 3.4** Commit: `git commit -m "feat(db): RPC prescrizione (crea/fonte/typo/divergenza/conferma V5) + clone nel rifacimento (ondata B ②)"`.
++
++## Task 4 — Migration C: chiusura `ddc_laboratorio_update`
++
++**Files:**
++- Create: `supabase/migrations/<TS3>_ondata_b_ddc_chiusura_update.sql`
++
++`provato:` S9 (prima=1, dopo=0) + censimento A.1 (zero `.update()` applicativi; l'annullo passa
++da `annulla_consegna_atomica` SECURITY DEFINER, che non è toccato dalle policy).
++
++- [ ] **Step 4.1** Scrivere la migration:
++
++```sql
++-- <TS3>_ondata_b_ddc_chiusura_update.sql — Ondata B, sessione ②, parte 3/3.
++-- L'immutabilità della DdC era una CONVENZIONE (policy UPDATE tenant piena,
++-- schema.sql:1292-1294): da oggi è struttura. Modello: il cancello DPA
++-- (20260804120000:30-34). Censimento 04/08: NESSUN .update() applicativo su
++-- dichiarazioni_conformita in src/ — l'unico UPDATE legittimo è dentro
++-- annulla_consegna_atomica (SECURITY DEFINER: le policy non la toccano).
++-- Rollback: CREATE POLICY inversa (spec §7) — il testo esatto è in schema.sql
++-- alla versione precedente di questo commit.
++DROP POLICY "ddc_laboratorio_update" ON dichiarazioni_conformita;
++```
++
++- [ ] **Step 4.2** Applicare: `npx supabase db push`. Expected: `Finished`.
++- [ ] **Step 4.3** Verifica del rifiuto sul VIVO (il valore che DEVE essere rifiutato):
++`node scripts/tmp/sql.mjs "SELECT policyname FROM pg_policies WHERE tablename='dichiarazioni_conformita' ORDER BY policyname"` → SOLO `ddc_laboratorio_insert` e `ddc_laboratorio_select`;
++poi rieseguire la parte S9 della sonda SENZA il DROP (UPDATE come `authenticated` su una DdC del proprio lab) → **0 righe**.
++E il giro d'annullo resta vivo: `node scripts/tmp/sql.mjs "SELECT prosecdef FROM pg_proc WHERE proname='annulla_consegna_atomica'"` → `true`.
++- [ ] **Step 4.4** Commit: `git commit -m "feat(db): immutabilita DdC — chiusa la policy ddc_laboratorio_update (ondata B ②, V8)"`.
++
++## Task 5 — Server: composizione snapshot + POST/PATCH (TDD)
++
++**Files:**
++- Create: `src/lib/prescrizione/componi-snapshot.ts` (funzione pura)
++- Test: `tests/unit/componi-snapshot.test.ts`
++- Modify: `src/app/api/lavori/route.ts` (POST: ~riga 233, blocco `p_lavoro`/chiamata RPC)
++- Test: il file di test esistente della route POST (censirlo: `grep -rl "api/lavori/route" tests/unit/`)
++- Modify: `src/app/api/lavori/[id]/route.ts:178-213` (allowlist) e `:54-63` (commento-ragioni)
++- Modify: `src/types/domain.ts` (tipo `LavoroPrescrizione` + `Lavoro.istituzione_sanitaria`)
++
++**Interfaces (produce):**
++```typescript
++// src/lib/prescrizione/componi-snapshot.ts
++export interface PrescrizioneInput {
++  colore?: string          // testo COME DIGITATO dall'addetta (D210) — mai normalizzato qui
++  numero_prescrizione?: string
++}
++export interface DentiInput { fdi: number; provenienza?: string }
++// Ritorna il jsonb per p_prescrizione, o null se non c'è NULLA di prescritto (V2).
++export function componiSnapshot(denti: DentiInput[], p?: PrescrizioneInput):
++  { contenuto: Record<string, unknown>; numero_prescrizione: string | null } | null
++```
++
++- [ ] **Step 5.1** Test RED di `componiSnapshot` — forme d'input enumerate (R-P4): denti vuoti+niente → `null`; denti [11,12] → `{contenuto:{elementi:[11,12]}}`; colore `" a3 "` → PRESERVATO ESATTO (`" a3 "`, con spazi: fedeltà D210); colore assente → chiave assente (V2, MAI `colore:null`); solo numero → contenuto `{}` con numero; denti con `provenienza:'eseguito'` → ESCLUSI dagli elementi (solo i prescritti entrano, W20); `tipo` MAI presente (entra in conferma, D213). Run: `npx vitest run tests/unit/componi-snapshot.test.ts` → Expected: FAIL (modulo non trovato).
++- [ ] **Step 5.2** R-P4: abbozzo inerte (`return null`) → contare le asserzioni che si accendono, scrivere `N su M` nel report del task.
++- [ ] **Step 5.3** Implementare `componiSnapshot` (pura, ~20 righe). Run → Expected: PASS.
++- [ ] **Step 5.4** POST `route.ts`: accettare `body.istituzione_sanitaria` (→ `p_lavoro`) e `body.prescrizione` (`PrescrizioneInput`); comporre `p_prescrizione = componiSnapshot(denti, body.prescrizione)` e passarlo alla RPC SOLO se non null. Il client non manda MAI testo MDR composto (V3): manda dati, il server compone. Test: body senza campi nuovi → chiamata RPC identica a oggi (retro-compatibilità); body con prescrizione → `p_prescrizione` presente e fedele.
++- [ ] **Step 5.5** PATCH: `'istituzione_sanitaria'` in `PATCHABLE_FIELDS` (dopo `'richiedente_nome'`, r.181) + commento 54-63 aggiornato: `numero_prescrizione` esce dall'elenco «senza ragione» e riceve la sua — «vive su lavori_prescrizioni, scrittura via RPC dedicate (ondata B, spec §3)». Test: PATCH con `istituzione_sanitaria` → salvata; con `numero_prescrizione` → ancora scartata.
++- [ ] **Step 5.6** `domain.ts`: `istituzione_sanitaria: string | null` su `Lavoro` (dopo r.275) + interfaccia `LavoroPrescrizione` (rispecchia la tabella).
++- [ ] **Step 5.7** Run mirato dei test toccati → PASS. Commit: `git commit -m "feat(lavori): snapshot prescrizione server-side nel POST + istituzione_sanitaria patchabile (ondata B ②, V3)"`.
++
++## Task 6 — FASE 6b: gate migration
++
++- [ ] **Step 6.1** `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` — rimuovere l'eventuale coda CLI dal fondo del file.
++- [ ] **Step 6.2** `npx tsc --noEmit` → Expected: 0 errori (o SOLO errori attesi da tipi nuovi, da sanare subito).
++- [ ] **Step 6.3** Verifica RLS complessiva (sola lettura): `node scripts/tmp/sql.mjs "SELECT tablename, policyname, cmd FROM pg_policies WHERE tablename IN ('lavori_prescrizioni','dichiarazioni_conformita','lavori','lavori_immagini','lavori_denti') ORDER BY tablename, policyname"` → nessuna policy sparita fuori mandato; su DdC niente UPDATE; su lavori_prescrizioni solo SELECT.
++- [ ] **Step 6.4** Commit types: `git commit -m "chore(types): gen types dopo le migration ondata B ②"`.
++
++## Task 7 — Igiene dichiarata (spec §3 + §3-bis n.4)
++
++**Files:**
++- Modify: `supabase/schema.sql:878, :903, :919` (Allegato IV → XIII) — la `:1189` NON si tocca (già corretta)
++- Modify: `supabase/schema.sql:1265-1266` (CHECK stato + `'annullata'`), `:1275` (commento vero: la UNIQUE è sul numero; il vincolo per-lavoro è `ddc_lavoro_attiva_unique`, parziale, in `20260710090000`), dopo `:1302` (fotografare l'indice parziale)
++- Modify: `src/types/domain.ts:574` (union + `'annullata'`)
++- Modify: `tests/unit/generate-ddc.test.ts:190-196` (commento conteggio: «6 in archivio al 04/08/2026 — 2 `generata` di era pre-v1, 4 `annullata` di cui 3 con ddc-v1»; citare `scripts/tmp/verifica-conteggio-ddc.ts`)
++- La sezione DdC di `schema.sql` fotografa anche l'assenza della policy UPDATE (righe 1292-1294 sostituite da un commento che rimanda alla migration di chiusura)
++
++- [ ] **Step 7.1** Applicare le correzioni (testuali, nessuna migration: schema.sql è la fotografia).
++- [ ] **Step 7.2** `npx tsc --noEmit` + `npx vitest run tests/unit/generate-ddc.test.ts` → PASS.
++- [ ] **Step 7.3** Commit: `git commit -m "docs(schema): fotografia DdC allineata (Allegato XIII, stato annullata, indice parziale) + union domain (ondata B ②)"`.
++
++## Task 8 — FASE 7: verifica
++
++- [ ] **Step 8.1** `npm run verify:fast` → incollare l'output vero (tsc 0 · vitest N passate · build ok). Il numero della guardia coerenza SI LEGGE (P32).
++- [ ] **Step 8.2** Se tutto verde: la sessione decide con Francesco per merge/push (D215 ha il suo protocollo; NON si pubblica senza autorizzazione).
++
++---
++
++## Self-review (fatto in scrittura)
++
++- Spec coverage ②: tabella §3 ✅ (Task 2) · RPC dedicate ✅ (Task 3) · clone rifacimento ✅ (3.6)
++  · conferma V5 struttura+RPC ✅ (2, 3.5) · congelamento V8 ✅ (3.2-3.5, Task 4) · P37 colonne ✅
++  (2, 5) · chiusura policy ✅ (4) · igiene Allegato IV ✅ (7) · FASE 6b ✅ (6). Fuori ②,
++  dichiarato: UI wizard/scheda (③), precheck V1/V6/V7 e DdC a due righe (④), route dei gesti (③/④).
++- Placeholder scan: i corpi RPC riassunti in commento nello scheletro 3.1 portano TUTTI i punti di
++  legge (guardie, esiti, ordine); il collaudo 3.3 enumera gli esiti attesi caso per caso. Nessun «TBD».
++- Coerenza nomi: `lavori_prescrizioni_*`, esiti json, `componiSnapshot` usati identici nei task 2/3/5.
+diff --git a/src/app/api/lavori/[id]/route.ts b/src/app/api/lavori/[id]/route.ts
+index 3c35e4a8..d768d2d9 100644
+--- a/src/app/api/lavori/[id]/route.ts
++++ b/src/app/api/lavori/[id]/route.ts
+@@ -45,29 +45,34 @@ const LOCKED_PRICE_FIELDS = [
+ // - TabDate.tsx:         data_prima_prova, data_seconda_prova,
+ //                        data_terza_prova, spedizione_corriere,
+ //                        spedizione_tracking, spedizione_data_prevista
+ // - LavoroCard.tsx:      tecnico_id, priorita (assegnazione tecnico/priorità
+ //                        dalla lista lavori, stessa route PATCH root)
+ // - FK_FIELDS validati sotto: cliente_id, paziente_id, tecnico_id, ciclo_id
+ // - LOCKED_PRICE_FIELDS applicati dopo il filtro: prezzo_unitario, listino_id,
+ //   codice_iva, natura_iva (editabili finché non incluso_in_fattura)
+ //
+ // Esclusi deliberatamente (verificato: nessun writer nel form React attuale):
+-// arcata, colorazione_esterna, impronta_digitale, numero_prescrizione,
++// arcata, colorazione_esterna, impronta_digitale,
+ // norma_riferimento, richiedente_email, stato_fisico, tipo_arco,
+ // codice_interno, anamnesi_note, classe_rischio, paziente_nascita_snapshot,
+ // paziente_nome_snapshot, prescrizione_digitale_id, spedizione_note,
+ // spedizione_stato — oltre a IMMUTABLE, segnalazione_* (route dedicata
+ // /segnala e /segnala/risolvi), is_rifacimento/rifacimento_motivo (RPC
+ // crea_rifacimento_atomico), tracciabilita_materiali_ok/da_conformare/
+ // materiali_incompleti_dettaglio (calcolati server-side in orchestrate.ts),
+ // buono_*/file_stl_url/immagini_urls (gestiti da altri processi/route).
++// numero_prescrizione: escluso CON ragione (non più «nessun writer») — vive
++// su lavori_prescrizioni, scrittura via RPC dedicate (ondata B, spec §3). La
++// colonna omonima su `lavori` è legacy: riaprirla qui sarebbe una seconda
++// penna sullo stesso fatto, la classe già pagata con numero_cassetta.
++// Test di regressione: tests/unit/lavori-patch-istituzione-sanitaria.test.ts.
+ // ═══ SENTINELLA D7 (spec portale-dentista-v2 §7) ══════════════════════════
+ // proposta_dentista e proposta_at NON devono MAI entrare in questa allowlist:
+ // si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).
+ // Test di regressione: tests/unit/lavori-patch-invariante-d7.test.ts
+ // ═══════════════════════════════════════════════════════════════════════════
+ // ═══ SENTINELLA CASSETTA (spec parete-cassette §10, modello invariante D7) ══
+ // numero_cassetta NON deve MAI rientrare in questa allowlist: da qui in avanti
+ // si scrive SOLO tramite le RPC atomiche cassetta_assegna_atomica/
+ // cassetta_libera_atomica (POST /api/lavori/[id]/cassetta), mai con un UPDATE
+ // diretto — altrimenti si desincronizza dalla riga viva di `cassette_lavori`.
+@@ -172,20 +177,23 @@ const LOCKED_PRICE_FIELDS = [
+ // denormalizzazione, scritta dalle due RPC insieme alle righe di `lavori_denti`.
+ // La Dichiarazione di Conformità (DdcTemplate.tsx:258) e la scheda
+ // (SchedaLavoroV3.tsx:286) le leggono ancora fino all'ondata (c). «Sentinella»
+ // qui vuol dire: nessuno le scrive A MANO. Non: nessuno le scrive.
+ // Test di regressione: tests/unit/lavori-patch-sentinella-denti.test.ts
+ // ═══════════════════════════════════════════════════════════════════════════
+ export const PATCHABLE_FIELDS = [
+   'tipo_dispositivo',
+   'descrizione',
+   'richiedente_nome',
++  // P37 (ondata B ②): l'istituzione sanitaria del prescrittore — nasce dal
++  // POST e si corregge da qui fino alla consegna (direttiva §9).
++  'istituzione_sanitaria',
+   'data_consegna_prevista',
+   'ora_consegna',
+   'priorita',
+   'dispositivo_semilavorato',
+   'note_interne',
+   'tipo_impronte',
+   'disinfettante_usato',
+   'lotto_disinfettante',
+   'materiali_allegati',
+   'anamnesi_bruxismo',
+diff --git a/src/app/api/lavori/route.ts b/src/app/api/lavori/route.ts
+index 47f92d74..854065c3 100644
+--- a/src/app/api/lavori/route.ts
++++ b/src/app/api/lavori/route.ts
+@@ -9,20 +9,24 @@ import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+ import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+ // La validazione dei denti è UNA SOLA e vive in `lib/domain`: la chiamano
+ // questa creazione e la sostituzione integrale (`PUT /api/lavori/[id]/denti`).
+ // Fino al 28/07/2026 viveva solo nel PUT, e qui si controllavano `fdi` e i
+ // duplicati e basta — con l'oggetto grezzo che finiva alla RPC (rilievo G2).
+ import { validaDenti, type DenteNormalizzato } from '@/lib/domain/denti-validazione'
+ // La normalizzazione del colore di caso è UNA SOLA e vive in `lib/api`: la
+ // chiamano questa creazione e la correzione dalla scheda (PATCH /api/lavori/
+ // [id], Task 12-bis). Due copie della stessa regola sono la classe R3.
+ import { risolviColoreCaso } from '@/lib/api/colore-caso'
++// Lo snapshot della prescrizione si compone QUI, server-side (ondata B ②, V3):
++// il client manda dati grezzi (colore come digitato, numero), mai testo MDR
++// composto. La semantica (V2, W20, D210, D213) vive nel modulo.
++import { componiSnapshot, type PrescrizioneInput } from '@/lib/prescrizione/componi-snapshot'
+ 
+ export async function GET(req: Request) {
+   const { searchParams } = new URL(req.url)
+   const stato = searchParams.get('stato')
+   const q = searchParams.get('q')
+ 
+   return withServerTiming(async (t) => {
+     const { context, timings } = await getLabContextWithTimings()
+     Object.assign(t, timings)
+     if (!context) {
+@@ -197,20 +201,56 @@ export async function POST(req: Request) {
+   // PUT la lista è il corpo stesso della richiesta) e va vista dove sta.
+   let dentiIn: DenteNormalizzato[] = []
+   if (body.denti !== undefined) {
+     const esitoDenti = validaDenti(body.denti)
+     if (!esitoDenti.ok) {
+       return NextResponse.json({ error: esitoDenti.errore, valore: esitoDenti.valore }, { status: 422 })
+     }
+     dentiIn = esitoDenti.denti
+   }
+ 
++  // La trascrizione della prescrizione (ondata B ②). Il GATE è la presenza
++  // della chiave `prescrizione`: la trascrizione nasce SOLO se il client la
++  // dichiara. Senza questo gate ogni body legacy CON denti produrrebbe una
++  // riga di `lavori_prescrizioni` dal giorno del deploy del server, prima che
++  // il wizard nuovo esista — e la retro-compatibilità chiede la chiamata RPC
++  // IDENTICA a oggi per i body senza i campi nuovi.
++  // Stessa regola di `denti` (sopra): presente ma della forma sbagliata è un
++  // 422, mai un «niente da trascrivere» — anche `null` cade qui, chi non
++  // trascrive OMETTE la chiave.
++  let prescrizioneIn: PrescrizioneInput | undefined
++  if (body.prescrizione !== undefined) {
++    const grezzaP = body.prescrizione
++    if (grezzaP === null || typeof grezzaP !== 'object' || Array.isArray(grezzaP)) {
++      return NextResponse.json({ error: 'prescrizione deve essere un oggetto' }, { status: 422 })
++    }
++    const p = grezzaP as Record<string, unknown>
++    // Il colore si trascrive COME DIGITATO (D210) — ma solo se è un testo: un
++    // numero o un oggetto non sono una trascrizione, e passarli stringificati
++    // sarebbe inventare un testo che il medico non ha scritto.
++    if (p.colore !== undefined && typeof p.colore !== 'string') {
++      return NextResponse.json({ error: 'colore della prescrizione non valido', valore: p.colore }, { status: 422 })
++    }
++    if (p.numero_prescrizione !== undefined && typeof p.numero_prescrizione !== 'string') {
++      return NextResponse.json({ error: 'numero_prescrizione non valido', valore: p.numero_prescrizione }, { status: 422 })
++    }
++    prescrizioneIn = {
++      colore: p.colore as string | undefined,
++      numero_prescrizione: p.numero_prescrizione as string | undefined,
++    }
++  }
++  // null = NIENTE di prescritto (V2): nessuna riga. Un contenuto `{}` con
++  // numero presente è invece una riga legittima (M-T3-3) — la distinzione la
++  // fa `componiSnapshot`, qui si rispetta l'esito.
++  const snapshotPrescrizione =
++    prescrizioneIn !== undefined ? componiSnapshot(dentiIn, prescrizioneIn) : null
++
+   // Creazione ATOMICA: progressivo + lavoro + denti in una transazione sola.
+   // Motivo NORMATIVO, non di comodità (spec §4, rischio R1): un colore perso in
+   // silenzio produce una Dichiarazione priva di un contenuto obbligatorio
+   // dell'Allegato XIII. Prima di questa modifica il lavoro nasceva con un
+   // INSERT e i denti arrivavano dopo con una PATCH fail-soft: se quella
+   // falliva, il lavoro esisteva e il dato no.
+   // L'anno è quello del giorno civile di ROMA, non dell'orologio del processo:
+   // in produzione il server gira in UTC, e `new Date().getFullYear()` fra le
+   // 00:00 e l'01:00 di Roma del 1° gennaio è ancora indietro di un anno. Qui non
+   // sarebbe un dettaglio estetico: questo valore diventa `v_anno` dentro
+@@ -224,38 +264,49 @@ export async function POST(req: Request) {
+   const { data: esitoRpc, error: rpcError } = await callRpcWithRetry(() =>
+     svc.rpc('lavoro_crea_atomico', {
+       p_lab: labId,
+       p_lavoro: {
+         anno_lavoro: anno,
+         tipo_dispositivo: body.tipo_dispositivo,
+         descrizione: body.descrizione,
+         data_consegna_prevista: body.data_consegna_prevista,
+         ora_consegna: body.ora_consegna ?? null,
+         richiedente_nome: body.richiedente_nome ?? null,
++        // P37 (ondata B ②): l'istituzione sanitaria del prescrittore. Il
++        // `?? null` è il pattern di ogni facoltativo qui sopra: per la RPC
++        // `p_lavoro->>'istituzione_sanitaria'` la chiave a null e la chiave
++        // assente sono lo stesso SQL NULL.
++        istituzione_sanitaria: body.istituzione_sanitaria ?? null,
+         priorita: body.priorita ?? 'normale',
+         dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
+         note_interne: body.note_interne ?? null,
+         cliente_id: body.cliente_id,
+         paziente_id: body.paziente_id ?? null,
+         tecnico_id: body.tecnico_id ?? null,
+         ciclo_id: body.ciclo_id ?? null,
+         classe_rischio: body.classe_rischio ?? 'classe_i',
+         da_conformare: body.da_conformare ?? true,
+         codice_iva: body.codice_iva ?? 'N4',
+         natura_iva: body.natura_iva ?? 'N4',
+         data_ingresso: oggiRomaISO(),
+         // Già passati dal catalogo: al database arriva una coppia che ESISTE,
+         // oppure due null. Mai il grezzo del client (v. risolviColoreCaso).
+         colore_scala: colore.colore_scala,
+         colore_codice: colore.colore_codice,
+       },
+       p_denti: dentiIn,
++      // 🛑 M-T3-2: quando non c'è niente di trascritto la chiave si OMETTE,
++      // non si manda `p_prescrizione: null`. Con PostgREST un JSON null
++      // diventa `'null'::jsonb`, che NON è SQL NULL: l'`IF p_prescrizione IS
++      // NOT NULL` della RPC scatterebbe e nascerebbe una riga fantasma di
++      // `lavori_prescrizioni` per ogni lavoro senza trascrizione.
++      ...(snapshotPrescrizione !== null ? { p_prescrizione: snapshotPrescrizione } : {}),
+     })
+   )
+ 
+   // postgrest NON lancia: l'errore si controlla, non si aspetta in un catch.
+   if (rpcError) {
+     return NextResponse.json({ error: rpcError.message }, { status: 500 })
+   }
+ 
+   const esito = esitoRpc as {
+     esito?: string
+diff --git a/src/lib/prescrizione/componi-snapshot.ts b/src/lib/prescrizione/componi-snapshot.ts
+new file mode 100644
+index 00000000..1e33e4fa
+--- /dev/null
++++ b/src/lib/prescrizione/componi-snapshot.ts
+@@ -0,0 +1,52 @@
++// componiSnapshot — compone il jsonb `p_prescrizione` per `lavoro_crea_atomico`
++// (ondata B ②, spec V2/V3). Funzione PURA: il client manda dati grezzi, è il
++// server che compone lo snapshot — il client non manda MAI testo MDR composto.
++//
++// La semantica dello snapshot, ed è vincolante:
++// - chiave presente in `contenuto` = caratteristica TRASCRITTA dalla
++//   prescrizione; l'assenza è un'informazione (V2) — MAI `colore: null`.
++// - il colore resta COME DIGITATO (D210): nessun trim, nessun uppercase.
++//   La fedeltà è il punto — è il testo del medico, non un valore di catalogo.
++//   Unica eccezione: la stringa VUOTA, che non è una trascrizione di niente
++//   («solo spazi» invece si preserva: giudicarlo vuoto richiederebbe il trim).
++// - `elementi` = SOLO i denti con provenienza 'prescritto' (W20; il default
++//   di `validaDenti` è 'prescritto'), nell'ordine d'ingresso.
++// - `tipo` NON entra mai qui: entra SOLO alla conferma di consegna (D213).
++// - ritorno `null` = NIENTE di prescritto → il chiamante OMETTE p_prescrizione
++//   dalla chiamata RPC (M-T3-2: un jsonb 'null' NON è SQL NULL, e la RPC
++//   inserirebbe una riga fantasma). `contenuto: {}` con numero presente è
++//   invece una riga LEGITTIMA (M-T3-3): i due casi non si confondono.
++
++export interface PrescrizioneInput {
++  /** Testo del colore COME DIGITATO dall'addetta (D210) — mai normalizzato qui. */
++  colore?: string
++  numero_prescrizione?: string
++}
++
++export interface DentiInput {
++  fdi: number
++  provenienza?: string
++}
++
++export function componiSnapshot(
++  denti: DentiInput[],
++  p?: PrescrizioneInput
++): { contenuto: Record<string, unknown>; numero_prescrizione: string | null } | null {
++  const elementi = denti
++    .filter((d) => (d.provenienza ?? 'prescritto') === 'prescritto')
++    .map((d) => d.fdi)
++
++  const contenuto: Record<string, unknown> = {}
++  if (elementi.length > 0) contenuto.elementi = elementi
++  if (p?.colore !== undefined && p.colore !== '') contenuto.colore = p.colore
++
++  const numero =
++    p?.numero_prescrizione !== undefined && p.numero_prescrizione !== ''
++      ? p.numero_prescrizione
++      : null
++
++  // Niente di trascritto e nessun numero: NESSUNA riga (V2), non una vuota.
++  if (Object.keys(contenuto).length === 0 && numero === null) return null
++
++  return { contenuto, numero_prescrizione: numero }
++}
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index c4b79808..f6bc94ef 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -2462,20 +2462,21 @@ export type Database = {
+           descrizione: string
+           disinfettante_usato: string | null
+           dispositivo_semilavorato: boolean
+           effetti_speciali: string | null
+           file_stl_url: string | null
+           id: string
+           immagini_urls: string[] | null
+           impronta_digitale: boolean
+           incluso_in_fattura: boolean
+           is_rifacimento: boolean
++          istituzione_sanitaria: string | null
+           laboratorio_id: string
+           listino_id: string | null
+           lotto_disinfettante: string | null
+           materiali_allegati: string[]
+           materiali_incompleti_dettaglio: Json | null
+           natura_iva: string
+           norma_riferimento: string | null
+           note_dentista: string | null
+           note_interne: string | null
+           numero_cassetta: string | null
+@@ -2561,20 +2562,21 @@ export type Database = {
+           descrizione: string
+           disinfettante_usato?: string | null
+           dispositivo_semilavorato?: boolean
+           effetti_speciali?: string | null
+           file_stl_url?: string | null
+           id?: string
+           immagini_urls?: string[] | null
+           impronta_digitale?: boolean
+           incluso_in_fattura?: boolean
+           is_rifacimento?: boolean
++          istituzione_sanitaria?: string | null
+           laboratorio_id: string
+           listino_id?: string | null
+           lotto_disinfettante?: string | null
+           materiali_allegati?: string[]
+           materiali_incompleti_dettaglio?: Json | null
+           natura_iva?: string
+           norma_riferimento?: string | null
+           note_dentista?: string | null
+           note_interne?: string | null
+           numero_cassetta?: string | null
+@@ -2660,20 +2662,21 @@ export type Database = {
+           descrizione?: string
+           disinfettante_usato?: string | null
+           dispositivo_semilavorato?: boolean
+           effetti_speciali?: string | null
+           file_stl_url?: string | null
+           id?: string
+           immagini_urls?: string[] | null
+           impronta_digitale?: boolean
+           incluso_in_fattura?: boolean
+           is_rifacimento?: boolean
++          istituzione_sanitaria?: string | null
+           laboratorio_id?: string
+           listino_id?: string | null
+           lotto_disinfettante?: string | null
+           materiali_allegati?: string[]
+           materiali_incompleti_dettaglio?: Json | null
+           natura_iva?: string
+           norma_riferimento?: string | null
+           note_dentista?: string | null
+           note_interne?: string | null
+           numero_cassetta?: string | null
+@@ -3339,20 +3342,97 @@ export type Database = {
+           },
+           {
+             foreignKeyName: "lavori_materiali_magazzino_id_fkey"
+             columns: ["magazzino_id"]
+             isOneToOne: false
+             referencedRelation: "magazzino_sotto_scorta"
+             referencedColumns: ["id"]
+           },
+         ]
+       }
++      lavori_prescrizioni: {
++        Row: {
++          confermata_at: string | null
++          confermata_da: string | null
++          contenuto: Json
++          created_at: string
++          divergenze: Json
++          fonte_immagine_id: string | null
++          fonte_riferimento: string | null
++          fonte_tipo: string | null
++          id: string
++          laboratorio_id: string
++          lavoro_id: string
++          numero_prescrizione: string | null
++          updated_at: string
++        }
++        Insert: {
++          confermata_at?: string | null
++          confermata_da?: string | null
++          contenuto?: Json
++          created_at?: string
++          divergenze?: Json
++          fonte_immagine_id?: string | null
++          fonte_riferimento?: string | null
++          fonte_tipo?: string | null
++          id?: string
++          laboratorio_id: string
++          lavoro_id: string
++          numero_prescrizione?: string | null
++          updated_at?: string
++        }
++        Update: {
++          confermata_at?: string | null
++          confermata_da?: string | null
++          contenuto?: Json
++          created_at?: string
++          divergenze?: Json
++          fonte_immagine_id?: string | null
++          fonte_riferimento?: string | null
++          fonte_tipo?: string | null
++          id?: string
++          laboratorio_id?: string
++          lavoro_id?: string
++          numero_prescrizione?: string | null
++          updated_at?: string
++        }
++        Relationships: [
++          {
++            foreignKeyName: "lavori_prescrizioni_confermata_da_fkey"
++            columns: ["confermata_da"]
++            isOneToOne: false
++            referencedRelation: "utenti"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "lavori_prescrizioni_fonte_img_fk"
++            columns: ["fonte_immagine_id", "laboratorio_id"]
++            isOneToOne: false
++            referencedRelation: "lavori_immagini"
++            referencedColumns: ["id", "laboratorio_id"]
++          },
++          {
++            foreignKeyName: "lavori_prescrizioni_laboratorio_id_fkey"
++            columns: ["laboratorio_id"]
++            isOneToOne: false
++            referencedRelation: "laboratori"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "lavori_prescrizioni_lavoro_fk"
++            columns: ["lavoro_id", "laboratorio_id"]
++            isOneToOne: false
++            referencedRelation: "lavori"
++            referencedColumns: ["id", "laboratorio_id"]
++          },
++        ]
++      }
+       lavori_rifacimenti: {
+         Row: {
+           costo_interno: number | null
+           created_at: string
+           created_by: string | null
+           id: string
+           laboratorio_id: string
+           lavoro_nuovo_id: string
+           lavoro_originale_id: string
+           motivo: string
+@@ -6055,32 +6135,72 @@ export type Database = {
+       }
+       genera_xml_fattura_pa: { Args: { p_fattura_id: string }; Returns: string }
+       get_lab_id: { Args: never; Returns: string }
+       get_pec_password: { Args: { p_lab_id: string }; Returns: string }
+       get_pec_vault_secret: { Args: { p_lab_id: string }; Returns: string }
+       has_prrc_valido: { Args: { p_lab: string }; Returns: boolean }
+       has_role: { Args: { required_role: string }; Returns: boolean }
+       has_role_check: { Args: { required_role: string }; Returns: boolean }
+       lab_is_accessible: { Args: never; Returns: boolean }
+       lavoro_crea_atomico: {
+-        Args: { p_denti: Json; p_lab: string; p_lavoro: Json }
++        Args: {
++          p_denti: Json
++          p_lab: string
++          p_lavoro: Json
++          p_prescrizione?: Json
++        }
+         Returns: Json
+       }
+       lavoro_denti_sostituisci_atomica: {
+         Args: {
+           p_atteso_updated_at: string
+           p_denti: Json
+           p_lab: string
+           p_lavoro: string
+         }
+         Returns: Json
+       }
++      lavoro_prescrizione_allega_fonte: {
++        Args: {
++          p_fonte_immagine_id: string
++          p_fonte_riferimento: string
++          p_fonte_tipo: string
++          p_lab: string
++          p_lavoro: string
++        }
++        Returns: Json
++      }
++      lavoro_prescrizione_conferma_consegna: {
++        Args: { p_lab: string; p_lavoro: string; p_utente: string }
++        Returns: Json
++      }
++      lavoro_prescrizione_correggi_typo: {
++        Args: {
++          p_atteso_updated_at: string
++          p_campo: string
++          p_lab: string
++          p_lavoro: string
++          p_valore: Json
++        }
++        Returns: Json
++      }
++      lavoro_prescrizione_registra_divergenza: {
++        Args: {
++          p_campo: string
++          p_lab: string
++          p_lavoro: string
++          p_motivo: string
++          p_nota: string
++          p_utente: string
++        }
++        Returns: Json
++      }
+       manda_in_prova_atomico: {
+         Args: {
+           p_data_rientro: string
+           p_istruzioni: string
+           p_laboratorio_id: string
+           p_lavoro_id: string
+           p_user_id: string
+         }
+         Returns: Json
+       }
+diff --git a/src/types/domain.ts b/src/types/domain.ts
+index eeccbf42..be128d7f 100644
+--- a/src/types/domain.ts
++++ b/src/types/domain.ts
+@@ -266,20 +266,23 @@ export interface Lavoro {
+   paziente_nascita_snapshot: string | null;
+   tipo_dispositivo: TipoDispositivo;
+   descrizione: string;
+   note_interne: string | null;
+   // Ondata 3b — nota del dentista (portale) separata da note_interne del lab
+   note_dentista: string | null;
+   da_portale: boolean;
+   paziente_codice_richiesta: string | null;
+   richiedente_nome: string | null;
+   richiedente_email: string | null;
++  // P37 (ondata B ②): l'istituzione sanitaria del prescrittore — nasce dal
++  // POST /api/lavori e si corregge dalla PATCH fino alla consegna (direttiva §9).
++  istituzione_sanitaria: string | null;
+   // Campi colore (tab Clinica)
+   // ⚠️ ORFANE dal Task 10 (ondata a): nessuno le scrive più — le due RPC
+   // denormalizzano solo i tre `denti_*`. Restano nel tipo perché sono ancora
+   // colonne di `lavori` e la fatturazione le legge nello snapshot, ma la
+   // scheda si idrata da `lavori_denti` via `idrataColoreScheda`.
+   colore_dente: string | null;
+   colore_collo: string | null;
+   colore_corpo: string | null;
+   colore_incisale: string | null;
+   // Default di caso (ondata a): la coppia colore del lavoro, scritta alla
+@@ -383,20 +386,48 @@ export interface LavoroDente {
+   scala: string | null;
+   codice: string | null;
+   codice_collo: string | null;
+   codice_corpo: string | null;
+   codice_incisale: string | null;
+   provenienza: 'prescritto' | 'eseguito';
+   created_at: string;
+   updated_at: string;
+ }
+ 
++// ============================================================
++// LAVORO PRESCRIZIONE — la trascrizione della prescrizione (ondata B, D214)
++// ============================================================
++// Scrittura SOLO via le RPC dedicate (`lavoro_crea_atomico`,
++// `lavoro_prescrizione_*`): la tabella è in REVOKE ALL, service_role compreso.
++// `contenuto`: chiave presente = caratteristica TRASCRITTA (V2, l'assenza è
++// un'informazione); il colore vive lì COME DIGITATO (D210); `tipo` entra SOLO
++// alla conferma di consegna (D213).
++export interface LavoroPrescrizione {
++  id: string;
++  laboratorio_id: string;
++  lavoro_id: string;
++  contenuto: Record<string, unknown>;
++  // Il registro delle divergenze (gesto typo-vs-divergenza, spec §4.3):
++  // jsonb '[]' di default; la forma delle voci arriva con la sua ondata.
++  divergenze: unknown[];
++  fonte_tipo: 'foglio' | 'email' | 'modulo' | 'piattaforma' | null;
++  fonte_immagine_id: string | null;
++  fonte_riferimento: string | null;
++  // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
++  // (colonna legacy, esclusa dalla PATCH con la sua ragione).
++  numero_prescrizione: string | null;
++  confermata_da: string | null;
++  confermata_at: string | null;
++  created_at: string;
++  updated_at: string;
++}
++
+ // ============================================================
+ // LAVORO DETTAGLIO — con join
+ // ============================================================
+ export interface LavoroDettaglio extends Lavoro {
+   // Opzionale perché è un embed: c'è solo dove la query lo chiede
+   // (`denti:lavori_denti(*)`). Chi mostra o corregge il colore DEVE chiederlo —
+   // guardia in `tests/unit/lavoro-form-colore-idratazione.test.tsx`.
+   denti?: LavoroDente[];
+   cliente: Cliente;
+   paziente: Paziente | null;
+@@ -564,21 +595,21 @@ export interface DichiarazioneConformita {
+   progressivo_ddc: number;
+   // PDF archiviato
+   pdf_url: string | null;
+   pdf_sha256: string | null;
+   storage_path_pdf: string | null;
+   pdf_generato_at: string | null;
+   // Invio al dentista
+   inviata_al_dentista: boolean;
+   inviata_al_dentista_at: string | null;
+   data_emissione: string;
+-  stato: 'bozza' | 'generata' | 'firmata' | 'consegnata';
++  stato: 'bozza' | 'generata' | 'firmata' | 'consegnata' | 'annullata';
+   // §1 Allegato XIII — Fabbricante (snapshot immutabile)
+   fabbricante_nome: string;
+   fabbricante_indirizzo: string;
+   fabbricante_piva: string;
+   fabbricante_itca: string | null;
+   luogo_emissione: string;               // Es. "Serre (SA), Italia"
+   // §3 — Prescrittore
+   prescrittore_nome: string;
+   prescrizione_id: string | null;        // Numero prescrizione del dentista
+   // §4 — Paziente
+diff --git a/supabase/migrations/20260804150306_ondata_b_lavori_prescrizioni.sql b/supabase/migrations/20260804150306_ondata_b_lavori_prescrizioni.sql
+new file mode 100644
+index 00000000..cae415b0
+--- /dev/null
++++ b/supabase/migrations/20260804150306_ondata_b_lavori_prescrizioni.sql
+@@ -0,0 +1,92 @@
++-- 20260804150306_ondata_b_lavori_prescrizioni.sql — Ondata B, sessione ②, parte 1/3.
++-- Spec §3 (D214). NON aggiungere BEGIN;/COMMIT;.
++-- Modello: lavori_denti (20260727120100) — FK composite, scrittura solo via RPC.
++
++-- Il supporto per la FK composita verso l'immagine fonte (assente fino a oggi;
++-- su lavori esiste già come lavori_id_lab_uk, 20260727120000:8).
++ALTER TABLE lavori_immagini
++  ADD CONSTRAINT lavori_immagini_id_lab_uk UNIQUE (id, laboratorio_id);
++
++-- La casa dello snapshot: la trascrizione della prescrizione, fotografata al
++-- momento T (D204). JSONB deliberato: fedeltà > integrità referenziale — il
++-- vincolo UNIQUE(lavoro_id,fdi) + DELETE&INSERT di lavoro_denti_sostituisci_atomica
++-- cancellerebbe la trascrizione alla prima modifica in lavorazione (spec §3).
++CREATE TABLE lavori_prescrizioni (
++  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
++  laboratorio_id      uuid NOT NULL REFERENCES laboratori(id),
++  lavoro_id           uuid NOT NULL,
++
++  -- Chiave presente = trascritta dal documento; assente = non prescritta (V2).
++  -- MAI una dicitura "nessuna caratteristica prescritta" (D101).
++  -- Chiavi note: elementi int[] · colore testo COME DIGITATO (mai normalizzato)
++  -- · tipo (entra SOLO alla conferma di consegna, D213).
++  contenuto           jsonb NOT NULL DEFAULT '{}'::jsonb,
++
++  -- Divergenze prescritto/eseguito col motivo (V9, D212): array di
++  -- {campo, motivo, nota, utente_id, registrata_at}. Il rifacimento le azzera.
++  divergenze          jsonb NOT NULL DEFAULT '[]'::jsonb,
++
++  -- Le 4 forme di D202. NULL con fonte_riferimento valorizzato = V7,
++  -- "in attesa di conferma scritta" (a voce/telefono non è MAI una fonte).
++  fonte_tipo          text CHECK (fonte_tipo IN ('foglio','email','modulo','piattaforma')),
++  fonte_immagine_id   uuid,
++  fonte_riferimento   text,
++
++  -- P38: il numero facoltativo trova casa QUI; lavori.numero_prescrizione resta
++  -- (la legge generate-ddc.ts:148) con la sua ragione scritta nella route.
++  numero_prescrizione text,
++
++  -- V5: la conferma guardando il foglio, registrata server-side (chi, quando).
++  -- Modello: data_processing_agreements.emesso_da (20260804120000:58-62).
++  confermata_da       uuid REFERENCES utenti(id),
++  confermata_at       timestamptz,
++
++  created_at          timestamptz NOT NULL DEFAULT now(),
++  updated_at          timestamptz NOT NULL DEFAULT now(),
++
++  -- Una trascrizione per lavoro; il rifacimento è un ALTRO lavoro e clona.
++  CONSTRAINT lavori_prescrizioni_lavoro_uk UNIQUE (lavoro_id),
++
++  -- FK COMPOSITE anti cross-tenant (modello lavori_denti_lavoro_fk).
++  CONSTRAINT lavori_prescrizioni_lavoro_fk FOREIGN KEY (lavoro_id, laboratorio_id)
++    REFERENCES lavori (id, laboratorio_id),
++  CONSTRAINT lavori_prescrizioni_fonte_img_fk FOREIGN KEY (fonte_immagine_id, laboratorio_id)
++    REFERENCES lavori_immagini (id, laboratorio_id),
++
++  -- Una fonte dichiarata deve avere un corpo: immagine o riferimento (V1 morde
++  -- al precheck; qui si impedisce solo la forma vuota).
++  CONSTRAINT lavori_prescrizioni_fonte_ck CHECK (
++    fonte_tipo IS NULL OR fonte_immagine_id IS NOT NULL OR fonte_riferimento IS NOT NULL
++  ),
++
++  -- Il "chi" e il "quando" della conferma viaggiano insieme.
++  CONSTRAINT lavori_prescrizioni_conferma_ck CHECK ((confermata_da IS NULL) = (confermata_at IS NULL))
++);
++
++CREATE INDEX lavori_prescrizioni_lab_idx ON lavori_prescrizioni (laboratorio_id);
++
++SELECT apply_updated_at_trigger('lavori_prescrizioni');
++
++-- ============ RLS: lettura per tenant, scrittura SOLO via RPC ============
++ALTER TABLE lavori_prescrizioni ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY lavori_prescrizioni_tenant_select ON lavori_prescrizioni
++  FOR SELECT USING (laboratorio_id = public.current_lab_id());
++
++-- E8: service_role nella lista del REVOKE (default privileges Supabase gli
++-- darebbero tutto; il DELETE cross-tenant è già stato riprodotto — nota E8,
++-- 20260721090000). Le RPC scrivono perché SECURITY DEFINER.
++REVOKE ALL ON lavori_prescrizioni FROM anon, authenticated, service_role;
++GRANT SELECT ON lavori_prescrizioni TO authenticated, service_role;
++
++COMMENT ON TABLE lavori_prescrizioni IS
++  'Trascrizione della prescrizione (spec ondata B §3, D214). Scrittura SOLO via RPC lavoro_crea_atomico / lavoro_prescrizione_*: REVOKE ALL, service_role compreso. Il rifacimento clona contenuto+fonte+numero, azzera divergenze e conferma.';
++
++-- ============ P37: la seconda casella dell'Allegato XIII p.1 ============
++-- "il nome della persona che ha prescritto ... e, se del caso, il nome
++-- dell'istituzione sanitaria" — due caselle unite da "e" (spec §0).
++-- Nullable: il dottore singolo la lascia legittimamente vuota (D206②).
++ALTER TABLE lavori ADD COLUMN istituzione_sanitaria text;
++
++COMMENT ON COLUMN lavori.istituzione_sanitaria IS
++  'All. XIII p.1: istituzione sanitaria "se del caso" (P37, D206). Persona: richiedente_nome.';
+diff --git a/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql b/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql
+new file mode 100644
+index 00000000..4732eed9
+--- /dev/null
++++ b/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql
+@@ -0,0 +1,522 @@
++-- 20260804152403_ondata_b_prescrizioni_rpc.sql — Ondata B, sessione ②, parte 2/3.
++-- Spec §4-§7 (D212, D213, D214). NON aggiungere BEGIN;/COMMIT; — il runner
++-- Supabase avvolge già la migration (N6).
++--
++-- `lavori_prescrizioni` è in REVOKE ALL, service_role compreso (Task 2,
++-- 20260804150306:79): le UNICHE penne sono le funzioni qui sotto, tutte
++-- SECURITY DEFINER SET search_path = public, pg_temp, col tenant imposto in
++-- OGNI clausola WHERE (modello 20260727120300).
++--
++-- «DdC attiva» in questo file = esiste una riga di dichiarazioni_conformita
++-- del lavoro con stato <> 'annullata' — la STESSA definizione dell'indice
++-- ddc_lavoro_attiva_unique (20260710090000:16-17) e del guard di idempotenza
++-- generate-ddc.ts:102. Nessun filtro su deleted_at: non lo usa nessuno dei due.
++--
++-- Ordine dei lock: ogni funzione prende PRIMA il FOR UPDATE sulla riga di
++-- `lavori` (esistenza + tenant + serializzazione in un colpo solo, come
++-- lavoro_denti_sostituisci_atomica): la riga di lavori_prescrizioni non ha
++-- bisogno di un secondo lock perché ogni penna passa da qui.
++
++-- ============ 1. lavoro_crea_atomico: firma nuova, DROP esplicito ============
++-- 🛑 MAI `CREATE OR REPLACE` con firma diversa: crea un OVERLOAD (2 funzioni),
++-- provato in sonda S10 (scripts/tmp/sonda-lp-r-p1.mjs). Il DROP della firma a
++-- 3 parametri PRIMA del CREATE a 4 lascia UNA sola funzione; le chiamate
++-- esistenti a 3 argomenti (src/app/api/lavori/route.ts:225) risolvono col
++-- DEFAULT NULL del quarto parametro.
++DROP FUNCTION public.lavoro_crea_atomico(uuid, jsonb, jsonb);
++
++-- Corpo IDENTICO al vigente (20260727120300:136-215, verificato uguale al
++-- catalogo vivo con pg_get_functiondef il 04/08/2026) con DUE aggiunte,
++-- marcate «⬇️ AGGIUNTA B②»: istituzione_sanitaria (P37) e lo snapshot della
++-- prescrizione (D214).
++CREATE FUNCTION public.lavoro_crea_atomico(
++  p_lab           uuid,
++  p_lavoro        jsonb,
++  p_denti         jsonb,
++  p_prescrizione  jsonb DEFAULT NULL
++) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++DECLARE
++  v_anno        integer := (p_lavoro->>'anno_lavoro')::integer;
++  v_progressivo integer;
++  v_numero      text;
++  v_id          uuid;
++BEGIN
++  -- Il progressivo è race-safe e vive già in casa: si riusa, non si reinventa.
++  v_progressivo := public.genera_progressivo(p_lab, 'lavoro', v_anno);
++  IF v_progressivo IS NULL THEN
++    RETURN json_build_object('esito', 'errore', 'dettaglio', 'progressivo non generato');
++  END IF;
++  v_numero := v_anno::text || '/' || lpad(v_progressivo::text, 4, '0');
++
++  INSERT INTO lavori (
++    laboratorio_id, numero_lavoro, anno_lavoro, stato,
++    tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna,
++    richiedente_nome, priorita, dispositivo_semilavorato, note_interne,
++    cliente_id, paziente_id, tecnico_id, ciclo_id,
++    classe_rischio, da_conformare, codice_iva, natura_iva, data_ingresso,
++    colore_scala, colore_codice,
++    -- ⬇️ AGGIUNTA B② — P37: la seconda casella dell'Allegato XIII p.1
++    --    (istituzione sanitaria «se del caso»; colonna nata nel Task 2).
++    istituzione_sanitaria
++  ) VALUES (
++    p_lab, v_numero, v_anno, 'ricevuto',
++    p_lavoro->>'tipo_dispositivo',
++    p_lavoro->>'descrizione',
++    (p_lavoro->>'data_consegna_prevista')::date,
++    NULLIF(p_lavoro->>'ora_consegna', '')::time,
++    p_lavoro->>'richiedente_nome',
++    COALESCE(p_lavoro->>'priorita', 'normale'),
++    COALESCE((p_lavoro->>'dispositivo_semilavorato')::boolean, false),
++    p_lavoro->>'note_interne',
++    (p_lavoro->>'cliente_id')::uuid,
++    NULLIF(p_lavoro->>'paziente_id', '')::uuid,
++    NULLIF(p_lavoro->>'tecnico_id', '')::uuid,
++    NULLIF(p_lavoro->>'ciclo_id', '')::uuid,
++    COALESCE(p_lavoro->>'classe_rischio', 'classe_i'),
++    COALESCE((p_lavoro->>'da_conformare')::boolean, true),
++    COALESCE(p_lavoro->>'codice_iva', 'N4'),
++    COALESCE(p_lavoro->>'natura_iva', 'N4'),
++    -- Correzione ② (20260727120300, testa del file): NOT NULL senza ricaduta sul DEFAULT.
++    COALESCE(NULLIF(p_lavoro->>'data_ingresso', '')::timestamptz, now()),
++    p_lavoro->>'colore_scala',
++    p_lavoro->>'colore_codice',
++    p_lavoro->>'istituzione_sanitaria'
++  ) RETURNING id INTO v_id;
++
++  -- 🔑 Nessun BEGIN/EXCEPTION qui intorno: se questo INSERT fallisce, l'intera
++  -- funzione fallisce e il lavoro NON resta orfano. È il rischio R1, ed è il
++  -- motivo per cui questa funzione esiste.
++  INSERT INTO lavori_denti (
++    laboratorio_id, lavoro_id, fdi, ruolo,
++    scala, codice, codice_collo, codice_corpo, codice_incisale, provenienza
++  )
++  SELECT
++    p_lab, v_id,
++    (d->>'fdi')::smallint,
++    COALESCE(d->>'ruolo', 'elemento'),
++    d->>'scala', d->>'codice',
++    d->>'codice_collo', d->>'codice_corpo', d->>'codice_incisale',
++    COALESCE(d->>'provenienza', 'prescritto')
++  FROM jsonb_array_elements(COALESCE(p_denti, '[]'::jsonb)) AS d;
++
++  -- Stessa denormalizzazione della RPC di sostituzione, e per la stessa
++  -- ragione: la Dichiarazione di Conformità legge ancora
++  -- `lavori.denti_coinvolti` fino all'ondata (c). Vedi il commento esteso in
++  -- lavoro_denti_sostituisci_atomica (20260727120300:84-114).
++  UPDATE lavori SET
++    denti_coinvolti = COALESCE((SELECT array_agg(fdi::text ORDER BY fdi) FROM lavori_denti
++                        WHERE lavoro_id = v_id AND laboratorio_id = p_lab AND ruolo = 'elemento'), '{}'::text[]),
++    denti_mancanti  = COALESCE((SELECT array_agg(fdi::integer ORDER BY fdi) FROM lavori_denti
++                        WHERE lavoro_id = v_id AND laboratorio_id = p_lab AND ruolo = 'mancante'), '{}'::integer[]),
++    denti_impianti  = COALESCE((SELECT array_agg(fdi::integer ORDER BY fdi) FROM lavori_denti
++                        WHERE lavoro_id = v_id AND laboratorio_id = p_lab AND ruolo = 'impianto'), '{}'::integer[])
++   WHERE id = v_id AND laboratorio_id = p_lab;
++
++  -- ⬇️ AGGIUNTA B② — lo snapshot della prescrizione (D214): chiave presente =
++  --    trascritta; il valore del colore resta COME DIGITATO (mai normalizzato);
++  --    la chiave `tipo` NON entra qui — entra SOLO alla conferma di consegna
++  --    (D213). NULL = wizard senza trascrizione: nessuna riga, non una riga
++  --    vuota (V2: l'assenza è un'informazione).
++  IF p_prescrizione IS NOT NULL THEN
++    INSERT INTO lavori_prescrizioni (laboratorio_id, lavoro_id, contenuto, numero_prescrizione)
++    VALUES (p_lab, v_id,
++            COALESCE(p_prescrizione->'contenuto', '{}'::jsonb),
++            p_prescrizione->>'numero_prescrizione');
++  END IF;
++
++  RETURN json_build_object('esito', 'ok', 'id', v_id, 'numero_lavoro', v_numero, 'stato', 'ricevuto');
++END $$;
++
++-- ============ 2. Allega/sostituisce la fonte della trascrizione ============
++-- UPSERT deliberato: i lavori nati PRIMA dell'ondata B non hanno la riga di
++-- lavori_prescrizioni — allegare la fonte a posteriori la crea (contenuto '{}'
++-- di default: nessuna caratteristica trascritta, D101).
++-- V8: senza DdC attiva la sostituzione è LIBERA; con DdC attiva la fonte già
++-- presente non si cancella né si sostituisce ('fonte_congelata'); una riga
++-- ANCORA senza fonte resta invece completabile anche dopo (la pezza
++-- documentale non è una riscrittura).
++-- «Fonte senza corpo» (fonte_tipo valorizzato, immagine e riferimento NULL)
++-- NON si intercetta qui: la respinge il CHECK lavori_prescrizioni_fonte_ck
++-- (23514) — fail-loud, il precheck V1 morde prima in route.
++CREATE FUNCTION public.lavoro_prescrizione_allega_fonte(
++  p_lab               uuid,
++  p_lavoro            uuid,
++  p_fonte_tipo        text,
++  p_fonte_immagine_id uuid,
++  p_fonte_riferimento text
++) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++DECLARE
++  v_ha_fonte boolean;
++BEGIN
++  PERFORM 1
++    FROM lavori
++   WHERE id = p_lavoro AND laboratorio_id = p_lab AND deleted_at IS NULL
++   FOR UPDATE;
++
++  IF NOT FOUND THEN
++    RETURN json_build_object('esito', 'non_trovato');
++  END IF;
++
++  -- Le 4 forme di D202; NULL è legittimo (V7: riferimento in attesa di
++  -- conferma scritta). Stessa lista del CHECK di tabella, qui per dare un
++  -- esito parlante invece di un errore.
++  IF p_fonte_tipo IS NOT NULL AND p_fonte_tipo NOT IN ('foglio','email','modulo','piattaforma') THEN
++    RETURN json_build_object('esito', 'fonte_tipo_non_valido');
++  END IF;
++
++  SELECT (fonte_tipo IS NOT NULL OR fonte_immagine_id IS NOT NULL OR fonte_riferimento IS NOT NULL)
++    INTO v_ha_fonte
++    FROM lavori_prescrizioni
++   WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab;
++
++  IF COALESCE(v_ha_fonte, false) AND EXISTS (
++       SELECT 1 FROM dichiarazioni_conformita
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab AND stato <> 'annullata'
++     ) THEN
++    RETURN json_build_object('esito', 'fonte_congelata');
++  END IF;
++
++  -- Il WHERE sul tenant nel DO UPDATE è cintura e bretelle: la FK composita
++  -- garantisce già che la riga di questo lavoro_id porti il laboratorio del
++  -- lavoro, e il lock sopra ha già verificato che quel lavoro sia di p_lab.
++  INSERT INTO lavori_prescrizioni (laboratorio_id, lavoro_id, fonte_tipo, fonte_immagine_id, fonte_riferimento)
++  VALUES (p_lab, p_lavoro, p_fonte_tipo, p_fonte_immagine_id, p_fonte_riferimento)
++  ON CONFLICT (lavoro_id) DO UPDATE SET
++    fonte_tipo        = EXCLUDED.fonte_tipo,
++    fonte_immagine_id = EXCLUDED.fonte_immagine_id,
++    fonte_riferimento = EXCLUDED.fonte_riferimento
++  WHERE lavori_prescrizioni.laboratorio_id = p_lab;
++
++  RETURN json_build_object('esito', 'ok');
++END $$;
++
++-- ============ 3. Correzione di un typo della trascrizione ============
++-- Gettone di concorrenza sul MODELLO ESATTO di lavoro_denti_sostituisci_atomica
++-- (20260727120300:61-63): il gettone è `lavori.updated_at`, letto dal lock;
++-- NULL = nessun controllo; diverso → 'conflitto' col valore corrente. E come
++-- nel modello, è QUI che il gettone deve avanzare: l'UPDATE finale su lavori
++-- non si delega al trigger di un'altra migration.
++-- Il valore jsonb 'null' RIMUOVE la chiave («non era sulla prescrizione»,
++-- contenuto - campo); anche il NULL SQL rimuove: passato a jsonb_set
++-- annienterebbe l'INTERO contenuto (jsonb_set con new_value NULL restituisce
++-- NULL), e un typo non può mai costare la trascrizione.
++CREATE FUNCTION public.lavoro_prescrizione_correggi_typo(
++  p_lab               uuid,
++  p_lavoro            uuid,
++  p_campo             text,
++  p_valore            jsonb,
++  p_atteso_updated_at timestamptz
++) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++DECLARE
++  v_updated_at timestamptz;
++BEGIN
++  SELECT updated_at INTO v_updated_at
++    FROM lavori
++   WHERE id = p_lavoro AND laboratorio_id = p_lab AND deleted_at IS NULL
++   FOR UPDATE;
++
++  IF NOT FOUND THEN
++    RETURN json_build_object('esito', 'non_trovato');
++  END IF;
++
++  IF p_atteso_updated_at IS NOT NULL AND v_updated_at IS DISTINCT FROM p_atteso_updated_at THEN
++    RETURN json_build_object('esito', 'conflitto', 'updated_at', v_updated_at);
++  END IF;
++
++  -- V8: con una DdC attiva lo snapshot è congelato — il typo si corregge
++  -- annullando la dichiarazione, non riscrivendo la storia sotto di essa.
++  IF EXISTS (
++       SELECT 1 FROM dichiarazioni_conformita
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab AND stato <> 'annullata'
++     ) THEN
++    RETURN json_build_object('esito', 'congelata');
++  END IF;
++
++  IF NOT EXISTS (
++       SELECT 1 FROM lavori_prescrizioni
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab
++     ) THEN
++    RETURN json_build_object('esito', 'senza_prescrizione');
++  END IF;
++
++  IF p_campo IS NULL OR p_campo NOT IN ('elementi','colore','tipo') THEN
++    RETURN json_build_object('esito', 'campo_non_valido');
++  END IF;
++
++  UPDATE lavori_prescrizioni SET
++    contenuto = CASE
++      WHEN p_valore IS NULL OR jsonb_typeof(p_valore) = 'null'
++        THEN contenuto - p_campo
++      ELSE jsonb_set(contenuto, ARRAY[p_campo], p_valore)
++    END
++   WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab;
++
++  UPDATE lavori SET updated_at = now()
++   WHERE id = p_lavoro AND laboratorio_id = p_lab
++  RETURNING updated_at INTO v_updated_at;
++
++  RETURN json_build_object('esito', 'ok', 'updated_at', v_updated_at);
++END $$;
++
++-- ============ 4. Registrazione di una divergenza prescritto/eseguito ============
++-- V9 + D212: la divergenza NON riscrive il contenuto (quello resta ciò che il
++-- dentista ha prescritto) — si APPENDE al registro, col motivo da dizionario
++-- chiuso, chi e quando.
++CREATE FUNCTION public.lavoro_prescrizione_registra_divergenza(
++  p_lab    uuid,
++  p_lavoro uuid,
++  p_campo  text,
++  p_motivo text,
++  p_nota   text,
++  p_utente uuid
++) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++DECLARE
++  v_n integer;
++BEGIN
++  PERFORM 1
++    FROM lavori
++   WHERE id = p_lavoro AND laboratorio_id = p_lab AND deleted_at IS NULL
++   FOR UPDATE;
++
++  IF NOT FOUND THEN
++    RETURN json_build_object('esito', 'non_trovato');
++  END IF;
++
++  IF EXISTS (
++       SELECT 1 FROM dichiarazioni_conformita
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab AND stato <> 'annullata'
++     ) THEN
++    RETURN json_build_object('esito', 'congelata');
++  END IF;
++
++  IF NOT EXISTS (
++       SELECT 1 FROM lavori_prescrizioni
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab
++     ) THEN
++    RETURN json_build_object('esito', 'senza_prescrizione');
++  END IF;
++
++  IF p_motivo IS NULL OR p_motivo NOT IN ('richiesta_dentista','esigenza_tecnica','materiale_non_disponibile','altro') THEN
++    RETURN json_build_object('esito', 'motivo_non_valido');
++  END IF;
++
++  UPDATE lavori_prescrizioni SET
++    divergenze = divergenze || jsonb_build_object(
++      'campo',         p_campo,
++      'motivo',        p_motivo,
++      'nota',          p_nota,
++      'utente_id',     p_utente,
++      'registrata_at', now())
++   WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab
++  RETURNING jsonb_array_length(divergenze) INTO v_n;
++
++  RETURN json_build_object('esito', 'ok', 'divergenze', v_n);
++END $$;
++
++-- ============ 5. Conferma della trascrizione alla consegna (V5) ============
++-- D213: la chiave `tipo` entra nello snapshot QUI, copiata dalla riga VIVA di
++-- lavori (tipo_dispositivo, NOT NULL per schema): fino alla consegna il tipo è
++-- correggibile sul lavoro e lo snapshot non deve inseguirlo; alla conferma la
++-- fotografia si completa. La riconferma sovrascrive (ultima conferma vince)
++-- finché non c'è una DdC attiva.
++CREATE FUNCTION public.lavoro_prescrizione_conferma_consegna(
++  p_lab    uuid,
++  p_lavoro uuid,
++  p_utente uuid
++) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
++DECLARE
++  v_tipo text;
++  v_at   timestamptz;
++BEGIN
++  SELECT tipo_dispositivo INTO v_tipo
++    FROM lavori
++   WHERE id = p_lavoro AND laboratorio_id = p_lab AND deleted_at IS NULL
++   FOR UPDATE;
++
++  IF NOT FOUND THEN
++    RETURN json_build_object('esito', 'non_trovato');
++  END IF;
++
++  IF NOT EXISTS (
++       SELECT 1 FROM lavori_prescrizioni
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab
++     ) THEN
++    RETURN json_build_object('esito', 'senza_prescrizione');
++  END IF;
++
++  IF EXISTS (
++       SELECT 1 FROM dichiarazioni_conformita
++        WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab AND stato <> 'annullata'
++     ) THEN
++    RETURN json_build_object('esito', 'congelata');
++  END IF;
++
++  -- Il "chi" e il "quando" viaggiano insieme (lavori_prescrizioni_conferma_ck):
++  -- un p_utente NULL abortisce con 23514, fail-loud — una conferma anonima non
++  -- esiste.
++  UPDATE lavori_prescrizioni SET
++    confermata_da = p_utente,
++    confermata_at = now(),
++    contenuto     = jsonb_set(contenuto, '{tipo}', to_jsonb(v_tipo))
++   WHERE lavoro_id = p_lavoro AND laboratorio_id = p_lab
++  RETURNING confermata_at INTO v_at;
++
++  RETURN json_build_object('esito', 'ok', 'confermata_at', v_at);
++END $$;
++
++-- ============ 6. crea_rifacimento_atomico: il clone dello snapshot ============
++-- STESSA firma → CREATE OR REPLACE è corretto qui (nessun overload). Corpo
++-- IDENTICO al vigente (20260728103000:78-200, verificato uguale al catalogo
++-- vivo con pg_get_functiondef il 04/08/2026) con UNA aggiunta, marcata
++-- «⬇️ AGGIUNTA B②»: il clone della trascrizione, FRA il clone delle righe dei
++-- denti e il registro del rifacimento.
++-- ⚠️ CREATE OR REPLACE conserva l'ACL ma AZZERA proconfig (trappola documentata
++-- in 20260721090100 e 20260728103000): SET search_path ridichiarato qui e
++-- REVOKE/GRANT ri-emessi in coda.
++CREATE OR REPLACE FUNCTION public.crea_rifacimento_atomico(
++  p_lavoro_originale_id uuid,
++  p_motivo              text,
++  p_rilevato_in         text DEFAULT NULL::text,
++  p_costo_interno       numeric DEFAULT NULL::numeric,
++  p_note                text DEFAULT NULL::text
++) RETURNS json
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_lavoro       lavori%ROWTYPE;
++  v_anno         SMALLINT;
++  v_progressivo  INTEGER;
++  v_numero       TEXT;
++  v_nuovo_id     UUID;
++BEGIN
++  SELECT * INTO v_lavoro FROM lavori WHERE id = p_lavoro_originale_id FOR UPDATE;
++  IF NOT FOUND THEN RAISE EXCEPTION 'Lavoro % non trovato', p_lavoro_originale_id; END IF;
++
++  IF v_lavoro.stato NOT IN ('consegnato', 'pronto', 'sospeso') THEN
++    RAISE EXCEPTION 'Impossibile creare rifacimento per lavoro in stato "%"', v_lavoro.stato;
++  END IF;
++
++  v_anno := EXTRACT(YEAR FROM NOW())::SMALLINT;
++
++  INSERT INTO progressivi_anno (laboratorio_id, tipo, anno, progressivo)
++  VALUES (v_lavoro.laboratorio_id, 'lavoro', v_anno, 1)
++  ON CONFLICT (laboratorio_id, tipo, anno)
++  DO UPDATE SET progressivo = progressivi_anno.progressivo + 1
++  RETURNING progressivo INTO v_progressivo;
++
++  v_numero := v_anno::TEXT || '/' || LPAD(v_progressivo::TEXT, 4, '0');
++
++  INSERT INTO lavori (
++    laboratorio_id, numero_lavoro, anno_lavoro,
++    cliente_id, paziente_id, tecnico_id,
++    tipo_dispositivo, descrizione, note_interne,
++    colore_dente, denti_coinvolti, arcata,
++    -- ⬇️ AGGIUNTA G1 — il default di caso dell'ondata (a). Senza queste due
++    --    colonne il rifacimento per 'colore_sbagliato' nasceva senza colore.
++    colore_scala, colore_codice,
++    -- ⬇️ AGGIUNTA G1 — coerenza con le righe clonate qui sotto.
++    denti_mancanti, denti_impianti,
++    classe_rischio, norma_riferimento,
++    da_conformare, conformato,
++    stato, priorita,
++    data_ingresso, data_consegna_prevista,
++    codice_iva, natura_iva,
++    is_rifacimento, rifacimento_motivo,
++    listino_id, prezzo_unitario
++  ) VALUES (
++    v_lavoro.laboratorio_id, v_numero, v_anno,
++    v_lavoro.cliente_id, v_lavoro.paziente_id, v_lavoro.tecnico_id,
++    v_lavoro.tipo_dispositivo, v_lavoro.descrizione, p_note,
++    -- 🛑 `colore_dente` NON si toglie: `main` la legge ancora in produzione.
++    --    La rimozione è dell'ondata (c). Vedi il cappello di 20260728103000.
++    v_lavoro.colore_dente, v_lavoro.denti_coinvolti, v_lavoro.arcata,
++    v_lavoro.colore_scala, v_lavoro.colore_codice,
++    v_lavoro.denti_mancanti, v_lavoro.denti_impianti,
++    v_lavoro.classe_rischio, v_lavoro.norma_riferimento,
++    TRUE, FALSE,
++    'ricevuto', v_lavoro.priorita,
++    NOW(), v_lavoro.data_consegna_prevista,
++    v_lavoro.codice_iva, v_lavoro.natura_iva,
++    TRUE, p_motivo,
++    v_lavoro.listino_id, v_lavoro.prezzo_unitario
++  ) RETURNING id INTO v_nuovo_id;
++
++  -- ⬇️ AGGIUNTA G1 — la clonazione delle righe dei denti. `provenienza` si
++  -- CONSERVA, non si forza: un rifacimento eredita la storia del lavoro da cui
++  -- nasce, non ne inventa una nuova (commento esteso in 20260728103000:149-168).
++  INSERT INTO lavori_denti (
++    laboratorio_id, lavoro_id, fdi, ruolo, gruppo, gruppo_ruolo,
++    scala, codice, codice_collo, codice_corpo, codice_incisale, provenienza
++  )
++  SELECT
++    d.laboratorio_id, v_nuovo_id, d.fdi, d.ruolo, d.gruppo, d.gruppo_ruolo,
++    d.scala, d.codice, d.codice_collo, d.codice_corpo, d.codice_incisale, d.provenienza
++  FROM lavori_denti d
++  WHERE d.lavoro_id = p_lavoro_originale_id
++    AND d.laboratorio_id = v_lavoro.laboratorio_id;
++
++  -- ⚠️ Le tre colonne denormalizzate NON si ricalcolano dalle righe clonate: si
++  --    COPIANO dall'originale (sopra). Ragione estesa: 20260728103000:180-188.
++
++  -- ⬇️ AGGIUNTA B② — il clone della trascrizione (D214). Il rifacimento è lo
++  --    STESSO documento del dentista applicato a un lavoro nuovo: contenuto,
++  --    fonte (le tre colonne insieme: il CHECK fonte_ck regge per costruzione)
++  --    e numero_prescrizione viaggiano; `divergenze` e la conferma NO — il
++  --    rifacimento riparte da zero e riconferma guardando il foglio (default
++  --    '[]' e NULL della tabella, D212). La FK composita dell'immagine regge:
++  --    stesso fonte_immagine_id, stesso laboratorio_id. Se l'originale non ha
++  --    la riga, la SELECT non produce nulla: nessuna riga vuota (V2).
++  INSERT INTO lavori_prescrizioni (
++    laboratorio_id, lavoro_id, contenuto,
++    fonte_tipo, fonte_immagine_id, fonte_riferimento, numero_prescrizione
++  )
++  SELECT laboratorio_id, v_nuovo_id, contenuto,
++         fonte_tipo, fonte_immagine_id, fonte_riferimento, numero_prescrizione
++    FROM lavori_prescrizioni
++   WHERE lavoro_id = p_lavoro_originale_id
++     AND laboratorio_id = v_lavoro.laboratorio_id;
++
++  INSERT INTO lavori_rifacimenti (
++    laboratorio_id, lavoro_originale_id, lavoro_nuovo_id,
++    motivo, rilevato_in, costo_interno, note
++  ) VALUES (
++    v_lavoro.laboratorio_id, p_lavoro_originale_id, v_nuovo_id,
++    p_motivo, p_rilevato_in, p_costo_interno, p_note
++  );
++
++  RETURN json_build_object('lavoro_nuovo_id', v_nuovo_id, 'numero_lavoro', v_numero);
++END;
++$$;
++
++-- ============ Commenti: il perché resta nel catalogo ============
++COMMENT ON FUNCTION public.lavoro_crea_atomico(uuid,jsonb,jsonb,jsonb) IS
++  'Crea lavoro + denti + (se trascritta) snapshot prescrizione in una sola transazione (spec §4 rischio R1 + ondata B D214). Il quarto parametro ha DEFAULT NULL: le chiamate a 3 argomenti restano valide. NON verifica che cliente_id/paziente_id/tecnico_id/ciclo_id appartengano a p_lab: quella guardia è nella route.';
++COMMENT ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text) IS
++  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte già presente è congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
++COMMENT ON FUNCTION public.lavoro_prescrizione_correggi_typo(uuid,uuid,text,jsonb,timestamptz) IS
++  'Corregge un typo della trascrizione (elementi/colore/tipo). Gettone di concorrenza su lavori.updated_at (modello lavoro_denti_sostituisci_atomica); jsonb null rimuove la chiave (non era sulla prescrizione). Con DdC attiva: congelata (V8).';
++COMMENT ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,text,text,text,uuid) IS
++  'Appende una divergenza prescritto/eseguito al registro (V9, D212): {campo, motivo, nota, utente_id, registrata_at}, motivo da dizionario chiuso. Non tocca il contenuto. Con DdC attiva: congelata (V8).';
++COMMENT ON FUNCTION public.lavoro_prescrizione_conferma_consegna(uuid,uuid,uuid) IS
++  'Conferma della trascrizione alla consegna (V5): confermata_da/at server-side e chiave tipo copiata da lavori.tipo_dispositivo nello snapshot (D213). Con DdC attiva: congelata (V8).';
++COMMENT ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text) IS
++  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finché main la legge in produzione — si toglie nell''ondata (c).';
++
++-- ============ Permessi: firme identiche alle definizioni ============
++-- Modello 20260727120300:222-226. MAI GRANT a authenticated (l'hardening di
++-- 20260704180000 non si disfa). Ri-emessi anche per crea_rifacimento_atomico:
++-- CREATE OR REPLACE conserva l'ACL, ma non ci si appoggia a quel dettaglio.
++REVOKE EXECUTE ON FUNCTION public.lavoro_crea_atomico(uuid,jsonb,jsonb,jsonb)                             FROM PUBLIC, anon, authenticated;
++REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text)              FROM PUBLIC, anon, authenticated;
++REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_correggi_typo(uuid,uuid,text,jsonb,timestamptz)     FROM PUBLIC, anon, authenticated;
++REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,text,text,text,uuid)  FROM PUBLIC, anon, authenticated;
++REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_conferma_consegna(uuid,uuid,uuid)                   FROM PUBLIC, anon, authenticated;
++REVOKE EXECUTE ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text)                   FROM PUBLIC, anon, authenticated;
++GRANT  EXECUTE ON FUNCTION public.lavoro_crea_atomico(uuid,jsonb,jsonb,jsonb)                             TO service_role;
++GRANT  EXECUTE ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text)              TO service_role;
++GRANT  EXECUTE ON FUNCTION public.lavoro_prescrizione_correggi_typo(uuid,uuid,text,jsonb,timestamptz)     TO service_role;
++GRANT  EXECUTE ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,text,text,text,uuid)  TO service_role;
++GRANT  EXECUTE ON FUNCTION public.lavoro_prescrizione_conferma_consegna(uuid,uuid,uuid)                   TO service_role;
++GRANT  EXECUTE ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text)                   TO service_role;
+diff --git a/supabase/migrations/20260804154232_ondata_b_ddc_chiusura_update.sql b/supabase/migrations/20260804154232_ondata_b_ddc_chiusura_update.sql
+new file mode 100644
+index 00000000..6c5ed3f8
+--- /dev/null
++++ b/supabase/migrations/20260804154232_ondata_b_ddc_chiusura_update.sql
+@@ -0,0 +1,25 @@
++-- 20260804154232_ondata_b_ddc_chiusura_update.sql — Ondata B, sessione ②, parte 3/3.
++-- L'immutabilità della DdC era una CONVENZIONE (policy UPDATE tenant piena,
++-- schema.sql:1292-1294): da oggi è struttura. Modello: il cancello DPA
++-- (20260804120000:30-34). Censimento 04/08: NESSUN .update() applicativo su
++-- dichiarazioni_conformita in src/ — l'unico UPDATE legittimo è dentro
++-- annulla_consegna_atomica (SECURITY DEFINER: le policy non la toccano).
++-- Rollback: CREATE POLICY inversa (spec §7) — il testo esatto è in schema.sql
++-- alla versione precedente di questo commit.
++DROP POLICY "ddc_laboratorio_update" ON dichiarazioni_conformita;
++
++-- ============ Correzione dei due COMMENT storpiati del Task 3 ============
++-- 20260804152403_ondata_b_prescrizioni_rpc.sql (righe 496-497 e 504-505) ha
++-- scritto le lettere accentate come lettera+doppio apostrofo ("gia''", "e''",
++-- "finche''"): SBAGLIATO. In SQL si raddoppia SOLO l'apostrofo — l'accento si
++-- scrive normale (à, è, é...). "dell''ondata" e "nell''ondata", nello stesso
++-- file, ERANO invece corretti (apostrofo vero di "dell'"/"nell'", raddoppiato
++-- come un apostrofo dentro una stringa deve essere): non si toccano.
++-- Quel file è già applicato: un ALTER del suo testo sorgente nel repo non lo
++-- ri-esegue — per questo i due COMMENT si ri-emettono qui, sul DB vivo. Lo
++-- stesso testo corretto è stato riportato anche nel file sorgente del Task 3,
++-- per fedeltà della fotografia a chi ricostruisce lo schema da zero.
++COMMENT ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text) IS
++  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte già presente è congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
++COMMENT ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text) IS
++  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finché main la legge in produzione — si toglie nell''ondata (c).';
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index 34d72a0b..976a30b1 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -868,21 +868,21 @@ CREATE POLICY "fasi_laboratorio" ON fasi_produzione
+ CREATE POLICY "fasi_insert" ON fasi_produzione
+   FOR INSERT WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+ CREATE INDEX idx_fasi_ciclo ON fasi_produzione(ciclo_id, ordine) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_fasi_laboratorio ON fasi_produzione(laboratorio_id) WHERE deleted_at IS NULL;
+ 
+ 
+ -- ============================================================
+ -- LAVORI — tabella core del sistema
+ -- Ogni record = una lavorazione commissionata da un dentista
+--- Contiene i 12 elementi obbligatori per la DoC (Allegato IV MDR)
++-- Contiene gli elementi obbligatori per la DoC (Allegato XIII MDR)
+ -- ============================================================
+ CREATE TABLE lavori (
+   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   laboratorio_id    UUID NOT NULL REFERENCES laboratori(id),
+ 
+   -- Identificazione
+   numero_lavoro     TEXT NOT NULL,      -- Es. "2026/0089" — auto-generato
+   anno_lavoro       SMALLINT NOT NULL DEFAULT EXTRACT(YEAR FROM now())::SMALLINT,
+   codice_interno    TEXT,               -- Codice libero (es. numero cassetta)
+   numero_prescrizione TEXT,             -- Numero prescrizione del dentista (campo protetto)
+@@ -893,37 +893,37 @@ CREATE TABLE lavori (
+   paziente_id       UUID REFERENCES pazienti(id),
+                                         -- Nullable: paziente può essere creato dopo
+   tecnico_id        UUID REFERENCES tecnici(id),
+   ciclo_id          UUID REFERENCES cicli_produzione(id),
+   prescrizione_digitale_id UUID,        -- FK → prescrizioni_digitali (aggiunta dopo)
+ 
+   -- Dati del paziente (copiati per immutabilità MDR al momento della consegna)
+   paziente_nome_snapshot TEXT,          -- Snapshot nome al momento creazione
+   paziente_nascita_snapshot DATE,
+ 
+-  -- Tipo e descrizione dispositivo (MDR Allegato IV §5)
++  -- Tipo e descrizione dispositivo (Allegato XIII MDR)
+   tipo_dispositivo  TEXT NOT NULL
+                     CHECK (tipo_dispositivo IN (
+                       'protesi_fissa', 'protesi_mobile', 'implantologia',
+                       'cad_cam', 'scheletrato', 'ortodonzia',
+                       'provvisorio', 'riparazione', 'altro'
+                     )),
+   descrizione       TEXT NOT NULL,      -- Es. "Corona ceramica 14, colore A2"
+   note_interne      TEXT,
+ 
+   -- Odontogramma / dati clinici
+   colore_dente      TEXT,               -- Scala VITA (es. "A2", "B3")
+   denti_coinvolti   TEXT[],             -- Array FDI (es. {14, 15, 16})
+   arcata            TEXT CHECK (arcata IN ('superiore','inferiore','entrambe')),
+   anamnesi_note     TEXT,               -- Bruxismo, precauzioni, altri dispositivi
+ 
+-  -- MDR — Classificazione (Allegato IV §6 — classe rischio)
++  -- MDR — Classificazione (classe di rischio)
+   classe_rischio    TEXT NOT NULL DEFAULT 'classe_iia'
+                     CHECK (classe_rischio IN ('classe_i','classe_iia','classe_iib','classe_iii')),
+   norma_riferimento TEXT,               -- Es. "EN ISO 6872:2015"
+   da_conformare     BOOLEAN NOT NULL DEFAULT TRUE,
+ 
+   -- Stato workflow
+   stato             TEXT NOT NULL DEFAULT 'in_lavorazione'
+                     CHECK (stato IN (
+                       'in_lavorazione', 'in_prova', 'pronto',
+                       'consegnato', 'annullato', 'in_ritardo'
+@@ -1256,58 +1256,75 @@ CREATE TABLE dichiarazioni_conformita (
+   pdf_sha256            TEXT,               -- SHA-256 del blob PDF al momento della generazione
+   payload_sha256        TEXT,               -- SHA-256 del JSON input usato per generare il PDF
+   template_version      TEXT,               -- Es. "ddc-v1" — versione della FORMA del documento; il registro
+                                             -- di cosa contiene ogni versione vive accanto alla costante in
+                                             -- src/lib/pdf/generate-ddc.ts. NON è un semver: si conta 1, 2, 3.
+   pdf_generato_at       TIMESTAMPTZ,
+   generated_by          UUID REFERENCES utenti(id), -- chi ha premuto "Consegna"
+   storage_object_version TEXT,             -- versione oggetto Supabase Storage (per audit)
+ 
+   stato             TEXT NOT NULL DEFAULT 'bozza'
+-                    CHECK (stato IN ('bozza','generata','firmata','consegnata')),
++                    CHECK (stato IN ('bozza','generata','firmata','consegnata','annullata')),
+ 
+   -- Rischi non eliminabili (4 rischi standard da Odontec/DentalMaster)
+   rischi_json       JSONB,
+ 
+   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+   deleted_at        TIMESTAMPTZ,
+ 
+-  -- Una DoC per lavoro (relazione 1:1 per lo standard)
++  -- Backstop della numerazione: un numero (anno_ddc, progressivo_ddc) non si
++  -- ripete per laboratorio. NON è questo il vincolo "una DdC per lavoro" —
++  -- quello è l'indice parziale ddc_lavoro_attiva_unique (sotto, dopo gli
++  -- indici), che ammette N annullate + 1 attiva per lavoro_id.
+   UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)
+ );
+ 
+ SELECT apply_updated_at_trigger('dichiarazioni_conformita');
+ 
+ ALTER TABLE dichiarazioni_conformita ENABLE ROW LEVEL SECURITY;
+ 
+ CREATE POLICY "ddc_laboratorio_select" ON dichiarazioni_conformita
+   FOR SELECT USING (
+     laboratorio_id = public.current_lab_id()
+     AND deleted_at IS NULL
+   );
+ 
+ CREATE POLICY "ddc_laboratorio_insert" ON dichiarazioni_conformita
+   FOR INSERT WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+-CREATE POLICY "ddc_laboratorio_update" ON dichiarazioni_conformita
+-  FOR UPDATE USING (laboratorio_id = public.current_lab_id())
+-  WITH CHECK (laboratorio_id = public.current_lab_id());
++-- ddc_laboratorio_update RIMOSSA (Ondata B ②, 20260804154232) — l'immutabilità
++-- della DdC era una CONVENZIONE (questa policy UPDATE tenant piena, sopra),
++-- da qui è struttura. Modello: il cancello DPA (dpa_laboratorio, sopra).
++-- Censimento 04/08: zero .update() applicativi su dichiarazioni_conformita in
++-- src/ — l'unico UPDATE legittimo passa da annulla_consegna_atomica
++-- (SECURITY DEFINER, non toccata dalle policy). Rollback: CREATE POLICY
++-- "ddc_laboratorio_update" ON dichiarazioni_conformita FOR UPDATE
++-- USING (laboratorio_id = public.current_lab_id())
++-- WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+ -- DELETE bloccato per tutti: le DoC non si cancellano mai (MDR 10 anni)
+ -- Solo service role può archiviare dopo 10 anni
+ 
+ CREATE INDEX idx_ddc_laboratorio ON dichiarazioni_conformita(laboratorio_id) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_ddc_lavoro ON dichiarazioni_conformita(lavoro_id);
+ CREATE INDEX idx_ddc_anno ON dichiarazioni_conformita(laboratorio_id, anno_ddc) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_ddc_stato ON dichiarazioni_conformita(laboratorio_id, stato) WHERE deleted_at IS NULL;
+ 
++-- Vincolo vero "una DdC per lavoro": indice UNIQUE parziale, non la UNIQUE
++-- sopra su (anno_ddc, progressivo_ddc), che è solo il backstop del numero.
++-- Ammette N annullate + 1 attiva per lavoro_id. Origine:
++-- supabase/migrations/20260710090000_ddc_annullata_unique_parziale.sql:15-17.
++CREATE UNIQUE INDEX ddc_lavoro_attiva_unique
++  ON dichiarazioni_conformita (laboratorio_id, lavoro_id)
++  WHERE stato <> 'annullata';
++
+ 
+ -- ============================================================
+ -- BUONI_CONSEGNA — documento di consegna del lavoro
+ -- Generato automaticamente al tap CONSEGNA
+ -- Due varianti: con prezzi / senza prezzi (come DentalMaster)
+ -- ============================================================
+ CREATE TABLE buoni_consegna (
+   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   laboratorio_id    UUID NOT NULL REFERENCES laboratori(id),
+   lavoro_id         UUID NOT NULL REFERENCES lavori(id),
+diff --git a/tests/unit/componi-snapshot.test.ts b/tests/unit/componi-snapshot.test.ts
+new file mode 100644
+index 00000000..cd7c634b
+--- /dev/null
++++ b/tests/unit/componi-snapshot.test.ts
+@@ -0,0 +1,145 @@
++import { describe, it, expect } from 'vitest'
++import { componiSnapshot } from '@/lib/prescrizione/componi-snapshot'
++
++// Task 5 (ondata B ②) — `componiSnapshot` compone il jsonb `p_prescrizione`
++// per `lavoro_crea_atomico`. La semantica è quella dello snapshot V2/V3
++// (D210, W20, D213): chiave presente in `contenuto` = caratteristica
++// TRASCRITTA dalla prescrizione; l'assenza è un'informazione, mai un `null`.
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) ═══════════════════════════════
++// Ogni forma col suo caso, o col suo «non coperta, perché».
++//
++//  ① denti [] + p assente                → null (NIENTE di prescritto, V2)
++//  ② denti [{fdi:11},{fdi:12}] senza
++//    provenienza (default 'prescritto')  → contenuto {elementi:[11,12]}
++//  ③ provenienza 'prescritto' esplicita  → incluso negli elementi
++//  ④ provenienza 'eseguito'              → ESCLUSO dagli elementi (W20)
++//  ⑤ TUTTI i denti 'eseguito' + p assente→ null (nessuna trascrizione)
++//  ⑥ colore " a3 "                       → PRESERVATO ESATTO, spazi compresi
++//                                          (fedeltà D210: il testo del medico)
++//  ⑦ colore assente                      → chiave `colore` ASSENTE (mai null)
++//  ⑧ colore "" (stringa vuota)           → chiave ASSENTE: un testo vuoto non
++//                                          è una trascrizione (V2)
++//  ⑨ colore " " (solo spazi)             → PRESERVATO: decidere che « » è
++//                                          vuoto richiederebbe un trim, cioè
++//                                          la normalizzazione che D210 vieta
++//  ⑩ solo numero_prescrizione            → riga LEGITTIMA: contenuto {} +
++//                                          numero (M-T3-3: {} ≠ null)
++//  ⑪ numero ""                           → come assente; da solo → null
++//  ⑫ numero " 123 "                      → preservato come digitato
++//  ⑬ `tipo`                              → MAI presente (entra SOLO alla
++//                                          conferma di consegna, D213)
++//  ⑭ denti 'eseguito' + colore           → contenuto {colore} SENZA la chiave
++//                                          `elementi` (niente di prescritto
++//                                          fra i denti, ma il colore sì)
++//  ⑮ ordine degli elementi               → quello d'ingresso (fedeltà: non è
++//                                          compito dello snapshot riordinare)
++//  ⑯ fdi duplicati                       → NON coperta: l'unico chiamante
++//     (POST /api/lavori) passa la lista già validata da `validaDenti`, che
++//     rifiuta i duplicati con 422 (denti-validazione.ts:139-141) prima di
++//     arrivare qui.
++//  ⑰ fdi non-numero / dente non-oggetto  → NON coperta: stessa ragione della
++//     ⑯ — funzione pura tipata, riceve `DenteNormalizzato[]` già validati.
++//  ⑱ p non-oggetto (stringa/array/null)  → NON coperta QUI (firma tipata
++//     `PrescrizioneInput | undefined`); coperta ALLA PORTA: la route valida
++//     `body.prescrizione` con un 422 — tests/unit/lavori-post-prescrizione.test.ts.
++// ═══════════════════════════════════════════════════════════════════════════
++
++describe('componiSnapshot — quando NON c\'è niente di prescritto', () => {
++  it('① denti vuoti e nessuna prescrizione → null (nessuna riga, non una riga vuota)', () => {
++    expect(componiSnapshot([], undefined)).toBeNull()
++  })
++
++  it('⑤ soli denti "eseguito" e nessuna prescrizione → null', () => {
++    expect(componiSnapshot([{ fdi: 11, provenienza: 'eseguito' }])).toBeNull()
++  })
++
++  it('⑪ numero_prescrizione stringa vuota, e nient\'altro → null', () => {
++    expect(componiSnapshot([], { numero_prescrizione: '' })).toBeNull()
++  })
++})
++
++describe('componiSnapshot — gli elementi (W20: solo i prescritti)', () => {
++  it('② denti senza provenienza → elementi [11,12] (il default è "prescritto")', () => {
++    expect(componiSnapshot([{ fdi: 11 }, { fdi: 12 }])).toEqual({
++      contenuto: { elementi: [11, 12] },
++      numero_prescrizione: null,
++    })
++  })
++
++  it('③④ "prescritto" entra, "eseguito" resta fuori', () => {
++    const esito = componiSnapshot([
++      { fdi: 11, provenienza: 'prescritto' },
++      { fdi: 21, provenienza: 'eseguito' },
++      { fdi: 12 },
++    ])
++    expect(esito).toEqual({
++      contenuto: { elementi: [11, 12] },
++      numero_prescrizione: null,
++    })
++  })
++
++  it('⑮ l\'ordine degli elementi è quello d\'ingresso, non si riordina', () => {
++    const esito = componiSnapshot([{ fdi: 12 }, { fdi: 11 }])
++    expect(esito?.contenuto.elementi).toEqual([12, 11])
++  })
++
++  it('⑭ soli denti "eseguito" ma colore presente → {colore}, SENZA la chiave elementi', () => {
++    const esito = componiSnapshot([{ fdi: 11, provenienza: 'eseguito' }], { colore: 'A3' })
++    expect(esito).toEqual({
++      contenuto: { colore: 'A3' },
++      numero_prescrizione: null,
++    })
++    expect(esito?.contenuto).not.toHaveProperty('elementi')
++  })
++})
++
++describe('componiSnapshot — il colore, COME DIGITATO (D210)', () => {
++  it('⑥ " a3 " resta " a3 ": mai trim, mai uppercase — la fedeltà è il punto', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], { colore: ' a3 ' })
++    expect(esito?.contenuto.colore).toBe(' a3 ')
++  })
++
++  it('⑦ colore assente → chiave ASSENTE nel contenuto, MAI colore:null (V2)', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], {})
++    expect(esito?.contenuto).not.toHaveProperty('colore')
++  })
++
++  it('⑧ colore "" → chiave assente: un testo vuoto non è una trascrizione', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], { colore: '' })
++    expect(esito?.contenuto).not.toHaveProperty('colore')
++  })
++
++  it('⑨ colore " " (solo spazi) → preservato: giudicarlo vuoto sarebbe un trim', () => {
++    const esito = componiSnapshot([{ fdi: 11 }], { colore: ' ' })
++    expect(esito?.contenuto.colore).toBe(' ')
++  })
++})
++
++describe('componiSnapshot — il numero di prescrizione', () => {
++  it('⑩ SOLO il numero → riga legittima: contenuto {} con numero (M-T3-3)', () => {
++    expect(componiSnapshot([], { numero_prescrizione: 'RX-2026-042' })).toEqual({
++      contenuto: {},
++      numero_prescrizione: 'RX-2026-042',
++    })
++  })
++
++  it('⑫ " 123 " resta " 123 ": la fedeltà vale anche per il numero', () => {
++    const esito = componiSnapshot([], { numero_prescrizione: ' 123 ' })
++    expect(esito?.numero_prescrizione).toBe(' 123 ')
++  })
++})
++
++describe('componiSnapshot — ⑬ `tipo` non entra MAI alla creazione (D213)', () => {
++  it('nessuna combinazione d\'ingresso produce la chiave `tipo`', () => {
++    const esiti = [
++      componiSnapshot([{ fdi: 11 }, { fdi: 12 }], { colore: 'A2', numero_prescrizione: '7' }),
++      componiSnapshot([{ fdi: 11 }]),
++      componiSnapshot([], { numero_prescrizione: 'X' }),
++    ]
++    for (const esito of esiti) {
++      expect(esito).not.toBeNull()
++      expect(esito?.contenuto).not.toHaveProperty('tipo')
++    }
++  })
++})
+diff --git a/tests/unit/generate-ddc.test.ts b/tests/unit/generate-ddc.test.ts
+index 374a8bca..6a127727 100644
+--- a/tests/unit/generate-ddc.test.ts
++++ b/tests/unit/generate-ddc.test.ts
+@@ -181,26 +181,27 @@ describe('generateDdC', () => {
+     const result = await generateDdC(LAVORO_FIXTURE)
+ 
+     expect(result).toEqual({ numero: 'DDC-2026-0007', url: 'https://example.test/ddc-vincitrice.pdf' })
+   })
+ })
+ 
+ describe('D102 ① — le due firme del documento, che non erano MAI state scritte', () => {
+   // 🛑 IL FATTO: `template_version` e `payload_sha256` esistono in
+   //    `supabase/schema.sql` dal primo giorno e per anni NESSUNO le ha
+   //    valorizzate. ⚠️ Non è più vero per OGNI riga in archivio: verificato
+-  //    con una query di sola lettura sul DB live (non solo riletto dal
+-  //    referto), su 4 dichiarazioni presenti in `dichiarazioni_conformita`
+-  //    una sola porta `template_version = 'ddc-v1'` (e `payload_sha256`
+-  //    valorizzato) — è la DdC emessa e subito annullata durante il collaudo
+-  //    dal vivo del 03/08/2026, le altre tre (tutte antecedenti) restano
+-  //    NULL (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
++  //    di nuovo il 04/08/2026 con una query di sola lettura sul DB live
++  //    (`scripts/tmp/verifica-conteggio-ddc.ts`): 6 dichiarazioni in archivio,
++  //    2 `generata` di era pre-v1 (`template_version` e `payload_sha256`
++  //    entrambi NULL, risalenti al 06/07/2026) e 4 `annullata`, di cui 3 con
++  //    `template_version = 'ddc-v1'` e `payload_sha256` valorizzato — le DdC
++  //    emesse e poi annullate durante i collaudi dal vivo del 31/07-03/08/2026
++  //    (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
+   //    CLAUDE.md §9 «Collaudo dal vivo»). Sono le due colonne che, fra dieci
+   //    anni (quindici per gli impiantabili), dicono «questo PDF è quello di
+   //    allora e nasce da QUESTI dati». Una colonna dichiarata come prova e
+   //    mai scritta è la stessa classe di difetto della guardia dichiarata
+   //    come rete e mai agganciata (CLAUDE.md §9, 28/07).
+   // 🔑 `pdf_sha256` c'era già e NON basta: è l'impronta del FILE. Prova che il
+   //    byte non è stato toccato, non da quali dati sia nato. Le due domande sono
+   //    diverse e servono due impronte.
+   beforeEach(() => {
+     // Questo describe è FRATELLO di `describe('generateDdC', …)` sopra, non
+diff --git a/tests/unit/helpers/pdf-fixtures.ts b/tests/unit/helpers/pdf-fixtures.ts
+index 2baffa0e..0746d77a 100644
+--- a/tests/unit/helpers/pdf-fixtures.ts
++++ b/tests/unit/helpers/pdf-fixtures.ts
+@@ -78,20 +78,21 @@ export const LAVORO_FIXTURE: LavoroDettaglio = {
+   paziente_nome_snapshot: 'M.R.',
+   paziente_nascita_snapshot: null,
+   tipo_dispositivo: 'protesi_fissa',
+   descrizione: 'Corona ceramica su impianto elemento 14 colore A2',
+   note_interne: null,
+   note_dentista: null,
+   da_portale: false,
+   paziente_codice_richiesta: null,
+   richiedente_nome: null,
+   richiedente_email: null,
++  istituzione_sanitaria: null,
+   colore_dente: 'A2',
+   colore_collo: null,
+   colore_corpo: null,
+   colore_incisale: null,
+   // Default di caso, colonne dell'ondata (a) — la fixture è tipata stretta
+   // (nessun `as unknown as`), quindi le dichiara entrambe.
+   colore_scala: null,
+   colore_codice: null,
+   effetti_speciali: null,
+   tecnica_colore: null,
+diff --git a/tests/unit/lavori-patch-istituzione-sanitaria.test.ts b/tests/unit/lavori-patch-istituzione-sanitaria.test.ts
+new file mode 100644
+index 00000000..1391a336
+--- /dev/null
++++ b/tests/unit/lavori-patch-istituzione-sanitaria.test.ts
+@@ -0,0 +1,65 @@
++// Task 5 (ondata B ②) — `istituzione_sanitaria` entra nell'allowlist della
++// PATCH (P37: si corregge fino alla consegna, direttiva §9), mentre
++// `numero_prescrizione` resta FUORI con la sua ragione nuova: vive su
++// `lavori_prescrizioni`, scrittura via RPC dedicate (ondata B, spec §3).
++// La colonna omonima su `lavori` è legacy e non deve diventare una seconda
++// penna dello stesso fatto — la classe di difetto già pagata con
++// `numero_cassetta`.
++import { it, expect, vi, beforeEach } from 'vitest'
++
++const { mockGetUser, mockFrom } = vi.hoisted(() => ({ mockGetUser: vi.fn(), mockFrom: vi.fn() }))
++vi.mock('@/lib/supabase/server-user', () => ({ getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }) }))
++vi.mock('@/lib/supabase/server-service', () => ({ getServiceClient: () => ({ from: mockFrom }) }))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
++
++import { PATCH } from '../../src/app/api/lavori/[id]/route'
++
++let updatePayload: Record<string, unknown> | null
++
++beforeEach(() => {
++  updatePayload = null
++  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
++  mockFrom.mockImplementation((table: string) => {
++    if (table === 'utenti') {
++      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
++    }
++    // lavori: select existing (incluso_in_fattura) + update
++    return {
++      select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }),
++      update: (p: Record<string, unknown>) => {
++        updatePayload = p
++        return { eq: () => ({ eq: () => ({ select: () => ({ single: async () => ({ data: { id: 'lav-1', numero_lavoro: 'x', stato: 'pronto', updated_at: 'x' }, error: null }) }) }) }) }
++      },
++    }
++  })
++})
++
++it('istituzione_sanitaria si salva; numero_prescrizione resta scartato (penna sulle RPC di ondata B)', async () => {
++  const res = await PATCH(
++    new Request('http://localhost/api/lavori/lav-1', {
++      method: 'PATCH',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({
++        istituzione_sanitaria: 'ASL Napoli 1 Centro',
++        numero_prescrizione: 'RX-77',
++      }),
++    }),
++    { params: Promise.resolve({ id: 'lav-1' }) },
++  )
++  expect(res.status).toBe(200)
++  expect(updatePayload).toHaveProperty('istituzione_sanitaria', 'ASL Napoli 1 Centro')
++  expect(updatePayload).not.toHaveProperty('numero_prescrizione')
++})
++
++it('istituzione_sanitaria si azzera con null: la correzione include il ripensamento', async () => {
++  const res = await PATCH(
++    new Request('http://localhost/api/lavori/lav-1', {
++      method: 'PATCH',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ istituzione_sanitaria: null }),
++    }),
++    { params: Promise.resolve({ id: 'lav-1' }) },
++  )
++  expect(res.status).toBe(200)
++  expect(updatePayload).toHaveProperty('istituzione_sanitaria', null)
++})
+diff --git a/tests/unit/lavori-post-prescrizione.test.ts b/tests/unit/lavori-post-prescrizione.test.ts
+new file mode 100644
+index 00000000..902ebc12
+--- /dev/null
++++ b/tests/unit/lavori-post-prescrizione.test.ts
+@@ -0,0 +1,244 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++
++// Task 5 (ondata B ②) — POST /api/lavori compone lo snapshot della
++// prescrizione SERVER-SIDE (V3: il client manda dati grezzi, mai testo MDR
++// composto) e lo passa a `lavoro_crea_atomico` come `p_prescrizione`.
++//
++// ⚠️ LA GUARDIA M-T3-2 (review Task 3), ed è il cuore di questo file: la route
++// non deve MAI passare un jsonb 'null' come p_prescrizione. `'null'::jsonb IS
++// NOT NULL` è VERO in Postgres: la RPC entrerebbe nell'IF e inserirebbe una
++// riga fantasma di lavori_prescrizioni per ogni lavoro legacy. Quando non c'è
++// niente da trascrivere, la CHIAVE si omette dall'oggetto args — non si manda
++// `p_prescrizione: null`.
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) — il body della route ═════════
++//  ① body legacy (senza `prescrizione` né `istituzione_sanitaria`), CON denti
++//    → chiamata RPC IDENTICA a oggi: p_prescrizione ASSENTE dagli args.
++//    🔑 È il gate: la trascrizione nasce SOLO se il client la dichiara
++//    (chiave `prescrizione` presente). Senza gate, ogni body legacy con denti
++//    produrrebbe una riga di lavori_prescrizioni al deploy del server, prima
++//    che il wizard nuovo esista.
++//  ② prescrizione completa (colore + numero) + denti misti → p_prescrizione
++//    FEDELE: elementi = solo i 'prescritto' (W20), colore come digitato (D210)
++//  ③ prescrizione {} SENZA denti → componiSnapshot torna null → chiave OMESSA
++//  ④ prescrizione {} CON denti → dichiarare la trascrizione basta: gli
++//    elementi prescritti entrano nello snapshot
++//  ⑤ istituzione_sanitaria → p_lavoro, fedele (P37)
++//  ⑥ prescrizione stringa → 422, RPC mai chiamata
++//  ⑦ prescrizione array → 422
++//  ⑧ prescrizione null → 422 (chi non trascrive OMETTE la chiave — stessa
++//    regola di `denti`, route.ts:190-197)
++//  ⑨ prescrizione.colore non-stringa → 422
++//  ⑩ prescrizione.numero_prescrizione non-stringa → 422
++//  ⑪ `tipo` mai in p_prescrizione (D213) → coperto dai deep-equal di ②④
++//  ⑫ body non-JSON / null / array alla radice → NON coperta qui: guardia già
++//    esistente e già provata in lavori-post-atomico.test.ts (400 prima di
++//    qualsiasi lettura del body)
++// ═══════════════════════════════════════════════════════════════════════════
++
++const { mockGetUser, mockFrom, mockRpc } = vi.hoisted(() => ({
++  mockGetUser: vi.fn(),
++  mockFrom: vi.fn(),
++  mockRpc: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/server-user', () => ({
++  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
++}))
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
++}))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
++
++import { POST } from '../../src/app/api/lavori/route'
++
++const LAB_ID = 'lab-1'
++
++const UTENTE_ROW = {
++  laboratorio_id: LAB_ID,
++  ruolo: 'titolare',
++  laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
++}
++
++const ESITO_OK = {
++  esito: 'ok',
++  id: 'lavoro-1',
++  numero_lavoro: '2026/0042',
++  stato: 'ricevuto',
++}
++
++const CORPO_BASE = {
++  cliente_id: 'cliente-1',
++  tipo_dispositivo: 'protesi_fissa',
++  descrizione: 'Corona 14',
++  data_consegna_prevista: '2026-08-30',
++}
++
++function richiesta(body: unknown) {
++  return new Request('http://localhost/api/lavori', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json', origin: 'http://localhost', host: 'localhost' },
++    body: JSON.stringify(body),
++  })
++}
++
++/** select → eq → is → single: la catena usata sia dal lookup utenti sia dalle FK. */
++function singolo(data: unknown) {
++  return {
++    select: () => ({
++      eq: () => ({ is: () => ({ single: async () => ({ data, error: null }) }) }),
++    }),
++  }
++}
++
++function setup() {
++  mockFrom.mockImplementation((table: string) => {
++    if (table === 'utenti') return singolo(UTENTE_ROW)
++    if (table === 'clienti') return singolo({ laboratorio_id: LAB_ID })
++    throw new Error(`Tabella inattesa: ${table}`)
++  })
++}
++
++/** Gli argomenti dell'unica chiamata a `lavoro_crea_atomico`, chiavi comprese. */
++function argomentiRpc() {
++  const chiamata = mockRpc.mock.calls.find((c) => c[0] === 'lavoro_crea_atomico')
++  if (!chiamata) throw new Error('lavoro_crea_atomico non è mai stata chiamata')
++  return chiamata[1] as Record<string, unknown>
++}
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
++  mockRpc.mockResolvedValue({ data: ESITO_OK, error: null })
++})
++
++describe('POST /api/lavori — retro-compatibilità: il body legacy non cambia la chiamata', () => {
++  it('① body senza i campi nuovi, CON denti → p_prescrizione ASSENTE dagli args', async () => {
++    setup()
++
++    const res = await POST(
++      richiesta({ ...CORPO_BASE, denti: [{ fdi: 11, ruolo: 'elemento', provenienza: 'prescritto' }] })
++    )
++
++    expect(res.status).toBe(201)
++    const args = argomentiRpc()
++    // 🔑 La chiave DEVE mancare, non valere null: `'null'::jsonb IS NOT NULL`
++    // è vero, e la RPC inserirebbe una riga fantasma (M-T3-2).
++    expect(Object.keys(args).sort()).toEqual(['p_denti', 'p_lab', 'p_lavoro'])
++    // `istituzione_sanitaria: null` dentro p_lavoro è equivalente alla chiave
++    // assente per la RPC (`p_lavoro->>'istituzione_sanitaria'` → SQL NULL in
++    // entrambi i casi) — è il pattern `?? null` di ogni campo facoltativo del
++    // file (richiedente_nome, ora_consegna, …).
++    expect((args.p_lavoro as Record<string, unknown>).istituzione_sanitaria).toBeNull()
++  })
++})
++
++describe('POST /api/lavori — lo snapshot composto dal server (V3)', () => {
++  it('② prescrizione completa + denti misti → p_prescrizione fedele, solo i prescritti (W20, D210)', async () => {
++    setup()
++
++    const res = await POST(
++      richiesta({
++        ...CORPO_BASE,
++        denti: [
++          { fdi: 11, ruolo: 'elemento', provenienza: 'prescritto' },
++          { fdi: 21, ruolo: 'elemento', provenienza: 'eseguito' },
++        ],
++        prescrizione: { colore: ' a3 chiaro ', numero_prescrizione: 'RX-77' },
++      })
++    )
++
++    expect(res.status).toBe(201)
++    // Deep-equal, non objectContaining: prova anche che `tipo` NON c'è (D213)
++    // e che il colore arriva COME DIGITATO — spazi e minuscole compresi.
++    expect(argomentiRpc().p_prescrizione).toEqual({
++      contenuto: { elementi: [11], colore: ' a3 chiaro ' },
++      numero_prescrizione: 'RX-77',
++    })
++  })
++
++  it('③ prescrizione {} senza denti → niente di trascritto: chiave OMESSA, mai jsonb null', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: {} }))
++
++    expect(res.status).toBe(201)
++    expect(Object.keys(argomentiRpc()).sort()).toEqual(['p_denti', 'p_lab', 'p_lavoro'])
++  })
++
++  it('④ prescrizione {} con denti → gli elementi prescritti entrano (il default di provenienza è "prescritto")', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, denti: [{ fdi: 14 }], prescrizione: {} }))
++
++    expect(res.status).toBe(201)
++    expect(argomentiRpc().p_prescrizione).toEqual({
++      contenuto: { elementi: [14] },
++      numero_prescrizione: null,
++    })
++  })
++
++  it('⑤ istituzione_sanitaria → dentro p_lavoro, fedele (P37)', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, istituzione_sanitaria: 'ASL Napoli 1 Centro' }))
++
++    expect(res.status).toBe(201)
++    expect((argomentiRpc().p_lavoro as Record<string, unknown>).istituzione_sanitaria).toBe(
++      'ASL Napoli 1 Centro'
++    )
++  })
++})
++
++describe('POST /api/lavori — le forme patologiche di `prescrizione`', () => {
++  it('⑥ prescrizione stringa → 422, RPC mai chiamata', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: 'RX-77' }))
++    const json = await res.json()
++
++    expect(res.status).toBe(422)
++    expect(json.error).toBe('prescrizione deve essere un oggetto')
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑦ prescrizione array → 422', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: [] }))
++
++    expect(res.status).toBe(422)
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑧ prescrizione null → 422 (chi non trascrive omette la chiave, come per `denti`)', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: null }))
++
++    expect(res.status).toBe(422)
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑨ colore non-stringa → 422: il tipo sbagliato non si trascrive in silenzio', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: { colore: 3 } }))
++    const json = await res.json()
++
++    expect(res.status).toBe(422)
++    expect(json.error).toBe('colore della prescrizione non valido')
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++
++  it('⑩ numero_prescrizione non-stringa → 422', async () => {
++    setup()
++
++    const res = await POST(richiesta({ ...CORPO_BASE, prescrizione: { numero_prescrizione: 77 } }))
++    const json = await res.json()
++
++    expect(res.status).toBe(422)
++    expect(json.error).toBe('numero_prescrizione non valido')
++    expect(mockRpc).not.toHaveBeenCalled()
++  })
++})

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Billing v2.2 — Design Approvato</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Design System v2.2 warm panna ── */
+:root{
+  --bg:#DDD8D3;--sfc:#F0EDE8;--elv:#FAFAF8;--prs:#D4CFC9;
+  --t1:#1C1916;--t2:#96918D;--t3:#B8B3AE;
+  --red:#D90012;--gold:#D4A843;--gold-d:#B89030;
+  --green:#16A34A;--amber:#A87000;
+  --sh-c:-5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.90),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i:inset 3px 3px 8px rgba(0,0,0,.13),inset -2px -2px 5px rgba(255,255,255,.70);
+  --sh-gold:inset 0 1px 0 rgba(255,255,255,.28),0 6px 18px -2px rgba(180,130,0,.38),0 2px 6px rgba(180,130,0,.24);
+  --border-gold:rgba(212,168,67,.35);
+}
+
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+
+/* ── Controls ── */
+.ctrl{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;padding:9px 16px;font-family:monospace;font-size:12px;color:#fff;flex-wrap:wrap}
+.ctrl label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.cbtn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:monospace;font-size:11px;transition:background .15s;white-space:nowrap}
+.cbtn.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.sep{color:rgba(255,255,255,.3)}
+
+/* ── Page ── */
+.page{padding:66px 16px 64px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
+
+/* ── Outer shell — warm panna container ── */
+.shell{width:100%;max-width:420px}
+.outer-card{
+  background:var(--bg);
+  border-radius:28px;
+  padding:18px;
+  box-shadow:var(--sh-c);
+  position:relative;
+}
+/* Sottile bordo oro sull'inner card */
+.inner-card{
+  background:var(--sfc);
+  border-radius:20px;
+  border:1.5px solid var(--border-gold);
+  padding:28px 22px 24px;
+  display:flex;flex-direction:column;gap:18px;
+}
+
+/* ── BLACKLIST — tema dark forzato ── */
+.blacklist-outer{
+  background:#1A1916;
+  border-radius:28px;
+  padding:18px;
+  box-shadow:0 0 0 2px rgba(220,38,38,.55),0 8px 32px rgba(0,0,0,.6);
+  display:none;
+}
+.blacklist-inner{
+  background:#222019;
+  border-radius:20px;
+  border:1.5px solid rgba(220,38,38,.3);
+  padding:28px 22px 24px;
+  display:flex;flex-direction:column;gap:18px;
+  color:#F0EDE8;
+}
+
+/* ── Logo ── */
+.logo-area{display:flex;justify-content:center}
+.logo{
+  width:80px;height:80px;border-radius:22px;
+  background:linear-gradient(145deg,#E53012,#C8000E);
+  box-shadow:0 4px 20px rgba(200,0,14,.4),0 2px 8px rgba(0,0,0,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;color:#fff;
+  cursor:pointer;transition:transform .12s;user-select:none;
+  letter-spacing:-.02em;
+}
+.logo:active{transform:scale(.93)}
+.logo-bl{
+  width:80px;height:80px;border-radius:22px;
+  background:linear-gradient(145deg,#333,#1a1a1a);
+  border:2.5px solid rgba(220,38,38,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;color:rgba(255,255,255,.5);
+  margin:0 auto;position:relative;
+}
+.logo-bl::after{content:'✕';position:absolute;font-size:22px;color:rgba(220,38,38,.8)}
+
+/* ── Chip ── */
+.chip-wrap{display:flex;justify-content:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;background:var(--elv);box-shadow:var(--sh-b);color:var(--amber)}
+.chip.error{color:var(--red)}
+.chip-bl{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;background:rgba(220,38,38,.12);color:#F87171;border:1px solid rgba(220,38,38,.2)}
+
+/* ── Lab name ── */
+.lab-label{text-align:center;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2)}
+.lab-label-bl{text-align:center;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+
+/* ── Heading ── */
+.heading{text-align:center}
+.eyebrow{font-size:13px;font-style:italic;color:var(--t3);margin-bottom:5px}
+.h1{font-size:21px;font-weight:800;letter-spacing:-.03em;color:var(--t1);line-height:1.2}
+.h1-bl{font-size:21px;font-weight:800;letter-spacing:-.03em;color:#F0EDE8;line-height:1.2;text-align:center}
+.sub{font-size:13px;color:var(--t2);margin-top:5px;line-height:1.55}
+.sub-bl{font-size:13px;color:rgba(255,255,255,.45);margin-top:5px;line-height:1.55;text-align:center}
+
+/* ── Billing toggle ── */
+.bill-toggle{display:flex;background:var(--prs);box-shadow:var(--sh-i);border-radius:12px;padding:3px;gap:3px}
+.bill-btn{flex:1;height:38px;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--t2);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s,color .15s,box-shadow .15s}
+.bill-btn.active{background:var(--elv);color:var(--t1);box-shadow:var(--sh-b)}
+.save{font-size:10px;font-weight:700;background:#16A34A;color:#fff;padding:2px 8px;border-radius:99px}
+
+/* ── Plan grid ── */
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plan{background:var(--elv);border-radius:16px;padding:16px;box-shadow:var(--sh-b);cursor:pointer;position:relative;transition:box-shadow .15s,transform .12s,border-color .15s;display:flex;flex-direction:column;gap:4px;border:2px solid transparent}
+.plan:hover{transform:translateY(-2px)}
+.plan.sel{background:var(--sfc);box-shadow:var(--sh-b);border-color:var(--gold)}
+.plan.sel:hover{transform:none}
+.plan-name{font-size:13px;font-weight:800;color:var(--t1)}
+.plan-desc{font-size:11px;color:var(--t2);line-height:1.35}
+.plan-price{font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-.04em;margin-top:8px}
+.plan-price small{font-size:13px;font-weight:500;color:var(--t2)}
+.plan-sav{font-size:10px;color:var(--green);font-weight:600;min-height:14px;display:block;margin-top:2px}
+.pro-badge{position:absolute;top:-7px;right:8px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--gold);color:#fff;padding:2px 8px;border-radius:99px}
+
+/* Annuale mode */
+.price-m{display:block}.price-y{display:none}
+.sav-m{display:block}.sav-y{display:none}
+.plan-grid.yearly .price-m{display:none}.plan-grid.yearly .price-y{display:block}
+.plan-grid.yearly .sav-m{display:none}.plan-grid.yearly .sav-y{display:block}
+
+/* ── Rete info box ── */
+.rete-box{background:var(--elv);border-radius:14px;padding:14px 16px;box-shadow:var(--sh-b);display:flex;flex-direction:column;gap:7px;display:none}
+.rete-box.show{display:flex}
+.rete-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);margin-bottom:2px}
+.rete-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t2)}
+.rete-row svg{flex-shrink:0;margin-top:1px}
+.rete-note{margin-top:4px;padding-top:8px;border-top:1px solid rgba(212,168,67,.2);color:var(--t3);font-style:italic}
+
+/* ── Safe box (expired) ── */
+.safe-box{background:rgba(22,163,74,.07);border-radius:14px;padding:16px;display:flex;align-items:flex-start;gap:12px}
+.safe-txt{font-size:13px;color:var(--t2);line-height:1.5}
+.safe-txt strong{color:var(--t1);font-weight:700}
+
+/* ── Danger box (sospeso) — bordo rosso sinistra ── */
+.danger-box{background:var(--elv);border-radius:14px;padding:14px 16px;border-left:4px solid var(--red);box-shadow:var(--sh-b)}
+.danger-title{font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px}
+.danger-body{font-size:13px;color:var(--t2);line-height:1.5}
+
+/* ── Blacklist info box ── */
+.bl-box{background:rgba(255,255,255,.04);border-radius:14px;padding:16px;border:1px solid rgba(220,38,38,.2)}
+.bl-box-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#F87171;margin-bottom:10px}
+.bl-box-body{font-size:13px;color:rgba(255,255,255,.65);line-height:1.55}
+.bl-box-body strong{color:#F0EDE8}
+.bl-box-note{font-size:11px;color:rgba(255,255,255,.3);margin-top:8px;line-height:1.5}
+
+/* ── Gold CTA ── */
+.btn-gold{width:100%;height:52px;border:none;border-radius:16px;background:var(--gold);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;box-shadow:var(--sh-gold);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .1s,background .12s}
+.btn-gold:hover{transform:translateY(-1px)}
+.btn-gold:active{transform:scale(.97);background:var(--gold-d)}
+
+/* ── Support ── */
+.support{text-align:center;font-size:12px;color:var(--t3);text-decoration:none;display:block}
+.support:hover{color:var(--t2)}
+.support-bl{text-align:center;font-size:12px;color:rgba(255,255,255,.25);text-decoration:none;display:block}
+
+/* ── Hidden ── */
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="ctrl">
+  <span style="font-weight:700">Billing v2.2</span>
+  <span class="sep">|</span>
+  <label><input type="checkbox" id="dk"> Dark mode</label>
+  <span class="sep">|</span>
+  <span>Schermata:</span>
+  <button class="cbtn on" onclick="setMode('trial',this)">1A — Prova terminata</button>
+  <button class="cbtn" onclick="setMode('expired',this)">1B — Scaduto</button>
+  <button class="cbtn" onclick="setMode('sospeso',this)">1C — Sospeso</button>
+  <button class="cbtn" onclick="setMode('blacklist',this)">2 — Blacklist</button>
+</div>
+
+<div class="page">
+<div class="shell">
+
+  <!-- ═══════════════════════════════════ SCHERMATA 1 (light) ══ -->
+  <div class="outer-card" id="normalCard">
+    <div class="inner-card">
+
+      <!-- Logo -->
+      <div class="logo-area">
+        <div class="logo" id="logo1" onclick="bounceLogo('logo1')">UÀ!</div>
+      </div>
+
+      <!-- Chip -->
+      <div class="chip-wrap">
+        <div class="chip" id="chip1">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1.5L12.5 11H1.5L7 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M7 5.5V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="7" cy="10" r=".7" fill="currentColor"/>
+          </svg>
+          <span id="chipTxt">Prova terminata</span>
+        </div>
+      </div>
+
+      <!-- Lab name -->
+      <div class="lab-label">Lab Opromolla</div>
+
+      <!-- ── STATO: trial_expired ── -->
+      <div id="s-trial">
+        <div class="heading" style="margin-bottom:0">
+          <div class="eyebrow">Come ti sei trovato con UÀ?</div>
+          <div class="h1">Continua senza interruzioni</div>
+          <div class="sub">Scegli il piano e attiva l&rsquo;abbonamento — tutto rimane esattamente com&rsquo;era.</div>
+        </div>
+
+        <!-- Billing toggle -->
+        <div class="bill-toggle" style="margin-top:2px">
+          <button class="bill-btn active" id="bm" onclick="setBilling('m')">Mensile</button>
+          <button class="bill-btn" id="by" onclick="setBilling('y')">Annuale &nbsp;<span class="save">2 mesi gratis</span></button>
+        </div>
+
+        <!-- Plan grid -->
+        <div class="plan-grid" id="planGrid">
+          <div class="plan sel" id="pLab" onclick="selectPlan('lab')" tabindex="0">
+            <div class="plan-name">Laboratorio</div>
+            <div class="plan-desc">Un laboratorio, utenti illimitati</div>
+            <div class="price-m plan-price">€49<small>/mese</small></div>
+            <div class="price-y plan-price">€41<small>/mese</small></div>
+            <span class="sav-m plan-sav">&nbsp;</span>
+            <span class="sav-y plan-sav">€490/anno · risparmi €98</span>
+          </div>
+          <div class="plan" id="pRete" onclick="selectPlan('rete')" tabindex="0">
+            <span class="pro-badge">PRO</span>
+            <div class="plan-name">Rete</div>
+            <div class="plan-desc">Più laboratori, gestione centralizzata</div>
+            <div class="price-m plan-price">€149<small>/mese</small></div>
+            <div class="price-y plan-price">€124<small>/mese</small></div>
+            <span class="sav-m plan-sav">&nbsp;</span>
+            <span class="sav-y plan-sav">€1.490/anno · risparmi €298</span>
+          </div>
+        </div>
+
+        <!-- Rete info box -->
+        <div class="rete-box" id="reteBox">
+          <div class="rete-title">Piano Rete — per più laboratori</div>
+          <div class="rete-row">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#D4A843" stroke-width="1.4"/><path d="M4.5 7L6.2 8.7L9.5 5.5" stroke="#D4A843" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Gestisci più sedi da un unico admin panel
+          </div>
+          <div class="rete-row">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#D4A843" stroke-width="1.4"/><path d="M4.5 7L6.2 8.7L9.5 5.5" stroke="#D4A843" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Report aggregati su tutti i laboratori
+          </div>
+          <div class="rete-row">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#D4A843" stroke-width="1.4"/><path d="M4.5 7L6.2 8.7L9.5 5.5" stroke="#D4A843" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Fatturazione unica per tutta la rete
+          </div>
+          <div class="rete-row rete-note">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 4.5V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="7" cy="9.5" r=".6" fill="currentColor"/></svg>
+            Il piano Rete ha un contratto dedicato — ti contatteremo entro 24h per il setup.
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <button class="btn-gold">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 9H16M10 3L16 9L10 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="ctaTxt">Attiva abbonamento</span>
+        </button>
+      </div>
+
+      <!-- ── STATO: expired ── -->
+      <div id="s-expired" class="hidden">
+        <div class="heading">
+          <div class="h1">Il tuo abbonamento è scaduto</div>
+          <div class="sub">Rinnova per riprendere esattamente da dove hai lasciato.</div>
+        </div>
+        <div class="safe-box">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="flex-shrink:0;margin-top:2px">
+            <path d="M14 3L5 7V14C5 18.97 9.03 23.56 14 25C18.97 23.56 23 18.97 23 14V7L14 3Z" stroke="#3DCB5C" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M10 14L12.5 16.5L18 11" stroke="#3DCB5C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="safe-txt"><strong>I tuoi dati sono al sicuro.</strong><br>Lavori, DdC, fatture — tutto conservato, nulla cancellato.</div>
+        </div>
+        <button class="btn-gold">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9a6 6 0 1 1 1.5 4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M3 13V9H7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Rinnova abbonamento
+        </button>
+      </div>
+
+      <!-- ── STATO: sospeso ── -->
+      <div id="s-sospeso" class="hidden">
+        <div class="danger-box">
+          <div class="danger-title">Il pagamento non è andato a buon fine.</div>
+          <div class="danger-body">L&rsquo;accesso è sospeso fino al rinnovo del metodo di pagamento. Agisci prima che i dati diventino inaccessibili.</div>
+        </div>
+        <div style="text-align:center">
+          <div class="lab-label">Lab Opromolla</div>
+          <div class="sub" style="margin-top:6px">Aggiorna la carta o il conto bancario nel portale Stripe — bastano 30 secondi.</div>
+        </div>
+        <button class="btn-gold">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="10" rx="2" stroke="white" stroke-width="1.8"/><path d="M2 8H16" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M5 12H7" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Aggiorna pagamento
+        </button>
+      </div>
+
+      <a href="mailto:supporto@ua.app" class="support">Problemi? supporto@ua.app</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ SCHERMATA 2 — BLACKLIST (dark) ══ -->
+  <div class="blacklist-outer hidden" id="blacklistCard">
+    <div class="blacklist-inner">
+      <div class="logo-area"><div class="logo-bl"></div></div>
+      <div class="chip-wrap">
+        <div class="chip-bl">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L12.5 11H1.5L7 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 5.5V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="10" r=".7" fill="currentColor"/></svg>
+          Accesso revocato
+        </div>
+      </div>
+      <div class="heading">
+        <div class="h1-bl">Questo account è stato sospeso</div>
+        <div class="sub-bl">L&rsquo;accesso a UÀ è stato revocato dall&rsquo;amministratore di sistema.</div>
+      </div>
+      <div class="bl-box">
+        <div class="bl-box-label">Come procedere</div>
+        <div class="bl-box-body">
+          Scrivi a <strong>supporto@ua.app</strong> indicando il nome del laboratorio e il motivo del contatto.
+        </div>
+        <div class="bl-box-note">Rispondiamo entro 24 ore lavorative. Nessuna azione è disponibile su questa schermata.</div>
+      </div>
+      <a href="mailto:supporto@ua.app" class="support-bl">Problemi? supporto@ua.app</a>
+    </div>
+  </div>
+
+</div><!-- .shell -->
+</div><!-- .page -->
+
+<script>
+document.getElementById('dk').addEventListener('change', function(e) {
+  document.body.style.background = e.target.checked ? '#1A1916' : ''
+})
+
+function bounceLogo(id) {
+  var el = document.getElementById(id)
+  el.style.transform = 'scale(1.15) rotate(-4deg)'
+  setTimeout(function(){ el.style.transform = '' }, 200)
+}
+
+var currentBilling = 'm'
+var currentPlan = 'lab'
+var currentMode = 'trial'
+
+function setMode(mode, btn) {
+  document.querySelectorAll('.cbtn').forEach(function(b){ b.classList.remove('on') })
+  btn.classList.add('on')
+  currentMode = mode
+
+  var normal = document.getElementById('normalCard')
+  var bl = document.getElementById('blacklistCard')
+
+  if (mode === 'blacklist') {
+    normal.style.display = 'none'
+    bl.classList.remove('hidden')
+  } else {
+    normal.style.display = ''
+    bl.classList.add('hidden')
+  }
+
+  var states = ['trial','expired','sospeso']
+  states.forEach(function(s){
+    var el = document.getElementById('s-' + s)
+    if(el){ el.classList.toggle('hidden', s !== mode) }
+  })
+
+  var chip = document.getElementById('chip1')
+  var chipTxt = document.getElementById('chipTxt')
+  if (mode === 'trial')   { chipTxt.textContent = 'Prova terminata';       chip.className = 'chip' }
+  if (mode === 'expired') { chipTxt.textContent = 'Abbonamento scaduto';   chip.className = 'chip' }
+  if (mode === 'sospeso') { chipTxt.textContent = 'Pagamento fallito';     chip.className = 'chip error' }
+}
+
+function setBilling(mode) {
+  currentBilling = mode
+  document.getElementById('bm').classList.toggle('active', mode === 'm')
+  document.getElementById('by').classList.toggle('active', mode === 'y')
+  document.getElementById('planGrid').classList.toggle('yearly', mode === 'y')
+  updateCta()
+}
+
+function selectPlan(plan) {
+  currentPlan = plan
+  document.getElementById('pLab').classList.toggle('sel', plan === 'lab')
+  document.getElementById('pRete').classList.toggle('sel', plan === 'rete')
+  var rb = document.getElementById('reteBox')
+  if(plan === 'rete') rb.classList.add('show'); else rb.classList.remove('show')
+  updateCta()
+}
+
+function updateCta() {
+  var label = document.getElementById('ctaTxt')
+  if(!label) return
+  if (currentBilling === 'y') {
+    label.textContent = 'Attiva piano ' + (currentPlan === 'lab' ? 'Lab' : 'Rete') + ' annuale'
+  } else if (currentPlan === 'rete') {
+    label.textContent = 'Continua con piano Rete'
+  } else {
+    label.textContent = 'Attiva abbonamento'
+  }
+}
+</script>
+</body>
+</html>

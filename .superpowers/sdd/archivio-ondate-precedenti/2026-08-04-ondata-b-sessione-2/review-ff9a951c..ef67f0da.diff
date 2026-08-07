@@ -1,0 +1,871 @@
+# Review package: ff9a951c..ef67f0da
+
+## Commits
+ef67f0da feat(whatsapp): P31 — i sei punti WhatsApp leggono il cellulare, e la catena di trasporto lo porta fino li
+
+## Files changed
+ src/app/(app)/scadenzario/[cliente_id]/page.tsx    |   3 +-
+ src/app/api/scadenzario/[cliente_id]/route.ts      |   4 +-
+ src/app/api/scadenzario/route.ts                   |   5 +-
+ .../features/lavori/LavoroFormClient.tsx           |   2 +-
+ .../features/lavori/form/TabAccettazione.tsx       |  17 +++-
+ .../features/scadenzario/EstrattoContoView.tsx     |  18 ++--
+ .../features/scadenzario/ScadenzarioList.tsx       |  10 +-
+ src/lib/consegna/orchestrate.ts                    |  28 ++++--
+ src/types/domain.ts                                |   9 ++
+ tests/unit/helpers/pdf-fixtures.ts                 |   1 +
+ .../orchestra-consegna-whatsapp-cellulare.test.ts  | 104 +++++++++++++++++++++
+ tests/unit/whatsapp-legge-il-cellulare.test.ts     |  19 ++++
+ 12 files changed, 191 insertions(+), 29 deletions(-)
+
+## Diff
+diff --git a/src/app/(app)/scadenzario/[cliente_id]/page.tsx b/src/app/(app)/scadenzario/[cliente_id]/page.tsx
+index e1a095db..a5995952 100644
+--- a/src/app/(app)/scadenzario/[cliente_id]/page.tsx
++++ b/src/app/(app)/scadenzario/[cliente_id]/page.tsx
+@@ -19,37 +19,38 @@ export default async function EstrattoContoPage({ params }: Props) {
+   const { cliente_id } = await params
+ 
+   const context = await getLabContext()
+   if (!context?.laboratorioId) redirect('/login?error=no_lab')
+ 
+   const svc = getServiceClient()
+   const labId: string = context.laboratorioId
+ 
+   const { data: clienteRow } = await svc
+     .from('clienti')
+-    .select('id, nome, cognome, studio_nome, telefono, indirizzo, cap, citta')
++    .select('id, nome, cognome, studio_nome, telefono, cellulare_whatsapp, indirizzo, cap, citta')
+     .eq('id', cliente_id)
+     .eq('laboratorio_id', labId)
+     .is('deleted_at', null)
+     .single()
+ 
+   if (!clienteRow) redirect('/scadenzario')
+ 
+   const { dovuti, lavoriInAttesa, creditoCliente } = await getContabilitaCliente(svc, labId, cliente_id)
+ 
+   const dati: EstrattoContoResponse = {
+     cliente: {
+       id: clienteRow.id,
+       nome: clienteRow.nome,
+       cognome: clienteRow.cognome,
+       studio_nome: clienteRow.studio_nome,
+       telefono: clienteRow.telefono,
++      cellulare_whatsapp: clienteRow.cellulare_whatsapp,
+       indirizzo: clienteRow.indirizzo,
+       cap: clienteRow.cap,
+       citta: clienteRow.citta,
+     },
+     dovuti,
+     lavoriInAttesa,
+     creditoCliente,
+   }
+ 
+   const nomeDisplay = clienteRow.studio_nome ?? `${clienteRow.nome} ${clienteRow.cognome}`
+diff --git a/src/app/api/scadenzario/[cliente_id]/route.ts b/src/app/api/scadenzario/[cliente_id]/route.ts
+index c5edd69b..d5a317cb 100644
+--- a/src/app/api/scadenzario/[cliente_id]/route.ts
++++ b/src/app/api/scadenzario/[cliente_id]/route.ts
+@@ -6,20 +6,21 @@ import { getContabilitaCliente, type DovutoEstratto, type LavoroInAttesa } from
+ 
+ export type { DovutoEstratto, LavoroInAttesa }
+ 
+ export interface EstrattoContoResponse {
+   cliente: {
+     id: string
+     nome: string
+     cognome: string
+     studio_nome: string | null
+     telefono: string | null
++    cellulare_whatsapp: string | null
+     indirizzo: string | null
+     cap: string | null
+     citta: string | null
+   }
+   dovuti: DovutoEstratto[]
+   lavoriInAttesa: LavoroInAttesa[]
+   creditoCliente: { confermato: number; potenziale: number; disponibile: number; totale: number }
+ }
+ 
+ // ─── GET /api/scadenzario/[cliente_id] ───────────────────────────────────────
+@@ -42,21 +43,21 @@ export async function GET(
+   }
+ 
+   const guard = assertLabOperativo(context, 'GET')
+   if (guard) return guard
+ 
+   const svc = getServiceClient()
+   const labId: string = context.laboratorioId
+ 
+   const { data: clienteRow, error: clienteError } = await svc
+     .from('clienti')
+-    .select('id, nome, cognome, studio_nome, telefono, indirizzo, cap, citta')
++    .select('id, nome, cognome, studio_nome, telefono, cellulare_whatsapp, indirizzo, cap, citta')
+     .eq('id', cliente_id)
+     .eq('laboratorio_id', labId)
+     .is('deleted_at', null)
+     .single()
+ 
+   if (clienteError || !clienteRow) {
+     return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
+   }
+ 
+   // getContabilitaCliente è fail-closed (follow-up Ondata 3): su errore di
+@@ -70,20 +71,21 @@ export async function GET(
+   }
+   const { dovuti, lavoriInAttesa, creditoCliente } = contabilita
+ 
+   const response: EstrattoContoResponse = {
+     cliente: {
+       id: clienteRow.id,
+       nome: clienteRow.nome,
+       cognome: clienteRow.cognome,
+       studio_nome: clienteRow.studio_nome,
+       telefono: clienteRow.telefono,
++      cellulare_whatsapp: clienteRow.cellulare_whatsapp,
+       indirizzo: clienteRow.indirizzo,
+       cap: clienteRow.cap,
+       citta: clienteRow.citta,
+     },
+     dovuti,
+     lavoriInAttesa,
+     creditoCliente,
+   }
+ 
+   return NextResponse.json(response)
+diff --git a/src/app/api/scadenzario/route.ts b/src/app/api/scadenzario/route.ts
+index a51dba1f..1e0696e8 100644
+--- a/src/app/api/scadenzario/route.ts
++++ b/src/app/api/scadenzario/route.ts
+@@ -25,55 +25,56 @@ export async function GET() {
+ 
+   const svc = getServiceClient()
+   const labId: string = context.laboratorioId
+ 
+   type ClienteSnap = {
+     id: string
+     nome: string
+     cognome: string
+     studio_nome: string | null
+     telefono: string | null
++    cellulare_whatsapp: string | null
+   }
+ 
+   interface DovutoRow {
+     id: string
+     origine: 'fattura' | 'lavoro_diretto'
+     numero: string
+     data: string
+     importo: number
+     stato_sdi: string | null
+   }
+ 
+   const { data: fattureData, error: fattureError } = await svc
+     .from('fatture')
+-    .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono)')
++    .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono, cellulare_whatsapp)')
+     .eq('laboratorio_id', labId)
+     .eq('pagata', false)
+     .neq('stato_sdi', 'draft')
+     .is('deleted_at', null)
+     // Task 5 (audit letture storno TD04): stesso invariante di
+     // getContabilitaCliente/getCreditoScadutoPerCliente — TD01 stornata e
+     // TD04 esclusi dallo scadenzario, altrimenti lo stesso importo
+     // comparirebbe due volte (originale stornata + nota di credito).
+     .is('stornata_at', null)
+     .neq('tipo_documento', 'TD04')
+     .order('data', { ascending: true })
+ 
+   if (fattureError) {
+     return NextResponse.json({ error: fattureError.message }, { status: 500 })
+   }
+ 
+   const { data: lavoriData, error: lavoriError } = await svc
+     .from('lavori')
+     .select(`
+       id, numero_lavoro, prezzo_unitario, data_consegna_prevista,
+-      cliente:clienti(id, nome, cognome, studio_nome, telefono),
++      cliente:clienti(id, nome, cognome, studio_nome, telefono, cellulare_whatsapp),
+       pagamenti(importo, stato),
+       credito_clienti_movimenti(importo, tipo),
+       lavorazioni:lavori_lavorazioni(importo)
+     `)
+     .eq('laboratorio_id', labId)
+     .in('decisione_fatturazione', ['non_fatturare', 'fatturare'])
+     .eq('incluso_in_fattura', false)
+     .not('stato', 'in', '("annullato")')
+     .is('deleted_at', null)
+ 
+diff --git a/src/components/features/lavori/LavoroFormClient.tsx b/src/components/features/lavori/LavoroFormClient.tsx
+index 86c27395..2741430e 100644
+--- a/src/components/features/lavori/LavoroFormClient.tsx
++++ b/src/components/features/lavori/LavoroFormClient.tsx
+@@ -142,21 +142,21 @@ export function LavoroFormClient({
+                   cicloId={data.ciclo_id ?? lavoro.ciclo_id ?? ''}
+                   onCicloChange={(id) => update({ ciclo_id: id || null })}
+                 />
+               )
+ 
+             case 'accettazione':
+               return (
+                 <TabAccettazione
+                   data={data}
+                   onChange={update}
+-                  clienteTelefono={lavoro.cliente?.telefono ?? null}
++                  clienteCellulare={lavoro.cliente?.cellulare_whatsapp ?? null}
+                   numeroLavoro={lavoro.numero_lavoro}
+                   labNome={lavoro.laboratorio?.nome ?? null}
+                   labTelefono={lavoro.laboratorio?.telefono ?? null}
+                 />
+               )
+ 
+             case 'lavorazioni':
+               return (
+                 <TabLavorazioni
+                   lavorazioni={lavorazioni}
+diff --git a/src/components/features/lavori/form/TabAccettazione.tsx b/src/components/features/lavori/form/TabAccettazione.tsx
+index 43c2991e..ecd1292a 100644
+--- a/src/components/features/lavori/form/TabAccettazione.tsx
++++ b/src/components/features/lavori/form/TabAccettazione.tsx
+@@ -1,17 +1,18 @@
+ 'use client'
+ 
+ import { useState } from 'react'
+ import { motion } from 'motion/react'
+ import type { Lavoro } from '@/types/domain'
+ import { motionTokens, useReducedMotion } from '@/design-system/motion'
+ import { hapticLight, hapticMedium } from '@/lib/feedback/haptic'
++import { buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+ import {
+   inputBase,
+   labelStyle,
+   fieldStyle,
+   sectionSeparator,
+   sectionTitle,
+   raisedShadow,
+   insetShadow,
+ } from './styles'
+ import { InfoTooltip } from '@/components/ui/InfoTooltip'
+@@ -160,21 +161,24 @@ function ToggleSwitch({ id, checked, onChange, label, sub, reduced }: ToggleSwit
+         />
+       </button>
+     </div>
+   )
+ }
+ 
+ // ─── Props ────────────────────────────────────────────────────────
+ interface TabAccettazioneProps {
+   data: Partial<Lavoro>
+   onChange: (u: Partial<Lavoro>) => void
+-  clienteTelefono?: string | null
++  /** Cellulare del cliente per WhatsApp (P31, D182) — MAI il telefono fisso
++   *  dello studio: quel campo, se letto qui, manderebbe la conferma di
++   *  ricezione su un numero che non riceve WhatsApp. */
++  clienteCellulare?: string | null
+   numeroLavoro?: string | null
+   labNome?: string | null
+   labTelefono?: string | null
+ }
+ 
+ // ─── Helpers ─────────────────────────────────────────────────────
+ function toggleMateriale(
+   current: string[],
+   key: MaterialeKey,
+ ): string[] {
+@@ -188,21 +192,21 @@ function mdrScore(data: Partial<Lavoro>): number {
+   if (data.tipo_impronte) score++
+   if (data.disinfettante_usato && data.lotto_disinfettante) score++
+   if ((data.materiali_allegati ?? []).length > 0) score++
+   return score
+ }
+ 
+ // ─── Componente ───────────────────────────────────────────────────
+ export function TabAccettazione({
+   data,
+   onChange,
+-  clienteTelefono,
++  clienteCellulare,
+   numeroLavoro,
+   labNome,
+   labTelefono,
+ }: TabAccettazioneProps) {
+   const reduced = useReducedMotion()
+   const spring = motionTokens.spring.snappy
+   const materialiAttuali = data.materiali_allegati ?? []
+ 
+   // ─── Disinfettante "Altro" — testo libero ─────────────────────────
+   const isAltroDisinfettante =
+@@ -221,22 +225,25 @@ export function TabAccettazione({
+     : null
+ 
+   const messaggioPreview = [
+     'Buongiorno,',
+     `abbiamo ricevuto il lavoro ${numeroLavoro ?? ''}.`,
+     dataConsegnaFormatted ? `Consegna prevista: ${dataConsegnaFormatted}.` : '',
+     labNome ? `— ${labNome}` : '',
+     labTelefono ? labTelefono : '',
+   ].filter(Boolean).join(' ')
+ 
+-  const whatsappUrl = clienteTelefono
+-    ? `https://wa.me/${clienteTelefono.replace(/\D/g, '')}?text=${encodeURIComponent(messaggioPreview)}`
++  // P31: passa dalla funzione condivisa, che aggiunge il prefisso internazionale
++  // (D182). Costruire il link a mano qui era il motivo per cui questo punto non
++  // compariva nel censimento delle chiamate a buildWhatsappUrl.
++  const whatsappUrl = clienteCellulare
++    ? buildWhatsappUrl(messaggioPreview, clienteCellulare)
+     : ''
+ 
+   return (
+     <div>
+       {/* ═══ 1. POSIZIONE FISICA ═══════════════════════════════════ */}
+       {/* Task 16 / spec §10 (riserva R1): il campo «N° cassetta» editabile è
+           MORTO — la posizione fisica si assegna SOLO dalla Parete (POST
+           /api/lavori/[id]/cassetta via lo sheet «dal parco»), MAI dal PATCH del
+           form (numero_cassetta è fuori da PATCHABLE_FIELDS: era un no-op
+           silenzioso). Qui resta al più una riga di SOLA LETTURA + il rimando
+@@ -662,21 +669,21 @@ export function TabAccettazione({
+                 }}
+               >
+                 {item.ok ? 'completato' : 'mancante'}
+               </span>
+             </li>
+           ))}
+         </ul>
+       </div>
+ 
+       {/* ═══ 5. CONFERMA RICEZIONE AL DENTISTA (WhatsApp) ═══════════ */}
+-      {clienteTelefono && (
++      {clienteCellulare && (
+         <div style={{ marginTop: '16px' }}>
+           {/* Anteprima messaggio */}
+           <div style={{
+             background: 'rgba(37,211,102,.07)',
+             border: '1px solid rgba(37,211,102,.2)',
+             borderRadius: '10px',
+             padding: '10px 12px',
+             marginBottom: '10px',
+           }}>
+             <p style={{
+diff --git a/src/components/features/scadenzario/EstrattoContoView.tsx b/src/components/features/scadenzario/EstrattoContoView.tsx
+index 03827ac3..57647bb3 100644
+--- a/src/components/features/scadenzario/EstrattoContoView.tsx
++++ b/src/components/features/scadenzario/EstrattoContoView.tsx
+@@ -17,32 +17,35 @@ import { LavoriInAttesaSection } from './LavoriInAttesaSection'
+ import { CreditoDisponibileSection } from './CreditoDisponibileSection'
+ import {
+   DS, fmt, urgencyColor, urgencyEmoji, urgencyLabel, urgencyPillBg, urgencyPillBorder,
+   labelStatoSDI, labelOrigine,
+ } from './estratto-conto-shared'
+ 
+ // ─── DovutoBottomSheet ────────────────────────────────────────────────────────
+ 
+ interface BottomSheetProps {
+   dovuto: DovutoEstratto | null
+-  telefono: string | null
++  /** P31: cellulare per WhatsApp, MAI il telefono fisso dello studio — una
++   *  prop chiamata "telefono" che doveva ricevere il cellulare è esattamente
++   *  come è nato il difetto P31. */
++  cellulare: string | null
+   studioNome: string
+   onClose: () => void
+   onRegistraPagamento: (target: TargetPagamento) => void
+ }
+ 
+-function DovutoBottomSheet({ dovuto, telefono, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
++function DovutoBottomSheet({ dovuto, cellulare, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
+   const reducedMotion = useReducedMotion()
+   const color = dovuto ? urgencyColor(dovuto) : DS.t2
+ 
+   const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo }) : ''
+-  const whatsappUrl = (dovuto && telefono && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, telefono) : ''
++  const whatsappUrl = (dovuto && cellulare && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, cellulare) : ''
+ 
+   return (
+     <AnimatePresence>
+       {dovuto && (
+         <>
+           <motion.div
+             key="sheet-overlay"
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+@@ -98,21 +101,21 @@ function DovutoBottomSheet({ dovuto, telefono, studioNome, onClose, onRegistraPa
+               <KpiMini label={dovuto.pagata ? 'Importo' : 'Residuo'} value={fmt.format(dovuto.pagata ? dovuto.totale : dovuto.residuo)} color={color} />
+               <KpiMini label="Giorni" value={dovuto.pagata ? '—' : `${dovuto.giorni_ritardo}gg`} color={DS.t1} />
+               {dovuto.origine === 'fattura' ? (
+                 <KpiMini label="Stato SDI" value={labelStatoSDI(dovuto.stato_sdi ?? 'draft')} color={DS.t2} />
+               ) : (
+                 <KpiMini label="Origine" value="Lavoro diretto" color={DS.t2} />
+               )}
+             </div>
+ 
+             <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+-              {telefono && !dovuto.pagata && (
++              {cellulare && !dovuto.pagata && (
+                 <a
+                   href={whatsappUrl}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   onClick={onClose}
+                   style={{
+                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                     minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+                     borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+                     textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+@@ -213,22 +216,23 @@ export function EstrattoContoView({ dati }: Props) {
+   const closeSheet = useCallback(() => setSelectedDovuto(null), [])
+ 
+   const handleRegistrato = useCallback(() => {
+     router.refresh()
+   }, [router])
+ 
+   const whatsappMsgGlobale = buildWhatsappSollecito({
+     studioNome: dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`,
+     totaleInsoluto: dati.creditoCliente.confermato,
+   })
+-  const whatsappUrlGlobale = dati.cliente.telefono
+-    ? buildWhatsappUrl(whatsappMsgGlobale, dati.cliente.telefono)
++  // P31: il sollecito va sul cellulare, mai sul fisso dello studio.
++  const whatsappUrlGlobale = dati.cliente.cellulare_whatsapp
++    ? buildWhatsappUrl(whatsappMsgGlobale, dati.cliente.cellulare_whatsapp)
+     : null
+ 
+   const selectedDovutoAggiornato = selectedDovuto
+     ? (dati.dovuti.find((d) => d.id === selectedDovuto.id) ?? selectedDovuto)
+     : null
+ 
+   return (
+     <>
+       <style>{`
+         .estratto-col-sidebar { display: none; }
+@@ -339,21 +343,21 @@ export function EstrattoContoView({ dati }: Props) {
+                 <WhatsAppIcon />
+                 Invia sollecito WhatsApp
+               </a>
+             </div>
+           )}
+         </div>
+       </div>
+ 
+       <DovutoBottomSheet
+         dovuto={selectedDovutoAggiornato}
+-        telefono={dati.cliente.telefono}
++        cellulare={dati.cliente.cellulare_whatsapp}
+         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
+         onClose={closeSheet}
+         onRegistraPagamento={setTargetPagamento}
+       />
+ 
+       <RegistraPagamentoSheet
+         target={targetPagamento}
+         onClose={() => setTargetPagamento(null)}
+         onRegistrato={handleRegistrato}
+       />
+diff --git a/src/components/features/scadenzario/ScadenzarioList.tsx b/src/components/features/scadenzario/ScadenzarioList.tsx
+index 16c128f8..c39f791e 100644
+--- a/src/components/features/scadenzario/ScadenzarioList.tsx
++++ b/src/components/features/scadenzario/ScadenzarioList.tsx
+@@ -7,20 +7,21 @@ import { t, useReducedMotion } from '@/design-system/motion'
+ import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+ 
+ // ─── Types ────────────────────────────────────────────────────────────────────
+ 
+ interface ClienteSnap {
+   id: string
+   nome: string
+   cognome: string
+   studio_nome: string | null
+   telefono: string | null
++  cellulare_whatsapp: string | null
+ }
+ 
+ interface DovutoRow {
+   id: string
+   origine: 'fattura' | 'lavoro_diretto'
+   numero: string
+   data: string
+   importo: number
+   stato_sdi: string | null
+ }
+@@ -75,21 +76,22 @@ function InsolutoCard({
+           (now - new Date(d.data).getTime()) / 86_400_000
+         ),
+       })),
+     [item.dovuti, now]
+   )
+ 
+   const whatsappMsg = buildWhatsappSollecito({
+     studioNome: item.cliente.studio_nome ?? `${item.cliente.nome} ${item.cliente.cognome}`,
+     totaleInsoluto: item.totale_insoluto,
+   })
+-  const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.telefono ?? undefined)
++  // P31: il sollecito va sul cellulare. Niente ripiego sul fisso dello studio.
++  const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.cellulare_whatsapp ?? undefined)
+ 
+   const cardStyle: React.CSSProperties = {
+     background: 'var(--surface, #E4DFD9)',
+     borderRadius: '16px',
+     padding: '16px',
+     margin: '0 16px 12px',
+     boxShadow:
+       'var(--sh-b, var(--sh-b))',
+     cursor: 'pointer',
+     userSelect: 'none',
+@@ -298,22 +300,24 @@ function InsolutoCard({
+                   fontSize: '14px',
+                   fontWeight: 600,
+                   textDecoration: 'none',
+                   marginBottom: '8px',
+                   boxShadow: '-3px -3px 8px rgba(255,255,255,.72), 5px 6px 14px -2px rgba(148,128,118,.40)',
+                 }}
+               >
+                 📊 Estratto conto completo →
+               </Link>
+ 
+-              {/* WhatsApp sollecito CTA */}
+-              {item.cliente.telefono && (
++              {/* WhatsApp sollecito CTA — P31: mostrato solo se c'è un
++                  cellulare, non solo perché c'è un fisso (altrimenti il
++                  tasto comparirebbe e produrrebbe un link senza destinatario). */}
++              {item.cliente.cellulare_whatsapp && (
+                 <a
+                   href={whatsappUrl}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   style={{
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     gap: '8px',
+                     minHeight: '52px',
+diff --git a/src/lib/consegna/orchestrate.ts b/src/lib/consegna/orchestrate.ts
+index 4158429d..c7996bf8 100644
+--- a/src/lib/consegna/orchestrate.ts
++++ b/src/lib/consegna/orchestrate.ts
+@@ -107,51 +107,57 @@ export async function orchestraConsegna(
+     // Recupera la DdC ATTIVA esistente (mai una annullata — riconsegna = DdC nuova)
+     const { data: ddcRow } = await supabase
+       .from('dichiarazioni_conformita')
+       .select('numero_ddc, pdf_url')
+       .eq('lavoro_id', lavoro_id)
+       .neq('stato', 'annullata')
+       .maybeSingle()
+ 
+     const { data: lavoro } = await supabase
+       .from('lavori')
+-      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(telefono, cognome, portale_token)')
++      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(id, telefono, cellulare_whatsapp, cognome, portale_token)')
+       .eq('id', lavoro_id)
+       .eq('laboratorio_id', laboratorio_id)
+       .single()
+ 
+-    const clienteTel =
+-      (lavoro?.cliente as unknown as { telefono?: string } | null)?.telefono ?? ''
+-    const portaleToken =
+-      (lavoro?.cliente as unknown as { portale_token?: string } | null)?.portale_token ?? ''
++    const clienteRec = lavoro?.cliente as unknown as {
++      id?: string
++      cellulare_whatsapp?: string | null
++      portale_token?: string | null
++    } | null
++    // P31: il messaggio va sul CELLULARE. Nessun ripiego sul telefono dello
++    // studio: sarebbe il difetto di P31 rimesso dentro.
++    const clienteCell = clienteRec?.cellulare_whatsapp ?? ''
++    const portaleToken = clienteRec?.portale_token ?? ''
+     const numeroLavoro = (lavoro?.numero_lavoro as string | undefined) ?? lavoro_id
+     const waMessage = buildWhatsappMessage({
+       numeroLavoro,
+       portalToken: portaleToken,
+     })
+-    const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
++    const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
+ 
+     const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${annoRoma()}-000`
+     const ddcUrl = ddcRow?.pdf_url ?? ''
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     const buonoNumero = (lavoro as any)?.buono_numero ?? `BUO-${annoRoma()}-000`
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     const buonoUrl = (lavoro as any)?.buono_pdf_url ?? ''
+ 
+     // Retry gratuito della riparazione (risoluzione #5): un lavoro già
+     // consegnato che arriva di nuovo qui è l'occasione per richiudere una
+     // cassetta rimasta aperta da un tentativo precedente fallito.
+     const cassettaLiberata = await liberaCassettaAllaConsegna(supabase, laboratorio_id, lavoro_id)
+ 
+     return {
+       ok: true,
+       lavoro_id,
++      cliente_id: clienteRec?.id ?? '',
+       numero_lavoro: numeroLavoro,
+       ddc: { numero: ddcNumero, url: ddcUrl, signed_url: ddcUrl },
+       buono: { numero: buonoNumero, url: buonoUrl, signed_url: buonoUrl },
+       fattura: null,
+       whatsapp_url: waUrl,
+       tempo_ms: Date.now() - startMs,
+       cassettaLiberata,
+     }
+   }
+ 
+@@ -344,38 +350,42 @@ export async function orchestraConsegna(
+     await triggerPushByRole(laboratorio_id, 'front_desk', {
+       title: 'Lavoro consegnato',
+       body: `${lavoro.numero_lavoro} — ${(lavoro.cliente as unknown as { cognome?: string } | null)?.cognome ?? 'Cliente'} è stato consegnato`,
+       url: `/lavori/${lavoro_id}`,
+     })
+ 
+     // ----------------------------------------------------------------
+     // Step 6 — Costruisci link WhatsApp (GDPR-safe: NO dati personali)
+     // ----------------------------------------------------------------
+     const clienteContattoRaw = lavoro.cliente as unknown as {
+-      telefono?: string | null
++      id?: string | null
++      cellulare_whatsapp?: string | null
+       portale_token?: string | null
+     } | null
+ 
+-    const clienteTel = clienteContattoRaw?.telefono ?? ''
++    // P31: il messaggio va sul CELLULARE. Nessun ripiego sul telefono dello
++    // studio: sarebbe il difetto di P31 rimesso dentro.
++    const clienteCell = clienteContattoRaw?.cellulare_whatsapp ?? ''
+     const portaleToken = clienteContattoRaw?.portale_token ?? ''
+     const waMessage = buildWhatsappMessage({
+       numeroLavoro: lavoro.numero_lavoro as string,
+       portalToken: portaleToken,
+     })
+-    const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
++    const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
+ 
+     // ----------------------------------------------------------------
+     // Step 7 — Restituisci ConsegnaResult
+     // ----------------------------------------------------------------
+     return {
+       ok: true,
+       lavoro_id,
++      cliente_id: clienteContattoRaw?.id ?? '',
+       numero_lavoro: lavoro.numero_lavoro as string,
+       ddc: { numero: ddc.numero, url: ddc.url, signed_url: ddc.url },
+       buono: { numero: buono.numero, url: buono.url, signed_url: buono.url },
+       fattura: null,
+       whatsapp_url: waUrl,
+       tempo_ms: Date.now() - startMs,
+       cassettaLiberata,
+     }
+   } catch (err) {
+     // Catch-all globale — rilascia lock, restituisci errore generico
+diff --git a/src/types/domain.ts b/src/types/domain.ts
+index 66c74a30..eeccbf42 100644
+--- a/src/types/domain.ts
++++ b/src/types/domain.ts
+@@ -149,20 +149,24 @@ type DATE_STRING = string; // ISO date "YYYY-MM-DD"
+ // ============================================================
+ // CLIENTE
+ // ============================================================
+ export interface Cliente {
+   id: string;
+   laboratorio_id: string;
+   studio_nome: string | null;
+   nome: string;
+   cognome: string;
+   telefono: string | null;
++  /** Cellulare per WhatsApp (P31, D182/D183): telefono può essere un fisso
++   *  dello studio — chi manda WhatsApp legge SEMPRE questo campo, mai
++   *  telefono, altrimenti il messaggio riparte su un fisso. */
++  cellulare_whatsapp: string | null;
+   email: string | null;
+   partita_iva: string | null;
+   codice_fiscale: string | null;
+   codice_sdi: string | null;
+   pec: string | null;
+   indirizzo: string | null;
+   cap: string | null;
+   citta: string | null;
+   provincia: string | null;
+   paese: string;
+@@ -626,20 +630,25 @@ export interface ConsegnaPrecheckResult {
+ 
+ export interface PrecheckConsegnaResponse {
+   consegnabile: boolean;
+   bloccanti: ConsegnaPrecheckResult['errori'];
+   warnings: string[];
+ }
+ 
+ export interface ConsegnaResult {
+   ok: true;
+   lavoro_id: string;
++  /** Id del cliente a cui è andato il lavoro. Serve al tasto WhatsApp per
++   *  salvare il cellulare quando manca (P31, D183): senza, la schermata
++   *  della consegna non sa a chi salvarlo. Additivo — nessun consumatore
++   *  preesistente si rompe. */
++  cliente_id: string;
+   numero_lavoro: string;
+   ddc: { numero: string; url: string; signed_url: string };
+   buono: { numero: string; url: string; signed_url: string };
+   fattura: { numero: string; stato_sdi: string } | null;
+   whatsapp_url: string;
+   tempo_ms: number;
+   /** Nome della cassetta liberata alla consegna (Task 7, spec §9.1 — L5), o
+    *  `null` se non c'era niente da liberare/la liberazione è fallita
+    *  (fail-soft: la consegna non si annulla mai per questo). Opzionale per
+    *  compatibilità con payload/mock preesistenti che non lo includono. */
+diff --git a/tests/unit/helpers/pdf-fixtures.ts b/tests/unit/helpers/pdf-fixtures.ts
+index a92bcdd8..2baffa0e 100644
+--- a/tests/unit/helpers/pdf-fixtures.ts
++++ b/tests/unit/helpers/pdf-fixtures.ts
+@@ -35,20 +35,21 @@ export const LAB_FIXTURE: Laboratorio = {
+   testo_rischi_default: null,
+ }
+ 
+ export const CLIENTE_FIXTURE: Cliente = {
+   id: 'cli-001',
+   laboratorio_id: 'lab-test-001',
+   studio_nome: null,
+   nome: 'Mario',
+   cognome: 'Rossi',
+   telefono: null,
++  cellulare_whatsapp: null,
+   email: null,
+   partita_iva: null,
+   codice_fiscale: 'RSSMRA80A01H703X',
+   codice_sdi: null,
+   pec: null,
+   indirizzo: null,
+   cap: null,
+   citta: null,
+   provincia: null,
+   paese: 'IT',
+diff --git a/tests/unit/orchestra-consegna-whatsapp-cellulare.test.ts b/tests/unit/orchestra-consegna-whatsapp-cellulare.test.ts
+new file mode 100644
+index 00000000..fb502be0
+--- /dev/null
++++ b/tests/unit/orchestra-consegna-whatsapp-cellulare.test.ts
+@@ -0,0 +1,104 @@
++// P31 (compito 4) — sentinella a livello di CHIAMANTE: whatsapp-legge-il-
++// cellulare.test.ts misura solo buildWhatsappUrl (già corretta dal compito
++// 2, non tocca orchestrate.ts). Questo file misura invece orchestraConsegna
++// stessa: se uno dei due rami tornasse a leggere `telefono` invece di
++// `cellulare_whatsapp`, questo test — non quello — diventa rosso.
++// Caso vero in banca dati: fisso nello studio, cellulare separato.
++import { describe, it, expect, vi, beforeEach } from 'vitest'
++
++const { mockRpc, mockFrom } = vi.hoisted(() => ({
++  mockRpc: vi.fn(),
++  mockFrom: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ rpc: mockRpc, from: mockFrom }),
++}))
++vi.mock('@/lib/notifications/trigger', () => ({ triggerPushByRole: vi.fn() }))
++vi.mock('@/lib/consegna/precheck', () => ({ precheckMDR: () => ({ ok: true, errori: [] }) }))
++vi.mock('@/lib/consegna/traccia-materiali', () => ({
++  tracciaMaterialiLavoro: async () => ({ tracciabilitaOk: true, dettaglio: [], materialiTracciati: [] }),
++}))
++vi.mock('@/lib/pdf/generate-ddc', () => ({ generateDdC: async () => ({ numero: 'DDC-1', url: 'u' }) }))
++vi.mock('@/lib/pdf/generate-buono', () => ({ generateBuono: async () => ({ numero: 'BUO-1', url: 'u' }) }))
++
++import { orchestraConsegna } from '@/lib/consegna/orchestrate'
++
++const CLIENTE = {
++  id: 'cli-1',
++  codice_sdi: null,
++  pec: null,
++  telefono: '0976 71439',
++  cellulare_whatsapp: '333 1234567',
++  cognome: 'Rossi',
++  portale_token: 't',
++}
++
++const LAVORO = {
++  id: 'lav-1', laboratorio_id: 'lab-1', stato: 'pronto', numero_lavoro: 'n.1',
++  cliente: CLIENTE,
++  paziente: null, lavorazioni: [], materiali: [],
++}
++
++function mockLavoriTable() {
++  return {
++    select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: LAVORO, error: null }) }) }) }) }),
++    update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: null, count: 1 }) }) }),
++  }
++}
++
++function mockLavoriTableIdempotente() {
++  return {
++    select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: LAVORO, error: null }) }) }) }),
++  }
++}
++
++describe('orchestraConsegna — link WhatsApp sul CELLULARE su entrambi i rami (P31 compito 4)', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    vi.spyOn(console, 'error').mockImplementation(() => {})
++  })
++
++  it('ramo normale (Step 6): whatsapp_url e cliente_id letti dal cellulare, mai dal fisso', async () => {
++    mockRpc.mockImplementation(async (fn: string) => {
++      if (fn === 'consegna_lavoro_lock') return { data: { lock_acquisito: true }, error: null }
++      if (fn === 'cassetta_libera_atomica') return { data: { esito: 'ok', nome: null }, error: null }
++      throw new Error(`rpc inattesa: ${fn}`)
++    })
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'lavori') return mockLavoriTable()
++      throw new Error(`tabella inattesa: ${table}`)
++    })
++
++    const result = await orchestraConsegna('lav-1', 'lab-1')
++
++    expect(result.ok).toBe(true)
++    if (!result.ok) return
++    expect(result.whatsapp_url).toContain('393331234567')
++    expect(result.whatsapp_url).not.toContain('097671439')
++    expect(result.cliente_id).toBe('cli-1')
++  })
++
++  it('ramo idempotente gia_consegnato: whatsapp_url e cliente_id letti dal cellulare, mai dal fisso', async () => {
++    mockRpc.mockImplementation(async (fn: string) => {
++      if (fn === 'consegna_lavoro_lock') return { data: { gia_consegnato: true }, error: null }
++      if (fn === 'cassetta_libera_atomica') return { data: { esito: 'ok', nome: null }, error: null }
++      throw new Error(`rpc inattesa: ${fn}`)
++    })
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'dichiarazioni_conformita') {
++        return { select: () => ({ eq: () => ({ neq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }
++      }
++      if (table === 'lavori') return mockLavoriTableIdempotente()
++      throw new Error(`tabella inattesa: ${table}`)
++    })
++
++    const result = await orchestraConsegna('lav-1', 'lab-1')
++
++    expect(result.ok).toBe(true)
++    if (!result.ok) return
++    expect(result.whatsapp_url).toContain('393331234567')
++    expect(result.whatsapp_url).not.toContain('097671439')
++    expect(result.cliente_id).toBe('cli-1')
++  })
++})
+diff --git a/tests/unit/whatsapp-legge-il-cellulare.test.ts b/tests/unit/whatsapp-legge-il-cellulare.test.ts
+new file mode 100644
+index 00000000..7737308d
+--- /dev/null
++++ b/tests/unit/whatsapp-legge-il-cellulare.test.ts
+@@ -0,0 +1,19 @@
++import { describe, it, expect } from 'vitest'
++import { buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
++
++describe('P31 — chi manda WhatsApp legge il CELLULARE, non il telefono dello studio', () => {
++  // Il caso vero in banca dati: fisso nello studio, cellulare separato.
++  const cliente = { telefono: '0976 71439', cellulare_whatsapp: '333 1234567' }
++
++  it('il link si costruisce col cellulare, non col fisso', () => {
++    const url = buildWhatsappUrl('ciao', cliente.cellulare_whatsapp)
++    expect(url).toContain('wa.me/393331234567')
++    expect(url).not.toContain('097671439')
++  })
++
++  it('senza cellulare il link resta SENZA destinatario, e non ripiega sul fisso', () => {
++    const url = buildWhatsappUrl('ciao', undefined)
++    expect(url).toBe('https://wa.me/?text=ciao')
++    expect(url).not.toContain('097671439')
++  })
++})

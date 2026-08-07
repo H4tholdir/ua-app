@@ -1,0 +1,882 @@
+# Review package: 8792de27..bef087ed
+
+## Commits
+bef087ed test(lavori): la prova d'innesto CartaAlbum controlla anche categoria e created_at veri
+fbda7ff2 feat(lavori): innesta CartaAlbum al posto di FotoStrip nella scheda e nel catalogo (T10)
+
+## Files changed
+ .superpowers/sdd/task-10-report.md                 | 317 +++++++++++++++++++++
+ .../plans/2026-07-30-album-foto-scheda-lavoro.md   |  14 +-
+ .../2026-07-30-album-foto-scheda-lavoro-design.md  |   5 +-
+ src/app/ds-v3-catalogo/page.tsx                    |  24 +-
+ src/components/ds/FotoStrip.tsx                    |  28 --
+ .../features/lavori/scheda-v3/SchedaLavoroV3.tsx   |  16 +-
+ tests/unit/SchedaLavoroV3.test.tsx                 |  55 ++++
+ tests/unit/ds-v3/componenti/CartaAlbum.test.tsx    |  17 ++
+ tests/unit/ds-v3/componenti/FotoStrip.test.tsx     |  32 ---
+ tests/unit/ds-v3/componenti/catalogo.test.tsx      |   2 +-
+ 10 files changed, 429 insertions(+), 81 deletions(-)
+
+## Diff
+diff --git a/.superpowers/sdd/task-10-report.md b/.superpowers/sdd/task-10-report.md
+new file mode 100644
+index 00000000..17c401f2
+--- /dev/null
++++ b/.superpowers/sdd/task-10-report.md
+@@ -0,0 +1,317 @@
++# Task 10 — report
++
++La carta album (§5.38) entra sulla scheda al posto della vecchia FotoStrip (§5.33, superata). Primo
++innesto dei quattro componenti nuovi dell'album fotografico: qui monta SOLO la carta — visore,
++tendina e i due fogli restano di T12.
++
++**Commit:** `fbda7ff2d1502fee90a24b57271ce620f5661e12` — branch `ondata-b-schermate`.
++
++## 1. Che cosa ho cambiato, e dove
++
++| File | Cosa |
++|---|---|
++| `tests/unit/SchedaLavoroV3.test.tsx` | **Aggiunto** un caso con due foto (TDD, Passo 1): monta `SchedaLavoroV3` con `immagini` popolato e verifica titolo «Foto», conteggio «2 foto», assenza della vecchia striscia. |
++| `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` | **Innesto** (Passo 2): import `FotoStrip` → `CartaAlbum`; riga `:316` (vecchia) sostituita con `<CartaAlbum foto={lavoro.immagini} onApri={() => {}} onCorreggiCategoria={() => {}} />`, stessa posizione fra `NotaLaboratorio`/`NotaLaboratorioVuota` e `CardFasiV3`. `lavoro.immagini` è `LavoroImmagine[]` (`types/domain.ts:475-491`), che porta già `categoria`/`created_at`/`nome_file` — **nessuna trasformazione**, passato diretto (verificato: struttura compatibile 1:1 con `FotoAlbum`). |
++| `src/app/ds-v3-catalogo/page.tsx` | **Catalogo** (Passo 3): import riga 42, voce indice riga 81 (`foto-strip`/`FotoStrip` → `carta-album`/`CartaAlbum`), sezione 1165-1170 sostituita con `CartaAlbum` a 2 foto demo (`impronta`+`rx`) e `onApri`/`onCorreggiCategoria` no-op. Il commento «nel catalogo le thumb non caricano» è stato **riscritto per restare vero**: ora cita le geometrie reali della carta (foto grande 4/3·16/9, miniature 60×60 raggio 12) invece del 72×72 della striscia scomparsa. |
++| `tests/unit/ds-v3/componenti/catalogo.test.tsx` | **Fix di conseguenza, non nel censimento del brief** (v. §3): riga 128, `'FotoStrip'` → `'CartaAlbum'` nell'elenco atteso di `INDICE` (22 sezioni, invariato in numero). |
++| `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx` | **Aggiunta** una sola prova ereditata da `FotoStrip.test.tsx` (Passo 4): `objectFit: cover` su foto grande e miniatura — l'UNICA delle sue misure non già coperta altrove in questo file (v. §3). |
++| `src/components/ds/FotoStrip.tsx` | **Eliminato** (Passo 5): zero chiamanti funzionali residui dopo i punti sopra. |
++| `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` | **Eliminato**: le sue 3 prove sono state riscritte/verificate come già coperte (v. §3), non cancellate in silenzio. |
++| `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` | **Annotazione** (v. §5-bis, non richiesta dal brief ma imposta dal pre-commit): 7 righe che citavano `FotoStrip.tsx`/`FotoStrip.test.tsx` fra backtick marcate `(eliminato in T10)`, nessun'altra parola toccata. |
++| `docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md` | **Annotazione** (v. §5-bis): stessa marcatura su 1 riga, più il tempo verbale corretto da presente a passato («esisteva già, al momento di questa spec»). |
++
++Entrambi i file eliminati sono stati spostati nel Cestino (`/usr/bin/trash`, per il guard `rm` del
++repo), non cancellati in modo irreversibile.
++
++## 2. Le prove — quante si accendono
++
++**Passo 1 (TDD, innesto).** Prova scritta PRIMA del codice, in `tests/unit/SchedaLavoroV3.test.tsx`
++(la scheda monta con due foto → titolo «Foto», conteggio, niente `[aria-label="Foto del lavoro"]`
++della vecchia striscia).
++- **Rosso genuino:** lanciata subito dopo averla scritta (codice ancora con `FotoStrip`): **1 fallita
++  su 11** nel file, motivo esatto atteso — `getByRole('heading', { name: 'Foto' })` non trova nulla
++  (la striscia non ha mai avuto un titolo).
++- **Verde dopo l'innesto:** **11 su 11**.
++- **Mutazione deliberata** (per verificare che la prova morda davvero, come richiesto): ho rimesso
++  `FotoStripMutazioneTemporanea` (import temporaneo di `FotoStrip`, mai committato) al posto di
++  `CartaAlbum` nello stesso identico punto e rilanciato. Risultato: **esattamente 1 su 11 torna
++  rossa** — proprio e SOLO la prova nuova; le altre 10 (consegna abilitata/disabilitata, riga
++  editabile, nota laboratorio, tracciabilità, refresh FK…) restano verdi. Nessun effetto
++  collaterale, la prova morde con precisione chirurgica sul suo bersaglio. Ripristinato subito
++  dopo → di nuovo 11 su 11.
++
++**Passo 4 (misure ereditate da FotoStrip).** Prima di riscrivere, ho controllato quali delle 3 prove
++di `FotoStrip.test.tsx` erano già coperte in `CartaAlbum.test.tsx` (39 prove preesistenti, scritte dal
++task che ha costruito il componente):
++- *72×72, radius 12, objectFit cover, scroll orizzontale* → **radius 12** già provato (miniature
++  60×60, riga «miniature 60×60… con raggio 12»); **scroll orizzontale** già provato (fascia gruppi,
++  riga «la fascia dei gruppi scorre in orizzontale»); **72×72 NON ha equivalente** — la carta non ha
++  una misura fissa che corrisponda (miniature 60×60, foto grande ad aspect-ratio, non px fissi):
++  nessuna riga scritta per un valore che sulla carta non esiste, per scelta dichiarata, non per
++  distrazione. **objectFit: cover NON era provato da nessuna parte** su questo file → **1 prova
++  nuova aggiunta** (2 asserzioni: foto grande + miniatura).
++- *renderizza una img per foto, alt esplicito o fallback* → **comportamento CAMBIATO dalla spec
++  ratificata**, non semplicemente spostato: FotoStrip accettava un `alt` per-foto dal chiamante;
++  CartaAlbum FISSA `alt` all'etichetta della categoria (§5.38, «mai la sigla interna, mai il nome del
++  file») — già provato in `CartaAlbum.test.tsx` («\`alt\` = l'ETICHETTA della categoria»). Non è una
++  prova mancante, è la vecchia prova che descriveva un contratto che la spec ha sostituito.
++- *lista vuota → non renderizza nulla* → stesso comportamento, già provato («elenco vuoto → non
++  rende NULLA»).
++- **Non ho duplicato nulla**: 40 prove totali in `CartaAlbum.test.tsx` dopo la mia unica aggiunta
++  (39 + 1), verificato con `npx vitest run` (40 passate) e con un conteggio diretto di `it(` nel
++  file.
++
++## 3. Il conto delle prove (tolte / aggiunte / totale)
++
++| | Prima (rif. brief, albero pulito) | Dopo |
++|---|---|---|
++| File di test | 368 passati \| 3 saltati (371) | **367 passati \| 3 saltati (370)** |
++| Prove | 4192 passate \| 19 saltate (4211) | **4191 passate \| 19 saltate (4210)** |
++
++Aritmetica dichiarata: **-3** (le 3 prove di `FotoStrip.test.tsx`, file eliminato) **+1** (innesto,
++`SchedaLavoroV3.test.tsx`) **+1** (objectFit cover, `CartaAlbum.test.tsx`) = **-1 netto**. Torna
++esattamente: 371→370 file, 4211→4210 prove, 368→367 e 4192→4191 passate. Zero rossi in file che non
++ho toccato.
++
++## 4. FASE 7 — output vero
++
++```
++$ npx tsc --noEmit
++(nessun output — 0 errori)
++
++$ npx vitest run
++ RUN  v4.1.6 …
++ Test Files  367 passed | 3 skipped (370)
++      Tests  4191 passed | 19 skipped (4210)
++   Duration  85.46s
++
++$ npx next build
++▲ Next.js 16.2.6 (Turbopack)
++✓ Compiled successfully in 5.9s
++  Running TypeScript ...
++  Finished TypeScript in 12.6s ...
++  Generating static pages using 15 workers (81/81) in 288ms
++  Finalizing page optimization ...
++(tutte le route elencate, incluse /lavori/[id] e /ds-v3-catalogo, nessun errore)
++```
++
++Ho anche lanciato `npx eslint` sui 5 file toccati (non richiesto esplicitamente dal brief, controllo
++extra): nessun rilievo.
++
++## 5-bis. Il salvataggio — bloccato una volta, dal controllo giusto
++
++Il primo tentativo di commit è stato **bloccato dal pre-commit** (`guardia-coerenza-documenti.mjs`),
++e non l'ho aggirato: ho letto cosa diceva. Il piano e la spec dell'album
++(`docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` e
++`docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md` — i documenti che HANNO
++generato il brief di questo task) citano `src/components/ds/FotoStrip.tsx` e il suo test in una
++decina di punti, scritti PRIMA che io li eliminassi. La guardia ha una regola esplicita e già
++prevista per questo caso simmetrico («una spec cita legittimamente un file che non esiste più,
++quando è quella stessa spec ad averlo fatto eliminare... si dichiara sulla riga»): ho marcato
++`(eliminato in T10)` su ogni riga che citava uno dei due percorsi fra backtick senza già dichiararlo
++(7 righe nel piano, 1 nella spec — verificato riga per riga con `grep -n`), **senza toccare
++nient'altro** del testo storico di quei documenti — tranne un singolo tempo verbale nella spec
++(«esiste già» → «esisteva già, al momento di questa spec», perché lasciarlo al presente sarebbe stato
++falso ora, non solo privo del marcatore). Rilanciato `node scripts/guardia-coerenza-documenti.mjs
++--staged` isolatamente prima di ricommittare: verde. Il commit finale include questi due file insieme
++al resto.
++
++⚠️ **Questi due file sono stati modificati DOPO la FASE 7** (il blocco del pre-commit è arrivato al
++momento del salvataggio, a valle della verifica). Sono markdown — non toccano `tsc` né `next build`
++— ma questo repo ha prove che PARSANO documenti veri (`colore-dente-idratazione.test.ts` legge una
++migration, `home-style-parsabile.test.ts` un mockup): non ho dato per scontato che fosse innocuo.
++Verificato: `grep -rln "album-foto-scheda-lavoro" tests/` → **zero riscontri**. Nessuna prova legge
++questi due documenti: la FASE 7 già eseguita resta valida senza bisogno di rilanciarla.
++
++## 5. Auto-revisione — dove il mio lavoro è più debole
++
++- **QA visiva non completata.** Ho provato ad aprire il catalogo nel Browser pane per uno screenshot
++  di conferma (390/768/1280, chiaro/scuro) come da FASE 9 del workflow generale. Il DOM è verificato
++  corretto in ogni dettaglio (`get_page_text` mostra la sezione «CartaAlbum» con «FOTO», «2 foto»,
++  «⤢ Apri», gruppi «IMPRONTA»/«RADIOGRAFIA» nell'ordine giusto; JS in pagina conferma
++  `#carta-album` esiste, `data-theme="light"`), ma lo strumento di screenshot del pane ha smesso di
++  catturare pixel reali a metà sessione (restituiva sempre un rettangolo color crema vuoto, anche su
++  pagine che un attimo prima avevo visto renderizzate bene) — un problema dello strumento in questa
++  sessione, non del codice: non sono riuscito a produrre uno screenshot verificabile. Mi affido alle
++  40 prove jsdom di `CartaAlbum.test.tsx` (che asseriscono radius/colore/aspect-ratio/objectFit/
++  focus-ring in modo più preciso di un occhio su uno screenshot) e alla build statica riuscita, ma
++  la verifica visiva vera e propria di questo innesto specifico resta da fare — la segnalo invece di
++  spacciarla per fatta.
++- **Nessuna prova diretta sul flusso `onApri`/`onCorreggiCategoria` dalla scheda reale**, oltre alla
++  presenza dei due no-op. Il rischio applicativo che questo apre è serio abbastanza da avere una voce
++  propria in §6 (ritrovamento 1: controlli vivi che promettono un'azione che non esiste ancora) — qui
++  segnalo solo il buco di prova: non ho scritto un test che verifichi ESPLICITAMENTE che quei due
++  no-op sono quello che arriva a `CartaAlbum` dentro `SchedaLavoroV3` (es. un mock che verifica che il
++  tap sulla foto grande non lanci un'eccezione né navighi da nessuna parte).
++  Nella scheda reale (`/lavori/[id]/page.tsx`) `lavoro.immagini` **spesso è vuoto** (la maggior parte
++  dei lavori non ha foto): la prova d'innesto usa 2 foto per costruzione, quindi il caso comune
++  (0 foto → `CartaAlbum` ritorna `null`, coerente con la vecchia `FotoStrip`) resta scoperto in
++  QUESTO file — ma è lo stesso comportamento già in produzione, e la fixture di default del file
++  (`immagini: []`) lo esercita implicitamente su ogni altro test qui dentro senza mai crashare
++  (11 prove passano con quella fixture, la mia inclusa è l'unica con foto).
++- **Non ho verificato a mano `scripts/check-ds-compliance.sh`** oltre a farlo girare nel pre-commit
++  al momento del salvataggio (§5-bis): non l'ho lanciato isolatamente per leggerne l'output prima.
++- **`categoria` sulle foto vere — non l'ho preso per fede, l'ho trovato in una migration committata.**
++  Le mie fixture (test e demo del catalogo) passano `categoria: 'impronta'`/`'rx'` puliti; non era
++  scontato che le righe VERE di `lavori_immagini` abbiano sempre un valore nell'elenco chiuso di sei.
++  Prova, non assunzione: `supabase/migrations/20260730150000_lavori_immagini_categoria.sql` (T1,
++  30/07/2026) aggiunge la colonna, la riempie con un `CASE` TOTALE (`ELSE 'altro'` — commento a riga
++  22-26: misurato su transazione annullata che 1 riga viva aveva `descrizione` fuori elenco, e
++  SAREBBE abortito senza quell'`ELSE`), poi mette il `CHECK` e `NOT NULL`. Ogni riga oggi in banca
++  dati ha quindi `categoria` valida per costruzione — e anche se un giorno non lo fosse,
++  `etichettaCategoria` (già provato in `CartaAlbum.test.tsx`) ripiega sul valore grezzo invece di
++  rompersi. Non ho interrogato Supabase (MCP non autorizzato in questa sessione): la fonte è il file
++  di migration committato, non una supposizione.
++
++## 6. 🔴 Ritrovamenti fuori mandato
++
++1. **🔴 IL PIÙ SERIO — l'innesto crea due controlli vivi che promettono un'azione che non esiste
++   ancora, su una rotta di produzione (`/lavori/[id]`).** Prima di questo task, `FotoStrip` rendeva
++   `<img>` nudi: niente era tappabile, niente prometteva niente. Dopo l'innesto, la scheda mostra un
++   `<button>` con la pastiglia «⤢ Apri» (nome accessibile «Apri la foto grande: Impronta, 1 di N») e
++   un `<button>` «Cambia la categoria: Impronta» — ENTRAMBI chiamano `vibra()` al tocco (il telefono
++   VIBRA per confermare un'azione) e poi non aprono nulla, perché il visore e il foglio della
++   categoria sono di T12 e non esistono ancora. Non è un difetto del mio codice — è la conseguenza
++   diretta e inevitabile del mandato di T10 («monta SOLO la carta», visore/tendina/fogli vietati) — ma
++   è un peggioramento reale e visibile per un utente vero SE questo ramo raggiungesse la produzione
++   prima di T12: un tecnico al banco tocca «⤢ Apri» su una foto vera di un paziente vero, sente la
++   vibrazione di conferma, e non succede niente. Contro il principio di CLAUDE.md «nessun
++   placeholder, nessun "aggiungiamo dopo"» — qui il placeholder è temporaneo e dichiarato SOLO se
++   resta dentro l'ondata, non se esce da sola. **Il vincolo che questo comporta, e che il brief non
++   scrive da nessuna parte: questo ramo (o comunque questo commit) non deve raggiungere `main` /
++   produzione prima che T12 monti il visore e i due fogli.** Segnalo, non correggo: montare il visore
++   è esplicitamente fuori dal mio mandato.
++2. **Un quinto punto che nominava «FotoStrip», mancante sia dal censimento originale (grep→3) sia
++   dalla correzione dell'orchestratore (→4): `tests/unit/ds-v3/componenti/catalogo.test.tsx:128`.**
++   Questo file non chiama mai il componente `FotoStrip` — importa `INDICE` da `page.tsx` e ne
++   confronta il titolo come stringa letterale (`expect(INDICE.map(...)).toEqual([...])`, con
++   `'FotoStrip'` in mezzo alla lista attesa di 22). È un effetto MECCANICO e diretto del Passo 3 (che
++   mi chiede esplicitamente di cambiare la voce dell'indice a riga 81): non l'ho quindi trattato come
++   un difetto "fuori mandato" da limitarsi a segnalare, ma corretto — cambiare l'indice senza
++   aggiornare questo test avrebbe lasciato la build verde solo perché il test non è mai stato
++   eseguito insieme al mio cambiamento, salvo poi rompersi al primo `vitest run` completo. Lo segnalo
++   comunque qui perché è un'ulteriore istanza dello stesso schema di questa ondata: un elenco («i
++   punti che nominano FotoStrip sono N») che sembrava completo e non lo era, di nuovo.
++3. **Due commenti in `src/components/ds/CartaAlbum.tsx` (righe 4 e 183) citano ancora `FotoStrip.tsx`
++   per nome**, come riferimento storico/di stile («sostituisce FotoStrip», «stessa scelta di
++   FotoStrip.tsx e TabImmagini.tsx»). Non sono chiamate né import — non si rompe nulla se il file
++   citato non esiste più — ma dopo la mia eliminazione di `FotoStrip.tsx` quella seconda citazione
++   nomina un file che non c'è più nell'albero. `CartaAlbum.tsx` è esplicitamente fuori dal mio
++   mandato («non toccare i componenti del design system… ne sei utente»): non l'ho toccato, lo
++   riferisco qui invece di correggerlo di nascosto.
++4. **Il piano stesso si contraddice sul numero del task** (stesso schema delle 4 ondate precedenti,
++   dove 3 volte su 4 il difetto stava nel piano): `docs/superpowers/plans/2026-07-30-album-foto-
++   scheda-lavoro.md:54` e `:148` chiamano l'assorbimento di `FotoStrip` **«T11»** («➡️ T11 li tocca
++   tutti e tre»· «🔄 T11: assorbita dalla carta album»), ma la sezione che descrive ESATTAMENTE
++   questo lavoro è intestata **«### Task 10»** (riga 1377) — ed è la sezione da cui il mio brief è
++   stato copiato quasi verbatim. Non ho corretto la numerazione nel piano (è un documento storico,
++   fuori dal mio mandato di editing sostanziale): la segnalo qui perché è un'inconsistenza REALE, non
++   un mio fraintendimento — il testo dice letteralmente due numeri diversi per lo stesso lavoro.
++5. **Comportamento cambiato, non regredito, ma degno di nota per chi userà `descrizione` in futuro:**
++   la vecchia `FotoStrip` accettava un `alt` per-foto dal chiamante (in `SchedaLavoroV3.tsx` era
++   `img.descrizione`); `CartaAlbum` fissa sempre `alt` all'etichetta della categoria (scelta di
++   design ratificata, §5.38). Il campo `descrizione` su `lavori_immagini` resta nel tipo
++   (`LavoroImmagine.descrizione`) e continua a essere usato altrove (es.
++   `src/components/features/lavori/form/TabImmagini.tsx:634`, superficie legacy non toccata da
++   questo task) — ma sulla scheda v3 quel testo, se mai scritto per una foto specifica, non compare
++   più da nessuna parte nella carta album. Non è una mia decisione (il contratto di `CartaAlbum` è
++   già scritto e fuori dal mio mandato) e non risulta un obbligo di leggere/mostrare `descrizione`
++   in nessun documento che ho letto: la segnalo perché è un cambio di comportamento visibile
++   all'utente che nessun task precedente sembra aver dichiarato esplicitamente.
++
++## 7. Nota per chi aggiorna la memoria a valle
++
++Il pre-commit ha acceso l'avviso BP-1 previsto per questo caso: «questo salvataggio tocca un
++VERBALE o una SPEC ma NON la memoria». È **atteso**, non ignorato per fretta: il mio mandato vieta
++esplicitamente di toccare `MEMORY.md`/`SESSION_ACTIVE.md`/roadmap («la memoria la aggiorno io a
++valle»). Lo segnalo qui perché chi fa l'aggiornamento a valle deve sapere che QUESTO commit ha
++toccato due documenti vivi (`docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` e la
++sua spec gemella) — non per una decisione di sostanza, solo per marcare `(eliminato in T10)` dove
++la guardia di coerenza lo richiedeva (§5-bis). Non è una decisione nuova da registrare come tale,
++ma la memoria dovrebbe comunque sapere che quei due file sono cambiati in questo giro.
++
++## Correzione del rilievo di revisione
++
++**Il rilievo (Importante, §2/§3 sopra riletti con occhio diverso):** la prova d'innesto in
++`tests/unit/SchedaLavoroV3.test.tsx:117-124` (la mia stessa prova del Passo 1) guardava solo
++titolo, conteggio e assenza della vecchia striscia — tre cose che sopravvivono anche se l'innesto
++passasse una `categoria` finta per ogni foto, perché nessuna delle tre dipende dal VALORE di
++`categoria`/`created_at`, solo dal fatto che le foto ci siano. Il revisore ha mutato la riga
++dell'innesto in:
++
++```tsx
++<CartaAlbum foto={lavoro.immagini.map((i) => ({ ...i, categoria: 'altro', created_at: '2000-01-01T00:00:00Z' }))} … />
++```
++
++e le 11 prove del file restavano tutte verdi. Non è un difetto vivo nel codice consegnato (la
++scheda passa davvero `lavoro.immagini` intatto, senza trasformazioni — v. riga del §1 sopra), ma
++una guardia mancante: la prova non avrebbe accorto nessuno se domani quel passaggio si rompesse.
++
++**Cosa ho aggiunto — solo al file di test, `src/components/features/lavori/scheda-v3/
++SchedaLavoroV3.tsx` non è stato toccato (verificato: `git diff` sul file di produzione vuoto sia
++prima sia dopo).**
++
++1. **Guardia su `categoria`.** La fixture aveva già due categorie diverse (`impronta` su `img-1`,
++   `rx` su `img-2` — non ho dovuto cambiarla per questo). Ho aggiunto, dentro la stessa prova:
++   ```tsx
++   expect(screen.getByRole('group', { name: 'Impronta' })).toBeInTheDocument()
++   expect(screen.getByRole('group', { name: 'Radiografia' })).toBeInTheDocument()
++   ```
++   Uso la superficie pubblica di accessibilità (`role="group"` + `aria-labelledby`, già la stessa
++   che `CartaAlbum` espone e già provata a livello di componente in
++   `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx`), non la classe interna `.ds-album-gr-et` —
++   per non duplicare la prova d'ordine D71 che quel file possiede già e che non è compito di
++   questa prova ripetere: qui si prova SOLO che l'innesto porti la categoria vera di ciascuna
++   foto, non come la carta la mostri.
++2. **Guardia su `created_at`.** Con due sole foto di categoria diversa, `created_at` non è
++   osservabile: l'ordine FRA gruppi segue il rango D71 (impronta prima di rx), mai la data, e con
++   una sola foto per categoria non c'è un ordine INTERNO al gruppo da poter rompere. L'ho reso
++   osservabile aggiungendo una terza foto alla fixture, `img-3`, stessa categoria di `img-1`
++   (`impronta`) ma `created_at` precedente (08:00 contro le 09:00 di `img-1`) — l'unica modifica
++   al resto della fixture, e mirata: non ho toccato `img-1`/`img-2`. Poi:
++   ```tsx
++   const primaImpronta = screen.getByRole('button', { name: 'Impronta, 1 di 3' })
++   expect((primaImpronta.querySelector('img') as HTMLImageElement).src).toContain('imp-presto.jpg')
++   ```
++   Se l'innesto passasse un `created_at` fisso per tutte le foto, lo spareggio diventerebbe l'`id`
++   (`ordinaFotoPerCategoria`, `src/lib/domain/categorie-foto.ts:55-61`) e `'img-1' < 'img-3'`
++   alfabeticamente: la prima foto del gruppo «Impronta» diventerebbe `img-1`, non `img-3`, e
++   l'asserzione cadrebbe.
++   Anche il conteggio è passato da «2 foto» a «3 foto» di conseguenza (unico altro punto toccato
++   nella prova esistente).
++
++**La verifica obbligatoria — ho rifatto io la mutazione del revisore, tale e quale, sulla riga
++dell'innesto in `SchedaLavoroV3.tsx`, e poi le sue due metà separate per capire quale guardia
++mordeva su cosa. Ripristinato il sorgente subito dopo ciascuna prova (`git diff` sul file di
++produzione tornato vuoto ogni volta).**
++
++| Mutazione applicata (temporanea, mai committata) | Esito su `SchedaLavoroV3.test.tsx` | Prova che si accende |
++|---|---|---|
++| Baseline, nessuna mutazione | **11 su 11 verdi** | — |
++| `categoria: 'altro'` **e** `created_at: '2000-01-01T00:00:00Z'` (mutazione ESATTA del revisore) | **1 su 11 rossa**, 10 verdi | la prova d'innesto, sull'asserzione `getByRole('group', { name: 'Impronta' })` — le tre asserzioni preesistenti (titolo, conteggio, assenza striscia) restano verdi sotto questa mutazione, esattamente come segnalato dal revisore |
++| Solo `categoria: 'altro'` (creato_at reale) | **1 su 11 rossa** | stessa asserzione di gruppo — la guardia su `categoria` morde da sola |
++| Solo `created_at: '2000-01-01T00:00:00Z'` (categoria reale) | **1 su 11 rossa** | `AssertionError: expected 'https://esempio/imp.jpg' to contain 'imp-presto.jpg'` — la guardia su `created_at` morde da sola, indipendentemente dall'altra |
++
++Le due guardie sono quindi indipendenti: ciascuna delle due metà della mutazione del revisore fa
++cadere la prova anche da sola, non solo in combinazione.
++
++**Verifica finale, output vero:**
++
++```
++$ npx tsc --noEmit
++(nessun output — 0 errori)
++
++$ npx vitest run
++ RUN  v4.1.6 …
++ Test Files  367 passed | 3 skipped (370)
++      Tests  4191 passed | 19 skipped (4210)
++```
++
++I numeri tornano **identici** al riferimento di prima di questa correzione (367|3|370 file,
++4191|19|4210 prove): ho rinforzato un'asserzione dentro una prova ESISTENTE, non aggiunto una
++prova nuova — quindi il conteggio non doveva muoversi, e infatti non si è mosso.
++
++`next build` non rilanciato: nessun handler di rotta toccato (solo un file di test).
++
++**Stato:** rilievo chiuso. `git diff` sul file di produzione (`SchedaLavoroV3.tsx`) è vuoto;
++l'unico file modificato da questa correzione è `tests/unit/SchedaLavoroV3.test.tsx`.
+diff --git a/docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md b/docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md
+index c905fa5e..944abbef 100644
+--- a/docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md
++++ b/docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md
+@@ -44,21 +44,21 @@ Design System v3.2 (rev. 3.3).
+ 🛑 **Un blocco senza marchio è NON PROVATO.** Le prove qui sotto riguardano le **assunzioni sull'ambiente**
+ che il piano dà per buone. Il codice dei task nasce `non eseguito`, **con accanto il comando** che
+ l'esecutore userà per verificarlo.
+ 
+ | # | assunzione | esito |
+ |---|---|---|
+ | **P1** | «Il `CHECK` del database restringe il tipo TypeScript generato» → **FALSA** | `provato:` letto `src/types/database.types.ts:3015-3060` — `lavori_immagini.tipo` **ha** un `CHECK` a quattro valori e il tipo generato è **`tipo: string`**, non l'unione. ➡️ **La prova-spia di T2 è necessaria**, non decorativa |
+ | **P2** | «Una colonna `NOT NULL` **senza** `DEFAULT` diventa obbligatoria nell'`Insert` generato» → **VERA a metà. 🛑 LA CONSEGUENZA CHE NE TRAEVO È FALSA, misurata da T1 il 30/07** | `provato:` stesso blocco — le colonne **con** ripiego escono opzionali (`tipo?: string`, `ordine?: number`, `created_at?: string`), quelle **senza** escono obbligatorie (`laboratorio_id: string`, `storage_path: string`, `url: string`). ⚠️ **Ma questa è una proprietà del FILE GENERATO, non del compilatore su questo repo:** ➡️ 🔴 **il rosso di `tsc` previsto in T1 NON è arrivato — uscita 0, zero file rossi.** I quattro fabbricanti del client (`src/lib/supabase/{server-service,server-user,browser-anon,middleware-client}.ts`) creano il client **senza il generico `<Database>`**, quindi il costruttore di query accetta qualunque chiave: T1 ha messo una colonna **inventata** dentro un `.insert()` e `tsc` è rimasto **0**. È il rilievo **R27** del verbale, e il fatto era già scritto in `src/lib/pdf/typed-service-client.ts:6-10` — file **assente dal registro delle letture**, cioè il censimento R-P6 si è fermato prima. 🔑 **Regola che ne discende e vale per OGNI task a valle: nessuno può contare su `tsc` per scoprire una discordanza di schema. Chi tocca uno scrittore si porta la sua prova** — T1 l'ha chiusa con due `INSERT` in transazione annullata (uno che deve passare, uno **senza `categoria`** che deve essere rifiutato). ✅ **La scelta «senza `DEFAULT`» resta giusta: cambia chi la difende — il database a runtime, non il compilatore** |
+ | **P3** | «`tsc --noEmit` è pulito **prima** di toccare qualcosa» → **VERO** | `provato:` `npx tsc --noEmit` → **uscita 0, nessun output**. ➡️ Ogni rosso dopo `gen types` è **causato dal cambiamento**, non preesistente |
+ | **P4** | «`tipo` non è letta da nessuno» → **VERA** | `provato:` `grep -rn "LavoroImmagine\|\.tipo" src/ tests/` — l'unico `.tipo` è `TabImmagini.tsx:523`, che è lo **stato locale del caricamento** (`FotoLocale.tipo`, `:31`), non la riga di banca dati. Zero riscontri nei due test della tabella |
+-| **P5** | «`FotoStrip` ha un solo chiamante» → **FALSA, e il file mancava dall'elenco** | `provato:` `grep -rn "FotoStrip" src/ tests/` → **tre** siti: `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il catalogo del design system, pagina viva) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`. ➡️ **T11 li tocca tutti e tre** |
++| **P5** | «`FotoStrip` ha un solo chiamante» → **FALSA, e il file mancava dall'elenco** | `provato:` `grep -rn "FotoStrip" src/ tests/` → **tre** siti: `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il catalogo del design system, pagina viva) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10). ➡️ **T11 li tocca tutti e tre** |
+ | **P6** | «Il tipo di dominio ha `created_at`, che serve per ordinare dentro il gruppo» → **FALSA** | `provato:` letto `src/types/domain.ts:475-486` — `LavoroImmagine` ha `id, laboratorio_id, lavoro_id, url, storage_path, nome_file, descrizione, data_scatto, tipo, ordine`. **Niente `created_at`.** ➡️ T1 lo aggiunge, o l'ordine dentro il gruppo non è esprimibile |
+ | **P7** | «Esiste in casa una prova che legge una migration» → **VERA, ma col suo difetto noto** | `provato:` `tests/unit/colore-dente-idratazione.test.ts:21-33` legge `supabase/migrations/20260727120000_lavori_denti.sql` con una regex. 🛑 **Ma pretende un numero fisso (48)**, quindi **resterebbe verde se il catalogo crescesse** — è il rilievo **R3** del verbale. ➡️ **La spia di T2 confronta INSIEMI, non conteggi** |
+ | **P8** | «C'è un precedente di tabella di sola traccia» → **VERO** | `provato:` `supabase/migrations/001_commercial_infra.sql:85-97` — `lab_stato_log`: chiavi, `created_at`, RLS **abilitata** e **nessuna policy pubblica** («solo service role»). ➡️ È la forma che T5 ricalca |
+ | **P9** | Conteggio di riferimento della suite prima di toccare nulla | `provato:` `npx vitest run` → **`Test Files 358 passed | 3 skipped (361)` · `Tests 3850 passed | 19 skipped (3869)`**. ➡️ Ogni task confronta col **3850**, non con un numero ricordato |
+ | **P10** | «L'allowlist del `PATCH` è coperta da qualche prova» → **FALSA, ed è il buco che rende T3 pericoloso** | `provato:` `ALLOWED_PATCH_FIELDS` compare **solo** in `[imgId]/route.ts:10,11,62` e **mai** in un test; i tre test `PATCH` mandano tutti `{descrizione}` (`lavori-id-immagini-imgid-route.test.ts:326,333,339`) e asseriscono solo lo status. ➡️ **Aggiungere `categoria` all'allowlist NON accenderebbe nulla di rosso.** T3 scrive la prova che manca, prima del codice |
+ | **P11** | «Il `PATCH` valida i valori, non solo i nomi» → **FALSA** | `provato:` `[imgId]/route.ts:62-63` decide con `if (field in body)` e `:64` copia il valore **senza alcun controllo**. `{"ordine":"pippo"}` supera la guardia, il database rifiuta, e la rotta risponde **500** (`:85`) a un **errore del client**. ✅ **Nessun messaggio del database arriva al browser** (`:84` e `:163` finiscono in `console.error`): G9 è già rispettata, il difetto è **solo** lo status |
+ | **P12** | «Il punto d'innesto della cancellazione fisica è ovvio» → **NO, ed è preciso** | `provato:` la sequenza del `DELETE` è `CSRF :98` → auth `:102-105` → lab `:106-111` → guardia di esistenza `:117-128` → finestra sul lavoro `:131-140` → **409 `:142-147`** → mutazione `:153-160` → conteggio `:171-178` → 200 `:183`. ➡️ **`storage.remove` va DOPO la riga 147 e PRIMA della 153.** 🛑 **E rompe un test:** `lavori-id-immagini-imgid-route.test.ts:210` — il client finto (`:60-62`) espone **solo `from`**, quindi `svc.storage` è `undefined`. **T5 deve estendere la finta**, o il rosso sembrerà un difetto del codice |
+ | **P13** | «Il test-guardia degli otto siti tollera un elenco esplicito di colonne» → **NO** | `provato:` `lavori-immagini-deleted-embed.test.ts:41` conta con `/immagini:lavori_immagini\(\*\)/g` e `:43` pretende `> 0`. ➡️ **Sostituire `(*)` con un elenco di colonne fa FALLIRE il test**, anche col filtro corretto. 🛑 **Nessun task di questo piano tocca la grafia degli innesti** |
+ | **P14** | 🔑 **«Il VALORE della marca cambia il comportamento degli overlay» → FALSO, e chiude la domanda 1 di spec §16** | `provato:` in `storia-overlay.ts` il valore della marca **non è mai confrontato**: si scrive a `:88`, si rilegge con la stessa chiave a `:98`, si ri-spinge a `:116`, e il gate a `:131` è `if (!marcaEntry)` — sull'**esistenza**. Nessun `if (marca === …)` esiste. ⚠️ **E `type Marca` (`:67`) è un'unione chiusa NON esportata**: `entraOverlay('uaVisore', …)` **non compila**. ➡️ **DECISIONE: visore e tendina riusano `'uaSheet'`.** Costo zero, e **tiene verde** `scripts/guardia-navigazione-overlay.mjs:97`, che riconosce **solo** quelle due stringhe e registra un **guasto** se legge `marca: null` |
+ | **P15** | «Il modulo regge tre strati» → **SÌ, ed è una pila LIFO vera** | `provato:` `storia-overlay.ts:77` (`const pila: Voce[]`), `:123` (`push`), `:111` (`pop`). **Una sola entry di storia per l'INTERA pila** (`:78-79`): aprire il secondo overlay **non tocca** `marcaEntry`. Al back si chiude **solo il più alto** e l'entry si ri-spinge con la marca del nuovo capo (`:116`), **prima** di chiamare `chiudi()` (`:117`) |
+@@ -79,30 +79,30 @@ riassunto.
+ | file | esito |
+ |---|---|
+ | `src/components/features/lavori/form/TabImmagini.tsx` | **letto: 1-692** (per intero, dal coordinatore) |
+ | `src/app/api/lavori/[id]/immagini/route.ts` | **letto: 1-121** (per intero) |
+ | `src/app/api/lavori/[id]/immagini/[imgId]/route.ts` | **letto: 1-190** (per intero, delegato — 9 domande falsificabili) |
+ | `supabase/migrations/002_fase2_schema.sql` | **letto: 242-263** (la tabella, le RLS, l'indice) |
+ | `src/types/domain.ts` | **letto: 475-486** (`LavoroImmagine`) |
+ | `src/types/database.types.ts` | **letto: 3015-3060** (`Row`/`Insert`/`Update`) |
+ | `src/app/(app)/lavori/[id]/page.tsx` | **letto: 25-80** (innesto, filtro, firma delle URL) |
+ | `src/app/(app)/lavori/[id]/modifica/page.tsx` | **letto: 45-100** |
+-| `src/components/ds/FotoStrip.tsx` | **letto: 1-28** (per intero) |
++| `src/components/ds/FotoStrip.tsx` (eliminato in T10) | **letto: 1-28** (per intero) |
+ | `src/app/ds-v3-catalogo/page.tsx` | **letto: 1163-1178** (la sezione §5.33) |
+ | `src/app/ds-v3.css` | **letto: 230-262** (il ponte v2.3→v3) |
+ | `src/components/features/lavori/form/styles.ts` | **letto: 45-58** (`raisedShadow`, `insetShadow`) |
+ | `src/design-system/v3/tokens.ts` | **letto: 31-42** (`raggio`, `materia`) + **delegato per intero** |
+ | `src/components/ds/storia-overlay.ts` | **letto: 55-90** + **delegato per intero** |
+ | `tests/unit/lavori-immagini-deleted-embed.test.ts` | **letto: 26-49** (delegato: `FILES`, le due regex, le asserzioni) |
+ | `tests/unit/lavori-id-immagini-imgid-route.test.ts` | **letto: per intero** (delegato — 21 `it`, 28 casi) |
+ | `tests/unit/helpers/supabase-chain-mock.ts` | **letto: 23-27** (delegato: `createChain`, la lista passthrough) |
+-| `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` | **letto: 1-33** (per intero) |
++| `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10) | **letto: 1-33** (per intero) |
+ | `tests/unit/colore-dente-idratazione.test.ts` | **letto: 1-40** (il modello di prova che legge una migration) |
+ | `tests/unit/prezzo-tripwire.test.ts` | **letto: 1-26** (il modello di «spia onesta», coi limiti dichiarati) |
+ | `supabase/migrations/001_commercial_infra.sql` | **letto: 85-104** (`lab_stato_log`, forma della tabella di sola traccia) |
+ | `src/design-system/v3/{motion,haptic,sound}.ts` | **delegato per intero** |
+ | `src/components/ds/{Sheet,useNavigaDaOverlay}.tsx/.ts` | **delegato per intero** |
+ | `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` | **letto: 314-318** + **delegato per intero** |
+ | `src/components/features/lavori/LavoroFormClient.tsx` | **delegato per intero** |
+ | `scripts/guardia-navigazione-overlay.mjs` | **delegato (intestazione e bracci)** |
+ 
+ ### 🔴 Quattro cose che la lettura ha trovato e che il piano NON avrebbe indovinato
+@@ -138,21 +138,21 @@ riassunto.
+ | identificatore | dove | destinazione |
+ |---|---|---|
+ | `LavoroImmagine` | `src/types/domain.ts:475-486` · usato in `LavoroFormClient.tsx:9,74,128` · `TabImmagini.tsx:6,83,85,150` | ✏️ **T1**: `-tipo`, `+categoria`, `+created_at` |
+ | `TipoFoto` (locale) | `TabImmagini.tsx:13` · usato a `:31,121,198,225,248,525,637` | 🔄 **T2**: sostituito dal tipo esportato `CategoriaFoto`. La copia locale **sparisce** |
+ | `TIPI_FOTO` (locale) | `TabImmagini.tsx:15-22` · usato a `:543,634,655` | 🔄 **T2**: sostituito da `CATEGORIE_FOTO` in `src/lib/domain/`. La copia locale **sparisce** |
+ | `ALLOWED_PATCH_FIELDS` | `api/lavori/[id]/immagini/[imgId]/route.ts:10` — `['descrizione','tipo','ordine']` · usata a `:62` | ✏️ **T3**: `tipo` **esce** (la colonna non esiste più), `categoria` **entra** **con validazione dei valori** |
+ | `AllowedField` | stesso file `:11` | ✏️ segue `ALLOWED_PATCH_FIELDS` |
+ | `handleTipoChange` / `handleTipoChangeDb` | `TabImmagini.tsx:224-244` e `:247-260` — **due gestori quasi identici** | 🔗 **T12: si FONDONO in una sola funzione di scrittura** (D70) |
+ | `totalFotos` | `TabImmagini.tsx:117` — somma banca dati **+** locali già caricate → **conta doppio** | 🐞 **T12**, difetto chiuso |
+ | `foteDaRenderizzare` | `TabImmagini.tsx:287` — rende **tutte** le locali, comprese quelle già salite → **doppione** | 🐞 **T12**, difetto chiuso |
+-| `FotoStrip` | `src/components/ds/FotoStrip.tsx` · **tre** chiamanti (P5) | 🔄 **T11**: assorbita dalla carta album. Tutti e tre i siti si aggiornano |
++| `FotoStrip` | `src/components/ds/FotoStrip.tsx` (eliminato in T10) · **tre** chiamanti (P5) | 🔄 **T11**: assorbita dalla carta album. Tutti e tre i siti si aggiornano |
+ | `handleAddImmagine` | `LavoroFormClient.tsx:128`, passata a `:204` | ➕ **T13**: gli si affianca il percorso di **rimozione** dallo stato, che **oggi non esiste** |
+ | 🆕 `CATEGORIE_FOTO`, `CategoriaFoto`, `etichettaCategoria`, `ordinaFotoPerCategoria` | — | **T2**, in `src/lib/domain/categorie-foto.ts` |
+ | 🆕 `CartaAlbum`, `VisoreFoto`, `TendinaMenu`, `FoglioCategoria`, `FoglioConferma` | — | **T6-T9 e T9-bis**, in `src/components/ds/`. `FoglioConferma` nasce da **D80** (30/07) |
+ 
+ ### Chiavi JSON e campi di modulo
+ | chiave | dove | destinazione |
+ |---|---|---|
+ | `descrizione` (campo FormData del POST) | inviata da `TabImmagini.tsx:131`, letta a `immagini/route.ts:97-98` | 🔄 **Due lati, due task — 🔧 CORRETTO da T3 (30/07), questa riga li confondeva:** il lato **server** (leggere `categoria`, 422 se manca o è fuori elenco) è **T3, fatto**; il lato **client** (`TabImmagini.tsx:131` che smette di spedire `descrizione` e spedisce `categoria`) è **T11**, dove la tabella delle righe lo rivendica già. 🔴 **Conseguenza vera e dichiarata: da T3 fino a T11 il caricamento di una foto riceve 422** — prima riceveva 201 con la categoria nel posto sbagliato. È coerente con **D81** (il guasto si ripara al merge), ma **«T3 fatto» NON significa «il caricamento funziona»** |
+ | `immagine` (chiave della risposta 201) | `immagini/route.ts:120` | ⏸️ invariata |
+ | `{ descrizione: … }` (corpo del PATCH) | `TabImmagini.tsx:236,253` | 🔄 **T11, non T12 — 🔧 CORRETTO da T3 (30/07):** diventa `{ categoria: … }`, e le due righe che lo fanno (`:224-244` e `:247-260`, i due gestori che si fondono in **una** funzione di scrittura, D70) stanno nella tabella di **T11**. Il lato server accetta già `categoria` da T3 |
+@@ -203,21 +203,21 @@ sulla pagina dietro. **`DialogConferma` non ha né focus né blocco dello scorri
+ - 🆕 **da creare:** `src/components/ds/CartaAlbum.tsx` · `src/components/ds/VisoreFoto.tsx` · `src/components/ds/TendinaMenu.tsx` · `src/components/ds/FoglioCategoria.tsx` · `src/components/ds/FoglioConferma.tsx` (**D80**, T9-bis)
+ - `tests/unit/categorie-foto.test.ts` · `tests/unit/categorie-foto-spia-migration.test.ts` — 🆕
+ - 🆕 **da creare:** `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx` · `tests/unit/ds-v3/componenti/VisoreFoto.test.tsx` · `tests/unit/ds-v3/componenti/TendinaMenu.test.tsx` · `tests/unit/ds-v3/componenti/FoglioCategoria.test.tsx` · `tests/unit/ds-v3/componenti/FoglioConferma.test.tsx` (**da creare**, T9-bis)
+ - `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` — 🆕 la proposta delle §5.x (T6)
+ 
+ **Da modificare**
+ - `src/types/domain.ts:475-486` · `src/types/database.types.ts` (**generato**, mai a mano)
+ - `src/app/api/lavori/[id]/immagini/route.ts` (POST) · `.../[imgId]/route.ts` (PATCH + DELETE)
+ - `src/components/features/lavori/form/TabImmagini.tsx` · `src/components/features/lavori/LavoroFormClient.tsx`
+ - `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx:315-316` · `src/app/ds-v3-catalogo/page.tsx:1165-1170`
+-- `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`
++- `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10)
+ 
+ ---
+ 
+ ## I task, in blocchi
+ 
+ > 🔧 **Tabella corretta il 30/07 sera: i task sono SEDICI, non quattordici.** Il piano ne dichiarava 14 e
+ > non conosceva i due nati durante l'esecuzione — **T5-bis** (D84, già fatto) e **T5-ter** (D85, da fare).
+ > Entrambi nascono dallo stesso meccanismo: **un difetto di fondo che si è scelto di riparare alla radice
+ > invece di aggirarlo con una regola scritta in spec**, e un piano che non li registra è un piano che
+ > sembra completo e non lo è.
+@@ -1372,26 +1372,26 @@ che il piano aveva dichiarato come scostamento S1 senza chiederglielo (D80).** N
+ 
+ ---
+ 
+ # BLOCCO D — l'innesto sulle due superfici
+ 
+ ### Task 10 — la carta album entra sulla scheda, e la striscia esce da TUTTI e tre i siti
+ 
+ **File**
+ - Modifica: `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx:315-316`
+ - Modifica: `src/app/ds-v3-catalogo/page.tsx:1165-1170`
+-- Modifica: `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`
++- Modifica: `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (in pratica: eliminato in T10 — v. sotto)
+ - Elimina (o svuota): `src/components/ds/FotoStrip.tsx`
+ 
+ 🔴 **`FotoStrip` ha TRE chiamanti, non uno**, e il terzo è una **pagina viva**: `provato:` `grep -rn
+ "FotoStrip" src/ tests/` → `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il
+-catalogo del design system) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`.
++catalogo del design system) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx` (eliminato in T10).
+ 🛑 **Il file del catalogo NON compariva in nessun elenco prima del censimento.** Se resta indietro, il
+ catalogo mostra un componente che la spec dichiara superata.
+ 
+ - [ ] **Passo 1 — la prova PRIMA**, in `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx` (🆕 da creare) o in un test della
+   scheda: montando `SchedaLavoroV3` con due foto, **compare il titolo «Foto»** e **non** la striscia nuda.
+   ⚠️ `tests/unit/SchedaLavoroV3.test.tsx` passa oggi `immagini: []`: **copertura zero** su questa zona.
+   **Aggiungi il caso con le foto**, o la prova non tocca niente.
+ - [ ] **Passo 2 — l'innesto.** In `SchedaLavoroV3.tsx`, dentro `.scheda-col-main` (aperto a `:254`, chiuso
+   a `:320`), **fra** il ternario `NotaLaboratorio`/`NotaLaboratorioVuota` (`:309-313`) e
+   `CardFasiV3` (`:319`), sostituisci la riga `:316` con la carta album — passando `categoria` e
+diff --git a/docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md b/docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md
+index fb2d5fcc..049cfc28 100644
+--- a/docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md
++++ b/docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md
+@@ -357,22 +357,23 @@ esiste. **Vanno nel piano**, come passo proprio.
+ quindi si **progettano** invece di scoprirli in esecuzione:
+ 1. **La voce distruttiva sta IN FONDO alla tendina** — il punto più lontano dai tre puntini e **più vicino
+    al pollice**, perché in alto a destra è la zona meno raggiungibile su un telefono grande ed è lì che
+    finirebbe la voce che **cancella davvero** (D61). Resta rossa, staccata da una linea, con margine extra
+    (§5.34).
+ 2. **La tendina è uno STRATO, non un dettaglio grafico:** entra in `storia-overlay.ts` esattamente come un
+    foglio, o «indietro» chiuderebbe **il visore** invece del menù. Da progettare con lei: chiusura toccando
+    fuori · chiusura allo scorrimento · **raggiungibilità da tastiera e da lettore di schermo**, che un
+    foglio v3 ha già e una tendina nuova **no**.
+ 
+-`src/components/ds/FotoStrip.tsx` **esiste già** ed è v3 puro (28 righe, legge solo `v3/tokens`): la carta
+-album **lo assorbe o lo sostituisce** — non gli si affianca un terzo componente foto.
++`src/components/ds/FotoStrip.tsx` (eliminato in T10) **esisteva già**, al momento di questa spec, ed era v3
++puro (28 righe, legge solo `v3/tokens`): la carta album **lo assorbe o lo sostituisce** — non gli si
++affianca un terzo componente foto.
+ 
+ ---
+ 
+ ## 10. 🛑 La regola sui token, e il ponte che la rende necessaria
+ 
+ **I componenti nuovi leggono SOLO `src/design-system/v3/tokens.ts`. Mai `form/styles.ts`.**
+ 
+ **Non è una preferenza di stile — è il fatto misurato che segue.** `src/app/ds-v3.css:236-255` contiene un
+ **ponte**: venti righe che rimappano i nomi v2.3 (`--t1`, `--t2`, `--sh-b`, `--sh-i`) ai valori v3. Ma è
+ agganciato alla classe **`.lavoro-form-v3`, che in tutto `src/` esiste in UN SOLO posto**
+diff --git a/src/app/ds-v3-catalogo/page.tsx b/src/app/ds-v3-catalogo/page.tsx
+index dff34f71..2e67231c 100644
+--- a/src/app/ds-v3-catalogo/page.tsx
++++ b/src/app/ds-v3-catalogo/page.tsx
+@@ -32,21 +32,21 @@ import { ProgressDots } from '@/components/ds/ProgressDots'
+ import { DialogConferma } from '@/components/ds/DialogConferma'
+ import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+ import { Skeleton } from '@/components/ds/Caricamento'
+ import { Vuoto } from '@/components/ds/Vuoto'
+ import { BarraMateriale } from '@/components/ds/BarraMateriale'
+ import { EroeTuttoAPosto } from '@/components/ds/EroeTuttoAPosto'
+ import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
+ import { NotaDentista } from '@/components/ds/NotaDentista'
+ import { GiornoAgenda, RigaAgenda } from '@/components/ds/RigaAgenda'
+ import { PillVoce } from '@/components/ds/PillVoce'
+-import { FotoStrip } from '@/components/ds/FotoStrip'
++import { CartaAlbum } from '@/components/ds/CartaAlbum'
+ import { MenuVoce } from '@/components/ds/MenuVoce'
+ import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
+ import { RigaBloccante } from '@/components/ds/RigaBloccante'
+ import { NavDesk } from '@/components/ds/NavDesk'
+ import { Cassetta } from '@/components/ds/Cassetta'
+ import { MiniaturaLavoro } from '@/components/ds/MiniaturaLavoro'
+ 
+ // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
+ // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
+ // useSyncExternalStore — niente stato locale che possa desincronizzarsi.
+@@ -71,21 +71,21 @@ export const INDICE = [
+   { id: 'card-lavoro', titolo: 'CardLavoro' },
+   { id: 'righe', titolo: 'CardInfo · RigaFase' },
+   { id: 'sheet-dialog', titolo: 'Sheet · DialogConferma' },
+   { id: 'avviso-skeleton-vuoto', titolo: 'Avviso · Skeleton · Vuoto' },
+   { id: 'suoni', titolo: 'Suoni' },
+   { id: 'campo', titolo: 'Campo' },
+   { id: 'racconto', titolo: 'Il racconto' },
+   { id: 'pill-voce', titolo: 'PillVoce' },
+   { id: 'chip-scelta', titolo: 'ChipScelta' },
+   { id: 'progress-dots', titolo: 'ProgressDots' },
+-  { id: 'foto-strip', titolo: 'FotoStrip' },
++  { id: 'carta-album', titolo: 'CartaAlbum' },
+   { id: 'menu-voce', titolo: 'MenuVoce' },
+   { id: 'tasto-whatsapp', titolo: 'TastoWhatsApp' },
+   { id: 'riga-bloccante', titolo: 'RigaBloccante' },
+   { id: 'nav-desk', titolo: 'NavDesk' },
+   { id: 'cassetta', titolo: 'Cassetta · MiniaturaLavoro' },
+ ] as const
+ 
+ // Simula le fasi di un lavoro reale (§5.11): 2 già fatte, la prossima (con
+ // PillFase), 1 futura — stato locale solo per rendere la spunta viva nel
+ // catalogo, non un pattern da riusare a monte.
+@@ -1155,26 +1155,34 @@ export default function CatalogoPage() {
+             }}
+           >
+             3 dot Ø 11, gap 8: quelli prima del passo attuale sono verdi (fatti), quello
+             attuale è largo 30px e rosso (l&apos;unico rosso sanzionato dei passi di
+             scelta, §7.3), quelli dopo restano neutri. Un solo elemento con role
+             «img» racconta il passo a uno screen reader — i tre dot sono decorativi.
+           </p>
+         </div>
+       </SezioneCatalogo>
+ 
+-      <SezioneCatalogo id="foto-strip" titolo="FotoStrip" spec="§5.33">
+-        <FotoStrip foto={[
+-          { id: 'f1', url: 'https://wa.me/placeholder-non-usato', alt: 'Impronta arcata superiore' },
+-        ]} />
+-        {/* NB: nel catalogo le thumb non caricano (nessuna signed URL) — la
+-            geometria 72×72 resta verificabile. */}
++      <SezioneCatalogo id="carta-album" titolo="CartaAlbum" spec="§5.38">
++        <CartaAlbum
++          foto={[
++            { id: 'f1', url: 'https://wa.me/placeholder-non-usato', categoria: 'impronta', created_at: '2026-07-30T09:00:00Z', nome_file: null },
++            { id: 'f2', url: 'https://wa.me/placeholder-non-usato-2', categoria: 'rx', created_at: '2026-07-30T10:00:00Z', nome_file: null },
++          ]}
++          onApri={() => {}}
++          onCorreggiCategoria={() => {}}
++        />
++        {/* NB: nel catalogo le thumb non caricano (nessuna signed URL) — le
++            geometrie di legge (foto grande 4/3 a 390 e 16/9 da 768, miniature
++            60×60 raggio 12) restano verificabili. `onApri`/`onCorreggiCategoria`
++            sono no-op qui: il visore e il foglio della categoria sono §5.39/§5.41,
++            fuori da questa sezione. */}
+       </SezioneCatalogo>
+ 
+       <SezioneCatalogo id="menu-voce" titolo="MenuVoce" spec="§5.34">
+         <div style={{ maxWidth: 420 }}>
+           <div style={{ borderBottom: '1.5px solid var(--line)' }}>
+             <MenuVoce icona={<path d="M12 2v20" />} testo="Prezzi e lavorazioni" onTap={() => {}} />
+           </div>
+           <MenuVoce icona={<rect x="3" y="4" width="18" height="16" rx="2.5" />} testo="Foto" onTap={() => {}} />
+           <div style={{ borderTop: '1.5px solid var(--line)', marginTop: 8 }}>
+             <MenuVoce icona={<path d="M4 7h16" />} testo="Annulla lavoro" nota="Prossimamente" butta disabled />
+diff --git a/src/components/ds/FotoStrip.tsx b/src/components/ds/FotoStrip.tsx
+deleted file mode 100644
+index 5408ccfd..00000000
+--- a/src/components/ds/FotoStrip.tsx
++++ /dev/null
+@@ -1,28 +0,0 @@
+-'use client'
+-
+-// DS v3 §5.33 — FotoStrip: strip thumbnail orizzontale read-only (mockup
+-// scheda-lavoro.html `.foto-strip` = legge). Thumb 72×72 · radius 12 · max 1
+-// riga scrollabile. CONTRATTO SICUREZZA (spec 16/07 §2.1): `url` è SEMPRE una
+-// signed URL generata server-side al render (pattern B5, lib/storage/
+-// signed-url.ts) — mai storage_path né il valore getPublicUrl persistito.
+-
+-import { spazio } from '@/design-system/v3/tokens'
+-
+-export function FotoStrip(props: { foto: Array<{ id: string; url: string; alt?: string }> }) {
+-  const { foto } = props
+-  if (foto.length === 0) return null
+-
+-  return (
+-    <div style={{ display: 'flex', gap: spazio.s, overflowX: 'auto', paddingBottom: 2 }} aria-label="Foto del lavoro">
+-      {foto.map((f) => (
+-        // eslint-disable-next-line @next/next/no-img-element -- URL Storage firmata a dimensioni variabili (stessa scelta di TabImmagini.tsx), next/image non applicabile
+-        <img
+-          key={f.id}
+-          src={f.url}
+-          alt={f.alt ?? 'Foto del lavoro'}
+-          style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 12, objectFit: 'cover', background: 'var(--bg-deep)' }}
+-        />
+-      ))}
+-    </div>
+-  )
+-}
+diff --git a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+index d204efd6..ce9e60f9 100644
+--- a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
++++ b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+@@ -47,21 +47,21 @@
+ // il testo scritto dal dentista.
+ 
+ import { useEffect, useState } from 'react'
+ import { useRouter } from 'next/navigation'
+ import { tornaIndietro } from '@/lib/nav/torna-indietro'
+ import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
+ import { motion } from 'motion/react'
+ import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+ import { initSuoni } from '@/design-system/v3/sound'
+ import { NotaDentista } from '@/components/ds/NotaDentista'
+-import { FotoStrip } from '@/components/ds/FotoStrip'
++import { CartaAlbum } from '@/components/ds/CartaAlbum'
+ import { TastoTondo } from '@/components/ds/TastoTondo'
+ import { TastoPrimario } from '@/components/ds/TastoPrimario'
+ import { TastoSecondario } from '@/components/ds/TastoSecondario'
+ import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
+ import { PillTempo } from '@/components/ds/Pill'
+ import { CardFasiV3 } from './CardFasiV3'
+ import { RigaLavoroDenti } from './RigaLavoroDenti'
+ import { ModificaRigaSheet } from './ModificaRigaSheet'
+ import { MenuSchedaSheet } from './MenuSchedaSheet'
+ import { DocumentiSheet } from './DocumentiSheet'
+@@ -305,22 +305,32 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string |
+ 
+           {/* NotaLaboratorio — nota_interne del LAB, onesta (nessuna
+               attribuzione al dentista), editabile al tap. Se assente si mostra
+               l'affordance «aggiungi la prima nota» (polish L1 — D10). */}
+           {lavoro.note_interne ? (
+             <NotaLaboratorio testo={lavoro.note_interne} onApri={() => setCampoAttivo('note')} />
+           ) : (
+             <NotaLaboratorioVuota onApri={() => setCampoAttivo('note')} />
+           )}
+ 
+-          {/* Strip foto read-only (§5.33 — componente ds FotoStrip) */}
+-          <FotoStrip foto={lavoro.immagini.map((img) => ({ id: img.id, url: img.url, alt: img.descrizione ?? undefined }))} />
++          {/* Carta album (§5.38 — componente ds CartaAlbum). Sostituisce la
++              vecchia FotoStrip (§5.33, superata dalla spec il 30/07/2026): non
++              più una striscia muta, ma una carta col suo titolo «Foto».
++              `categoria`/`created_at` vengono diretti da `LavoroImmagine`
++              (types/domain.ts) — lo stesso tipo che il server firma in
++              `lavori/[id]/page.tsx`, nessuna trasformazione qui.
++              🛑 T10 monta SOLO la carta: il visore a tutto schermo, la tendina
++              del ⋯ e i due fogli (categoria/conferma) sono di T12 e non
++              esistono ancora — finché non arrivano, `onApri`/
++              `onCorreggiCategoria` restano inerti apposta (nessun overlay da
++              aprire). */}
++          <CartaAlbum foto={lavoro.immagini} onApri={() => {}} onCorreggiCategoria={() => {}} />
+ 
+           {/* CardFasiV3 (§5) — se ci sono fasi */}
+           {lavoro.fasi.length > 0 && <CardFasiV3 lavoroId={lavoro.id} fasi={lavoro.fasi} onErrore={(msg) => errore(msg)} />}
+         </div>
+ 
+         {/* ── Colonna azioni/documenti (a destra su desktop, in coda su
+             mobile) ───────────────────────────────────────────────────── */}
+         <div className="scheda-col-side">
+           <div className="scheda-azioni">
+             {/* CONSEGNA — mai nascosto, solo abilitato/disabilitato (§7.4) */}
+diff --git a/tests/unit/SchedaLavoroV3.test.tsx b/tests/unit/SchedaLavoroV3.test.tsx
+index 7ec3d522..31b4edeb 100644
+--- a/tests/unit/SchedaLavoroV3.test.tsx
++++ b/tests/unit/SchedaLavoroV3.test.tsx
+@@ -88,20 +88,75 @@ describe('SchedaLavoroV3', () => {
+     expect(screen.getByRole('alert')).toBeInTheDocument()
+     expect(screen.getByText(/tracciabilità materiali incompleta/i)).toBeInTheDocument()
+     expect(screen.getByText(/Zirconia HT/)).toBeInTheDocument()
+     expect(screen.getByText(/nessun lotto disponibile in magazzino/i)).toBeInTheDocument()
+   })
+   it('non mostra il callout tracciabilità quando i materiali sono ok', () => {
+     render(<SchedaLavoroV3 lavoro={makeLavoro({ tracciabilita_materiali_ok: true, materiali_incompleti_dettaglio: null })} />)
+     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+     expect(screen.queryByText(/tracciabilità materiali incompleta/i)).not.toBeInTheDocument()
+   })
++  // T10 — l'innesto della carta album (§5.38) al posto della FotoStrip (§5.33,
++  // superata). `tests/unit/SchedaLavoroV3.test.tsx` passava sempre `immagini: []`
++  // (fixture di riga 27): questa era l'unica zona a copertura zero, perché la
++  // carta e la striscia si distinguono SOLO quando ci sono foto da mostrare.
++  it('con le foto monta la CARTA ALBUM (titolo «Foto», conteggio) e non la striscia nuda (§5.33 superata)', () => {
++    const immagini: LavoroDettaglio['immagini'] = [
++      {
++        id: 'img-1', laboratorio_id: 'lab', lavoro_id: 'lav',
++        url: 'https://esempio/imp.jpg', storage_path: 'lab/lav/imp.jpg',
++        nome_file: null, descrizione: null, data_scatto: null,
++        categoria: 'impronta', created_at: '2026-07-30T09:00:00Z', ordine: 0,
++      },
++      {
++        id: 'img-2', laboratorio_id: 'lab', lavoro_id: 'lav',
++        url: 'https://esempio/rx.jpg', storage_path: 'lab/lav/rx.jpg',
++        nome_file: null, descrizione: null, data_scatto: null,
++        categoria: 'rx', created_at: '2026-07-30T10:00:00Z', ordine: 0,
++      },
++      // Terza foto (rilievo di revisione): stessa categoria di img-1 ma
++      // `created_at` PRIMA — serve a rendere osservabile anche il passaggio
++      // di `created_at`, che con sole due categorie diverse non lascia
++      // traccia (l'ordine fra gruppi segue D71, non la data).
++      {
++        id: 'img-3', laboratorio_id: 'lab', lavoro_id: 'lav',
++        url: 'https://esempio/imp-presto.jpg', storage_path: 'lab/lav/imp-presto.jpg',
++        nome_file: null, descrizione: null, data_scatto: null,
++        categoria: 'impronta', created_at: '2026-07-30T08:00:00Z', ordine: 0,
++      },
++    ]
++    const { container } = render(<SchedaLavoroV3 lavoro={makeLavoro({ immagini })} />)
++    // La carta ha un TITOLO vero — la striscia (FotoStrip) non ne aveva mai uno.
++    expect(screen.getByRole('heading', { name: 'Foto' })).toBeInTheDocument()
++    expect(screen.getByText('3 foto')).toBeInTheDocument()
++    // Firma della vecchia striscia (il suo unico contenitore portava questo
++    // aria-label): se comparisse ancora, la sostituzione non è avvenuta.
++    expect(container.querySelector('[aria-label="Foto del lavoro"]')).toBeNull()
++    // Guardia sull'innesto (rilievo di revisione): l'unica cosa di cui QUESTO
++    // task è responsabile è che la scheda passi alla carta la `categoria` VERA
++    // di ciascuna foto, non un valore fisso. La carta raggruppa per categoria
++    // mostrandone l'etichetta (§5.38, superficie pubblica `role="group"`, non
++    // la classe interna della carta) — con impronta + rx devono comparire DUE
++    // gruppi distinti. Se l'innesto passasse una categoria fissa (es. sempre
++    // 'altro'), le tre foto crollerebbero in un unico gruppo «Altro» e questa
++    // ricerca fallirebbe (il gruppo «Impronta» non esisterebbe più).
++    expect(screen.getByRole('group', { name: 'Impronta' })).toBeInTheDocument()
++    expect(screen.getByRole('group', { name: 'Radiografia' })).toBeInTheDocument()
++    // Guardia sul `created_at` VERO di ciascuna foto: dentro il gruppo
++    // «Impronta» ci sono due foto (img-3 delle 08:00, img-1 delle 09:00) — se
++    // l'innesto passasse un `created_at` fisso, il loro ordine dipenderebbe
++    // solo dallo spareggio per `id` ('img-1' < 'img-3' alfabeticamente) e
++    // img-3 (quella vera più vecchia) non sarebbe più la prima del gruppo.
++    const primaImpronta = screen.getByRole('button', { name: 'Impronta, 1 di 3' })
++    expect((primaImpronta.querySelector('img') as HTMLImageElement).src).toContain('imp-presto.jpg')
++  })
++
+   it('dopo router.refresh() il nuovo tecnico dal prop fresco sostituisce quello locale (bug FK-refresh)', () => {
+     const lavoroA = makeLavoro({ tecnico: { nome: 'Ciro', cognome: 'B', sigla: 'CB' } as unknown as LavoroDettaglio['tecnico'] })
+     const { rerender } = render(<SchedaLavoroV3 lavoro={lavoroA} />)
+     expect(screen.getByText('Ciro B')).toBeInTheDocument()
+     // Simula ciò che accade dopo `router.refresh()`: il Server Component
+     // rilegge il JOIN e passa un `lavoro` fresco con un tecnico diverso.
+     const lavoroB = makeLavoro({ tecnico: { nome: 'Anna', cognome: 'V', sigla: 'AV' } as unknown as LavoroDettaglio['tecnico'] })
+     rerender(<SchedaLavoroV3 lavoro={lavoroB} />)
+     expect(screen.getByText('Anna V')).toBeInTheDocument()
+     expect(screen.queryByText('Ciro B')).not.toBeInTheDocument()
+diff --git a/tests/unit/ds-v3/componenti/CartaAlbum.test.tsx b/tests/unit/ds-v3/componenti/CartaAlbum.test.tsx
+index 7e769e77..1f6d776b 100644
+--- a/tests/unit/ds-v3/componenti/CartaAlbum.test.tsx
++++ b/tests/unit/ds-v3/componenti/CartaAlbum.test.tsx
+@@ -293,20 +293,37 @@ describe('CartaAlbum — la carta delle foto (§5.38)', () => {
+   })
+ 
+   it('miniature 60×60 (ben oltre i 44 di G4) con raggio 12 = raggio.riga - 6', () => {
+     render(<CartaAlbum foto={FOTO} {...NULLA} />)
+     const mini = screen.getByRole('button', { name: 'Impronta, 1 di 5' })
+     expect(mini.style.width).toBe('60px')
+     expect(mini.style.height).toBe('60px')
+     expect(mini.style.borderRadius).toBe('12px')
+   })
+ 
++  // Eredità di FotoStrip.test.tsx (§5.33, superata): quel file asserisce
++  // 72×72 + radius 12 + objectFit cover + scroll orizzontale. Radius 12 delle
++  // miniature è GIÀ provato sopra ('miniature 60×60 (ben oltre i 44 di G4)
++  // con raggio 12'), e lo scroll orizzontale della fascia è GIÀ provato sopra
++  // ('la fascia dei gruppi scorre in orizzontale…') — non li si duplica qui.
++  // Il 72×72 non ha un equivalente diretto sulla carta (le miniature sono
++  // 60×60, la foto grande segue un aspect-ratio, non una misura fissa): resta
++  // solo `objectFit: cover`, che qui NON era ancora provato su nessuna delle
++  // due immagini — è l'unica riga che si riscrive davvero.
++  it('objectFit cover su foto grande e miniature (ex FotoStrip §5.33): riempiono il riquadro senza deformarsi', () => {
++    render(<CartaAlbum foto={FOTO} {...NULLA} />)
++    const grande = screen.getByRole('button', { name: /^Apri la foto grande/ })
++    expect((grande.querySelector('img') as HTMLImageElement).style.objectFit).toBe('cover')
++    const mini = screen.getByRole('button', { name: 'Impronta, 1 di 5' })
++    expect((mini.querySelector('img') as HTMLImageElement).style.objectFit).toBe('cover')
++  })
++
+   it('anello focus-visible di legge (2px --blue, offset 2) su foto grande, etichetta e miniature', () => {
+     const { container } = render(<CartaAlbum foto={FOTO} {...NULLA} />)
+     const regole = container.querySelector('style')?.textContent ?? ''
+     for (const classe of ['.ds-album-grande', '.ds-album-etichetta', '.ds-album-mini']) {
+       expect(regole).toContain(`${classe}:focus-visible`)
+     }
+     expect(regole).toContain('outline: 2px solid var(--blue)')
+     expect(regole).toContain('outline-offset: 2px')
+   })
+ 
+diff --git a/tests/unit/ds-v3/componenti/FotoStrip.test.tsx b/tests/unit/ds-v3/componenti/FotoStrip.test.tsx
+deleted file mode 100644
+index b3be66a7..00000000
+--- a/tests/unit/ds-v3/componenti/FotoStrip.test.tsx
++++ /dev/null
+@@ -1,32 +0,0 @@
+-import { render, screen } from '@testing-library/react'
+-import { describe, it, expect } from 'vitest'
+-import { FotoStrip } from '@/components/ds/FotoStrip'
+-
+-const FOTO = [
+-  { id: 'a', url: 'https://x.supabase.co/sign/1.jpg?token=t', alt: 'Impronta' },
+-  { id: 'b', url: 'https://x.supabase.co/sign/2.jpg?token=t' },
+-]
+-
+-describe('FotoStrip — strip read-only (§5.33)', () => {
+-  it('renderizza una img per foto, alt esplicito o fallback', () => {
+-    render(<FotoStrip foto={FOTO} />)
+-    expect(screen.getByAltText('Impronta')).toBeInTheDocument()
+-    expect(screen.getByAltText('Foto del lavoro')).toBeInTheDocument()
+-  })
+-
+-  it('misure di legge: 72×72, radius 12, objectFit cover, scroll orizzontale', () => {
+-    const { container } = render(<FotoStrip foto={FOTO} />)
+-    const strip = container.firstElementChild as HTMLElement
+-    expect(strip.style.overflowX).toBe('auto')
+-    const img = screen.getByAltText('Impronta')
+-    expect(img.style.width).toBe('72px')
+-    expect(img.style.height).toBe('72px')
+-    expect(img.style.borderRadius).toBe('12px')
+-    expect(img.style.objectFit).toBe('cover')
+-  })
+-
+-  it('lista vuota: non renderizza nulla', () => {
+-    const { container } = render(<FotoStrip foto={[]} />)
+-    expect(container.firstElementChild).toBeNull()
+-  })
+-})
+diff --git a/tests/unit/ds-v3/componenti/catalogo.test.tsx b/tests/unit/ds-v3/componenti/catalogo.test.tsx
+index 03e906f7..3a24784f 100644
+--- a/tests/unit/ds-v3/componenti/catalogo.test.tsx
++++ b/tests/unit/ds-v3/componenti/catalogo.test.tsx
+@@ -118,21 +118,21 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
+       'CardLavoro',
+       'CardInfo · RigaFase',
+       'Sheet · DialogConferma',
+       'Avviso · Skeleton · Vuoto',
+       'Suoni',
+       'Campo',
+       'Il racconto',
+       'PillVoce',
+       'ChipScelta',
+       'ProgressDots',
+-      'FotoStrip',
++      'CartaAlbum',
+       'MenuVoce',
+       'TastoWhatsApp',
+       'RigaBloccante',
+       'NavDesk',
+       'Cassetta · MiniaturaLavoro',
+     ])
+   })
+ 
+   it('ogni voce dell\'indice ha un\'ancora <nav> e una sezione con lo stesso id nel DOM', () => {
+     const { container } = render(<CatalogoPage />)

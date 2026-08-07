@@ -1,0 +1,148 @@
+# Review package: ef67f0da..06f5f626
+
+## Commits
+06f5f626 feat(ds): CampoTesto impara l'aiuto e la tastiera del telefono (P31, D184)
+
+## Files changed
+ src/components/ds/Campo.tsx                        | 30 ++++++++++++++++++++-
+ .../componenti/campo-aiuto-e-tastiera.test.tsx     | 31 ++++++++++++++++++++++
+ 2 files changed, 60 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/components/ds/Campo.tsx b/src/components/ds/Campo.tsx
+index 9493c645..ee5d8dbc 100644
+--- a/src/components/ds/Campo.tsx
++++ b/src/components/ds/Campo.tsx
+@@ -22,20 +22,31 @@ const ALTEZZA_CAMPO = 64 // §5.27 — letterale, non in scala spazio/raggio
+ const stileLabel: CSSProperties = {
+   display: 'block',
+   fontSize: tipografia.size.label,
+   fontWeight: tipografia.weight.extrabold,
+   textTransform: 'uppercase',
+   letterSpacing: tipografia.tracking.label,
+   color: 'var(--faint)',
+   marginBottom: spazio.xs,
+ }
+ 
++/** L'aiuto sotto un campo (P31, D184). `--muted` e NON `--faint`: dentro un foglio in
++ *  tema scuro `--faint` scende a 4,25:1, sotto il 4,5 che WCAG 1.4.3 chiede a un testo
++ *  piccolo (è P30-bis, difetto già aperto nel progetto — qui lo si evita, non lo si
++ *  corregge). E non è un messaggio d'errore: mai un colore semantico. */
++const stileAiuto: CSSProperties = {
++  margin: '6px 0 0',
++  fontSize: 13,
++  lineHeight: 1.35,
++  color: 'var(--muted)',
++}
++
+ function stileCampo(extra?: CSSProperties): CSSProperties {
+   return {
+     display: 'block',
+     boxSizing: 'border-box',
+     width: '100%',
+     height: ALTEZZA_CAMPO,
+     borderRadius: raggio.riga,
+     border: '1px solid var(--line)',
+     background: 'var(--card)',
+     color: 'var(--ink)',
+@@ -53,45 +64,62 @@ function stileCampo(extra?: CSSProperties): CSSProperties {
+  * Usato SOLO dentro wizard e sheet. Label sopra, maiuscola. Nessun
+  * suono/vibrazione sulla digitazione: è un flusso continuo, non un gesto
+  * discreto da confermare.
+  */
+ export function CampoTesto(props: {
+   label: string
+   valore: string
+   onCambia: (v: string) => void
+   placeholder?: string
+   autoFocus?: boolean
++  /** Riga sotto il campo che spiega a che cosa serve (P31, D184). Legata
++   *  all'input con `aria-describedby`. Opzionale: senza, non cambia niente
++   *  per le 13 schermate che usavano questo campo prima. */
++  aiuto?: string
++  /** Tastiera da chiedere al telefono. `'tel'` fa uscire il tastierino
++   *  numerico: su una PWA da telefono, per un numero, la tastiera delle
++   *  lettere è un attrito reale. Stesso motivo per cui `CampoNumero` usa
++   *  `inputMode="decimal"`. */
++  inputMode?: 'tel'
+ }) {
+-  const { label, valore, onCambia, placeholder, autoFocus = false } = props
++  const { label, valore, onCambia, placeholder, autoFocus = false, aiuto, inputMode } = props
+   const id = useId()
++  const idAiuto = `${id}-aiuto`
+ 
+   return (
+     <div>
+       <style>{`
+         .ds-campo-testo:focus {
+           outline: 2px solid var(--blue);
+           outline-offset: 2px;
+         }
+       `}</style>
+       <label htmlFor={id} style={stileLabel}>
+         {label}
+       </label>
+       <input
+         id={id}
+         className="ds-campo-testo"
+         type="text"
++        inputMode={inputMode}
++        aria-describedby={aiuto ? idAiuto : undefined}
+         value={valore}
+         placeholder={placeholder}
+         autoFocus={autoFocus}
+         onChange={(e: ChangeEvent<HTMLInputElement>) => onCambia(e.target.value)}
+         style={stileCampo()}
+       />
++      {aiuto && (
++        <p id={idAiuto} style={stileAiuto}>
++          {aiuto}
++        </p>
++      )}
+     </div>
+   )
+ }
+ 
+ /**
+  * CampoNumero — input numerico con tastierino nativo (§5.27).
+  *
+  * `inputMode="decimal"` per il tastierino nativo con virgola/punto (importi).
+  * Resta un `<input type="text">`: `type="number"` nasconde il suffisso e
+  * introduce spinner nativi (vietati, §5.25) — la validazione del formato
+diff --git a/tests/unit/ds-v3/componenti/campo-aiuto-e-tastiera.test.tsx b/tests/unit/ds-v3/componenti/campo-aiuto-e-tastiera.test.tsx
+new file mode 100644
+index 00000000..4750ad71
+--- /dev/null
++++ b/tests/unit/ds-v3/componenti/campo-aiuto-e-tastiera.test.tsx
+@@ -0,0 +1,31 @@
++import { describe, it, expect } from 'vitest'
++import { render, screen } from '@testing-library/react'
++import { CampoTesto } from '@/components/ds/Campo'
++
++describe('CampoTesto — aiuto e tastiera (P31, D184)', () => {
++  it('senza aiuto non rende nessun testo in piu', () => {
++    const { container } = render(<CampoTesto label="Nome" valore="" onCambia={() => {}} />)
++    expect(container.querySelectorAll('p')).toHaveLength(0)
++  })
++
++  it('con aiuto lo rende, e lo LEGA all-input per chi usa un lettore di schermo', () => {
++    render(<CampoTesto label="Cellulare WhatsApp" valore="" onCambia={() => {}}
++                       aiuto="Qui arrivano i messaggi di consegna. Dev'essere un cellulare, non il fisso." />)
++    const input = screen.getByLabelText('Cellulare WhatsApp')
++    const idAiuto = input.getAttribute('aria-describedby')
++    expect(idAiuto).toBeTruthy()
++    expect(document.getElementById(idAiuto!)?.textContent).toContain('cellulare')
++  })
++
++  it('senza inputMode resta come prima: nessun inputMode imposto', () => {
++    render(<CampoTesto label="Nome" valore="" onCambia={() => {}} />)
++    expect(screen.getByLabelText('Nome').getAttribute('inputmode')).toBeNull()
++  })
++
++  // Su una PWA da telefono: per un numero deve uscire il tastierino,
++  // non la tastiera delle lettere.
++  it('con inputMode tel chiede al telefono il tastierino', () => {
++    render(<CampoTesto label="Telefono" valore="" onCambia={() => {}} inputMode="tel" />)
++    expect(screen.getByLabelText('Telefono').getAttribute('inputmode')).toBe('tel')
++  })
++})

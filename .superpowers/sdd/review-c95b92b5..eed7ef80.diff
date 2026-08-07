@@ -1,0 +1,126 @@
+# Review package: c95b92b5..eed7ef80
+
+## Commits
+eed7ef80 fix(docs): numeri post-inserzione nella nota di sorpasso del censimento (+ citazione collaudo S3-f)
+
+## Files changed
+ ...2026-08-04-ondata-b-sessione-3-censimento-r-p6.md | 20 +++++++++++++++++---
+ src/lib/domain/prescrizione-costanti.ts              |  4 ++--
+ ...256_ondata_b3_dizionario_divergenza_clone_p37.sql |  3 ++-
+ 3 files changed, 21 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/docs/superpowers/plans/2026-08-04-ondata-b-sessione-3-censimento-r-p6.md b/docs/superpowers/plans/2026-08-04-ondata-b-sessione-3-censimento-r-p6.md
+index 2ede9205..60478a3c 100644
+--- a/docs/superpowers/plans/2026-08-04-ondata-b-sessione-3-censimento-r-p6.md
++++ b/docs/superpowers/plans/2026-08-04-ondata-b-sessione-3-censimento-r-p6.md
+@@ -9,24 +9,38 @@ citare file:righe VERI e di segnalare come SORPRESA ogni contraddizione con le a
+ 
+ ## 🔄 NOTA DI SORPASSO — 4 agosto 2026, sera tardi (dopo il Task 5)
+ 
+ 🛑 **Il censimento qui sotto NON è stato riscritto** — è la fotografia di com'era il codice alle
+ 19:15, e riscriverla a posteriori cancellerebbe la prova di cosa si sapeva quando il piano è stato
+ scritto. Ma **due funzioni sono state RICREATE** dal Task 5 nella migration
+ `20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql`, e da quel momento **il loro corpo
+ vivo non è più in `20260804152403`**. Chi legge una citazione a quel file per una di queste due sta
+ guardando un **corpo morto**:
+ 
+-| Funzione | Le citazioni «`20260804152403:…`» qui sotto sono… | Cosa è cambiato |
++🔢 **I numeri di riga di questa tabella sono POST-inserzione**, cioè valgono per il file **con questa
++nota già in testa (righe 10-49)**. 🛑 **Chi appende altro in testa li sposta tutti** — e allora si
++rifà il conto invece di fidarsi: **la maniglia stabile è il TESTO della voce**, `grep -n` su quello.
++*(Prima stesura di questa nota: numeri PRE-inserzione, **sbagliati di −29**, perché le 29 righe della
++nota li avevano spostati tutti; e la correzione stessa, allungando la nota, li ha spostati ancora.
++Verificati col grep, mai con l'aritmetica. Corretti il 4 agosto 2026 — review del Task 5, rilievo giusto.)*
++
++| Funzione | Le citazioni «`…152403:…`» qui sotto sono… | Cosa è cambiato |
+ |---|---|---|
+-| `lavoro_prescrizione_registra_divergenza` (righe 66, 68, 157, 167, 173, 513, 515, 517, 519) | **SORPASSATE** — vale `20260804211256` | Guardia nuova su `p_campo` → esito **`campo_non_valido`**, valutata **PRIMA** di `p_motivo`. Il rilievo ⑦ della Superficie 2 («*registra_divergenza NON valida p_campo*») **è chiuso**. |
+-| `crea_rifacimento_atomico` (righe 54, 197, 537) | **SORPASSATE** — vale `20260804211256` | La colonna-list del clone ora porta **`richiedente_nome` E `istituzione_sanitaria`** (D221). Il rilievo ③ della Superficie 2 e della Superficie 6 («*il clone P37 manca DAVVERO*») **è chiuso per queste due colonne**; `paziente_nome_snapshot` resta scoperto (roadmap riga 12). |
++| `lavoro_prescrizione_registra_divergenza` (righe **109, 111, 200, 210, 216, 416, 467, 556, 558, 560, 562**) | **SORPASSATE** — vale `20260804211256` | Guardia nuova su `p_campo` → esito **`campo_non_valido`**, valutata **PRIMA** di `p_motivo`. Il rilievo ⑦ della Superficie 2 («*registra_divergenza NON valida p_campo*») **è chiuso**. |
++| `crea_rifacimento_atomico` (righe **97, 240, 505, 580**) | **SORPASSATE** — vale `20260804211256` | La colonna-list del clone ora porta **`richiedente_nome` E `istituzione_sanitaria`** (D221). Il rilievo ③ della Superficie 2 e della Superficie 6 («*il clone P37 manca DAVVERO*») **è chiuso per queste due colonne**; `paziente_nome_snapshot` resta scoperto (roadmap riga 12). |
++
++🔎 **Tre voci in più rispetto alla prima stesura (402, 453, 491), e il motivo è una lezione R-P6:**
++il primo censimento cercava `20260804152403` per esteso, e **quelle tre scrivono il numero in forma
++corta** (`migration 152403:303-311`, `migration 152403:411-444`) **o non lo scrivono affatto**
++(`migration :265-314`). Un elenco costruito con un solo modo di scrivere il nome **non è l'elenco**:
++il censimento si fa su **ogni forma dell'identificatore**, comprese le abbreviazioni che un umano
++usa senza pensarci.
+ 
+ ✅ **Restano VERE** tutte le citazioni a `20260804152403` per `lavoro_crea_atomico`,
+ `lavoro_prescrizione_allega_fonte`, `lavoro_prescrizione_correggi_typo` e
+ `lavoro_prescrizione_conferma_consegna`: quelle quattro funzioni non sono state toccate.
+ 
+ ⚠️ **E una conseguenza nuova, misurata e NON corretta (R-E2):** il clone copia
+ `v_lavoro.richiedente_nome` alla lettera, senza `NULLIF`. Un originale con `richiedente_nome = ''`
+ — la stringa vuota che `TabDati.tsx:283` scrive davvero, ed è in produzione — **prima** dava un
+ rifacimento con `NULL` (e `generate-ddc.ts:146-147` ripiegava sul nome del cliente col `??`),
+ **adesso** eredita `''`, il `??` non scatta e la Dichiarazione di Conformità stamperebbe un
+diff --git a/src/lib/domain/prescrizione-costanti.ts b/src/lib/domain/prescrizione-costanti.ts
+index 81bbd705..270ef7c0 100644
+--- a/src/lib/domain/prescrizione-costanti.ts
++++ b/src/lib/domain/prescrizione-costanti.ts
+@@ -29,33 +29,33 @@
+ // ⚠️ `null` è un valore LEGITTIMO della colonna, e non è un buco: è la V7 —
+ //    la prescrizione data a voce o al telefono NON è una fonte, e resta «in
+ //    attesa di conferma scritta» col solo `fonte_riferimento` valorizzato.
+ export const FONTE_TIPI = ['foglio', 'email', 'modulo', 'piattaforma'] as const
+ export type FonteTipo = (typeof FONTE_TIPI)[number]
+ 
+ // ── I campi dello snapshot correggibili come typo (D212) ───────────────────
+ // Vincolo in banca dati, DUE volte, e le due si tengono insieme:
+ //  · `lavoro_prescrizione_correggi_typo` (`20260804152403:242`) — quale chiave
+ //    dello snapshot si può riscrivere;
+-//  · `lavoro_prescrizione_registra_divergenza` (`20260804211256:76`, M-T3-1
++//  · `lavoro_prescrizione_registra_divergenza` (`20260804211256:77`, M-T3-1
+ //    del 04/08/2026) — su quale campo si può registrare uno scostamento.
+ // Entrambe rispondono `campo_non_valido`.
+ //
+ // ⚠️ `tipo` è correggibile ma NON viene trascritto alla creazione: entra nello
+ //    snapshot solo alla conferma di consegna (D213), copiato da
+ //    `lavori.tipo_dispositivo`.
+ export const CAMPI_TYPO = ['elementi', 'colore', 'tipo'] as const
+ export type CampoTypo = (typeof CAMPI_TYPO)[number]
+ 
+ // ── I motivi di una divergenza prescritto/eseguito (V9, D212) ──────────────
+ // Vincolo in banca dati: `lavoro_prescrizione_registra_divergenza`
+-// (`20260804211256:80` — la funzione è stata RICREATA dal Task 5, quindi il
++// (`20260804211256:81` — la funzione è stata RICREATA dal Task 5, quindi il
+ // corpo vivo NON è più in 20260804152403) → esito `motivo_non_valido`.
+ export const MOTIVI_DIVERGENZA = [
+   'richiesta_dentista',
+   'esigenza_tecnica',
+   'materiale_non_disponibile',
+   'altro',
+ ] as const
+ export type MotivoDivergenza = (typeof MOTIVI_DIVERGENZA)[number]
+ 
+ const INSIEME_FONTE = new Set<string>(FONTE_TIPI)
+diff --git a/supabase/migrations/20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql b/supabase/migrations/20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql
+index 5020b0d6..e9c5a15d 100644
+--- a/supabase/migrations/20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql
++++ b/supabase/migrations/20260804211256_ondata_b3_dizionario_divergenza_clone_p37.sql
+@@ -26,21 +26,22 @@
+ --    è la seconda, e l'unica che vale anche per chi non passa dalla route.
+ --
+ -- 🔑 `tipo` RESTA nel dizionario della divergenza, e non è una svista: una
+ --    divergenza sul tipo di dispositivo sopravvive alla conferma di consegna
+ --    (D213 — la chiave `tipo` entra nello snapshot proprio lì). La restrizione
+ --    sul tipo è SOLO della route del typo, non di questa RPC.
+ --
+ -- 🔑 ORDINE DELLE GUARDIE: `campo` PRIMA di `motivo`, lo stesso ordine della
+ --    route (src/app/api/lavori/[id]/prescrizione/divergenza/route.ts) — con
+ --    campo E motivo entrambi sbagliati la risposta è `campo_non_valido` da
+---    tutte e due le porte. Provato, non dedotto (collaudo T5, caso S3-d).
++--    tutte e due le porte. Provato, non dedotto (collaudo T5, caso S3-f —
++--    S3-d prova un'altra cosa: che `tipo` resti lecito).
+ CREATE OR REPLACE FUNCTION public.lavoro_prescrizione_registra_divergenza(
+   p_lab    uuid,
+   p_lavoro uuid,
+   p_campo  text,
+   p_motivo text,
+   p_nota   text,
+   p_utente uuid
+ ) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+ DECLARE
+   v_n integer;

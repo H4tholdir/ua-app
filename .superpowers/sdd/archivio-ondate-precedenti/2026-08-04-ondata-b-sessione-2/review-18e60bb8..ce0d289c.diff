@@ -1,0 +1,196 @@
+# Review package: 18e60bb8..ce0d289c
+
+## Commits
+ce0d289c chore(db): rigenera database.types.ts — FASE 6b del Task 3 non era mai girata
+39a782d0 feat(db): immutabilita DdC — chiusa la policy ddc_laboratorio_update (ondata B ②, V8)
+
+## Files changed
+ src/types/database.types.ts                        | 42 +++++++++++++++++++++-
+ .../20260804152403_ondata_b_prescrizioni_rpc.sql   |  4 +--
+ ...20260804154232_ondata_b_ddc_chiusura_update.sql | 25 +++++++++++++
+ supabase/schema.sql                                | 12 +++++--
+ 4 files changed, 77 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index 096c6aba..f6bc94ef 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -6135,32 +6135,72 @@ export type Database = {
+       }
+       genera_xml_fattura_pa: { Args: { p_fattura_id: string }; Returns: string }
+       get_lab_id: { Args: never; Returns: string }
+       get_pec_password: { Args: { p_lab_id: string }; Returns: string }
+       get_pec_vault_secret: { Args: { p_lab_id: string }; Returns: string }
+       has_prrc_valido: { Args: { p_lab: string }; Returns: boolean }
+       has_role: { Args: { required_role: string }; Returns: boolean }
+       has_role_check: { Args: { required_role: string }; Returns: boolean }
+       lab_is_accessible: { Args: never; Returns: boolean }
+       lavoro_crea_atomico: {
+-        Args: { p_denti: Json; p_lab: string; p_lavoro: Json }
++        Args: {
++          p_denti: Json
++          p_lab: string
++          p_lavoro: Json
++          p_prescrizione?: Json
++        }
+         Returns: Json
+       }
+       lavoro_denti_sostituisci_atomica: {
+         Args: {
+           p_atteso_updated_at: string
+           p_denti: Json
+           p_lab: string
+           p_lavoro: string
+         }
+         Returns: Json
+       }
++      lavoro_prescrizione_allega_fonte: {
++        Args: {
++          p_fonte_immagine_id: string
++          p_fonte_riferimento: string
++          p_fonte_tipo: string
++          p_lab: string
++          p_lavoro: string
++        }
++        Returns: Json
++      }
++      lavoro_prescrizione_conferma_consegna: {
++        Args: { p_lab: string; p_lavoro: string; p_utente: string }
++        Returns: Json
++      }
++      lavoro_prescrizione_correggi_typo: {
++        Args: {
++          p_atteso_updated_at: string
++          p_campo: string
++          p_lab: string
++          p_lavoro: string
++          p_valore: Json
++        }
++        Returns: Json
++      }
++      lavoro_prescrizione_registra_divergenza: {
++        Args: {
++          p_campo: string
++          p_lab: string
++          p_lavoro: string
++          p_motivo: string
++          p_nota: string
++          p_utente: string
++        }
++        Returns: Json
++      }
+       manda_in_prova_atomico: {
+         Args: {
+           p_data_rientro: string
+           p_istruzioni: string
+           p_laboratorio_id: string
+           p_lavoro_id: string
+           p_user_id: string
+         }
+         Returns: Json
+       }
+diff --git a/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql b/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql
+index 3251e2d3..4732eed9 100644
+--- a/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql
++++ b/supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql
+@@ -487,29 +487,29 @@ BEGIN
+   );
+ 
+   RETURN json_build_object('lavoro_nuovo_id', v_nuovo_id, 'numero_lavoro', v_numero);
+ END;
+ $$;
+ 
+ -- ============ Commenti: il perché resta nel catalogo ============
+ COMMENT ON FUNCTION public.lavoro_crea_atomico(uuid,jsonb,jsonb,jsonb) IS
+   'Crea lavoro + denti + (se trascritta) snapshot prescrizione in una sola transazione (spec §4 rischio R1 + ondata B D214). Il quarto parametro ha DEFAULT NULL: le chiamate a 3 argomenti restano valide. NON verifica che cliente_id/paziente_id/tecnico_id/ciclo_id appartengano a p_lab: quella guardia è nella route.';
+ COMMENT ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text) IS
+-  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte gia'' presente e'' congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
++  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte già presente è congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
+ COMMENT ON FUNCTION public.lavoro_prescrizione_correggi_typo(uuid,uuid,text,jsonb,timestamptz) IS
+   'Corregge un typo della trascrizione (elementi/colore/tipo). Gettone di concorrenza su lavori.updated_at (modello lavoro_denti_sostituisci_atomica); jsonb null rimuove la chiave (non era sulla prescrizione). Con DdC attiva: congelata (V8).';
+ COMMENT ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,text,text,text,uuid) IS
+   'Appende una divergenza prescritto/eseguito al registro (V9, D212): {campo, motivo, nota, utente_id, registrata_at}, motivo da dizionario chiuso. Non tocca il contenuto. Con DdC attiva: congelata (V8).';
+ COMMENT ON FUNCTION public.lavoro_prescrizione_conferma_consegna(uuid,uuid,uuid) IS
+   'Conferma della trascrizione alla consegna (V5): confermata_da/at server-side e chiave tipo copiata da lavori.tipo_dispositivo nello snapshot (D213). Con DdC attiva: congelata (V8).';
+ COMMENT ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text) IS
+-  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finche'' main la legge in produzione — si toglie nell''ondata (c).';
++  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finché main la legge in produzione — si toglie nell''ondata (c).';
+ 
+ -- ============ Permessi: firme identiche alle definizioni ============
+ -- Modello 20260727120300:222-226. MAI GRANT a authenticated (l'hardening di
+ -- 20260704180000 non si disfa). Ri-emessi anche per crea_rifacimento_atomico:
+ -- CREATE OR REPLACE conserva l'ACL, ma non ci si appoggia a quel dettaglio.
+ REVOKE EXECUTE ON FUNCTION public.lavoro_crea_atomico(uuid,jsonb,jsonb,jsonb)                             FROM PUBLIC, anon, authenticated;
+ REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text)              FROM PUBLIC, anon, authenticated;
+ REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_correggi_typo(uuid,uuid,text,jsonb,timestamptz)     FROM PUBLIC, anon, authenticated;
+ REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_registra_divergenza(uuid,uuid,text,text,text,uuid)  FROM PUBLIC, anon, authenticated;
+ REVOKE EXECUTE ON FUNCTION public.lavoro_prescrizione_conferma_consegna(uuid,uuid,uuid)                   FROM PUBLIC, anon, authenticated;
+diff --git a/supabase/migrations/20260804154232_ondata_b_ddc_chiusura_update.sql b/supabase/migrations/20260804154232_ondata_b_ddc_chiusura_update.sql
+new file mode 100644
+index 00000000..6c5ed3f8
+--- /dev/null
++++ b/supabase/migrations/20260804154232_ondata_b_ddc_chiusura_update.sql
+@@ -0,0 +1,25 @@
++-- 20260804154232_ondata_b_ddc_chiusura_update.sql — Ondata B, sessione ②, parte 3/3.
++-- L'immutabilità della DdC era una CONVENZIONE (policy UPDATE tenant piena,
++-- schema.sql:1292-1294): da oggi è struttura. Modello: il cancello DPA
++-- (20260804120000:30-34). Censimento 04/08: NESSUN .update() applicativo su
++-- dichiarazioni_conformita in src/ — l'unico UPDATE legittimo è dentro
++-- annulla_consegna_atomica (SECURITY DEFINER: le policy non la toccano).
++-- Rollback: CREATE POLICY inversa (spec §7) — il testo esatto è in schema.sql
++-- alla versione precedente di questo commit.
++DROP POLICY "ddc_laboratorio_update" ON dichiarazioni_conformita;
++
++-- ============ Correzione dei due COMMENT storpiati del Task 3 ============
++-- 20260804152403_ondata_b_prescrizioni_rpc.sql (righe 496-497 e 504-505) ha
++-- scritto le lettere accentate come lettera+doppio apostrofo ("gia''", "e''",
++-- "finche''"): SBAGLIATO. In SQL si raddoppia SOLO l'apostrofo — l'accento si
++-- scrive normale (à, è, é...). "dell''ondata" e "nell''ondata", nello stesso
++-- file, ERANO invece corretti (apostrofo vero di "dell'"/"nell'", raddoppiato
++-- come un apostrofo dentro una stringa deve essere): non si toccano.
++-- Quel file è già applicato: un ALTER del suo testo sorgente nel repo non lo
++-- ri-esegue — per questo i due COMMENT si ri-emettono qui, sul DB vivo. Lo
++-- stesso testo corretto è stato riportato anche nel file sorgente del Task 3,
++-- per fedeltà della fotografia a chi ricostruisce lo schema da zero.
++COMMENT ON FUNCTION public.lavoro_prescrizione_allega_fonte(uuid,uuid,text,uuid,text) IS
++  'Allega o sostituisce la fonte della trascrizione (D202). UPSERT: i lavori nati prima dell''ondata B non hanno la riga. Con DdC attiva una fonte già presente è congelata (V8, esito fonte_congelata); la fonte senza corpo la respinge il CHECK fonte_ck.';
++COMMENT ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text) IS
++  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). colore_dente resta copiata finché main la legge in produzione — si toglie nell''ondata (c).';
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index 34d72a0b..8b9dad1f 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -1282,23 +1282,29 @@ ALTER TABLE dichiarazioni_conformita ENABLE ROW LEVEL SECURITY;
+ 
+ CREATE POLICY "ddc_laboratorio_select" ON dichiarazioni_conformita
+   FOR SELECT USING (
+     laboratorio_id = public.current_lab_id()
+     AND deleted_at IS NULL
+   );
+ 
+ CREATE POLICY "ddc_laboratorio_insert" ON dichiarazioni_conformita
+   FOR INSERT WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+-CREATE POLICY "ddc_laboratorio_update" ON dichiarazioni_conformita
+-  FOR UPDATE USING (laboratorio_id = public.current_lab_id())
+-  WITH CHECK (laboratorio_id = public.current_lab_id());
++-- ddc_laboratorio_update RIMOSSA (Ondata B ②, 20260804154232) — l'immutabilità
++-- della DdC era una CONVENZIONE (questa policy UPDATE tenant piena, sopra),
++-- da qui è struttura. Modello: il cancello DPA (dpa_laboratorio, sopra).
++-- Censimento 04/08: zero .update() applicativi su dichiarazioni_conformita in
++-- src/ — l'unico UPDATE legittimo passa da annulla_consegna_atomica
++-- (SECURITY DEFINER, non toccata dalle policy). Rollback: CREATE POLICY
++-- "ddc_laboratorio_update" ON dichiarazioni_conformita FOR UPDATE
++-- USING (laboratorio_id = public.current_lab_id())
++-- WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+ -- DELETE bloccato per tutti: le DoC non si cancellano mai (MDR 10 anni)
+ -- Solo service role può archiviare dopo 10 anni
+ 
+ CREATE INDEX idx_ddc_laboratorio ON dichiarazioni_conformita(laboratorio_id) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_ddc_lavoro ON dichiarazioni_conformita(lavoro_id);
+ CREATE INDEX idx_ddc_anno ON dichiarazioni_conformita(laboratorio_id, anno_ddc) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_ddc_stato ON dichiarazioni_conformita(laboratorio_id, stato) WHERE deleted_at IS NULL;
+ 
+ 

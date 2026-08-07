@@ -1,0 +1,266 @@
+# Review package: 35292c72..87beb287
+
+## Commits
+87beb287 feat(consegna): prima_immissione_at — i 10 anni decorrono dalla PRIMA consegna (All. XIII p.4)
+
+## Files changed
+ src/lib/consegna/orchestrate.ts                    |   9 ++
+ src/types/database.types.ts                        |   3 +
+ .../20260807172520_lavori_prima_immissione.sql     |  26 +++++
+ .../orchestra-consegna-prima-immissione.test.ts    | 111 +++++++++++++++++++++
+ 4 files changed, 149 insertions(+)
+
+## Diff
+diff --git a/src/lib/consegna/orchestrate.ts b/src/lib/consegna/orchestrate.ts
+index 66e27d02..4814bd4c 100644
+--- a/src/lib/consegna/orchestrate.ts
++++ b/src/lib/consegna/orchestrate.ts
+@@ -319,20 +319,29 @@ export async function orchestraConsegna(
+     const now = new Date().toISOString()
+ 
+     const { error: updateError, count: updateCount } = await supabase
+       .from('lavori')
+       .update({
+         stato: 'consegnato',
+         consegna_in_corso: false,
+         conformato: true,
+         data_conformazione: now,
+         data_consegna_effettiva: now,
++        // 🔑 La prima immissione sul mercato si scrive UNA VOLTA SOLA
++        // (Allegato XIII p.4 + Art. 2(28)): da qui decorrono i 10 anni di
++        // conservazione della dichiarazione. Una riconsegna dopo una
++        // riapertura NON la sposta — `lavoro` è la riga letta allo Step 1
++        // (select('*') su questo stesso lavoro), quindi il valore esistente
++        // è già in mano: se c'è, vince sempre sul nuovo, o il termine
++        // ripartirebbe da capo e la dichiarazione verrebbe distrutta troppo
++        // presto.
++        prima_immissione_at: lavoro.prima_immissione_at ?? now,
+         consegna_completata_at: now,
+         consegna_precheck_passato_al_primo_tentativo: true,
+       }, { count: 'exact' })
+       .eq('id', lavoro_id)
+       .eq('laboratorio_id', laboratorio_id)
+ 
+     if (updateError) {
+       // Il lock verrà rilasciato dal flag consegna_in_corso=false nell'update stesso,
+       // ma poiché l'update è fallito lo rilasciamo esplicitamente
+       await rilasciaLock()
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index cccde638..bde7e2ad 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -2586,20 +2586,21 @@ export type Database = {
+           numero_lavoro: string
+           numero_prescrizione: string | null
+           ora_consegna: string | null
+           paziente_codice_richiesta: string | null
+           paziente_id: string | null
+           paziente_nascita_snapshot: string | null
+           paziente_nome_snapshot: string | null
+           post_consegna_correzioni: number
+           prescrizione_digitale_id: string | null
+           prezzo_unitario: number | null
++          prima_immissione_at: string | null
+           priorita: string
+           proposta_at: string | null
+           proposta_dentista: string | null
+           richiedente_email: string | null
+           richiedente_nome: string | null
+           rifacimento_motivo: string | null
+           segnalazione_at: string | null
+           segnalazione_by: string | null
+           segnalazione_nota: string | null
+           segnalazione_risolta: boolean
+@@ -2688,20 +2689,21 @@ export type Database = {
+           numero_lavoro: string
+           numero_prescrizione?: string | null
+           ora_consegna?: string | null
+           paziente_codice_richiesta?: string | null
+           paziente_id?: string | null
+           paziente_nascita_snapshot?: string | null
+           paziente_nome_snapshot?: string | null
+           post_consegna_correzioni?: number
+           prescrizione_digitale_id?: string | null
+           prezzo_unitario?: number | null
++          prima_immissione_at?: string | null
+           priorita?: string
+           proposta_at?: string | null
+           proposta_dentista?: string | null
+           richiedente_email?: string | null
+           richiedente_nome?: string | null
+           rifacimento_motivo?: string | null
+           segnalazione_at?: string | null
+           segnalazione_by?: string | null
+           segnalazione_nota?: string | null
+           segnalazione_risolta?: boolean
+@@ -2790,20 +2792,21 @@ export type Database = {
+           numero_lavoro?: string
+           numero_prescrizione?: string | null
+           ora_consegna?: string | null
+           paziente_codice_richiesta?: string | null
+           paziente_id?: string | null
+           paziente_nascita_snapshot?: string | null
+           paziente_nome_snapshot?: string | null
+           post_consegna_correzioni?: number
+           prescrizione_digitale_id?: string | null
+           prezzo_unitario?: number | null
++          prima_immissione_at?: string | null
+           priorita?: string
+           proposta_at?: string | null
+           proposta_dentista?: string | null
+           richiedente_email?: string | null
+           richiedente_nome?: string | null
+           rifacimento_motivo?: string | null
+           segnalazione_at?: string | null
+           segnalazione_by?: string | null
+           segnalazione_nota?: string | null
+           segnalazione_risolta?: boolean
+diff --git a/supabase/migrations/20260807172520_lavori_prima_immissione.sql b/supabase/migrations/20260807172520_lavori_prima_immissione.sql
+new file mode 100644
+index 00000000..152d67ff
+--- /dev/null
++++ b/supabase/migrations/20260807172520_lavori_prima_immissione.sql
+@@ -0,0 +1,26 @@
++-- Ondata «si deve sempre poter intervenire» — Task 2.
++-- 🔑 La memoria della PRIMA immissione sul mercato non può vivere in
++-- data_consegna_effettiva: quella colonna viene azzerata da ogni riapertura
++-- (riapri_lavoro_atomica) e riscritta a ogni consegna (orchestrate.ts). Dopo
++-- una riconsegna direbbe la data SBAGLIATA (la seconda, non la prima) e un
++-- laboratorio che si fidasse distruggerebbe la dichiarazione troppo presto.
++-- Allegato XIII punto 4 + Art. 2(28): i 10 anni di conservazione della
++-- dichiarazione decorrono dalla PRIMA messa a disposizione.
++ALTER TABLE public.lavori
++  ADD COLUMN IF NOT EXISTS prima_immissione_at TIMESTAMPTZ;
++
++-- Backfill: solo i lavori GIA' consegnati hanno una prima immissione nota.
++-- provato: 223 lavori consegnati su 224 hanno data_consegna_effettiva
++-- valorizzata; il 224esimo resta NULL, ed è corretto — non si inventa una
++-- data che non c'è.
++UPDATE public.lavori
++   SET prima_immissione_at = data_consegna_effettiva
++ WHERE stato = 'consegnato'
++   AND data_consegna_effettiva IS NOT NULL
++   AND prima_immissione_at IS NULL;
++
++COMMENT ON COLUMN public.lavori.prima_immissione_at IS
++  'La PRIMA volta che il manufatto è stato messo a disposizione (Art. 2(28)): da '
++  'qui decorrono i 10 anni di conservazione della dichiarazione (Allegato XIII p.4). '
++  'Si scrive una volta sola e NESSUNA riapertura la azzera — a differenza di '
++  'data_consegna_effettiva, che descrive la consegna CORRENTE.';
+diff --git a/tests/unit/orchestra-consegna-prima-immissione.test.ts b/tests/unit/orchestra-consegna-prima-immissione.test.ts
+new file mode 100644
+index 00000000..ebc518a4
+--- /dev/null
++++ b/tests/unit/orchestra-consegna-prima-immissione.test.ts
+@@ -0,0 +1,111 @@
++// Task 2 (ondata «si deve sempre poter intervenire»): prima_immissione_at si
++// scrive UNA VOLTA SOLA. Allegato XIII punto 4 + Art. 2(28): i 10 anni di
++// conservazione della dichiarazione decorrono dalla PRIMA messa a
++// disposizione — non dall'ultima. `data_consegna_effettiva` viene azzerata
++// da ogni riapertura (riapri_lavoro_atomica) e riscritta a ogni consegna
++// (orchestrate.ts Step 5): usarla come base dei 10 anni farebbe ripartire
++// l'orologio a ogni riconsegna, e un laboratorio che si fidasse
++// distruggerebbe la dichiarazione troppo presto.
++//
++// Questa prova consegna lo STESSO lavoro due volte (la seconda simula lo
++// stato della riga dopo una riapertura + riconsegna: prima_immissione_at
++// arriva già valorizzato dalla prima consegna, data_consegna_effettiva no —
++// esattamente ciò che riapri_lavoro_atomica.sql azzera) e verifica che
++// prima_immissione_at NON cambi, mentre data_consegna_effettiva sì.
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++
++const { mockRpc, mockFrom } = vi.hoisted(() => ({
++  mockRpc: vi.fn(),
++  mockFrom: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ rpc: mockRpc, from: mockFrom }),
++}))
++vi.mock('@/lib/notifications/trigger', () => ({ triggerPushByRole: vi.fn() }))
++vi.mock('@/lib/consegna/precheck', () => ({ precheckMDR: () => ({ ok: true, errori: [] }) }))
++vi.mock('@/lib/consegna/traccia-materiali', () => ({
++  tracciaMaterialiLavoro: async () => ({ tracciabilitaOk: true, dettaglio: [], materialiTracciati: [] }),
++}))
++vi.mock('@/lib/pdf/generate-ddc', () => ({ generateDdC: async () => ({ numero: 'DDC-1', url: 'u' }) }))
++vi.mock('@/lib/pdf/generate-buono', () => ({ generateBuono: async () => ({ numero: 'BUO-1', url: 'u' }) }))
++
++import { orchestraConsegna } from '@/lib/consegna/orchestrate'
++
++function makeLavoro(prima_immissione_at: string | null) {
++  return {
++    id: 'lav-1', laboratorio_id: 'lab-1', stato: 'pronto', numero_lavoro: 'n.1',
++    cliente: { id: 'cli-1', codice_sdi: null, pec: null, telefono: '333', portale_token: 't', cognome: 'Rossi' },
++    paziente: null, lavorazioni: [], materiali: [],
++    prima_immissione_at,
++  }
++}
++
++// Chain reale dello Step 1 (select con .is('deleted_at', null)) + update di
++// Step 5: cattura ogni payload passato a .update() per ispezionarlo dopo.
++function mockLavoriTable(lavoro: unknown, capture: Array<Record<string, unknown>>) {
++  return {
++    select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: lavoro, error: null }) }) }) }) }),
++    update: (payload: Record<string, unknown>) => {
++      capture.push(payload)
++      return { eq: () => ({ eq: () => Promise.resolve({ error: null, count: 1 }) }) }
++    },
++  }
++}
++
++describe('orchestraConsegna — prima_immissione_at si scrive UNA VOLTA SOLA (Task 2, All. XIII p.4)', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    vi.spyOn(console, 'error').mockImplementation(() => {})
++    vi.useFakeTimers()
++  })
++
++  afterEach(() => {
++    vi.useRealTimers()
++  })
++
++  it('prima consegna: prima_immissione_at nasce = data_consegna_effettiva; dopo riapertura+riconsegna: prima_immissione_at resta quella, data_consegna_effettiva si aggiorna', async () => {
++    mockRpc.mockImplementation(async (fn: string) => {
++      if (fn === 'consegna_lavoro_lock') return { data: { lock_acquisito: true }, error: null }
++      if (fn === 'cassetta_libera_atomica') return { data: { esito: 'ok', nome: null }, error: null }
++      throw new Error(`rpc inattesa: ${fn}`)
++    })
++
++    // --- Prima consegna: T1, la riga non ha ancora prima_immissione_at ---
++    vi.setSystemTime(new Date('2026-01-10T09:00:00.000Z'))
++    const payloads1: Array<Record<string, unknown>> = []
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'lavori') return mockLavoriTable(makeLavoro(null), payloads1)
++      throw new Error(`tabella inattesa: ${table}`)
++    })
++
++    const risultato1 = await orchestraConsegna('lav-1', 'lab-1')
++    expect(risultato1.ok).toBe(true)
++
++    const step5_1 = payloads1.find((p) => p.stato === 'consegnato')
++    expect(step5_1).toBeDefined()
++    expect(step5_1?.data_consegna_effettiva).toBe('2026-01-10T09:00:00.000Z')
++    expect(step5_1?.prima_immissione_at).toBe('2026-01-10T09:00:00.000Z')
++
++    // --- Riconsegna dopo riapertura: T2 (40 giorni dopo). La riga arriva con
++    // prima_immissione_at GIÀ valorizzato dalla prima consegna — esattamente
++    // ciò che riapri_lavoro_atomica.sql lascia intatto azzerando solo
++    // data_consegna_effettiva. ---
++    vi.setSystemTime(new Date('2026-02-20T15:30:00.000Z'))
++    const payloads2: Array<Record<string, unknown>> = []
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'lavori') return mockLavoriTable(makeLavoro('2026-01-10T09:00:00.000Z'), payloads2)
++      throw new Error(`tabella inattesa: ${table}`)
++    })
++
++    const risultato2 = await orchestraConsegna('lav-1', 'lab-1')
++    expect(risultato2.ok).toBe(true)
++
++    const step5_2 = payloads2.find((p) => p.stato === 'consegnato')
++    expect(step5_2).toBeDefined()
++    expect(step5_2?.data_consegna_effettiva).toBe('2026-02-20T15:30:00.000Z')
++    // Il cuore della prova: la PRIMA immissione non si sposta alla riconsegna.
++    expect(step5_2?.prima_immissione_at).toBe('2026-01-10T09:00:00.000Z')
++    expect(step5_2?.prima_immissione_at).not.toBe(step5_2?.data_consegna_effettiva)
++  })
++})

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review Adversarial — Sintesi</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background: #080c14; color: #e2e8f0; padding: 28px; }
+  h1 { font-size: 22px; font-weight: 900; color: #fff; }
+  .sub { font-size: 13px; color: #475569; margin-top: 4px; margin-bottom: 28px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .full { grid-column: 1/-1; }
+  .card { background: #111827; border-radius: 14px; padding: 18px; border: 1px solid #1f2937; }
+  .card-title { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+  .bomb { background: linear-gradient(135deg, #1a0010 0%, #0f0015 100%); border: 2px solid #dc2626; border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .bomb-title { font-size: 18px; font-weight: 900; color: #ef4444; margin-bottom: 6px; }
+  .bomb-sub { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
+  .bomb-body { font-size: 12px; color: #fca5a5; line-height: 1.7; }
+  .bomb-solution { background: rgba(22,163,74,0.08); border: 1px solid rgba(22,163,74,0.3); border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 11px; color: #86efac; line-height: 1.6; }
+
+  .issue { display: flex; gap: 10px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; align-items: flex-start; }
+  .issue.critical { background: rgba(220,38,38,0.08); border-left: 3px solid #dc2626; }
+  .issue.important { background: rgba(249,115,22,0.06); border-left: 3px solid #f97316; }
+  .issue.nice { background: rgba(30,58,95,0.5); border-left: 3px solid #1d4ed8; }
+  .issue.ok { background: rgba(22,163,74,0.05); border-left: 3px solid #16a34a; }
+  .issue-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .issue-body { flex: 1; }
+  .issue-title { font-size: 12px; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
+  .issue-text { font-size: 11px; color: #64748b; line-height: 1.5; }
+  .issue-fix { font-size: 10px; color: #22c55e; margin-top: 4px; }
+  .issue-tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .tag-v1 { background: #991b1b; color: #fca5a5; }
+  .tag-v2 { background: #1e3a5f; color: #93c5fd; }
+  .tag-ok { background: #14532d; color: #86efac; }
+  .tag-warn { background: #422006; color: #fdba74; }
+
+  /* DECISIONS */
+  .decision-box { background: linear-gradient(135deg, #0a1020 0%, #050a15 100%); border: 2px solid #1d4ed8; border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .dec-title { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 16px; }
+  .decision { background: #0f1520; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .dec-q { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+  .dec-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dec-opt { padding: 10px 12px; border-radius: 8px; border: 1px solid #1f2937; }
+  .dec-opt.rec { border-color: rgba(34,197,94,0.4); background: rgba(22,163,74,0.06); }
+  .dec-opt-label { font-size: 11px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+  .dec-opt-text { font-size: 10px; color: #6b7280; line-height: 1.5; }
+  .rec-tag { font-size: 9px; background: #166534; color: #86efac; padding: 1px 6px; border-radius: 3px; font-weight: 700; display: inline-block; margin-bottom: 4px; }
+
+  /* ROADMAP */
+  .roadmap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .phase { border-radius: 12px; padding: 16px; border: 1px solid; }
+  .phase-v1 { background: #020f07; border-color: #166534; }
+  .phase-v2 { background: #0a0f1a; border-color: #1e3a5f; }
+  .phase-title { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+  .phase-v1 .phase-title { color: #22c55e; }
+  .phase-v2 .phase-title { color: #60a5fa; }
+  .phase-sub { font-size: 10px; color: #475569; margin-bottom: 12px; }
+  .phase-item { font-size: 11px; color: #94a3b8; padding: 4px 0; padding-left: 14px; position: relative; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .phase-item:last-child { border-bottom: none; }
+  .phase-item::before { position: absolute; left: 0; }
+  .phase-v1 .phase-item::before { content: "✓"; color: #16a34a; }
+  .phase-v2 .phase-item::before { content: "◇"; color: #1d4ed8; }
+  .phase-item.critical::before { content: "🔴"; }
+  .phase-price { margin-top: 12px; padding: 8px 12px; border-radius: 6px; text-align: center; font-size: 13px; font-weight: 800; }
+  .phase-v1 .phase-price { background: rgba(22,163,74,0.1); color: #22c55e; }
+  .phase-v2 .phase-price { background: rgba(30,58,95,0.4); color: #60a5fa; }
+
+  .agree-box { background: #0f1520; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #94a3b8; line-height: 1.6; margin-bottom: 6px; display: flex; gap: 8px; }
+  .agree-icon { font-size: 14px; flex-shrink: 0; }
+
+  .section-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin: 22px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content:''; flex:1; height:1px; background:#1f2937; }
+</style>
+</head>
+<body>
+<h1>Review Adversarial — Sintesi Completa</h1>
+<p class="sub">Codex (3 esperti: CTO + MDR/Legale + SaaS) + Advisor · punti di accordo, disaccordo, e cosa mancava a entrambi</p>
+
+<!-- BOMBA LEGALE IA -->
+<div class="bomb">
+  <div class="bomb-title">🚨 BOMBA LEGALE — Rischio Priorità 1: IA come Dispositivo Medico</div>
+  <div class="bomb-sub">Concordano ENTRAMBI: Codex e Advisor. È il punto più importante di tutta la review.</div>
+  <div class="bomb-body">
+    MDR 2017/745 Art. 2(1) può classificare un software come "dispositivo medico" se influenza decisioni cliniche. Se l'IA "crea_lavoro" con materiali, colore, lavorazioni — e quelle sono scelte cliniche — UÀ AI è un software medico. Effetto: fascicolo tecnico, marcatura CE, organismo notificato, validazione clinica. <strong>Costo: €40-100k + 12-18 mesi. Per un add-on da €24.90/mese.</strong>
+  </div>
+  <div class="bomb-solution">
+    ✅ SOLUZIONE: riformula TUTTI i tool IA come "trascrizione di ciò che l'utente dice", non "scelta del sistema". Cambia: crea_lavoro(materiali, colore) → registra_lavoro(payload_utente). Aggiungi disclaimer legale esplicito nel ToS: "UÀ AI è strumento amministrativo/documentale, non diagnostico, non clinico". Il tecnico decide — l'IA registra. Questa sfumatura salva il prodotto.
+  </div>
+</div>
+
+<!-- CTO ISSUES -->
+<div class="section-label">CTO — Rischi Architetturali</div>
+<div class="grid-2">
+  <div>
+    <div class="issue critical">
+      <div class="issue-icon">🔴</div>
+      <div class="issue-body">
+        <div class="issue-title">Bug cliente_id · crash certo in produzione</div>
+        <div class="issue-text">Form /lavori/nuovo manca cliente_id NOT NULL → ogni creazione lavoro fallisce. Non si lancia senza questo fix.</div>
+        <div class="issue-fix">Fix: aggiungere campo cliente_id al form + test E2E. 30 minuti di lavoro.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1 BLOCCO</span>
+    </div>
+    <div class="issue critical">
+      <div class="issue-icon">🔴</div>
+      <div class="issue-body">
+        <div class="issue-title">CONSEGNA troppo densa — failure parziali</div>
+        <div class="issue-text">DdC + Buono + FatturaPA + upload + PEC + WhatsApp + lock in parallelo. Se PEC fallisce dopo che la DdC è già archiviata: stato inconsistente.</div>
+        <div class="issue-fix">V1: stato consegna_in_corso visibile + retry PEC automatico + log step. V3: outbox pattern.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1</span>
+    </div>
+    <div class="issue important">
+      <div class="issue-icon">🟡</div>
+      <div class="issue-body">
+        <div class="issue-title">Macchina a stati senza enforcement SQL</div>
+        <div class="issue-text">Stati sono enum lato app. API concorrenti possono saltare transizioni o duplicare rifacimenti.</div>
+        <div class="issue-fix">V1: CHECK constraint + transizioni in RPC server-side. V3: tabella lavoro_eventi append-only.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1 semplice</span>
+    </div>
+    <div class="issue important">
+      <div class="issue-icon">🟡</div>
+      <div class="issue-body">
+        <div class="issue-title">24 tool autonomi — superficie di attacco</div>
+        <div class="issue-text">RLS via JWT utente è giusto. Ma se un tool usa service role o filtri incompleti → data leak cross-tenant.</div>
+        <div class="issue-fix">Nessun service role nei tool. Test RLS negativi per ogni tabella. Log completo prompt/tool/result.</div>
+      </div>
+      <span class="issue-tag tag-v2">V2 IA</span>
+    </div>
+  </div>
+  <div>
+    <div class="issue critical">
+      <div class="issue-icon">🔴</div>
+      <div class="issue-body">
+        <div class="issue-title">Tabelle mancanti bloccano workflow completo</div>
+        <div class="issue-text">lavoro_prove, lavori_rifacimenti, ordini_fornitori non sono opzionali. Senza perdi tracciabilità clinica MDR.</div>
+        <div class="issue-fix">Creare tutte e 3 prima del lancio V1.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1 BLOCCO</span>
+    </div>
+    <div class="issue critical">
+      <div class="issue-icon">🔴</div>
+      <div class="issue-body">
+        <div class="issue-title">Campi DB mancanti bloccano produzione</div>
+        <div class="issue-text">fatture.stato_sdi e progressivo_invio necessari per SDI. lavori_lavorazioni.calo per Buono consegna.</div>
+        <div class="issue-fix">Migration prima del go-live. 15 minuti.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1 BLOCCO</span>
+    </div>
+    <div class="issue important">
+      <div class="issue-icon">🟡</div>
+      <div class="issue-body">
+        <div class="issue-title">PWA offline non è un bonus</div>
+        <div class="issue-text">Consegna, prove, foto avvengono senza rete in laboratorio. Serve queue locale + sync conflitti.</div>
+        <div class="issue-fix">V2: offline queue con IndexedDB. V1: banner "connessione richiesta per consegna".</div>
+      </div>
+      <span class="issue-tag tag-v2">V2</span>
+    </div>
+    <div class="issue ok">
+      <div class="issue-icon">✅</div>
+      <div class="issue-body">
+        <div class="issue-title">ProgressivoInvio FatturaPA — già presente</div>
+        <div class="issue-text">Codex l'ha citato come mancante. L'advisor ha verificato: genera_progressivo con tipo='sdi_invio' esiste già nella migration 002.</div>
+      </div>
+      <span class="issue-tag tag-ok">OK verificato</span>
+    </div>
+  </div>
+</div>
+
+<!-- MDR ISSUES -->
+<div class="section-label">MDR/Legale — Rischi Normativi</div>
+<div class="grid-2">
+  <div>
+    <div class="issue critical">
+      <div class="issue-icon">⚖️</div>
+      <div class="issue-body">
+        <div class="issue-title">Precheck MDR a 8 campi insufficiente</div>
+        <div class="issue-text">Allegato I richiede Requisiti Generali di Sicurezza (GSPR). Ogni campo deve mapparsi a un GSPR specifico: materiale, lotto, prescrizione, conformità fornitore, non conformità.</div>
+        <div class="issue-fix">Espandere precheck a 12+ validazioni con riferimento normativo esplicito per ognuna.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1</span>
+    </div>
+    <div class="issue important">
+      <div class="issue-icon">⚖️</div>
+      <div class="issue-body">
+        <div class="issue-title">Bollo/N4 hardcoded è fragile</div>
+        <div class="issue-text">"N4 + €2 sempre" è una semplificazione. Serve motore fiscale configurabile, non regola fissa. Alcuni lavori possono avere natura diversa.</div>
+        <div class="issue-fix">V1: N4 default con override manuale possibile + flag "bollo applicato".</div>
+      </div>
+      <span class="issue-tag tag-v1">V1</span>
+    </div>
+  </div>
+  <div>
+    <div class="issue critical">
+      <div class="issue-icon">⚖️</div>
+      <div class="issue-body">
+        <div class="issue-title">WhatsApp con dati paziente = GDPR risk</div>
+        <div class="issue-text">Messaggi con nome paziente, tipo dispositivo, dati clinici su WhatsApp violano GDPR Art. 9. Il dentista riceve dati sanitari su canale non cifrato.</div>
+        <div class="issue-fix">Template WhatsApp senza dati identificativi: "Lavoro #2094 pronto per consegna — [link portale]". Il dentista clicca il link autenticato per i dettagli.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1 BLOCCO</span>
+    </div>
+    <div class="issue ok">
+      <div class="issue-icon">✅</div>
+      <div class="issue-body">
+        <div class="issue-title">DdC Allegato XIII — Architettura corretta</div>
+        <div class="issue-text">L'analisi DentalMaster conferma che la struttura DdC (Allegato XIII, 8 elementi, non Allegato IV) è corretta. Il numero progressivo aggiunto da UÀ è già un miglioramento rispetto a DentalMaster.</div>
+      </div>
+      <span class="issue-tag tag-ok">OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- SAAS ISSUES -->
+<div class="section-label">SaaS Business — Rischi Modello</div>
+<div class="grid-2">
+  <div>
+    <div class="issue critical">
+      <div class="issue-icon">💼</div>
+      <div class="issue-body">
+        <div class="issue-title">Prezzo base €29/mese troppo basso</div>
+        <div class="issue-text">Lab B2B richiedono onboarding, configurazione fiscale, migrazione dati. Sotto €50/mese non si fa business sano. CAC troppo alto rispetto al LTV.</div>
+        <div class="issue-fix">Advisor consiglia: €59/mese tutto incluso senza IA. IA add-on in V2.</div>
+      </div>
+      <span class="issue-tag tag-v1">DECISIONE</span>
+    </div>
+    <div class="issue important">
+      <div class="issue-icon">💼</div>
+      <div class="issue-body">
+        <div class="issue-title">1-tap consegna = rischio reputazionale alto</div>
+        <div class="issue-text">Un errore DdC, XML errato o PEC fallita crea sfiducia immediata. Per V1: modalità "guided delivery con precheck" non "1-tap magico".</div>
+        <div class="issue-fix">Rinomina: "Consegna Guidata" per V1. "1-tap" quando stabilità dimostrata con 50+ labs.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1</span>
+    </div>
+  </div>
+  <div>
+    <div class="issue critical">
+      <div class="issue-icon">💼</div>
+      <div class="issue-body">
+        <div class="issue-title">Migrazione DentalMaster = vero killer adozione</div>
+        <div class="issue-text">30 anni di storico Filippo in Lavori.US8. Senza importer, UÀ diventa "il software in più" non "il sostituto". Filippo non migra mai davvero.</div>
+        <div class="issue-fix">Importer clienti + listino (non storico completo) come prerequisito V1. Storico completo V2.</div>
+      </div>
+      <span class="issue-tag tag-v1">V1 BLOCCO</span>
+    </div>
+    <div class="issue important">
+      <div class="issue-icon">💼</div>
+      <div class="issue-body">
+        <div class="issue-title">TAM piccolo: 9.000 lab, strategia giusta</div>
+        <div class="issue-text">Non scalare sui volumi. ARPA più alto (€59+) + moduli compliance/IA/fornitori aumentano il valore per lab.</div>
+        <div class="issue-fix">Partner di canale: commercialisti dental, fornitori materiali, ANTLO, consulenti MDR.</div>
+      </div>
+      <span class="issue-tag tag-warn">STRATEGIA</span>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT NOBODY SAW -->
+<div class="section-label">Cosa mancava a ENTRAMBI — Rilevato dall'Advisor</div>
+<div class="card full">
+  <div class="agree-box"><div class="agree-icon">🔥</div><div><strong>Backup come argomento di vendita:</strong> DentalMaster di Filippo ha avuto 4 crash documentati (2020, 2020, 2021, 2023). Filippo è stato bruciato. "UÀ fa backup automatico ogni 6 ore, mai più perdi 30 anni di lavoro" vale di più di tutto il design system. Va nel primo slide di vendita.</div></div>
+  <div class="agree-box"><div class="agree-icon">⏳</div><div><strong>IA è feature V2, non V1:</strong> entrambi i reviewer concordano implicitamente: l'IA ha rischi (MDR, reputazionale, GDPR) che non si gestiscono bene senza una base stabile. Lancia V1 senza IA. Aggiungi IA dopo 20 lab attivi con zero incidenti su CONSEGNA.</div></div>
+  <div class="agree-box"><div class="agree-icon">🗣️</div><div><strong>Filippo ha confermato a parole, non con l'uso:</strong> 2 settimane di uso reale in laboratorio valgono più di tutta questa sessione. Dare a Filippo MVP con 3 flow (nuovo lavoro, consegna, scadenzario) prima di scrivere tutto lo spec completo.</div></div>
+</div>
+
+<!-- ROADMAP V1/V2 -->
+<div class="section-label">ROADMAP DEFINITIVA — V1 Go-Live vs V2 Espansione</div>
+<div class="roadmap">
+  <div class="phase phase-v1">
+    <div class="phase-title">V1 — Go-Live (3-4 mesi)</div>
+    <div class="phase-sub">Solo questo. Nient'altro. Poi Filippo lo usa 2 settimane.</div>
+    <div class="phase-item critical">Fix bug cliente_id form</div>
+    <div class="phase-item critical">Migration: stato_sdi, calo, nuove tabelle</div>
+    <div class="phase-item critical">PEC SMTP configurata con Filippo</div>
+    <div class="phase-item critical">Email Supabase rebrand</div>
+    <div class="phase-item critical">WhatsApp template GDPR-safe (no dati paziente)</div>
+    <div class="phase-item">Flow PROVE/Try-in completo</div>
+    <div class="phase-item">Scadenzario UI (DB già pronto)</div>
+    <div class="phase-item">Dashboard OGGI RBAC-aware (3 versioni)</div>
+    <div class="phase-item">Importer DentalMaster: clienti + listino</div>
+    <div class="phase-item">Consegna "Guidata" con precheck MDR espanso</div>
+    <div class="phase-item">UI redesign Clay Haptimorphism</div>
+    <div class="phase-price">€59/mese tutto incluso</div>
+  </div>
+  <div class="phase phase-v2">
+    <div class="phase-title">V2 — Espansione (mesi 4-8)</div>
+    <div class="phase-sub">Dopo stabilità dimostrata con 20+ labs attivi.</div>
+    <div class="phase-item">AI Assistant con tool riformulati (trascrittore, non decisore)</div>
+    <div class="phase-item">Voice continuous mode (ChatGPT-style)</div>
+    <div class="phase-item">AI: disclaimer MDR esplicito nel ToS</div>
+    <div class="phase-item">Ordini fornitori completi</div>
+    <div class="phase-item">Rifacimenti workflow + non conformità</div>
+    <div class="phase-item">Offline PWA (queue + sync)</div>
+    <div class="phase-item">Stato fisico lavoro (al_forno, al_cad, etc.)</div>
+    <div class="phase-item">Storico completo da DentalMaster</div>
+    <div class="phase-item">Tabella stati con enforcement SQL</div>
+    <div class="phase-item">Partner canale: ANTLO, commercialisti</div>
+    <div class="phase-price">V1 €59 + AI add-on €24.90/mese</div>
+  </div>
+</div>
+
+<!-- DECISIONS TO MAKE -->
+<div class="decision-box">
+  <div class="dec-title">⚡ 3 Decisioni da prendere ORA prima di scrivere lo spec</div>
+  <div class="decision">
+    <div class="dec-q">1. IA in V1 o V2?</div>
+    <div class="dec-opts">
+      <div class="dec-opt rec">
+        <div class="rec-tag">Raccomandato da Advisor + Codex</div>
+        <div class="dec-opt-label">V2 — dopo stabilità dimostrata</div>
+        <div class="dec-opt-text">Rischio MDR, GDPR, reputazionale troppo alto senza base stabile. Lancia V1 solido, poi aggiungi IA con feedback reale.</div>
+      </div>
+      <div class="dec-opt">
+        <div class="dec-opt-label">V1 con caveat legali espliciti</div>
+        <div class="dec-opt-text">Possibile se i tool vengono riformulati come "trascrittori" + disclaimer ToS + test RLS completi. Più rischioso.</div>
+      </div>
+    </div>
+  </div>
+  <div class="decision">
+    <div class="dec-q">2. Pricing V1?</div>
+    <div class="dec-opts">
+      <div class="dec-opt rec">
+        <div class="rec-tag">Raccomandato</div>
+        <div class="dec-opt-label">€59/mese tutto incluso (senza IA)</div>
+        <div class="dec-opt-text">LTV sostenibile per onboarding pesante. IA add-on €24.90 quando V2 pronto. Nessuna confusione piani.</div>
+      </div>
+      <div class="dec-opt">
+        <div class="dec-opt-label">€29 base + €24.90 IA</div>
+        <div class="dec-opt-text">Più basso barriera ingresso ma margini insufficienti per supporto e migrazione dati.</div>
+      </div>
+    </div>
+  </div>
+  <div class="decision">
+    <div class="dec-q">3. Migrazione DentalMaster: prerequisito V1 o opzionale?</div>
+    <div class="dec-opts">
+      <div class="dec-opt rec">
+        <div class="rec-tag">Raccomandato</div>
+        <div class="dec-opt-label">Importer clienti + listino in V1</div>
+        <div class="dec-opt-text">Almeno 34 clienti e 72 lavorazioni migrati. Senza questo Filippo non abbandona DentalMaster davvero.</div>
+      </div>
+      <div class="dec-opt">
+        <div class="dec-opt-label">Opzionale — parte da zero</div>
+        <div class="dec-opt-text">Più veloce da sviluppare ma adozione incompleta. Filippo userà entrambi i sistemi in parallelo indefinitamente.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

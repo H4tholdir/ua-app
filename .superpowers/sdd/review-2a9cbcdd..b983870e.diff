@@ -1,0 +1,1045 @@
+# Review package: 2a9cbcdd..b983870e
+
+## Commits
+b983870e fix(wizard): il foglio offre il medico toccato — anteposto dal client, conteggio vero, istituzione quando è nota, righe visibili in dark
+
+## Files changed
+ src/app/ds-v3.css                                  |  9 +++
+ .../features/wizard/ChiHaPrescrittoSheet.tsx       | 40 ++++++++-
+ .../features/wizard/NuovoDentistaSheet.tsx         | 15 +++-
+ src/components/features/wizard/PassoDentista.tsx   |  6 +-
+ .../features/wizard/WizardNuovoLavoro.tsx          | 72 +++++++++++++----
+ src/lib/wizard/dati-wizard.ts                      | 26 +++++-
+ tests/unit/ChiHaPrescrittoSheet.test.tsx           | 37 +++++++++
+ tests/unit/NuovoDentistaSheet.test.tsx             | 16 +++-
+ tests/unit/WizardNuovoLavoro.test.tsx              | 94 ++++++++++++++++++++--
+ tests/unit/dati-wizard.test.ts                     | 26 ++++--
+ 10 files changed, 297 insertions(+), 44 deletions(-)
+
+## Diff
+diff --git a/src/app/ds-v3.css b/src/app/ds-v3.css
+index 6ad6208a..d7f2ee4f 100644
+--- a/src/app/ds-v3.css
++++ b/src/app/ds-v3.css
+@@ -85,20 +85,29 @@
+    componenti (`background: var(--card)`, `box-shadow: var(--sh-press)`)
+    restano intatti e risolvono i nuovi valori SOLO in questo contesto; la
+    chip selezionata (faccia `--green-tint`, shadow `none` letterale) e ogni
+    uso fuori dagli sheet (header pagina, wizard, home…) non cambiano. In
+    light la regola non esiste: resa identica a prima. */
+ [data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-chip-scelta,
+ [data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-tasto-tondo {
+   --card: var(--elv);
+   --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
+ }
++/* Fix-review Task 10 (IMPORTANT 3, stesso difetto del gate L2 qui sopra —
++   `--card` + `--sh-press: none` dentro un pannello anch'esso `--card`,
++   riga invisibile in dark) esteso alle righe medico di
++   ChiHaPrescrittoSheet.tsx (`.ds-medico-riga`, mini-foglio «Chi ha
++   prescritto?»): stesso rimedio, stessa forma di regola. */
++[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-medico-riga {
++  --card: var(--elv);
++  --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
++}
+ 
+ /* D9a (FIX-F, QA device #1, 2026-07-24) — il grabber (Sheet.tsx) resta visivamente 36×4: questo
+    ::before invisibile allarga solo l'AREA DI PRESA (dove `onPointerDown` avvia il drag via
+    `dragControls.start`) a ≥44px di lato (WCAG 2.5.5), senza cambiare il disegno. `touch-action`
+    NON si eredita dagli pseudo-elementi: il `touchAction:'none'` inline sul grabber (Sheet.tsx,
+    `grabberStile`) copre solo la barra visibile 36×4 — questo `none` esplicito copre anche il
+    margine allargato, altrimenti un dito che atterra lì (fuori dalla barra ma dentro l'hit-area)
+    lascerebbe il browser reclamare lo scroll prima che il pan session parta. */
+ [data-ds="v3"] .ds-sheet-grabber::before {
+   content: '';
+diff --git a/src/components/features/wizard/ChiHaPrescrittoSheet.tsx b/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
+index 2ee426b4..4b3cc1f3 100644
+--- a/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
++++ b/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
+@@ -24,26 +24,37 @@
+ // GATE (deciso in WizardNuovoLavoro.tsx, non qui): questo componente non
+ // decide MAI da solo se aprirsi. Il chiamante ha già interrogato
+ // `studio-members` e apre il foglio SOLO se la risposta ha almeno un
+ // elemento — uno studio "di uno solo" (studio_nome compilato ma nessun
+ // collega) si comporta come un dottore singolo: nessun foglio, nessuna
+ // domanda, la Dichiarazione ripiega sul nome del cliente esattamente come
+ // per un cliente senza studio_nome (stesso ripiego server-side,
+ // generate-ddc.ts:146 — l'unico dato che quel cliente porta È il nome della
+ // persona, quindi il ripiego è già la risposta corretta).
+ //
++// IL CLIENTE TOCCATO (fix-review CRITICAL 1): `GET /studio-members` esclude
++// per costruzione il cliente il cui tile è stato tappato (`.neq('id', id)`,
++// route.ts:50) — senza intervento, chi tocca la riga di un medico non
++// potrebbe MAI offrire SE STESSO come prescrittore. Il chiamante lo
++// ANTEPONE a `medici` (`WizardNuovoLavoro.caricaStudioEApri`): `medici[0]`
++// è quindi SEMPRE il cliente toccato quando il foglio arriva ad aprirsi.
++// Questo componente non lo sa e non gli serve saperlo — tratta ogni riga
++// allo stesso modo (v. punto 1 sopra), e proprio per questo il conteggio
++// del sottotitolo (`medici.length`) diventa quello vero.
++//
+ // STUDIO_NOME AUTORITATIVO: si legge da `medici[0].studio_nome` (il valore
+ // grezzo della riga DB), MAI da un'etichetta derivata altrove (es. il
+ // `label` del tile del Passo 1, che potrebbe un giorno guadagnare una
+ // decorazione e disallinearsi silenziosamente dalla ragione sociale vera).
+ // Tutti i membri restituiti hanno lo STESSO `studio_nome` per costruzione
+-// della query (`route.ts:50`: `.eq('studio_nome', cliente.studio_nome)`).
++// (la query di `route.ts:50` per gli "altri", l'assegnazione diretta del
++// chiamante per il cliente anteposto).
+ //
+ // «È un altro»: fallback DICHIARATO (non il pattern NuovoDentistaSheet
+ // riusato as-is) — quel componente calcola `label = studio_nome ?? Dr.
+ // Cognome`, e qui `studio_nome` è SEMPRE compilato (lo stiamo preimpostando
+ // noi), quindi la sua label collasserebbe sempre sul nome dello STUDIO, mai
+ // sulla persona appena creata: esattamente il dato sbagliato per
+ // `richiedente_nome`. Il fallback onesto è un mini-form locale (Nome +
+ // Cognome, stesso vincolo MDR "obbligatori" di NuovoDentistaSheet) che POSTa
+ // allo stesso endpoint `/api/clienti` con `studio_nome` preimpostato — il
+ // nuovo medico «entra nello studio» (stessa riga DB, stesso raggruppamento
+@@ -110,20 +121,31 @@ export function ChiHaPrescrittoSheet(props: {
+   function chiudi() {
+     resetForm()
+     onChiudi()
+   }
+ 
+   function scegli(m: MembroStudio) {
+     vibra('selection')
+     onScelto(nomeCompleto(m), studioNome)
+   }
+ 
++  // MINOR 7 (fix-review): «È un altro» torna una porta A DOPPIO SENSO — si
++  // esce dal mini-form senza creare nulla e senza chiudere il foglio.
++  // `vincolo` si azzera (un errore mostrato prima di uscire non deve
++  // ricomparire "stantio" se si rientra); nome/cognome digitati RESTANO
++  // (nessuna ragione di buttare via ciò che si è già scritto, nel caso si
++  // torni qui una seconda volta).
++  function tornaAllElenco() {
++    setVincolo(null)
++    setModoAggiungi(false)
++  }
++
+   async function aggiungi() {
+     const nomeOk = nome.trim()
+     const cognomeOk = cognome.trim()
+     if (!nomeOk || !cognomeOk) {
+       setVincolo('Nome e cognome sono obbligatori')
+       return
+     }
+     setVincolo(null)
+     setInvio(true)
+ 
+@@ -161,27 +183,41 @@ export function ChiHaPrescrittoSheet(props: {
+           <CampoTesto label="Nome" valore={nome} onCambia={setNome} placeholder="Mario" autoFocus />
+           <CampoTesto label="Cognome" valore={cognome} onCambia={setCognome} placeholder="Rossi" />
+           {vincolo && (
+             <p role="alert" style={stileVincolo}>
+               {vincolo}
+             </p>
+           )}
+           <TastoPrimario onClick={aggiungi} disabled={invio} motivoDisabilitato="Un attimo…">
+             Aggiungi allo studio
+           </TastoPrimario>
++          {/* MINOR 7 (fix-review): senza questo, «È un altro» era una porta a
++              senso unico — chi lo apriva per sbaglio (o cambia idea) non
++              poteva più tornare a scegliere dalla lista senza chiudere
++              l'intero foglio. `LinkQuieto`, non un tasto fisico: è una via
++              di fuga (§5.5), non un'azione che conta. */}
++          <div style={{ display: 'flex', justifyContent: 'center' }}>
++            <LinkQuieto onClick={tornaAllElenco}>Torna all&apos;elenco</LinkQuieto>
++          </div>
+         </>
+       ) : (
+         <>
+           <p style={stileSotto}>{sottotitolo}</p>
+           <div>
+             {medici.map((m) => (
+-              <button key={m.id} type="button" onClick={() => scegli(m)} style={stileMedico}>
++              // IMPORTANT 3 (fix-review) — `ds-medico-riga` è la classe-aggancio
++              // per il rimedio ratificato al gate L2 (22/07/2026, ds-v3.css:90-94):
++              // in dark, faccia `--card` + `--sh-press: none` dentro un pannello
++              // anch'esso `--card` rendeva la riga invisibile (restava solo il
++              // testo) — stesso difetto già chiuso per `.ds-chip-scelta`/
++              // `.ds-tasto-tondo`, qui esteso alle righe di questo foglio.
++              <button key={m.id} type="button" onClick={() => scegli(m)} className="ds-medico-riga" style={stileMedico}>
+                 <Avatar nome={nomeCompleto(m)} diametro={46} />
+                 <span style={stileMedicoNome}>{nomeCompleto(m)}</span>
+               </button>
+             ))}
+           </div>
+           <div style={{ marginTop: spazio.s, display: 'flex', justifyContent: 'center' }}>
+             <LinkQuieto onClick={() => setModoAggiungi(true)}>È un altro: lo aggiungo allo studio</LinkQuieto>
+           </div>
+         </>
+       )}
+diff --git a/src/components/features/wizard/NuovoDentistaSheet.tsx b/src/components/features/wizard/NuovoDentistaSheet.tsx
+index ed57e0f2..4e304602 100644
+--- a/src/components/features/wizard/NuovoDentistaSheet.tsx
++++ b/src/components/features/wizard/NuovoDentistaSheet.tsx
+@@ -42,21 +42,26 @@ type ClienteCreato = { id: string; nome: string; cognome: string; studio_nome: s
+ export function NuovoDentistaSheet(props: {
+   aperto: boolean
+   onChiudi: () => void
+   // `studioNome` (Task 10, P37): il PASSTHROUGH grezzo di `studio_nome` così
+   // com'è tornato dal server — MAI ridotto a booleano né ricavato dal
+   // `label` qui sotto (label collassa già su studio_nome quando presente,
+   // ma quella coincidenza non è la fonte di verità: v. commento in
+   // ChiHaPrescrittoSheet.tsx). Permette a `WizardNuovoLavoro.sceltaDentista`
+   // di applicare lo STESSO gate "è un'entità?" a un dentista appena creato
+   // qui e a un dentista scelto dalla griglia del Passo 1 (dati-wizard.ts).
+-  onCreato: (d: { id: string; label: string; studioNome: string | null }) => void
++  // `nome`/`cognome` (fix-review Task 10, CRITICAL 1): passthrough grezzo,
++  // stesso motivo — servono ad anteporre il dentista appena creato come
++  // prima riga del mini-foglio se risultasse un'entità con colleghi (caso
++  // limite: si crea un dentista con "Studio" compilato uguale a uno
++  // esistente).
++  onCreato: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
+ }) {
+   const { aperto, onChiudi, onCreato } = props
+   const { errore } = useAvvisi()
+ 
+   const [nome, setNome] = useState('')
+   const [cognome, setCognome] = useState('')
+   const [telefonoStudio, setTelefonoStudio] = useState('')
+   const [cellulare, setCellulare] = useState('')
+   const [studio, setStudio] = useState('')
+   const [vincolo, setVincolo] = useState<string | null>(null)
+@@ -102,21 +107,27 @@ export function NuovoDentistaSheet(props: {
+ 
+       if (!res.ok) {
+         errore('Non sono riuscita a creare il dentista. Riprova.')
+         setInvio(false)
+         return
+       }
+ 
+       const dati = (await res.json()) as { cliente: ClienteCreato }
+       const label = dati.cliente.studio_nome ?? `Dr. ${dati.cliente.cognome}`
+       resetForm()
+-      onCreato({ id: dati.cliente.id, label, studioNome: dati.cliente.studio_nome })
++      onCreato({
++        id: dati.cliente.id,
++        label,
++        nome: dati.cliente.nome,
++        cognome: dati.cliente.cognome,
++        studioNome: dati.cliente.studio_nome,
++      })
+     } catch {
+       errore('Non sono riuscita a creare il dentista. Riprova.')
+       setInvio(false)
+     }
+   }
+ 
+   return (
+     <Sheet aperto={aperto} onChiudi={chiudi} titolo="Nuovo dentista">
+       <CampoTesto label="Nome" valore={nome} onCambia={setNome} placeholder="Mario" autoFocus />
+       <CampoTesto label="Cognome" valore={cognome} onCambia={setCognome} placeholder="Rossi" />
+diff --git a/src/components/features/wizard/PassoDentista.tsx b/src/components/features/wizard/PassoDentista.tsx
+index e6394cde..dc9932d2 100644
+--- a/src/components/features/wizard/PassoDentista.tsx
++++ b/src/components/features/wizard/PassoDentista.tsx
+@@ -26,21 +26,21 @@ import { tipografia } from '@/design-system/v3/tokens'
+ import { TileScelta, TileNuovo } from '@/components/ds/TileScelta'
+ import { RigaCerca } from '@/components/ds/RigaCerca'
+ import { CampoTesto } from '@/components/ds/Campo'
+ import { PillVoce } from '@/components/ds/PillVoce'
+ import type { DentistaWizard } from '@/lib/wizard/dati-wizard'
+ 
+ const MAX_TILE = 4
+ 
+ export function PassoDentista(props: {
+   dentisti: DentistaWizard[]
+-  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
++  onScegli: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
+   onNuovoDentista: () => void
+ }) {
+   const { dentisti, onScegli, onNuovoDentista } = props
+   // null = riga di ricerca chiusa (§5.13, stesso pattern di PilaAperta/Task 8).
+   const [query, setQuery] = useState<string | null>(null)
+ 
+   const inEvidenza = dentisti.slice(0, MAX_TILE)
+ 
+   const risultatiRicerca = useMemo(() => {
+     if (query === null) return []
+@@ -49,21 +49,23 @@ export function PassoDentista(props: {
+     return dentisti.filter((d) => normalizza(d.label).includes(q))
+   }, [dentisti, query])
+ 
+   function tile(d: DentistaWizard) {
+     return (
+       <TileScelta
+         key={d.id}
+         nome={d.label}
+         sotto={`${d.count30} lavori · 30gg`}
+         avatar={d.label}
+-        onClick={() => onScegli({ id: d.id, label: d.label, studioNome: d.studioNome ?? null })}
++        onClick={() =>
++          onScegli({ id: d.id, label: d.label, nome: d.nome ?? '', cognome: d.cognome ?? '', studioNome: d.studioNome ?? null })
++        }
+       />
+     )
+   }
+ 
+   return (
+     <div>
+       <h1 style={stileDomanda}>Per quale dentista?</h1>
+       <p style={stileHint}>Tocca chi te l&apos;ha portato. I più frequenti stanno in alto.</p>
+ 
+       {query === null ? (
+diff --git a/src/components/features/wizard/WizardNuovoLavoro.tsx b/src/components/features/wizard/WizardNuovoLavoro.tsx
+index 8a26ef5a..19a5bf07 100644
+--- a/src/components/features/wizard/WizardNuovoLavoro.tsx
++++ b/src/components/features/wizard/WizardNuovoLavoro.tsx
+@@ -299,86 +299,124 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
+   // Task 10 (P37/D211) — carica gli altri medici dello studio PRIMA di aprire
+   // il foglio: un foglio che ne elenca zero sarebbe la riga vuota che 0B-9
+   // vieta, quindi uno "studio di uno solo" (nessun collega trovato) si
+   // comporta esattamente come un dottore singolo — e il ripiego server-side
+   // sul nome del cliente (`generate-ddc.ts:146`) è già la risposta corretta
+   // in quel caso, perché quel cliente-riga porta comunque il nome della
+   // persona. Fail-open sul GET (stesso schema di TabDati.tsx e
+   // NuovoDentistaSheet): un guasto di rete qui non deve MAI bloccare la
+   // scelta del dentista già fatta — degrada silenziosamente a "nessun
+   // collega trovato".
++  //
++  // CRITICAL 1 (fix-review): `GET /studio-members` ESCLUDE per costruzione
++  // il cliente TOCCATO (`.neq('id', id)`, route.ts:50) — senza anteporlo
++  // qui, chi tocca la riga di un medico non potrebbe MAI scegliere SE
++  // STESSO come prescrittore: con due colleghi, chi tocca la riga di Marta
++  // vedrebbe solo Colombo, e l'unica via visibile sarebbe «È un altro» →
++  // una riga `clienti` DUPLICATA. Il cliente toccato entra come PRIMA riga
++  // (`nomeCompleto`/`ChiHaPrescrittoSheet.tsx` gli dà lo stesso trattamento
++  // di ogni altro medico — nessuna evidenza speciale, v. quel file), «Cognome
++  // Nome» coerente col ripiego DdC. Questo corregge anche 1b: il sottotitolo
++  // del foglio conta `medici.length`, che ora include il toccato — prima
++  // sottostimava di uno.
+   const caricaStudioEApri = useCallback(
+-    async (cliente: { id: string; label: string }) => {
+-      let medici: MembroStudio[] = []
++    async (cliente: { id: string; label: string; nome: string; cognome: string; studioNome: string }) => {
++      let altri: MembroStudio[] = []
+       try {
+         const res = await fetch(`/api/clienti/${cliente.id}/studio-members`, { credentials: 'same-origin' })
+         const dati: unknown = res.ok ? await res.json() : []
+-        medici = Array.isArray(dati) ? (dati as MembroStudio[]) : []
++        altri = Array.isArray(dati) ? (dati as MembroStudio[]) : []
+       } catch {
+-        medici = []
++        altri = []
+       }
+-      if (medici.length === 0) {
+-        avanzaConCliente(cliente, '', '')
++      if (altri.length === 0) {
++        // IMPORTANT 2 (fix-review): `studioNome` è già in mano qui — D206,
++        // l'istituzione è vera anche SENZA una persona scelta (il foglio non
++        // apre nemmeno, ma lo studio del cliente toccato resta un fatto
++        // noto). Solo `richiedente_nome` resta vuoto: nessuna persona è
++        // stata indicata.
++        avanzaConCliente({ id: cliente.id, label: cliente.label }, '', cliente.studioNome)
+         return
+       }
+-      setClientePendente(cliente)
+-      setMediciPendenti(medici)
++      const toccato: MembroStudio = {
++        id: cliente.id,
++        nome: cliente.nome,
++        cognome: cliente.cognome,
++        studio_nome: cliente.studioNome,
++      }
++      setClientePendente({ id: cliente.id, label: cliente.label })
++      setMediciPendenti([toccato, ...altri])
+       setChiavePrescrittore((c) => c + 1)
+       setSheetPrescrittoreAperto(true)
+     },
+     [avanzaConCliente]
+   )
+ 
+   // Il gate "è un'entità?" (D196: SOLO se il cliente ha `studio_nome`).
+   // Dottore singolo → invariato, sincrono, ZERO rete in più (v. commento su
+-  // `DentistaWizard.studioNome`). Entità → `caricaStudioEApri` sopra decide
+-  // se il foglio vale la pena di aprirsi.
++  // `DentistaWizard.studioNome`) — QUI, e solo qui, entrambi i campi restano
++  // '' (nessuno studio, niente da dire). Entità → `caricaStudioEApri` sopra
++  // decide se il foglio vale la pena di aprirsi. TS narrows `cliente.studioNome`
++  // a `string` dopo il ritorno anticipato: il parametro di `caricaStudioEApri`
++  // può quindi pretenderlo non-null.
+   const sceltaDentista = useCallback(
+-    (cliente: { id: string; label: string; studioNome: string | null }) => {
++    (cliente: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => {
+       if (!cliente.studioNome) {
+         avanzaConCliente({ id: cliente.id, label: cliente.label }, '', '')
+         return
+       }
+-      void caricaStudioEApri({ id: cliente.id, label: cliente.label })
++      void caricaStudioEApri({
++        id: cliente.id,
++        label: cliente.label,
++        nome: cliente.nome,
++        cognome: cliente.cognome,
++        studioNome: cliente.studioNome,
++      })
+     },
+     [avanzaConCliente, caricaStudioEApri]
+   )
+ 
+   // Scelto un medico esistente, o appena aggiunto («È un altro») — i due
+   // esiti "positivi" del foglio condividono lo stesso commit.
+   const scelgoPrescrittore = useCallback(
+     (richiedenteNome: string, istituzioneSanitaria: string) => {
+       if (!clientePendente) return
+       setSheetPrescrittoreAperto(false)
+       avanzaConCliente(clientePendente, richiedenteNome, istituzioneSanitaria)
+       setClientePendente(null)
+     },
+     [clientePendente, avanzaConCliente]
+   )
+ 
+   // Chiusura del foglio SENZA scegliere (scrim/Esc/swipe/«Chiudi» — tutte le
+   // vie di fuga di Sheet.tsx instradano su questo `onChiudi`, W22: MAI
+   // bloccante). Il cliente-entità già tappato resta comunque commesso, senza
+   // prescrittore — "come oggi" (contesto del brief, punto 7).
++  //
++  // IMPORTANT 2 (fix-review): l'istituzione parte comunque. `mediciPendenti[0]`
++  // è SEMPRE il cliente toccato quando il foglio è arrivato ad aprirsi
++  // (CRITICAL 1, anteposto in `caricaStudioEApri`) — la sua `studio_nome` è
++  // nota anche se nessun prescrittore è stato scelto (D206: l'istituzione è
++  // vera a prescindere dalla persona).
+   const chiudiSheetPrescrittore = useCallback(() => {
+     setSheetPrescrittoreAperto(false)
+     if (clientePendente) {
+-      avanzaConCliente(clientePendente, '', '')
++      avanzaConCliente(clientePendente, '', mediciPendenti[0]?.studio_nome ?? '')
+       setClientePendente(null)
+     }
+-  }, [clientePendente, avanzaConCliente])
++  }, [clientePendente, mediciPendenti, avanzaConCliente])
+ 
+   // CONTRATTO Task 9: `NuovoDentistaSheet.onCreato` chiama questa — riusa
+   // `sceltaDentista` (stesso percorso di selezione di un tile esistente),
+   // così direzione/coreografia/gate-entità restano un'unica fonte di verità.
+   const dentistaCreato = useCallback(
+-    (cliente: { id: string; label: string; studioNome: string | null }) => {
++    (cliente: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => {
+       setSheetDentistaAperto(false)
+       sceltaDentista(cliente)
+     },
+     [sceltaDentista]
+   )
+ 
+   const apriSheetDentista = useCallback(() => setSheetDentistaAperto(true), [])
+ 
+   // Task 10: la scelta del tipo (tile, catalogo o «Descrivilo») salva `tipo` e
+   // avanza al Passo 3 — `direzione` 'avanti' PRIMA del cambio passo (contratto
+@@ -496,21 +534,21 @@ type StatoFatto = {
+  * condiviso con `WizardNuovoLavoro` — quello stato non serve a nessun altro
+  * (testata/ProgressDots spariscono insieme al passo-tree quando `fatto` è
+  * valorizzato, quindi non serve nemmeno "risalire" per nasconderli).
+  */
+ function CorpoWizard(props: {
+   dati: DatiWizard
+   stato: StatoWizard
+   direzione: 'avanti' | 'indietro'
+   reduced: boolean
+   vaIndietro: () => void
+-  sceltaDentista: (d: { id: string; label: string; studioNome: string | null }) => void
++  sceltaDentista: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
+   apriSheetDentista: () => void
+   sceltaTipo: (t: TipoScelto) => void
+   cambiaPaziente: (patch: Partial<StatoWizard>) => void
+   onTornaHome: () => void
+ }) {
+   const { dati, stato, direzione, reduced, vaIndietro, sceltaDentista, apriSheetDentista, sceltaTipo, cambiaPaziente, onTornaHome } = props
+   const { errore } = useAvvisi()
+   const [inCreazione, setInCreazione] = useState(false)
+   const [fatto, setFatto] = useState<StatoFatto | null>(null)
+ 
+@@ -662,21 +700,21 @@ function CorpoWizard(props: {
+         )}
+       </AnimatePresence>
+     </div>
+   )
+ }
+ 
+ /** Il corpo del passo corrente. */
+ function RenderPasso(props: {
+   stato: StatoWizard
+   dati: DatiWizard
+-  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
++  onScegli: (d: { id: string; label: string; nome: string; cognome: string; studioNome: string | null }) => void
+   onNuovoDentista: () => void
+   onScegliTipo: (t: TipoScelto) => void
+   onCambiaPaziente: (patch: Partial<StatoWizard>) => void
+   onContinuaPaziente: () => void
+   inCreazione: boolean
+ }) {
+   const { stato, dati, onScegli, onNuovoDentista, onScegliTipo, onCambiaPaziente, onContinuaPaziente, inCreazione } = props
+ 
+   if (stato.passo === 1) {
+     return (
+diff --git a/src/lib/wizard/dati-wizard.ts b/src/lib/wizard/dati-wizard.ts
+index 98a58ddc..b3c0b4f0 100644
+--- a/src/lib/wizard/dati-wizard.ts
++++ b/src/lib/wizard/dati-wizard.ts
+@@ -12,32 +12,48 @@ export type DentistaWizard = {
+    * OPZIONALE (Task 10, Ondata B ②/P37): il codice reale (`aggregaDatiWizard`
+    * sotto) lo valorizza SEMPRE — è opzionale nel TIPO solo per non forzare
+    * ogni fixture di test esistente (nessuna delle quali tocca il gate del
+    * mini-foglio «Chi ha prescritto?») a portarlo. `null`/assente = dottore
+    * singolo (D196): il Passo 1 non fa MAI la `GET /studio-members` per lui —
+    * non solo perché la risposta sarebbe `[]` (route.ts:41-43, `studio_nome`
+    * nullo → array vuoto), ma perché quella chiamata di rete in più non deve
+    * esistere per il caso comune.
+    */
+   studioNome?: string | null
++  /**
++   * OPZIONALI (fix-review Task 10, CRITICAL 1): nome/cognome GREZZI del
++   * cliente-riga. Servono a costruire «Cognome Nome» del dentista TOCCATO
++   * quando `WizardNuovoLavoro.caricaStudioEApri` lo antepone come prima riga
++   * del mini-foglio «Chi ha prescritto?» — senza di loro chi tocca la riga
++   * di un medico non potrebbe MAI scegliere SE STESSO come prescrittore,
++   * perché `GET /studio-members` lo esclude per costruzione
++   * (`.neq('id', id)`, route.ts:50). Opzionali nel TIPO per lo stesso
++   * motivo di `studioNome` sopra (fixture di test esistenti che non toccano
++   * il mini-foglio non li portano); `aggregaDatiWizard` li valorizza SEMPRE.
++   */
++  nome?: string
++  cognome?: string
+ }
+ export type DatiWizard = {
+   dentisti: DentistaWizard[]
+   frequenzeTipi: Record<string, number>
+   topTipi: string[]
+   prossimoPz: string
+   giorniPerTipo: Record<string, { giorni: number; daStoria: boolean }>
+ }
+ 
+-// `nome` NON è nella select: la label wizard usa solo studio_nome/cognome
+-// ('Dr. Cognome'), diversamente da pile-home che mostra 'Nome Cognome'.
+-type RawCliente = { id: string; cognome: string; studio_nome: string | null }
++// `nome` È nella select (fix-review Task 10, CRITICAL 1: prima non c'era —
++// la label wizard usa solo studio_nome/cognome, 'Dr. Cognome', diversamente
++// da pile-home che mostra 'Nome Cognome' — ma il mini-foglio «Chi ha
++// prescritto?» ne ha bisogno per anteporre il cliente toccato, v. commento
++// su `DentistaWizard.nome` sopra).
++type RawCliente = { id: string; nome: string; cognome: string; studio_nome: string | null }
+ type RawLavoro30 = { cliente_id: string; descrizione: string; data_ingresso: string }
+ type RawPaziente = { codice_paziente: string | null }
+ 
+ // Formatta 'YYYY-MM-DD' componendo da getFullYear/getMonth/getDate —
+ // convenzione del wizard decisa dal piano (Task 12, coerente con W7 /
+ // Campo.tsx): tutta l'aritmetica di date del wizard resta in componenti
+ // locali, senza passare da `toISOString().split('T')[0]` (che usa il fuso
+ // UTC). Ragioni: coerenza con `inizioGiorno`/`aggiungiGiorni` usati qui
+ // sopra, e robustezza se il TZ del processo differisse da UTC — non
+ // un'affermazione che il pattern toISOString usato altrove sia buggato oggi.
+@@ -111,20 +127,22 @@ export function aggregaDatiWizard(
+   for (const l of ultimi30gg) {
+     countPerCliente.set(l.cliente_id, (countPerCliente.get(l.cliente_id) ?? 0) + 1)
+   }
+ 
+   const dentisti: DentistaWizard[] = clienti
+     .map((c) => ({
+       id: c.id,
+       label: c.studio_nome ?? `Dr. ${c.cognome}`,
+       count30: countPerCliente.get(c.id) ?? 0,
+       studioNome: c.studio_nome,
++      nome: c.nome,
++      cognome: c.cognome,
+     }))
+     .sort((a, b) => b.count30 - a.count30 || a.label.localeCompare(b.label))
+ 
+   const frequenzeTipi: Record<string, number> = {}
+   for (const t of TIPI_LAVORO) {
+     const label = labelTipo(t)
+     frequenzeTipi[t.id] = ultimi30gg.filter((l) => l.descrizione === label).length
+   }
+ 
+   // Top 4: i tipi con count>0 ordinati per frequenza desc — `.sort` è
+@@ -155,21 +173,21 @@ export function aggregaDatiWizard(
+  * lettura propaga, mai un wizard silenziosamente vuoto/sbagliato.
+  *
+  * `oggi` è opzionale (default `new Date()`, come `dataSuggerita` in
+  * tempi-medi.ts) — solo per rendere testabile la finestra dei 30gg senza
+  * fake-timers; i chiamanti reali (Task 8) continuano a invocarla a 2 argomenti.
+  */
+ export async function getDatiWizard(svc: SupabaseClient, labId: string, oggi: Date = new Date()): Promise<DatiWizard> {
+   const cutoff = isoDataLocale(aggiungiGiorni(inizioGiorno(oggi), -30))
+ 
+   const [clientiRes, lavoriRes, pazientiRes, campioni] = await Promise.all([
+-    svc.from('clienti').select('id, cognome, studio_nome').eq('laboratorio_id', labId).is('deleted_at', null),
++    svc.from('clienti').select('id, nome, cognome, studio_nome').eq('laboratorio_id', labId).is('deleted_at', null),
+     svc.from('lavori').select('cliente_id, descrizione, data_ingresso').eq('laboratorio_id', labId).is('deleted_at', null).gte('data_ingresso', cutoff),
+     // `ilike '%PZ-%'`, non `like 'PZ-%'`, per due motivi distinti: (a) senza
+     // case-insensitive un `pz-0043` non viene nemmeno letto; (b) senza togliere
+     // l'ancoraggio a sinistra, `' PZ-0043 '` non viene letto — il pattern lo
+     // valuta Postgres sulla colonna GREZZA, e nessun `trim()` in JS può
+     // recuperare una riga che la query non ha portato a casa.
+     // Costo: su `codice_paziente` non esiste alcun indice (verificato il 30/07
+     // su `pg_indexes`), quindi entrambi i pattern erano già una scansione, e
+     // oggi le righe lette restano le stesse 4.
+     // 🛑 Niente `.is('deleted_at', null)` qui: l'indice unico non filtrerà per
+diff --git a/tests/unit/ChiHaPrescrittoSheet.test.tsx b/tests/unit/ChiHaPrescrittoSheet.test.tsx
+index cd6a1dc7..416bf485 100644
+--- a/tests/unit/ChiHaPrescrittoSheet.test.tsx
++++ b/tests/unit/ChiHaPrescrittoSheet.test.tsx
+@@ -45,20 +45,34 @@ describe('ChiHaPrescrittoSheet (Task 10, P37/D211)', () => {
+     expect(screen.getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
+     expect(screen.getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
+     expect(screen.getByRole('button', { name: /Ferri Anna/ })).toBeInTheDocument()
+   })
+ 
+   it('sottotitolo: plurale con il conteggio reale quando i medici sono più di uno', () => {
+     renderSheet()
+     expect(screen.getByText(/Studio Bianchi risultano 3 medici/)).toBeInTheDocument()
+   })
+ 
++  // IMPORTANT 3 (fix-review) — la classe-aggancio per il rimedio dark del
++  // gate L2 (ds-v3.css: `.ds-sheet .ds-medico-riga` rimappa `--card`/
++  // `--sh-press` su `--elv`/hairline, altrimenti la riga È invisibile in
++  // dark: stessa faccia del pannello, ombra `none`). jsdom non calcola il
++  // CSS in cascata da un foglio esterno, quindi qui si prova solo che la
++  // classe-aggancio sia PRESENTE — la regola stessa vive in ds-v3.css ed è
++  // verificata leggendo il file, non a runtime.
++  it('ogni riga medico porta la classe-aggancio "ds-medico-riga" (rimedio dark, gate L2)', () => {
++    renderSheet()
++    expect(screen.getByRole('button', { name: /Colombo Francesco/ })).toHaveClass('ds-medico-riga')
++    expect(screen.getByRole('button', { name: /Bianchi Marta/ })).toHaveClass('ds-medico-riga')
++    expect(screen.getByRole('button', { name: /Ferri Anna/ })).toHaveClass('ds-medico-riga')
++  })
++
+   it('sottotitolo: singolare quando c\'è un solo medico', () => {
+     renderSheet({ medici: [MEDICI[0]] })
+     expect(screen.getByText(/Studio Bianchi risulta un medico/)).toBeInTheDocument()
+   })
+ 
+   // 0B-9 / R-E1 — divergenza DICHIARATA dal mockup approvato: nessuna riga
+   // rivendica di essere «l'ultimo che ha prescritto qui» (dato che non
+   // possediamo — v. header del file sorgente). Prova negativa esplicita:
+   // se qualcuno reintroducesse quella frase senza il dato dietro, il test
+   // la becca.
+@@ -81,20 +95,43 @@ describe('ChiHaPrescrittoSheet (Task 10, P37/D211)', () => {
+   })
+ 
+   it('«È un altro» apre un mini-form Nome/Cognome (niente rete finché non si conferma)', async () => {
+     renderSheet()
+     await userEvent.setup().click(screen.getByRole('button', { name: /È un altro/ }))
+     expect(screen.getByLabelText('Nome')).toBeInTheDocument()
+     expect(screen.getByLabelText('Cognome')).toBeInTheDocument()
+     expect(fetch).not.toHaveBeenCalled()
+   })
+ 
++  // MINOR 7 (fix-review): «È un altro» era una porta a senso unico.
++  it('«È un altro» → «Torna all\'elenco» torna alla lista, NIENTE rete, il testo digitato resta se si riapre', async () => {
++    const { onScelto, onChiudi } = renderSheet()
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /È un altro/ }))
++    await user.type(screen.getByLabelText('Nome'), 'Luca')
++    await user.type(screen.getByLabelText('Cognome'), 'Verdi')
++
++    await user.click(screen.getByRole('button', { name: "Torna all'elenco" }))
++
++    // Di nuovo la lista, nessuna chiamata di rete, il foglio resta aperto.
++    expect(screen.getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
++    expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
++    expect(fetch).not.toHaveBeenCalled()
++    expect(onScelto).not.toHaveBeenCalled()
++    expect(onChiudi).not.toHaveBeenCalled()
++
++    // Riaprendo «È un altro», ciò che era stato digitato è ancora lì.
++    await user.click(screen.getByRole('button', { name: /È un altro/ }))
++    expect(screen.getByLabelText('Nome')).toHaveValue('Luca')
++    expect(screen.getByLabelText('Cognome')).toHaveValue('Verdi')
++  })
++
+   it('«È un altro» → submit con nome/cognome vuoti NON chiama fetch, mostra il vincolo', async () => {
+     const { onScelto } = renderSheet()
+     const user = userEvent.setup()
+     await user.click(screen.getByRole('button', { name: /È un altro/ }))
+     fireEvent.click(screen.getByRole('button', { name: /aggiungi allo studio/i }))
+     expect(await screen.findByRole('alert')).toHaveTextContent(/nome.*cognome|obbligator/i)
+     expect(fetch).not.toHaveBeenCalled()
+     expect(onScelto).not.toHaveBeenCalled()
+   })
+ 
+diff --git a/tests/unit/NuovoDentistaSheet.test.tsx b/tests/unit/NuovoDentistaSheet.test.tsx
+index 4c9b70c4..e682836a 100644
+--- a/tests/unit/NuovoDentistaSheet.test.tsx
++++ b/tests/unit/NuovoDentistaSheet.test.tsx
+@@ -106,21 +106,27 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
+ 
+     const { onCreato } = renderSheet()
+     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Mario' } })
+     fireEvent.change(screen.getByLabelText('Cognome'), { target: { value: 'Rossi' } })
+     fireEvent.change(screen.getByLabelText('Telefono dello studio'), { target: { value: '02 1234567' } })
+     fireEvent.change(screen.getByLabelText('Cellulare WhatsApp'), { target: { value: '333123456' } })
+     fireEvent.change(screen.getByLabelText('Studio'), { target: { value: 'Studio Rossi' } })
+     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
+ 
+     await waitFor(() =>
+-      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi', studioNome: 'Studio Rossi' })
++      expect(onCreato).toHaveBeenCalledWith({
++        id: 'cli-1',
++        label: 'Studio Rossi',
++        nome: 'Mario',
++        cognome: 'Rossi',
++        studioNome: 'Studio Rossi',
++      })
+     )
+     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         nome: 'Mario',
+         cognome: 'Rossi',
+         telefono: '02 1234567',
+         cellulare_whatsapp: '333123456',
+@@ -135,21 +141,27 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
+       status: 201,
+       json: async () => ({ cliente: { id: 'cli-2', nome: 'Luca', cognome: 'Bianchi', studio_nome: null } }),
+     })
+ 
+     const { onCreato } = renderSheet()
+     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Luca' } })
+     fireEvent.change(screen.getByLabelText('Cognome'), { target: { value: 'Bianchi' } })
+     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
+ 
+     await waitFor(() =>
+-      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-2', label: 'Dr. Bianchi', studioNome: null })
++      expect(onCreato).toHaveBeenCalledWith({
++        id: 'cli-2',
++        label: 'Dr. Bianchi',
++        nome: 'Luca',
++        cognome: 'Bianchi',
++        studioNome: null,
++      })
+     )
+     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ nome: 'Luca', cognome: 'Bianchi' }),
+     })
+   })
+ 
+   it('errore rete/500 → Avviso.errore("Non sono riuscita a creare il dentista. Riprova.") e lo sheet resta aperto', async () => {
+diff --git a/tests/unit/WizardNuovoLavoro.test.tsx b/tests/unit/WizardNuovoLavoro.test.tsx
+index 495a6fbf..eb4379ba 100644
+--- a/tests/unit/WizardNuovoLavoro.test.tsx
++++ b/tests/unit/WizardNuovoLavoro.test.tsx
+@@ -225,30 +225,41 @@ describe('WizardNuovoLavoro — wiring NuovoDentistaSheet (Task 9, A7)', () => {
+     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nuovo dentista' })).not.toBeInTheDocument())
+   })
+ })
+ 
+ // Task 10 (P37/D211, ondata B ②) — il mini-foglio «Chi ha prescritto?».
+ // Fixture SEPARATA da `DENTISTI`/`DATI` (usati da decine di altri test in
+ // questo file): niente `studioNome` sugli esistenti, per non introdurre una
+ // `GET /studio-members` in test che oggi non la stubbano (v. avviso R-E1 —
+ // la rete in più deve esistere SOLO dove il tile tappato è un'entità).
+ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37/D211)', () => {
++  // IMPORTANT 5 (fix-review) — questa fixture rispecchia la rotta VERA:
++  // `GET /api/clienti/[id]/studio-members` ESCLUDE il cliente toccato
++  // (`.neq('id', id)`, route.ts:50). Il tile "Studio Bianchi" del Passo 1
++  // (id '2' sotto) È la riga clienti di Bianchi Marta (nome/cognome sotto):
++  // la SUA risposta studio-members non può contenere se stessa. `MEDICI`
++  // elenca solo i suoi COLLEGHI — Bianchi Marta arriva nel foglio ANTEPOSTA
++  // dal client (CRITICAL 1), mai da questa lista. Prima del fix-review
++  // questa fixture includeva erroneamente Bianchi Marta fra i "colleghi
++  // trovati", un percorso che la rotta vera non può produrre — è il
++  // meccanismo che ha lasciato passare il difetto CRITICAL 1 (il foglio non
++  // poteva mai offrire il medico appena toccato).
+   const MEDICI = [
+     { id: 'm1', nome: 'Francesco', cognome: 'Colombo', studio_nome: 'Studio Bianchi' },
+-    { id: 'm2', nome: 'Marta', cognome: 'Bianchi', studio_nome: 'Studio Bianchi' },
++    { id: 'm3', nome: 'Anna', cognome: 'Ferri', studio_nome: 'Studio Bianchi' },
+   ]
+ 
+   const DENTISTI_STUDIO = [
+-    { id: '1', label: 'Dr. Esposito', count30: 12, studioNome: null },
+-    { id: '2', label: 'Studio Bianchi', count30: 8, studioNome: 'Studio Bianchi' },
+-    { id: '3', label: 'Dr. Russo', count30: 5, studioNome: null },
+-    { id: '4', label: 'Studio Solo', count30: 2, studioNome: 'Studio Solo' },
++    { id: '1', label: 'Dr. Esposito', count30: 12, studioNome: null, nome: 'Marco', cognome: 'Esposito' },
++    { id: '2', label: 'Studio Bianchi', count30: 8, studioNome: 'Studio Bianchi', nome: 'Marta', cognome: 'Bianchi' },
++    { id: '3', label: 'Dr. Russo', count30: 5, studioNome: null, nome: 'Luca', cognome: 'Russo' },
++    { id: '4', label: 'Studio Solo', count30: 2, studioNome: 'Studio Solo', nome: 'Elena', cognome: 'Neri' },
+   ]
+ 
+   const DATI_STUDIO: DatiWizard = {
+     ...DATI,
+     dentisti: DENTISTI_STUDIO,
+     topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
+     frequenzeTipi: { corona_zirconia: 9 },
+     giorniPerTipo: { corona_zirconia: { giorni: 6, daStoria: true } },
+   }
+ 
+@@ -306,34 +317,93 @@ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37
+     expect(m).not.toHaveBeenCalled()
+   })
+ 
+   it('studio con più medici: il foglio sale, elenca i medici trovati', async () => {
+     vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
+     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+     await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+ 
+     const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+     expect(within(dialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
++    expect(within(dialog).getByRole('button', { name: /Ferri Anna/ })).toBeInTheDocument()
++    // Bianchi Marta è il cliente TOCCATO — non è nella risposta mock di
++    // `studio-members` (v. commento sulla fixture MEDICI sopra), eppure
++    // compare: è il client (CRITICAL 1) ad anteporla.
+     expect(within(dialog).getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
+     // Il Passo 1 resta VISIBILE dietro il foglio (overlay, non un passo nuovo — vincolo di ondata).
+     expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
+   })
+ 
+-  it('studio "di uno solo" (studio_nome compilato, ZERO colleghi) → nessun foglio, si comporta come dottore singolo', async () => {
++  // CRITICAL 1 + 1b (fix-review): il cliente toccato è la PRIMA riga (non una
++  // qualunque), e il sottotitolo conta tutti e tre — prima del fix contava
++  // solo i 2 "colleghi" restituiti da studio-members, sottostimando di uno.
++  it('CRITICAL 1: il cliente toccato (Bianchi Marta) è la PRIMA riga del foglio, prima dei colleghi', async () => {
++    vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    // `getAllByRole` ritorna in ordine DOM (ordine di apparizione nel
++    // markup) — il `textContent` include anche le iniziali dell'Avatar
++    // (`aria-hidden`, ma non tolte dal testo del bottone), quindi si
++    // confronta con `toContain`, non un'uguaglianza esatta sul nome.
++    const righe = within(dialog).getAllByRole('button', {
++      name: /^(Bianchi Marta|Colombo Francesco|Ferri Anna)$/,
++    })
++    expect(righe).toHaveLength(3)
++    expect(righe[0].textContent).toContain('Bianchi Marta')
++    expect(righe[1].textContent).toContain('Colombo Francesco')
++    expect(righe[2].textContent).toContain('Ferri Anna')
++  })
++
++  it('1b: il sottotitolo conta il TOTALE (toccato + colleghi), non solo i colleghi restituiti da studio-members', async () => {
++    vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    // MEDICI (mock) ne ha 2 ("colleghi") + il toccato (Bianchi Marta) = 3 —
++    // il conteggio SBAGLIATO pre-fix sarebbe stato "2 medici".
++    expect(within(dialog).getByText(/Studio Bianchi risultano 3 medici/)).toBeInTheDocument()
++  })
++
++  it('studio "di uno solo" (studio_nome compilato, ZERO colleghi) → nessun foglio, si comporta come dottore singolo per il PRESCRITTORE', async () => {
+     vi.stubGlobal('fetch', routerFetch({ members: [] }))
+     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+     await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Solo/ }))
+ 
+     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+     expect(screen.queryByRole('dialog', { name: 'Chi ha prescritto?' })).not.toBeInTheDocument()
+   })
+ 
++  // IMPORTANT 2 (fix-review): l'istituzione è nota comunque — D206, "vera
++  // anche senza una persona scelta". Prima del fix `cliente.studioNome`
++  // veniva scartato prima di raggiungere questo ramo (il chiamante passava
++  // solo `{id, label}` a `caricaStudioEApri`), e istituzione_sanitaria
++  // restava sempre assente anche quando era un fatto già noto.
++  it('IMPORTANT 2: studio "di uno solo" → istituzione_sanitaria parte comunque nel POST (D206), richiedente_nome resta assente', async () => {
++    const m = routerFetch({ members: [] })
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /^Studio Solo/ }))
++    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
++
++    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
++    await user.click(screen.getByRole('button', { name: 'Continua' }))
++    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
++
++    const corpo = await corpoPostLavori(m)
++    expect(corpo).not.toHaveProperty('richiedente_nome')
++    expect(corpo.istituzione_sanitaria).toBe('Studio Solo')
++  })
++
+   it('scelta di un medico → il POST /api/lavori porta richiedente_nome E istituzione_sanitaria, «Fatto!» mostra «Prescritto da»', async () => {
+     const m = routerFetch({ members: MEDICI })
+     vi.stubGlobal('fetch', m)
+     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+     const user = userEvent.setup()
+ 
+     await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+     const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+     await user.click(within(dialog).getByRole('button', { name: /Bianchi Marta/ }))
+ 
+@@ -395,45 +465,53 @@ describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37
+     const primoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+     await user.click(within(primoDialog).getByRole('button', { name: 'Chiudi' }))
+     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+ 
+     await user.click(screen.getByRole('button', { name: 'Indietro' }))
+     expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
+ 
+     await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+     const secondoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+     expect(within(secondoDialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
++    // Il cliente toccato (CRITICAL 1) è anteposto anche al SECONDO giro, non
++    // solo al primo.
++    expect(within(secondoDialog).getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
+ 
+     // Esc funziona ancora sul foglio rimontato (la registrazione overlay-stack
+     // di Sheet.tsx non è rimasta "appesa" al giro precedente).
+     await user.keyboard('{Escape}')
+     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+   })
+ 
+-  it('«Chiudi» il foglio SENZA scegliere → avanza comunque (W22, MAI bloccante), nessun prescrittore nel POST', async () => {
++  // IMPORTANT 2 (fix-review): «Chiudi» senza scegliere lascia `richiedente_nome`
++  // assente (nessuna persona indicata) MA `istituzione_sanitaria` parte
++  // comunque — `mediciPendenti[0]` è SEMPRE il cliente toccato (CRITICAL 1),
++  // la sua `studio_nome` è un fatto noto indipendentemente dalla scelta del
++  // prescrittore (D206). Prima del fix ENTRAMBI i campi restavano assenti.
++  it('«Chiudi» il foglio SENZA scegliere → avanza comunque (W22, MAI bloccante); richiedente assente MA istituzione nota parte nel POST', async () => {
+     const m = routerFetch({ members: MEDICI })
+     vi.stubGlobal('fetch', m)
+     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+     const user = userEvent.setup()
+ 
+     await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
+     const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
+     await user.click(within(dialog).getByRole('button', { name: 'Chiudi' }))
+ 
+     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+     await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+     await user.click(screen.getByRole('button', { name: 'Continua' }))
+ 
+     await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+     const corpo = await corpoPostLavori(m)
+     expect(corpo).not.toHaveProperty('richiedente_nome')
+-    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
++    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
+     expect(screen.queryByText('Prescritto da')).not.toBeInTheDocument()
+   })
+ 
+   it('«È un altro»: crea un collega nello studio e lo usa come prescrittore', async () => {
+     const m = routerFetch({
+       members: MEDICI,
+       nuovoCliente: { cliente: { id: 'nuovo-9', nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' } },
+     })
+     vi.stubGlobal('fetch', m)
+     render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
+diff --git a/tests/unit/dati-wizard.test.ts b/tests/unit/dati-wizard.test.ts
+index 01df16c8..c9063160 100644
+--- a/tests/unit/dati-wizard.test.ts
++++ b/tests/unit/dati-wizard.test.ts
+@@ -50,41 +50,51 @@ function svcRouter(routing: Record<string, Array<{ data: unknown; error: unknown
+       builder.then = (resolve: (v: unknown) => void) => resolve(risultato)
+       return builder
+     },
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   } as any
+   return { svc, registro }
+ }
+ 
+ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
+   const clienti = [
+-    { id: 'c1', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
+-    { id: 'c2', cognome: 'Bianchi', studio_nome: null },
+-    { id: 'c3', cognome: 'Verdi', studio_nome: null },
++    { id: 'c1', nome: 'Marco', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
++    { id: 'c2', nome: 'Anna', cognome: 'Bianchi', studio_nome: null },
++    { id: 'c3', nome: 'Luigi', cognome: 'Verdi', studio_nome: null },
+   ]
+ 
+   it('label dentista: studio_nome se presente, altrimenti "Dr. Cognome"', () => {
+     const r = aggregaDatiWizard(clienti, [], [], OGGI)
+     expect(r.dentisti.find((d) => d.id === 'c1')!.label).toBe('Studio Esposito')
+     expect(r.dentisti.find((d) => d.id === 'c2')!.label).toBe('Dr. Bianchi')
+   })
+ 
+   // Task 10 (P37/D211) — il gate del mini-foglio «Chi ha prescritto?» in
+   // WizardNuovoLavoro legge `studioNome`, PASSTHROUGH grezzo di `studio_nome`
+   // (mai derivato da `label`, che collassa sulla stessa stringa ma non È la
+   // fonte di verità).
+   it('studioNome: passthrough grezzo di studio_nome (mai derivato da label)', () => {
+     const r = aggregaDatiWizard(clienti, [], [], OGGI)
+     expect(r.dentisti.find((d) => d.id === 'c1')!.studioNome).toBe('Studio Esposito')
+     expect(r.dentisti.find((d) => d.id === 'c2')!.studioNome).toBeNull()
+   })
+ 
++  // Fix-review Task 10 (CRITICAL 1) — nome/cognome grezzi, necessari a
++  // `WizardNuovoLavoro.caricaStudioEApri` per anteporre il cliente TOCCATO
++  // come prima riga del mini-foglio «Chi ha prescritto?».
++  it('nome/cognome: passthrough grezzo (necessari per anteporre il cliente toccato nel mini-foglio)', () => {
++    const r = aggregaDatiWizard(clienti, [], [], OGGI)
++    const c1 = r.dentisti.find((d) => d.id === 'c1')!
++    expect(c1.nome).toBe('Marco')
++    expect(c1.cognome).toBe('Esposito')
++  })
++
+   it('dentisti: TUTTI i clienti, anche con count30 zero', () => {
+     const r = aggregaDatiWizard(clienti, [], [], OGGI)
+     expect(r.dentisti).toHaveLength(3)
+     expect(r.dentisti.every((d) => d.count30 === 0)).toBe(true)
+   })
+ 
+   it('count30: solo lavori con data_ingresso >= oggi-30gg (45gg fa escluso, 5gg fa incluso)', () => {
+     const lavori = [
+       { cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-07-07' }, // 5gg fa → dentro
+       { cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-05-28' }, // 45gg fa → fuori
+@@ -102,22 +112,22 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
+       { cliente_id: 'c2', descrizione: 'x', data_ingresso: '2026-07-09' },
+       { cliente_id: 'c1', descrizione: 'x', data_ingresso: '2026-07-08' },
+     ]
+     const r = aggregaDatiWizard(clienti, lavori, [], OGGI)
+     // c2 (count 2) primo, poi c1/c3 a pari conteggio (c1=1, c3=0) → c1 prima di c3 per count, non per label
+     expect(r.dentisti.map((d) => d.id)).toEqual(['c2', 'c1', 'c3'])
+   })
+ 
+   it('dentisti a pari count30: tie-break su label asc', () => {
+     const soloClienti = [
+-      { id: 'x1', cognome: 'Zeta', studio_nome: null }, // label 'Dr. Zeta'
+-      { id: 'x2', cognome: 'Alfa', studio_nome: null }, // label 'Dr. Alfa'
++      { id: 'x1', nome: 'Zoe', cognome: 'Zeta', studio_nome: null }, // label 'Dr. Zeta'
++      { id: 'x2', nome: 'Aldo', cognome: 'Alfa', studio_nome: null }, // label 'Dr. Alfa'
+     ]
+     const r = aggregaDatiWizard(soloClienti, [], [], OGGI)
+     expect(r.dentisti.map((d) => d.label)).toEqual(['Dr. Alfa', 'Dr. Zeta'])
+   })
+ 
+   it('frequenzeTipi: conta i lavori 30gg la cui descrizione === labelTipo(t)', () => {
+     const labelCorona = labelTipo(trovaTipo('corona_zirconia')!)
+     const labelRiparazione = labelTipo(trovaTipo('riparazione')!)
+     const lavori = [
+       { cliente_id: 'c1', descrizione: labelCorona, data_ingresso: '2026-07-10' },
+@@ -246,33 +256,35 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
+       { codice_paziente: ' PZ-0020 ' },
+       { codice_paziente: null },
+       { codice_paziente: 'PAZ/2026/0999' }, // formato estraneo → ignorato
+     ]
+     const r = aggregaDatiWizard(clienti, [], pazienti, OGGI)
+     expect(r.prossimoPz).toBe('PZ-0044')
+   })
+ })
+ 
+ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
+-  const clientiData = [{ id: 'c1', cognome: 'Esposito', studio_nome: 'Studio Esposito' }]
++  const clientiData = [{ id: 'c1', nome: 'Marco', cognome: 'Esposito', studio_nome: 'Studio Esposito' }]
+ 
+   it('compone dentisti/frequenzeTipi/topTipi/prossimoPz/giorniPerTipo dalle query', async () => {
+     const { svc } = svcRouter({
+       clienti: [{ data: clientiData, error: null }],
+       lavori: [
+         { data: [{ cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-07-10' }], error: null }, // query wizard (30gg)
+         { data: [], error: null }, // query interna a fetchCampioniConsegna (storico consegne)
+       ],
+       pazienti: [{ data: [{ codice_paziente: 'PZ-0010' }], error: null }],
+     })
+     const r: DatiWizard = await getDatiWizard(svc, 'lab-1', OGGI)
+-    expect(r.dentisti).toEqual([{ id: 'c1', label: 'Studio Esposito', count30: 1, studioNome: 'Studio Esposito' }])
++    expect(r.dentisti).toEqual([
++      { id: 'c1', label: 'Studio Esposito', count30: 1, studioNome: 'Studio Esposito', nome: 'Marco', cognome: 'Esposito' },
++    ])
+     expect(r.frequenzeTipi.corona_zirconia).toBe(1)
+     expect(r.prossimoPz).toBe('PZ-0011')
+     expect(r.giorniPerTipo.corona_zirconia).toEqual({ giorni: 5, daStoria: false }) // nessuno storico → fallback tassonomia
+   })
+ 
+   it('fail-closed: errore sulla query clienti → throw', async () => {
+     const { svc } = svcRouter({
+       clienti: [{ data: null, error: { message: 'boom clienti' } }],
+       lavori: [{ data: [], error: null }, { data: [], error: null }],
+       pazienti: [{ data: [], error: null }],

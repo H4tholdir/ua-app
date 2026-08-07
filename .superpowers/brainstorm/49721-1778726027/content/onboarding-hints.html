@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UÀ — Hints + Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:#1a1a1a; color:#eee; padding:24px 16px 60px; }
+h2 { font-size:20px; font-weight:800; margin-bottom:4px; }
+.sub { color:#888; font-size:12px; margin-bottom:24px; line-height:1.5; }
+.section { margin-bottom:32px; }
+.sec-title { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#D4A843; margin-bottom:14px; }
+
+.row { display:flex; gap:16px; flex-wrap:wrap; }
+.col { flex:1; min-width:180px; }
+.col-label { font-size:10px; color:#666; margin-bottom:8px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+
+/* Device shell */
+.device { background:#DDD8D3; border-radius:24px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.5); position:relative; height:360px; }
+.status { height:24px; background:#DDD8D3; display:flex; align-items:center; padding:0 12px; justify-content:space-between; }
+.status span { font-size:9px; font-weight:800; color:#1C1916; }
+.page-content { padding:12px 10px 80px; }
+.nums { display:flex; gap:5px; margin-bottom:8px; }
+.num { flex:1; border-radius:8px; padding:7px; text-align:center; background:#E4DFD9; box-shadow:inset 2px 2px 5px rgba(0,0,0,.10),inset -1px -1px 3px rgba(255,255,255,.62); }
+.num .v { font-size:16px; font-weight:900; line-height:1; }
+.num .lb { font-size:7px; color:#96918D; }
+.card { background:#E4DFD9; border-radius:8px; padding:8px 10px; margin-bottom:5px; box-shadow:-2px -2px 6px rgba(255,255,255,.6),2px 3px 8px rgba(148,128,118,.24); }
+.card .cn { font-size:9px; font-weight:700; color:#1C1916; }
+.card .cs { font-size:7px; color:#96918D; }
+.slabel { font-size:8px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#96918D; margin:6px 0 4px; }
+
+/* Floating bar base */
+.bar { position:absolute; bottom:12px; left:10px; right:10px; background:#E4DFD9; border-radius:18px; height:50px; box-shadow:-3px -3px 8px rgba(255,255,255,.7),4px 6px 14px rgba(148,128,118,.36); display:flex; align-items:center; padding:0 8px; }
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.tab .ic { width:16px; height:16px; border-radius:5px; background:rgba(0,0,0,.07); }
+.tab .ic.on { background:#D90012; }
+.tab span { font-size:6.5px; color:#96918D; }
+.tab span.on { color:#D90012; font-weight:700; }
+
+/* ── HINT VARIANTS ── */
+
+/* V1: Floating label (first time only) */
+.hint-bubble {
+  position:absolute; bottom:72px; left:50%; transform:translateX(-50%);
+  background:#1C1916; color:#fff; font-size:9px; font-weight:700;
+  padding:5px 10px; border-radius:8px; white-space:nowrap;
+  box-shadow:0 3px 10px rgba(0,0,0,.3);
+}
+.hint-bubble::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:#1C1916;
+}
+
+/* V2: Pulse ring + label */
+.fab-wrap { position:relative; }
+.pulse-ring {
+  position:absolute; inset:-6px; border-radius:18px;
+  border:2px solid rgba(217,0,18,.5);
+  animation:pulse-anim 1.5s ease-out infinite;
+}
+@keyframes pulse-anim {
+  0% { transform:scale(1); opacity:.8; }
+  100% { transform:scale(1.4); opacity:0; }
+}
+.fab-label {
+  position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
+  background:#D90012; color:#fff; font-size:8px; font-weight:800;
+  padding:3px 8px; border-radius:6px; white-space:nowrap;
+  box-shadow:0 2px 8px rgba(180,0,0,.4);
+}
+.fab-label::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:4px solid transparent; border-top-color:#D90012;
+}
+
+/* V3: Long-press tooltip (on demand) */
+.tooltip-lp {
+  position:absolute; bottom:72px; left:50%; transform:translateX(-50%);
+  background:#E4DFD9; color:#1C1916; font-size:9px; font-weight:700;
+  padding:6px 12px; border-radius:10px; white-space:nowrap;
+  box-shadow:-2px -2px 6px rgba(255,255,255,.6),2px 3px 8px rgba(148,128,118,.3);
+}
+.tooltip-lp::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:#E4DFD9;
+}
+
+/* ── SPOTLIGHT / WIZARD ── */
+.device-wizard { background:#DDD8D3; border-radius:24px; box-shadow:0 6px 24px rgba(0,0,0,.5); position:relative; height:360px; overflow:hidden; }
+.overlay { position:absolute; inset:0; background:rgba(0,0,0,.72); border-radius:24px; z-index:10; }
+.spotlight-hole {
+  position:absolute; z-index:11; border-radius:10px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72);
+}
+.coach-card {
+  position:absolute; z-index:12; background:#E4DFD9; border-radius:14px;
+  padding:12px 14px; box-shadow:0 6px 20px rgba(0,0,0,.4);
+  width:170px;
+}
+.coach-title { font-size:11px; font-weight:800; color:#1C1916; margin-bottom:3px; }
+.coach-text  { font-size:9px; color:#96918D; line-height:1.4; margin-bottom:8px; }
+.coach-nav { display:flex; align-items:center; justify-content:space-between; }
+.coach-dots { display:flex; gap:3px; }
+.dot { width:5px; height:5px; border-radius:50%; background:rgba(0,0,0,.15); }
+.dot.on { background:#D90012; }
+.coach-btn { background:#D90012; color:#fff; font-size:8px; font-weight:800; padding:4px 10px; border-radius:6px; border:none; cursor:pointer; }
+.coach-skip { font-size:8px; color:#96918D; cursor:pointer; }
+
+.info-box { background:#222; border-radius:10px; padding:12px 14px; margin-top:12px; font-size:11px; color:#aaa; line-height:1.7; }
+.info-box strong { color:#eee; }
+</style>
+</head>
+<body>
+
+<h2>Hint "+" e wizard onboarding</h2>
+<p class="sub">Due sistemi separati: un micro-hint sul bottone + e un wizard contestuale per ogni sezione.<br>Tutto non invasivo, riattivabile dalle impostazioni.</p>
+
+<!-- SECTION 1: HINT sul + -->
+<div class="section">
+  <div class="sec-title">① Micro-hint sul pulsante "+"</div>
+  <div class="row">
+
+    <!-- V1: Bubble first time -->
+    <div class="col">
+      <div class="col-label">V1 — Bubble prima volta</div>
+      <div class="device">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="page-content">
+          <div class="slabel">Martedì 14 maggio</div>
+          <div class="nums">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="card"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+        </div>
+        <!-- Hint bubble above + -->
+        <div class="hint-bubble">Nuovo lavoro</div>
+        <div class="bar">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <div style="width:38px;height:38px;background:#D90012;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;margin-top:-16px;font-size:18px;color:#fff;">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+      </div>
+      <div class="info-box">Appare <strong>solo al primo avvio</strong>, scompare dopo 3 secondi o al primo tap. Mai più mostrata. <strong>Suono</strong>: soft pop al comparire.</div>
+    </div>
+
+    <!-- V2: Pulse ring -->
+    <div class="col">
+      <div class="col-label">V2 — Pulse + label (consigliato)</div>
+      <div class="device">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="page-content">
+          <div class="slabel">Martedì 14 maggio</div>
+          <div class="nums">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="card"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+        </div>
+        <div class="bar">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <!-- FAB with pulse -->
+          <div class="fab-wrap" style="margin-top:-16px;">
+            <div class="pulse-ring"></div>
+            <div class="fab-label">Nuovo lavoro</div>
+            <div style="width:38px;height:38px;background:#D90012;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;font-size:18px;color:#fff;position:relative;z-index:1;">+</div>
+          </div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+      </div>
+      <div class="info-box"><strong>Ring che pulsa</strong> + label "Nuovo lavoro" visibile per 5 secondi. Dopo il primo tap il ring sparisce per sempre. Non invasivo, vistoso quanto basta. <strong>Animazione</strong>: scale + opacity loop con Motion.</div>
+    </div>
+
+    <!-- V3: On long press -->
+    <div class="col">
+      <div class="col-label">V3 — Tooltip on long-press</div>
+      <div class="device">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="page-content">
+          <div class="slabel">Martedì 14 maggio</div>
+          <div class="nums">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="card"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+        </div>
+        <!-- Tooltip on long press -->
+        <div class="tooltip-lp">📋 Nuovo lavoro</div>
+        <div class="bar">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <div style="width:38px;height:38px;background:#D90012;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;margin-top:-16px;font-size:18px;color:#fff;">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+      </div>
+      <div class="info-box">Tooltip haptimorphic appare solo su <strong>long-press 300ms</strong> — sempre disponibile, mai invasivo. Stessa gesture della customizzazione barra. <strong>Haptic</strong>: vibrazione soft al comparire.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SECTION 2: SPOTLIGHT WIZARD -->
+<div class="section">
+  <div class="sec-title">② Spotlight wizard — prima visita + riattivabile</div>
+  <div class="row">
+
+    <!-- Step 1: I 3 numeri -->
+    <div class="col">
+      <div class="col-label">Step 1/4 — I 3 numeri</div>
+      <div class="device-wizard">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="page-content">
+          <div class="slabel">Martedì 14 maggio</div>
+          <div class="nums" id="nums-ref">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="card"><div class="cn">Bianchi — Corona 14</div></div>
+          <div class="card"><div class="cn">Verdi — Protesi mobile</div></div>
+        </div>
+        <div class="bar" style="z-index:0;">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <div style="width:38px;height:38px;background:#D90012;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;margin-top:-16px;font-size:18px;color:#fff;">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+        <!-- Overlay -->
+        <div class="overlay"></div>
+        <!-- Spotlight hole on the 3 numbers -->
+        <div class="spotlight-hole" style="top:33px;left:10px;right:10px;height:42px;background:#E4DFD9;border-radius:10px;opacity:1;"></div>
+        <!-- Coach card -->
+        <div class="coach-card" style="top:82px;left:10px;">
+          <div class="coach-title">I tuoi 3 numeri</div>
+          <div class="coach-text">Un colpo d'occhio e sai cosa fare: ritardi urgenti, lavori di oggi, fatturato del mese. Tap su un numero per la lista filtrata.</div>
+          <div class="coach-nav">
+            <div class="coach-dots">
+              <div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="coach-skip">Salta</span>
+              <button class="coach-btn">Avanti →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Lista oggi -->
+    <div class="col">
+      <div class="col-label">Step 2/4 — Lista del giorno</div>
+      <div class="device-wizard">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="page-content">
+          <div class="slabel">Martedì 14 maggio</div>
+          <div class="nums">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="slabel">Da consegnare oggi</div>
+          <div class="card"><div class="cn">Bianchi — Corona 14</div><div class="cs">ore 14:00</div></div>
+          <div class="card"><div class="cn">Verdi — Protesi mobile</div><div class="cs">ore 16:00</div></div>
+        </div>
+        <div class="bar" style="z-index:0;">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <div style="width:38px;height:38px;background:#D90012;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;margin-top:-16px;font-size:18px;color:#fff;">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+        <div class="overlay"></div>
+        <!-- Spotlight on the list area -->
+        <div class="spotlight-hole" style="top:82px;left:10px;right:10px;height:70px;background:#DDD8D3;border-radius:10px;"></div>
+        <div class="coach-card" style="top:158px;left:10px;">
+          <div class="coach-title">Consegne di oggi</div>
+          <div class="coach-text">Questi lavori scadono oggi. Tap su un lavoro per i dettagli e per fare la consegna in un tap.</div>
+          <div class="coach-nav">
+            <div class="coach-dots">
+              <div class="dot"></div><div class="dot on"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="coach-skip">Salta</span>
+              <button class="coach-btn">Avanti →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: FAB -->
+    <div class="col">
+      <div class="col-label">Step 3/4 — Pulsante +</div>
+      <div class="device-wizard">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="page-content">
+          <div class="slabel">Martedì 14 maggio</div>
+          <div class="nums">
+            <div class="num"><div class="v" style="color:#D90012;">2</div><div class="lb">ritardi</div></div>
+            <div class="num"><div class="v" style="color:#B45309;">4</div><div class="lb">oggi</div></div>
+            <div class="num"><div class="v" style="color:#16A34A;">3.2k</div><div class="lb">mese</div></div>
+          </div>
+          <div class="card"><div class="cn">Bianchi — Corona 14</div></div>
+          <div class="card"><div class="cn">Verdi — Protesi mobile</div></div>
+        </div>
+        <div class="bar" style="z-index:1;">
+          <div class="tab"><div class="ic on"></div><span class="on">Home</span></div>
+          <div class="tab"><div class="ic"></div><span>Lavori</span></div>
+          <div style="width:38px;height:38px;background:#D90012;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(180,0,0,.42);border:2.5px solid #DDD8D3;margin-top:-16px;font-size:18px;color:#fff;position:relative;z-index:20;">+</div>
+          <div class="tab"><div class="ic"></div><span>Clienti</span></div>
+          <div class="tab"><div class="ic"></div><span>Altro</span></div>
+        </div>
+        <div class="overlay" style="z-index:5;"></div>
+        <!-- Spotlight hole on the FAB -->
+        <div style="position:absolute;bottom:7px;left:50%;transform:translateX(-50%);
+          width:52px;height:52px;border-radius:16px;
+          box-shadow:0 0 0 9999px rgba(0,0,0,.72);z-index:11;
+          border:2px solid rgba(217,0,18,.6);"></div>
+        <div class="coach-card" style="bottom:72px;left:10px;z-index:20;">
+          <div class="coach-title">➕ Nuovo lavoro</div>
+          <div class="coach-text">Sempre al centro. Tap per registrare una nuova prescrizione in 30 secondi — 5 campi, fatto.</div>
+          <div class="coach-nav">
+            <div class="coach-dots">
+              <div class="dot"></div><div class="dot"></div><div class="dot on"></div><div class="dot"></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="coach-skip">Salta</span>
+              <button class="coach-btn">Avanti →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Fine wizard -->
+    <div class="col">
+      <div class="col-label">Step 4/4 — Fine</div>
+      <div class="device-wizard" style="display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;padding:20px;">
+          <div style="font-size:44px;margin-bottom:12px;">🎉</div>
+          <div style="font-size:14px;font-weight:800;color:#1C1916;margin-bottom:6px;">Tutto chiaro!</div>
+          <div style="font-size:10px;color:#96918D;line-height:1.5;margin-bottom:16px;">Puoi rivedere questo tutorial<br>in Impostazioni → Guida.</div>
+          <div style="background:#D90012;color:#fff;font-size:11px;font-weight:800;padding:10px 20px;border-radius:10px;display:inline-block;box-shadow:0 3px 10px rgba(180,0,0,.4);">Inizia a usare UÀ!</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="info-box" style="margin-top:16px;">
+    <strong>Tecnica:</strong> Spotlight = overlay semi-trasparente con "buco" sulla zona evidenziata (clip-path o box-shadow 9999px trick).<br>
+    <strong>Storage:</strong> <code>localStorage: { ua_wizard_home: 'done', ua_wizard_lavori: 'done', ... }</code><br>
+    <strong>Retrigger:</strong> Impostazioni → "Guide &amp; Tutorial" → lista sezioni con bottone "Ripeti".<br>
+    <strong>Animazioni:</strong> ogni step fa fade+slide dell'overlay, spotlight si "muove" tra step con spring.<br>
+    <strong>Suoni:</strong> soft chime a ogni step "Avanti", pop finale su "Inizia".
+  </div>
+</div>
+
+</body>
+</html>
