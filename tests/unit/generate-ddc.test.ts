@@ -228,7 +228,18 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
   })
 
-  it('template_version è `ddc-v2` — il salto è avvenuto, e questo è il suo fatto (D295)', async () => {
+  it('template_version è `ddc-v3` — il secondo salto, e questo è il suo fatto (D294)', async () => {
+    // 🔄 AGGIORNATA IL 07/08/2026 (D294), poche ore dopo il salto a `ddc-v2`.
+    //    La ragione è la stessa regola di prima, letta nell'altra direzione: il
+    //    registro riserva il salto a «un contenuto dell'Allegato XIII che entra,
+    //    ESCE o cambia significato», e nomina fra i candidati proprio «il
+    //    «Sostanze/tessuti: No» affermato senza dato». Con D294 escono DODICI
+    //    blocchi, quello compreso. Restare su `ddc-v2` significherebbe due
+    //    documenti profondamente diversi sotto la stessa etichetta — cioè
+    //    creare, non evitare, il difetto che questa colonna esiste per impedire.
+    // 🛑 `ddc-v2` NON è stato riscritto: il registro tiene tutte e tre le voci in
+    //    fila. Riusare un'etichetta già emessa toglierebbe senso a tutto il
+    //    registro, e nessuno può provare che nessun documento la porti.
     // Non è tautologico: fissa una DECISIONE. La prova vicina (`:224`) chiede solo
     // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
     // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
@@ -246,7 +257,7 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     //    permette di rileggere una dichiarazione sapendo come andava letta.
     await generateDdC(LAVORO_FIXTURE)
     const riga = mockInsert.mock.calls[0][0]
-    expect(riga.template_version).toBe('ddc-v2')
+    expect(riga.template_version).toBe('ddc-v3')
   })
 
   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {

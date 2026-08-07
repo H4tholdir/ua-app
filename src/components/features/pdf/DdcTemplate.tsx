@@ -1,9 +1,51 @@
 // UÀ — DdcTemplate
-// Dichiarazione di Conformità MDR 2017/745 Allegato XIII
+// Dichiarazione ex Allegato XIII del Reg. (UE) 2017/745 — dispositivi su misura
 // Usa SOLO proprietà CSS supportate da @react-pdf/renderer
+//
+// ═══ D294 (07/08/2026) — «IL DOCUMENTO PORTA SOLO CIÒ CHE CI DEVE STARE» ═══
+// Francesco: «togli tutto quello che sul documento non ci deve essere, come la
+// storia dei materiali» · «confermo, ripulisci per bene il documento».
+//
+// 🔑 IL METRO SONO GLI OTTO CONTENUTI dell'Allegato XIII punto 1, e sono questi:
+//    ① nome e indirizzo del fabbricante e di TUTTI i luoghi di fabbricazione
+//    ② nome e indirizzo dell'eventuale mandatario
+//    ③ i dati che consentono di identificare il dispositivo
+//    ④ la dichiarazione d'uso esclusivo per il paziente nominato
+//    ⑤ il nome di chi ha prescritto il dispositivo
+//    ⑥ le caratteristiche specifiche del prodotto INDICATE NELLA PRESCRIZIONE
+//    ⑦ la conformità ai requisiti generali dell'Allegato I e, «se del caso»,
+//       quelli NON rispettati con debita motivazione
+//    ⑧ «se del caso», sostanze medicinali / tessuti / cellule
+//    (② non è applicabile a un fabbricante italiano che fabbrica in Italia:
+//     il mandatario serve all'extra-UE, Art. 11.)
+//
+// 🛑 SONO USCITI DODICI BLOCCHI, e la regola che li ha fatti uscire è una sola:
+//    ciò che non è una delle otto voci non sta su questo foglio. Escono i
+//    materiali e i lotti (vengono dal magazzino, non dalla prescrizione: non
+//    sono la ⑥), il codice ITCA e l'SRN EUDAMED (registrazioni, non nomi né
+//    indirizzi), il luogo di emissione, la classe di rischio, la norma di
+//    riferimento e le norme armonizzate (la ⑦ chiede i requisiti NON rispettati,
+//    non quelli rispettati), i rischi residui (ISO 14971, non una deroga), il
+//    «Sostanze / tessuti: No» affermato senza avere il dato, la firma col
+//    responsabile, il logo, il piè di pagina e i metadati del file.
+//
+// 🔴 USCIRE DAL FOGLIO NON È USCIRE DALLA BANCA DATI. Tutte le colonne restano,
+//    tutti i valori continuano a salvarsi, e i materiali continuano a stamparsi
+//    su ricevuta di consegna ed etichetta. Qui si decide solo COSA SI STAMPA.
+//
+// 🔑 RESTANO, e la ragione va lasciata scritta: la data di emissione (Art. 52(8)
+//    — la dichiarazione va redatta «prima dell'immissione sul mercato», e senza
+//    data non lo si dimostra), il numero del documento (la chiave per ritrovarlo
+//    nei dieci anni di conservazione dell'Allegato XIII punto 4), il numero
+//    della prescrizione, il titolo con la base giuridica, la nota sull'assenza
+//    di marcatura CE (Art. 20(1)) — e la PARTITA IVA, che è tenuta **per scelta
+//    di Francesco e non per obbligo**: il censimento non ha trovato nessuna
+//    norma che la imponga su questa dichiarazione. Sta scritto qui perché il
+//    prossimo non la deduca da una legge che non esiste.
+// ═══════════════════════════════════════════════════════════════════════════
 
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
-import type { LavoroDettaglio, Laboratorio, DichiarazioneConformita, ClasseRischio, TipoDispositivo } from '@/types/domain'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import type { LavoroDettaglio, Laboratorio, DichiarazioneConformita, TipoDispositivo } from '@/types/domain'
 import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
@@ -27,15 +69,6 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
-  },
-  headerRight: {
-    width: 80,
-    alignItems: 'flex-end',
-  },
-  logo: {
-    width: 72,
-    height: 36,
-    objectFit: 'contain',
   },
   labNome: {
     fontSize: 12,
@@ -121,76 +154,17 @@ const styles = StyleSheet.create({
     color: '#222222',
     lineHeight: 1.5,
   },
-  // Rischi
+  // Nota a piè di sezione (oggi: la sola nota sull'assenza di marcatura CE)
   rischiText: {
     fontSize: 8,
     color: '#444444',
     lineHeight: 1.4,
     marginTop: 3,
   },
-  // Footer firma
-  firmaSection: {
-    marginTop: 16,
-    borderTop: '0.5pt solid #cccccc',
-    paddingTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  firmaLeft: {
-    flex: 1,
-  },
-  firmaRight: {
-    width: 180,
-    alignItems: 'flex-end',
-  },
-  firmaLabel: {
-    fontSize: 8,
-    color: '#555555',
-    marginBottom: 4,
-  },
-  firmaNome: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-  },
-  firmaQualifica: {
-    fontSize: 8,
-    color: '#555555',
-  },
-  firmaImage: {
-    width: 120,
-    height: 40,
-    objectFit: 'contain',
-    marginBottom: 4,
-  },
-  firmaLinea: {
-    borderBottom: '0.5pt solid #333333',
-    width: 160,
-    marginBottom: 3,
-  },
-  // Footer pagina
-  pageFooter: {
-    position: 'absolute',
-    bottom: 20,
-    left: 48,
-    right: 48,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  footerText: {
-    fontSize: 7,
-    color: '#aaaaaa',
-  },
   // Denti
   dentiText: {
     fontSize: 9,
     color: '#1a1a1a',
-  },
-  // Classe rischio badge (solo testo)
-  classeRischio: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#0f1e52',
   },
 })
 
@@ -204,15 +178,11 @@ const styles = StyleSheet.create({
 // (Art. 52(8) + Allegato XIII MDR) è una discordanza che non si tiene.
 const formatData = dataItalianaBreve
 
-function formatClasseRischio(classe: ClasseRischio): string {
-  const map: Record<ClasseRischio, string> = {
-    classe_i: 'Classe I',
-    classe_iia: 'Classe IIa',
-    classe_iib: 'Classe IIb',
-    classe_iii: 'Classe III',
-  }
-  return map[classe] ?? classe
-}
+// ⚠️ `formatClasseRischio` viveva qui e non c'è più (D294): la classe di rischio
+// non è una delle otto voci dell'Allegato XIII e non si stampa più. Il DATO
+// resta — `dichiarazioni_conformita.classe_rischio` è `NOT NULL` e continua a
+// essere scritto a ogni emissione — e resta anche il controllo di consegna che
+// lo pretende (`precheck.ts`): esce dal foglio, non dal laboratorio.
 
 // B4: le label del DdC (documento regolamentare stampato) usano il Title Case
 // ("Protesi Fissa"), diverso dal sentence case standard di LABEL_MACRO
@@ -256,8 +226,6 @@ interface DdcTemplateProps {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
-  const logoUrl = lab.logo_print_url ?? lab.logo_url ?? null
-
   const pazienteNome = [ddc.paziente_nome, ddc.paziente_cognome]
     .filter(Boolean)
     .join(' ')
@@ -273,27 +241,31 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
     ? ddc.denti_coinvolti.join(', ')
     : null
 
-  // Materiali: numero_lotto + nome_materiale + produttore
-  const materialiText = lavoro.materiali?.length
-    ? lavoro.materiali
-        .map((m) => {
-          const parts = [m.nome_materiale_snapshot, m.numero_lotto_snapshot, m.produttore_snapshot].filter(Boolean)
-          return parts.join(' – ')
-        })
-        .join('\n')
-    : null
+  // ⚠️ `materialiText` viveva qui e non c'è più (D294). I materiali e i loro
+  // lotti nascono dal CONSUMO DI MAGAZZINO, non dalla prescrizione: non sono la
+  // voce ⑥ («le caratteristiche indicate nella prescrizione») e nessun'altra
+  // delle otto voci li chiede. 🛑 `lavori_materiali` resta intatta e i
+  // materiali continuano a stamparsi su ricevuta di consegna ed etichetta:
+  // `lavoro.materiali` semplicemente non viene più letto da QUESTO modello.
 
   return (
-    <Document
-      title={`Dichiarazione di Conformità ${ddc.numero_ddc ?? ''}`}
-      author={ddc.fabbricante_nome ?? lab.ragione_sociale ?? lab.nome}
-      subject="Dichiarazione di Conformità MDR 2017/745"
-      keywords="DDC MDR 2017/745 Allegato XIII"
-      creator="UA PWA"
-    >
+    // 🛑 D294 — `<Document>` non porta più metadati (title/author/subject/
+    //    keywords/creator). Non sono contenuti del documento: non stanno sul
+    //    foglio e non sono fra le otto voci. Il file conservato si identifica
+    //    già dal nome (`DDC-<anno>-<progressivo>.pdf`, generate-ddc.ts) e dal
+    //    numero stampato in testa.
+    <Document>
       <Page size="A4" style={styles.page}>
 
-        {/* ── HEADER ── */}
+        {/* ── HEADER ──
+            🛑 D294 — il LOGO è uscito, e per DUE ragioni: non è un contenuto
+            dell'Allegato XIII, e soprattutto era una LETTURA VIVA
+            (`lab.logo_print_url ?? lab.logo_url`) su un file che il laboratorio
+            può sostituire quando vuole. Una ristampa fra otto anni avrebbe reso
+            un documento diverso da quello emesso — o non l'avrebbe reso affatto,
+            con l'URL morto. È la stessa malattia che D102 ③ ha curato sui denti.
+            Uscito anche il codice ITCA, che qui era la SECONDA delle sue due
+            stampe. */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.labNome}>
@@ -304,15 +276,6 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
             ) : null}
             {ddc.fabbricante_piva ? (
               <Text style={styles.labSub}>P.IVA: {ddc.fabbricante_piva}</Text>
-            ) : null}
-            {ddc.fabbricante_itca ? (
-              <Text style={styles.labSub}>Codice ITCA: {ddc.fabbricante_itca}</Text>
-            ) : null}
-          </View>
-          <View style={styles.headerRight}>
-            {logoUrl ? (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image src={logoUrl} style={styles.logo} />
             ) : null}
           </View>
         </View>
@@ -346,22 +309,29 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
             <Text style={styles.label}>Indirizzo:</Text>
             <Text style={styles.value}>{ddc.fabbricante_indirizzo || '—'}</Text>
           </View>
+          {/* 🔑 PARTITA IVA — TENUTA PER SCELTA DI FRANCESCO, NON PER OBBLIGO
+              («teniamola», 07/08/2026). Il censimento non ha trovato nessuna
+              norma che la imponga su questa dichiarazione: la voce 1 chiede il
+              nome e l'indirizzo, non un identificativo fiscale. Sta scritto qui
+              perché il prossimo che legge non la deduca da una legge che non
+              c'è — e non la tolga credendola una svista. */}
           <View style={styles.row}>
             <Text style={styles.label}>Partita IVA:</Text>
             <Text style={styles.value}>{ddc.fabbricante_piva || '—'}</Text>
           </View>
-          {ddc.fabbricante_itca ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Registro ITCA:</Text>
-              <Text style={styles.value}>{ddc.fabbricante_itca}</Text>
-            </View>
-          ) : null}
-          {lab.srn_eudamed ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>SRN EUDAMED:</Text>
-              <Text style={styles.value}>{lab.srn_eudamed}</Text>
-            </View>
-          ) : null}
+          {/* 🛑 D294 — QUI USCIVANO IL CODICE ITCA E L'SRN EUDAMED.
+              · Il codice ITCA (che il foglio stampava anche in testata) è un
+                codice di REGISTRAZIONE: la voce 1 nomina due cose, il nome e
+                l'indirizzo, e un codice non è né l'uno né l'altro. L'obbligo
+                italiano (D.Lgs. 137/2022 art. 7) colpisce l'ISCRIVERSI
+                all'elenco dei fabbricanti di dispositivi su misura, non il
+                contenuto di questa dichiarazione. `laboratori.codice_itca`
+                resta, obbligatorio come prima.
+              · L'«SRN EUDAMED» aveva l'etichetta sbagliata DUE volte: un
+                fabbricante di soli dispositivi su misura non è registrato in
+                EUDAMED finché non trasmette la prima segnalazione di vigilanza
+                (MDCG 2021-13 Rev.1 Q2/Q3; D.Lgs. 137/2022 art. 12 c.2), e ciò
+                che riceve allora è un **Actor ID, che non è un SRN**. */}
           {/* VOCE 1 (D295) — «il nome e l'indirizzo del fabbricante e di TUTTI
               I LUOGHI DI FABBRICAZIONE». Prima del 07/08/2026 questa riga non
               esisteva: la colonna c'era (NOT NULL DEFAULT 'Italia'), nessuno la
@@ -377,10 +347,15 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
             <Text style={styles.label}>Luogo di fabbricazione:</Text>
             <Text style={styles.value}>{ddc.luogo_fabbricazione || '—'}</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Luogo emissione:</Text>
-            <Text style={styles.value}>{ddc.luogo_emissione || '—'}</Text>
-          </View>
+          {/* 🛑 D294 — QUI USCIVA IL «Luogo emissione», ed è il taglio più facile
+              da sbagliare di tutti e dodici. `luogo_emissione` è la CITTÀ DEL
+              LABORATORIO, cioè dove il documento è stato firmato: non è un luogo
+              di fabbricazione e non è fra le otto voci. Il foglio lo stampava
+              due volte, qui e sotto la firma.
+              ⚠️ NON confonderlo con `luogo_fabbricazione`, la riga qui sopra:
+              i due nomi si somigliano, ma quello è la voce 1 ed è OBBLIGATORIO.
+              La colonna `luogo_emissione` resta in banca dati e continua a
+              essere scritta a ogni emissione. */}
         </View>
 
         {/* ── §2 DATA DI EMISSIONE ── */}
@@ -448,63 +423,54 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
               <Text style={styles.dentiText}>{dentiFormatted}</Text>
             </View>
           ) : null}
-          {materialiText ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Materiali / Lotti:</Text>
-              <Text style={styles.value}>{materialiText}</Text>
-            </View>
-          ) : null}
+          {/* 🛑 D294 — QUI USCIVANO I MATERIALI E I LOTTI, ed è il taglio che
+              Francesco ha nominato per primo («come la storia dei materiali»).
+              Vengono dal consumo di magazzino, non dalla prescrizione: non sono
+              la voce ⑥ e nessun'altra delle otto li chiede. Nessuna norma
+              italiana li impone su questo foglio (censimento esaustivo).
+              🛑 Restano in banca dati e continuano a stamparsi su ricevuta di
+              consegna ed etichetta — dal documento escono, dal laboratorio no. */}
           {ddc.prescrizione_caratteristiche ? (
             <View style={styles.row}>
               <Text style={styles.label}>Caratteristiche prescritte:</Text>
               <Text style={styles.value}>{ddc.prescrizione_caratteristiche}</Text>
             </View>
           ) : null}
-          <View style={styles.row}>
-            <Text style={styles.label}>Sostanze / tessuti:</Text>
-            <Text style={styles.value}>
-              {ddc.contiene_sostanze_o_tessuti
-                ? (ddc.sostanze_tessuti_dettaglio ?? 'Sì — vedere documentazione allegata')
-                : 'No'}
-            </Text>
-          </View>
+          {/* 🛑 D294 — QUI USCIVA «Sostanze / tessuti», ed è il taglio più
+              delicato dei dodici. La riga era stampata a partire da un `false`
+              CABLATO (`generate-ddc.ts`) che nessuna riga di codice ha mai
+              scritto: il foglio affermava «No» senza che nessuno avesse mai
+              chiesto all'odontotecnico se il dispositivo contenga una sostanza
+              medicinale, un derivato del sangue o tessuti. Su un documento a
+              valore legale è un'AFFERMAZIONE NON SOSTENUTA.
+              🔑 La voce ⑧ comincia con «se del caso»: è condizionale, e il
+              silenzio è la forma giusta finché il dato non c'è. Le due colonne
+              restano: il giorno in cui il dato si raccoglierà davvero, la riga
+              tornerà — e tornerà sostenuta. */}
           <Text style={styles.rischiText}>
             Dispositivo su misura ai sensi dell&apos;Art. 2(1)(3) MDR — non soggetto a marcatura CE ai sensi dell&apos;Art. 20(1) MDR 2017/745.
           </Text>
         </View>
 
-        {/* ── §6 CLASSIFICAZIONE ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>§6 — Classificazione MDR</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Classe di rischio:</Text>
-            <Text style={styles.classeRischio}>
-              {formatClasseRischio(ddc.classe_rischio)}
-            </Text>
-          </View>
-          {ddc.norma_riferimento ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Norma di riferimento:</Text>
-              <Text style={styles.value}>{ddc.norma_riferimento}</Text>
-            </View>
-          ) : null}
-        </View>
+        {/* 🛑 D294 — QUI USCIVANO DUE SEZIONI INTERE, non due righe.
+            · «§6 — Classificazione MDR» portava la CLASSE DI RISCHIO e la NORMA
+              DI RIFERIMENTO. La classe è fuori dalle otto voci; la norma di
+              riferimento è una norma APPLICATA, mentre la voce ⑦ chiede, «se del
+              caso», i requisiti generali NON rispettati con debita motivazione —
+              cioè il contrario.
+            · «§6-bis — Norme Armonizzate Applicate» usciva per la stessa
+              ragione della norma di riferimento.
+            🔑 Tolte le righe, le sezioni restavano VUOTE: si è tolto l'intero
+            `<View>`, titoletto bordato compreso. Un titolo di sezione senza
+            contenuto è il modo tipico in cui una pulizia fatta a metà si scopre
+            solo a stampa avvenuta.
+            📌 Da qui la RINUMERAZIONE: la dichiarazione di conformità era il §7
+            ed è il §6. Un foglio che salta da §5 a §7 sembra incompleto a chi
+            lo ispeziona — ed è la cosa peggiore che possa sembrare. */}
 
-        {/* ── §6-BIS NORME ARMONIZZATE ── */}
-        {ddc.norme_json && ddc.norme_json.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>§6-bis — Norme Armonizzate Applicate</Text>
-            {ddc.norme_json.map((norma, i) => (
-              <Text key={i} style={styles.value}>
-                • {norma.codice} — {norma.titolo}{norma.anno ? ` (${norma.anno})` : ''}
-              </Text>
-            ))}
-          </View>
-        ) : null}
-
-        {/* ── §7 CONFORMITA ── */}
+        {/* ── §6 CONFORMITA (era §7 fino al 07/08/2026) ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformità</Text>
+          <Text style={styles.sectionTitle}>§6 — Dichiarazione di Conformità</Text>
           <View style={styles.conformitaBox}>
             <Text style={styles.conformitaText}>
               {ddc.testo_conformita_snapshot ?? '—'}
@@ -512,49 +478,23 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           </View>
         </View>
 
-        {/* ── §8 RISCHI RESIDUI ── */}
-        {ddc.rischi_residui_snapshot ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>§8 — Rischi residui</Text>
-            <Text style={styles.rischiText}>{ddc.rischi_residui_snapshot}</Text>
-          </View>
-        ) : null}
-
-        {/* ── FIRMA PRRC ── */}
-        <View style={styles.firmaSection}>
-          <View style={styles.firmaLeft}>
-            <Text style={styles.firmaLabel}>Data di emissione:</Text>
-            <Text style={styles.firmaNome}>
-              {ddc.data_emissione ? formatData(ddc.data_emissione) : '—'}
-            </Text>
-            {ddc.luogo_emissione ? (
-              <Text style={styles.firmaQualifica}>{ddc.luogo_emissione}</Text>
-            ) : null}
-          </View>
-          <View style={styles.firmaRight}>
-            <Text style={styles.firmaLabel}>Responsabile della Conformità (PRRC)</Text>
-            {ddc.firma_ddc_storage_path ? (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image src={ddc.firma_ddc_storage_path} style={styles.firmaImage} />
-            ) : (
-              <View style={styles.firmaLinea} />
-            )}
-            <Text style={styles.firmaNome}>{ddc.prrc_nome || '—'}</Text>
-            {ddc.prrc_qualifica ? (
-              <Text style={styles.firmaQualifica}>{ddc.prrc_qualifica}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        {/* ── FOOTER ── */}
-        <View style={styles.pageFooter} fixed>
-          <Text style={styles.footerText}>
-            Documento generato ai sensi del Reg. UE 2017/745 — Art. 52(8) + Allegato XIII
-          </Text>
-          <Text style={styles.footerText}>
-            {ddc.numero_ddc ?? ''}
-          </Text>
-        </View>
+        {/* 🛑 D294 — QUI USCIVANO IL §8 RISCHI RESIDUI, IL BLOCCO FIRMA E IL PIÈ
+            DI PAGINA.
+            · I RISCHI RESIDUI sono l'esito dell'analisi del rischio (ISO 14971),
+              non una deroga a un requisito generale: la voce ⑦ chiede i
+              requisiti dell'Allegato I non rispettati, con motivazione, che è
+              un'altra domanda. `rischi_residui_snapshot` resta in banca dati.
+            · LA FIRMA, con l'etichetta «Responsabile della Conformità (PRRC)», il
+              nome e la qualifica. L'Art. 15(3)(b) nomina la dichiarazione di
+              conformità **UE**, che per i dispositivi su misura NON esiste
+              (Art. 10(6)); e fra le otto voci non compare né una firma né un
+              responsabile. L'unica persona che il punto 1 nomina è il
+              PRESCRITTORE — voce ⑤, il §3 di questo foglio, che resta.
+              ⚠️ Con la firma è uscita anche la SECONDA stampa della data di
+              emissione: ora vive nel §2 e basta.
+            · IL PIÈ DI PAGINA (testo di legge + numero del documento) era
+              `fixed`, cioè ripetuto su ogni pagina, ed era un doppione: la base
+              giuridica sta nel sottotitolo, il numero in testa al foglio. */}
 
       </Page>
     </Document>

@@ -131,16 +131,35 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).not.toContain('Conformita')
   })
 
-  it('l\'etichetta della firma porta l\'accento', () => {
-    // styles.firmaLabel NON ha textTransform: 'uppercase' (a differenza di
-    // styles.sectionTitle) — qui la forma attesa resta mista.
-    expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
+  it('🔴 D294 — il blocco FIRMA non c\'è più: né etichetta PRRC né riga per firmare', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva «Responsabile della
+    //    Conformità (PRRC)» perché il foglio portava un blocco firma.
+    // 🔑 Perché esce: l'Art. 15(3)(b) nomina la dichiarazione di conformità
+    //    **UE**, che per i dispositivi su misura NON esiste (Art. 10(6)); e fra
+    //    gli otto contenuti dell'Allegato XIII punto 1 non compare né una firma
+    //    né un responsabile. Il progetto lo sapeva già (ROADMAP-UFFICIALE.md).
+    // 🛑 Capovolta, non cancellata: una prova cancellata è copertura persa in
+    //    silenzio, e domani la firma tornerebbe senza che niente suoni.
+    // La fixture ha prrc_nome e prrc_qualifica valorizzati: il caso è POPOLATO,
+    // quindi l'assenza è una scelta del modello e non un vuoto della fixture.
+    expect(pdfText).not.toContain('Responsabile della Conformità')
+    expect(pdfText).not.toContain('PRRC')
   })
 
-  it('il titolo del §7 porta l\'accento', () => {
+  it('il titolo dell\'ultima sezione porta l\'accento — ed è il §6, non più il §7', () => {
     // styles.sectionTitle ha textTransform: 'uppercase' (DdcTemplate.tsx:86) —
-    // il §7, come ogni titolo di sezione, esce in maiuscolo nel PDF.
-    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
+    // il titolo di sezione esce in maiuscolo nel PDF.
+    // ⚖️ RINUMERATA (D294): §6 Classificazione e §6-bis Norme armonizzate sono
+    //    usciti, quindi la dichiarazione di conformità ha risalito la numerazione
+    //    da §7 a §6. Un foglio che salta da §5 a §7 è un foglio che sembra
+    //    incompleto a chi lo ispeziona.
+    expect(pdfText).toContain('§6 — DICHIARAZIONE DI CONFORMITÀ')
+    // 🛑 E i numeri usciti non devono restare da nessuna parte: è la rete sulla
+    //    rinumerazione, che altrimenti nessuno guarderebbe.
+    expect(pdfText).not.toContain('§7')
+    expect(pdfText).not.toContain('§8')
+    expect(pdfText).not.toContain('§6-bis')
+    expect(pdfText).not.toContain('§6-BIS')
   })
 
   // ── §1 Fabbricante ────────────────────────────────────────────────────────
@@ -157,14 +176,33 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).toContain('03508740655')
   })
 
-  it('§1 stampa codice ITCA del fabbricante', () => {
-    expect(pdfText).toContain('ITCA01051686')
+  it('🔴 D294 — il codice ITCA non compare, né in testata né nel §1', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva il codice; il foglio lo
+    //    stampava DUE volte (testata e §1).
+    // 🔑 Perché esce: la voce 1 dell'Allegato XIII nomina DUE cose — «il nome e
+    //    l'indirizzo del fabbricante e di tutti i luoghi di fabbricazione». Un
+    //    codice di registrazione non è né un nome né un indirizzo. L'obbligo
+    //    italiano (D.Lgs. 137/2022 art. 7) colpisce l'ISCRIVERSI all'elenco, non
+    //    il contenuto di questa dichiarazione.
+    // 🛑 Il dato RESTA in banca dati (`laboratori.codice_itca`) e resta
+    //    obbligatorio: qui esce dal FOGLIO, non dal laboratorio.
+    // La fixture ha fabbricante_itca valorizzato: il caso è POPOLATO.
+    expect(pdfText).not.toContain('ITCA01051686')
+    expect(pdfText).not.toContain('ITCA')
   })
 
-  it('§1 stampa SRN EUDAMED del fabbricante quando presente sul laboratorio', async () => {
-    // LAB_FIXTURE condivisa ha srn_eudamed: null (caso comune — lab custom-made
-    // esente EUDAMED, MDCG 2021-13). Variante locale per verificare il rendering
-    // quando il campo è valorizzato, senza mutare la fixture condivisa.
+  it('🔴 D294 — l\'SRN EUDAMED non compare NEMMENO quando il laboratorio ne ha uno', async () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva la stringa: il foglio la
+    //    stampava quando il campo era valorizzato.
+    // 🔑 Perché esce, e l'etichetta era sbagliata due volte: un fabbricante di
+    //    soli dispositivi su misura non è registrato in EUDAMED finché non
+    //    trasmette la prima segnalazione di vigilanza (MDCG 2021-13 Rev.1 Q2/Q3,
+    //    D.Lgs. 137/2022 art. 12 c.2); e ciò che riceverebbe allora è un
+    //    **Actor ID, non un SRN**. Nessuna delle otto voci lo chiede.
+    // 🛑 La forma della prova è il punto: si rende con il campo POPOLATO. La
+    //    vecchia prova gemella («non stampa quando assente») girava su una
+    //    fixture con srn_eudamed: null — restava verde anche col difetto in
+    //    piedi, cioè non misurava niente. Qui il dato c'è e non deve uscire.
     const labConSrn = { ...LAB_FIXTURE, srn_eudamed: 'IT-CA-000123456' }
     const element = createElement(DdcTemplate, {
       lavoro: LAVORO_FIXTURE,
@@ -176,12 +214,23 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     const result = await parser.getText()
     await parser.destroy()
 
-    expect(result.text).toContain('IT-CA-000123456')
+    expect(result.text).not.toContain('IT-CA-000123456')
+    expect(result.text.toLowerCase()).not.toContain('srn eudamed')
+    expect(result.text.toLowerCase()).not.toContain('eudamed')
   })
 
-  it('§1 non stampa riga SRN EUDAMED quando assente (lab custom-made esente, MDCG 2021-13)', () => {
-    // DDC_FIXTURE/LAB_FIXTURE usate in beforeAll hanno srn_eudamed: null
+  it('🔴 D294 — i due codici di registrazione sono NEL DATO e non sul foglio', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294) da «non stampa SRN quando assente», che
+    //    dopo il taglio sarebbe diventata vera per il motivo sbagliato (la
+    //    fixture non ha il campo) — cioè teatro.
+    // 🔑 Questa prova tiene ferma LA DISTINZIONE che regge tutto il taglio:
+    //    togliere dal FOGLIO non è togliere dal DATO. I due codici sono ancora
+    //    lì, leggibili nelle fixture, e proprio per questo la loro assenza dal
+    //    testo reso è una scelta e non una mancanza.
+    expect(DDC_FIXTURE.fabbricante_itca).toBe('ITCA01051686')
+    expect(LAB_FIXTURE.codice_itca).toBe('ITCA01051686')
     expect(pdfText.toLowerCase()).not.toContain('srn eudamed')
+    expect(pdfText.toLowerCase()).not.toContain('itca')
   })
 
   // ── §2 Numero DdC e data emissione ───────────────────────────────────────
@@ -203,18 +252,23 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     // sezione, es. il §7 alla riga 138) — il titolo esce in maiuscolo nel PDF.
     expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
 
-    // Rilievo di revisione: un semplice toContain('15/05/2026') non
-    // discrimina niente qui — la data compare comunque nel blocco firma
-    // (DdcTemplate.tsx:515-518), quindi svuotare il valore della sola sezione §2
-    // (formatData(ddc.data_emissione) → '—', titoletto intatto) lasciava questo
-    // test verde. La prova vera è il CONTEGGIO delle occorrenze nel foglio: la
-    // data deve comparire esattamente due volte — una nella sezione §2
-    // (DdcTemplate.tsx:381) e una sopra la firma (DdcTemplate.tsx:517). Così il
-    // test si accende in entrambe le direzioni: se la §2 perde il valore →
-    // 1 occorrenza (rosso); se la data tornasse anche in intestazione (disfacendo
-    // il passo dello Step 4 che l'ha tolta da lì) → 3 occorrenze (rosso).
+    // Rilievo di revisione: un semplice toContain('15/05/2026') non discrimina
+    // niente da solo — svuotare il valore della sola sezione §2
+    // (formatData(ddc.data_emissione) → '—', titoletto intatto) lascerebbe il
+    // test verde finché la data compare da qualche altra parte. La prova vera è
+    // il CONTEGGIO delle occorrenze nel foglio.
+    //
+    // ⚖️ IL NUMERO È CAMBIATO DA 2 A 1 il 07/08/2026 (D294), e il commento
+    //    cambia con lui — un commento che spiega una logica decaduta è il
+    //    difetto che questo progetto ha già pagato. La seconda occorrenza era
+    //    quella del blocco FIRMA, che oggi non esiste più: la data vive in un
+    //    posto solo, il §2, che è dove l'Art. 52(8) la vuole («prima
+    //    dell'immissione sul mercato»: senza data non si dimostra).
+    // 🔑 Il test resta bidirezionale: se il §2 perde il valore → 0 occorrenze
+    //    (rosso); se un giorno la data tornasse in testata o sotto una firma
+    //    rimessa → 2 occorrenze (rosso).
     const occorrenzeData = pdfText.split('15/05/2026').length - 1
-    expect(occorrenzeData).toBe(2)
+    expect(occorrenzeData).toBe(1)
   })
 
   // ── §3 Prescrittore ───────────────────────────────────────────────────────
@@ -243,12 +297,28 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).toContain('14')
   })
 
-  it('§5 stampa nome materiale con lotto', () => {
-    expect(pdfText).toContain('Zirconia IPS e.max ZirCAD')
+  it('🔴 D294 — il nome del materiale non compare: la storia dei materiali esce dal foglio', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294), ed è il taglio che Francesco ha nominato
+    //    per primo: «togli tutto quello che sul documento non ci deve essere,
+    //    come la storia dei materiali».
+    // 🔑 Perché esce: i materiali arrivano dal CONSUMO DI MAGAZZINO, non dalla
+    //    prescrizione — quindi non sono la voce 6 («le caratteristiche specifiche
+    //    del prodotto **indicate nella prescrizione**»), e nessun'altra delle
+    //    otto voci li chiede.
+    // 🛑 RESTANO in banca dati e continuano a stamparsi su ricevuta di consegna
+    //    ed etichetta: dal documento escono, dal laboratorio no.
+    // LAVORO_FIXTURE ha i materiali valorizzati: il caso è POPOLATO.
+    expect(pdfText).not.toContain('Zirconia IPS e.max ZirCAD')
+    expect(pdfText).not.toContain('Materiali')
   })
 
-  it('§5 stampa numero lotto materiale', () => {
-    expect(pdfText).toContain('LOT-2025-ZR-0042')
+  it('🔴 D294 — il numero di lotto non compare', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294) — stessa ragione della prova sopra, e
+    //    tenuta separata apposta: il lotto è il dato che più somiglia a una
+    //    tracciabilità dovuta, quindi la sua assenza merita di accendersi da
+    //    sola invece di nascondersi dentro un'altra asserzione.
+    expect(pdfText).not.toContain('LOT-2025-ZR-0042')
+    expect(pdfText.toLowerCase()).not.toContain('lotti')
   })
 
   it('§5 stampa numero lavoro (dati identificativi del dispositivo, elemento 2 Allegato XIII)', () => {
@@ -270,61 +340,106 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).not.toContain('93/42')
   })
 
-  // ── §6 Classificazione MDR ────────────────────────────────────────────────
+  // ── La sezione CLASSIFICAZIONE, che non esiste più (D294) ─────────────────
 
-  it('§6 stampa classe di rischio formattata ("Classe IIa")', () => {
-    expect(pdfText).toContain('Classe IIa')
+  it('🔴 D294 — la classe di rischio non compare sul foglio', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva «Classe IIa».
+    // 🔑 Perché esce: la classe di rischio è fuori dalle otto voci dell'Allegato
+    //    XIII punto 1. Serve al fabbricante (ed è `NOT NULL` su
+    //    `dichiarazioni_conformita`, quindi il DATO resta e l'emissione continua
+    //    a pretenderlo) — ma non è un contenuto di questa dichiarazione.
+    // La fixture ha classe_rischio: 'classe_iia': il caso è POPOLATO.
+    expect(pdfText).not.toContain('Classe IIa')
+    expect(pdfText.toLowerCase()).not.toContain('classe di rischio')
   })
 
-  it('§6 Classe IIa: nessun contenuto tecnico extra oltre alla classificazione (conclusione normativa)', () => {
-    // Allegato XIII punto 1(f) non impone contenuti tecnici aggiuntivi specifici
-    // per la Classe IIa oltre alla classe di rischio stessa — il template tratta
-    // tutte le classi allo stesso modo, correttamente. Test di documentazione:
-    // verifica solo che la classe sia stampata (già coperto sopra), nessun gap.
-    expect(pdfText).toContain('Classe IIa')
+  it('🔴 D294 — la sezione «Classificazione MDR» non esiste più: nemmeno il titoletto', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294) da un test di documentazione che
+    //    riasseriva la stessa cosa della prova sopra.
+    // 🛑 Il titoletto si guarda a parte, e non è pedanteria: togliendo le due
+    //    righe e lasciando il `<View>` resterebbe un titolo di sezione bordato e
+    //    VUOTO — un foglio sfigurato, che è il modo tipico in cui una pulizia
+    //    fatta a metà si vede solo a stampa avvenuta.
+    expect(pdfText).not.toContain('CLASSIFICAZIONE')
+    expect(pdfText.toLowerCase()).not.toContain('classificazione')
   })
 
-  // ── §7 Dichiarazione di Conformità ───────────────────────────────────────
+  // ── §6 Dichiarazione di Conformità (era §7 fino al 07/08/2026 — D294) ─────
 
-  it('§7 contiene riferimento ad Allegato XIII', () => {
+  it('§6 contiene riferimento ad Allegato XIII', () => {
     expect(pdfText).toContain('Allegato XIII')
   })
 
-  it('§7 contiene riferimento esplicito ad Allegato I (requisiti generali di sicurezza e prestazione, elemento 7 Allegato XIII)', () => {
+  it('§6 contiene riferimento esplicito ad Allegato I (requisiti generali di sicurezza e prestazione, voce 7 Allegato XIII)', () => {
     // pdf-parse può spezzare la riga tra "Allegato" e "I" a causa del wrapping
     // del testo nel box PDF — regex tollerante a whitespace/newline nel mezzo.
     expect(pdfText).toMatch(/Allegato\s+I(?!\w)/)
   })
 
-  it('§7 contiene riferimento a Regolamento UE 2017/745', () => {
+  it('§6 contiene riferimento a Regolamento UE 2017/745', () => {
     expect(pdfText).toContain('2017/745')
   })
 
-  it('§7 contiene riferimento ad Art. 52(8)', () => {
+  it('§6 contiene riferimento ad Art. 52(8)', () => {
+    // ⚠️ Nota di lettura aggiornata il 07/08/2026 (D294): fino a oggi questa
+    //    stringa compariva in TRE posti (sottotitolo, §7 e piè di pagina).
+    //    Tolto il piè di pagina, resta nel sottotitolo sotto il titolo — che è
+    //    la base giuridica del documento e non si tocca.
     expect(pdfText).toContain('Art. 52(8)')
   })
 
-  it('§7 contiene testo di conformità ("conforme ai requisiti")', () => {
+  it('§6 contiene testo di conformità ("conforme ai requisiti")', () => {
     expect(pdfText.toLowerCase()).toContain('conforme ai requisiti')
   })
 
-  // ── §8 PRRC — Responsabile della Conformità ───────────────────────────────
+  // ── Il responsabile e il luogo di emissione, che non ci sono più (D294) ────
 
-  it('§8 stampa nome PRRC', () => {
-    expect(pdfText).toContain('Filippo Opromolla')
+  it('🔴 D294 — il nome del responsabile non compare', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva «Filippo Opromolla» sotto la
+    //    firma. Le otto voci dell'Allegato XIII punto 1 non nominano un
+    //    responsabile: la persona che vi compare per legge è il PRESCRITTORE
+    //    (voce 5, §3 del foglio), che resta.
+    // La fixture ha prrc_nome valorizzato: il caso è POPOLATO.
+    // 🛑 «Filippo Opromolla» è anche la ragione sociale del laboratorio di prova
+    //    del banco, ma NON di questa fixture (`fabbricante_nome` è «Laboratorio
+    //    Odontotecnico Opromolla S.r.l.»): qui la stringa nuda può comparire solo
+    //    dal blocco firma, quindi l'asserzione discrimina davvero.
+    expect(pdfText).not.toContain('Filippo Opromolla')
   })
 
-  it('§8 stampa qualifica PRRC', () => {
-    expect(pdfText).toContain('Odontotecnico abilitato')
+  it('🔴 D294 — la qualifica del responsabile non compare', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294) — stessa ragione.
+    expect(pdfText).not.toContain('Odontotecnico abilitato')
   })
 
-  it('§8 stampa luogo di emissione (elemento 8 Allegato XIII — luogo, data e firma)', () => {
-    expect(pdfText).toContain('Serre (SA), Italia')
+  it('🔴 D294 — il LUOGO DI EMISSIONE non compare, in nessuno dei due punti in cui stava', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Il vecchio nome della prova rivendicava
+    //    «elemento 8 Allegato XIII — luogo, data e firma»: È FALSO, e va detto
+    //    perché è il genere di affermazione che si tramanda. La voce 8 è quella
+    //    delle SOSTANZE/tessuti; l'Allegato XIII punto 1 non chiede né un luogo
+    //    di emissione né una firma.
+    // 🔑 Perché esce: `luogo_emissione` è la CITTÀ DEL LABORATORIO, cioè dove il
+    //    documento è stato firmato. Non è un luogo di fabbricazione.
+    // 🛑 DA NON CONFONDERE con `luogo_fabbricazione`, che è la voce 1 ed è
+    //    obbligatorio: quello RESTA, ed è provato dal blocco D295 in fondo a
+    //    questo file. I due nomi si somigliano e sono due cose diverse.
+    // Il foglio lo stampava DUE volte: nel §1 e sotto la firma. La fixture ha
+    // luogo_emissione valorizzato: il caso è POPOLATO.
+    expect(pdfText).not.toContain('Serre (SA), Italia')
+    expect(pdfText.toLowerCase()).not.toContain('luogo emissione')
   })
 
-  // ── §6-bis Norme armonizzate applicate ───────────────────────────────────
+  // ── Le norme, che non ci sono più (D294) ──────────────────────────────────
 
-  it('§6-bis stampa codice e titolo delle norme armonizzate quando presenti', async () => {
+  it('🔴 D294 — le norme armonizzate non compaiono NEMMENO quando ce ne sono', async () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva codici e titoli.
+    // 🔑 Perché escono: la voce 7 chiede una dichiarazione di conformità
+    //    all'Allegato I e, «se del caso», l'indicazione dei requisiti **NON
+    //    rispettati** con debita motivazione. Una norma APPLICATA è un'altra
+    //    cosa — è il contrario, anzi: è ciò che si è rispettato.
+    // 🛑 Si rende con `norme_json` POPOLATO. La vecchia prova gemella («non
+    //    compare quando è vuoto») girava sulla fixture a `null` e sarebbe
+    //    rimasta verde col difetto in piedi.
     const ddcConNorme = {
       ...DDC_FIXTURE,
       norme_json: [
@@ -342,15 +457,84 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     const result = await parser.getText()
     await parser.destroy()
 
-    expect(result.text).toContain('EN ISO 6872:2015')
-    expect(result.text).toContain('Dental ceramic materials')
-    expect(result.text).toContain('EN ISO 22674:2016')
-    expect(result.text).toContain('2016')
+    expect(result.text).not.toContain('EN ISO 6872:2015')
+    expect(result.text).not.toContain('Dental ceramic materials')
+    expect(result.text).not.toContain('EN ISO 22674:2016')
+    expect(result.text.toLowerCase()).not.toContain('norme armonizzate')
   })
 
-  it('§6-bis non compare quando norme_json è vuoto o assente', () => {
-    // DDC_FIXTURE (usata in beforeAll per pdfText) ha norme_json: null
+  it('🔴 D294 — la sezione «Norme Armonizzate Applicate» non ha più nemmeno il titoletto', () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294) da «§6-bis non compare quando norme_json
+    //    è vuoto», che dopo il taglio sarebbe rimasta verde per il motivo
+    //    sbagliato — la fixture ha `norme_json: null`, quindi la sezione non
+    //    sarebbe comparsa comunque.
+    // 🛑 Tenuta come caso a sé, e non fusa nella prova qui sopra, per la stessa
+    //    ragione delle due sezioni svuotate: il TITOLETTO si guarda a parte,
+    //    perché una sezione tolta a metà lascia un titolo bordato e vuoto.
+    expect(pdfText).not.toContain('NORME ARMONIZZATE')
     expect(pdfText.toLowerCase()).not.toContain('norme armonizzate')
+    expect(pdfText).not.toContain('§6-bis')
+  })
+
+  it('🔴 D294 — la NORMA DI RIFERIMENTO non compare nemmeno quando il lavoro ne ha una', async () => {
+    // ⚖️ NUOVA il 07/08/2026 (D294): nessuna prova guardava questo campo, che
+    //    pure il modello stampava. È il gemello della riga sopra e ha la stessa
+    //    ragione di uscita — una norma applicata non è un requisito non
+    //    rispettato.
+    // ⚠️ `norma_riferimento` non è una colonna di `dichiarazioni_conformita`:
+    //    arriva dal lavoro e viene passata al modello solo per il rendering
+    //    (generate-ddc.ts:249). Il DATO resta sul lavoro.
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: { ...DDC_FIXTURE, norma_riferimento: 'UNI EN ISO 22674:2016' },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    expect(result.text).not.toContain('UNI EN ISO 22674:2016')
+    expect(result.text.toLowerCase()).not.toContain('norma di riferimento')
+  })
+
+  it('🔴 D294 — i RISCHI RESIDUI non compaiono nemmeno quando il testo c\'è', async () => {
+    // ⚖️ NUOVA il 07/08/2026 (D294): il §8 non aveva NESSUNA prova positiva, e
+    //    un blocco senza rete è un blocco che si toglie senza che nulla suoni —
+    //    in entrambe le direzioni.
+    // 🔑 Perché esce: i rischi residui sono l'esito dell'analisi del rischio
+    //    (ISO 14971), non una deroga a un requisito generale. La voce 7 chiede i
+    //    requisiti dell'Allegato I NON rispettati, con motivazione: è un'altra
+    //    domanda. 🛑 Il DATO resta (`rischi_residui_snapshot`, e la sua
+    //    schermata di modifica in qualità non è toccata).
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: {
+        ...DDC_FIXTURE,
+        rischi_residui_snapshot:
+          'Rischio residuo di frattura della ceramica in caso di parafunzione non compensata.',
+      },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    expect(result.text).not.toContain('Rischio residuo di frattura')
+    expect(result.text.toLowerCase()).not.toContain('rischi residui')
+  })
+
+  it('🔴 D294 — il PIÈ DI PAGINA non compare più su nessuna pagina', async () => {
+    // ⚖️ NUOVA il 07/08/2026 (D294): il piè di pagina non aveva prove, benché
+    //    fosse `fixed` — cioè ripetuto su OGNI pagina. Erano doppioni: la base
+    //    giuridica sta già nel sottotitolo, il numero già in testa al foglio.
+    expect(pdfText).not.toContain('Documento generato ai sensi')
+    // 🔑 E il numero del documento deve restare ESATTAMENTE UNA volta: era due
+    //    (intestazione + piè di pagina). Il conteggio è l'unica forma che si
+    //    accende anche se il piè di pagina tornasse con un testo diverso.
+    const occorrenzeNumero = pdfText.split('DDC-2026-0001').length - 1
+    expect(occorrenzeNumero).toBe(1)
   })
 
   // ══ D102 ③ — un documento CONGELATO non legge dati VIVI ═══════════════════
@@ -409,8 +593,20 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
   })
 })
 
-describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 03/08/2026)', () => {
-  it('rende «Sì» con l\'accento quando il dispositivo contiene sostanze o tessuti', async () => {
+describe('D294 — la voce 8 è CONDIZIONALE: il silenzio è la forma giusta', () => {
+  // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva «Sì — vedere documentazione
+  //    allegata» sul ramo affermativo.
+  // 🔴 IL FATTO, ed è il taglio più delicato dei dodici: il foglio stampava
+  //    «Sostanze / tessuti: No» a partire da un `false` CABLATO
+  //    (`generate-ddc.ts:230`) che nessuna riga di codice ha mai scritto. Su un
+  //    documento a valore legale è un'AFFERMAZIONE NON SOSTENUTA: nessuno ha
+  //    mai chiesto all'odontotecnico se il dispositivo contenga una sostanza
+  //    medicinale, un derivato del sangue o tessuti di origine animale.
+  // 🔑 La voce 8 dell'Allegato XIII punto 1 comincia con «**se del caso**»: è
+  //    condizionale. Tacere è conforme; affermare «No» senza sapere non lo è.
+  // 🛑 Le due colonne RESTANO in banca dati. Il giorno in cui qualcuno raccoglierà
+  //    davvero il dato, la riga tornerà — e tornerà sostenuta.
+  it('🔴 non stampa nulla nemmeno sul ramo affermativo, che è quello che parlerebbe', async () => {
     const element = createElement(DdcTemplate, {
       lavoro: LAVORO_FIXTURE,
       lab: LAB_FIXTURE,
@@ -420,8 +616,17 @@ describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 
     const parser = new PDFParse({ data: buffer })
     const result = await parser.getText()
     await parser.destroy()
-    expect(result.text).toContain('Sì — vedere documentazione allegata')
+    expect(result.text).not.toContain('Sì — vedere documentazione allegata')
+    expect(result.text.toLowerCase()).not.toContain('sostanze')
+    expect(result.text.toLowerCase()).not.toContain('tessuti')
   }, 30_000)
+
+  it('🔴 e non stampa il «No» affermato senza dato, che è il difetto vero', async () => {
+    // La fixture ha `contiene_sostanze_o_tessuti: false` — cioè ESATTAMENTE il
+    // valore cablato che ogni dichiarazione in archivio porta. Questa prova
+    // guarda il caso reale, non quello raro.
+    expect(pdfText).not.toContain('Sostanze / tessuti')
+  })
 })
 
 describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova guardava', () => {
@@ -438,7 +643,19 @@ describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova
   //    l'accento — il gate che il panel aveva posto prima di autorizzare la correzione.
   const utf16be = (s: string) => [...s].map((c) => '\x00' + c).join('')
 
-  it('title e subject portano l\'accento, e sono in UTF-16BE', async () => {
+  it('🔴 D294 — title, subject, author, keywords e creator non sono più scritti nel file', async () => {
+    // ⚖️ CAPOVOLTA il 07/08/2026 (D294). Pretendeva le due stringhe accentate.
+    // 🔑 Perché escono: non sono contenuti del documento — non stanno sul foglio
+    //    e non sono fra le otto voci. Erano il doppione di ciò che il foglio già
+    //    dice, scritto in un posto dove nessuno lo rilegge.
+    // 📌 Niente di identificativo si perde: il file conservato si chiama già
+    //    `DDC-<anno>-<progressivo>.pdf` (`generate-ddc.ts`, `storagePath`), e il
+    //    numero è stampato in testa al foglio.
+    // 🛑 La lezione che aveva generato il blocco RESTA VALIDA e vale al
+    //    contrario: quei campi vivono nel dizionario `/Info`, dove nessuna
+    //    asserzione sul testo estratto arriva. Se un giorno tornassero — magari
+    //    ricopiati da un altro modello — solo una prova sui BYTE se ne
+    //    accorgerebbe. Per questo la prova resta, capovolta.
     const element = createElement(DdcTemplate, {
       lavoro: LAVORO_FIXTURE,
       lab: LAB_FIXTURE,
@@ -447,19 +664,23 @@ describe('DdcTemplate — i METADATI del file (title/subject), che nessuna prova
     const buffer = await renderPdfDocument(element)
     const grezzo = buffer.toString('latin1')
 
-    // 🛑 Le stringhe INTERE, non il tronco comune ai due campi: col solo
-    //    «Dichiarazione di Conformità» il test resta verde anche guastando UNO dei
-    //    due, perché l'altro lo soddisfa. Misurato: la prima stesura di questa
-    //    prova non si accendeva sulla mutazione del `title`.
-    expect(grezzo).toContain(utf16be('Dichiarazione di Conformità DDC-2026-0001')) // title
-    expect(grezzo).toContain(utf16be('Dichiarazione di Conformità MDR 2017/745')) // subject
-    // 🔑 E il refuso si cerca in CODIFICA SEMPLICE, non in UTF-16BE — è il fatto
-    //    che rendeva cieca la prima stesura: lo strato PDF passa a UTF-16BE **solo**
-    //    quando la stringa ha un carattere non-ASCII. Senza accento quei campi
-    //    tornano a un byte per carattere, e una ricerca in UTF-16BE non li vede.
+    // Le stringhe intere, in UTF-16BE (la forma che avevano) e in codifica
+    // semplice (la forma che avrebbero senza accento): entrambe, perché lo
+    // strato PDF passa a UTF-16BE solo davanti a un carattere non-ASCII e una
+    // sola delle due ricerche sarebbe cieca a metà dei modi di far tornare
+    // quei campi.
+    expect(grezzo).not.toContain(utf16be('Dichiarazione di Conformità DDC-2026-0001'))
+    expect(grezzo).not.toContain(utf16be('Dichiarazione di Conformità MDR 2017/745'))
     expect(grezzo).not.toContain('Dichiarazione di Conformita')
-    // il segnaposto di codifica: senza, un lettore mostrerebbe «ConformitÃ»
-    expect(grezzo).toContain('\xfe\xff')
+    expect(grezzo).not.toContain('DDC MDR 2017/745 Allegato XIII') // keywords
+    expect(grezzo).not.toContain('UA PWA') // creator
+
+    // 🔑 E le CHIAVI del dizionario /Info, che è la prova che discrimina davvero:
+    //    un valore può cambiare, la chiave no. Se `/Title` ricomparisse con un
+    //    testo diverso, le asserzioni sulle stringhe tacerebbero e questa no.
+    expect(grezzo).not.toContain('/Title')
+    expect(grezzo).not.toContain('/Subject')
+    expect(grezzo).not.toContain('/Keywords')
   }, 30_000)
 })
 
@@ -517,5 +738,168 @@ describe('D295 — voce 6 e luogo di fabbricazione sul foglio reso', () => {
     // qualcuno rendesse incondizionali quelle righe, questa prova lo direbbe:
     // una riga vuota su un documento legale è peggio di una riga assente.
     expect(pdfText).not.toContain('Caratteristiche prescritte')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D294 — IL LOGO, e la ragione per cui una IMMAGINE su questo foglio è un rischio
+// ═══════════════════════════════════════════════════════════════════════════
+describe('D294 — nessuna immagine sul foglio', () => {
+  // 🔑 Perché il logo esce, e sono DUE ragioni:
+  //    ① non è un contenuto — nessuna delle otto voci dell'Allegato XIII punto 1
+  //      chiede un marchio;
+  //    ② è una LETTURA VIVA. `lab.logo_print_url ?? lab.logo_url` punta a un file
+  //      su Storage che il laboratorio può sostituire in qualsiasi momento: una
+  //      ristampa fra otto anni renderebbe un documento diverso da quello
+  //      emesso, o non lo renderebbe affatto se l'URL nel frattempo è morto.
+  //      È la stessa malattia che D102 ③ ha curato sui denti.
+  // 🛑 Nessuna prova guardava questo. Un'immagine non lascia testo, quindi
+  //    `PDFParse.getText()` è cieco: si guardano i BYTE del file.
+  const PIXEL_PNG =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+  it('🔴 con logo E firma valorizzati, il PDF non contiene nessuna immagine', async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: { ...LAB_FIXTURE, logo_url: PIXEL_PNG, logo_print_url: PIXEL_PNG },
+      ddc: { ...DDC_FIXTURE, firma_ddc_storage_path: PIXEL_PNG },
+    })
+    const buffer = await renderPdfDocument(element)
+    const grezzo = buffer.toString('latin1')
+
+    // Un'immagine incorporata produce un XObject di sottotipo Image nel file.
+    expect(grezzo).not.toContain('/Subtype /Image')
+    expect(grezzo).not.toContain('/XObject')
+  }, 30_000)
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D294 — IL FOGLIO MASSIMALE: la rete che guarda il documento INTERO
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔑 PERCHÉ QUESTO BLOCCO ESISTE, e perché non è il doppione delle prove sopra.
+//    Ognuna di quelle guarda UN campo su una fixture che lascia vuoti gli altri:
+//    è la forma giusta per dire *perché* un campo esce, ma nessuna di loro vede
+//    il foglio come lo vede una persona. Qui si rende una dichiarazione con
+//    OGNI campo valorizzato — il caso peggiore, quello in cui tutti i dodici
+//    tagli avrebbero qualcosa da stampare — e si guarda il risultato tutto
+//    insieme. È l'unica prova che si accenderebbe se un tredicesimo campo
+//    rientrasse da una strada che nessuna asserzione puntuale sorveglia.
+describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () => {
+  let testoMassimale = ''
+  let pagineMassimale = 0
+
+  beforeAll(async () => {
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: { ...LAB_FIXTURE, srn_eudamed: 'IT-CA-000123456' },
+      ddc: {
+        ...DDC_FIXTURE,
+        prescrizione_caratteristiche: 'Elementi: denti 26, 27 · Colore: A3',
+        luogo_fabbricazione: 'Via Roma 12, Serre',
+        prescrizione_id: 'PRESCR-2026-77',
+        denti_coinvolti: ['21', '37', '38'],
+        // ⚠️ Le lunghezze qui NON sono decorative e non vanno accorciate: sono
+        //    prese da un documento VERO del banco di prova (render locale in
+        //    sola lettura del 07/08/2026). Un rischio residuo di una riga e una
+        //    norma sola farebbero stare il foglio in una pagina anche PRIMA dei
+        //    tagli, e la prova sulla paginazione qui sotto non misurerebbe più
+        //    niente.
+        norma_riferimento: 'UNI EN ISO 22674:2016',
+        contiene_sostanze_o_tessuti: true,
+        rischi_residui_snapshot:
+          'Rischio residuo di frattura della ceramica in caso di parafunzione non compensata. ' +
+          'Possibile perdita di ritenzione in presenza di igiene orale inadeguata. ' +
+          'Sensibilità post-cementazione transitoria nei primi giorni dalla consegna.',
+        norme_json: [
+          { codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials' },
+          { codice: 'EN ISO 22674:2016', titolo: 'Metallic materials', anno: 2016 },
+        ],
+      },
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    testoMassimale = result.text
+    pagineMassimale = result.total
+  }, 30_000)
+
+  // ── Ciò che DEVE esserci: le voci dell'Allegato XIII e i tre appigli tenuti ──
+
+  it('✅ porta le voci dell\'Allegato XIII punto 1 che gli spettano', () => {
+    // voce 1 — nome, indirizzo, e TUTTI i luoghi di fabbricazione
+    expect(testoMassimale).toContain('Laboratorio Odontotecnico Opromolla S.r.l.')
+    expect(testoMassimale).toContain('Via Roma 12')
+    expect(testoMassimale).toContain('Luogo di fabbricazione')
+    // voce 3 — i dati che identificano il dispositivo
+    expect(testoMassimale).toContain('LAV-2026-0001')
+    expect(testoMassimale).toContain('Protesi Fissa')
+    // voce 4 — uso esclusivo per il paziente nominato
+    expect(testoMassimale).toContain('M.R.')
+    expect(testoMassimale.toLowerCase()).toContain('fabbricato su misura')
+    // voce 5 — il prescrittore
+    expect(testoMassimale).toContain('Dott. Mario Rossi')
+    // voce 6 — le caratteristiche indicate nella prescrizione
+    expect(testoMassimale).toContain('Elementi: denti 26, 27 · Colore: A3')
+    // voce 7 — conformità ai requisiti generali dell'Allegato I
+    expect(testoMassimale.toLowerCase()).toContain('conforme ai requisiti')
+    expect(testoMassimale).toMatch(/Allegato\s+I(?!\w)/)
+  })
+
+  it('✅ e i tre appigli tenuti apposta, ognuno con la sua ragione', () => {
+    // data di emissione — Art. 52(8): «prima dell'immissione sul mercato».
+    // Senza data non si dimostra di aver rispettato il termine.
+    expect(testoMassimale).toContain('15/05/2026')
+    // numero del documento — la chiave per ritrovarlo nei dieci anni di
+    // conservazione che l'Allegato XIII punto 4 impone.
+    expect(testoMassimale).toContain('DDC-2026-0001')
+    // numero della prescrizione — l'aggancio al foglio del dentista.
+    expect(testoMassimale).toContain('PRESCR-2026-77')
+    // 🔑 PARTITA IVA — TENUTA PER SCELTA DI FRANCESCO, NON PER OBBLIGO.
+    //    Il censimento non ha trovato nessuna norma che la imponga su questa
+    //    dichiarazione. Sta scritto qui perché il prossimo che legge non la
+    //    deduca da una legge che non esiste, e non la tolga credendola un refuso.
+    expect(testoMassimale).toContain('03508740655')
+    // titolo e base giuridica
+    expect(testoMassimale).toContain('DICHIARAZIONE DI CONFORMITÀ')
+    expect(testoMassimale).toContain('Art. 52(8)')
+    // la nota sulla marcatura CE (Art. 20(1) — i su misura non la portano)
+    expect(testoMassimale.toLowerCase()).toContain('marcatura ce')
+  })
+
+  // ── Ciò che NON deve esserci: i dodici tagli, tutti insieme ────────────────
+
+  it('🔴 e NESSUNO dei dodici tagli, su un foglio dove tutti avrebbero da stampare', () => {
+    const vietati: Array<[string, string]> = [
+      ['materiali e lotti', 'Zirconia IPS e.max ZirCAD'],
+      ['materiali e lotti (lotto)', 'LOT-2025-ZR-0042'],
+      ['codice ITCA', 'ITCA'],
+      ['SRN EUDAMED', 'EUDAMED'],
+      ['luogo di emissione', 'Serre (SA), Italia'],
+      ['classe di rischio', 'Classe IIa'],
+      ['norma di riferimento', 'UNI EN ISO 22674:2016'],
+      ['norme armonizzate', 'EN ISO 6872:2015'],
+      ['rischi residui', 'Rischio residuo di frattura'],
+      ['sostanze / tessuti', 'Sostanze'],
+      ['responsabile (PRRC)', 'PRRC'],
+      ['piè di pagina', 'Documento generato ai sensi'],
+    ]
+    for (const [nome, ago] of vietati) {
+      expect(testoMassimale, `taglio non applicato: ${nome}`).not.toContain(ago)
+    }
+  })
+
+  it('🔴 il foglio massimale sta in UNA pagina sola', () => {
+    // 🔴 IL FATTO, misurato il 07/08/2026 su render reale del banco di prova:
+    //    PRIMA dei tagli il foglio con tutti i campi valorizzati traboccava su
+    //    una SECONDA pagina, dove restavano orfani «Serre» e «Odontotecnico
+    //    abilitato» — cioè un blocco firma spezzato in due. Una dichiarazione a
+    //    valore legale che si spacca a metà è un difetto di forma che nessuna
+    //    prova vedeva, perché nessuna guardava il foglio intero.
+    // 🔑 Si conta con `result.total`, non cercando la marca «-- 2 of 2 --» nel
+    //    testo: quella è una convenzione di stampa di PDFParse, cioè il
+    //    comportamento di una libreria, e legarci una prova significa misurare
+    //    lo strumento invece del documento.
+    expect(pagineMassimale).toBe(1)
   })
 })

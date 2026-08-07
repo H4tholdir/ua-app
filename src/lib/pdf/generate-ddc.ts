@@ -69,8 +69,30 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
  *        cose diverse porterebbero la stessa etichetta di versione — e fra
  *        dieci anni questa colonna è l'unica cosa che permette di rileggere una
  *        dichiarazione sapendo come andava letta.
+ *
+ *  `ddc-v3` — dal 07/08/2026 (**D294**), poche ore dopo `ddc-v2`. ⚠️ È la regola
+ *     di sopra letta nell'altra direzione: il salto spetta a un contenuto che
+ *     entra, **esce** o cambia significato. Qui **ESCONO DODICI BLOCCHI**, e uno
+ *     di essi — il «Sostanze/tessuti: No» affermato senza dato — era già nominato
+ *     fra i candidati elencati per `ddc-v1`.
+ *     Escono, tutti per la stessa ragione (non sono fra gli otto contenuti
+ *     dell'Allegato XIII punto 1): ① materiali e lotti · ② il codice ITCA, che
+ *     era stampato **due volte** · ③ l'«SRN EUDAMED», la cui etichetta era
+ *     sbagliata due volte · ④ il luogo di **emissione**, anch'esso due volte ·
+ *     ⑤ la classe di rischio · ⑥ la norma di riferimento e le norme armonizzate ·
+ *     ⑦ i rischi residui · ⑧ «Sostanze / tessuti» · ⑨ la firma con l'etichetta
+ *     PRRC, il nome e la qualifica del responsabile · ⑩ il logo · ⑪ il piè di
+ *     pagina · ⑫ i metadati del file.
+ *     📌 Con le due sezioni svuotate è cambiata anche la **numerazione**: la
+ *        dichiarazione di conformità era il §7 ed è il §6.
+ *     🛑 Nessuna colonna è stata toccata: escono dal FOGLIO, non dalla banca
+ *        dati. `template_version` è ciò che permetterà, fra dieci anni, di
+ *        sapere che una dichiarazione `ddc-v2` portava righe che una `ddc-v3`
+ *        non porta più — pur nascendo dagli stessi dati.
+ *     ⚠️ Le voci precedenti NON si riscrivono e non si riusano: un'etichetta
+ *        già emessa che cambiasse significato svuoterebbe il registro intero.
  *  ═════════════════════════════════════════════════════════════════════════ */
-const VERSIONE_TEMPLATE_DDC = 'ddc-v2'
+const VERSIONE_TEMPLATE_DDC = 'ddc-v3'
 
 /** Il luogo di fabbricazione della VOCE 1, ricavato dal laboratorio.
  *
