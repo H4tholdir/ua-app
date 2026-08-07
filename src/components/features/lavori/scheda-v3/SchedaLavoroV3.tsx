@@ -81,6 +81,7 @@ import { SchedaNavRail } from './SchedaNavRail'
 import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
 import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
+import { DevoIntervenire } from './DevoIntervenire'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
@@ -568,9 +569,25 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
             <TastoTondo glifo="⋯" etichettaAria="Apri menu" onClick={() => setMenuAperto(true)} />
           </div>
 
-          {/* Banner annulla consegna (§11.1) — solo dopo una consegna effettiva. */}
+          {/* Banner annulla consegna (§11.1) — solo dopo una consegna effettiva.
+              🛑 MUORE COL TASK 7 (D269: la finestra dei dieci minuti è abolita).
+              Resta qui finché quel compito non lo toglie, perché toglierlo è il
+              suo mandato e non questo: due compiti sullo stesso file, in due
+              momenti diversi, è il modo di perdere una riga per strada. */}
           {lavoro.stato === 'consegnato' && lavoro.data_consegna_effettiva && (
             <AnnullaConsegnaBanner lavoroId={lavoro.id} dataConsegnaEffettiva={lavoro.data_consegna_effettiva} />
+          )}
+
+          {/* «Devo intervenire» (Task 6, D269/D288) — SEMPRE presente su un
+              lavoro consegnato, non per dieci minuti: è il posto dove oggi
+              muore il conto alla rovescia.
+              ⚠️ La condizione NON porta `data_consegna_effettiva` come quella
+              sopra, ed è voluto: quel campo serve al banner per contare i
+              minuti, qui non conta niente. Un lavoro consegnato con la data
+              mancante (dato vecchio) deve poter essere corretto lo stesso —
+              D265, il documento sanitario si corregge SEMPRE. */}
+          {lavoro.stato === 'consegnato' && (
+            <DevoIntervenire lavoroId={lavoro.id} descrizione={lavoro.descrizione} />
           )}
 
           {/* Tracciabilità materiali (MDR Allegato XIII, B1) — segnale sempre

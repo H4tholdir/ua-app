@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventiseiesima tornata (D300-D302: «Devo intervenire» prende la variante B, e due parole di Francesco hanno scoperto un difetto del raggruppamento)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventisettesima tornata (D303: «manufatto» e «dispositivo» convivono, ognuno nel suo registro)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**302 decisioni in centoventisei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**303 decisioni in centoventisette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3110,3 +3110,36 @@ da chi sta gestendo un problema clinico. Stessa cosa al contrario per «La dichi
 l'unico motivo che fa rifare il documento.
 ⚠️ **Portata a Francesco invece di applicata in silenzio:** lui ha scelto **quattro** famiglie, e
 questa ne fa cinque — la decisione di aggiungerne una è mia, e va detta.
+
+---
+
+### Centoventisettesima tornata — D303: «manufatto» e «dispositivo» convivono, ognuno nel suo registro (07/08/2026, 16:02)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 16:02 CEST`**, comando separato.
+
+**Nasce da:** una domanda che ho portato a Francesco invece di risolverla da solo. Dopo D301
+(«manufatto», mai «pezzo») restava un **terzo** modo di chiamare la stessa cosa, e finisce **sulla
+stessa schermata**: `src/lib/qualita/classifica.ts` dice «*il **dispositivo** era stato applicato*»
+mentre `src/lib/qualita/effetti.ts` dice «*il **manufatto** è compromesso*». Nel foglio di «Devo
+intervenire» le due frasi compaiono **una sotto l'altra**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D303** | 🔑 **LE DUE PAROLE CONVIVONO, E NON È UN COMPROMESSO: È UNA DISTINZIONE DI REGISTRO.** Francesco: «*va benissimo la distinzione tra manufatto e dispositivo, usiamoli tutti e due*» | **«Manufatto»** è la parola del banco: si usa per il lavoro fisico, per ciò che l'odontotecnico ha in mano. **«Dispositivo»** è la parola della **norma** (Art. 2(64) e seguenti): si usa dove il testo parla di legge — classificazione, incidente, reclamo, obblighi. ➡️ Su una stessa schermata possono comparire entrambe, perché stanno rispondendo a **due domande diverse** |
+
+**🔑 Perché la distinzione regge, e non è la scusa per non decidere.** È la stessa separazione dei
+due piani che D288 ha già stabilito e che il codice rispecchia in **due file distinti**:
+- **`classifica.ts` — il piano della NORMA.** Risponde a «è un incidente? un reclamo? niente?», cita
+  gli articoli, e parla la lingua del Regolamento: lì «dispositivo» **è il termine giuridico**, e
+  sostituirlo con una parola di mestiere allontanerebbe il testo dalla fonte che sta applicando.
+- **`effetti.ts` — il piano del BANCO.** Risponde a «che cosa succede adesso al lavoro e alla
+  dichiarazione», e parla come si parla in laboratorio: lì «manufatto».
+
+⚠️ **Quello che questa decisione NON autorizza:** usare le due parole **a caso**, o alternarle dentro
+la stessa frase. Il difetto chiuso oggi in `effetti.ts` — «*Il pezzo è compromesso*» e «*Il manufatto
+è a posto*» nello stesso file — resta un difetto anche col nuovo vocabolario: **dentro un registro la
+parola è UNA.** La rete meccanica (`tests/unit/qualita-effetti.test.ts`) vieta «pezzo» e «carta» nei
+testi degli effetti; **non** vieta «dispositivo» in `classifica.ts`, ed è giusto così.
+
+📌 **Regola in una riga, per chi scrive un testo nuovo:** *se la frase sta spiegando la legge, si dice
+**dispositivo**; se sta dicendo che cosa fare col lavoro, si dice **manufatto**.*
