@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventunesima tornata (D293-D294: la dichiarazione non si annulla mai, e porta solo cio che ci deve stare)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventiduesima tornata (D295: il documento si ripulisce E si completa, nella stessa ondata)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**294 decisioni in centoventuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**295 decisioni in centoventidue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2872,3 +2872,57 @@ unitamente al conferimento di una nuova vita*». ➡️ **Dove finisce la rilavo
 ricostruzione completa, il testo non lo traccia** — e il bivio di D290 («si sistema questo, o se ne fa
 uno nuovo?») **è esattamente quella soglia**. ⚠️ **Non è una scelta organizzativa: è il punto in cui
 cambia il soggetto giuridico**, e l'interfaccia deve farlo capire senza dirlo in giuridichese.
+
+---
+
+### Centoventiduesima tornata — D295: il documento si ripulisce E si completa, nella stessa ondata (07/08/2026, 10:11)
+
+> 🛑 **SECONDA VIOLAZIONE DI D155 IN UNA MATTINA, E LA CAUSA È PRECISA — la scrivo perché la regola,
+> così com'è formulata, non basta a impedirla.** L'intestazione diceva `10:02`. `provato:` `date` →
+> **`07/08/2026, 10:11`**. Ho eseguito `date` **nello stesso comando** in cui scrivevo il testo: quindi
+> l'orario l'ho **composto prima di poter leggere l'output**, cioè a memoria — che è esattamente il
+> divieto. ➡️ **La regola operativa che mancava: `date` si esegue in un comando SEPARATO, e il testo si
+> compone DOPO averne letto il risultato.** Un `date` che gira accanto al testo che deve datare non
+> data niente: decora.
+
+**Nasce da:** il censimento campo per campo ordinato da D294, che cercava **che cosa togliere** e ha
+trovato **che cosa manca**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D295** | 🔑 **SI TAGLIA E SI RIPARA INSIEME.** Francesco: «*confermo, ripulisci per bene il documento e collega tutto quello che manca*» · «*teniamola*» (partita IVA) · «*riparala in questa ondata*» (la voce 6) | ① **Escono** i quindici campi di classe C · ② la **partita IVA RESTA**, benché nessun obbligo la imponga · ③ 🔴 **la voce 6 dell'Allegato XIII si ripara ORA**, dentro quest'ondata, non in una voce di roadmap |
+
+**🔴 Che cosa mancava, e per quanto tempo.** `provato:` `generate-ddc.ts:166` →
+`prescrizione_caratteristiche: null as string | null`, **cablato**. La voce 6 — «*le caratteristiche
+specifiche del prodotto **indicate nella prescrizione***» — **è obbligatoria e non è mai comparsa su
+nessuna dichiarazione emessa**. Quel file è **l'unico** inseritore della tabella.
+🔑 **Ma il dato ESISTE già:** le ondate precedenti hanno costruito `lavori_prescrizioni` col suo
+contenuto. **Non è un dato da raccogliere: è un dato da collegare** — ed è la ragione per cui Francesco
+ha scelto di ripararlo subito invece di rimandarlo.
+
+**🛑 E perché nessuno se n'era accorto: il cancello controlla un elenco INVENTATO.** `provato:`
+`src/lib/consegna/precheck.ts:5-18` dichiara «*gli 8 elementi obbligatori Allegato XIII*» e poi ne
+elenca **tre che non esistono** (data emissione · classe di rischio · data consegna prevista) omettendo
+**tre voci vere** (mandatario · caratteristiche prescritte · sostanze e tessuti). La stessa numerazione
+inventata è in `src/types/domain.ts:762`, **e da lì arriva all'operatore**.
+➡️ **Quarta volta oggi che un elenco scritto a mano sembra completo e non lo è** — e stavolta l'elenco
+sbagliato era proprio nel controllo che doveva proteggere un documento dovuto per legge.
+
+**📌 Sui tagli, le due ragioni meno ovvie, perché non si rileggano come arbitrarie:**
+- **Codice ITCA** (stampato **due volte**): la voce 1 nomina **due cose**, nome e indirizzo. Un codice
+  di registrazione non è nessuna delle due, e l'obbligo italiano colpisce **l'iscriversi**.
+- **Firma, nome e qualifica del responsabile**: l'Art. 15(3)(b) nomina la *dichiarazione di conformità
+  **UE***, che per i su misura **non esiste** (Art. 10(6)). Le otto voci non parlano né di firma né di
+  persona responsabile. 📌 Il progetto lo sapeva già: `ROADMAP-UFFICIALE.md:1138`.
+
+**🟡 La partita IVA resta per scelta, e la scelta è dichiarata.** Il censimento non ha trovato **nessun
+obbligo** che la imponga: la teneva su un argomento di identificazione. Francesco: «*teniamola*».
+➡️ **Non è un campo dovuto: è un campo voluto.** La differenza va scritta, perché il prossimo che
+rilegge l'elenco non la deduca da una norma che non c'è.
+
+**⚖️ Adattamento del gate estetico L2, DICHIARATO e non saltato.** D245 dice che i testi visibili sono
+**aspetto**, quindi il gate sarebbe dovuto. Ma la superficie qui è un **PDF**: non ha i tre viewport né
+i due temi su cui la checklist è costruita. ➡️ **Si fa la prova a schermo — il documento generato,
+PRIMA e DOPO, guardato** — e **non** il micro-audit a dodici sezioni per sei combinazioni, che su un
+foglio A4 non ha oggetto. 🛑 La regola non è saltata: è **adattata con motivo scritto**, che è
+esattamente ciò che D245 chiede quando dice «risolto **o deferito con motivo**».
