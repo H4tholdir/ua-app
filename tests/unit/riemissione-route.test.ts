@@ -59,9 +59,12 @@ const LAVORO_RIGA = {
   lavorazioni: [], materiali: [], prescrizione: [{ contenuto: {} }],
 }
 
-function banco(lavoro: unknown = LAVORO_RIGA) {
+function banco(lavoro: unknown = LAVORO_RIGA, motivoEvento: string | null = 'errore_dato_dichiarazione') {
   mockFrom.mockImplementation((t: string) => {
     if (t === 'lavori') return chain({ data: lavoro, error: lavoro ? null : { code: 'PGRST116' } })
+    if (t === 'eventi_qualita') {
+      return chain({ data: motivoEvento ? { motivo: motivoEvento } : null, error: motivoEvento ? null : { code: 'PGRST116' } })
+    }
     throw new Error(`tabella inattesa: ${t}`)
   })
 }
@@ -155,6 +158,54 @@ describe('POST …/dichiarazione/riemetti', () => {
     expect(Array.isArray(lavoroPassato.prescrizione)).toBe(false)
     expect((lavoroPassato.prescrizione as { contenuto?: unknown } | null)?.contenuto)
       .toEqual({ elementi: [26], colore: 'A3', tipo: 'corona' })
+  })
+
+  // ═══ IL MOTIVO DEVE AMMETTERE LA RIEMISSIONE — e uno solo su nove lo fa ════
+  //
+  // 🛑 SENZA QUESTA GUARDIA la sequenza «registra un evento con motivo X» →
+  // «riemetti» ANNULLA la dichiarazione per QUALUNQUE X. Ma l'elenco degli
+  // effetti dice il contrario per otto motivi su nove — e per D291 («persona
+  // sbagliata») il documento **resta valido perché diceva il vero**. Annullarlo
+  // significherebbe cancellare l'unica prova che quel manufatto è esistito
+  // (D293). ➡️ Stessa famiglia della coppia incoerente chiusa stamattina sulla
+  // rotta degli eventi, e la guardia sta nell'API per la stessa ragione: un atto
+  // distruttivo su un documento di legge non si affida a una schermata.
+  describe('il motivo dell\'evento deve ammettere la riemissione (elenco degli effetti)', () => {
+    it('🛑 «persona sbagliata» NON può rifare la carta: D291 dice che il documento resta valido', async () => {
+      banco(LAVORO_RIGA, 'destinatario_errato')
+      const res = await POST(req({ evento_id: EVENTO_ID }), params())
+      expect(res.status).toBe(422)
+      expect(mockRiemetti).not.toHaveBeenCalled()
+    })
+
+    it('🛑 nessuno degli altri sette motivi apre questa porta', async () => {
+      for (const motivo of [
+        'difetto_lavorazione', 'difetto_materiale', 'destinatario_errato',
+        'modifica_clinica_richiesta', 'errore_prezzo_quantita', 'reso_senza_difetto',
+        'errore_registrazione', 'altro',
+      ]) {
+        vi.clearAllMocks()
+        mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+        banco(LAVORO_RIGA, motivo)
+        const res = await POST(req({ evento_id: EVENTO_ID }), params())
+        expect(res.status, motivo).toBe(422)
+        expect(mockRiemetti, motivo).not.toHaveBeenCalled()
+      }
+    })
+
+    it('✅ «dato sbagliato sul documento» è l\'unico che la apre, ed è quello per cui la riemissione esiste', async () => {
+      banco(LAVORO_RIGA, 'errore_dato_dichiarazione')
+      const res = await POST(req({ evento_id: EVENTO_ID }), params())
+      expect(res.status).toBe(200)
+      expect(mockRiemetti).toHaveBeenCalledTimes(1)
+    })
+
+    it('un evento che non esiste (o è di un altro lavoro) → 422, e non si arriva alla riemissione', async () => {
+      banco(LAVORO_RIGA, null)
+      const res = await POST(req({ evento_id: EVENTO_ID }), params())
+      expect(res.status).toBe(422)
+      expect(mockRiemetti).not.toHaveBeenCalled()
+    })
   })
 
   // ── gli esiti che non sono un successo ────────────────────────────────────

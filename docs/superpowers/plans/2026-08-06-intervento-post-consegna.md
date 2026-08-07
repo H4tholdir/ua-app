@@ -1499,3 +1499,38 @@ documento riemesso può dire cose diverse da uno emesso, a parità di dati.
 - **R13** — nessuna schermata legge ancora `sostituisce_id` né `annullata_da_evento_id`: la **catena
   delle riemissioni non è visibile a nessuno**. È l'ispettore il destinatario di quel filo (§8.2), e
   finché non c'è una superficie che lo mostra il dato è scritto e muto. **Vincolo per il Task 6.**
+
+### 🔴 R14 — LA ROTTA NON GUARDAVA IL MOTIVO, e la porta era aperta a tutti e nove (chiuso)
+
+Trovato da una revisione **dopo** che il Task 5 era già salvato e pubblicato. `provato:` due prove
+scritte apposta fallivano.
+
+Bastava registrare un evento con **un motivo qualunque** e chiamare la rotta: la dichiarazione veniva
+annullata lo stesso. Ma l'elenco degli effetti dice il contrario per **otto motivi su nove** — e per
+**D291** («persona sbagliata») dice che il documento **resta valido, perché diceva il vero**:
+sbagliato era il destinatario, non il contenuto. Annullarlo non lo *supera*, lo **cancella**, insieme
+all'unica prova che quel manufatto è esistito ed è andato a un paziente (**D293**).
+
+✅ **Chiuso nella rotta**, e la condizione **non è un elenco scritto lì**: la porta la apre
+`effettoDaMotivo(motivo).documento === 'riemetti'`, cioè la **stessa tabella** che l'app usa per
+proporre. Il giorno in cui un secondo motivo comincerà a riemettere, basterà cambiarla in un posto
+solo. Anche il messaggio d'errore nasce da lì, così non può divergere dall'elenco.
+
+🔑 **È la TERZA volta oggi che la stessa famiglia di difetto si presenta con un vestito diverso:**
+una coppia incoerente (motivo, azione) che arriva fino a un atto distruttivo su un documento a valore
+legale. ① «altro» che si prendeva la natura `errore_registrazione` · ② «ho sbagliato a premere
+consegna» su un manufatto **applicato** · ③ questa. ➡️ **Il posto della guardia è sempre l'API, mai
+l'interfaccia**, e la regola generale è: *dove un'azione distrugge, il permesso si deriva dalla
+tabella delle decisioni, non si assume dal fatto che l'utente sia arrivato fin lì.*
+
+### ✅ VERIFICATO, non assunto: la ribattitura di `riapri_lavoro_atomica` è fedele
+
+La migration ridichiara la funzione per intero (≈40 righe) per cambiarne **una**. Una riga persa nella
+ribattitura non l'avrebbe vista nessuna prova: `tests/integration/riapri-lavoro-atomica.rpc.test.ts`
+riapplica **il file del 06/08** dentro la propria transazione, quindi verifica quel testo, non quello
+in banca dati.
+`provato:` `pg_get_functiondef` sulla funzione **viva**, corpo confrontato riga per riga col file del
+06/08 → **38 righe contro 39**, e le sole differenze sono l'`UPDATE` spezzato su due righe con
+l'aggiunta di `annullata_da_evento_id = p_evento_id`. Le quattro colonne azzerate in più, il ramo
+fail-closed su `v_ddc_tot`, il `FOR UPDATE` e il controllo su `stato <> 'consegnato'` sono
+**identici**.

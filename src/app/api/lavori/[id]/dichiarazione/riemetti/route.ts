@@ -4,6 +4,8 @@ import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
+import { isMotivo } from '@/lib/domain/qualita-costanti'
+import { effettoDaMotivo } from '@/lib/qualita/effetti'
 import { riemettiDdC } from '@/lib/pdf/generate-ddc'
 import type { LavoroDettaglio } from '@/types/domain'
 
@@ -96,6 +98,40 @@ export async function POST(req: Request, { params }: RouteContext) {
     .single()
 
   if (!lavoro) return err('Lavoro non trovato', 404)
+
+  // 🛑 IL MOTIVO DEVE AMMETTERE LA RIEMISSIONE — e uno solo su nove lo fa.
+  //
+  // Senza questa guardia bastava registrare un evento QUALUNQUE e chiamare qui:
+  // la dichiarazione veniva annullata anche per «persona sbagliata», dove D291
+  // dice l'opposto — il documento **resta valido, perché diceva il vero**;
+  // sbagliato era il destinatario, non il contenuto. E annullarlo non lo
+  // «supera»: lo cancella, insieme all'unica prova che quel manufatto è
+  // esistito ed è andato a un paziente (D293).
+  //
+  // 🔑 LA CONDIZIONE NON È UN ELENCO SCRITTO QUI, ed è la quarta volta che in
+  // questo progetto un elenco a mano sembra completo e non lo è: la porta la
+  // apre `effettoDaMotivo`, cioè la stessa tabella degli effetti che l'app usa
+  // per proporre. Il giorno in cui un secondo motivo comincerà a riemettere,
+  // basterà cambiarla lì e questa riga sarà già giusta.
+  const { data: evento } = await svc
+    .from('eventi_qualita')
+    .select('motivo')
+    .eq('id', eventoId)
+    .eq('lavoro_id', lavoro_id)
+    .eq('laboratorio_id', context.laboratorioId)
+    .maybeSingle()
+
+  if (!evento) {
+    return err('La registrazione indicata non appartiene a questo lavoro: riapri «Devo intervenire» e riprova.', 422)
+  }
+
+  const motivo = (evento as { motivo: unknown }).motivo
+  if (!isMotivo(motivo) || effettoDaMotivo(motivo).documento !== 'riemetti') {
+    // Il messaggio dice CHE COSA succede davvero con quel motivo, non «vietato»:
+    // il testo lo compone l'elenco degli effetti, così non può divergere da esso.
+    const spiegazione = isMotivo(motivo) ? ` ${effettoDaMotivo(motivo).perche}` : ''
+    return err(`Con il motivo scelto la dichiarazione non si rifà.${spiegazione}`, 422)
+  }
 
   // D295 — l'embed arriva come ARRAY (la FK è composita): senza questa riga la
   // voce 6 dell'Allegato XIII tornerebbe vuota sul documento riemesso.

@@ -70,9 +70,17 @@ modifica chiesta dal medico · prezzo/quantità · **ho sbagliato a premere cons
 🛑 **Questo elenco va completato PRIMA del cancello §0B sui testi**: le frasi da approvare devono dire
 *cosa cambia*, e non si può dirlo finché non è deciso che cosa cambia.
 
-### ④ 🔴 I COMPITI 5, 6, 7, 8, 9 DEL PIANO NON SONO STATI TOCCATI, e il 7 resta pericoloso
-`provato:` `sostituisce_id` su `dichiarazioni_conformita` → **0 riscontri** nelle migration (Task 5 non
-fatto) · `FINESTRA_ANNULLO_MS` è ancora a `10 * 60 * 1000` (`src/lib/consegna/costanti.ts:7`, Task 7 non
+### ④ 🔴 I COMPITI ~~5,~~ 6, 7, 8, 9 DEL PIANO NON SONO STATI TOCCATI, e il 7 resta pericoloso
+
+> ✅ **IL TASK 5 È FATTO** (07/08 pomeriggio, `686841d7` + il giro sulla guardia del motivo).
+> La riga qui sotto — «`sostituisce_id` → 0 riscontri» — **era vera stamattina e adesso non lo è
+> più**: la colonna c'è, insieme a `annullata_da_evento_id`, e la riemissione è atomica.
+> ⚠️ **Il resto del ④ regge invariato**: 6, 7, 8, 9 non sono toccati, e **il 7 non si chiude prima
+> di D283**. Il prossimo è il **6**, che è dietro il cancello §0B (mockup → screenshot →
+> approvazione di Francesco, prima di scrivere React).
+
+~~`provato:` `sostituisce_id` su `dichiarazioni_conformita` → **0 riscontri** nelle migration (Task 5 non
+fatto)~~ · `FINESTRA_ANNULLO_MS` è ancora a `10 * 60 * 1000` (`src/lib/consegna/costanti.ts:7`, Task 7 non
 fatto) · `onClick={handleAnnulla}` è ancora lì (`AnnullaConsegnaBanner.tsx`, **D283 non in piedi**).
 🛑 **Il vincolo di ieri regge invariato: il Task 7 non si chiude prima di D283**, o fra i due esiste una
 finestra in cui **un tocco involontario è irreversibile**.
