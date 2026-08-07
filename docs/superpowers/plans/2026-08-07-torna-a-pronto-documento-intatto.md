@@ -1022,6 +1022,25 @@ git add -A && git commit -m "feat(lavori): il bivio a schermo, e la schermata fi
 
 **File:** Crea `tests/integration/torna-a-pronto.rpc.test.ts`
 
+- [ ] **Passo 0 — 🔴 EMENDAMENTO DEL 07/08 (revisione del Task 4): UN FILE DI PROVE GUARDA UNA FUNZIONE MORTA**
+
+`provato:` `tests/integration/riapri-lavoro-atomica.rpc.test.ts:22` e `:28-31` **riscrivono la
+funzione con il corpo del 06/08 dentro la propria transazione**, e la chiamano in **14 punti**. I suoi
+**15 verdi non hanno mai visto il corpo vivo**: la correzione del 07/08 (`annullata_da_evento_id`) non
+è coperta da nessuno di essi, e il motivo scritto in testa al file — «la migration non è ancora
+applicata al database vero» — è **scaduto dal 6 agosto sera**.
+➡️ **Togli `applicaMigrazione` e prova la funzione VIVA**, come già fa
+`tests/integration/riemetti-ddc-atomica.rpc.test.ts:7`, aggiungendo l'asserzione su
+`annullata_da_evento_id`.
+🔑 **Perché sta qui e non nel Task 4:** è la stessa famiglia della lezione del 07/08 — *una prova non
+può vedere un difetto che vive nella cosa che la prova sostituisce*. Lì era il framework del browser,
+qui è la funzione stessa.
+
+**E aggiungi al file nuovo i quattro rami che le sonde del Passo 1 non toccano:**
+`evento_non_valido` · `non_consegnato` · `ddc_viva:false` · e **l'atomicità attraverso la chiamata
+annidata** (se `ripristina_lavoro_a_pronto` solleva, il lavoro deve restare `consegnato`) — misurata
+a mano dall'esecutore del Task 4 e oggi **non ripetibile da nessuno**.
+
 - [ ] **Passo 1 — il giro completo, sul banco vero** (`set -a && . ./.env.local; set +a`):
   ① `destinatario_errato` → lavoro a `pronto`, **dichiarazione ancora viva**, `prima_immissione_at`
   **invariata** · ② riconsegna → **nessun progressivo bruciato** (numero di dichiarazione **identico**
