@@ -1154,3 +1154,71 @@ italiano. Da collegare all'**ITCA**.
 ⚠️ **Quinta volta che un conteggio di referto non regge alla misura:** il verificatore scriveva «9
 occorrenze» di *ultimo dispositivo*, ne ho contate **8**. Non cambia la conclusione — cambia la fiducia
 da dare ai numeri non rimisurati.
+
+---
+
+## 🇮🇹 IL REFERTO ITALIANO — e la risposta ribalta la domanda
+
+**Nasce da** Francesco: «*ricordati che a noi interessano le leggi italiane*». È stata l'aggiunta più
+utile delle tre verifiche.
+
+### 🔴 LA RISPOSTA IN UNA RIGA: i materiali sulla dichiarazione sono una SCELTA, non un obbligo
+
+**Nessuna fonte primaria italiana impone il contenuto della dichiarazione ex Allegato XIII, e tantomeno
+i materiali o i lotti.** Cercato in quattro luoghi, con censimento **esaustivo** e non a campione:
+- **D.Lgs. 137/2022** — testo **vigente** su Normattiva al 07/08/2026. L'**art. 7** (l'unico articolo
+  dedicato ai su misura) **rinvia** all'Allegato XIII e aggiunge **solo** obblighi di registrazione.
+  L'**art. 15**, l'unico intitolato «tracciabilità», mette l'UDI in capo a **chi riceve** il dispositivo
+  — non al fabbricante di su misura, che è comunque fuori dal sistema UDI.
+- **DM 9 giugno 2023** — l'**unico** decreto attuativo dell'art. 7, letto per intero: sei articoli, e
+  **zero righe** sul contenuto della dichiarazione.
+- **Ministero della Salute** — enumerato l'**intero** indice del tema «Dispositivi medici» (~60 voci):
+  i su misura hanno **tre** pagine, nessuna sul contenuto della dichiarazione.
+- **FAQ ministeriali sui su misura** (agg. **06/07/2026**, l'URL che ha trovato Francesco): 16 domande,
+  **nessuna** su materiali, lotti, contenuto o rilavorazione.
+
+### 🔑 DA DOVE VIENE DAVVERO LA PRASSI — e non ha mai avuto quel fondamento
+
+La consuetudine italiana nasce da una **nota del Ministero della Sanità del 1998** sui dispositivi
+dentali su misura, cioè dal regime della **direttiva 93/42, ABROGATO** dal 28/09/2022
+(D.Lgs. 137/2022 art. 32 c. 1). ⚠️ Documento **ministeriale nell'autore** ma reperito su hosting di
+terzi: **NON PRIMARIO**.
+🛑 **E anche là dentro i materiali NON stavano sulla dichiarazione del laboratorio.** Il fac-simile
+ministeriale li metteva sull'**«attestazione rilasciata dall'odontoiatra all'assistito»** (Allegato
+6-BIS: «*utilizzando i seguenti materiali…*»), mentre la **dichiarazione del fabbricante** (Allegato 6)
+non li nominava; e la **rintracciabilità delle materie prime** stava nel **fascicolo tecnico interno**.
+➡️ **Stampare i materiali sulla dichiarazione non ha mai avuto una base in un obbligo di contenuto,
+nemmeno prima del MDR.** ⚠️ Resta vero che *tenerne traccia* è cosa diversa dallo *stamparli*: la
+tracciatura interna è il plausibile contenuto dell'**Allegato XIII punto 2**.
+
+### 🔄 DUE CORREZIONI ALLE ISTRUZIONI DEL PROGETTO, applicate in `CLAUDE.md` §6
+
+1. 🔴 **LA VIGILANZA È CAMBIATA IL 1° MAGGIO 2026, e la nostra riga era ferma a prima.** Il **MIR
+   7.3.1** per l'incidente grave si trasmette **esclusivamente dalla pagina *Manufacturer Incident
+   Report* della piattaforma NSIS-Dispovigilance**, **non più via PEC** (circolari 21/04/2026 prot.
+   34434 e 22/05/2026 prot. 44595; pagina del Ministero aggiornata il **22/07/2026**). La PEC
+   dell'**Ufficio 5** resta viva per **FSCA/FSN** e per le **relazioni periodiche**.
+   🔑 **Perché contava:** una PWA che dicesse «manda la segnalazione via PEC» manderebbe l'odontotecnico
+   **sul canale sbagliato per l'unico caso che ha una scadenza di legge**.
+2. ✅ **EUDAMED: ora c'è la LEGGE ITALIANA, non solo la guida.** `D.Lgs. 137/2022 art. 12 c. 2` obbliga
+   alla registrazione i fabbricanti di su misura impiantabili di classe III **e quelli oggetto di
+   segnalazioni ex artt. 87-88** — la stessa regola di MDCG 2021-13 Q3, ma in **norma primaria**.
+3. 📌 **ITCA precisato:** la riduzione di **1/3 per le microimprese è AUTOMATICA** (art. 27 c. 48) —
+   ciò che va verificato caso per caso è **se il laboratorio sia microimpresa**. Nessun decreto MEF di
+   aggiornamento ISTAT risulta emanato: gli importi sono ancora **8.150-48.500**.
+
+### 🕳️ Un vuoto che vale la pena conoscere
+
+**L'art. 27 c. 7 sanziona la mancata conservazione della documentazione tecnica (All. II/III) e della
+*dichiarazione di conformità UE* — due oggetti che il fabbricante di su misura NON produce.**
+➡️ **Non esiste una sanzione italiana** per la mancata conservazione della dichiarazione ex Allegato
+XIII. L'obbligo resta (è europeo), **manca la sanzione nazionale**.
+
+### 📌 Cercato e NON trovato, dichiarato come tale
+
+Nessuna norma italiana su: il contenuto della dichiarazione · l'obbligo di indicare materiali o lotti ·
+**l'annullamento o la sostituzione** di una dichiarazione già emessa · **l'obbligo di riemettere dopo
+una riparazione** · la qualificazione della riconsegna come nuova immissione. E il **decreto attuativo
+dell'art. 7 c. 5** — quello sui «*soggetti che montano o adattano per un paziente specifico un
+dispositivo già presente sul mercato*», che sarebbe **il più vicino al nostro caso** — **non risulta
+emanato**.

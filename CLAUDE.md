@@ -480,10 +480,33 @@ chore(deps): add motion@12
   **Actor ID, che non è un SRN**.
   📌 **Stato al 06/08/2026:** il modulo **Vigilanza/PMS non è ancora obbligatorio** — i quattro
   obbligatori dal 28/05/2026 sono *Actor registration · UDI/Devices · Notified Bodies & Certificates ·
-  Market Surveillance*. **Fino ad allora si segnala per via nazionale al Ministero della Salute**
-  (Ufficio 5). 🔑 **Perché contava:** l'esenzione finisce esattamente nello scenario dell'ondata
+  Market Surveillance*. **Fino ad allora si segnala per via nazionale al Ministero della Salute.**
+  ✅ **CONFERMATO DA LEGGE ITALIANA il 07/08/2026, non più solo da una guida MDCG:** **D.Lgs. 137/2022
+  art. 12 c. 2** obbliga alla registrazione EUDAMED «*i fabbricanti di dispositivi su misura
+  impiantabili appartenenti alla classe III **e di dispositivi su misura oggetto di segnalazioni di cui
+  agli articoli 87 e 88 del regolamento***» — è la stessa regola di MDCG 2021-13 Q3, ma in **norma
+  primaria nazionale**. Base della segnalazione: **art. 10 c. 1** dello stesso decreto.
+  🔄 **«Ufficio 5» ERA LA RIGA GIUSTA FINO AL 30/04/2026 E OGGI NON BASTA — corretta il 07/08/2026
+  sulla pagina del Ministero (aggiornata il 22/07/2026):**
+  - **Incidente grave (MIR 7.3.1): dal 1° maggio 2026 si trasmette ESCLUSIVAMENTE dalla pagina
+    *Manufacturer Incident Report* della piattaforma NSIS-Dispovigilance — NON più via PEC**
+    (circolari ministeriali 21/04/2026 prot. 34434 e 22/05/2026 prot. 44595).
+  - La **PEC `dgfdm@postacert.sanita.it`** dell'**Ufficio 5 DGDMF** resta viva, ma per **altro**:
+    azione correttiva di sicurezza (FSCA) col suo avviso (FSN, **in italiano**) e relazioni di sintesi
+    periodiche (PSR), il cui formato si concorda con l'Ufficio 5.
+  🔑 **Perché la distinzione conta:** una PWA che dicesse all'odontotecnico «manda la segnalazione via
+  PEC» lo manderebbe **sul canale sbagliato per l'unico caso che ha una scadenza di legge**. 🔑 **Perché contava:** l'esenzione finisce esattamente nello scenario dell'ondata
   «si deve sempre poter intervenire» — cioè nel momento in cui costa di più crederla incondizionata.
-- **ITCA:** OBBLIGATORIO (campo `laboratori.codice_itca`)
+- **ITCA:** OBBLIGATORIO (campo `laboratori.codice_itca`). 📌 **Precisato il 07/08/2026 sul testo
+  vigente (Normattiva):** la sanzione **8.150-48.500 €** (D.Lgs. 137/2022 **art. 27 c. 13**) colpisce
+  gli **obblighi di registrazione** dell'**art. 7 commi 1-3**, mai il contenuto della dichiarazione.
+  ⚠️ **La riduzione di 1/3 per le microimprese (c. 48) è AUTOMATICA**: ciò che va verificato caso per
+  caso è **se il laboratorio sia microimpresa** ai sensi della raccomandazione 2003/361/CE — non se la
+  riduzione si applichi. **Nessun decreto MEF di aggiornamento ISTAT** (c. 51) risulta emanato: al
+  07/08/2026 gli importi sul testo vigente sono ancora quelli originari.
+  🔑 **Il nome «ITCA» non compare nella legge:** l'oggetto giuridico è l'*elenco dei fabbricanti di
+  dispositivi su misura*; ITCA è il codice che il sistema assegna, **non** un'autorizzazione né una
+  certificazione, non scade, e l'iscrizione è **gratuita** (FAQ del Ministero, agg. 06/07/2026).
 
 ---
 
