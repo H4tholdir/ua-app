@@ -707,6 +707,19 @@ contesto ce l'ha chi esegue e il rischio è basso, il passaggio *aggiunge* risch
   chi la autorizza.
 - **Il verde si misura PRIMA**, con `verify:full` e l'uscita letta **da variabile**.
 
+🛑 **MA ATTENZIONE — IL CLASSIFICATORE DEI COMANDI BLOCCA `git push` LO STESSO, e l'ho verificato lo
+stesso giorno della ratifica (07/08/2026):** `git push -u origin <ramo>` → *«Permission for this action
+was denied by the Claude Code auto mode classifier»*. ➡️ **D296 toglie il permesso di FRANCESCO, non il
+blocco dello STRUMENTO**, e i due sono cose diverse. Finché il classificatore non è configurato, il
+comando **si passa a Francesco già pronto e con la cartella dentro** — e vale la regola pagata con D284:
+**il terminale parte dalla cartella superiore**, quindi il `cd` non è un abbellimento.
+```bash
+cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && git push -u origin <ramo>
+```
+⚠️ **Non si aggira** (niente alias, niente script che lo eseguono di nascosto): la regola di casa è
+**«si chiede, non si aggira»**, e un blocco raggirato è peggio di un blocco subito. Se il permesso serve
+stabilmente, si aggiunge una regola in `.claude/settings.json` — **decisione di Francesco**.
+
 📌 **Il perimetro lo dà la seconda metà della frase di Francesco** — «*non siamo in distribuzione… i
 clienti la useranno solo quando lo dirò io*»: è la stessa struttura di D103 e D284, *il rischio è basso
 perché nessuno è ancora dentro*. 🛑 **Alla prima onboarding di un laboratorio reale questa riga va
