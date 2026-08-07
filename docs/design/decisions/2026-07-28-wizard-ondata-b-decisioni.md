@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentaduesima tornata (D311: le migration si battezzano con l'orologio universale, sempre)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentatreesima tornata (D312: «persona sbagliata» prende la sua azione dentro il Task 6)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**311 decisioni in centotrentadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**312 decisioni in centotrentatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3289,3 +3289,46 @@ Task 4 ha già pagato ribattendo una funzione dal catalogo.
 📌 **Nulla di già applicato è compromesso:** il ledger è monotòno
 (`…143623 < 171033 < 172520 < 174850 < 180314 < 182614 < 185858`). **Il rischio era tutto in avanti**, e
 questa decisione lo chiude.
+
+---
+
+### Centotrentatreesima tornata — D312: «persona sbagliata» prende la sua azione, e la prende dentro il Task 6 (07/08/2026, 22:00)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 22:00 CEST`**, comando separato.
+
+**Nasce da:** il censimento fatto **prima di scrivere il Task 6**, cioè dal punto di applicazione di
+R-E1 — l'esecutore (qui: chi apre il compito) cerca attivamente dove il piano sbaglia. È il **quinto**
+difetto trovato in questo piano, e il primo trovato **prima** che il codice esistesse.
+
+**Il fatto, misurato.** La spec §0 elenca **TRE** motivi che devono riportare il lavoro fra i pronti
+lasciando viva la dichiarazione: `destinatario_errato`, e i due difetti quando si sceglie «si sistema».
+Il Task 6 ne costruiva **due**. Il terzo vive in una riga **fissa** di `EFFETTI_PER_MOTIVO`
+(`src/lib/qualita/effetti.ts:124-131`) che porta `azione: null`, e `effettoDaMotivoEScelta` **non la
+raggiunge** (per quel motivo `richiedeScelta` è falso e la funzione restituisce la riga di base).
+`provato:` `grep -n "EFFETTI_PER_MOTIVO"` sul piano → **zero risultati**: nessuno dei dieci task la
+tocca.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D312** | 🔑 **`destinatario_errato` riceve `azione: 'torna_pronto'`, e la riceve NEL TASK 6** | «*sì, prendilo nel Task 6*» — scelta esplicita fra prenderlo nel T6 e lasciarlo al T7 | Il Task 6 allarga il proprio perimetro di **una riga** della tabella fissa, e porta con sé **tre asserzioni già scritte** che oggi dicono l'opposto (`qualita-effetti.test.ts:33` e `:45`, `eventi-qualita-route.test.ts:823-838`). Piano emendato: **Passo 0 del Task 6**. |
+
+**🔑 Perché non poteva restare com'era, e non è una rifinitura.** Il Task 7 smisterà su
+`effetto.azione`: con `null` non si accende nessun ramo. E il **Task 10 chiede già una prova** — «①
+`destinatario_errato` → lavoro a `pronto`, dichiarazione ancora viva, `prima_immissione_at` invariata»
+— che **sarebbe nata rossa tre compiti più in là**, con l'aria di una regressione invece che di un
+buco di perimetro.
+
+**⚠️ E porta con sé un commento SCADUTO, che è la parte più pericolosa.** La riga fissa è accompagnata
+da tre righe che spiegano perché l'azione è nulla: «*`riapri_lavoro_atomica` annulla SEMPRE la
+dichiarazione, quindi non può servire questa riga. La transizione «pronto col documento intatto» NON
+ESISTE ancora*». **Era vero fino a ieri sera; il PRONTO-4 ha costruito `riporta_a_pronto_atomica`.**
+🛑 Un commento che nega l'esistenza di una cosa già costruita è la **stessa trappola** del file di
+prove del Task 10 (Passo 0): un testo che descrive un mondo superato, lasciato accanto al codice, e che
+la prossima persona legge come se fosse vero.
+
+**📌 Perché dichiarare un'azione che il Task 6 non esegue non è uno degli «otto rami inerti» vietati
+da `effetti.ts:26-31`.** È la **stessa finestra di un compito** che il piano accetta già per i due
+difetti: il T6 dichiara, il T7 esegue. Il divieto riguarda i rami finti che sembrano agire **per
+sempre**, non la dichiarazione che il compito successivo cabla. In quella finestra la rotta continua a
+smistare solo `riapri_lavoro` (`eventi-qualita/route.ts:383-386`), quindi **niente si muove per
+sbaglio** — ed è ciò che la terza asserzione corretta afferma per iscritto.

@@ -83,13 +83,16 @@ Vitest.
 | `src/lib/consegna/orchestrate.ts` | **letto** 95-160 · ⚠️ **DA LEGGERE dall'esecutore di T2**: 300-340 (la scrittura di `data_consegna_effettiva`) |
 | `src/components/features/lavori/scheda-v3/DevoIntervenire.tsx` | **letto** per struttura (fasi, righe 74-290, 460-540) · ⚠️ **DA LEGGERE PER INTERO dall'esecutore di T8** |
 | `src/lib/qualita/motivi-ui.ts` | ⚠️ **NON letto** — **T8 lo apre per primo**: contiene già due formulazioni della domanda del bivio (`:61` e `:66`), e una terza sarebbe «le liste scritte due volte» |
+| `tests/unit/qualita-effetti.test.ts` | **letto** 1-140 *(07/08 notte, in apertura del T6)* — porta le **tre affermazioni** che D312 corregge e la **guardia D301/D302 che non vede i testi nuovi** |
+| `tests/unit/eventi-qualita-route.test.ts` | **letto** 795-845 *(07/08 notte)* — il ciclo `:823-838` asserisce `azione` nulla su sette motivi, `destinatario_errato` compreso · ⚠️ **DA LEGGERE PER INTERO dall'esecutore di T7**, che riscrive la risposta della rotta |
 
 ## 🧬 CENSIMENTO DEGLI IDENTIFICATORI (R-P6) — ogni nome porta la sua destinazione
 
 | identificatore | oggi | dopo | dove |
 |---|---|---|---|
 | `AzioneAutomatica` | `'riapri_lavoro'` | `+ 'torna_pronto' \| 'crea_rifacimento'` | T6 |
-| `effettoDaMotivo` | esportata | **invariata** | — |
+| `effettoDaMotivo` | esportata | **invariata** come firma; cambia **una riga** della tabella che restituisce (sotto) | T6 |
+| `EFFETTI_PER_MOTIVO.destinatario_errato.azione` | `null` — il commento dice «*la transizione non esiste ancora*» | **`'torna_pronto'`**, commento riscritto (⚖️ **D312**). 🛑 Porta con sé **tre** asserzioni: `qualita-effetti.test.ts:33` · `:45` · `eventi-qualita-route.test.ts:823-838` | T6 |
 | `effettoDaMotivoEScelta` | non esiste | **nuova**, esportata | T6 |
 | `Scelta` | non esiste | **nuovo tipo** `'si_sistema' \| 'si_rifa'`, esportato | T6 |
 | `eventi_qualita.scelta_intervento` | non esiste (P6) | colonna nuova, `NULL` per sette motivi | T1 |
@@ -625,6 +628,51 @@ git add -A && git commit -m "feat(rifacimento): la RPC scrive evento_id, e il DR
   `export function effettoDaMotivoEScelta(motivo: Motivo, scelta: Scelta | null): Effetto` ·
   `AzioneAutomatica = 'riapri_lavoro' | 'torna_pronto' | 'crea_rifacimento'` ·
   `export const MOTIVI_CON_SCELTA: readonly Motivo[]`.
+- Modifica anche: la riga fissa `EFFETTI_PER_MOTIVO.destinatario_errato` (Passo 0) ·
+  `tests/unit/eventi-qualita-route.test.ts` (una sola asserzione, Passo 0 ②).
+
+- [ ] **Passo 0 — 🔴 EMENDAMENTO DEL 07/08 NOTTE (censimento prima di scrivere): «PERSONA SBAGLIATA» NON HA UN PADRONE**
+
+La spec **§0** elenca **TRE** motivi che devono riportare il lavoro fra i pronti lasciando viva la
+dichiarazione. Questo task ne costruisce **due** (`MOTIVI_CON_SCELTA`); il terzo —
+`destinatario_errato` — vive in una riga **fissa** di `EFFETTI_PER_MOTIVO` e oggi porta `azione: null`
+(`src/lib/qualita/effetti.ts:124-131`). `effettoDaMotivoEScelta` **non la raggiunge**: per quel motivo
+`richiedeScelta` è falso e la funzione restituisce `base`.
+`provato:` `grep -n "EFFETTI_PER_MOTIVO" docs/superpowers/plans/2026-08-07-torna-a-pronto-documento-intatto.md`
+→ **zero risultati**: nessuno dei dieci task la tocca.
+
+➡️ **Conseguenza misurata, non temuta:** il Task 7 smisterà su `effetto.azione`, che per quel motivo
+resta `null` → nessun ramo si accende; e il **Task 10 chiede una prova** — «① `destinatario_errato` →
+lavoro a `pronto`, dichiarazione ancora viva, `prima_immissione_at` invariata» — che **nascerebbe
+rossa**, tre task più in là e con l'aria di una regressione.
+
+⚖️ **D312 — scelta di Francesco, 07/08/2026: il terzo motivo entra in QUESTO task.**
+
+**① La riga fissa passa a `azione: 'torna_pronto'`**, e il commento che le sta accanto va corretto:
+dice «*la transizione «pronto col documento intatto» NON ESISTE ancora*» — 🛑 **è scaduto dal
+PRONTO-4**, che ha costruito `riporta_a_pronto_atomica`. Un commento che nega l'esistenza di una cosa
+costruita è la stessa trappola del file di prove del Task 10.
+
+**② Tre affermazioni già scritte dicono l'opposto, e si correggono INSIEME alla riga** — l'elenco non
+lo decide chi scrive, lo decide il censimento (R-P6):
+- `tests/unit/qualita-effetti.test.ts:31-34` — «è l'UNICO dei nove con un'azione automatica».
+  Diventano **due**: `['destinatario_errato', 'errore_registrazione']` — `provato:`
+  `src/lib/domain/qualita-costanti.ts:21-31`, `destinatario_errato` è la **quarta** voce di `MOTIVI` e
+  `errore_registrazione` l'**ottava**, quindi quest'ordine è quello vero. **Riverifica sull'output**,
+  non su questa riga.
+- `tests/unit/qualita-effetti.test.ts:38-46` — l'asserzione `expect(e.azione).toBeNull()` **e** il suo
+  commento di tre righe (`:42-44`), che è il testo scaduto del punto ①.
+- `tests/unit/eventi-qualita-route.test.ts:823-838` — il ciclo «GLI ALTRI OTTO MOTIVI NON la chiamano»
+  asserisce `azione` nulla su sette motivi, `destinatario_errato` compreso. 🛑 **La riga
+  `expect(mockRpc).not.toHaveBeenCalled()` RESTA VERA e non si tocca:** a questo task la rotta smista
+  ancora solo `riapri_lavoro` (`src/app/api/lavori/[id]/eventi-qualita/route.ts:383-386`). Si toglie
+  quel motivo dal ciclo e gli si dà **la sua asserzione**, con entrambe le cose che afferma: azione
+  `'torna_pronto'` **e** nessuna chiamata alla RPC.
+
+🔑 **Perché dichiarare un'azione che a questo task nessuno esegue NON è uno degli «otto rami inerti»
+che il modulo vieta** (`effetti.ts:26-31`): è **la stessa finestra di un task** che il piano accetta
+già per i due difetti — il **T6 dichiara**, il **T7 esegue**. Il divieto riguarda i rami finti che
+sembrano agire per sempre, non la dichiarazione che il compito successivo cabla.
 
 - [ ] **Passo 1 — le prove, PRIMA del codice**
 
@@ -661,6 +709,19 @@ describe('effettoDaMotivoEScelta — il bivio dei due difetti (D304)', () => {
     const e = effettoDaMotivoEScelta('difetto_lavorazione', 'si_sistema')
     expect(e.perche).not.toMatch(/oppure se ne fa uno nuovo\?/)
   })
+  // ⚖️ D312 — il TERZO motivo della spec §0, che non passa dal bivio: la sua
+  // azione vive nella riga fissa, e questa prova la copre da entrambe le porte.
+  it('«persona sbagliata» porta ORA la sua azione, e la porta anche senza scelta (D291 · D312)', () => {
+    for (const e of [
+      effettoDaMotivo('destinatario_errato'),
+      effettoDaMotivoEScelta('destinatario_errato', null),
+      effettoDaMotivoEScelta('destinatario_errato', 'si_rifa'), // una scelta che quel motivo non ammette
+    ]) {
+      expect(e.lavoro).toBe('torna_pronto')
+      expect(e.documento).toBe('resta_valido')
+      expect(e.azione).toBe('torna_pronto')
+    }
+  })
 })
 ```
 🔑 **L'ultima prova non è cosmesi:** `DevoIntervenire.tsx:468` stampa `effetto.perche`, e il testo di
@@ -675,6 +736,13 @@ cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx vitest run tests/
 **Atteso:** rosso da «`effettoDaMotivoEScelta` is not a function». Poi metti un **abbozzo inerte**
 (`export const effettoDaMotivoEScelta = () => NEUTRO`) e **conta quante asserzioni si accendono**:
 scrivi il numero nel resoconto (`N su M`).
+⚠️ **E dichiara che cosa quel numero NON misura, o è falsa precisione.** Tre delle prove del Passo 1
+poggiano su valori che vengono dalla **tabella fissa**, non dal ramo nuovo — la riga «senza scelta»
+(`scelta_richiesta`), la riga «una scelta su un motivo che non la ammette» (`toEqual(effettoDaMotivo(…))`)
+e quella di D312: possono passare **senza che il bivio sia giusto**. Le prove che misurano davvero il
+ramo nuovo sono le due dei difetti più quella del testo. Scrivi entrambi i numeri.
+📌 L'abbozzo inerte fa protestare `tsc` («*Expected 0 arguments, but got 2*») sui punti di chiamata:
+è atteso e non è un guasto — `vitest` non guarda i tipi, quindi il conteggio gira lo stesso.
 
 - [ ] **Passo 3 — il codice**
 
@@ -725,17 +793,27 @@ E in cima al file, l'unione allargata:
 export type AzioneAutomatica = 'riapri_lavoro' | 'torna_pronto' | 'crea_rifacimento'
 ```
 
-- [ ] **Passo 4 — verde, e la guardia dei testi**
+- [ ] **Passo 4 — 🔴 EMENDAMENTO: la guardia delle parole NON vede i testi nuovi**
+
+`provato:` `tests/unit/qualita-effetti.test.ts:117-123` — la guardia di **D301/D302** scorre `MOTIVI` e
+chiama `effettoDaMotivo`, cioè **la sola tabella fissa**. I due `perche` nuovi li produce
+`effettoDaMotivoEScelta`, quindi la guardia **non li esamina nemmeno**: passerebbero per non essere
+stati guardati. 🛑 È la stessa famiglia dei due falsi verdi già pagati in quest'ondata — *una prova che
+non guarda la cosa non è una prova che la cosa sia giusta*.
+➡️ **Allarga l'INGRESSO della guardia** (non i testi: quelli del Passo 3 sono già puliti) ai quattro
+esiti risolti — `MOTIVI_CON_SCELTA` × `si_sistema`/`si_rifa` — in modo che il divieto valga anche per
+chi scriverà la prossima frase.
 
 ```bash
-cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx vitest run tests/unit/qualita-effetti.test.ts 2>&1 | tail -8
+cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx vitest run tests/unit/qualita-effetti.test.ts tests/unit/eventi-qualita-route.test.ts 2>&1 | tail -8
 ```
-**Atteso:** tutte verdi, **compresa** la guardia che vieta «pezzo» e «carta» nei testi degli effetti.
+**Atteso:** tutte verdi in **entrambi** i file — il secondo perché il Passo 0 ② lo tocca — compresa la
+guardia allargata che vieta «pezzo» e «carta».
 
 - [ ] **Passo 5 — salva**
 
 ```bash
-git add -A && git commit -m "feat(qualita): effettoDaMotivoEScelta — il bivio risolto, mai indovinato (D304)"
+git add -A && git commit -m "feat(qualita): effettoDaMotivoEScelta — il bivio risolto, mai indovinato (D304), e «persona sbagliata» prende la sua azione (D312)"
 ```
 
 ---
