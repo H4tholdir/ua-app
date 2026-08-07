@@ -23,14 +23,21 @@
 // poi il motivo. Un terzo passaggio di conferma dopo il motivo violerebbe
 // quella riga: per questo l'azione automatica parte quando l'evento si registra.
 //
-// ⚠️ DUE RIGHE SU NOVE HANNO UN'AZIONE AUTOMATICA — erano una fino al 07/08,
-// e la seconda è `destinatario_errato` (⚖️ D312): l'ha resa possibile la
-// transizione «pronto col documento intatto» costruita dal PRONTO-4. Le altre
-// sette NON sono abbozzi: sono descrittori. Dichiarano che cosa è stato deciso,
-// e l'app non finge di eseguirlo. Costruire sette rami inerti che sembrano
-// agire sarebbe esattamente il difetto che questo modulo nasce per chiudere —
-// la funzione esistente che nessuno chiama, «una cosa che esiste, sembra
-// copertura, e non gira».
+// ⚠️ LE NOVE RIGHE SI DIVIDONO IN TRE GRUPPI, E NON IN DUE — la riga che stava
+// qui prima ne contava due, ed era già superata dalla stessa passata che l'ha
+// scritta (trovata dalla revisione del 07/08):
+//   · DUE portano l'azione SUBITO, dalla tabella fissa: `errore_registrazione`
+//     (D288) e — dal 07/08 — `destinatario_errato` (⚖️ D312, resa possibile
+//     dalla transizione «pronto col documento intatto» del PRONTO-4);
+//   · DUE la portano DOPO LA SCELTA, e non da qui: `difetto_lavorazione` e
+//     `difetto_materiale` dichiarano `scelta_richiesta` nella tabella e
+//     ricevono la loro azione da `effettoDaMotivoEScelta` (D304). 🛑 Chi legge
+//     la sola tabella le vede senza azione, e si sbaglia.
+//   · le altre CINQUE NON sono abbozzi: sono descrittori. Dichiarano che cosa è
+//     stato deciso, e l'app non finge di eseguirlo. Costruire cinque rami
+//     inerti che sembrano agire sarebbe esattamente il difetto che questo
+//     modulo nasce per chiudere — la funzione esistente che nessuno chiama,
+//     «una cosa che esiste, sembra copertura, e non gira».
 //
 // 🔑 E DICHIARARE UN'AZIONE CHE ANCORA NESSUNO ESEGUE NON È UNO DI QUEI RAMI
 // INERTI. La differenza è la finestra: un ramo inerte finge di agire **per

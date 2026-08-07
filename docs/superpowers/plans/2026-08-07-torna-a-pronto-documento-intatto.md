@@ -638,8 +638,18 @@ dichiarazione. Questo task ne costruisce **due** (`MOTIVI_CON_SCELTA`); il terzo
 `destinatario_errato` — vive in una riga **fissa** di `EFFETTI_PER_MOTIVO` e oggi porta `azione: null`
 (`src/lib/qualita/effetti.ts:124-131`). `effettoDaMotivoEScelta` **non la raggiunge**: per quel motivo
 `richiedeScelta` è falso e la funzione restituisce `base`.
-`provato:` `grep -n "EFFETTI_PER_MOTIVO" docs/superpowers/plans/2026-08-07-torna-a-pronto-documento-intatto.md`
-→ **zero risultati**: nessuno dei dieci task la tocca.
+`provato:` — 🔄 **il marchio è stato RISCRITTO perché il primo scadeva nell'istante in cui lo scrivevo**
+(trovato dall'esecutore del T6). Diceva `grep -n "EFFETTI_PER_MOTIVO" <questo piano>` → *zero
+risultati*: vero contro il piano **prima** dell'emendamento, falso un minuto dopo — è stato
+l'emendamento stesso a mettere quel nome nel piano, e chi lo rilancia oggi ne trova quattro.
+La forma **rieseguibile** è quella che interroga il piano di ieri sera:
+```bash
+cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && git show 83a899fd:docs/superpowers/plans/2026-08-07-torna-a-pronto-documento-intatto.md | grep -c "EFFETTI_PER_MOTIVO"
+```
+→ **`0`**: nessuno dei dieci task, come erano scritti, tocca quella riga.
+🔑 **La lezione, e non è la prima volta in quest'ondata:** un marchio `provato:` che misura il
+documento **in cui vive** si invalida da solo appena il documento cambia. Si misura sempre un
+riferimento **fermo** — un commit, un file di un'altra cartella, il catalogo vivo.
 
 ➡️ **Conseguenza misurata, non temuta:** il Task 7 smisterà su `effetto.azione`, che per quel motivo
 resta `null` → nessun ramo si accende; e il **Task 10 chiede una prova** — «① `destinatario_errato` →

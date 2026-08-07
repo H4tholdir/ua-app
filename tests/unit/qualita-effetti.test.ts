@@ -5,8 +5,31 @@ import {
   EFFETTI_PER_MOTIVO,
   MOTIVI_CON_SCELTA,
 } from '@/lib/qualita/effetti'
+import type { Effetto } from '@/lib/qualita/effetti'
 import { MOTIVI } from '@/lib/domain/qualita-costanti'
 import type { Motivo } from '@/lib/domain/qualita-costanti'
+
+/** 🔑 L'INGRESSO CONDIVISO DELLE INVARIANTI SUI TESTI — tredici righe: le NOVE
+ *  della tabella fissa più i QUATTRO esiti risolti del bivio
+ *  (`MOTIVI_CON_SCELTA` × `si_sistema`/`si_rifa`).
+ *
+ *  🛑 Sta qui, e non dentro le singole prove, per un difetto vero del 07/08: le
+ *  due invarianti sui testi avevano ognuna il proprio elenco scritto a mano, e
+ *  quando è arrivato il bivio ne è stato allargato **uno solo** — l'altra è
+ *  rimasta a guardare la sola tabella fissa, verde e cieca, sei righe più
+ *  sotto. Due elenchi che devono restare uguali sono un elenco che diverge.
+ *  Chi aggiunge una porta d'uscita nuova a questo modulo la aggiunge QUI, e
+ *  tutte le invarianti la vedono insieme. */
+function tutteLeRighe(): ReadonlyArray<readonly [string, Effetto]> {
+  return [
+    ...MOTIVI.map((m) => [m, effettoDaMotivo(m)] as const),
+    ...MOTIVI_CON_SCELTA.flatMap((m) =>
+      (['si_sistema', 'si_rifa'] as const).map(
+        (s) => [`${m} + ${s}`, effettoDaMotivoEScelta(m, s)] as const
+      )
+    ),
+  ]
+}
 
 /**
  * L'ELENCO DEGLI EFFETTI DEI NOVE MOTIVI — D288, D290, D291, D292, D297, D298.
@@ -118,11 +141,19 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
       expect(Object.keys(EFFETTI_PER_MOTIVO).sort()).toEqual([...MOTIVI].sort())
     })
 
+    // 🔴 SECONDO EMENDAMENTO DEL 07/08, e l'ha trovato la REVISIONE: questa
+    // invariante è la GEMELLA di quella di D301/D302 poco sotto, e mentre
+    // l'altra veniva allargata ai testi risolti questa è rimasta cieca — sei
+    // righe più su, dentro lo stesso `describe`. Erano due elenchi scritti a
+    // mano sullo stesso ingresso, e ne è stato aggiornato uno solo.
+    // 🔑 Per questo l'ingresso ora è UNO SOLO e vive in `tutteLeRighe()`: due
+    // elenchi che devono restare uguali sono un elenco che diverge.
     it('ogni riga porta un perché in parole comuni e la decisione che la regge', () => {
-      for (const m of MOTIVI) {
-        const e = effettoDaMotivo(m)
-        expect(e.perche.length, m).toBeGreaterThan(40)
-        expect(e.decisione, m).toMatch(/D\d+|spec §/)
+      const righe = tutteLeRighe()
+      expect(righe).toHaveLength(13)
+      for (const [dove, e] of righe) {
+        expect(e.perche.length, dove).toBeGreaterThan(40)
+        expect(e.decisione, dove).toMatch(/D\d+|spec §/)
       }
     })
 
@@ -142,20 +173,13 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
     // esiti risolti (`MOTIVI_CON_SCELTA` × `si_sistema`/`si_rifa`), così il
     // divieto vale anche per chi scriverà la prossima frase.
     it('🛑 D301/D302 — nessun testo dice «pezzo» o «carta»: si dice MANUFATTO e DICHIARAZIONE', () => {
-      const testi: Array<readonly [string, string]> = [
-        ...MOTIVI.map((m) => [m, effettoDaMotivo(m).perche] as const),
-        ...MOTIVI_CON_SCELTA.flatMap((m) =>
-          (['si_sistema', 'si_rifa'] as const).map(
-            (s) => [`${m} + ${s}`, effettoDaMotivoEScelta(m, s).perche] as const
-          )
-        ),
-      ]
+      const righe = tutteLeRighe()
       // 🔑 Il conteggio è parte della guardia: senza, un `MOTIVI_CON_SCELTA`
       // svuotato per sbaglio farebbe RESTRINGERE l'ingresso in silenzio, e la
       // prova tornerebbe verde proprio perché non guarda più niente.
-      expect(testi).toHaveLength(13)
-      for (const [dove, grezzo] of testi) {
-        const t = grezzo.toLowerCase()
+      expect(righe).toHaveLength(13)
+      for (const [dove, e] of righe) {
+        const t = e.perche.toLowerCase()
         expect(t, `${dove} — «pezzo» è vietato (D301: si dice «manufatto»)`).not.toMatch(/\bpezzo\b/)
         expect(t, `${dove} — «carta» è vietata nelle etichette (D302: si dice «dichiarazione»)`).not.toMatch(/\bcarta\b/)
       }
@@ -205,6 +229,14 @@ describe('effettoDaMotivoEScelta — il bivio dei due difetti (D304)', () => {
     expect(e.azione).toBe('crea_rifacimento')
   })
 
+  // ⚠️ QUESTA PROVA MISURA L'ESITO, NON LA CLAUSOLA — e il nome prometteva di
+  // più, quindi la riga sta qui (revisione del 07/08). La mutazione «togli
+  // `|| scelta === null`» **non fa fallire nessuna prova**, ed è corretto: senza
+  // quella clausola l'esecuzione cade comunque in fondo, perché `null` non è né
+  // `'si_sistema'` né `'si_rifa'`. La clausola è ridondante per comportamento e
+  // scritta per intenzione — dice a chi legge che l'assenza di scelta è un caso
+  // previsto, non un residuo. 🔑 Ciò che questa prova garantisce davvero, ed è
+  // ciò che conta a schermo: senza scelta NON esce un ramo indovinato.
   it('senza scelta restituisce la riga NON risolta, e nessuna azione', () => {
     const e = effettoDaMotivoEScelta('difetto_lavorazione', null)
     expect(e.lavoro).toBe('scelta_richiesta')
