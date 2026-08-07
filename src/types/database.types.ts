@@ -6488,6 +6488,18 @@ export type Database = {
         }
         Returns: Json
       }
+      riporta_a_pronto_atomica: {
+        Args: {
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+        }
+        Returns: Json
+      }
+      ripristina_lavoro_a_pronto: {
+        Args: { p_laboratorio_id: string; p_lavoro_id: string }
+        Returns: undefined
+      }
       salva_fasi_ciclo_atomico: {
         Args: {
           p_ciclo_id: string
