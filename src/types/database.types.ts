@@ -6320,6 +6320,7 @@ export type Database = {
       crea_rifacimento_atomico: {
         Args: {
           p_costo_interno?: number
+          p_evento_id?: string
           p_lavoro_originale_id: string
           p_motivo: string
           p_note?: string
