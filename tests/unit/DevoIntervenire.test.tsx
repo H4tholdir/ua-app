@@ -11,7 +11,8 @@ import { DevoIntervenire } from '@/components/features/lavori/scheda-v3/DevoInte
  * la decisione è stata persa per strada.
  */
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
+const refreshMock = vi.fn()
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: refreshMock }) }))
 
 function montaComponente() {
   return render(
@@ -96,7 +97,7 @@ describe('DevoIntervenire', () => {
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
     // Va alla conferma, non ai dettagli.
-    expect(screen.getByText('Il lavoro torna fra i pronti')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Il lavoro torna fra i pronti' })).toBeTruthy()
     expect(screen.queryByText('Dov\'era il manufatto?')).toBeNull()
   })
 
@@ -180,7 +181,7 @@ describe('DevoIntervenire', () => {
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
     fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
 
-    await waitFor(() => expect(screen.getByText('Ma il lavoro non è tornato indietro')).toBeTruthy())
+    await waitFor(() => expect(screen.getAllByText('Ma il lavoro non è tornato indietro').length).toBeGreaterThan(0))
     expect(screen.getByText('Riportalo tu fra quelli pronti.')).toBeTruthy()
   })
 
@@ -191,7 +192,7 @@ describe('DevoIntervenire', () => {
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
     fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
 
-    await waitFor(() => expect(screen.getByText('Il lavoro non era da riportare indietro')).toBeTruthy())
+    await waitFor(() => expect(screen.getAllByText('Il lavoro non era da riportare indietro').length).toBeGreaterThan(0))
     expect(screen.queryByText('Ma il lavoro non è tornato indietro')).toBeNull()
   })
 
@@ -202,7 +203,7 @@ describe('DevoIntervenire', () => {
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
     fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
 
-    await waitFor(() => expect(screen.getByText('Il lavoro è tornato fra i pronti')).toBeTruthy())
+    await waitFor(() => expect(screen.getAllByText('Il lavoro è tornato fra i pronti').length).toBeGreaterThan(0))
     expect(screen.getByText(/Non c'era nessuna dichiarazione da annullare/)).toBeTruthy()
   })
 
@@ -222,6 +223,40 @@ describe('DevoIntervenire', () => {
     const corpo = JSON.parse(opzioni.body) as Record<string, unknown>
     expect(corpo.esito).toBe('reclamo')
     expect(corpo.giustificazione).toBe(RISPOSTA_OK.proposta.perche)
+  })
+
+  // 🛑 QUESTA PROVA NASCE DA UN DIFETTO CHE LE PROVE UNITARIE NON POTEVANO
+  // VEDERE, e va detto per intero perché è la lezione più utile del Task 6.
+  // La prima stesura chiamava `router.refresh()` subito dopo aver registrato,
+  // a foglio APERTO. Sullo schermo vero quel rinfresco fa rirendere il Server
+  // Component: la scheda si ricostruisce, questo componente perde lo stato
+  // locale e **la schermata finale non compare mai** — la registrazione è
+  // salva, la valutazione depositata, e la persona non vede nessuna conferma.
+  // `provato:` misurato il 07/08 sul banco vero (evento e valutazione in banca
+  // dati, foglio sparito).
+  // ⚠️ In jsdom `router.refresh` è una finzione che non rirende niente: le
+  // quindici prove restavano verdi. **Una prova non può vedere un difetto che
+  // vive nel montaggio del framework** — per quello esiste la FASE 9.
+  // ➡️ Qui si sorveglia l'INVARIANTE che il difetto violava: **niente rinfresco
+  // finché il foglio è aperto.** È quanto di più vicino si possa provare.
+  it('🛑 NON rinfresca la pagina mentre il foglio è aperto — lo fa alla chiusura', async () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+
+    // Il fatto è registrato, il foglio è aperto sulla proposta: NIENTE rinfresco.
+    expect(refreshMock).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+    await waitFor(() => expect(screen.getAllByText(/Registrato/).length).toBeGreaterThan(0))
+    // Ancora niente: la schermata finale dev'essere leggibile.
+    expect(refreshMock).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ho capito' }))
+    await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(1))
   })
 
   it('«altro» non si può registrare senza aver scritto due parole', () => {

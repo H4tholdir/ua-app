@@ -9,12 +9,10 @@
 // 🔑 LA FORMA, e ogni pezzo ha la sua decisione dietro:
 //   ① una RIGA sulla scheda, sempre presente su un lavoro consegnato — non per
 //      dieci minuti (D269: la finestra è abolita);
-//   ② un DIALOGO d'ingresso, parole di Francesco (D288): «vuoi reintervenire
-//      sul lavoro o hai premuto questo tasto per sbaglio?». 🛑 È un dialogo e
-//      non un foglio: per una conferma PRIMA di un atto conseguente il foglio a
-//      scomparsa è lo strumento sbagliato — si chiude anche per sbaglio,
-//      trascinandolo. L'uscita **non salva niente**;
-//   ③ un FOGLIO coi nove motivi RAGGRUPPATI in cinque famiglie (D300);
+//   ② la DOMANDA D'INGRESSO, parole di Francesco (D288): «vuoi reintervenire
+//      sul lavoro o hai premuto questo tasto per sbaglio?». L'uscita **non
+//      salva niente**;
+//   ③ i nove motivi RAGGRUPPATI in cinque famiglie (D300);
 //   ④ per otto motivi su nove, le quattro caselle della spec §5;
 //   ⑤ la proposta **col suo perché** e un tasto per cambiarla (D267).
 //
@@ -22,6 +20,25 @@
 //    TASTO per sbaglio» è l'uscita del dialogo d'ingresso e **non salva
 //    niente**; «ho sbagliato a premere CONSEGNA» è uno dei nove motivi e
 //    **ripristina tutto**. Sono nominati diversamente apposta.
+//
+// 🛑 UN SOLO OVERLAY PER TUTTO IL PERCORSO, E NON È UNA SCELTA DI STILE: È UN
+//    DIFETTO MISURATO IL 07/08 SULLO SCHERMO VERO, che quindici prove unitarie
+//    verdi non avevano visto.
+//    La prima stesura apriva la domanda d'ingresso come `DialogConferma` e poi,
+//    sulla conferma, un `Sheet` separato. `provato:` sul browser il foglio **non
+//    compariva mai** (`history.back` chiamata 1 volta, testo del foglio assente
+//    a 60 ms e a 700 ms). Il motivo sta scritto in `storia-overlay.ts`: la pila
+//    degli overlay tiene **una sola entry di history**, e chi esce per ultimo la
+//    disfa con `history.back()`. Nello stesso commit React esegue PRIMA la
+//    pulizia del dialogo (`esciOverlay` → pila vuota → `history.back()`) e POI
+//    l'ingresso del foglio: il `popstate` che arriva subito dopo chiude il
+//    foglio appena nato. È la famiglia di difetto che il progetto ha già pagato
+//    con la navigazione dagli overlay.
+//    ➡️ Il percorso vive in UN foglio solo, che cambia passo. Nessuna consegna
+//    di testimone fra due overlay, quindi nessuna corsa da vincere.
+//    ⚠️ Il `DialogConferma` del percorso corto resta, ma **SOPRA il foglio che
+//    resta aperto** — ed è il caso che il modulo sostiene per costruzione
+//    («finché sotto resta anche un solo overlay aperto, l'entry resta»).
 //
 // ⚖️ D301/D303 — qui parla il BANCO: si dice «manufatto». «Dispositivo» è la
 //    parola della norma e arriva dal server, dentro il `perche` della proposta.
@@ -55,6 +72,18 @@ import { effettoDaMotivo } from '@/lib/qualita/effetti'
 
 /** Le fasi del percorso. `chiuso` è lo stato a riposo: la riga sulla scheda. */
 type Fase = 'chiuso' | 'domanda' | 'motivo' | 'confermaSbaglio' | 'dettagli' | 'proposta' | 'esito'
+
+/** Il titolo del foglio cambia col passo: è UN foglio solo, e il titolo è la
+ *  sola cosa che dice a che punto si è. */
+const TITOLI: Record<Fase, string> = {
+  chiuso: '',
+  domanda: 'Vuoi intervenire su questo lavoro?',
+  motivo: 'Che cos\'è successo?',
+  confermaSbaglio: 'Che cos\'è successo?',
+  dettagli: 'Qualche dettaglio',
+  proposta: 'Ecco cosa ne penso',
+  esito: 'Fatto',
+}
 
 interface Proposta {
   esito: Esito
@@ -117,12 +146,23 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
   const [cambiando, setCambiando] = useState(false)
   const [lavorando, setLavorando] = useState(false)
   const [confermata, setConfermata] = useState(false)
+  const [daRinfrescare, setDaRinfrescare] = useState(false)
 
+  /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
+   *  difetto MISURATO sullo schermo vero il 07/08 (FASE 9), e il giro nei dati
+   *  era perfettamente riuscito mentre l'utente vedeva il foglio sparire.
+   *  `router.refresh()` fa rirendere il Server Component: la scheda si ricostruisce
+   *  e con lei questo componente, che perde lo stato locale — cioè il passo a cui
+   *  si era arrivati. Chiamandolo dentro `registra()` la schermata finale non
+   *  compariva MAI: la registrazione era salva, la valutazione depositata, e la
+   *  persona restava senza nessuna conferma a schermo. È la §8.1 vista dall'altro
+   *  lato — riuscire senza dirlo. */
   function ricomincia() {
     setFase('chiuso'); setMotivo(null); setMotivoLibero(''); setRisposta(null)
     setEsitoScelto(null); setCambiando(false); setConfermata(false)
     setOrigine('laboratorio_interno'); setStatoDisp('consegnato_non_applicato')
     setDanno('da_valutare'); setConosciuto(adessoLocale())
+    if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
   }
 
   function scegliMotivo(m: Motivo) {
@@ -178,7 +218,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
       // Il fatto è salvato. Sul percorso corto non c'è una proposta da
       // discutere: si mostra subito che cos'è successo.
       setFase(sbaglio ? 'esito' : 'proposta')
-      router.refresh()
+      setDaRinfrescare(true)
     } catch {
       errore('Non sono riuscita a registrare: controlla la connessione e riprova.')
     } finally {
@@ -208,7 +248,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
       }
       setConfermata(true)
       setFase('esito')
-      router.refresh()
+      setDaRinfrescare(true)
     } catch {
       errore('La registrazione è salva, ma la valutazione non è stata depositata: riprova.')
     } finally {
@@ -245,22 +285,28 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
         <span aria-hidden style={{ color: 'var(--faint)', fontSize: tipografia.size.body }}>›</span>
       </button>
 
+      {/* IL FOGLIO — UNO SOLO, che cambia passo. V. il riquadro in testa al file
+          per il difetto misurato che ha imposto questa struttura. */}
+      <Sheet aperto={fase !== 'chiuso'} onChiudi={ricomincia} titolo={TITOLI[fase]}>
+
       {/* ② LA DOMANDA D'INGRESSO (D288) — e l'uscita non salva niente. */}
-      <DialogConferma
-        aperto={fase === 'domanda'}
-        occhiello="Un momento"
-        titolo="Vuoi intervenire su questo lavoro?"
-        testo={descrizione}
-        centraTesto
-        primarioSopra
-        etichettaDistruttiva="Sì, devo intervenire"
-        etichettaSicura="No, ho premuto per sbaglio"
-        onConferma={() => setFase('motivo')}
-        onAnnulla={ricomincia}
-      />
+      {fase === 'domanda' && (
+        <>
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
+            {descrizione}
+          </p>
+          <TastoPrimario onClick={() => setFase('motivo')}>Sì, devo intervenire</TastoPrimario>
+          {/* 🔑 L'uscita sta INSIEME alla domanda, ed è la condizione ③ del panel:
+              senza una via che non salva niente, chi ha aperto sul lavoro
+              sbagliato non ha nessuna scelta giusta a schermo e prende il motivo
+              più vicino. */}
+          <TastoSecondario onClick={ricomincia}>No, ho premuto per sbaglio</TastoSecondario>
+        </>
+      )}
 
       {/* ③ I NOVE MOTIVI, IN CINQUE FAMIGLIE (D300) */}
-      <Sheet aperto={fase === 'motivo'} onChiudi={ricomincia} titolo="Che cos'è successo?">
+      {fase === 'motivo' && (
+        <>
         <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
           Scegli il motivo: da quello l&apos;app capisce cosa fare.
         </p>
@@ -299,24 +345,12 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
             </div>
           </div>
         ))}
-      </Sheet>
-
-      {/* ③-bis IL PERCORSO CORTO — nessuna delle quattro caselle si chiede. */}
-      <DialogConferma
-        aperto={fase === 'confermaSbaglio'}
-        occhiello="Confermi?"
-        titolo="Il lavoro torna fra i pronti"
-        testo={effettoDaMotivo('errore_registrazione').perche}
-        centraTesto
-        primarioSopra
-        etichettaDistruttiva={lavorando ? 'Un attimo…' : 'Sì, riportalo indietro'}
-        etichettaSicura="Annulla"
-        onConferma={() => { if (!lavorando) void registra() }}
-        onAnnulla={() => setFase('motivo')}
-      />
+        </>
+      )}
 
       {/* ④ LE QUATTRO CASELLE (spec §5) */}
-      <Sheet aperto={fase === 'dettagli'} onChiudi={ricomincia} titolo="Qualche dettaglio">
+      {fase === 'dettagli' && (
+        <>
         <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
           {etichettaMotivo}. Serve alla legge, non a noi.
         </p>
@@ -385,11 +419,12 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
         >
           {lavorando ? 'Un attimo…' : 'Continua'}
         </TastoPrimario>
-      </Sheet>
+        </>
+      )}
 
       {/* ⑤ LA PROPOSTA, COL SUO PERCHÉ — e si può cambiare (D267) */}
-      <Sheet aperto={fase === 'proposta'} onChiudi={ricomincia} titolo="Ecco cosa ne penso">
-        {risposta && (
+      {fase === 'proposta' && (
+        <>{risposta && (
           <>
             <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
               Se non ti torna, cambiala: decidi tu.
@@ -442,12 +477,12 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
               {lavorando ? 'Un attimo…' : 'Registra'}
             </TastoPrimario>
           </>
-        )}
-      </Sheet>
+        )}</>
+      )}
 
       {/* ⑥ GLI ESITI — anche quelli che non sono un successo (R10) */}
-      <Sheet aperto={fase === 'esito'} onChiudi={ricomincia} titolo="Fatto">
-        {risposta && (
+      {fase === 'esito' && (
+        <>{risposta && (
           <>
             <Esito tono="ok" titolo={confermata ? 'Registrato e valutato' : 'Registrato'}>
               {confermata
@@ -477,10 +512,27 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
                 {risposta.riapertura.messaggio ?? 'Riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
               </Esito>
             )}
-            <TastoPrimario onClick={ricomincia}>Chiudi</TastoPrimario>
+            <TastoPrimario onClick={ricomincia}>Ho capito</TastoPrimario>
           </>
-        )}
+        )}</>
+      )}
       </Sheet>
+
+      {/* ③-bis IL PERCORSO CORTO — il DialogConferma sta SOPRA il foglio, che
+          resta aperto: è il caso che `storia-overlay.ts` sostiene per
+          costruzione, non una seconda consegna di testimone. */}
+      <DialogConferma
+        aperto={fase === 'confermaSbaglio'}
+        occhiello="Confermi?"
+        titolo="Il lavoro torna fra i pronti"
+        testo={effettoDaMotivo('errore_registrazione').perche}
+        centraTesto
+        primarioSopra
+        etichettaDistruttiva={lavorando ? 'Un attimo…' : 'Sì, riportalo indietro'}
+        etichettaSicura="Annulla"
+        onConferma={() => { if (!lavorando) void registra() }}
+        onAnnulla={() => setFase('motivo')}
+      />
     </>
   )
 }

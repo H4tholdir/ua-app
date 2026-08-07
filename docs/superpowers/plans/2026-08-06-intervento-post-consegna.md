@@ -1534,3 +1534,64 @@ in banca dati.
 l'aggiunta di `annullata_da_evento_id = p_evento_id`. Le quattro colonne azzerate in più, il ramo
 fail-closed su `v_ddc_tot`, il `FOR UPDATE` e il controllo su `stato <> 'consegnato'` sono
 **identici**.
+
+---
+
+## 🔨 TASK 6 — COSTRUITO, e la FASE 9 ha trovato DUE difetti che 15 prove verdi non vedevano
+
+Mockup approvato (variante B, D300). Costruiti: `src/lib/qualita/motivi-ui.ts` (i testi) ·
+`DevoIntervenire.tsx` · agganciato a `SchedaLavoroV3`.
+
+### 🔴 F1 — IL FOGLIO NON SI APRIVA. MAI. E le prove erano tutte verdi
+
+La prima stesura apriva la domanda d'ingresso come `DialogConferma` e poi, sulla conferma, un
+`Sheet` **separato**.
+`provato:` sullo schermo vero — `history.back` chiamata **1 volta**, testo del foglio **assente a
+60 ms e a 700 ms**. Il foglio non compariva **mai**.
+
+**La causa sta scritta in `storia-overlay.ts`**, e il modulo la dichiara: la pila degli overlay
+tiene **una sola entry di history**, e chi esce per ultimo la disfa con `history.back()`. Nello
+stesso commit React esegue **prima** la pulizia del dialogo (`esciOverlay` → pila vuota →
+`history.back()`) e **poi** l'ingresso del foglio: il `popstate` che arriva subito dopo chiude il
+foglio appena nato.
+➡️ **Il percorso vive ora in UN foglio solo**, che cambia passo. Nessuna consegna di testimone fra
+due overlay, quindi nessuna corsa da vincere. Il `DialogConferma` del percorso corto resta, ma
+**sopra il foglio che resta aperto** — il caso che il modulo sostiene per costruzione.
+
+### 🔴 F2 — LA SCHERMATA FINALE NON COMPARIVA, e il giro nei dati era PERFETTO
+
+`registra()` chiamava `router.refresh()` **a foglio aperto**. Quel rinfresco fa rirendere il Server
+Component: la scheda si ricostruisce, il componente perde lo stato locale, e il foglio sparisce.
+`provato:` sul banco vero l'evento **era registrato** e la valutazione **depositata** — e la persona
+non vedeva **nessuna conferma**. È la §8.1 vista dall'altro lato: **riuscire senza dirlo.**
+➡️ Il rinfresco si fa **alla chiusura**, mai a foglio aperto.
+
+### 🛑 PERCHÉ NESSUNA DELLE 15 PROVE POTEVA VEDERLI, ed è la lezione del compito
+
+Sono due difetti **del montaggio**, non della logica:
+- F1 vive nella `history` del browser, che jsdom non simula come il motore vero;
+- F2 vive in `router.refresh()`, che nelle prove è una **finzione che non rirende niente**.
+🔑 **Una prova unitaria non può vedere un difetto che vive nel framework che la prova sostituisce.**
+➡️ Per F2 si è aggiunta la prova che sorveglia **l'invariante** che il difetto violava — «niente
+rinfresco finché il foglio è aperto» — che è quanto di più vicino si possa provare senza un browser.
+➡️ **Per F1 non c'è invariante provabile in jsdom, e va detto:** la rete è la FASE 9, e questo è il
+motivo per cui quel passaggio non è un rituale.
+
+### ✅ FASE 9 — FATTA, sul banco vero (07/08/2026)
+
+- **390 · 768 · 1280**, e **chiaro + scuro** sulla superficie nuova.
+- **Giro completo end-to-end contro il database vero**, non simulato: registrato un evento
+  «difetto di lavorazione» sul lavoro `STOR/2026/088` → `provato:` in banca dati l'evento con
+  `natura = difetto_fisico` **derivata**, `potenziale_di_danno = da_valutare` (il default prudente),
+  la valutazione depositata con esito `incidente` e **la giustificazione uguale al perché mostrato**,
+  il lavoro rimasto `consegnato` (giusto: il difetto di lavorazione non riapre niente in
+  automatico) e `post_consegna_correzioni` salito a **1**.
+- Un difetto minore chiuso: c'erano **due tasti «Chiudi»** nella stessa schermata (il mio e quello
+  del foglio). Il mio è diventato «Ho capito».
+
+### ⏸️ NON FATTA: la FASE 9b (gate estetico L2)
+
+Il micro-audit a dodici sezioni × tre viewport × due temi contro
+`docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md` **non è stato eseguito**, e con esso mancano gli
+screenshot before/after in `docs/design/screenshots/`. 🛑 **È dovuto** — l'ondata cambia l'aspetto
+della scheda — e va fatto **prima del merge**.
