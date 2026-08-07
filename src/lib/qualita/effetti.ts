@@ -94,7 +94,7 @@ export const EFFETTI_PER_MOTIVO: Record<Motivo, Effetto> = {
     documento: 'riemetti',
     azione: null,
     perche:
-      'Il manufatto è a posto: sbagliato è un dato scritto sul documento. Il pezzo resta dov\'è, dal dentista — si rifà solo la carta, con il dato giusto. La dichiarazione vecchia resta in archivio come superata, non sparisce.',
+      'Il manufatto è a posto: sbagliato è un dato scritto sulla dichiarazione. Il manufatto resta dov\'è, dal dentista — si rifà solo la dichiarazione, con il dato giusto. Quella vecchia resta in archivio come superata, non sparisce.',
     // ⚖️ D299 (07/08/2026) — QUESTA RIGA ERA UNA SCELTA FATTA IN SILENZIO, e adesso
     // non lo è più. Due documenti ratificati si contraddicevano: la tabella degli
     // effetti (tornata 120) dice «resta consegnato», mentre D288 riporta le parole
@@ -110,7 +110,7 @@ export const EFFETTI_PER_MOTIVO: Record<Motivo, Effetto> = {
     documento: 'segue_la_scelta',
     azione: null,
     perche:
-      'Il pezzo è compromesso, e prima di procedere serve una scelta: si sistema questo, oppure se ne fa uno nuovo? Il documento segue quella scelta — se si sistema resta valido, se se ne fa uno nuovo ne serve uno nuovo e il vecchio resta.',
+      'Il manufatto è compromesso, e prima di procedere serve una scelta: si sistema questo, oppure se ne fa uno nuovo? La dichiarazione segue quella scelta — se si sistema resta valida, se se ne fa uno nuovo ne serve una nuova e la vecchia resta.',
     decisione: 'D290 · D298',
   },
   difetto_materiale: {
@@ -118,7 +118,7 @@ export const EFFETTI_PER_MOTIVO: Record<Motivo, Effetto> = {
     documento: 'segue_la_scelta',
     azione: null,
     perche:
-      'Il materiale ha ceduto, e prima di procedere serve una scelta: si sistema questo, oppure se ne fa uno nuovo? Il documento segue quella scelta, come per un difetto di lavorazione.',
+      'Il materiale ha ceduto, e prima di procedere serve una scelta: si sistema questo manufatto, oppure se ne fa uno nuovo? La dichiarazione segue quella scelta, come per un difetto di lavorazione.',
     decisione: 'D297 · D298',
   },
   destinatario_errato: {

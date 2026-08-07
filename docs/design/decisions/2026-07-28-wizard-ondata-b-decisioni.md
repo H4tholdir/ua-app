@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoventicinquesima tornata (D299: «si riconsegna» voleva dire la carta, non il pezzo — e fissa il perimetro del Task 5)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoventiseiesima tornata (D300-D302: «Devo intervenire» prende la variante B, e due parole di Francesco hanno scoperto un difetto del raggruppamento)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**299 decisioni in centoventicinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**302 decisioni in centoventisei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3068,3 +3068,45 @@ un verbale. ⚠️ Ma «riconsegnare» lì è ambiguo, e l'ambiguità è arrivat
 stata sciolta **senza dirlo**. 🔑 **La lezione è quella:** una scelta fatta interpretando due
 documenti che si contraddicono **non è un dettaglio di implementazione**, è una decisione. Se non
 riceve un numero, esiste solo dentro un file `.ts` che nessuno rilegge come se fosse un verbale.
+
+---
+
+### Centoventiseiesima tornata — D300-D302: la variante B, e due parole che hanno scoperto un difetto (07/08/2026, 15:47)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 15:47 CEST`**, comando separato, letto prima
+> di comporre.
+
+**Nasce da:** il cancello §0B sul Task 6 — mockup a due varianti, e la scelta di Francesco.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D300** | 🔑 **«DEVO INTERVENIRE» PRENDE LA VARIANTE B — i nove motivi RAGGRUPPATI per famiglia.** Francesco: «*b*» | Nove righe di fila su un telefono sono un muro: l'occhio salta alla famiglia giusta e ne legge due o tre invece di nove. La variante A (elenco unico) è **scartata** e resta nel mockup a titolo di storia |
+| **D301** | 🔑 **SI DICE «IL MANUFATTO», MAI «IL PEZZO».** Francesco: «*ti riferisci al lavoro fisico con la parola il pezzo, molto meglio il manufatto*» | Vale per **ogni testo che l'utente legge**, non solo per l'etichetta della famiglia. ⚠️ E non è solo mockup: `src/lib/qualita/effetti.ts` diceva «*Il pezzo è compromesso*» e — nella stessa frase — «*Il manufatto è a posto*». **Due parole per la stessa cosa dentro un file solo** |
+| **D302** | 🔑 **SI DICE «LA DICHIARAZIONE», MAI «LA CARTA», quando è un'etichetta.** Francesco: «*così come parli di "la carta", ma immagino tu faccia riferimento alla dichiarazione*» | Nelle **etichette** vince la precisione. 📌 Il registro piano resta dove è di casa: «*si rifà solo la carta*» sono parole di Francesco in **D299** e lì restano — quella è una frase di conversazione, non un'etichetta a schermo |
+
+### 🔴 E LA SECONDA CORREZIONE HA SCOPERTO UN DIFETTO DEL RAGGRUPPAMENTO
+
+Rinominando la famiglia «La carta» in «La dichiarazione» viene fuori che **quella famiglia teneva
+insieme DUE documenti diversi**: la **dichiarazione** (il documento sanitario) e la **fattura** —
+perché dentro c'erano sia «dato sbagliato sul documento» sia «prezzo o quantità sbagliati».
+
+🛑 **Non è un dettaglio di etichetta: è la regola di casa.** `ua-app/CLAUDE.md` §9 dice che lo stato
+**clinico** e quello **fiscale** sono **dimensioni indipendenti**. Metterli sotto la stessa
+intestazione insegna il contrario proprio nel punto in cui la persona sta decidendo.
+
+➡️ **Le famiglie diventano CINQUE**, e le due da una voce sola se la meritano:
+
+| Famiglia | Motivi |
+|---|---|
+| **Il manufatto** | difetto di lavorazione · difetto del materiale · tornato indietro senza difetti |
+| **La dichiarazione** | dato sbagliato sulla dichiarazione |
+| **La persona, o la richiesta** | andato alla persona sbagliata · il medico chiede una modifica |
+| **La fattura** | prezzo o quantità sbagliati |
+| **Un errore nostro qui dentro** | ho premuto «consegna» per sbaglio · altro |
+
+🔑 **Perché «La fattura» da sola è un guadagno e non una frammentazione:** è l'unico motivo che non
+c'entra niente col lato sanitario, e con la sua intestazione diventa **saltabile a colpo d'occhio**
+da chi sta gestendo un problema clinico. Stessa cosa al contrario per «La dichiarazione», che è
+l'unico motivo che fa rifare il documento.
+⚠️ **Portata a Francesco invece di applicata in silenzio:** lui ha scelto **quattro** famiglie, e
+questa ne fa cinque — la decisione di aggiungerne una è mia, e va detta.

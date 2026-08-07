@@ -109,6 +109,19 @@ describe('effettoDaMotivo — l\'elenco degli effetti (D288-D298)', () => {
       }
     })
 
+    // ⚖️ D301 e D302 (07/08/2026) — LE DUE PAROLE DI CASA, e questa prova esiste
+    // perché senza rete rientrano da sole. Il file diceva «Il pezzo è
+    // compromesso» e, in un'altra riga, «Il manufatto è a posto»: **due parole
+    // per la stessa cosa dentro lo stesso file**, e nessuno se n'era accorto
+    // finché Francesco non l'ha letto a schermo.
+    it('🛑 D301/D302 — nessun testo dice «pezzo» o «carta»: si dice MANUFATTO e DICHIARAZIONE', () => {
+      for (const m of MOTIVI) {
+        const t = effettoDaMotivo(m).perche.toLowerCase()
+        expect(t, `${m} — «pezzo» è vietato (D301: si dice «manufatto»)`).not.toMatch(/\bpezzo\b/)
+        expect(t, `${m} — «carta» è vietata nelle etichette (D302: si dice «dichiarazione»)`).not.toMatch(/\bcarta\b/)
+      }
+    })
+
     it('un motivo fuori vocabolario non fa risalire il prototipo di Object', () => {
       // Stesso difetto già chiuso in `naturaDaMotivo` (qualita-costanti.ts): un
       // `Record` indicizzato senza guardia restituisce una FUNZIONE per
