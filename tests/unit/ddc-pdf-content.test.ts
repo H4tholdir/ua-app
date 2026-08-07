@@ -1081,6 +1081,12 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
     // 🔑 Perché il nome conta quanto le asserzioni: un nome di prova si tramanda
     //    più a lungo del codice che descrive, e un numero sbagliato lì dentro fa
     //    credere coperto ciò che nessuno guarda.
+    // ⚠️ NOVE TAGLI, UNDICI RIGHE — e la differenza va detta qui, o chi conta le
+    //    righe crede che anche questo nome menta: **i materiali ne portano due**
+    //    (il nome del materiale e il numero di lotto sono due stringhe da
+    //    cercare, ma un taglio solo) e **la ⑥ ne porta due** (la norma di
+    //    riferimento e le norme armonizzate sono uscite insieme, con la stessa
+    //    ragione: la voce ⑦ chiede i requisiti NON rispettati).
     const vietati: Array<[string, string]> = [
       ['materiali e lotti', 'Zirconia IPS e.max ZirCAD'],
       ['materiali e lotti (lotto)', 'LOT-2025-ZR-0042'],
