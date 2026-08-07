@@ -173,7 +173,10 @@ Tolta la copia locale (con `callRpcWithRetry`, che ora vive nel modulo condiviso
 l'import (`:6`). La chiamata a `:115` è invariata. `tests/unit/rifacimento-route.test.ts` (516 righe)
 resta verde senza toccarla: finge `getServiceClient`, quindi non vede da dove arriva l'helper.
 
-### `src/app/api/lavori/[id]/eventi-qualita/route.ts` — +247/−… (il file cresce da 533 a ~660 righe)
+### `src/app/api/lavori/[id]/eventi-qualita/route.ts` — il file passa da **533** a **718** righe
+
+⚠️ I numeri di riga qui sotto sono quelli **dopo** il salvataggio `34101ccb` e il suo emendamento,
+verificati con `grep -n`, non ricopiati dalla stesura.
 
 | riga | che cosa |
 |---|---|
@@ -186,16 +189,34 @@ resta verde senza toccarla: finge `getServiceClient`, quindi non vede da dove ar
 | `:438` | **Passo 4-bis**: `eventoId` preso dalla riga appena inserita, mai dal corpo |
 | `:455-462` | lo smistamento a tre vie |
 | `:479` | la risposta porta `esito_azione`, e `riapertura` **non** resta come sinonimo |
-| `:500-508` | `type EsitoAzione` (era `Riapertura`) |
-| `:527-535` | `CAVEAT_RIPRISTINO` — la chiave del caveat è **dichiarata per RPC**, non annusata dalla risposta |
-| `:550-598` | `chiamaRipristino` (era `riapriLavoro`), che ora serve **entrambe** le gemelle |
-| `:603-658` | `creaRifacimento`, con il 23505 tradotto e il trasferimento cassetta fail-soft |
+| `:500-508` | `type EsitoAzione` (era `Riapertura`), con i tre caveat facoltativi |
+| `:510-514` | i due messaggi di guasto, uno per famiglia di azione |
+| `:534-540` | `RpcRipristino`, `ChiaveCaveat` e `CAVEAT_RIPRISTINO` — la chiave del caveat è **dichiarata per RPC**, non annusata dalla risposta, e il `satisfies` la sorveglia |
+| `:558-598` | `chiamaRipristino` (era `riapriLavoro`), che ora serve **entrambe** le gemelle |
+| `:611-661` | `creaRifacimento`, con il 23505 tradotto e il trasferimento cassetta fail-soft |
 
 **Perché la chiave del caveat è un parametro e non un annusare.** Una funzione che accettasse
 `ddc_assente` **oppure** `ddc_viva` da entrambe le RPC risponderebbe `applicato` **senza nessuno dei
 due campi** il giorno in cui una delle due cambiasse forma: perderebbe il caveat in silenzio, che è
 proprio ciò che i caveat esistono per impedire. Dichiarata, una divergenza esce `false` — un avviso
 in più, mai uno in meno.
+
+**Il vincolo su `CAVEAT_RIPRISTINO` porta il valore che DEVE essere rifiutato.** Senza il
+`satisfies`, un refuso nel nome del caveat passava: `provato:` con `inRisposta: 'dichiarazione_vive'`,
+`npx tsc --noEmit` → **uscita 0**. La chiave calcolata si allarga e il campo sarebbe uscito nella
+risposta con un nome che nessuna schermata legge — il caveat sparito **in silenzio**, cioè il difetto
+che quel blocco esiste per chiudere. Aggiunto
+`as const satisfies Record<RpcRipristino, { daRpc: string; inRisposta: ChiaveCaveat }>`; `provato:`
+lo stesso refuso ora → **uscita 2**:
+
+```
+src/app/api/lavori/[id]/eventi-qualita/route.ts(539,50): error TS2820:
+Type '"dichiarazione_vive"' is not assignable to type 'ChiaveCaveat'.
+Did you mean '"dichiarazione_viva"'?
+```
+
+e col nome giusto → **uscita 0**. 🔑 Il ritrovamento è di una revisione, non mio: avevo scritto che
+la chiave dichiarata «si vede se diverge» **senza averlo provato**, ed era falso a metà.
 
 **La guardia sul laboratorio nella lettura di riparazione del 23505.** `svc` è la chiave di
 servizio, quindi senza RLS: `.eq('laboratorio_id', laboratorio_id)` non è ridondante con l'indice

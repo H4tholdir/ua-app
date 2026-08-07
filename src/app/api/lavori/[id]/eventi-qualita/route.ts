@@ -523,13 +523,21 @@ const MESSAGGIO_RIFACIMENTO_FALLITO =
  * esattamente il difetto che i caveat esistono per chiudere. Con la chiave
  * dichiarata, una divergenza di forma si vede: il campo esce `false`, cioè la
  * direzione prudente (un avviso in più, mai uno in meno).
+ *
+ * 🛑 E IL `satisfies` NON È DECORAZIONE. `provato:` senza di esso, cambiando
+ * `'dichiarazione_viva'` in `'dichiarazione_vive'`, `npx tsc --noEmit` esce **0**:
+ * la chiave calcolata si allarga e il refuso passa. Il campo finirebbe nella
+ * risposta con un nome che nessuna schermata legge — cioè il caveat sparirebbe
+ * **in silenzio**, che è esattamente il difetto che questo blocco esiste per
+ * chiudere. Con il vincolo, lo stesso refuso è un errore di compilazione.
  */
+type RpcRipristino = 'riapri_lavoro_atomica' | 'riporta_a_pronto_atomica'
+type ChiaveCaveat = 'dichiarazione_assente' | 'dichiarazione_viva'
+
 const CAVEAT_RIPRISTINO = {
   riapri_lavoro_atomica: { daRpc: 'ddc_assente', inRisposta: 'dichiarazione_assente' },
   riporta_a_pronto_atomica: { daRpc: 'ddc_viva', inRisposta: 'dichiarazione_viva' },
-} as const
-
-type RpcRipristino = keyof typeof CAVEAT_RIPRISTINO
+} as const satisfies Record<RpcRipristino, { daRpc: string; inRisposta: ChiaveCaveat }>
 
 /**
  * Chiama una delle due RPC di ripristino — la distruttiva (D288, motivo
