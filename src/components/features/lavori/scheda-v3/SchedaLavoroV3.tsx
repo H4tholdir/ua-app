@@ -81,7 +81,7 @@ import { SchedaNavRail } from './SchedaNavRail'
 import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
 import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
-import { DevoIntervenire } from './DevoIntervenire'
+import { DevoIntervenire, vociDelDocumento } from './DevoIntervenire'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
@@ -586,8 +586,18 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
               minuti, qui non conta niente. Un lavoro consegnato con la data
               mancante (dato vecchio) deve poter essere corretto lo stesso —
               D265, il documento sanitario si corregge SEMPRE. */}
+          {/* 🔑 LE SEI VOCI E IL GETTONE VIAGGIANO INSIEME, DA UNA LETTURA SOLA
+              (Task D). `vociDelDocumento` prende `lavoro` — cioè lo specchio
+              locale della scheda — e ne cava i valori stampati E `updated_at`:
+              il contratto della rotta è «*i valori che hai visto sono ancora
+              quelli*», e sei proprietà sciolte permetterebbero a qualcuno di
+              rinfrescarne una sola. */}
           {lavoro.stato === 'consegnato' && (
-            <DevoIntervenire lavoroId={lavoro.id} descrizione={lavoro.descrizione} />
+            <DevoIntervenire
+              lavoroId={lavoro.id}
+              descrizione={lavoro.descrizione}
+              documento={vociDelDocumento(lavoro)}
+            />
           )}
 
           {/* Tracciabilità materiali (MDR Allegato XIII, B1) — segnale sempre

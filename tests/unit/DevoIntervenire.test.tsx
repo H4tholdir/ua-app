@@ -12,12 +12,55 @@ import { DevoIntervenire } from '@/components/features/lavori/scheda-v3/DevoInte
  */
 
 const refreshMock = vi.fn()
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: refreshMock }) }))
+const pushMock = vi.fn()
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock, replace: vi.fn(), refresh: refreshMock }) }))
 
-function montaComponente() {
+// 🛑 NAVIGARE DA DENTRO UN OVERLAY v3 SI FA SOLO CON `useNavigaDaOverlay`
+//    (CLAUDE.md §9): si finge l'hook, non il router, perché in jsdom
+//    `cediEntryAllaNavigazione()` ripiega comunque su `router.push` — cioè un
+//    `router.push` nudo e l'hook sarebbero indistinguibili guardando il router.
+//    Fingendo l'hook, chi lo togliesse lascerebbe questa spia a zero.
+const navigaMock = vi.fn()
+vi.mock('@/components/ds/useNavigaDaOverlay', () => ({ useNavigaDaOverlay: () => navigaMock }))
+
+const LAVORO_ID = '11111111-1111-1111-1111-111111111111'
+const PAZIENTE_ID = '33333333-3333-3333-3333-333333333333'
+const ALTRO_PAZIENTE_ID = '99999999-9999-9999-9999-999999999999'
+
+/** 🔑 IL GETTONE DI CONCORRENZA CON I MICROSECONDI: `timestamptz` li ha, `Date`
+ *  di JS no. Il valore è scelto apposta con `.123456` — se qualcuno lo
+ *  riparsasse (`new Date(...).toISOString()`) tornerebbe `.123Z` e il confronto
+ *  in banca dati non tornerebbe MAI uguale: un 409 permanente. */
+const GETTONE = '2026-08-08T10:20:30.123456+00:00'
+
+/** Le sei voci stampate, così come `SchedaLavoroV3` le compone da UNA lettura. */
+const VOCI = {
+  updatedAt: GETTONE,
+  clienteId: '22222222-2222-2222-2222-222222222222',
+  richiedenteNome: 'Dott. Marco Ferri',
+  prescrittoreMostrato: 'Dott. Marco Ferri',
+  pazienteId: PAZIENTE_ID,
+  pazienteMostrato: 'Mario Rossi',
+  tipoDispositivo: 'protesi_fissa' as const,
+  descrizione: 'Corona in zirconia su 26',
+  denti: [
+    {
+      fdi: 26, ruolo: 'elemento', scala: 'vita_classical', codice: 'A3',
+      codice_collo: null, codice_corpo: null, codice_incisale: null, provenienza: 'prescritto',
+    },
+  ],
+  dentiMostrati: ['26'],
+  prescrizione: { elementi: [26], colore: 'A3' },
+}
+
+function montaComponente(voci: Partial<typeof VOCI> = {}) {
   return render(
     <AvvisiProvider>
-      <DevoIntervenire lavoroId="11111111-1111-1111-1111-111111111111" descrizione="Corona zirconia n.147" />
+      <DevoIntervenire
+        lavoroId={LAVORO_ID}
+        descrizione="Corona zirconia n.147"
+        documento={{ ...VOCI, ...voci }}
+      />
     </AvvisiProvider>
   )
 }
@@ -430,5 +473,392 @@ describe('DevoIntervenire', () => {
     fireEvent.click(screen.getByText('Altro'))
     const continua = screen.getByRole('button', { name: /Continua/i })
     expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(true)
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════
+//  TASK D — IL PASSO DI CORREZIONE (⚖️ D322, variante A)
+//
+//  Mockup APPROVATO: docs/design/mockups/2026-08-08-passo-correzione.html
+//  L'ordine è `motivo → correzione → dettagli → proposta/esito`: la correzione
+//  viene PRIMA delle quattro caselle di legge.
+// ══════════════════════════════════════════════════════════════════════════
+
+const RIEMISSIONE_OK = {
+  numero: 'DDC-2026-0043',
+  url: 'https://esempio/ddc.pdf',
+  numero_superato: 'DDC-2026-0042',
+  dichiarazione_id: '77777777-7777-7777-7777-777777777777',
+  sostituisce_id: '88888888-8888-8888-8888-888888888888',
+  updated_at: '2026-08-08T11:00:00.987654+00:00',
+}
+
+type Risposta = { ok?: boolean; stato?: number; corpo?: unknown; illeggibile?: boolean }
+
+/**
+ * Un finto `fetch` che INSTRADA sull'URL, perché su questo percorso le
+ * chiamate sono tre specie diverse (registrazione, riemissione, ricerca dei
+ * pazienti) e una risposta sola per tutte proverebbe poco.
+ */
+function fingiFetchInstradato(opzioni: {
+  evento?: Risposta
+  riemetti?: Risposta
+  pazienti?: unknown
+} = {}) {
+  const spia = vi.fn(async (url: string) => {
+    const scegli = (r: Risposta | undefined, difetto: unknown): Response => {
+      const ok = r?.ok ?? true
+      return {
+        ok,
+        status: r?.stato ?? (ok ? 200 : 422),
+        json: async () => {
+          if (r?.illeggibile) throw new SyntaxError('corpo illeggibile')
+          return r?.corpo ?? difetto
+        },
+      } as unknown as Response
+    }
+    if (url.includes('/dichiarazione/riemetti')) return scegli(opzioni.riemetti, RIEMISSIONE_OK)
+    if (url.includes('/eventi-qualita')) return scegli(opzioni.evento, RISPOSTA_OK)
+    if (url.includes('/api/pazienti')) {
+      return { ok: true, status: 200, json: async () => opzioni.pazienti ?? { pazienti: [] } } as unknown as Response
+    }
+    return { ok: true, status: 200, json: async () => ({}) } as unknown as Response
+  })
+  vi.stubGlobal('fetch', spia)
+  return spia
+}
+
+/** Riga → «Sì, devo intervenire» → «C'è un dato sbagliato sulla dichiarazione». */
+function apriPassoCorrezione() {
+  apriElencoMotivi()
+  fireEvent.click(screen.getByText('C\'è un dato sbagliato sulla dichiarazione'))
+}
+
+/** Apre il sotto-passo di una riga dell'elenco. */
+function apriRiga(etichetta: string) {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(etichetta, 'i') }))
+}
+
+/** Corregge la descrizione in `nuovo` e torna all'elenco. */
+function correggiDescrizione(nuovo: string) {
+  apriRiga('Descrizione')
+  fireEvent.change(screen.getByLabelText('Come deve dire il documento'), { target: { value: nuovo } })
+  fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+}
+
+/** Dall'elenco al tocco finale: «Continua» → le quattro caselle → il tasto. */
+function arrivaAlToccoFinale() {
+  fireEvent.click(screen.getByRole('button', { name: /^Continua/i }))
+  fireEvent.click(screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i }))
+}
+
+function corpoDi(chiamata: unknown[]): Record<string, unknown> {
+  return JSON.parse((chiamata[1] as { body: string }).body) as Record<string, unknown>
+}
+
+function chiamateA(spia: { mock: { calls: unknown[][] } }, frammento: string): unknown[][] {
+  return spia.mock.calls.filter((c) => String(c[0]).includes(frammento))
+}
+
+describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  // ⚖️ D322 — la correzione viene PRIMA delle quattro caselle.
+  it('🛑 «C\'è un dato sbagliato» apre il passo di correzione, NON le quattro caselle', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+
+    expect(screen.getByText('Che cosa c\'è di sbagliato?')).toBeTruthy()
+    // Le quattro caselle esistono ancora, ma DOPO: qui non ci sono.
+    expect(screen.queryByText('Dov\'era il manufatto?')).toBeNull()
+    expect(screen.queryByText('Poteva far male a qualcuno?')).toBeNull()
+  })
+
+  // 🛑 Gli altri motivi NON passano di qui: il percorso vecchio resta intatto.
+  it('🛑 gli altri motivi vanno alle quattro caselle come prima', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+
+    expect(screen.getByText('Dov\'era il manufatto?')).toBeTruthy()
+    expect(screen.queryByText('Che cosa c\'è di sbagliato?')).toBeNull()
+  })
+
+  // 🔑 IL PASSO MOSTRA VALORI, NON CONTROLLI — e sono SEI, contate
+  //    sull'allowlist `CAMPI_CORREGGIBILI_DOCUMENTO`, non su una riga di prosa.
+  it('🛑 le sei righe portano il VALORE che il documento stampa adesso', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+
+    for (const riga of ['Chi ha prescritto', 'Paziente', 'Tipo di dispositivo', 'Descrizione', 'Denti', 'Caratteristiche prescritte']) {
+      expect(screen.getByText(riga), riga).toBeTruthy()
+    }
+    expect(screen.getAllByText('Dott. Marco Ferri').length).toBeGreaterThan(0)
+    expect(screen.getByText('Mario Rossi')).toBeTruthy()
+    expect(screen.getByText('Protesi fissa')).toBeTruthy()
+    expect(screen.getByText('Corona in zirconia su 26')).toBeTruthy()
+    // Le caratteristiche si leggono con le parole del DOCUMENTO
+    // (`caratteristichePrescritte`), non come un oggetto JSON.
+    expect(screen.getByText('Elementi: dente 26 · Colore: A3')).toBeTruthy()
+  })
+
+  // ⚖️ Mockup — il tasto è spento COL PERCHÉ SCRITTO SOTTO: un tasto grigio e
+  //    muto non è il disegno approvato.
+  it('🛑 senza nessuna correzione il tasto è spento, e dice PERCHÉ', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+
+    const continua = screen.getByRole('button', { name: /^Continua/i })
+    expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(true)
+    expect(screen.getByText(/senza una correzione, il documento nuovo sarebbe identico/i)).toBeTruthy()
+  })
+
+  it('corretta una riga, mostra vecchio → nuovo con la pastiglia «da rifare», e il tasto si accende', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+
+    expect(screen.getByText('Corona in zirconia su 36')).toBeTruthy()
+    expect(screen.getByText('Da rifare')).toBeTruthy()
+    // Il conto sta in una frase con dentro un `<b>`: si guarda il testo intero
+    // del paragrafo, non i suoi soli nodi diretti.
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'P' && /Hai corretto 1 dato/.test(el.textContent ?? ''))
+    ).toBeTruthy()
+    const continua = screen.getByRole('button', { name: /^Continua/i })
+    expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(false)
+  })
+
+  // 🔴 LA FORMA D'INPUT PIÙ INSIDIOSA: corretta e poi RIMESSA com'era.
+  //    Non è una correzione — mandarla produrrebbe un documento identico a
+  //    quello di oggi, che è esattamente ciò che il testo del tasto spento
+  //    dichiara inutile.
+  it('🛑 una riga rimessa al valore di prima NON è una correzione: il tasto torna spento', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    correggiDescrizione('Corona in zirconia su 26')
+
+    expect(screen.queryByText('Da rifare')).toBeNull()
+    const continua = screen.getByRole('button', { name: /^Continua/i })
+    expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(true)
+  })
+
+  // ⚖️ D320 — da questo foglio si cambia QUALE PERSONA, mai come si chiama.
+  it('🛑 la riga del paziente NON ha un campo di testo: si sceglie un\'altra persona (D320)', async () => {
+    fingiFetchInstradato({ pazienti: { pazienti: [{ id: ALTRO_PAZIENTE_ID, codice_paziente: 'PZ-0117', alias: 'Maria Rossi', ultimoLavoro: null }] } })
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Paziente')
+
+    expect(screen.getByText('Quale paziente?')).toBeTruthy()
+    // 🛑 UN SOLO campo scrivibile, ed è la RICERCA. Un `queryByLabelText('Nome
+    //    del paziente')` sarebbe stato vero anche in una pagina vuota: qui si
+    //    conta, così un campo «nome» aggiunto un domani accende la prova.
+    const scrivibili = screen.getAllByRole('textbox')
+    expect(scrivibili.length).toBe(1)
+    expect(screen.getByLabelText('Cerca per cognome o codice')).toBe(scrivibili[0])
+    expect(screen.getByText(/Per correggere come è scritto un nome/i)).toBeTruthy()
+  })
+
+  // 🔴 IL DIFETTO ③ DEL TASK B, GIÀ PAGATO: la chiave si chiama come la colonna
+  //    denormalizzata (`["26"]`) e invita a mandare quella. Il contratto vuole
+  //    il carico della PENNA: oggetti `{fdi, ruolo, …}`.
+  it('🛑 i denti viaggiano come OGGETTI {fdi, ruolo}, mai come la lista di stringhe', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Denti')
+    fireEvent.click(screen.getByRole('button', { name: /^Dente 27/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    const corpo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0])
+    const denti = (corpo.correzioni as Record<string, unknown>).denti_coinvolti as Record<string, unknown>[]
+    expect(Array.isArray(denti)).toBe(true)
+    expect(typeof denti[0]).toBe('object')
+    expect(denti.map((d) => d.fdi).sort()).toEqual([26, 27])
+    // 🔑 E IL COLORE PER DENTE NON SI PERDE: la penna SOSTITUISCE l'elenco
+    //    intero, quindi mandare `{fdi, ruolo}` e basta cancellerebbe la scala e
+    //    il codice del dente che resta.
+    const ventisei = denti.find((d) => d.fdi === 26)!
+    expect(ventisei.scala).toBe('vita_classical')
+    expect(ventisei.codice).toBe('A3')
+  })
+
+  // 🛑 «Una casella non si può SVUOTARE» — e a schermo va detto PRIMA, non
+  //    scoperto con un 422 (`correzioni.ts:242-252`, voce 6 Allegato XIII).
+  it('🛑 una caratteristica prescritta non si può svuotare, e lo dice prima', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Caratteristiche prescritte')
+
+    expect(screen.getByText(/Una casella non si può svuotare/i)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Colore'), { target: { value: '   ' } })
+    const usa = screen.getByRole('button', { name: /Usa questo/i })
+    expect(usa.hasAttribute('disabled') || usa.getAttribute('aria-disabled') === 'true').toBe(true)
+  })
+
+  it('🛑 e nemmeno i denti si possono azzerare: il tasto si spegne col suo perché', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Denti')
+    // Il 26 è l'unico elemento: toglierlo lascia la lista vuota, che la rotta
+    // rifiuta con un 422 («la correzione di "denti_coinvolti" è vuota»).
+    fireEvent.click(screen.getByRole('button', { name: /^Dente 26/ }))
+    const usa = screen.getByRole('button', { name: /Usa questo/i })
+    expect(usa.hasAttribute('disabled') || usa.getAttribute('aria-disabled') === 'true').toBe(true)
+  })
+
+  // ⚖️ D316 · D320 — il blocco «Da qui non si corregge» nomina DUE cose, e
+  //    ognuna porta la sua destinazione.
+  it('🛑 «Da qui non si corregge» nomina il laboratorio E il nome del paziente, con la strada', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+
+    expect(screen.getByText(/Da qui non si corregge/i)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Impostazioni/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Anagrafica/i })).toBeTruthy()
+    expect(screen.getByText(/così vale per tutti i suoi lavori/i)).toBeTruthy()
+  })
+
+  it('🛑 e quelle due vie navigano con `useNavigaDaOverlay`, mai con un push nudo', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    fireEvent.click(screen.getByRole('button', { name: /Anagrafica/i }))
+
+    expect(navigaMock).toHaveBeenCalledWith(`/pazienti/${PAZIENTE_ID}`)
+    expect(pushMock).not.toHaveBeenCalled()
+  })
+
+  // ⚖️ Passo 5 — NIENTE si salva prima del tocco finale.
+  it('🛑 monta, corregge, SMONTA: nessuna scrittura sul server', () => {
+    const spia = fingiFetchInstradato()
+    const { unmount } = montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    unmount()
+
+    expect(chiamateA(spia, '/eventi-qualita').length).toBe(0)
+    expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(0)
+  })
+
+  // ⚖️ Passo 6 — DUE chiamate in fila, e il gettone viaggia INTATTO.
+  it('🛑 il tocco finale sono DUE chiamate in fila, e il gettone NON si riparsa', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    expect(chiamateA(spia, '/eventi-qualita').length).toBe(1)
+    // L'ordine: prima nasce l'evento, poi si rifà la carta.
+    expect(String(spia.mock.calls[0][0])).toContain('/eventi-qualita')
+
+    const corpo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0])
+    expect(corpo.evento_id).toBe(RISPOSTA_OK.evento.id)
+    expect(corpo.correzioni).toEqual({ descrizione: 'Corona in zirconia su 36' })
+    // 🛑 IDENTICO, microsecondi compresi: un `new Date(...)` qui darebbe
+    //    `2026-08-08T10:20:30.123Z` e un 409 che non si sana nemmeno ricaricando.
+    expect(corpo.atteso_updated_at).toBe(GETTONE)
+  })
+
+  it('più voci corrette insieme viaggiano nella STESSA chiamata', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    apriRiga('Chi ha prescritto')
+    fireEvent.change(screen.getByLabelText('Come deve dire il documento'), { target: { value: 'Dott.ssa Anna Neri' } })
+    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    const corpo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0])
+    expect(corpo.correzioni).toEqual({
+      descrizione: 'Corona in zirconia su 36',
+      richiedente_nome: 'Dott.ssa Anna Neri',
+    })
+  })
+
+  // 🛑 L'EVENTO SI TIENE NELLO STATO E SI RIUSA: crearne uno nuovo a ogni
+  //    tentativo lascerebbe eventi orfani, e toglierebbe senso alla porta
+  //    d'idempotenza della rotta.
+  it('🛑 se la riemissione fallisce, il ritentativo RIUSA l\'evento invece di crearne un altro', async () => {
+    const spia = fingiFetchInstradato({
+      riemetti: { ok: false, stato: 500, corpo: { error: 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.' } },
+    })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    fireEvent.click(screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i }))
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
+    // 🔑 L'asserzione che conta è il CONTO delle registrazioni, non la presenza
+    //    di `evento_id` nel corpo: un evento nuovo lo porterebbe lo stesso.
+    expect(chiamateA(spia, '/eventi-qualita').length).toBe(1)
+    const secondo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[1])
+    expect(secondo.evento_id).toBe(RISPOSTA_OK.evento.id)
+  })
+
+  // ⚖️ Passo 7 — gli errori si LEGGONO: la rotta li scrive per chi sta al banco.
+  it('🛑 il 409 si mostra com\'è scritto dalla rotta, non come «qualcosa è andato storto»', async () => {
+    const messaggio = 'Qualcun altro ha toccato questo lavoro mentre stavi correggendo: ricarica e rifai la correzione sui valori aggiornati.'
+    fingiFetchInstradato({ riemetti: { ok: false, stato: 409, corpo: { error: messaggio } } })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(screen.getAllByText(messaggio).length).toBeGreaterThan(0))
+  })
+
+  it('🛑 il 422 si mostra col PERCORSO dentro: chi sta al banco deve sapere QUALE casella', async () => {
+    const messaggio = 'La correzione di «prescrizione_caratteristiche.colore» è vuota: un campo svuotato finirebbe sul documento come un\'informazione mancante.'
+    fingiFetchInstradato({ riemetti: { ok: false, stato: 422, corpo: { error: messaggio } } })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(screen.getAllByText(messaggio).length).toBeGreaterThan(0))
+  })
+
+  it('un corpo illeggibile non lascia la persona senza niente: resta il messaggio di casa', async () => {
+    fingiFetchInstradato({ riemetti: { ok: false, stato: 500, illeggibile: true } })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(screen.getAllByText(/Non sono riuscita a rifare la dichiarazione/i).length).toBeGreaterThan(0))
+  })
+
+  it('riuscita, la schermata NOMINA la dichiarazione nuova e dice che la vecchia resta in archivio', async () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(screen.getAllByText(/DDC-2026-0043/).length).toBeGreaterThan(0))
+    expect(screen.getByText(/DDC-2026-0042/)).toBeTruthy()
+    expect(screen.getByText(/resta in archivio come superata/i)).toBeTruthy()
   })
 })

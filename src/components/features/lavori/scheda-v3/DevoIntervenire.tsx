@@ -55,15 +55,32 @@
 // ⚖️ D301/D303 — qui parla il BANCO: si dice «manufatto». «Dispositivo» è la
 //    parola della norma e arriva dal server, dentro il `perche` della proposta.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sheet } from '@/components/ds/Sheet'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { ChipScelta } from '@/components/ds/ChipScelta'
+import { CampoTesto } from '@/components/ds/Campo'
+import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { useAvvisi } from '@/components/ds/Avviso'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
+import { OdontogrammaFDI } from '@/components/features/odontogramma/OdontogrammaFDI'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
+// 🔑 L'ELENCO DELLE VOCI CORREGGIBILI NON SI RICOPIA QUI: è quello del
+//    contratto (`CAMPI_CORREGGIBILI_DOCUMENTO`). È sceso due volte in un giorno
+//    — otto → sette (D319) → sei (D320) — e tutt'e due le volte un commento
+//    vicino al codice è rimasto indietro. Le righe a schermo si generano da
+//    lì, e `Record<CampoCorreggibile, …>` fa protestare `tsc` il giorno in cui
+//    un nome entra o esce senza la sua riga.
+import { CAMPI_CORREGGIBILI_DOCUMENTO, type CampoCorreggibile } from '@/lib/dichiarazione/correzioni'
+import type { DenteNormalizzato } from '@/lib/domain/denti-validazione'
+import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+import { nomePrescrittore } from '@/lib/consegna/prescrittore'
+import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-prescritte'
+import { testoVivo } from '@/lib/utils/testo'
+import type { LavoroDettaglio, PrescrizioneContenuto, TipoDispositivo } from '@/types/domain'
 import {
   ORIGINI_INFORMAZIONE,
   STATI_DISPOSITIVO,
@@ -92,18 +109,243 @@ import type { AzioneAutomatica } from '@/lib/qualita/effetti'
  *  🔄 `confermaSbaglio` SI CHIAMAVA COSÌ, e il nome è cambiato col Task A: quel
  *  passo non conferma più niente, **chiede**. Un nome che dice «conferma» sopra
  *  una domanda è il primo passo perché qualcuno la riscriva come conferma. */
-type Fase = 'chiuso' | 'domanda' | 'motivo' | 'domandaUscito' | 'dettagli' | 'proposta' | 'esito'
+type Fase =
+  | 'chiuso' | 'domanda' | 'motivo' | 'domandaUscito'
+  // ⚖️ D322, VARIANTE A — la correzione viene PRIMA delle quattro caselle di
+  //    legge: `motivo → correzione → correzioneCampo* → dettagli → proposta`.
+  //    🛑 E resta UN FOGLIO SOLO che cambia passo: mai un secondo overlay — la
+  //    pila di `storia-overlay.ts` è già stata pagata una volta con un tasto
+  //    «indietro» morto (v. il riquadro in testa al file).
+  | 'correzione' | 'correzioneCampo'
+  | 'dettagli' | 'proposta' | 'esito'
 
 /** Il titolo del foglio cambia col passo: è UN foglio solo, e il titolo è la
- *  sola cosa che dice a che punto si è. */
+ *  sola cosa che dice a che punto si è.
+ *
+ *  ⚠️ `correzioneCampo` è l'unico passo il cui titolo NON sta qui: dipende da
+ *  quale delle sei voci si sta correggendo, e vive in `TITOLI_VOCE`. */
 const TITOLI: Record<Fase, string> = {
   chiuso: '',
   domanda: 'Vuoi intervenire su questo lavoro?',
   motivo: 'Che cos\'è successo?',
   domandaUscito: 'Che cos\'è successo?',
+  correzione: 'Che cosa c\'è di sbagliato?',
+  correzioneCampo: '',
   dettagli: 'Qualche dettaglio',
   proposta: 'Ecco cosa ne penso',
   esito: 'Fatto',
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  LE SEI VOCI STAMPATE — Task D, «correggi e rifai la dichiarazione»
+// ══════════════════════════════════════════════════════════════════════════
+
+/** L'etichetta della riga a schermo. `Record<CampoCorreggibile, …>`: una voce
+ *  senza etichetta non compila. */
+const ETICHETTE_VOCE: Record<CampoCorreggibile, string> = {
+  richiedente_nome: 'Chi ha prescritto',
+  paziente_id: 'Paziente',
+  tipo_dispositivo: 'Tipo di dispositivo',
+  descrizione: 'Descrizione',
+  denti_coinvolti: 'Denti',
+  prescrizione_caratteristiche: 'Caratteristiche prescritte',
+}
+
+/** Il titolo del sotto-passo. Non è sempre l'etichetta: sul paziente si chiede
+ *  **quale persona**, e la domanda lo deve dire (⚖️ D320). */
+const TITOLI_VOCE: Record<CampoCorreggibile, string> = {
+  richiedente_nome: 'Chi ha prescritto',
+  paziente_id: 'Quale paziente?',
+  tipo_dispositivo: 'Tipo di dispositivo',
+  descrizione: 'Descrizione',
+  denti_coinvolti: 'Denti',
+  prescrizione_caratteristiche: 'Caratteristiche prescritte',
+}
+
+/**
+ * 🔴 IL PEZZO CHE NESSUNO PASSAVA AL FOGLIO, e senza il quale il passo di
+ * correzione non può esistere: **i valori stampati e il gettone di
+ * concorrenza**.
+ *
+ * 🔑 PERCHÉ UN OGGETTO SOLO, COSTRUITO DA UNA FUNZIONE SOLA. Il contratto della
+ * rotta è «*i valori che hai visto sono ancora quelli*», non «la riga non è
+ * cambiata negli ultimi 200 ms»: valore mostrato e `updated_at` devono venire
+ * dalla **stessa lettura**. Passandoli come sei proprietà sciolte, un domani
+ * qualcuno ne rinfrescherebbe una sola. Qui la firma lo impedisce: si entra con
+ * UN `lavoro` e si esce con tutto, gettone compreso.
+ *
+ * 🛑 `updatedAt` VIAGGIA COSÌ COM'È, sempre. Mai un `new Date(...)`, mai un
+ * `.toISOString()` di ritorno: `timestamptz` ha i microsecondi, `Date` di JS no
+ * — un solo riparsing tronca `.123456` a `.123`, il confronto non torna mai
+ * uguale, e il risultato è un **409 permanente che nemmeno ricaricando si
+ * sana** (stesso modello di `ModificaColoreSheet`, `…/denti:88-93`).
+ */
+export interface VociDocumento {
+  /** Il gettone di concorrenza — `lavori.updated_at`, stringa opaca. */
+  updatedAt: string
+  /** Serve alla ricerca dei pazienti: `GET /api/pazienti` pretende lo studio. */
+  clienteId: string | null
+  /** La colonna. `null` quando il documento ripiega sul nome del dentista. */
+  richiedenteNome: string | null
+  /** Il nome che il documento STAMPA oggi, ripiego compreso (`generate-ddc:266-274`). */
+  prescrittoreMostrato: string
+  pazienteId: string | null
+  /** Come il documento identifica il paziente oggi (`generate-ddc:304`). */
+  pazienteMostrato: string
+  tipoDispositivo: TipoDispositivo
+  descrizione: string
+  /** Le RIGHE vere dei denti, coi loro colori. `null` = l'embed non è stato
+   *  chiesto, e allora quella voce non si corregge: mandare `{fdi, ruolo}` e
+   *  basta cancellerebbe scala e codice di ogni dente che resta. */
+  denti: DenteNormalizzato[] | null
+  /** La colonna denormalizzata, cioè ciò che il documento stampa alla voce
+   *  «Denti» (solo gli elementi). */
+  dentiMostrati: string[]
+  /** Il contenuto della prescrizione trascritta. `null` = non c'è, e la voce
+   *  non si corregge (la rotta risponderebbe 422 dopo aver reso il PDF). */
+  prescrizione: PrescrizioneContenuto | null
+}
+
+/** Compone le sei voci e il gettone **da una lettura sola** del lavoro. */
+export function vociDelDocumento(lavoro: LavoroDettaglio): VociDocumento {
+  return {
+    updatedAt: lavoro.updated_at,
+    clienteId: lavoro.cliente_id ?? null,
+    richiedenteNome: lavoro.richiedente_nome,
+    prescrittoreMostrato:
+      nomePrescrittore(lavoro.richiedente_nome, `${lavoro.cliente?.cognome ?? ''} ${lavoro.cliente?.nome ?? ''}`) ?? '—',
+    pazienteId: lavoro.paziente_id ?? null,
+    pazienteMostrato:
+      lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '—',
+    tipoDispositivo: lavoro.tipo_dispositivo,
+    descrizione: lavoro.descrizione,
+    denti: lavoro.denti
+      ? lavoro.denti.map((d) => ({
+          fdi: d.fdi, ruolo: d.ruolo, scala: d.scala, codice: d.codice,
+          codice_collo: d.codice_collo, codice_corpo: d.codice_corpo,
+          codice_incisale: d.codice_incisale, provenienza: d.provenienza,
+        }))
+      : null,
+    dentiMostrati: lavoro.denti_coinvolti ?? [],
+    prescrizione: lavoro.prescrizione?.contenuto ?? null,
+  }
+}
+
+/** Una voce corretta: il carico da spedire e come si legge a schermo. */
+interface VoceCorretta {
+  /** La forma che il contratto vuole — 🔴 per i denti sono OGGETTI. */
+  valore: unknown
+  /** Come si legge nella riga «vecchio → nuovo». */
+  mostrato: string
+}
+
+type Correzioni = Partial<Record<CampoCorreggibile, VoceCorretta>>
+
+/** Il valore che il DOCUMENTO stampa oggi per quella voce. */
+function valoreDiAdesso(voci: VociDocumento, campo: CampoCorreggibile): string {
+  switch (campo) {
+    case 'richiedente_nome': return voci.prescrittoreMostrato
+    case 'paziente_id': return voci.pazienteMostrato
+    case 'tipo_dispositivo': return LABEL_MACRO[voci.tipoDispositivo] ?? voci.tipoDispositivo
+    case 'descrizione': return voci.descrizione
+    case 'denti_coinvolti': return voci.dentiMostrati.length > 0 ? voci.dentiMostrati.join(', ') : '—'
+    case 'prescrizione_caratteristiche': return caratteristichePrescritte(voci.prescrizione) ?? '—'
+  }
+}
+
+/**
+ * Le voci che da questo foglio NON si possono toccare, con la ragione già
+ * scritta: si dice **prima**, non si scopre con un 422 dopo che il PDF è stato
+ * reso e il progressivo bruciato.
+ */
+function perchePrecluso(voci: VociDocumento, campo: CampoCorreggibile): string | null {
+  if (campo === 'denti_coinvolti' && voci.denti === null) {
+    return 'I denti di questo lavoro non sono stati caricati: da qui non si correggono.'
+  }
+  if (campo === 'prescrizione_caratteristiche' && voci.prescrizione === null) {
+    return 'Questo lavoro non ha una prescrizione trascritta: non c\'è niente da correggere qui.'
+  }
+  if (campo === 'paziente_id' && !voci.clienteId) {
+    return 'Senza lo studio non si può cercare un\'altra persona.'
+  }
+  return null
+}
+
+/** I ruoli che l'odontogramma non sa mostrare. Si CONSERVANO com'erano:
+ *  toglierli sarebbe cancellare un dato che nessuno ha chiesto di cambiare. */
+const RUOLI_FUORI_ODONTOGRAMMA = ['escluso', 'incollato']
+
+/**
+ * Ricompone l'elenco dei denti nella forma della PENNA a partire dai tre
+ * elenchi dell'odontogramma.
+ *
+ * 🔴 IL DENTE CHE RESTA PORTA CON SÉ IL SUO COLORE. La correzione SOSTITUISCE
+ * l'elenco intero (`lavoro_denti_sostituisci_atomica`): mandare `{fdi, ruolo}`
+ * e basta cancellerebbe scala, codice e le tre zone del ceramista su ogni dente
+ * rimasto — un dato perso in silenzio, che è la famiglia di difetto che questo
+ * progetto ha già pagato.
+ */
+function ricomponiDenti(
+  originali: DenteNormalizzato[],
+  selezionati: number[],
+  mancanti: number[],
+  impianti: number[]
+): DenteNormalizzato[] {
+  const perFdi = new Map(originali.map((d) => [d.fdi, d]))
+  const messi = new Set<number>()
+  const nuovi: DenteNormalizzato[] = []
+
+  function aggiungi(fdi: number, ruolo: string) {
+    // 🛑 `validaDenti` rifiuta un `fdi` ripetuto («la lista è un insieme»): un
+    //    dente non può stare in due elenchi, e questa guardia è ciò che lo
+    //    garantisce anche se l'odontogramma cambiasse idea.
+    if (messi.has(fdi)) return
+    messi.add(fdi)
+    const vecchio = perFdi.get(fdi)
+    nuovi.push(
+      vecchio
+        ? { ...vecchio, ruolo }
+        : {
+            fdi, ruolo, scala: null, codice: null, codice_collo: null,
+            codice_corpo: null, codice_incisale: null, provenienza: 'prescritto',
+          }
+    )
+  }
+
+  for (const f of selezionati) aggiungi(f, 'elemento')
+  for (const f of mancanti) aggiungi(f, 'mancante')
+  for (const f of impianti) aggiungi(f, 'impianto')
+  for (const d of originali) {
+    if (!messi.has(d.fdi) && RUOLI_FUORI_ODONTOGRAMMA.includes(d.ruolo)) {
+      messi.add(d.fdi)
+      nuovi.push(d)
+    }
+  }
+
+  return nuovi.sort((a, b) => a.fdi - b.fdi)
+}
+
+/**
+ * Il messaggio che la rotta ha scritto, o quello di casa se il corpo è
+ * illeggibile. 🛑 Non si sostituisce mai un messaggio del server con un
+ * «qualcosa è andato storto»: quello del server dice **che cosa fare**.
+ */
+async function messaggioDiErrore(res: Response, difetto: string): Promise<string> {
+  try {
+    const b = (await res.json()) as { error?: unknown }
+    if (typeof b.error === 'string' && b.error.length > 0) return b.error
+  } catch { /* corpo illeggibile: resta il messaggio di casa */ }
+  return difetto
+}
+
+/** Due elenchi di denti sono lo stesso elenco? Serve a rispondere alla domanda
+ *  «*è ancora una correzione, se l'ho rimessa com'era?*» — no. */
+function stessiDenti(a: DenteNormalizzato[], b: DenteNormalizzato[]): boolean {
+  const canonico = (l: DenteNormalizzato[]) =>
+    JSON.stringify([...l].sort((x, y) => x.fdi - y.fdi).map((d) => [
+      d.fdi, d.ruolo, d.scala, d.codice, d.codice_collo, d.codice_corpo, d.codice_incisale, d.provenienza,
+    ]))
+  return canonico(a) === canonico(b)
 }
 
 interface Proposta {
@@ -166,9 +408,17 @@ function adessoLocale(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-export function DevoIntervenire(props: { lavoroId: string; descrizione: string }) {
-  const { lavoroId, descrizione } = props
+export function DevoIntervenire(props: {
+  lavoroId: string
+  descrizione: string
+  /** 🔑 OBBLIGATORIA, non facoltativa: senza, il passo di correzione non
+   *  potrebbe mostrare nessun valore — e una proprietà facoltativa si dimentica
+   *  in silenzio, mentre questa la pretende `tsc` a ogni chiamante. */
+  documento: VociDocumento
+}) {
+  const { lavoroId, descrizione, documento: voci } = props
   const router = useRouter()
+  const navigaDaOverlay = useNavigaDaOverlay()
   const { errore } = useAvvisi()
 
   const [fase, setFase] = useState<Fase>('chiuso')
@@ -192,6 +442,12 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
    *  l'elenco dei motivi le mostra in cima la strada giusta (D262). */
   const [uscitoDichiarato, setUscitoDichiarato] = useState(false)
 
+  // ── Task D: il passo di correzione (⚖️ D322) ───────────────────────────────
+  const [correzioni, setCorrezioni] = useState<Correzioni>({})
+  const [voceAperta, setVoceAperta] = useState<CampoCorreggibile | null>(null)
+  /** L'esito della riemissione, quando è avvenuta. */
+  const [riemissione, setRiemissione] = useState<{ numero: string | null; numeroSuperato: string | null } | null>(null)
+
   /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
    *  difetto MISURATO sullo schermo vero il 07/08 (FASE 9), e il giro nei dati
    *  era perfettamente riuscito mentre l'utente vedeva il foglio sparire.
@@ -207,6 +463,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
     setOrigine('laboratorio_interno'); setStatoDisp('consegnato_non_applicato')
     setDanno('da_valutare'); setConosciuto(adessoLocale())
     setUscitoDichiarato(false)
+    setCorrezioni({}); setVoceAperta(null); setRiemissione(null)
     if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
   }
 
@@ -217,7 +474,8 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
     //    rispondere — ma UNA la chiede: **dov'era il manufatto**. È l'unica che
     //    decide se quel motivo sia lecito, perché porta l'annullamento della
     //    dichiarazione (v. il riquadro sul `DialogConferma`).
-    setFase(m === 'errore_registrazione' ? 'domandaUscito' : 'dettagli')
+    if (m === 'errore_registrazione') { setFase('domandaUscito'); return }
+    setFase(m === 'errore_dato_dichiarazione' ? 'correzione' : 'dettagli')
   }
 
   /**
@@ -239,47 +497,119 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
     if (!motivo) return
     setLavorando(true)
     try {
-      const sbaglio = motivo === 'errore_registrazione'
-      const corpo: Record<string, unknown> = {
-        motivo,
-        origine_informazione: sbaglio ? 'laboratorio_interno' : origine,
-        stato_dispositivo: statoDichiarato,
-        conosciuto_il: sbaglio ? adessoLocale() : conosciuto,
-      }
-      // 🔑 Sul percorso corto `potenziale_di_danno` NON si manda: lo mette il
-      //    database col suo default prudente. Mandare «nessuno» sarebbe
-      //    affermare che non c'era pericolo — una risposta che nessuno ha dato.
-      if (!sbaglio) corpo.potenziale_di_danno = danno
-      if (motivo === 'altro') {
-        corpo.motivo_libero = motivoLibero.trim()
-        // Per «altro» la natura si CHIEDE (spec §5). Finché la schermata non la
-        // chiede, si resta sul genere più prudente: nessuna esenzione.
-        corpo.natura = 'difetto_fisico'
-      }
+      const dati = await depositaEvento(statoDichiarato)
+      if (!dati) return
+      accogliEvento(dati)
+      // Il fatto è salvato. Sul percorso corto non c'è una proposta da
+      // discutere: si mostra subito che cos'è successo.
+      setFase(motivo === 'errore_registrazione' ? 'esito' : 'proposta')
+    } finally {
+      setLavorando(false)
+    }
+  }
 
+  /**
+   * La registrazione dell'evento, e **una sola composizione del suo corpo**.
+   *
+   * 🔑 ESTRATTA COL TASK D, e la ragione è che adesso ha DUE chiamanti: la
+   * strada di sempre (`registra`) e il tocco finale della correzione
+   * (`correggiERifai`), che deve depositare lo stesso evento e poi rifare la
+   * carta. Ricopiare il corpo avrebbe creato due penne che divergono alla
+   * prima revisione — la stessa famiglia di difetto che `motivi-ui.ts` e
+   * `effetti.ts` esistono per evitare.
+   */
+  async function depositaEvento(statoDichiarato: StatoDispositivo): Promise<RispostaEvento | null> {
+    if (!motivo) return null
+    const sbaglio = motivo === 'errore_registrazione'
+    const corpo: Record<string, unknown> = {
+      motivo,
+      origine_informazione: sbaglio ? 'laboratorio_interno' : origine,
+      stato_dispositivo: statoDichiarato,
+      conosciuto_il: sbaglio ? adessoLocale() : conosciuto,
+    }
+    // 🔑 Sul percorso corto `potenziale_di_danno` NON si manda: lo mette il
+    //    database col suo default prudente. Mandare «nessuno» sarebbe
+    //    affermare che non c'era pericolo — una risposta che nessuno ha dato.
+    if (!sbaglio) corpo.potenziale_di_danno = danno
+    if (motivo === 'altro') {
+      corpo.motivo_libero = motivoLibero.trim()
+      // Per «altro» la natura si CHIEDE (spec §5). Finché la schermata non la
+      // chiede, si resta sul genere più prudente: nessuna esenzione.
+      corpo.natura = 'difetto_fisico'
+    }
+
+    try {
       const res = await fetch(`/api/lavori/${lavoroId}/eventi-qualita`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(corpo),
       })
       if (!res.ok) {
-        let messaggio = 'Non sono riuscita a registrare: riprova fra un momento.'
-        try {
-          const b = (await res.json()) as { error?: unknown }
-          if (typeof b.error === 'string' && b.error.length > 0) messaggio = b.error
-        } catch { /* corpo illeggibile: resta il messaggio di casa */ }
-        errore(messaggio)
-        return
+        errore(await messaggioDiErrore(res, 'Non sono riuscita a registrare: riprova fra un momento.'))
+        return null
       }
-      const dati = (await res.json()) as RispostaEvento
-      setRisposta(dati)
-      setEsitoScelto(dati.proposta.esito)
-      // Il fatto è salvato. Sul percorso corto non c'è una proposta da
-      // discutere: si mostra subito che cos'è successo.
-      setFase(sbaglio ? 'esito' : 'proposta')
-      setDaRinfrescare(true)
+      return (await res.json()) as RispostaEvento
     } catch {
       errore('Non sono riuscita a registrare: controlla la connessione e riprova.')
+      return null
+    }
+  }
+
+  function accogliEvento(dati: RispostaEvento) {
+    setRisposta(dati)
+    setEsitoScelto(dati.proposta.esito)
+    setDaRinfrescare(true)
+  }
+
+  /**
+   * ⚖️ D322 — IL TOCCO FINALE: **due chiamate in fila**, e la seconda non si fa
+   * senza la prima.
+   *
+   * 🛑 L'EVENTO SI TIENE NELLO STATO E SI RIUSA. Se la riemissione fallisce e la
+   * persona riprova, crearne uno nuovo lascerebbe eventi orfani in banca dati —
+   * ed è anche ciò che rende utile la porta d'idempotenza della rotta, che dopo
+   * un successo restituisce il successore invece di rifare tutto.
+   *
+   * 🛑 IL GETTONE VIAGGIA INTATTO: `voci.updatedAt` così com'è, mai riparsato.
+   */
+  async function correggiERifai() {
+    if (!motivo) return
+    setLavorando(true)
+    try {
+      let evento = risposta
+      if (!evento) {
+        evento = await depositaEvento(statoDisp)
+        if (!evento) return
+        accogliEvento(evento)
+      }
+
+      const carico: Record<string, unknown> = {}
+      for (const [campo, voce] of Object.entries(correzioni)) carico[campo] = voce.valore
+
+      try {
+        const res = await fetch(`/api/lavori/${lavoroId}/dichiarazione/riemetti`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            evento_id: evento.evento.id,
+            correzioni: carico,
+            atteso_updated_at: voci.updatedAt,
+          }),
+        })
+        if (!res.ok) {
+          // ⚖️ Passo 7 — GLI ERRORI SI LEGGONO. La rotta li scrive per chi sta
+          //    al banco: il 422 nomina la casella svuotata col percorso dentro,
+          //    il 409 dice che qualcuno ha toccato il lavoro. Sostituirli con
+          //    «qualcosa è andato storto» butterebbe via l'unica cosa utile.
+          errore(await messaggioDiErrore(res, 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.'))
+          return
+        }
+        const esito = (await res.json()) as { numero?: string | null; numero_superato?: string | null }
+        setRiemissione({ numero: esito.numero ?? null, numeroSuperato: esito.numero_superato ?? null })
+        setFase('proposta')
+      } catch {
+        errore('Non sono riuscita a rifare la dichiarazione: controlla la connessione e riprova.')
+      }
     } finally {
       setLavorando(false)
     }
@@ -318,6 +648,26 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
   const etichettaMotivo = motivo ? MOTIVI_UI[motivo].etichetta : ''
   const puoContinuare = motivo !== 'altro' || motivoLibero.trim().length > 0
 
+  // ── Task D ────────────────────────────────────────────────────────────────
+  const correggendo = motivo === 'errore_dato_dichiarazione'
+  const quanteCorrezioni = Object.keys(correzioni).length
+  const titoloFoglio = fase === 'correzioneCampo' && voceAperta ? TITOLI_VOCE[voceAperta] : TITOLI[fase]
+
+  /** Registra (o toglie) la correzione di una voce e torna all'elenco.
+   *  🔑 `null` = «l'ho rimessa com'era»: **non è una correzione**, e la voce
+   *  esce dall'elenco. Mandarla produrrebbe un documento identico a quello di
+   *  oggi — cioè proprio ciò che il tasto spento dichiara inutile. */
+  function chiudiVoce(campo: CampoCorreggibile, voce: VoceCorretta | null) {
+    setCorrezioni((prev) => {
+      const prossime = { ...prev }
+      if (voce) prossime[campo] = voce
+      else delete prossime[campo]
+      return prossime
+    })
+    setVoceAperta(null)
+    setFase('correzione')
+  }
+
   return (
     <>
       {/* ① LA RIGA — dove oggi muore il conto alla rovescia. Dice DOVE si va,
@@ -346,7 +696,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
 
       {/* IL FOGLIO — UNO SOLO, che cambia passo. V. il riquadro in testa al file
           per il difetto misurato che ha imposto questa struttura. */}
-      <Sheet aperto={fase !== 'chiuso'} onChiudi={ricomincia} titolo={TITOLI[fase]}>
+      <Sheet aperto={fase !== 'chiuso'} onChiudi={ricomincia} titolo={titoloFoglio}>
 
       {/* ② LA DOMANDA D'INGRESSO (D288) — e l'uscita non salva niente. */}
       {fase === 'domanda' && (
@@ -430,6 +780,88 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
         </>
       )}
 
+      {/* ③-ter IL PASSO DI CORREZIONE — ⚖️ D322, variante A: PRIMA delle quattro
+          caselle. Mostra VALORI, non controlli: si tocca una riga, si corregge,
+          si torna qui e la riga dice `vecchio → nuovo`. */}
+      {fase === 'correzione' && (
+        <>
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
+            Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.s }}>
+            {CAMPI_CORREGGIBILI_DOCUMENTO.map((campo) => (
+              <RigaVoce
+                key={campo}
+                etichetta={ETICHETTE_VOCE[campo]}
+                adesso={valoreDiAdesso(voci, campo)}
+                corretta={correzioni[campo]}
+                precluso={perchePrecluso(voci, campo)}
+                // ⚖️ D320 — la riga del paziente non apre un campo di testo:
+                //    apre un elenco di persone. La marca lo dice PRIMA del tocco.
+                marca={campo === 'paziente_id' ? 'altra persona' : undefined}
+                onApri={() => { setVoceAperta(campo); setFase('correzioneCampo') }}
+              />
+            ))}
+          </div>
+
+          {/* ⚖️ D316 · D320 — «Da qui non si corregge» nomina DUE cose, e ognuna
+              porta la sua destinazione: un rifiuto indica la strada (D262).
+              🛑 Si naviga con `useNavigaDaOverlay`, mai `router.push` nudo: da
+              dentro un overlay v3 un `push` impila la pagina nuova sopra
+              l'entry del foglio e la lascia sepolta — difetto già pagato. */}
+          <div style={{ borderRadius: raggio.riga, padding: `14px ${spazio.m}px`, background: 'var(--bg-deep)' }}>
+            <p style={{
+              fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
+              textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
+              color: 'var(--faint)', margin: `0 0 ${spazio.s}px`,
+            }}>Da qui non si corregge</p>
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: `0 0 ${spazio.s}px`, lineHeight: 1.5 }}>
+              Se è sbagliato un dato del <b style={{ color: 'var(--ink)' }}>laboratorio</b> — ragione sociale,
+              indirizzo, partita IVA, luogo di fabbricazione — si corregge in{' '}
+              <LinkQuieto onClick={() => navigaDaOverlay('/impostazioni')}>Impostazioni</LinkQuieto>, e vale
+              per tutte le dichiarazioni da lì in avanti.
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+              Se il <b style={{ color: 'var(--ink)' }}>nome del paziente</b> è scritto male, si corregge in{' '}
+              <LinkQuieto onClick={() => navigaDaOverlay(voci.pazienteId ? `/pazienti/${voci.pazienteId}` : '/pazienti')}>
+                Anagrafica
+              </LinkQuieto>{' '}
+              — così vale per tutti i suoi lavori. Poi torni qui e rifai la dichiarazione. Da questo foglio
+              si cambia <b style={{ color: 'var(--ink)' }}>quale persona</b> è, non come si chiama.
+            </p>
+          </div>
+
+          <TastoPrimario
+            onClick={() => setFase('dettagli')}
+            disabled={quanteCorrezioni === 0}
+            motivoDisabilitato="Tocca una riga e correggi almeno un dato: senza una correzione, il documento nuovo sarebbe identico a quello di oggi."
+          >
+            Continua
+          </TastoPrimario>
+          {quanteCorrezioni > 0 && (
+            <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
+              Hai corretto <b style={{ color: 'var(--ink)' }}>{quanteCorrezioni} dat{quanteCorrezioni === 1 ? 'o' : 'i'}</b>.
+              {' '}Restano da rispondere le quattro domande di legge.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* ③-quater IL SOTTO-PASSO DI UNA VOCE — `key` sulla voce: si rimonta
+          fresco a ogni apertura, così non porta dentro lo stato di quella
+          precedente. */}
+      {fase === 'correzioneCampo' && voceAperta && (
+        <PassoVoce
+          key={voceAperta}
+          campo={voceAperta}
+          voci={voci}
+          corrente={correzioni[voceAperta]}
+          onIndietro={() => { setVoceAperta(null); setFase('correzione') }}
+          onConferma={(voce) => chiudiVoce(voceAperta, voce)}
+        />
+      )}
+
       {/* ④ LE QUATTRO CASELLE (spec §5) */}
       {fase === 'dettagli' && (
         <>
@@ -494,13 +926,22 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
           onScegli={setDanno}
         />
 
+        {/* ⚖️ D322 — IL TASTO FINALE DICE QUELLO CHE FA, mai «Salva». Su questo
+            motivo è QUI che parte l'atto unico: due chiamate in fila, la
+            registrazione e la riemissione. Sugli altri otto motivi la riga
+            resta esattamente quella di prima. */}
         <TastoPrimario
-          onClick={() => { if (!lavorando) void registra(statoDisp) }}
+          onClick={() => { if (!lavorando) void (correggendo ? correggiERifai() : registra(statoDisp)) }}
           disabled={lavorando || !puoContinuare}
           motivoDisabilitato={lavorando ? 'Sto registrando…' : 'Scrivi in due parole di cosa si tratta'}
         >
-          {lavorando ? 'Un attimo…' : 'Continua'}
+          {lavorando ? 'Un attimo…' : correggendo ? 'Correggi e rifai la dichiarazione' : 'Continua'}
         </TastoPrimario>
+        {correggendo && !lavorando && (
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
+            La dichiarazione di oggi resta in archivio come superata: non sparisce.
+          </p>
+        )}
         </>
       )}
 
@@ -508,6 +949,11 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
       {fase === 'proposta' && (
         <>{risposta && (
           <>
+            {/* 🔑 LA CARTA NUOVA SI ANNUNCIA SUBITO, prima della valutazione:
+                l'atto unico è già avvenuto, e tacerlo qui sarebbe «riuscire
+                senza dirlo». La classificazione ISO resta una decisione a
+                parte, e la si prende sotto. */}
+            <RiquadroRiemissione riemissione={riemissione} />
             <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
               Se non ti torna, cambiala: decidi tu.
             </p>
@@ -571,6 +1017,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
                 ? 'La registrazione e la valutazione sono agli atti.'
                 : 'La registrazione è agli atti.'}
             </Esito>
+            <RiquadroRiemissione riemissione={riemissione} />
             {/* 🔴 QUESTO BLOCCO ERA UN TESTO FALSO, e l'ha trovato la revisione del
                 Task 7. Diceva «La dichiarazione è stata annullata» **proprio sul ramo
                 che la tiene viva**: il ternario guardava `dichiarazione_assente`, che
@@ -671,6 +1118,398 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
         onConferma={() => { if (!lavorando) void registra('mai_uscito_dal_lab') }}
         onAnnulla={() => { setUscitoDichiarato(true); setFase('motivo') }}
       />
+    </>
+  )
+}
+
+/** Il riquadro della carta nuova. `null` finché non è avvenuta: si annuncia
+ *  ciò che È SUCCESSO, mai ciò che si sperava. */
+function RiquadroRiemissione(props: { riemissione: { numero: string | null; numeroSuperato: string | null } | null }) {
+  const { riemissione } = props
+  if (!riemissione) return null
+  return (
+    <Esito
+      tono="ok"
+      titolo={riemissione.numero ? `Dichiarazione rifatta — n. ${riemissione.numero}` : 'Dichiarazione rifatta'}
+    >
+      {riemissione.numeroSuperato
+        ? `La n. ${riemissione.numeroSuperato} resta in archivio come superata: non è stata annullata.`
+        : 'Quella di prima resta in archivio come superata: non è stata annullata.'}
+    </Esito>
+  )
+}
+
+/**
+ * Una riga del passo di correzione: **mostra il valore, non un controllo**.
+ * Corretta, dice `vecchio → nuovo` e porta la pastiglia «Da rifare».
+ *
+ * 🛑 Preclusa, NON è un bottone e porta la sua ragione: un bersaglio che si può
+ * premere e non fa niente è peggio di un bersaglio che non c'è.
+ */
+function RigaVoce(props: {
+  etichetta: string
+  adesso: string
+  corretta?: VoceCorretta
+  precluso: string | null
+  marca?: string
+  onApri: () => void
+}) {
+  const { etichetta, adesso, corretta, precluso, marca, onApri } = props
+
+  const corpo = (
+    <span style={{ flex: 1, minWidth: 0 }}>
+      <span style={{
+        display: 'block', fontSize: tipografia.size.label, fontWeight: tipografia.weight.bold,
+        color: 'var(--muted)',
+      }}>{etichetta}</span>
+      <span style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 6,
+        fontSize: 16.5, fontWeight: tipografia.weight.bold, color: 'var(--ink)',
+        lineHeight: 1.3, marginTop: 2, overflowWrap: 'anywhere',
+      }}>
+        {corretta ? (
+          <>
+            <span style={{ color: 'var(--muted)', textDecoration: 'line-through', fontWeight: tipografia.weight.semibold }}>
+              {adesso}
+            </span>
+            <span aria-hidden style={{ color: 'var(--faint)' }}>→</span>
+            <span>{corretta.mostrato}</span>
+          </>
+        ) : (
+          <span>{adesso}</span>
+        )}
+        {marca && !corretta && (
+          <span style={{
+            fontSize: 11.5, fontWeight: tipografia.weight.extrabold, letterSpacing: '0.06em',
+            textTransform: 'uppercase', color: 'var(--purple)', background: 'var(--purple-tint)',
+            borderRadius: 999, padding: '3px 9px',
+          }}>{marca}</span>
+        )}
+      </span>
+      {corretta && (
+        <span style={{
+          display: 'inline-block', marginTop: 6, fontSize: 11.5,
+          fontWeight: tipografia.weight.extrabold, letterSpacing: '0.08em',
+          textTransform: 'uppercase', color: 'var(--blue)', background: 'var(--card)',
+          borderRadius: 999, padding: '3px 9px',
+        }}>Da rifare</span>
+      )}
+      {precluso && (
+        <span style={{ display: 'block', fontSize: 13.5, color: 'var(--faint)', marginTop: 4, lineHeight: 1.4 }}>
+          {precluso}
+        </span>
+      )}
+    </span>
+  )
+
+  const stile = {
+    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+    // 🛑 In tema scuro una superficie premibile NON si dipinge del colore del
+    //    pannello che la contiene: `--bg-deep` risolve a un tono più chiaro del
+    //    `--card` del foglio, e la riga resta visibile (spec v3 §3.2).
+    background: corretta ? 'var(--blue-tint)' : 'var(--bg-deep)',
+    border: '1px solid transparent', borderRadius: raggio.riga,
+    padding: `13px ${spazio.m}px`, textAlign: 'left' as const,
+    minHeight: 60, font: 'inherit',
+  }
+
+  if (precluso) {
+    return <div style={{ ...stile, opacity: 0.72 }}>{corpo}</div>
+  }
+
+  return (
+    <button type="button" onClick={onApri} style={{ ...stile, cursor: 'pointer' }}>
+      {corpo}
+      <span aria-hidden style={{ color: 'var(--faint)', fontSize: 17, flex: 'none' }}>›</span>
+    </button>
+  )
+}
+
+/** Il tasto «‹ Torna all'elenco» dei sotto-passi. Bersaglio ≥ 44 px. */
+function TornaAllElenco(props: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7, alignSelf: 'flex-start',
+        background: 'transparent', border: 'none', padding: 0, font: 'inherit',
+        fontSize: 14.5, fontWeight: tipografia.weight.bold, color: 'var(--muted)',
+        minHeight: 44, cursor: 'pointer',
+      }}
+    >
+      <span aria-hidden>‹</span> Torna all&apos;elenco
+    </button>
+  )
+}
+
+const NON_SI_SVUOTA = 'Questa voce non si può svuotare: sul documento diventerebbe un\'informazione mancante.'
+
+/**
+ * Il sotto-passo di UNA voce. Ogni ramo risponde a due domande sole: **che
+ * cosa si manda** (la forma che il contratto vuole) e **è ancora una
+ * correzione** (no, se il valore è tornato quello di prima).
+ */
+function PassoVoce(props: {
+  campo: CampoCorreggibile
+  voci: VociDocumento
+  corrente?: VoceCorretta
+  onIndietro: () => void
+  onConferma: (voce: VoceCorretta | null) => void
+}) {
+  const { campo, voci, corrente, onIndietro, onConferma } = props
+
+  // ── I tre testi (`richiedente_nome`, `descrizione`) e il colore ───────────
+  const originaleTesto = campo === 'descrizione' ? voci.descrizione : (voci.richiedenteNome ?? '')
+  const [testo, setTesto] = useState<string>(
+    corrente && (campo === 'descrizione' || campo === 'richiedente_nome') ? String(corrente.valore) : originaleTesto
+  )
+
+  // ── Il tipo di dispositivo — vocabolario CHIUSO ───────────────────────────
+  const [tipo, setTipo] = useState<TipoDispositivo>(
+    corrente && campo === 'tipo_dispositivo' ? (corrente.valore as TipoDispositivo) : voci.tipoDispositivo
+  )
+
+  // ── Il paziente — si sceglie una PERSONA, non si scrive un nome (D320) ────
+  const [cerca, setCerca] = useState('')
+  const [trovati, setTrovati] = useState<{ id: string; codice_paziente: string | null; alias: string | null }[]>([])
+  const [scelto, setScelto] = useState<{ id: string; mostrato: string } | null>(
+    corrente && campo === 'paziente_id' ? { id: corrente.valore as string, mostrato: corrente.mostrato } : null
+  )
+
+  // ── I denti — il carico della PENNA, oggetti `{fdi, ruolo, …}` ────────────
+  const dentiOriginali = voci.denti ?? []
+  const [sel, setSel] = useState<number[]>(() => dentiOriginali.filter((d) => d.ruolo === 'elemento').map((d) => d.fdi))
+  const [man, setMan] = useState<number[]>(() => dentiOriginali.filter((d) => d.ruolo === 'mancante').map((d) => d.fdi))
+  const [imp, setImp] = useState<number[]>(() => dentiOriginali.filter((d) => d.ruolo === 'impianto').map((d) => d.fdi))
+
+  // ── Le caratteristiche prescritte — DUE caselle, `elementi` e `colore` ────
+  const elementiOriginali = voci.prescrizione?.elementi ?? []
+  const coloreOriginale = voci.prescrizione?.colore ?? ''
+  const [elementi, setElementi] = useState<number[]>(() => [...elementiOriginali])
+  const [colore, setColore] = useState(coloreOriginale)
+
+  const q = cerca.trim()
+  useEffect(() => {
+    // 🔑 IL VUOTO SI DERIVA, NON SI SCRIVE (v. `risultati` più sotto): uno
+    //    `setTrovati([])` sincrono nel corpo dell'effetto accende
+    //    `react-hooks/set-state-in-effect` e fa un render in più per niente.
+    if (campo !== 'paziente_id' || !voci.clienteId || q.length < 2) return
+    let annullato = false
+    // 🛑 Una LETTURA, non una scrittura: il Passo 5 («niente si salva prima del
+    //    tocco finale») parla di ciò che si scrive. Cercare una persona non
+    //    tocca niente.
+    fetch(`/api/pazienti?cliente_id=${encodeURIComponent(voci.clienteId)}&q=${encodeURIComponent(q)}`)
+      .then((r) => (r.ok ? r.json() : { pazienti: [] }))
+      .then((j) => { if (!annullato) setTrovati(j.pazienti ?? []) })
+      .catch(() => { if (!annullato) setTrovati([]) })
+    return () => { annullato = true }
+  }, [campo, voci.clienteId, q])
+
+  /** Sotto i due caratteri non si mostra niente: è un DERIVATO della ricerca,
+   *  non uno stato da azzerare a mano. */
+  const risultati = q.length >= 2 ? trovati : []
+
+  /** Che cosa si manda, e se è ancora una correzione. `null` = non lo è. */
+  function componi(): VoceCorretta | null {
+    switch (campo) {
+      case 'richiedente_nome':
+      case 'descrizione': {
+        const vivo = testoVivo(testo)
+        if (vivo === null || vivo === testoVivo(originaleTesto)) return null
+        return { valore: testo, mostrato: vivo }
+      }
+      case 'tipo_dispositivo':
+        if (tipo === voci.tipoDispositivo) return null
+        return { valore: tipo, mostrato: LABEL_MACRO[tipo] }
+      case 'paziente_id':
+        if (!scelto || scelto.id === voci.pazienteId) return null
+        return { valore: scelto.id, mostrato: scelto.mostrato }
+      case 'denti_coinvolti': {
+        const nuovi = ricomponiDenti(dentiOriginali, sel, man, imp)
+        if (nuovi.length === 0 || stessiDenti(nuovi, dentiOriginali)) return null
+        const elencati = nuovi.filter((d) => d.ruolo === 'elemento').map((d) => String(d.fdi))
+        return { valore: nuovi, mostrato: elencati.length > 0 ? elencati.join(', ') : '—' }
+      }
+      case 'prescrizione_caratteristiche': {
+        // 🔑 SI MANDANO SOLO LE SOTTO-CHIAVI CAMBIATE: la penna scrive una
+        //    `jsonb_set` alla volta, quindi correggere il colore non cancella
+        //    gli elementi. E ogni sotto-chiave mandata dev'essere non vuota —
+        //    la voce 6 dell'Allegato XIII è un contenuto dovuto.
+        const sotto: Record<string, unknown> = {}
+        if (testoVivo(colore) !== testoVivo(coloreOriginale)) {
+          if (testoVivo(colore) === null) return null
+          sotto.colore = colore
+        }
+        if (JSON.stringify([...elementi].sort((a, b) => a - b)) !== JSON.stringify([...elementiOriginali].sort((a, b) => a - b))) {
+          if (elementi.length === 0) return null
+          sotto.elementi = [...elementi].sort((a, b) => a - b)
+        }
+        if (Object.keys(sotto).length === 0) return null
+        const fuso = { ...(voci.prescrizione ?? {}), ...sotto } as PrescrizioneContenuto
+        return { valore: sotto, mostrato: caratteristichePrescritte(fuso) ?? '—' }
+      }
+    }
+  }
+
+  /** Il perché il tasto è spento — 🛑 si dice PRIMA, non si scopre con un 422. */
+  function perche(): string | null {
+    switch (campo) {
+      case 'richiedente_nome':
+      case 'descrizione':
+        return testoVivo(testo) === null ? NON_SI_SVUOTA : null
+      case 'paziente_id':
+        return !scelto || scelto.id === voci.pazienteId ? 'Scegli una persona diversa da quella di adesso.' : null
+      case 'denti_coinvolti':
+        return ricomponiDenti(dentiOriginali, sel, man, imp).length === 0
+          ? 'Un elenco di denti vuoto non si può mandare: il documento resterebbe senza.'
+          : null
+      case 'prescrizione_caratteristiche': {
+        if (testoVivo(colore) !== testoVivo(coloreOriginale) && testoVivo(colore) === null) return NON_SI_SVUOTA
+        if (elementi.length === 0 && elementiOriginali.length > 0) return NON_SI_SVUOTA
+        return null
+      }
+      case 'tipo_dispositivo':
+        return null
+    }
+  }
+
+  const spento = perche()
+
+  return (
+    <>
+      <TornaAllElenco onClick={onIndietro} />
+
+      {(campo === 'richiedente_nome' || campo === 'descrizione') && (
+        <>
+          <CampoTesto label="Come deve dire il documento" valore={testo} onCambia={setTesto} />
+          <p style={{ fontSize: 13.5, color: 'var(--faint)', margin: 0 }}>
+            Adesso dice: <b style={{ color: 'var(--muted)' }}>{valoreDiAdesso(voci, campo)}</b>
+          </p>
+          {campo === 'richiedente_nome' && voci.richiedenteNome === null && (
+            <p style={{ fontSize: 13.5, color: 'var(--faint)', margin: 0, lineHeight: 1.45 }}>
+              Qui non c&apos;è ancora nessun nome scritto: sulla dichiarazione compare quello del dentista.
+            </p>
+          )}
+        </>
+      )}
+
+      {campo === 'tipo_dispositivo' && (
+        <>
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
+            Le voci sono queste: sul documento non ne può comparire un&apos;altra.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {MACRO_SLUGS.map((s) => (
+              <ChipScelta key={s} selezionata={tipo === s} onClick={() => setTipo(s)}>
+                {LABEL_MACRO[s]}
+              </ChipScelta>
+            ))}
+          </div>
+        </>
+      )}
+
+      {campo === 'paziente_id' && (
+        <>
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
+            Da qui si cambia <b style={{ color: 'var(--ink)' }}>la persona</b>. Per correggere come è scritto un
+            nome si va in Anagrafica.
+          </p>
+          <CampoTesto label="Cerca per cognome o codice" valore={cerca} onCambia={setCerca} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {risultati.map((p) => {
+              const mostrato = p.alias ?? p.codice_paziente ?? '—'
+              const eQuelloDiAdesso = p.id === voci.pazienteId
+              return (
+                <button
+                  key={p.id} type="button"
+                  onClick={() => setScelto({ id: p.id, mostrato })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                    background: 'var(--bg-deep)', borderRadius: 16, minHeight: 56,
+                    border: `1px solid ${scelto?.id === p.id ? 'var(--ink)' : 'transparent'}`,
+                    padding: `12px ${spazio.m}px`, font: 'inherit', textAlign: 'left', cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 16, fontWeight: tipografia.weight.bold, color: 'var(--ink)' }}>
+                      {mostrato}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+                      {p.codice_paziente ?? '—'}{eQuelloDiAdesso ? ' · è quello di adesso' : ''}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+            {q.length >= 2 && risultati.length === 0 && (
+              <p style={{ fontSize: 13.5, color: 'var(--faint)', margin: 0 }}>
+                Nessuna persona trovata in questo studio.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+
+      {campo === 'denti_coinvolti' && (
+        <>
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
+            Sul documento compaiono gli <b style={{ color: 'var(--ink)' }}>elementi</b>. Il colore già segnato su
+            un dente resta dov&apos;è.
+          </p>
+          <OdontogrammaFDI
+            selezionati={sel} mancanti={man} impianti={imp}
+            onSelezionati={setSel} onMancanti={setMan} onImpianti={setImp}
+          />
+        </>
+      )}
+
+      {campo === 'prescrizione_caratteristiche' && (
+        <>
+          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
+            Sono le caratteristiche <b style={{ color: 'var(--ink)' }}>indicate dal medico</b> nella prescrizione:
+            sul documento compaiono in una riga sola.
+          </p>
+          <div style={{ borderRadius: raggio.riga, padding: `14px ${spazio.m}px`, background: 'var(--bg-deep)' }}>
+            <p style={{
+              fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
+              textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
+              color: 'var(--faint)', margin: `0 0 ${spazio.s}px`,
+            }}>Elementi</p>
+            {/* 🔴 NON È UN CAMPO DI TESTO, e il mockup lo disegnava così: sul
+                contratto `elementi` è una lista di NUMERI di dente
+                (`PrescrizioneContenuto.elementi: number[]`). Un testo qui
+                prenderebbe **422 a ogni invio** — `normalizzaContenuto` scarta
+                un `elementi` che non sia un array di numeri e `validaCorrezioni`
+                rifiuta ciò che è stato scartato. V. il resoconto, §6.
+                🔑 Sulla prescrizione esistono SOLO gli elementi: segnare un
+                dente come mancante o impianto qui vuol dire toglierlo. */}
+            <OdontogrammaFDI
+              selezionati={elementi} mancanti={[]} impianti={[]}
+              onSelezionati={setElementi} onMancanti={() => {}} onImpianti={() => {}}
+            />
+            <div style={{ height: 12 }} />
+            <CampoTesto label="Colore" valore={colore} onCambia={setColore} />
+          </div>
+          <div style={{ borderRadius: 16, padding: `12px ${spazio.m}px`, background: 'var(--amber-tint)' }}>
+            <b style={{ display: 'block', fontSize: 14.5, color: 'var(--ink)', marginBottom: 3 }}>
+              Una casella non si può svuotare
+            </b>
+            <span style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.45 }}>
+              Se una caratteristica non va più indicata, non si cancella da qui: sul documento è un contenuto
+              dovuto, e toglierla lo farebbe uscire monco.
+            </span>
+          </div>
+        </>
+      )}
+
+      <TastoPrimario
+        onClick={() => onConferma(componi())}
+        disabled={spento !== null}
+        motivoDisabilitato={spento ?? undefined}
+      >
+        Usa questo
+      </TastoPrimario>
     </>
   )
 }
