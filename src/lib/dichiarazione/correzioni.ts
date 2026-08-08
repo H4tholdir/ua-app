@@ -4,7 +4,7 @@ import { normalizzaContenuto } from '@/lib/domain/prescrizione-mapper'
 import type { LavoroDettaglio, Paziente } from '@/types/domain'
 
 /**
- * LE SETTE VOCI CORREGGIBILI DEL DOCUMENTO — Task C dell'ondata «correggi e
+ * LE SEI VOCI CORREGGIBILI DEL DOCUMENTO — Task C dell'ondata «correggi e
  * rifai la dichiarazione».
  *
  * 🛑 NON SONO «i campi di `lavori`», e la differenza è tutto il modulo. Una
@@ -13,12 +13,29 @@ import type { LavoroDettaglio, Paziente } from '@/types/domain'
  * D308) — cioè una SECONDA penna che diverge in silenzio dalla prima. Qui si
  * correggono le voci che il DOCUMENTO stampa, e sono quelle e basta.
  *
- * ⚠️ SETTE NOMI PER SEI VOCI A SCHERMO, e non è un doppione: il paziente si
- * corregge **scegliendone un altro** (`paziente_id`, che cambia l'anagrafica a
- * cui il lavoro punta) **oppure** correggendo **l'identificativo stampato su
- * questo documento** (`paziente_nome_snapshot`, che è la fotografia). Le due
- * cose sono diverse e servono in momenti diversi: chi ha sbagliato persona usa
- * la prima, chi ha sbagliato a scrivere il nome usa la seconda.
+ * ⚖️ UN NOME, UNA RIGA — SEI NOMI PER SEI VOCI A SCHERMO, dalla D320
+ * (08/08/2026). Fino a ieri i nomi erano sette perché il paziente si poteva
+ * correggere in DUE modi; da oggi il modo è uno solo, e l'altro ha una
+ * destinazione scritta:
+ *   · **ho sbagliato PERSONA** → `paziente_id`, che punta a un'altra
+ *     anagrafica. **Resta qui**, ed è una voce del documento.
+ *   · **il NOME è scritto male** → 🛑 **NON si corregge da qui.** Si corregge
+ *     **dove il nome vive**, cioè in anagrafica: `PATCH /api/pazienti/[id]`
+ *     (`nome`/`cognome`), la via scritta per l'**Art. 16 GDPR**, a schermo
+ *     `PazienteEditSheet` su `/pazienti/[id]`.
+ * 🔑 IL MOTIVO TECNICO, ed è tutta la decisione: `generate-ddc.ts:304` legge
+ * `paziente_nome_snapshot ?? paziente?.nome_cognome ?? paziente?.codice_paziente`.
+ * **Lo snapshot VINCE.** Scriverlo da qui congelerebbe su quel lavoro un nome
+ * che l'anagrafica non governa più: ogni correzione futura in anagrafica **non
+ * arriverebbe** su quel documento — l'opposto di «*e poi tutto si deve
+ * aggiornare di conseguenza*», che è la frase con cui la decisione è nata.
+ * ⚠️ E UN CONTRATTO SI GIUDICA PER CIÒ CHE PERMETTE, non per ciò che oggi gli
+ * si chiede: nessuna schermata manda quella chiave (`DevoIntervenire.tsx` non
+ * la nomina), ma finché la porta è aperta l'unica cosa che la tiene chiusa è
+ * una schermata.
+ * 📌 LA COLONNA NON SI CANCELLA e i suoi lettori restano tutti (il generatore,
+ * il precheck MDR, l'etichetta, il buono, la ricevuta, il portale, l'agenda,
+ * la ricerca a testo pieno): D320 chiude **una penna**, non uccide il dato.
  *
  * ⚖️ ERANO OTTO PER SETTE FINO A D319 (08/08/2026): `numero_prescrizione` è
  * uscito da questo elenco, e la ragione è normativa, non di prodotto. Sulla
@@ -41,7 +58,6 @@ import type { LavoroDettaglio, Paziente } from '@/types/domain'
 export const CAMPI_CORREGGIBILI_DOCUMENTO = [
   'richiedente_nome',
   'paziente_id',
-  'paziente_nome_snapshot',
   'tipo_dispositivo',
   'descrizione',
   'denti_coinvolti',
@@ -50,14 +66,14 @@ export const CAMPI_CORREGGIBILI_DOCUMENTO = [
 
 export type CampoCorreggibile = (typeof CAMPI_CORREGGIBILI_DOCUMENTO)[number]
 
-/** Le quattro voci che sono TESTO su `lavori`. `paziente_id` non è fra queste:
+/** Le tre voci che sono TESTO su `lavori`. `paziente_id` non è fra queste:
  *  è un identificativo, e ha la sua forma.
- *  ⚖️ Erano CINQUE fino a D319: `numero_prescrizione` è uscito di qui insieme
- *  all'allowlist sopra — un nome tolto da un elenco e lasciato nell'altro
- *  sarebbe un tipo dichiarato che non esiste più (e `tsc` lo direbbe subito). */
+ *  ⚖️ Erano CINQUE fino a D319 (`numero_prescrizione`) e QUATTRO fino a D320
+ *  (`paziente_nome_snapshot`): ogni nome è uscito di qui insieme all'allowlist
+ *  sopra — un nome tolto da un elenco e lasciato nell'altro sarebbe un tipo
+ *  dichiarato che non esiste più (e `tsc` lo direbbe subito). */
 const CAMPI_TESTO: readonly CampoCorreggibile[] = [
   'richiedente_nome',
-  'paziente_nome_snapshot',
   'tipo_dispositivo',
   'descrizione',
 ]
@@ -80,10 +96,17 @@ export type EsitoValidazioneCorrezioni =
  * `descrizione`, `richiedente_nome` e `paziente_nome_snapshot` è tornata
  * `esito: ok` e ha **svuotato tutti e cinque i campi**. Il database accetta il
  * vuoto: per lui `''` è un valore come un altro.
+ * 📌 La storia di una misura non si riscrive — ma da ⚖️ D320 quella chiave
+ * **non è più accettata affatto**: `{paziente_nome_snapshot: ''}` oggi non
+ * arriva nemmeno a questa regola, perché il controllo delle chiavi ignote sta
+ * PRIMA (v. `validaCorrezioni`) e risponde «da qui non si corregge».
  *
  * ⚠️ E il precedente già pagato è D242: uno snapshot **vuoto** vince sul nome
- * vivo (`generate-ddc.ts:258` ripiega con `??`, che conosce solo `null`) e
+ * vivo (`generate-ddc.ts:304` ripiega con `??`, che conosce solo `null`) e
  * stampa **un'identificazione paziente assente** su un documento di legge.
+ * 🛑 D320 chiude quella porta **all'allowlist, non nel generatore**: il
+ * ripiego di `generate-ddc.ts:304` resta esattamente com'è, e con lui il
+ * pericolo per chiunque scriva quella colonna da un'altra strada.
  *
  * 📌 UNA regola e non tre casi speciali: è la stessa idea di «vuoto» per un
  * testo, per un elenco e per un oggetto — non dice niente. Il vuoto dei testi
@@ -295,10 +318,19 @@ export function validaCorrezioni(grezzo: unknown): EsitoValidazioneCorrezioni {
  * correggendo**, e la riga in banca dati direbbe una cosa diversa dal file. Le
  * due metà vanno tenute insieme, e il punto di giuntura è questa funzione.
  *
- * 🔴 `pazienteNuovo` NON è un lusso: `generate-ddc.ts:258` ripiega su
+ * 🔴 `pazienteNuovo` NON è un lusso: `generate-ddc.ts:304` ripiega su
  * `lavoro.paziente?.nome_cognome` quando lo snapshot è nullo. Correggere il
  * solo `paziente_id` e lasciare l'embed stantìo scriverebbe sul documento il
  * nome della persona **sbagliata**, mentre la riga punta a quella giusta.
+ *
+ * ⚠️ LIMITE DICHIARATO DA ⚖️ D320, e va detto qui perché è dove si vede: il
+ * ripiego funziona **quando lo snapshot è nullo**, cioè su 298 lavori su 299
+ * (misurato l'08/08/2026). Sul lavoro che uno snapshot ce l'ha, correggere
+ * `paziente_id` cambia la riga e l'embed, ma il documento continua a stampare
+ * **lo snapshot vecchio**, che vince a `generate-ddc.ts:304` — e da D320 quello
+ * snapshot non è più correggibile da nessuna strada. Non è una regressione
+ * (nessuna schermata mandava quella chiave): è una **riparazione che il foglio
+ * non potrà offrire**, e se vada tolto il ripiego è una decisione a sé.
  */
 export function fondiCorrezioni(
   lavoro: LavoroDettaglio,

@@ -424,7 +424,7 @@ describe('POST …/riemetti — con le CORREZIONI (Task C)', () => {
     expect(mockCorreggi).not.toHaveBeenCalled()
   })
 
-  it('una chiave fuori dalle otto → 422 PRIMA di generare, e il messaggio la nomina', async () => {
+  it('una chiave fuori dalle sei → 422 PRIMA di generare, e il messaggio la nomina', async () => {
     banco()
     const res = await POST(req(corpo({ classe_rischio: 'classe_i' })), params())
     expect(res.status).toBe(422)
@@ -433,8 +433,13 @@ describe('POST …/riemetti — con le CORREZIONI (Task C)', () => {
   })
 
   it('🛑 C2 — valori vuoti → 422: svuoterebbero i campi con esito «ok»', async () => {
+    // ⚖️ IL SECONDO CAMPO ERA `paziente_nome_snapshot: '  '` FINO A D320: con
+    //    quel nome fuori dall'allowlist il 422 sarebbe arrivato dal controllo
+    //    delle chiavi IGNOTE, che gira PRIMA di quello sul vuoto — cioè la prova
+    //    sarebbe rimasta verde per la ragione sbagliata. Sostituito con un testo
+    //    che resta correggibile.
     banco()
-    const res = await POST(req(corpo({ descrizione: '', paziente_nome_snapshot: '  ' })), params())
+    const res = await POST(req(corpo({ descrizione: '', richiedente_nome: '  ' })), params())
     expect(res.status).toBe(422)
     expect(mockCorreggi).not.toHaveBeenCalled()
   })
