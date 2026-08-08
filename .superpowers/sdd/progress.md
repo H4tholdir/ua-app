@@ -610,7 +610,13 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   di perimetro per il nome `CAMPI_CORREGGIBILI_DOCUMENTO` · `numero_prescrizione` vive in **due posti**.
   🛑 **A SCHERMO NON CAMBIA NIENTE: la RPC non ha chiamanti.** Nessun test vitest — le prove sono sonde
   SQL, che **non girano in CI**; fixture e sonde sono salvate per intero nel resoconto perché
-  `scripts/tmp/` è ignorato da git. `tsc` **0** (rieseguito dal revisore). **Non** lanciati
-  `verify:full` né `next build`.
+  `scripts/tmp/` è ignorato da git.
+  ✅ **FASE 7 COMPLETA, e non l'aveva fatta nessuno dei due:** né l'esecutore (si era fermato a `tsc`,
+  dichiarandolo) né il revisore (aveva rieseguito il solo `tsc`). `provato:` `npm run verify:full`,
+  **uscita `VERIFY_EXIT=0` letta da variabile**: tsc 0 · eslint 0 · `next build` ok · **sette guardie
+  verdi** · `vitest` **5492 passate | 68 saltate** su **451 file** (445 passati, 6 saltati).
+  📌 **Il numero delle prove NON è salito** rispetto a stamattina (5492 | 68 su 451), **ed è coerente**:
+  questo compito non ha aggiunto prove automatiche, perché le sue sono sonde SQL che in CI non girano.
+  🔑 *Dichiararlo serve: un numero fermo che nessuno spiega somiglia a una misura non fatta.*
   📌 **Verificato da me, non ricopiato:** funzione e indice esistono sul **catalogo vivo** con ACL
   giuste; migration **nel ledger**; `tsc` 0; `now()` costante in transazione.
