@@ -862,6 +862,45 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   costruisce il registro su quella tabella** · il costo di `to_jsonb` due volte per `UPDATE` **non
   misurato** su volumi.
 
+- **ATTO-UNICO-D-quinquies: COMPLETO** (`a6326a4a`) — chiude il rilievo **I1**: **la sentinella che
+  mancava a D323**. `tests/unit/lavori-gettone-spia-migration.test.ts`, **9 prove**, **zero migration
+  nuove**. 🛑 **Modello RIUSATO, cercato per comportamento** (`categorie-foto-spia-migration.test.ts` ·
+  `prescrizione-costanti-spia-migration.test.ts`): sono spie che leggono una migration e **girano dentro
+  `verify:full`**, a differenza delle sonde SQL.
+  📈 `5676 | 68 su 455` → **`5685 | 68 su 456`** (+9 prove, +1 file) · `VERIFY_EXIT=0`.
+  ✅ **9 mutazioni, 9 accese** — comprese le tre del rilievo: ① rimettere `- 'updated_at'` (**la
+  regressione che l'emendamento dichiara di temere**) → si accende su **due** asserzioni col messaggio
+  «*⚖️ D323 + EMENDAMENTO… NON è un refuso da sistemare*» · ② cambiare la colonna esente · ③ non
+  riagganciare il trigger, **in due forme** (toglierlo del tutto → `throw` parlante che nomina B1;
+  riagganciarlo alla **condivisa** → asserzione sul nome della funzione).
+  🔑 **La decisione sull'accoppiamento col `PATCH`, e la ragione è buona:** la metà «rotta» **resta dov'è**
+  — `lavori-patch-senza-updated-at.test.ts` esiste da D-quater e la prova **per comportamento**
+  (`not.toHaveProperty('updated_at')` sul carico vero). Riscriverla qui come ricerca di testo nel sorgente
+  sarebbe stata **strettamente più debole**, in un secondo posto che diverge. Al suo posto: **il `COMMENT`
+  in banca dati nomina quel file come propria sentinella e nessuno controllava che il nome puntasse ancora
+  a qualcosa** — ora il percorso si **estrae dal testo della migration**, non si riscrive a mano.
+  📌 Dichiarato per quello che è: **un controllo di puntatore non appeso, non una prova dell'accoppiamento.**
+  🔴 **TRE DIFETTI DEL BRIEF, dell'orchestratore, e il primo cambia che cosa fa il compito:** ① **il
+  «perimetro minimo» guardava solo DENTRO il file** — nessuna delle tre voci proteggeva dal caso più
+  probabile, una migration **futura** che ridefinisca la funzione o riagganci il trigger: **la spia sarebbe
+  restata verde su un corpo morto**, ed è lo stesso pericolo che la migration dichiara di temere nel
+  proprio `COMMENT`. L'esecutore ha aggiunto **due prove non richieste** che lo chiudono · ② il Passo 5
+  dava per scoperto ciò che era **già coperto**: chi l'avesse preso alla lettera avrebbe scritto una prova
+  **più debole** di una esistente, **credendo di aggiungere protezione** · ③ «non riagganciare» sono **due**
+  mutazioni, e il «no-op verde» vale **solo per una**: sul file di oggi, che comincia con `DROP TRIGGER IF
+  EXISTS`, togliere il `CREATE TRIGGER` lascia `lavori` **senza trigger** — `updated_at` smette di
+  muoversi, cioè **peggio** di un no-op.
+  🔑 **UNA CORREZIONE DELL'ESECUTORE A SÉ STESSO, e vale per ogni FASE 7 futura:** il primo giro l'aveva
+  lanciato **con una pipe** (`| tail`), e lì `$?` legge **`tail`, non `npm`** — avrebbe scritto
+  `VERIFY_EXIT=0` **anche con la verifica rossa**. Rifatto senza pipe. *È la regola di casa
+  «l'uscita dietro una pipe è quella dell'ULTIMO comando», colta sul fatto.*
+  🟠 Riferiti: **F1** `supabase/schema.sql:1000` chiama ancora `apply_updated_at_trigger('lavori')` → una
+  ricostruzione dello schema **revocherebbe D323 in silenzio**; l'avviso c'è, lungo quindici righe, **ma è
+  prosa**, e **deliberatamente non messo nella spia** (asserire *che un commento esiste* insegna a
+  modificare la prova) · **F2** `useLavoroForm.ts:392-393` porta un commento **falso dopo D323** · **F3**
+  due commenti storici in migration passate ora descrivono il trigger sbagliato — **lasciati**: *una
+  migration è il verbale di quel giorno.*
+
 > 🔑 **IL FILO DELLA GIORNATA, e vale più di ogni singolo compito: QUATTRO VOLTE una prova che non
 > poteva fallire.** ① `now()` è costante in transazione → la sonda sul conflitto era verde per forza ·
 > ② `scripts/psql.mjs` si collega come **`postgres`**, cioè come proprietario → ogni sonda sui permessi
