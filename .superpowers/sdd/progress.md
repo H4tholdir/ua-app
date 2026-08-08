@@ -743,6 +743,62 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   /api/pazienti/[id]` NON esercitato dal vivo**, ed è l'anello su cui poggia l'intera tesi «il nome si
   corregge altrove» · nessun PDF generato · nessun giro HTTP · RLS letta ma non esercitata.
 
+- **ATTO-UNICO-D: COMPLETO** (`b88fc37c` · `bd0175bc` · `80ba8ca9`, revisione **APPROVATO CON RILIEVI**,
+  **zero critici, QUATTRO importanti** → passano al **D-ter**). ⚖️ **D322, variante A**: il passo di
+  correzione esiste a schermo, ordine `motivo → correzione → dettagli → proposta/esito`, **solo** per
+  `errore_dato_dichiarazione`. 🔑 **È il primo pezzo di quest'ondata che SI VEDE.**
+  📈 `5628 | 68 su 454` → **`5649 | 68 su 454`** (+21) · `VERIFY_EXIT=0` **rilanciato dal revisore** e
+  identico · **R-P4: 18 su 20** (primo rosso 19/20) · **21 mutazioni su 21** viste diventare rosse
+  dall'esecutore, **14 dal revisore**, e la caccia alla decorazione (tutti i motivi instradati al
+  percorso vecchio) accende **20 delle 21 prove nuove**: **nessuna decorazione**.
+  ✅ **Il gettone:** proprietà obbligatoria `documento: VociDocumento`, composta da `SchedaLavoroV3` con
+  la funzione pura `vociDelDocumento(lavoro)` — *si entra con un lavoro e si esce con tutto,
+  `updated_at` compreso*, così **la firma stessa impedisce di rinfrescare un valore lasciando indietro
+  il gettone**. Viaggia intatto, e la prova lo sorveglia con un valore **che porta i microsecondi**.
+  🔴 **DUE DIFETTI DEL BRIEF, entrambi dell'orchestratore, e il primo è grave:**
+  ① 🛑 **IL MOCKUP APPROVATO DISEGNAVA `elementi` COME CAMPO DI TESTO, e un campo di testo lì prende
+  422 A OGNI INVIO**: `PrescrizioneContenuto.elementi` è `number[]`, `normalizzaContenuto` scarta un
+  `elementi` non-numerico e `validaCorrezioni` **rifiuta ciò che è stato scartato**. 🔑 **È la stessa
+  confusione fra valore MOSTRATO e valore DA MANDARE** che il brief segnalava per `denti_coinvolti` —
+  scritta e poi commessa nello stesso documento. **E le prove unitarie sarebbero rimaste verdi**, perché
+  il rifiuto arriva dal server: sarebbe uscito al primo uso vero. Chiuso riusando **l'odontogramma che
+  esiste già**. ② **il brief non scioglieva dove sta il tasto finale**: il Passo 4 lo metteva in fondo
+  all'elenco (come il mockup), ma la variante A mette l'elenco **prima** delle quattro caselle — insieme
+  descrivevano **un tasto che promette un atto e poi apre altre quattro domande**. Sciolto: sull'elenco
+  «Continua», il tasto vero dopo le caselle. ③ minore: `{"denti_coinvolti": []}` **non** cancella i denti
+  da questa rotta — `primoVuoto` lo rifiuta con 422.
+  🔑 **DUE CORREZIONI DELL'ESECUTORE A SÉ STESSO, e la seconda vale come lezione:** una prova sul
+  paziente era **decorazione** (`queryByLabelText` è vero anche su una pagina vuota) — riscritta contando
+  i campi scrivibili · **il nastro del percorso mancava del tutto**, e non era neppure fra gli
+  scostamenti dichiarati: *proprio l'elemento che il mockup indica come «ciò che distingue le due
+  varianti»*. Aggiunto, con la sua prova.
+  🔴 **I QUATTRO RILIEVI DELLA REVISIONE → Task D-ter.** ① 🛑 **il censimento delle prove è incompleto, e
+  vale più degli altri tre**: cinque mutazioni del revisore, **45 su 45 verdi tutte e cinque le volte**.
+  Delle sei voci solo **tre** hanno un'asserzione sul carico che parte; senza sono `paziente_id`,
+  `tipo_dispositivo` e `prescrizione_caratteristiche` — **la trappola del compito, trecento parole di
+  resoconto e zero asserzioni**. 🔴 E una sesta, peggiore: **`stato_dispositivo` ricablato sul percorso
+  NUOVO non accende niente** → *il difetto del Task A può rinascere sulla strada nuova con la rete tutta
+  verde* (la prova di lessico del Task A copre **il solo** percorso corto). ② **un commento nuovo dice il
+  FALSO**: dentro `RigaVoce` afferma che in scuro `--bg-deep` è più chiaro di `--card`, mentre
+  `ds-v3.css:52` dà `#100E0B` contro `#211D18` — 🔑 *è un commento che dichiara una verifica d'aspetto
+  già fatta, quindi **spegne** il gate L2 che dovrebbe accendersi.* ③ **dopo un 409 si resta in un vicolo
+  cieco** e ogni ritentativo crea un evento orfano. ④ **F1 rende quel 409 l'esito PROBABILE.**
+  🟠 **Riferiti dall'esecutore, confermati dal revisore, non corretti:** **F1** — dopo una modifica dal
+  foglietto della scheda il gettone locale resta **stantìo** (`ModificaRigaSheet` passa al padre il patch
+  della **richiesta**, non la **risposta**, benché la PATCH restituisca `updated_at`): chi corregge le
+  note e poi apre «Devo intervenire» prende **un 409 che dà la colpa a «qualcun altro»**. Fail-closed,
+  nessun dato perso; la ricetta giusta è già in casa (`handleColoreSalvato`) · **F2**
+  `tipo_dispositivo` entra nell'atto unico **senza controllo di vocabolario** (l'unico argine è la CHECK,
+  che scatta **dopo** il render del PDF) · **F3** la carta stampa «Protesi **F**issa», la schermata
+  «Protesi fissa».
+  🛑 **E UNA COSA CHE NESSUNO DEI DUE HA FATTO, dichiarata da entrambi:**
+  `scripts/guardia-navigazione-overlay.mjs` **non è stata lanciata**, benché il passo nuovo aggiunga
+  **due navigazioni da dentro un overlay**. È **manuale** (vuole l'app accesa, le credenziali del banco e
+  una fixture preparata). ➡️ **Va al Task D-bis**, che l'app accesa ce l'ha già.
+  ⚠️ **Candidato numero uno a un ❌ al gate L2, segnalato da entrambi:** **l'odontogramma dentro il
+  foglio**, nato per una pagina intera e con token **v2.3**. Più le tinte delle quattro superfici nuove
+  (**scostamento numero sette, non dichiarato**: il mockup scrive `--elv`, il codice `--bg-deep`).
+
 > 🔑 **IL FILO DELLA GIORNATA, e vale più di ogni singolo compito: QUATTRO VOLTE una prova che non
 > poteva fallire.** ① `now()` è costante in transazione → la sonda sul conflitto era verde per forza ·
 > ② `scripts/psql.mjs` si collega come **`postgres`**, cioè come proprietario → ogni sonda sui permessi
