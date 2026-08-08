@@ -188,6 +188,39 @@ comando **separato** — D311; pavimento `20260807185858`)
 **File:** `src/app/api/lavori/[id]/dichiarazione/riemetti/route.ts` (si **estende**, non si riscrive) ·
 allowlist nuova · prove.
 
+### 🔴 QUATTRO COSE CHE IL TASK B HA LASCIATO SUL TAVOLO, e questo compito le raccoglie
+
+> Vengono dalla revisione indipendente del Task B (`.superpowers/sdd/atto-unico-task-b-review.md`,
+> **APPROVATO CON RILIEVI, nessun critico**) e dal resoconto dell'esecutore. **Nessuna è stata introdotta
+> dal Task B**: tre sono ereditate, una è un errore del resoconto.
+
+- [ ] 🔴 **C0 — `p_nuova` PUÒ PORTARE `stato`, e la strada gentile porta a zero dichiarazioni vive.**
+  `provato:` dalla revisione — `{"stato":"annullata"}` in `p_nuova` torna `esito: ok` e lascia
+  `totali: 2 · VIVE: 0`, cioè **un lavoro consegnato senza nessuna dichiarazione viva**. Il controllo
+  R-P6 di `p_nuova` chiede «è una colonna di `dichiarazioni_conformita`?», e `stato` **lo è**; gli
+  override forzati dalla funzione non lo coprono. 🛑 **Ereditato: `riemetti_ddc_atomica` fa lo stesso**
+  (riprovato dal revisore) — ma *gravità dello stato* e *attribuzione della colpa* sono assi diversi.
+  ➡️ **Il Task C chiude con un'allowlist su `p_nuova`**, non solo su `p_correzioni`.
+- [ ] 🔴 **C1 — una riga del resoconto del Task B è SBAGLIATA A METÀ, e la metà che manca è quella
+  muta.** Il §7d dice che `p_nuova` deve portare numero e progressivo nuovi «o l'insert collide».
+  `provato:` dalla revisione: omettere `progressivo_ddc` collide **rumorosamente**; omettere
+  `numero_ddc` **non collide affatto** — su quella colonna **non c'è indice unico**. Esito: **due
+  documenti a valore legale con lo stesso numero stampato**, ed `esito: ok`. 🔑 È l'unica affermazione
+  del resoconto che, se creduta, porta a scrivere codice sbagliato.
+- [ ] 🟠 **C2 — `p_correzioni` valida la FORMA e non rifiuta mai il VUOTO.** `provato:` una sola chiamata
+  con `denti_coinvolti: []`, `paziente_id: null` e stringhe vuote su `descrizione`,
+  `richiedente_nome`, `paziente_nome_snapshot` è tornata `ok` **e ha svuotato tutti e cinque**.
+  ➡️ **Una regola sola nel Task C**, non tre casi speciali — ed è il pericolo D242 che il Passo 5 già
+  nomina a metà: uno snapshot vuoto **vince** sul nome vivo e stampa un'identificazione paziente assente.
+- [ ] 🟠 **C3 — `23505` ORA SIGNIFICA TRE VINCOLI DIVERSI**, quindi la traduzione del Passo 6 **deve
+  ramificare sul NOME del vincolo**, mai sul solo codice: `ddc_evento_annulla_unique` (doppio invio) ·
+  `ddc_sostituisce_unique` · `dichiarazioni_conformita_laboratorio_id_anno_ddc_progressiv_key`.
+  📌 E il nuovo indice **irrigidisce anche `riapri_lavoro_atomica`**: `correggi(E) → riapri(E)` con lo
+  stesso evento ora dà `23505`. Confermato dalla revisione come **irrigidimento accettabile, non
+  regressione** (l'evento nasce nella stessa POST che lo consuma —
+  `eventi-qualita/route.ts:378-383` → `:457`) — ma **la porta d'idempotenza del Passo 4 diventa
+  portante**, non più una comodità.
+
 - [ ] **Passo 1 — leggi la rotta per intero** e scrivi nel resoconto che cosa fa oggi.
 - [ ] **Passo 2 — `CAMPI_CORREGGIBILI_DOCUMENTO`**, sette voci e **basta**:
   `richiedente_nome` · `paziente_id` · `paziente_nome_snapshot` · `numero_prescrizione` ·

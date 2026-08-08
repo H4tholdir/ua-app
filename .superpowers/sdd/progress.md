@@ -573,3 +573,44 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   📌 **Per il Task B:** la firma `registra(statoDichiarato)` è nuova · la fase si chiama `domandaUscito`
   · il contatore resta a zero **ed è giusto** · la prova di lessico copre il **solo** percorso corto.
   📈 `verify:full` **uscita 0**: 5492 passate | 68 saltate su 451 file, tsc 0, build ok.
+
+- **ATTO-UNICO-B: COMPLETO** (commit `bfcafc2f..13e010fe`, revisione **APPROVATO CON RILIEVI, nessun
+  critico**). Migration `20260808093513_correggi_e_riemetti_atomica.sql`, **applicata e registrata nel
+  ledger** (pavimento nuovo: `20260808093513`). Indice `ddc_evento_annulla_unique` + RPC
+  `correggi_e_riemetti_atomica(p_lavoro_id, p_laboratorio_id, p_evento_id, p_correzioni, p_nuova,
+  p_atteso_updated_at)`, `SECURITY DEFINER`, ACL `postgres` + `service_role` soli.
+  ✅ **ESITO.** Ordine **annulla → correggi → inserisci** (rovesciato rispetto al piano, v. P9). Le voci
+  fuori da `lavori` si **chiamano**, non si ricopiano. Dopo la prima scrittura **nessuna uscita è un
+  `RETURN`**: si alza, perché via PostgREST un `RETURN` committerebbe l'annullo lasciando un lavoro
+  consegnato **senza dichiarazione viva**. Sonde **9 su 9**, giro buono con **14 atterraggi su 14**
+  verificati voce per voce. **R-P4: 14 su 14.**
+  🔑 **CINQUE DIFETTI DEL BRIEF/PIANO trovati dall'esecutore**, di cui due miei e uno grave:
+  ① **P10 descriveva un meccanismo inesistente** — `now()` è costante in transazione (`provato:`
+  `now() = transaction_timestamp()` → `true`), quindi il gettone si muove **una volta sola**; la forma
+  prescritta resta giusta, la ragione era sbagliata, **e il rischio vero era peggiore**: una fixture
+  costruita nel modo ovvio rende la sonda del conflitto un **falso verde**, perché non può fallire ·
+  ② 🛑 **`scripts/psql.mjs` si collega come `postgres`, cioè come PROPRIETARIO** (`provato:`
+  `current_user = postgres`): **una sonda sui permessi senza `SET LOCAL ROLE` non prova niente** — vale
+  per ogni sonda futura di questo repo · ③ la guardia su `denti_coinvolti` accettava `["21","22"]` (la
+  forma della **colonna**, che il nome della chiave invita a usare) e moriva due funzioni più in là con
+  `23502` · ④ la sonda «chiave fuori dalle otto» era sotto-specificata · ⑤ **l'elenco di sonde aveva un
+  buco sul modo di fallire più pericoloso**: nessuna verificava che una penna che dice no facesse
+  **disfare l'annullo**.
+  🔴 **QUATTRO RILIEVI CHE PASSANO AL TASK C** (dettaglio nel piano, sezione «Task C», voci C0-C3):
+  **C0** `p_nuova` accetta `stato` → `{"stato":"annullata"}` dà `ok` e lascia **zero dichiarazioni vive**
+  (**ereditato**: `riemetti_ddc_atomica` fa lo stesso) · **C1** il §7d del resoconto è **sbagliato a
+  metà**: omettere `numero_ddc` **non** collide (nessun indice unico) → **due documenti legali con lo
+  stesso numero stampato** · **C2** `p_correzioni` non rifiuta mai il **vuoto** (una chiamata ha svuotato
+  cinque campi con `esito: ok`) · **C3** `23505` ora vale **tre vincoli**: la traduzione ramifica sul
+  **nome**, e la porta d'idempotenza diventa **portante**.
+  🟠 Altri riferiti (R-E2): il nuovo indice **irrigidisce `riapri_lavoro_atomica`** (`correggi(E) →
+  riapri(E)` dà `23505`) — giudicato dalla revisione **irrigidimento accettabile, non regressione** ·
+  `{"denti_coinvolti": []}` cancella tutti i denti ed è indistinguibile da una correzione voluta ·
+  `tipo` è accettato dalla penna della prescrizione ma **non arriva mai sul documento** (D213): domanda
+  di perimetro per il nome `CAMPI_CORREGGIBILI_DOCUMENTO` · `numero_prescrizione` vive in **due posti**.
+  🛑 **A SCHERMO NON CAMBIA NIENTE: la RPC non ha chiamanti.** Nessun test vitest — le prove sono sonde
+  SQL, che **non girano in CI**; fixture e sonde sono salvate per intero nel resoconto perché
+  `scripts/tmp/` è ignorato da git. `tsc` **0** (rieseguito dal revisore). **Non** lanciati
+  `verify:full` né `next build`.
+  📌 **Verificato da me, non ricopiato:** funzione e indice esistono sul **catalogo vivo** con ACL
+  giuste; migration **nel ledger**; `tsc` 0; `now()` costante in transazione.
