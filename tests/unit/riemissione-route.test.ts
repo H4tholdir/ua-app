@@ -104,19 +104,38 @@ type Extra = {
  *  chiamata: `filtriDdc[0]` è la prima lettura, `filtriDdc[1]` la seconda. */
 let filtriDdc: Array<Array<[string, unknown]>> = []
 
+/**
+ * I filtri della lettura su `pazienti` — **la porta del tenant**.
+ *
+ * 🔴 PERCHÉ ESISTE, e perché non bastava il `chain` muto: con `chain` questa
+ * lettura risponde uguale **con o senza** `.eq('laboratorio_id', …)`. Misurato
+ * dalla revisione del Task C: cancellata quella riga dalla rotta, **130 prove su
+ * 130 restavano verdi**. La prova che c'era diceva «se il database non
+ * restituisce niente, la rotta risponde 422» — vera, ma è un'altra cosa: non
+ * dice che la rotta abbia CHIESTO col filtro giusto.
+ *
+ * 🛑 E qui il filtro è ciò che impedisce a un documento di legge di nominare il
+ * paziente di un ALTRO laboratorio. La RPC ha il suo controllo, ma arriva
+ * **dopo il render**: senza questa riga un PDF col paziente sbagliato resta su
+ * Storage anche dopo il rollback. È la stessa debolezza già chiusa su
+ * `dichiarazioni_conformita` con `chainSpia`, portata anche qui.
+ */
+let filtriPazienti: Array<[string, unknown]> = []
+
 function banco(
   lavoro: unknown = LAVORO_RIGA,
   motivoEvento: string | null = 'errore_dato_dichiarazione',
   extra: Extra = {}
 ) {
   filtriDdc = []
+  filtriPazienti = []
   let letturaDdc = 0
   mockFrom.mockImplementation((t: string) => {
     if (t === 'lavori') return chain({ data: lavoro, error: lavoro ? null : { code: 'PGRST116' } })
     if (t === 'eventi_qualita') {
       return chain({ data: motivoEvento ? { motivo: motivoEvento } : null, error: motivoEvento ? null : { code: 'PGRST116' } })
     }
-    if (t === 'pazienti') return chain({ data: extra.paziente ?? null, error: null })
+    if (t === 'pazienti') return chainSpia({ data: extra.paziente ?? null, error: null }, filtriPazienti)
     if (t === 'dichiarazioni_conformita') {
       // ① la già annullata da questo evento, ② il suo successore.
       const dato = letturaDdc++ === 0 ? (extra.giaAnnullata ?? null) : (extra.successore ?? null)
@@ -448,6 +467,34 @@ describe('POST …/riemetti — con le CORREZIONI (Task C)', () => {
     expect(res.status).toBe(200)
     const lavoroPassato = mockCorreggi.mock.calls[0][0] as { paziente?: { nome_cognome?: string } }
     expect(lavoroPassato.paziente?.nome_cognome).toBe('Giuseppa Esposito')
+  })
+
+  it('🔴 …e la lettura del paziente CHIEDE il laboratorio della sessione, non solo l\'identificativo', async () => {
+    // 🛑 QUESTA È LA PROVA DELLA PORTA DEL TENANT, e senza di lei le due qui
+    //    sopra sono verdi anche con `.eq('laboratorio_id', …)` CANCELLATO dalla
+    //    rotta — misurato dalla revisione: 130 su 130. Un finto muto risponde
+    //    uguale a una query filtrata e a una che non lo è: si asseriscono le
+    //    COLONNE su cui si filtra, non l'esito.
+    banco(
+      { ...LAVORO_RIGA, paziente_nome_snapshot: null, paziente: null },
+      'errore_dato_dichiarazione',
+      { paziente: { id: PAZIENTE_ID, laboratorio_id: LAB_ID, nome_cognome: 'Giuseppa Esposito' } }
+    )
+    await POST(req(corpo({ paziente_id: PAZIENTE_ID })), params())
+
+    expect(filtriPazienti).toEqual(
+      expect.arrayContaining([['id', PAZIENTE_ID], ['laboratorio_id', LAB_ID]])
+    )
+  })
+
+  it('🛑 correggere le caratteristiche con una casella SVUOTATA → 422 prima del render (C3)', async () => {
+    // A schermo svuotare una casella è il gesto più naturale del mondo. Qui
+    // valeva un 200 «rifatta» su un documento che aveva PERSO la
+    // caratteristica, e una riga con `""` scritto sopra il dato buono.
+    banco({ ...LAVORO_RIGA, prescrizione: [{ contenuto: { elementi: [26], colore: 'A3' } }] })
+    const res = await POST(req(corpo({ prescrizione_caratteristiche: { colore: '' } })), params())
+    expect(res.status).toBe(422)
+    expect(mockCorreggi).not.toHaveBeenCalled()
   })
 
   it('🛑 il laboratorio NON si sceglie dal corpo: si deriva dalla sessione', async () => {

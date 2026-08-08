@@ -186,7 +186,18 @@ describe('correggiERiemettiDdC — il consumatore del contratto fermo', () => {
     })
 
     it('🛑 un esito che il contratto non dichiara NON si legge come successo (fail-closed)', async () => {
-      mockRpc.mockResolvedValue({ data: { esito: 'qualcosa_di_nuovo' }, error: null })
+      // 🔴 `nuova_id` C'È, ED È IL PUNTO DELLA PROVA. Senza, questa passava
+      //    dalla SECONDA metà della condizione — «un `ok` senza `nuova_id`» —
+      //    che ha già la sua prova tre righe più giù: la prima metà non l'ha
+      //    mai guardata nessuno. Misurato dalla revisione del Task C:
+      //    indebolito il fail-closed a `typeof risposta.nuova_id !== 'string'`,
+      //    **130 prove su 130 restavano verdi**, e la finta con `nuova_id`
+      //    tornava `{ stato: 'ok' }` invece di alzare.
+      // 🛑 Ciò che difende: un contratto che domani rispondesse
+      //    `{esito: 'annullata_ma_non_riemessa', nuova_id: '…'}` verrebbe letto
+      //    come «rifatta» — dichiarare rifatto un documento che non è stato
+      //    rifatto è il difetto peggiore possibile su questa carta.
+      mockRpc.mockResolvedValue({ data: { esito: 'qualcosa_di_nuovo', nuova_id: 'n1' }, error: null })
       await expect(chiama()).rejects.toThrow()
     })
 

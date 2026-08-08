@@ -110,6 +110,57 @@ describe('🛑 C2 — una regola sola: una correzione VUOTA non è una correzion
   })
 })
 
+describe('🔴 C3 — la stessa regola IN PROFONDITÀ: un vuoto annidato cancella una voce dell\'Allegato XIII', () => {
+  // 🛑 IL FATTO, misurato dalla revisione del Task C anello per anello:
+  //    `{colore: ''}` tornava `ok: true`; il documento PERDEVA la
+  //    caratteristica (`caratteristichePrescritte` scarta i vuoti e la riga del
+  //    modello è condizionale — con la sola caratteristica svuotata la voce 6
+  //    non compariva affatto, cioè D295 daccapo); e la penna scriveva `""`
+  //    sulla riga vera rispondendo `ok`, perché valida il NOME del campo e mai
+  //    il valore. HTTP 200 «rifatta», dato buono perso da tutt'e due le parti.
+  it.each([
+    ['colore vuoto', { prescrizione_caratteristiche: { colore: '' } }],
+    ['colore di soli spazi', { prescrizione_caratteristiche: { colore: '   ' } }],
+    ['tipo vuoto', { prescrizione_caratteristiche: { tipo: '' } }],
+    ['elementi come array vuoto', { prescrizione_caratteristiche: { elementi: [] } }],
+    // La penna saprebbe CANCELLARE la sotto-chiave (`contenuto - p_campo`): da
+    // qui non si può, ed è una capacità declinata di proposito — un contenuto
+    // obbligatorio non si toglie da una strada nata per correggere.
+    ['colore null — la penna lo cancellerebbe davvero', { prescrizione_caratteristiche: { colore: null } }],
+    // 🔑 Il caso che dice perché la regola è «BASTA UNA»: la sotto-chiave buona
+    //    passerebbe insieme a quella vuota, e la vuota cancella.
+    ['una sotto-chiave vuota accanto a una buona', { prescrizione_caratteristiche: { elementi: [26], colore: '' } }],
+  ])('%s → rifiutata', (_nome, corpo) => {
+    expect(validaCorrezioni(corpo).ok).toBe(false)
+  })
+
+  it('e il messaggio NOMINA la sotto-chiave, non solo la voce che la contiene', () => {
+    // «le caratteristiche prescritte sono vuote» manderebbe chi sta al banco a
+    // cercare il campo sbagliato: la casella svuotata è una sola e ha un nome.
+    const e = validaCorrezioni({ prescrizione_caratteristiche: { elementi: [26], colore: '' } })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('prescrizione_caratteristiche.colore')
+  })
+
+  it('🔑 le sotto-chiavi arrivano RIPULITE ai bordi, come i cinque testi di primo livello (D242)', () => {
+    // Prima di C3 `'  A3  '` arrivava sulla riga vera con dentro i suoi spazi,
+    // mentre lo stesso testo su `descrizione` arrivava pulito: due regole per
+    // la stessa cosa, e quella sbagliata sul campo che finisce in un documento.
+    const c = ok({ prescrizione_caratteristiche: { colore: '  A3  ', tipo: ' corona ' } })
+    expect(c.prescrizione_caratteristiche).toEqual({ colore: 'A3', tipo: 'corona' })
+  })
+
+  it('⚠️ …ma NON si scende dentro gli ARRAY: un dente senza colore non è un dente vuoto', () => {
+    // Il confine della regola, e va provato o il prossimo lo sposta: dentro
+    // `denti_coinvolti` un `null` è un'ASSENZA LEGITTIMA («questo dente non ha
+    // colore»), che `validaDenti` accetta e normalizza. Scendere anche lì
+    // rifiuterebbe un carico buono — un array è UN valore, non una mappa di
+    // correzioni.
+    const c = ok({ denti_coinvolti: [{ fdi: 22, scala: null, codice: null }] })
+    expect((c.denti_coinvolti as Array<Record<string, unknown>>)[0]).toMatchObject({ fdi: 22, scala: null })
+  })
+})
+
 describe('validaCorrezioni — le forme che il database non saprebbe raccontare', () => {
   it('🛑 `denti_coinvolti` come array di STRINGHE FDI è rifiutato qui, non dalla penna', () => {
     // La chiave si chiama come la colonna denormalizzata e invita all'errore.

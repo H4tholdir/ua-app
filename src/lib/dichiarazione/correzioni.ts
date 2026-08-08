@@ -75,13 +75,51 @@ export type EsitoValidazioneCorrezioni =
  * 📌 UNA regola e non tre casi speciali: è la stessa idea di «vuoto» per un
  * testo, per un elenco e per un oggetto — non dice niente. Il vuoto dei testi
  * lo decide `testoVivo`, che è già la regola di casa e non si ricopia qui.
+ *
+ * 🔴 E DA OGGI VALE IN PROFONDITÀ — C3, Task C-quater (08/08/2026). La regola
+ * c'era ed era giusta, ma si fermava al PRIMO livello, e un livello sotto
+ * cancellava un contenuto obbligatorio del documento. Misurata dalla revisione
+ * anello per anello: `prescrizione_caratteristiche: {colore: ''}` passava con
+ * `ok: true`; sul documento la caratteristica **spariva**
+ * (`caratteristichePrescritte` scarta i valori vuoti, e la riga del modello è
+ * condizionale — con la sola caratteristica corretta a vuoto **la voce 6
+ * dell'Allegato XIII non compariva affatto**, cioè D295 di nuovo); e la penna
+ * scriveva `""` sulla riga vera rispondendo `ok`, perché
+ * `lavoro_prescrizione_correggi_typo` valida **il nome del campo e mai il
+ * valore**. Esito finale: HTTP 200 «rifatta», e il dato buono perso da tutt'e
+ * due le parti.
+ *
+ * 🔑 L'ESTENSIONE È DELLA STESSA REGOLA, non un caso speciale per la
+ * prescrizione: un oggetto qui è una **mappa di correzioni** — la penna scrive
+ * ogni sotto-chiave per conto suo (`jsonb_set` una alla volta) — quindi non
+ * dice niente se è vuoto **oppure se anche UNA SOLA delle sue voci non dice
+ * niente**. Basta una: quella voce verrebbe scritta vuota, e il resto passerebbe
+ * con lei.
+ *
+ * ⚠️ E si scende SOLO dentro gli oggetti, mai dentro gli array. Un array non è
+ * una mappa di correzioni: è **un** valore (i denti sono una lista sola, che si
+ * sostituisce intera). Chi ci sta dentro lo validano `validaDenti` e
+ * `normalizzaContenuto`, che hanno le loro allowlist e i loro ripieghi
+ * legittimi — `{fdi: 22, scala: null}` è un dente **senza colore**, non un
+ * dente vuoto. Scenderci qui rifiuterebbe carichi che quelle porte accettano.
  */
-function nonDiceNiente(v: unknown): boolean {
-  if (v === null || v === undefined) return true
-  if (typeof v === 'string') return testoVivo(v) === null
-  if (Array.isArray(v)) return v.length === 0
-  if (typeof v === 'object') return Object.keys(v as object).length === 0
-  return false
+function primoVuoto(v: unknown, percorso: string): string | null {
+  if (v === null || v === undefined) return percorso
+  if (typeof v === 'string') return testoVivo(v) === null ? percorso : null
+  if (Array.isArray(v)) return v.length === 0 ? percorso : null
+  if (typeof v === 'object') {
+    const voci = Object.entries(v as Record<string, unknown>)
+    if (voci.length === 0) return percorso
+    for (const [k, sotto] of voci) {
+      // Il PERCORSO e non un `true`: «colore» dentro le caratteristiche non è
+      // «le caratteristiche», e chi sta al banco deve sapere quale casella ha
+      // svuotato.
+      const dove = primoVuoto(sotto, `${percorso}.${k}`)
+      if (dove !== null) return dove
+    }
+    return null
+  }
+  return null
 }
 
 const ELENCO_AMMESSE = CAMPI_CORREGGIBILI_DOCUMENTO.join(', ')
@@ -129,10 +167,11 @@ export function validaCorrezioni(grezzo: unknown): EsitoValidazioneCorrezioni {
   }
 
   for (const k of chiavi) {
-    if (nonDiceNiente(corpo[k])) {
+    const dove = primoVuoto(corpo[k], k)
+    if (dove !== null) {
       return {
         ok: false,
-        errore: `La correzione di «${k}» è vuota: un campo svuotato finirebbe sul documento come un'informazione mancante.`,
+        errore: `La correzione di «${dove}» è vuota: un campo svuotato finirebbe sul documento come un'informazione mancante.`,
         valore: corpo[k],
       }
     }
@@ -187,6 +226,17 @@ export function validaCorrezioni(grezzo: unknown): EsitoValidazioneCorrezioni {
     if (v === null || typeof v !== 'object' || Array.isArray(v)) {
       return { ok: false, errore: 'Le caratteristiche prescritte devono essere un elenco di voci.', valore: v }
     }
+    // 🛑 CAPACITÀ CHE QUESTA PORTA DECLINA, DICHIARATA (C3, 08/08/2026): la
+    //    penna sa CANCELLARE una sotto-chiave (`lavoro_prescrizione_correggi_typo`
+    //    fa `contenuto - p_campo` quando il valore è `null`), ma da qui
+    //    `{colore: null}` è **rifiutato** come vuoto, insieme a `''`.
+    //    Il motivo è lo stesso della regola sul vuoto: la voce 6 dell'Allegato
+    //    XIII è un contenuto obbligatorio, e toglierle una caratteristica la fa
+    //    sparire dal documento. Fail-closed.
+    // ➡️ CONSEGUENZA PER IL TASK D, che va scritta nel suo brief e non qui:
+    //    a schermo «svuota il colore» prende 422 — cancellare una
+    //    caratteristica NON è raggiungibile da questa strada. Se un giorno
+    //    servirà, è una decisione a sé, non un allargamento silenzioso.
     // 🔑 L'ALLOWLIST DELLE SOTTO-CHIAVI NON SI RICOPIA: la si fa applicare
     //    dalla stessa funzione che normalizza il contenuto letto dal database
     //    (`normalizzaContenuto`), che scarta ciò che non riconosce. Se scarta
@@ -203,6 +253,19 @@ export function validaCorrezioni(grezzo: unknown): EsitoValidazioneCorrezioni {
         errore: `Delle caratteristiche prescritte non si corregge ${scartate.map((k) => `«${k}»`).join(', ')}: si correggono elementi, colore e tipo.`,
         valore: scartate,
       }
+    }
+    // 🔑 E LE SOTTO-CHIAVI SI RIPULISCONO AI BORDI come i cinque testi di primo
+    //    livello (D242, C3): chi scrive di fretta al banco lascia uno spazio, e
+    //    uno spazio non è un colore diverso. Prima di questa riga `'  A3  '`
+    //    arrivava sulla riga vera **con dentro i suoi spazi**, mentre lo stesso
+    //    testo su `descrizione` arrivava pulito — due regole per la stessa cosa.
+    // ⚠️ Il vuoto è già stato rifiutato sopra, quindi `testoVivo` non può
+    //    tornare `null` qui: il `?? sv` è la rete, non il caso previsto.
+    // 📌 Si scorre ciò che `normalizzaContenuto` ha TENUTO, senza nominare
+    //    `colore` e `tipo` a mano: l'elenco delle sotto-chiavi resta uno solo.
+    const ripulite = tenute as Record<string, unknown>
+    for (const [sottoChiave, valore] of Object.entries(ripulite)) {
+      if (typeof valore === 'string') ripulite[sottoChiave] = testoVivo(valore) ?? valore
     }
     correzioni.prescrizione_caratteristiche = tenute
   }
