@@ -587,6 +587,22 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
     expect(screen.queryByText('Che cosa c\'è di sbagliato?')).toBeNull()
   })
 
+  // ⚖️ D322 — il NASTRO è l'elemento con cui il mockup approvato DICE che
+  //    variante è: la correzione sta in mezzo, e dopo vengono ancora le quattro
+  //    caselle. Senza, chi legge crede che il percorso finisca qui.
+  it('🛑 il nastro dice DOVE si è, e che le quattro caselle devono ancora venire', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+
+    for (const passo of ['Motivo', 'Le quattro caselle', 'Esito']) {
+      expect(screen.getByText(passo), passo).toBeTruthy()
+    }
+    // Il passo corrente è marcato per chi non vede il colore.
+    const qui = document.querySelector('[aria-current="step"]')
+    expect(qui?.textContent).toBe('Che cosa c\'è di sbagliato')
+  })
+
   // 🔑 IL PASSO MOSTRA VALORI, NON CONTROLLI — e sono SEI, contate
   //    sull'allowlist `CAMPI_CORREGGIBILI_DOCUMENTO`, non su una riga di prosa.
   it('🛑 le sei righe portano il VALORE che il documento stampa adesso', () => {
@@ -827,6 +843,11 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
     arrivaAlToccoFinale()
 
     await waitFor(() => expect(screen.getAllByText(messaggio).length).toBeGreaterThan(0))
+    // 🛑 E IL TASTO SI CHIUDE, col messaggio della rotta come motivo: la rotta
+    //    rende e CARICA il PDF prima della transazione, quindi ogni tocco in più
+    //    su un gettone stantìo brucia un altro progressivo e non può riuscire.
+    const tasto = screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i })
+    expect(tasto.hasAttribute('disabled') || tasto.getAttribute('aria-disabled') === 'true').toBe(true)
   })
 
   it('🛑 il 422 si mostra col PERCORSO dentro: chi sta al banco deve sapere QUALE casella', async () => {

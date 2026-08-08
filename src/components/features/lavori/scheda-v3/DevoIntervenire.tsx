@@ -445,6 +445,12 @@ export function DevoIntervenire(props: {
   // ── Task D: il passo di correzione (⚖️ D322) ───────────────────────────────
   const [correzioni, setCorrezioni] = useState<Correzioni>({})
   const [voceAperta, setVoceAperta] = useState<CampoCorreggibile | null>(null)
+  /** 🛑 IL 409 CHIUDE IL TASTO, e non è pignoleria: la rotta rende e CARICA il
+   *  PDF **prima** della transazione (suo commento: un conflitto «*lascia
+   *  dietro di sé un file orfano e un numero bruciato*»). Col gettone stantìo
+   *  ogni tocco in più brucia un altro progressivo e non può riuscire finché
+   *  il foglio non si chiude — e chiudendolo la pagina si rinfresca. */
+  const [conflitto, setConflitto] = useState<string | null>(null)
   /** L'esito della riemissione, quando è avvenuta. */
   const [riemissione, setRiemissione] = useState<{ numero: string | null; numeroSuperato: string | null } | null>(null)
 
@@ -463,7 +469,7 @@ export function DevoIntervenire(props: {
     setOrigine('laboratorio_interno'); setStatoDisp('consegnato_non_applicato')
     setDanno('da_valutare'); setConosciuto(adessoLocale())
     setUscitoDichiarato(false)
-    setCorrezioni({}); setVoceAperta(null); setRiemissione(null)
+    setCorrezioni({}); setVoceAperta(null); setRiemissione(null); setConflitto(null)
     if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
   }
 
@@ -601,7 +607,9 @@ export function DevoIntervenire(props: {
           //    al banco: il 422 nomina la casella svuotata col percorso dentro,
           //    il 409 dice che qualcuno ha toccato il lavoro. Sostituirli con
           //    «qualcosa è andato storto» butterebbe via l'unica cosa utile.
-          errore(await messaggioDiErrore(res, 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.'))
+          const messaggio = await messaggioDiErrore(res, 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.')
+          if (res.status === 409) setConflitto(messaggio)
+          errore(messaggio)
           return
         }
         const esito = (await res.json()) as { numero?: string | null; numero_superato?: string | null }
@@ -785,6 +793,11 @@ export function DevoIntervenire(props: {
           si torna qui e la riga dice `vecchio → nuovo`. */}
       {fase === 'correzione' && (
         <>
+          {/* IL NASTRO DEL PERCORSO — è l'elemento con cui il mockup approvato
+              DICE la variante A: la correzione sta in mezzo, e dopo vengono
+              ancora le quattro caselle di legge. Senza, chi legge non sa che
+              il percorso non finisce qui. */}
+          <NastroPercorso />
           <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
             Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.
           </p>
@@ -932,12 +945,15 @@ export function DevoIntervenire(props: {
             resta esattamente quella di prima. */}
         <TastoPrimario
           onClick={() => { if (!lavorando) void (correggendo ? correggiERifai() : registra(statoDisp)) }}
-          disabled={lavorando || !puoContinuare}
-          motivoDisabilitato={lavorando ? 'Sto registrando…' : 'Scrivi in due parole di cosa si tratta'}
+          disabled={lavorando || !puoContinuare || conflitto !== null}
+          motivoDisabilitato={
+            lavorando ? 'Sto registrando…'
+              : conflitto ?? 'Scrivi in due parole di cosa si tratta'
+          }
         >
           {lavorando ? 'Un attimo…' : correggendo ? 'Correggi e rifai la dichiarazione' : 'Continua'}
         </TastoPrimario>
-        {correggendo && !lavorando && (
+        {correggendo && !lavorando && conflitto === null && (
           <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
             La dichiarazione di oggi resta in archivio come superata: non sparisce.
           </p>
@@ -1119,6 +1135,30 @@ export function DevoIntervenire(props: {
         onAnnulla={() => { setUscitoDichiarato(true); setFase('motivo') }}
       />
     </>
+  )
+}
+
+/** ⚖️ D322, variante A — i quattro passi, con dov'è adesso in evidenza. */
+function NastroPercorso() {
+  const passi = ['Motivo', 'Che cosa c\'è di sbagliato', 'Le quattro caselle', 'Esito']
+  const qui = 1
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {passi.map((passo, i) => (
+        <span key={passo} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {i > 0 && <span aria-hidden style={{ color: 'var(--line)' }}>›</span>}
+          <span
+            aria-current={i === qui ? 'step' : undefined}
+            style={{
+              fontSize: 12, fontWeight: tipografia.weight.bold, whiteSpace: 'nowrap',
+              borderRadius: 999, padding: '5px 10px',
+              background: i === qui ? 'var(--ink)' : 'var(--bg-deep)',
+              color: i === qui ? 'var(--bg)' : 'var(--faint)',
+            }}
+          >{passo}</span>
+        </span>
+      ))}
+    </div>
   )
 }
 

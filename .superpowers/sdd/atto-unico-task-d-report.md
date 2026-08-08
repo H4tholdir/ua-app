@@ -7,9 +7,9 @@
 | cosa | esito |
 |---|---|
 | FASE 7 (`npm run verify:full`) | **VERIFY_EXIT=0** |
-| Prove | **5648 passate · 68 saltate · 454 file** (base: 5628 \| 68 su 454) → **+20** |
+| Prove | **5649 passate · 68 saltate · 454 file** (base: 5628 \| 68 su 454) → **+21** |
 | R-P4 (abbozzo inerte) | **18 su 20** asserzioni si accendono |
-| Mutazioni | **20 prove su 20** viste diventare rosse rompendo apposta il codice |
+| Mutazioni | **21 prove su 21** viste diventare rosse rompendo apposta il codice |
 | Difetti trovati nel brief | **2** (uno grave: il mockup disegna un controllo che prende 422 sempre) |
 | Ritrovamenti fuori mandato | **3**, riferiti e non corretti |
 | FASE 9 e gate L2 | **NON fatti** — sono il Task D-bis |
@@ -44,6 +44,21 @@ chiede esplicitamente**. Sono però **facoltativi nel tipo** (`LavoroDettaglio.d
 `.prescrizione?`), quindi il corredo li porta come `null` quando mancano e le due righe corrispondenti
 diventano **non correggibili con la ragione scritta a schermo** — fail-closed, mai inventati.
 
+✅ **`prescrizione_caratteristiche.elementi` verificato FINO ALLA PENNA, non solo fino al cancello
+davanti** — ed è la verifica che stavo per non fare, cioè esattamente la famiglia del difetto ③ già
+pagato dal Task B («*la forma passa il controllo d'ingresso e muore due funzioni più in là*»).
+`provato:` `20260808154033_atto_unico_snapshot_paziente_fuori.sql:405-414` — l'atto unico **non
+ricopia** l'allowlist delle sotto-chiavi: scorre `jsonb_object_keys` e passa ognuna a
+`lavoro_prescrizione_correggi_typo`. `provato:`
+`20260804152403_ondata_b_prescrizioni_rpc.sql:242` — quella penna ammette
+`('elementi','colore','tipo')`, quindi **`elementi` è in elenco**; `:248-250` scrive il valore
+**verbatim** con `jsonb_set(contenuto, ARRAY[p_campo], p_valore)`, quindi un array jsonb di numeri
+atterra come tale. 🔑 E la guardia `congelata` di quella penna (`:226-232`, «*con una DdC attiva lo
+snapshot è congelato*») **non scatta da qui**, benché «Devo intervenire» viva solo su un lavoro
+consegnato: l'atto unico **annulla la vecchia dichiarazione PRIMA** di chiamare le penne
+(`:340` in poi, sotto il riquadro «DA QUI IN POI SI SCRIVE») e inserisce la nuova **dopo**, quindi
+nell'istante della chiamata nessuna dichiarazione non-annullata esiste.
+
 🛑 **Il gettone viaggia intatto.** `atteso_updated_at: voci.updatedAt`, la stringa così com'è: nessun
 `new Date(...)`, nessun `.toISOString()` di ritorno. La prova lo sorveglia con un valore che porta i
 microsecondi (`2026-08-08T10:20:30.123456+00:00`) e diventa rossa alla mutazione ovvia.
@@ -69,7 +84,14 @@ microsecondi (`2026-08-08T10:20:30.123456+00:00`) e diventa rossa alla mutazione
 - `messaggioDiErrore()`: il messaggio della rotta si mostra **com'è scritto** (422 col percorso
   dentro, 409, `23505`); il messaggio di casa resta solo per un corpo illeggibile.
 - `ricomponiDenti()` / `stessiDenti()`: il carico della **penna**, col colore per dente conservato.
-- Sotto-componenti nuovi: `RigaVoce`, `PassoVoce`, `TornaAllElenco`, `RiquadroRiemissione`.
+- `NastroPercorso`: i quattro passi con quello corrente in evidenza (`aria-current="step"`, così lo
+  stato non è affidato al solo colore) — è l'elemento con cui il mockup **dice** la variante A.
+- 🛑 **Il 409 chiude il tasto**, col messaggio della rotta come motivo. La rotta rende e **carica** il
+  PDF *prima* della transazione (suo commento: un conflitto «*lascia dietro di sé un file orfano e un
+  numero bruciato*»): col gettone stantìo ogni tocco in più brucia un altro progressivo e **non può
+  riuscire** finché il foglio non si chiude — e chiudendolo la pagina si rinfresca.
+- Sotto-componenti nuovi: `RigaVoce`, `PassoVoce`, `TornaAllElenco`, `RiquadroRiemissione`,
+  `NastroPercorso`.
 
 **`src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx`** — una riga sola: passa
 `documento={vociDelDocumento(lavoro)}`.
@@ -136,6 +158,8 @@ cinque.
 | il messaggio di casa diventa `''` | corpo illeggibile |
 | aggiunto un campo «Nome del paziente» | la riga del paziente NON ha un campo di testo (D320) |
 | tolta la via per l'Anagrafica | «Da qui non si corregge» nomina DUE cose |
+| il nastro non si rende | il nastro dice DOVE si è |
+| il 409 non chiude più il tasto | il 409 si mostra com'è scritto dalla rotta |
 
 ⚠️ **Una correzione a me stesso.** La prova sul paziente, come l'avevo scritta prima, era
 **decorazione**: `expect(screen.queryByLabelText(/Nome del paziente/i)).toBeNull()` è vero anche in una
@@ -155,12 +179,12 @@ quella mutazione, così ogni rosso ha la sua causa.
 ```
 npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
 → Test Files  448 passed | 6 skipped (454)
-→ Tests       5648 passed | 68 skipped (5716)
+→ Tests       5649 passed | 68 skipped (5717)
 → ✅ DS compliance · CSRF · reduced-motion · coerenza documenti · salvataggio · progetti Playwright
 → VERIFY_EXIT=0
 ```
 
-**Base dichiarata: 5628 | 68 su 454 → adesso 5648 | 68 su 454.** +20 prove, i file restano 454 (le
+**Base dichiarata: 5628 | 68 su 454 → adesso 5649 | 68 su 454.** +21 prove, i file restano 454 (le
 prove nuove stanno nel file del componente, dove stanno già le sue).
 
 ⚠️ **Un rosso vero in FASE 7, e la sua correzione.** `eslint` ha fermato la prima stesura con
@@ -206,7 +230,14 @@ con sé il bersaglio da 44 px e l'anello di messa a fuoco; scriverne uno blu a m
 un secondo link inline fuori dal design system. **Deferito al gate L2 del Task D-bis**, che è il posto
 dove si decide se il grigio basta.
 
-**⑤ La ricerca del paziente cerca da due caratteri in su**, e il mockup non dice da quando. Scelta mia,
+**⑤ Il nastro c'è, ma solo sull'elenco.** Il mockup lo disegna sul passo di correzione e non sui
+sotto-passi (che hanno «‹ Torna all'elenco») né sulle quattro caselle: l'ho reso esattamente dov'è
+disegnato. ⚠️ **Era sul punto di non esserci affatto**, e non figurava fra gli scostamenti: una
+dimenticanza, non una scelta — e siccome è proprio l'elemento che il commento del mockup indica come
+«*ciò che distingue le due varianti*», sarebbe stato lo scostamento più grave di tutti, per giunta
+taciuto.
+
+**⑥ La ricerca del paziente cerca da due caratteri in su**, e il mockup non dice da quando. Scelta mia,
 dichiarata: la rotta rifiuta comunque i termini vuoti.
 
 ---
@@ -299,4 +330,9 @@ di mostrare «*il valore che il documento stampa*» la differenza si vede.
   qui perché non resti scoperta.
 - **Non ho aggiornato `memory/MEMORY.md` né la roadmap** (BP-1): è chiusura d'ondata, non di questo
   compito.
+- **Non ho toccato** `ModificaRigaSheet.salva` per chiudere **F1**, benché la correzione sia di una
+  riga e la ricetta esista già in casa: due file fuori mandato e un contratto (`patchLocale`) con
+  altri chiamanti. ➡️ **F1 e il blocco del tasto sul 409 sono la stessa cosa vista dai due capi**: qui
+  ho chiuso il danno (niente progressivi bruciati a vuoto), là resta la causa (il messaggio che dà la
+  colpa a «qualcun altro» quando è stato l'utente stesso, trenta secondi prima).
 - **Non ho pubblicato niente**: nessun `git push`, nessun merge.
