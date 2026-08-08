@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 import { DevoIntervenire } from '@/components/features/lavori/scheda-v3/DevoIntervenire'
+// 🔑 IL VOCABOLARIO SI PRENDE, NON SI RICOPIA: la prova sul tipo di dispositivo
+//    chiede che il carico sia uno degli slug veri, e se un giorno l'elenco
+//    cambia è questa la riga che lo segue.
+import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
 /**
  * «Devo intervenire» (Task 6) — le prove che sorvegliano le DECISIONI, non i pixel.
@@ -724,6 +728,24 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
     expect(usa.hasAttribute('disabled') || usa.getAttribute('aria-disabled') === 'true').toBe(true)
   })
 
+  // 🔑 QUESTA PROVA NASCE DALL'ENUMERAZIONE DELLE FORME, non da un'intuizione:
+  //    mettendo in fila le forme d'input delle sei voci è saltato fuori che il
+  //    ramo dei TESTI di `perche()` non era sorvegliato da niente. Il carico
+  //    era comunque al sicuro (`componi()` rifiuta un testo vuoto una seconda
+  //    volta), ma la SPIEGAZIONE a schermo no — e la promessa è che si dica
+  //    prima, invece di scoprirlo con un 422 a PDF già reso.
+  it('🛑 nemmeno la descrizione si può svuotare, e il tasto lo dice prima', () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Descrizione')
+    fireEvent.change(screen.getByLabelText('Come deve dire il documento'), { target: { value: '   ' } })
+
+    const usa = screen.getByRole('button', { name: /Usa questo/i })
+    expect(usa.hasAttribute('disabled') || usa.getAttribute('aria-disabled') === 'true').toBe(true)
+    expect(screen.getByText(/non si può svuotare/i)).toBeTruthy()
+  })
+
   it('🛑 e nemmeno i denti si possono azzerare: il tasto si spegne col suo perché', () => {
     fingiFetchInstradato()
     montaComponente()
@@ -881,5 +903,215 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
     await waitFor(() => expect(screen.getAllByText(/DDC-2026-0043/).length).toBeGreaterThan(0))
     expect(screen.getByText(/DDC-2026-0042/)).toBeTruthy()
     expect(screen.getByText(/resta in archivio come superata/i)).toBeTruthy()
+  })
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  TASK D-ter ① — I CARICHI CHE PARTONO DAVVERO
+  //
+  //  🔴 LE CINQUE PROVE QUI SOTTO NASCONO DA UN BUCO MISURATO, non da uno
+  //  scrupolo. La revisione indipendente del Task D ha rotto il codice di
+  //  produzione in cinque punti che avrebbero dovuto accendere qualcosa —
+  //  `paziente_id` mandato come nome, `elementi` come stringhe, l'oggetto
+  //  delle caratteristiche mandato fuso, il tipo mandato come etichetta,
+  //  `stato_dispositivo` ricablato — e **tutte e cinque le volte 45 prove su
+  //  45 sono restate verdi**.
+  //  🔑 Il codice era ed è giusto: era la RETE ad avere i buchi. Delle sei voci
+  //  correggibili, solo tre avevano un'asserzione sul CARICO CHE PARTE
+  //  (`descrizione`, `richiedente_nome`, `denti_coinvolti`). Queste chiudono le
+  //  altre tre, più il corpo dell'evento del percorso nuovo.
+  //  🛑 «La funzione è stata chiamata» non è una di queste asserzioni: si
+  //  guarda che cosa c'era DENTRO il corpo.
+  // ════════════════════════════════════════════════════════════════════════
+
+  // ⚖️ D320 — da questo foglio si cambia QUALE PERSONA. Il contratto vuole
+  //    l'identificativo; il nome è solo ciò che si legge.
+  it('🔴 il paziente viaggia come UUID, mai come il nome che si legge a schermo (D320)', async () => {
+    const spia = fingiFetchInstradato({
+      pazienti: { pazienti: [{ id: ALTRO_PAZIENTE_ID, codice_paziente: 'PZ-0117', alias: 'Maria Rossi', ultimoLavoro: null }] },
+    })
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Paziente')
+    fireEvent.change(screen.getByLabelText('Cerca per cognome o codice'), { target: { value: 'ros' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: /Maria Rossi/ })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /Maria Rossi/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    const correzioni = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0]).correzioni as Record<string, unknown>
+    expect(correzioni.paziente_id).toBe(ALTRO_PAZIENTE_ID)
+    // 🛑 È un UUID, e la forma si controlla: la rotta lo cerca in anagrafica
+    //    (`…/riemetti:341-346`), un nome non troverebbe nessuno.
+    expect(String(correzioni.paziente_id)).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    )
+    expect(correzioni.paziente_id).not.toBe('Maria Rossi')
+  })
+
+  // 🔴 F2 — `tipo_dispositivo` entra nell'atto unico come TESTO LIBERO
+  //    (`correzioni.ts:75-79`): l'unico argine è la CHECK di banca dati, che
+  //    scatta DOPO che il PDF è stato reso e caricato — file orfano e
+  //    progressivo bruciato. La schermata lo chiude in pratica offrendo solo
+  //    gli slug, e questa prova è ciò che tiene ferma quella promessa.
+  it('🔴 il tipo di dispositivo viaggia come SLUG del vocabolario, mai come l\'etichetta (F2)', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Tipo di dispositivo')
+    fireEvent.click(screen.getByRole('button', { name: 'Protesi mobile' }))
+    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    const correzioni = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0]).correzioni as Record<string, unknown>
+    expect(correzioni.tipo_dispositivo).toBe('protesi_mobile')
+    expect(MACRO_SLUGS).toContain(correzioni.tipo_dispositivo)
+    // L'etichetta è un'altra cosa, e su questa riga è proprio la forma sbagliata.
+    expect(correzioni.tipo_dispositivo).not.toBe(LABEL_MACRO.protesi_mobile)
+  })
+
+  // 🔴 LA TRAPPOLA DEL TASK D, e la sua unica prova. Il resoconto del Task D
+  //    dedica trecento parole a spiegare che `elementi` è `number[]` e che un
+  //    campo di testo lì avrebbe preso 422 A OGNI INVIO — e poi chiude il
+  //    ritrovamento con ZERO asserzioni. La cosa dichiarata più a voce alta era
+  //    quella rimasta senza guardiano.
+  // 🔑 L'asserzione è una `toEqual` sull'OGGETTO INTERO, non una spunta su
+  //    `elementi`: così cade sia chi manda le stringhe, sia chi manda l'oggetto
+  //    fuso al posto delle sole sotto-chiavi cambiate.
+  it('🔴 delle caratteristiche prescritte parte SOLO la sotto-chiave cambiata, e «elementi» sono NUMERI', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Caratteristiche prescritte')
+    fireEvent.click(screen.getByRole('button', { name: /^Dente 27/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    const correzioni = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0]).correzioni as Record<string, unknown>
+    // 🛑 Niente `colore`: la penna scrive una `jsonb_set` alla volta, e mandare
+    //    l'oggetto fuso riscriverebbe una sotto-chiave che nessuno ha toccato.
+    expect(correzioni.prescrizione_caratteristiche).toEqual({ elementi: [26, 27] })
+  })
+
+  // 🔑 «Solo le sotto-chiavi cambiate» ha DUE direzioni, e la revisione ne ha
+  //    sondata una sola: qui si guarda l'altra.
+  it('🔴 e cambiando il solo colore, «elementi» NON viaggia affatto', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    apriRiga('Caratteristiche prescritte')
+    fireEvent.change(screen.getByLabelText('Colore'), { target: { value: 'B2' } })
+    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    const correzioni = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0]).correzioni as Record<string, unknown>
+    expect(correzioni.prescrizione_caratteristiche).toEqual({ colore: 'B2' })
+  })
+
+  // 🔴 IL DIFETTO DEL TASK A, CHE PUÒ RINASCERE SULLA STRADA NUOVA. La prova di
+  //    lessico del Task A copre il solo percorso corto — questo percorso allora
+  //    non esisteva. Il corpo dell'evento del tocco finale non era sorvegliato
+  //    da nessuna asserzione: solo dal suo CONTEGGIO. Ricablare
+  //    `mai_uscito_dal_lab` qui è l'app che AFFERMA al posto della persona che
+  //    il manufatto non è mai uscito — e quel motivo annulla la dichiarazione
+  //    (D293 · Art. 21(2) MDR).
+  // 🔑 `motivo` si asserisce insieme, e non è pleonasmo: senza, un domani
+  //    qualcuno potrebbe far passare questo tocco dal percorso corto e la prova
+  //    resterebbe verde mentre la bugia torna.
+  it('🔴 sul percorso NUOVO lo stato del manufatto è quello DICHIARATO, mai cablato a «mai uscito» (Task A)', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    fireEvent.click(screen.getByRole('button', { name: /^Continua/i }))
+    // La persona risponde: il manufatto era già applicato.
+    fireEvent.click(screen.getByRole('button', { name: 'Già applicato' }))
+    fireEvent.click(screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i }))
+
+    await waitFor(() => expect(chiamateA(spia, '/eventi-qualita').length).toBe(1))
+    const corpo = corpoDi(chiamateA(spia, '/eventi-qualita')[0])
+    expect(corpo.motivo).toBe('errore_dato_dichiarazione')
+    expect(corpo.stato_dispositivo).toBe('applicato')
+    expect(corpo.stato_dispositivo).not.toBe('mai_uscito_dal_lab')
+    // Sul percorso lungo il potenziale di danno si CHIEDE e si manda.
+    expect(corpo.potenziale_di_danno).toBe('da_valutare')
+  })
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  TASK D-ter ③ — DOPO IL CONFLITTO NON SI RESTA IN UN VICOLO CIECO
+  // ════════════════════════════════════════════════════════════════════════
+
+  // 🔴 Il fatto: il 409 spegne il tasto — ed è giusto — ma dal passo delle
+  //    quattro caselle non c'era NESSUNA via di ritorno. L'unica uscita era
+  //    chiudere il foglio, che azzerava l'evento: **un evento orfano in più a
+  //    ogni ritentativo**, proprio sul percorso di fallimento più frequente.
+  it('🔴 dopo un 409 c\'è una via d\'uscita, e la schermata dice che la registrazione non si perde', async () => {
+    const messaggio = 'Qualcun altro ha toccato questo lavoro mentre stavi correggendo: ricarica e rifai la correzione sui valori aggiornati.'
+    fingiFetchInstradato({ riemetti: { ok: false, stato: 409, corpo: { error: messaggio } } })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(screen.getAllByText(messaggio).length).toBeGreaterThan(0))
+    // 🛑 La causa resta quella della ROTTA, mostrata com'è scritta: la schermata
+    //    non ne inventa una propria, perché i 409 di quella rotta sono sei e si
+    //    distinguono solo a parole.
+    expect(screen.getByRole('button', { name: /Ricarica e riprendi/i })).toBeTruthy()
+    expect(screen.getByText(/resta registrato: riprendendo da qui non se ne registra una seconda/i)).toBeTruthy()
+  })
+
+  it('🔴 e riprendendo dopo il 409 la registrazione si RIUSA: mai un evento orfano per tentativo', async () => {
+    const spia = fingiFetchInstradato({
+      riemetti: { ok: false, stato: 409, corpo: { error: 'Qualcun altro ha toccato questo lavoro.' } },
+    })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    expect(chiamateA(spia, '/eventi-qualita').length).toBe(1)
+
+    // La via d'uscita chiude il foglio e rinfresca la pagina: è così che
+    // arrivano i valori nuovi e il gettone nuovo.
+    fireEvent.click(screen.getByRole('button', { name: /Ricarica e riprendi/i }))
+    await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText('Che cosa c\'è di sbagliato?')).toBeNull()
+
+    // Si ricomincia da capo, sui valori aggiornati.
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
+    // 🔑 L'ASSERZIONE CHE CONTA: le registrazioni restano UNA. Prima di questa
+    //    correzione erano due, e la seconda non l'avrebbe vista nessuno.
+    expect(chiamateA(spia, '/eventi-qualita').length).toBe(1)
+    expect(corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[1]).evento_id).toBe(RISPOSTA_OK.evento.id)
+  })
+
+  // 🛑 E L'EVENTO NON SI RIUSA PER SEMPRE: quando la carta è stata rifatta,
+  //    quell'evento ha finito il suo lavoro. Un intervento successivo è un
+  //    fatto NUOVO e vuole la sua riga nel registro di qualità.
+  it('🛑 dopo una riemissione riuscita, un secondo intervento registra un evento NUOVO', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(refreshMock).toHaveBeenCalled())
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 46')
+    arrivaAlToccoFinale()
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
+    expect(chiamateA(spia, '/eventi-qualita').length).toBe(2)
   })
 })

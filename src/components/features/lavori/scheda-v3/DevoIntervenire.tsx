@@ -451,6 +451,34 @@ export function DevoIntervenire(props: {
    *  ogni tocco in più brucia un altro progressivo e non può riuscire finché
    *  il foglio non si chiude — e chiudendolo la pagina si rinfresca. */
   const [conflitto, setConflitto] = useState<string | null>(null)
+  /**
+   * 🔴 L'EVENTO SOPRAVVIVE AL FALLIMENTO, ed è ciò che impedisce **un evento
+   * orfano per tentativo**.
+   *
+   * Il fatto: dal passo delle quattro caselle, dopo un fallimento, l'unica
+   * uscita era chiudere il foglio — e `ricomincia()` azzerava `risposta`. Al
+   * tentativo dopo, `correggiERifai` non trovava più niente e **registrava un
+   * secondo evento** per lo stesso fatto: due righe nel registro di qualità che
+   * raccontano una cosa sola.
+   *
+   * 🔑 Perché riusarlo è legittimo, e non è un'opinione: la riemissione è una
+   * transazione sola (`correggiERiemettiDdC`) e un suo fallimento **non lascia
+   * nessuna dichiarazione annullata da questo evento** — la porta d'idempotenza
+   * della rotta (`…/riemetti:275-315`) cerca proprio quella, e non la trova.
+   * L'evento invece descrive un fatto che è **davvero** accaduto: il motivo,
+   * dov'era il manufatto, quando lo si è saputo. Ripeterlo sarebbe un doppione;
+   * buttarlo sarebbe cancellare una registrazione dovuta.
+   *
+   * 🛑 E SOPRAVVIVE ANCHE ALLA CHIUSURA DEL FOGLIO, che rinfresca la pagina.
+   * Regge su due fatti, non su una speranza: ① `errore_dato_dichiarazione` ha
+   * `azione: null` e `lavoro: 'resta_consegnato'` (`effetti.ts:112-115`) e la
+   * rotta **non tocca `lavori.stato`** (suo cappello, D299) — quindi dopo il
+   * rinfresco il lavoro è ancora `consegnato` e questo componente è ancora
+   * montato (`SchedaLavoroV3.tsx:596`); ② lo stato locale di un componente
+   * client sopravvive a `router.refresh()` — è il motivo per cui
+   * `SchedaLavoroV3.tsx:174-190` deve risincronizzare `lavoroLocale` a mano.
+   */
+  const [eventoDaRiusare, setEventoDaRiusare] = useState<RispostaEvento | null>(null)
   /** L'esito della riemissione, quando è avvenuta. */
   const [riemissione, setRiemissione] = useState<{ numero: string | null; numeroSuperato: string | null } | null>(null)
 
@@ -470,6 +498,10 @@ export function DevoIntervenire(props: {
     setDanno('da_valutare'); setConosciuto(adessoLocale())
     setUscitoDichiarato(false)
     setCorrezioni({}); setVoceAperta(null); setRiemissione(null); setConflitto(null)
+    // 🛑 `eventoDaRiusare` NON SI AZZERA QUI, ed è una riga assente apposta: è
+    //    l'unica cosa che attraversa la chiusura del foglio. Azzerarlo insieme
+    //    al resto è esattamente il difetto che si sta chiudendo — un evento
+    //    orfano in più a ogni ritentativo. Lo azzera solo la riuscita.
     if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
   }
 
@@ -583,11 +615,24 @@ export function DevoIntervenire(props: {
     setLavorando(true)
     try {
       let evento = risposta
+      // 🔑 UN TENTATIVO PRECEDENTE È GIÀ COSTATO UNA REGISTRAZIONE: si riprende
+      //    quella. `accogliEvento` la rimette anche nello stato vivo, perché
+      //    `ricomincia()` aveva azzerato `esitoScelto` — e senza, la schermata
+      //    della proposta non saprebbe più che cosa confermare.
+      if (!evento && eventoDaRiusare) {
+        evento = eventoDaRiusare
+        accogliEvento(evento)
+      }
       if (!evento) {
         evento = await depositaEvento(statoDisp)
         if (!evento) return
         accogliEvento(evento)
       }
+      // 🛑 DA QUESTO ISTANTE L'EVENTO È SCRITTO IN BANCA DATI. Si mette da parte
+      //    SUBITO, e non solo sul 409: qualunque esito diverso dalla riuscita
+      //    (500, rete assente, corpo illeggibile) può portare la persona a
+      //    chiudere il foglio, ed è lì che l'evento si perdeva.
+      setEventoDaRiusare(evento)
 
       const carico: Record<string, unknown> = {}
       for (const [campo, voce] of Object.entries(correzioni)) carico[campo] = voce.valore
@@ -614,6 +659,9 @@ export function DevoIntervenire(props: {
         }
         const esito = (await res.json()) as { numero?: string | null; numero_superato?: string | null }
         setRiemissione({ numero: esito.numero ?? null, numeroSuperato: esito.numero_superato ?? null })
+        // La carta è rifatta: quell'evento ha finito il suo lavoro e non va più
+        // riusato. Il prossimo intervento è un fatto nuovo, e vuole la sua riga.
+        setEventoDaRiusare(null)
         setFase('proposta')
       } catch {
         errore('Non sono riuscita a rifare la dichiarazione: controlla la connessione e riprova.')
@@ -939,6 +987,33 @@ export function DevoIntervenire(props: {
           onScegli={setDanno}
         />
 
+        {/* 🔴 LA VIA D'USCITA DAL CONFLITTO — senza, da qui non si torna
+            indietro: il tasto è spento e l'unico gesto rimasto è chiudere il
+            foglio, che è proprio il gesto che perdeva la registrazione.
+            🛑 QUI NON SI RACCONTA LA CAUSA, e non è timidezza: la rotta manda
+            **sei** 409 diversi (gettone stantìo · nessuna dichiarazione viva ·
+            registrazione già consumata · dichiarazione già superata · numero
+            già usato · registrazione già usata altrove) e li distingue **solo
+            a parole**, senza un codice leggibile a macchina. Scriverne una
+            causa qui vorrebbe dire dirla falsa sugli altri cinque rami — cioè
+            rifare, un piano più in là, l'errore del commento sulle tinte.
+            ➡️ La causa la dice il messaggio della rotta, che si mostra
+            **com'è scritto**; questo riquadro aggiunge solo ciò che è vero su
+            tutti e sei: questo tentativo non ha rifatto il documento, e la
+            registrazione non si ripete. */}
+        {correggendo && conflitto && (
+          <>
+            <Esito tono="attesa" titolo="Questo tentativo non è riuscito">
+              {conflitto}
+              <span style={{ display: 'block', marginTop: 6 }}>
+                Quello che hai segnalato resta registrato: riprendendo da qui non se ne registra
+                una seconda.
+              </span>
+            </Esito>
+            <TastoSecondario onClick={ricomincia}>Ricarica e riprendi</TastoSecondario>
+          </>
+        )}
+
         {/* ⚖️ D322 — IL TASTO FINALE DICE QUELLO CHE FA, mai «Salva». Su questo
             motivo è QUI che parte l'atto unico: due chiamate in fila, la
             registrazione e la riemissione. Sugli altri otto motivi la riga
@@ -1244,9 +1319,22 @@ function RigaVoce(props: {
 
   const stile = {
     display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-    // 🛑 In tema scuro una superficie premibile NON si dipinge del colore del
-    //    pannello che la contiene: `--bg-deep` risolve a un tono più chiaro del
-    //    `--card` del foglio, e la riga resta visibile (spec v3 §3.2).
+    // 🔄 QUI C'ERA UN COMMENTO CHE DICEVA IL FALSO, e va detto per intero perché
+    //    un commento sbagliato è peggio di un commento assente: viene *citato*.
+    //    Sosteneva che in tema scuro `--bg-deep` risolvesse a un tono **più
+    //    chiaro** del `--card` del foglio, e quindi che la riga restasse
+    //    visibile. `provato:` `src/app/ds-v3.css:52` — in scuro `--bg-deep` è
+    //    `#100E0B`, cioè più SCURO sia del `--card` del pannello (`#211D18`)
+    //    sia del fondo pagina (`#171411`): la riga non sale, **scende**.
+    // 🛑 QUESTA TINTA NON È VERIFICATA, e questo commento non finge il
+    //    contrario. La regola di casa è due righe sopra il token
+    //    (`ds-v3.css:50`, «*Dark — elevazione = superficie più chiara, MAI
+    //    ombre*») ed è già registrata come esito di un gate L2 in
+    //    `Sheet.tsx:499-501`; il mockup approvato scrive `--elv` sulle
+    //    superfici premibili dentro il foglio.
+    // ➡️ Cambiare la tinta è materia del GATE ESTETICO L2 (D245), non di questa
+    //    riga: chi ci arriva deve trovare un ❌ da valutare, non una verifica
+    //    che qualcuno dichiara di aver già fatto.
     background: corretta ? 'var(--blue-tint)' : 'var(--bg-deep)',
     border: '1px solid transparent', borderRadius: raggio.riga,
     padding: `13px ${spazio.m}px`, textAlign: 'left' as const,
