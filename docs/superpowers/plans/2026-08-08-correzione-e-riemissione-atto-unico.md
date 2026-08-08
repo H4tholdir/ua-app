@@ -45,6 +45,34 @@ avvenuta.** Su un manufatto realmente uscito è una dichiarazione falsa (D293).
 > costruita. L'intervallo era sbagliato, non il codice. **Un controllo che risponde in modo troppo
 > netto va rifatto prima di essere creduto.**
 
+### 📐 MISURE DI APERTURA DEL TASK B — eseguite l'08/08/2026, 11:00 circa
+
+> Le due incognite che l'autorevisione dichiarava aperte sono chiuse, e **una terza è comparsa da sola
+> e rovescia l'ordine dei passi del Task B**. Sono misure sul **catalogo vivo**, non sui file.
+
+| # | assunzione | esito |
+|---|---|---|
+| **P7** | `denti_coinvolti` è colonna di `lavori` o vista? | ✅ **colonna reale** `text[]` (`relkind='r'`) — **ma è una DENORMALIZZAZIONE**: la fonte è `lavori_denti`, e `20260727120300:218` dichiara `lavoro_denti_sostituisci_atomica` + `lavoro_crea_atomico` **uniche penne**, responsabili di tenerla in sincronia. ➡️ La RPC nuova **chiama** la penna, **mai** un `UPDATE lavori SET denti_coinvolti` |
+| **P8** | `prescrizione_caratteristiche` è un campo di `lavori`? | 🔴 **NO, e il censimento lo dava per tale.** È colonna di **`dichiarazioni_conformita`**; la fonte è **`lavori_prescrizioni.contenuto`**, che è **`jsonb NOT NULL`** (non testo). La penna è `lavoro_prescrizione_correggi_typo(p_campo, p_valore jsonb, p_atteso_updated_at)`, e **accetta solo tre campi**: `elementi` · `colore` · `tipo` (`p_campo NOT IN (…) → campo_non_valido`) |
+| **P9** | 🔴 **la penna della prescrizione con una dichiarazione VIVA** | 🔴 `provato:` sul catalogo — `IF EXISTS (… stato <> 'annullata') THEN RETURN … 'congelata'`, col commento *«il typo si corregge annullando la dichiarazione, non riscrivendo la storia sotto di essa»*. ➡️ **L'ordine del piano (③ correggi → ④ annulla → ⑤ inserisci) fa fallire SEMPRE la correzione della prescrizione**, perché l'atto unico opera esattamente col documento vivo. **L'ordine giusto è ④ annulla → ③ correggi → ⑤ inserisci**, ed è quello che la penna era stata scritta per servire |
+| **P10** | chi tocca `lavori.updated_at` → 409 spurii? | trigger **`trg_lavori_updated_at`** BEFORE UPDATE: **ogni** UPDATE di `lavori` lo muove. 🔑 Ma entrambe le penne confrontano il gettone **su `lavori`** (non sulla propria tabella) **e restituiscono quello fresco** (`'updated_at', v_updated_at`). ➡️ Il gettone è **UNO**, e la catena si fa passando alla penna successiva **il valore di ritorno della precedente**, mai quello d'ingresso |
+| **P11** | `annullata_da_evento_id` è popolata? | 🔴 **`0` non-NULL su `6` righe** (e `sostituisce_id` **0**): `riemetti_ddc_atomica` **non è mai stata eseguita sul banco**. ➡️ **P2 era vera per VACUITÀ** — «0 doppioni» non provava l'applicabilità ai dati, provava che dati non ce n'erano. **L'indice resta la scelta giusta**, e per una ragione misurata: la RPC esistente scrive `annullata_da_evento_id = p_evento_id` **sulla dichiarazione VECCHIA**, quindi un secondo invio con lo stesso evento collide davvero |
+| **P12** | le penne interne sono chiamabili da dentro la RPC nuova? | `prosecdef = true` per tutt'e tre, ACL **`postgres=X` + `service_role=X`**. Una chiamata annidata da un `SECURITY DEFINER` di proprietà `postgres` passa (utente effettivo = definer) — 🛑 **da provare con una sonda, non da assumere** |
+
+🛑 **CONSEGUENZA SUL CENSIMENTO (R-P6): le otto voci vivono in TRE DEPOSITI, non in uno.**
+
+| deposito | voci | penna |
+|---|---|---|
+| colonne di `lavori` | `richiedente_nome` · `paziente_id` · `paziente_nome_snapshot` · `numero_prescrizione` · `tipo_dispositivo` · `descrizione` | l'`UPDATE` dentro la RPC nuova |
+| `lavori_denti` (+ denormalizzazione) | `denti_coinvolti` | `lavoro_denti_sostituisci_atomica` |
+| `lavori_prescrizioni.contenuto` (jsonb) | `prescrizione_caratteristiche` | `lavoro_prescrizione_correggi_typo` — **solo** `elementi`/`colore`/`tipo` |
+
+🟠 **RITROVAMENTO FUORI MANDATO (R-E2 — riferito, non corretto):** `numero_prescrizione` esiste **in due
+posti** — `lavori.numero_prescrizione` (che il generatore legge, `generate-ddc.ts:256`) **e**
+`lavori_prescrizioni.numero_prescrizione`. Due fonti della stessa verità, cioè la lezione ⑤ dell'handoff
+di stamattina in un altro punto. **Il Task B corregge la prima, che è quella stampata**; la seconda resta
+com'è e va in coda.
+
 🛑 **Tutti i blocchi di codice di questo piano nascono marcati `non eseguito`**, col comando che
 l'esecutore userà per verificarli scritto accanto.
 
@@ -122,18 +150,34 @@ comando **separato** — D311; pavimento `20260807185858`)
 - [ ] **Passo 2 — ribatti il corpo VIVO** di `riemetti_ddc_atomica` **dal catalogo**
   (`pg_get_functiondef`), non dal file: *il file di migration non è la prova, la verità è il catalogo
   vivo* — pagato due volte in quest'ondata.
-- [ ] **Passo 3 — la RPC nuova**, `correggi_e_riemetti_atomica`, che in **una transazione**:
+- [ ] **Passo 3 — la RPC nuova**, `correggi_e_riemetti_atomica`, che in **una transazione** —
+  🔄 **ORDINE EMENDATO DA P9: l'annullo viene PRIMA delle correzioni**, e non è un dettaglio di stile:
+  con la dichiarazione ancora viva la penna della prescrizione risponde `congelata` e **non scrive**.
   ① `SELECT … FOR UPDATE` sul lavoro · ② confronta `p_atteso_updated_at` → se diverso, esito
-  `conflitto` (modello `…/denti`) · ③ applica `p_correzioni` a `lavori` · ④ annulla la dichiarazione
-  viva · ⑤ inserisce la nuova con `sostituisce_id` e `annullata_da_evento_id`.
+  `conflitto` (modello `…/denti`) · ③ **annulla la dichiarazione viva**, scrivendo
+  `annullata_da_evento_id` come fa `riemetti_ddc_atomica` (è la riga che rende efficace l'indice del
+  Passo 1) · ④ applica `p_correzioni` **ai tre depositi**, nell'ordine che rispetta i gettoni ·
+  ⑤ inserisce la nuova con `sostituisce_id`.
+  🛑 **Le voci fuori da `lavori` si CHIAMANO, non si ricopiano** (P7 · P8): `lavoro_denti_sostituisci_atomica`
+  e `lavoro_prescrizione_correggi_typo` sono penne uniche dichiarate — un `UPDATE` gemello farebbe
+  divergere `lavori_denti` dalla denormalizzazione che il documento stampa. La chiamata annidata è nella
+  stessa transazione: **l'atomicità di D315 non si perde**.
+  🛑 **IL GETTONE SI RINFRESCA A OGNI PASSAGGIO** (P10): ogni penna restituisce l'`updated_at` nuovo, e
+  quello — non il valore d'ingresso — va alla penna successiva. Col gettone originale la **seconda**
+  chiamata torna `conflitto` sempre, e sembra un difetto del codice invece che dell'ordine.
   🛑 **Controllo sul catalogo per `p_correzioni`**, gemello di quello già presente in
-  `20260807143623:105-113`: **nessuna chiave si perde muta** (R-P6).
+  `20260807143623:105-113`: **nessuna chiave si perde muta** (R-P6). ⚠️ Qui il controllo **non può**
+  essere «le colonne di `lavori`»: tre voci non lo sono. L'elenco è **la tabella dei tre depositi**, e il
+  `COMMENT` della funzione la porta scritta.
   🛑 **`DROP` → `CREATE` → `REVOKE` → `GRANT` → `COMMENT` nella stessa migration**, e la prova è una
   chiamata vera **con la chiave pubblica** che deve dare `42501`.
 - [ ] **Passo 4 — le sonde**, una invocazione per sonda, in transazione annullata, con la fixture
   costruita **dentro** la transazione: ① un `evento_id` già usato → `23505` · ② `p_atteso_updated_at`
   sbagliato → `conflitto` · ③ una chiave fuori allowlist → **rifiutata**, col messaggio · ④ il giro
   buono → il lavoro è corretto **e** la nuova dichiarazione esiste **e** la vecchia è `annullata`.
+  🛑 **E una sonda PER CHIAVE, che verifica l'ATTERRAGGIO**: rifiutare l'ignoto è metà del lavoro —
+  una chiave accettata e instradata da nessuna parte è lo scarto silenzioso di `route.ts:259-264`
+  rifatto dentro una RPC. Ogni voce delle otto si legge dopo, dove dovrebbe essere finita.
 - [ ] **Passo 5 — FASE 6b** (`gen types` → `tsc`) e salva.
 
 ---
@@ -219,12 +263,17 @@ allowlist nuova · prove.
 - 🔴 **Il rischio più probabile di attuazione sbagliata:** `p_correzioni` che diventa una PATCH
   generica. Il Task C lo blocca con l'allowlist stretta, ma è la cosa che un esecutore di fretta
   allargherà «tanto siamo già in transazione».
-- 🟠 **Non ho verificato** se qualcosa oltre alla PATCH tocchi `lavori.updated_at` (trigger, altre RPC):
-  se lo tocca spesso, il gettone di concorrenza produrrebbe **409 spurii**. ➡️ Il Task B lo misura
-  **prima** di adottarlo.
-- 🟠 **Non ho verificato** se `denti_coinvolti` sia una colonna di `lavori` o una vista su
-  `lavori_denti`: il generatore legge `lavoro.denti_coinvolti`, ma la scrittura passa da una rotta
-  dedicata. ➡️ **Il Task B lo apre per primo**, e se è una vista il piano del Task B cambia.
+- ✅ ~~**Non ho verificato** se qualcosa oltre alla PATCH tocchi `lavori.updated_at`~~ → **MISURATO
+  (P10):** un trigger BEFORE UPDATE lo muove a ogni scrittura, ma le penne restituiscono il gettone
+  fresco. **Non produce 409 spurii, a patto di rinfrescarlo** — vincolo scritto nel Passo 3.
+- ✅ ~~**Non ho verificato** se `denti_coinvolti` sia una colonna o una vista~~ → **MISURATO (P7):**
+  colonna reale, **ma denormalizzata**, con penna unica dichiarata. Il piano del Task B **è cambiato**:
+  si chiama, non si scrive.
+- 🔴 **E una terza è comparsa da sola, che nessuno aveva pensato a cercare (P9):** la penna della
+  prescrizione **si rifiuta di lavorare finché la dichiarazione è viva**. L'ordine dei passi era
+  sbagliato, e la sonda ④ sarebbe fallita facendo sembrare difettoso il codice nuovo.
+  🔑 *Due incognite dichiarate ne hanno scoperta una terza non dichiarata: è il motivo per cui il
+  censimento si fa aprendo, non elencando.*
 - 🟠 **`contiene_sostanze_o_tessuti` è stampato e cablato a `false`**: non è fra le sette. O si dichiara
   fuori perimetro con il motivo, o l'ondata gli dà uno scrittore. **Riferito, non deciso.**
 - 🔵 L'ordine fra la correzione e le quattro caselle di legge: ho messo la correzione **prima**, perché
