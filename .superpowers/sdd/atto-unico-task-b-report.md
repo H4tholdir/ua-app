@@ -541,6 +541,21 @@ eredita quelli della vecchia e l'`INSERT` sbatte su
 `riemetti_ddc_atomica`, non introdotto da me, e **non è scritto da nessuna parte**: chi scrive il
 Task C deve saperlo. **Riferito.**
 
+> 🔄 **CORRETTO DALLA REVISIONE INDIPENDENTE — questa riga è vera a metà, e la metà che manca è quella
+> muta.** (`.superpowers/sdd/atto-unico-task-b-review.md`; riprovato dall'orchestratore sui vincoli
+> vivi.) Omettere **`progressivo_ddc`** collide **rumorosamente**, come scritto sopra. Omettere
+> **`numero_ddc`** **non collide affatto**: `provato:` gli unici CHECK su `dichiarazioni_conformita`
+> sono `ddc_no_self_ref`, `…_classe_rischio_check` e `…_stato_check` — **nessuno lega `numero_ddc` alla
+> coppia `anno_ddc`+`progressivo_ddc`**, e l'unico indice unico è sulla coppia. ➡️ Si possono avere
+> **due documenti a valore legale con lo stesso numero stampato**, con `esito: ok`.
+> 🔑 **E la regola giusta per il Task C non è quella che questa riga suggerisce.** Non è «*passa numero
+> e progressivo nuovi*» — è **«`numero_ddc` si DERIVA da `anno_ddc`+`progressivo_ddc`, e non si accetta
+> MAI dal chiamante»**: più stretta, e impossibile da sbagliare per distrazione. Sta nel piano come
+> **C1**.
+> ⚠️ *Sta qui come nota, e la riga sbagliata resta leggibile, perché una correzione che vive solo nel
+> documento di sintesi è una correzione che si perde: chi legge questo resoconto da solo uscirebbe col
+> fatto sbagliato.*
+
 **e) `riemetti_ddc_atomica` non era mai stata eseguita sul banco** (P11). Le mie sonde sono la prima
 esecuzione a runtime di quella logica, sia pure nella forma ribattuta. **Niente si è comportato male**
 — ma è un fatto che vale la pena sapere prima di chiamarla «collaudata».

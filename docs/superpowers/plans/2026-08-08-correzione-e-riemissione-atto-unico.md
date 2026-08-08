@@ -201,12 +201,22 @@ allowlist nuova · prove.
   override forzati dalla funzione non lo coprono. 🛑 **Ereditato: `riemetti_ddc_atomica` fa lo stesso**
   (riprovato dal revisore) — ma *gravità dello stato* e *attribuzione della colpa* sono assi diversi.
   ➡️ **Il Task C chiude con un'allowlist su `p_nuova`**, non solo su `p_correzioni`.
+  🛑 **E il DOVE non è libero: l'allowlist di `p_nuova` va in SQL, dentro la RPC.** Se vivesse nella
+  rotta, il buco resterebbe aperto nel database **per ogni chiamante futuro** — ed è la definizione
+  della **seconda penna** che l'autorevisione di questo piano indica come rischio numero uno. In
+  TypeScript ci va semmai una seconda rete, mai la sola.
 - [ ] 🔴 **C1 — una riga del resoconto del Task B è SBAGLIATA A METÀ, e la metà che manca è quella
   muta.** Il §7d dice che `p_nuova` deve portare numero e progressivo nuovi «o l'insert collide».
   `provato:` dalla revisione: omettere `progressivo_ddc` collide **rumorosamente**; omettere
   `numero_ddc` **non collide affatto** — su quella colonna **non c'è indice unico**. Esito: **due
   documenti a valore legale con lo stesso numero stampato**, ed `esito: ok`. 🔑 È l'unica affermazione
   del resoconto che, se creduta, porta a scrivere codice sbagliato.
+  🔑 **E la regola giusta è più stretta di quella che il resoconto suggerisce.** `provato:` sui vincoli
+  vivi — gli unici CHECK sono `ddc_no_self_ref`, `…_classe_rischio_check`, `…_stato_check`: **nessuno
+  lega `numero_ddc` alla coppia `anno_ddc`+`progressivo_ddc`**, che è invece l'unico indice unico.
+  ➡️ Non «*passa numero e progressivo nuovi*», ma **«`numero_ddc` si DERIVA dalla coppia, e non si
+  accetta MAI dal chiamante»**. Una regola che non si può sbagliare per distrazione batte una regola
+  che va ricordata.
 - [ ] 🟠 **C2 — `p_correzioni` valida la FORMA e non rifiuta mai il VUOTO.** `provato:` una sola chiamata
   con `denti_coinvolti: []`, `paziente_id: null` e stringhe vuote su `descrizione`,
   `richiedente_nome`, `paziente_nome_snapshot` è tornata `ok` **e ha svuotato tutti e cinque**.
