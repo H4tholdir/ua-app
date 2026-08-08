@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentaquattresima tornata (D313: la mappa di recupero e i resoconti entrano sotto git)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentaseiesima tornata (D315-D317: l'atto unico, i sette campi, e il dentista va avvisato)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**313 decisioni in centotrentaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**317 decisioni in centotrentasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3377,3 +3377,140 @@ regola è scritta in `CLAUDE.md` e ci sono cascato lo stesso. Rifatto leggendola
 ✅ **Esito vero, su 103.888 righe di contenuto in salvataggio: nessuna credenziale.** Le uniche
 corrispondenze sono il segnaposto `sk_live_xyz`, che vive già in `tests/unit/dpa-registro.test.ts` — un
 file versionato e pubblicato da giorni — dentro prove che verificano che l'app **non** lo lasci uscire.
+
+---
+
+### Centotrentacinquesima tornata — D314: «dato sbagliato sulla dichiarazione» apre la correzione di OGNI campo che alimenta il documento (08/08/2026, 09:03)
+
+> ✅ Orario misurato: `provato:` `date` → **`08/08/2026, 09:03 CEST`**, comando separato.
+
+**Nasce da:** il **Critico** trovato dalla revisione del Task 8 — *la strada che il rifiuto indica
+riporta nella stessa stanza*. Verificato in tre punti sul codice, non dedotto: ① nessuna schermata
+collega `errore_dato_dichiarazione` (zero occorrenze in `DevoIntervenire.tsx`) · ② il documento rifatto
+sarebbe **identico** nei cinque campi, perché `generate-ddc.ts:251-261` li legge dalla riga del lavoro
+che il cancello impedisce di correggere · ③ non esiste una finestra: `riemetti_ddc_atomica` annulla e
+inserisce **nella stessa transazione**, per scelta dichiarata (`20260807143623:55-70`).
+➡️ **Non si corregge prima, né durante, né dopo.** L'unico percorso funzionante era
+`errore_registrazione`, che dichiara una consegna mai avvenuta: su un manufatto realmente uscito è una
+**dichiarazione falsa**, cioè ciò che D293 vieta.
+
+| # | Decisione | Testo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D314** | 🔑 **Scegliendo «dato sbagliato sulla dichiarazione» si apre la correzione di OGNI campo del lavoro che alimenta il documento — non solo i cinque stampati** | «*deve essere possibile modificare ogni parte del lavoro che interviene sui dati, ogni possibile campo, così da poter permettere di correggere e rielaborare il tutto*» · e sulla strada: «*se questo vogliamo svilupparlo seguendo la 1. mi sta bene, proponimi tu la strada migliore*» | La finestra di correzione **non è ristretta all'allowlist di D308**: prende tutto ciò che finisce nel documento, **comprese le voci che vivono su altre tabelle** (nome e cognome del cliente, codice del paziente) — cioè anche la «seconda porta laterale» che la revisione aveva riferito come Importante separato. La **forma** della strada è delegata a me, con **panel** (regola Advisor) prima della ratifica. |
+
+**🔑 Perché la richiesta di Francesco è più larga di quella che avevo formulato io, ed è giusto che lo
+sia.** Io avevo proposto di far viaggiare la correzione **dei cinque campi** insieme alla riemissione.
+Francesco ha allargato a **ogni campo che interviene sui dati**: la ragione pratica è che un documento
+sbagliato raramente lo è in un punto solo — chi ha digitato male il paziente può aver sbagliato anche
+il dentista o il tipo di manufatto, e obbligare a due percorsi diversi per due refusi dello stesso
+momento è il modo di far scegliere alla persona quello più veloce invece di quello vero.
+
+**⚠️ Che cosa questa decisione NON dice, e va deciso col panel:** se la correzione sia un **atto solo**
+con la riemissione o una **finestra** che l'evento apre e la riemissione chiude · che cosa succede se
+la persona apre la correzione e **non la completa** · se il documento vecchio resti raggiungibile (D293
+dice di sì: `annullata` = **superata**, mai «nulla») · e come si tiene ferma la regola che un lavoro
+consegnato non resti **mai** senza una dichiarazione viva, che è la ragione per cui la riemissione è
+atomica.
+
+📌 **La riga di D308 resta valida e non è contraddetta:** il cancello continua a rifiutare la modifica
+*silenziosa* dei campi stampati. D314 non lo apre — **gli dà la porta che finora nominava e non
+esisteva**.
+
+---
+
+### Centotrentaseiesima tornata — D315 · D316 · D317: l'atto unico, i sette campi, e il dentista va avvisato (08/08/2026, 10:00)
+
+> ✅ Orario misurato: `provato:` `date` → **`08/08/2026, 10:00 CEST`**, comando separato.
+
+**Nasce da:** il **panel a tre** convocato su D314 (regola Advisor) — prospettiva **normativa MDR**,
+**architettura dei dati e integrità transazionale**, **UX del banco**. I tre pareri sono arrivati
+indipendentemente e **convergono tutti sulla forma 1**, per ragioni diverse.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D315** | 🔑 **FORMA 1 — ATTO UNICO.** La correzione dei dati e la riemissione del documento avvengono in **una sola transazione**, e fino all'ultimo tocco **in banca dati non cambia niente** | «*sì forma 1*» | Nessuno stato intermedio da spiegare · D308 resta **intatto** (non serve un cancello a due chiavi) · il messaggio del 422 **diventa vero per la prima volta** |
+| **D316** | 📐 **Il perimetro è di SETTE voci, non cinque** | «*prendi tutti e sette*» | Entrano anche i **denti** e le **caratteristiche della prescrizione**, che hanno strade di scrittura proprie. 🛑 Le voci del **laboratorio** (ragione sociale, indirizzo, P.IVA, luogo di fabbricazione) restano fuori **e si dichiarano a schermo**: si correggono in Impostazioni e valgono per tutte le dichiarazioni |
+| **D317** | 📨 **Il documento corretto DEVE arrivare al dentista** | «*e il dentista va avvisato*» | Entra nell'ondata, non diventa una riga di roadmap. **Base giuridica: GDPR Art. 19** (fonte sotto), non MDR |
+
+---
+
+#### 🔑 Le tre scoperte del panel, che nessuno aveva in mano prima
+
+**① IL VINCOLO CHE CREDEVAMO DI LEGGE NON LO È.** «Un lavoro consegnato non deve mai restare senza
+una dichiarazione viva» è una regola **nostra**, di integrità dei dati — e il progetto lo dice già di
+suo (`20260807143623_riemissione_ddc.sql:61-64`: la ragione dichiarata è che quello stato «*nessun
+CHECK e nessun indice possono segnalare*»). `provato:` sul consolidato IT scaricato dal Cellar di
+publications.europa.eu (`02017R0745 — IT — 01.01.2026 — 006.001`): **`annull` → 0 occorrenze**,
+`nullo` → 0; le 16 di `revoc`, 28 di `sospen` e 41 di `ritir` cadono **tutte** su organismi notificati,
+certificati, consenso informato e ritiro **del dispositivo** dal mercato. ➡️ **Il MDR non conosce
+nessun istituto con cui il fabbricante privi di effetto un documento che ha emesso.**
+🔑 **L'unica norma che discrimina fra le tre forme è l'Art. 10(12)** — «*adottano **immediatamente** le
+azioni correttive necessarie*» — e discrimina sulla **prontezza**, non sull'atomicità: premia la forma
+che **garantisce la chiusura** invece di affidarla a un secondo gesto umano. ⚠️ Il passaggio «nome
+sbagliato → non conforme → si apre l'Art. 10(12)» è una **catena inferenziale dichiarata**, non una
+lettura: il regolamento non lo dice in questi termini.
+
+**② LA PREOCCUPAZIONE SUGLI EFFETTI COLLATERALI ERA FONDATA, E HA UNA SOLUZIONE PULITA.** Correggere
+`clienti.cognome` cambierebbe l'anagrafica per **tutti** i lavori di quel cliente. Non serve:
+esistono già **due colonne-ombra sul lavoro che VINCONO** sull'anagrafica —
+`lavori.richiedente_nome` (`generate-ddc.ts:251-255`) e `lavori.paziente_nome_snapshot`
+(`generate-ddc.ts:258`). ➡️ **L'atto unico scrive SOLO su `lavori`**, mai sulle anagrafiche condivise.
+🔴 **E qui il panel ha trovato un difetto vivo:** `paziente_nome_snapshot` **non la scrive nessuno** —
+58 occorrenze fra `src/` e `supabase/`, **tutte letture** tranne `supabase/seed.sql:133`. Quindi
+**oggi l'identità del paziente sulla dichiarazione arriva interamente dall'anagrafica condivisa**, e
+correggere un'anagrafica **sposta in silenzio il nome sotto a dichiarazioni già emesse**. D315 chiude
+anche questo. ⚠️ Attenzione al `??`: uno snapshot **vuoto** vincerebbe sul nome vivo e stamperebbe
+un'identificazione paziente **assente** — è lo stesso difetto già pagato sul gemello `richiedente_nome`
+(D242), e si evita passando da `CAMPI_TESTO_NORMALIZZATI`.
+
+**③ 🔴 LA BUGIA OGGI È SILENZIOSA, E LA DICE L'APP.** `provato:`
+`src/components/features/lavori/scheda-v3/DevoIntervenire.tsx:208` →
+`stato_dispositivo: sbaglio ? 'mai_uscito_dal_lab' : statoDisp`. Scegliendo «ho premuto consegna per
+sbaglio», **il foglio afferma al posto della persona** che il manufatto non è mai uscito dal
+laboratorio. La guardia che dovrebbe rifiutarlo esiste
+(`eventi-qualita/route.ts:246`) e **non può accendersi mai da quel percorso**.
+➡️ Conseguenza: **la strada più corta per correggere un refuso è quella che dichiara il falso**, ed è
+esattamente il moto che D314 nasce per chiudere. Si chiude con **una domanda sola**, dentro il
+`DialogConferma` che esiste già: «*Il manufatto è uscito dal laboratorio?*» — **zero tocchi in più**.
+📌 Effetto collaterale misurato: con quel valore cablato, `post_consegna_correzioni` **non si
+incrementa** (`eventi-qualita/route.ts:695`).
+
+---
+
+#### 📨 D317 — la base giuridica, e non è il MDR
+
+**GDPR, Reg. (UE) 2016/679**, testo consolidato IT (`02016R0679 — IT — 04.05.2016 — 000.003`):
+- **Art. 5(1)(d)** — i dati sono «*esatti e, se necessario, aggiornati; devono essere adottate tutte le
+  misure ragionevoli per cancellare o **rettificare tempestivamente** i dati inesatti*»;
+- **Art. 16** — rettifica «*senza ingiustificato ritardo*»;
+- 🔑 **Art. 19** — «*Il titolare del trattamento **comunica a ciascuno dei destinatari** cui sono stati
+  trasmessi i dati personali le eventuali rettifiche … salvo che ciò si riveli impossibile o implichi
+  uno sforzo sproporzionato.*»
+➡️ **Il dentista ha ricevuto il documento sbagliato: riemettere e archiviare NON chiude l'obbligo.**
+⚠️ **Nessuna delle tre forme in discussione se ne occupava** — è una voce che il panel ha aggiunto, non
+una che ha valutato.
+
+---
+
+#### ⚠️ Le condizioni che il panel pone alla forma 1, e che il piano deve rispettare
+
+1. 🛑 **La validazione del laboratorio sulle chiavi che arrivano dal corpo va fatta PRIMA di generare
+   il PDF.** Il file si carica su Storage **fuori** dalla transazione: un rollback **non lo toglie**, e
+   un documento col paziente di un altro laboratorio resterebbe lì.
+2. 🛑 **`p_correzioni` deve avere la sua allowlist STRETTA** — «i campi che alimentano il documento»,
+   mai «i campi di `lavori`». Altrimenti nasce una **seconda penna** su `lavori` che non conosce
+   nessuna delle regole della PATCH (~200 righe: colore di caso, tinta, sentinelle, blocco fiscale).
+3. 🛑 **L'evento diventa monouso**: serve un indice unico parziale su `annullata_da_evento_id`, sul
+   modello di `rifacimento_evento_unique`. Senza, un doppio tocco **riemette due volte** e brucia due
+   progressivi — la porta d'ingresso si chiude **sull'evento**, mai su «esiste una dichiarazione viva»
+   (quella è la porta che §8.1 vieta espressamente alla riemissione).
+4. **Un gettone di concorrenza** su `lavori.updated_at` fra la lettura e la scrittura, sul modello già
+   in casa di `PUT /api/lavori/[id]/denti` (esito `conflitto` → 409).
+5. **Il foglio mostra VALORI, non controlli**: sette righe da leggere, si corregge una riga alla volta
+   **dentro lo stesso foglio che cambia passo** — mai un secondo overlay, per il difetto già pagato in
+   `storia-overlay.ts`.
+
+📌 **Il modello non è nuovo: è la seconda metà di un precedente già in casa.** La **nota di credito**
+non riapre la fattura — emette un documento nuovo **e nello stesso atto atomico sblocca il lavoro**
+(`20260715110000_credito_storno_nota_credito.sql:154`). D308 aveva generalizzato **metà** di quel
+modello (il congelamento) senza l'atto compensativo che porta i valori nuovi. D315 mette la seconda metà.
