@@ -43,6 +43,33 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
+/**
+ * Due gettoni indicano lo STESSO ISTANTE? `null` = non si può decidere.
+ *
+ * 🛑 QUESTO CONFRONTO DEV'ESSERE PIÙ DEBOLE DI QUELLO DELLA RPC, e il verso
+ *    non è simmetrico: la RPC confronta due `timestamptz`, cioè due ISTANTI,
+ *    quindi ignora la forma testuale (`Z` e `+00:00` sono lo stesso momento) e
+ *    distingue fino al MICROSECONDO. Un confronto fra stringhe qui inventerebbe
+ *    un conflitto su due scritture identiche scritte in due modi — cioè un 409
+ *    che nessun ricaricamento sana, che è il difetto peggiore possibile su una
+ *    porta di concorrenza.
+ *
+ * 🔑 `Date.parse` arriva al MILLISECONDO: due valori che differiscono solo nei
+ *    microsecondi qui pareggiano e passano. È il verso giusto — questo è un
+ *    FILTRO che risparmia un progressivo, non la guardia: rifiutare di meno
+ *    lascia decidere chi sa distinguerli; rifiutare di più romperebbe.
+ *
+ * ⚠️ E se uno dei due non è leggibile come istante non si inventa niente: si
+ *    passa la mano alla RPC, che porta il limite già dichiarato più sotto.
+ */
+function stessoIstante(a: unknown, b: unknown): boolean | null {
+  if (typeof a !== 'string' || typeof b !== 'string') return null
+  const ma = Date.parse(a)
+  const mb = Date.parse(b)
+  if (Number.isNaN(ma) || Number.isNaN(mb)) return null
+  return ma === mb
+}
+
 function err(messaggio: string, status: number) {
   return NextResponse.json({ error: messaggio }, { status })
 }
@@ -311,6 +338,41 @@ async function correggiERifai(
     return err(
       'Quella registrazione è già stata usata per un altro intervento su questo lavoro: aprine una nuova da «Devo intervenire».',
       409
+    )
+  }
+
+  // ── ③-bis ⚖️ D323 — IL GETTONE SI CONTROLLA **PRIMA DEL RENDER** ──────────
+  //
+  // 🔑 COSTA ZERO QUERY: la riga del lavoro è già in mano (la carica l'handler
+  //    a monte, `updated_at` compreso). Il documento invece si rende e si
+  //    carica PRIMA della transazione (`generate-ddc.ts:457-460`, scelta
+  //    dichiarata: è ciò che permette alla transazione di esistere), quindi
+  //    ogni rifiuto che arriva dopo costa **un file orfano su Storage e un
+  //    progressivo bruciato**. Sapere qui ciò che si può sapere qui è la stessa
+  //    regola che governa le porte ④ e ⑤.
+  //
+  // 🛑 IL CONTROLLO DENTRO LA RPC RESTA, E NON È UN DOPPIONE: quello è l'unico
+  //    che copre la finestra fra questa lettura e la transazione. Questo è un
+  //    FILTRO che rende raro il caso costoso — chi un giorno lo trovasse
+  //    «duplicato» e cancellasse quello della RPC riaprirebbe la corsa vera.
+  //
+  // 🛑 E NON SCRIVERE CHE «ADESSO NON CI SONO PIÙ FILE ORFANI»: sarebbe falso.
+  //    La finestra fra questa lettura e la transazione resta, e con lei il
+  //    conflitto che arriva dopo il render. Questo lo rende **raro**, non
+  //    impossibile.
+  //
+  // 📌 STA DOPO LA PORTA ③, e l'ordine è portante: chi riprova una richiesta
+  //    che era RIUSCITA (il server ha scritto, il cliente non ha visto la
+  //    risposta) porta per costruzione il gettone di PRIMA. Davanti alla porta
+  //    d'idempotenza, quel ritentativo legittimo diventerebbe un 409.
+  if (stessoIstante(atteso, (lavoro as unknown as { updated_at?: unknown }).updated_at) === false) {
+    return NextResponse.json(
+      {
+        error:
+          'Qualcun altro ha toccato questo lavoro mentre stavi correggendo: ricarica e rifai la correzione sui valori aggiornati.',
+        updated_at: (lavoro as unknown as { updated_at?: unknown }).updated_at,
+      },
+      { status: 409 }
     )
   }
 

@@ -799,8 +799,45 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
-  // Forza aggiornamento timestamp (non allowlisted: sempre gestito server-side)
-  payload.updated_at = new Date().toISOString()
+  // ⚖️ D323 — 🔴 QUI C'ERA `payload.updated_at = new Date().toISOString()`, ED
+  //    È STATA TOLTA. Il gettone di concorrenza di `lavori` lo scrive il
+  //    trigger `trg_lavori_updated_at` (funzione `lavori_set_updated_at`), che
+  //    lo muove SOLO se cambia davvero qualcosa che non sia il contatore
+  //    `post_consegna_correzioni`, e altrimenti lo PINZA al valore vecchio.
+  //
+  // 🛑 E NON È UNA RIGA RIDONDANTE CHE SI POTEVA LASCIARE: il predicato del
+  //    trigger tiene `updated_at` DENTRO il confronto di proposito — un
+  //    chiamante che lo assegna sta CHIEDENDO di far avanzare il gettone, ed è
+  //    così che `lavoro_prescrizione_correggi_typo` e
+  //    `lavoro_denti_sostituisci_atomica` lo fanno avanzare quando il
+  //    cambiamento vero vive in un'altra tabella. Finché questa riga c'era,
+  //    OGNI salvataggio da qui — anche uno che non cambia niente — bruciava il
+  //    gettone, e D323 valeva per metà.
+  //    Sentinella: `tests/unit/lavori-patch-senza-updated-at.test.ts`.
+  //
+  // 🔴 E TOGLIERLA HA UN PREZZO, misurato: era anche l'unica chiave SEMPRE
+  //    presente nel carico. Senza, un corpo che non porta nessun campo
+  //    dell'allowlist produce `.update({})`, e PostgREST non aggiorna niente →
+  //    `PGRST116` su `.single()` → 500 al posto del 200 di oggi.
+  //    `provato:` `.update({}).eq(…).select(…).single()` →
+  //    `{"code":"PGRST116","details":"The result contains 0 rows"}` (HTTP 406).
+  //    Ed è raggiungibile per tre strade: un corpo di sole chiavi fuori
+  //    allowlist (che si scartano in silenzio), una mezza coppia di colore
+  //    (`colore_scala` senza `colore_codice`, tolta poco sopra), un corpo di
+  //    soli campi prezzo su un lavoro già in fattura (tolti dal lock).
+  //    ➡️ Un salvataggio che non ha niente da salvare non è un errore: non si
+  //    scrive, e si restituisce la riga com'è — col gettone corrente, che è ciò
+  //    che i fogli leggono per restare in sincronia.
+  if (Object.keys(payload).length === 0) {
+    const { data: invariato } = await svc
+      .from('lavori')
+      .select('id, numero_lavoro, stato, updated_at')
+      .eq('id', id)
+      .eq('laboratorio_id', context.laboratorioId)
+      .is('deleted_at', null)
+      .single()
+    return NextResponse.json({ lavoro: invariato })
+  }
 
   const { data: lavoro, error: updateError } = await svc
     .from('lavori')

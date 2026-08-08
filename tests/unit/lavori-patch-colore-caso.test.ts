@@ -184,9 +184,17 @@ describe('PATCH /api/lavori/[id] — il default di caso è di nuovo correggibile
     //    più forte: chiede l'ASSENZA delle chiavi, non un valore.
     //    Il caso gemello sulla tinta, e il perché una regola sola basti per
     //    tutti e due, stanno in `tests/unit/lavori-patch-mezza-coppia.test.ts`.
-    const res = await patch({ colore_scala: 'vita_classical' })
+    //    🔄 E LA `descrizione` È ENTRATA CON D323 (08/08/2026), non per
+    //    comodità: da quando la rotta non aggiunge più `updated_at` al carico,
+    //    un corpo della sola `colore_scala` lascia il carico VUOTO e la rotta
+    //    non scrive affatto — con `updatePayload` a `null` questa prova non
+    //    misurerebbe più l'allowlist, misurerebbe l'assenza di una scrittura.
+    //    Accanto a un campo vero, l'UPDATE avviene e l'asserzione torna a
+    //    discriminare esattamente ciò per cui esiste.
+    const res = await patch({ colore_scala: 'vita_classical', descrizione: 'Corona' })
 
     expect(res.status).toBe(200)
+    expect(updatePayload).toHaveProperty('descrizione', 'Corona')
     expect(updatePayload).not.toHaveProperty('colore_scala')
     expect(updatePayload).not.toHaveProperty('colore_codice')
   })

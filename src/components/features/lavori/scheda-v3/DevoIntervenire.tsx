@@ -338,6 +338,31 @@ async function messaggioDiErrore(res: Response, difetto: string): Promise<string
   return difetto
 }
 
+/**
+ * Come sopra, ma raccoglie anche il GETTONE che la rotta manda insieme
+ * all'errore (⚖️ D323).
+ *
+ * 🛑 IL CORPO SI LEGGE UNA VOLTA SOLA, ed è la ragione per cui questa funzione
+ * esiste invece di due chiamate in fila: `Response.json()` consuma il flusso,
+ * e una seconda lettura lancerebbe. Chiamare `messaggioDiErrore` e poi cercare
+ * `updated_at` sarebbe un difetto che si vede solo a runtime.
+ */
+async function esitoDiErrore(
+  res: Response,
+  difetto: string
+): Promise<{ messaggio: string; updatedAt: string | null }> {
+  try {
+    const b = (await res.json()) as { error?: unknown; updated_at?: unknown }
+    return {
+      messaggio: typeof b.error === 'string' && b.error.length > 0 ? b.error : difetto,
+      // 🛑 COSÌ COM'È: mai un `new Date(...)`. V. il riquadro su `VociDocumento`.
+      updatedAt: typeof b.updated_at === 'string' && b.updated_at.length > 0 ? b.updated_at : null,
+    }
+  } catch {
+    return { messaggio: difetto, updatedAt: null }
+  }
+}
+
 /** Due elenchi di denti sono lo stesso elenco? Serve a rispondere alla domanda
  *  «*è ancora una correzione, se l'ho rimessa com'era?*» — no. */
 function stessiDenti(a: DenteNormalizzato[], b: DenteNormalizzato[]): boolean {
@@ -482,6 +507,42 @@ export function DevoIntervenire(props: {
   /** L'esito della riemissione, quando è avvenuta. */
   const [riemissione, setRiemissione] = useState<{ numero: string | null; numeroSuperato: string | null } | null>(null)
 
+  /**
+   * ⚖️ D323 — IL GETTONE VIVE QUI E AVANZA A OGNI RISPOSTA CHE NE PORTA UNO.
+   *
+   * 🔑 PERCHÉ NON BASTA `voci.updatedAt`: la rotta restituisce `updated_at`
+   * **sul successo** e **sul 409**, col commento che dice il perché — «*senza,
+   * una seconda correzione di fila troverebbe sempre un conflitto*». Fino a oggi
+   * il foglio li buttava tutti e due, e la seconda correzione di fila era un
+   * conflitto garantito. Il modello in casa è `ModificaColoreSheet`, che il
+   * gettone lo tiene in stato e lo fa avanzare.
+   *
+   * 🛑 E QUELLO DEI `props` VINCE QUANDO CAMBIA, sempre: arriva da una lettura
+   * fresca del server insieme ai SEI VALORI mostrati, quindi valore mostrato e
+   * gettone restano della stessa lettura — che è il contratto («*i valori che
+   * hai visto sono ancora quelli*»). Questo componente resta montato attraverso
+   * `router.refresh()`, quindi senza questa risincronizzazione il gettone
+   * locale invecchierebbe: è lo stesso motivo per cui `SchedaLavoroV3` deve
+   * risincronizzare `lavoroLocale` a mano.
+   *
+   * ⚠️ Il valore raccolto dal corpo di un 409 NON riapre il tasto da solo: resta
+   * `conflitto`, e la via è «Ricarica e riprendi», che rinfresca la pagina e
+   * porta valori **e** gettone nuovi. Adottarlo e basta vorrebbe dire ripremere
+   * su sei valori che qualcun altro ha cambiato e che la persona non ha visto.
+   *
+   * 📌 LA FORMA È QUELLA GIÀ IN CASA: «adjusting state while rendering», lo
+   * stesso schema con cui `SchedaLavoroV3.tsx:188-192` risincronizza
+   * `lavoroLocale`. NON un `useEffect`: la regola `react-hooks/set-state-in-effect`
+   * lo vieta, e aggiungerebbe un render in più a ogni montaggio.
+   * https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+   */
+  const [gettone, setGettone] = useState(voci.updatedAt)
+  const [gettoneDeiProps, setGettoneDeiProps] = useState(voci.updatedAt)
+  if (voci.updatedAt !== gettoneDeiProps) {
+    setGettoneDeiProps(voci.updatedAt)
+    setGettone(voci.updatedAt)
+  }
+
   /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
    *  difetto MISURATO sullo schermo vero il 07/08 (FASE 9), e il giro nei dati
    *  era perfettamente riuscito mentre l'utente vedeva il foglio sparire.
@@ -503,6 +564,42 @@ export function DevoIntervenire(props: {
     //    al resto è esattamente il difetto che si sta chiudendo — un evento
     //    orfano in più a ogni ritentativo. Lo azzera solo la riuscita.
     if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
+  }
+
+  /**
+   * 🔴 «RICARICA E RIPRENDI» — e prima MENTIVA.
+   *
+   * Il tasto chiamava `ricomincia()`, che fa `setCorrezioni({})`: **cancellava
+   * le correzioni appena digitate a mano**. Non riprendeva niente, azzerava — e
+   * il costo vero di ogni conflitto era **un giro intero da ridigitare**, sulle
+   * sei voci, al banco. Trovato da due advisor su tre, indipendentemente.
+   *
+   * 🔑 Quello che questo tasto deve fare è UNA cosa sola: rimettere la persona
+   * davanti a valori FRESCHI tenendo il lavoro che ha già fatto. Quindi:
+   *   · `correzioni` **restano** — è ciò che rende vero «riprendi»;
+   *   · `conflitto` si spegne — o il tasto finale resta premuto a vuoto;
+   *   · la pagina si rinfresca — ed è da lì che tornano i sei valori mostrati e
+   *     il gettone, dalla **stessa** lettura;
+   *   · `eventoDaRiusare` **resta** — la registrazione è già agli atti e
+   *     rifarla sarebbe un doppione nel registro di qualità.
+   *
+   * 🛑 IL FOGLIO SI CHIUDE, e non è un ripiego: `router.refresh()` a foglio
+   * aperto è un difetto MISURATO sullo schermo vero il 07/08 (v. il riquadro su
+   * `ricomincia`). Chiudere costa tre tocchi per rientrare; ridigitare sei voci
+   * ne costa molti di più.
+   *
+   * ⚠️ E l'altra uscita resta com'era: chiudere il foglio o rispondere «ho
+   * premuto per sbaglio» passa da `ricomincia()`, che le correzioni le BUTTA.
+   * È una rinuncia dichiarata, e portarsela dietro nell'intervento successivo
+   * sarebbe lo stesso difetto al contrario.
+   */
+  function ricaricaERiprendi() {
+    setConflitto(null)
+    setFase('chiuso'); setMotivo(null); setMotivoLibero(''); setRisposta(null)
+    setEsitoScelto(null); setCambiando(false); setConfermata(false)
+    setVoceAperta(null); setRiemissione(null)
+    setDaRinfrescare(false)
+    router.refresh()
   }
 
   function scegliMotivo(m: Motivo) {
@@ -644,7 +741,11 @@ export function DevoIntervenire(props: {
           body: JSON.stringify({
             evento_id: evento.evento.id,
             correzioni: carico,
-            atteso_updated_at: voci.updatedAt,
+            // 🛑 IL GETTONE È QUELLO DELLO STATO, non `voci.updatedAt`: dopo una
+            //    riemissione riuscita quello dei props è già vecchio finché la
+            //    pagina non si rinfresca, e una seconda correzione di fila
+            //    troverebbe un conflitto garantito (⚖️ D323).
+            atteso_updated_at: gettone,
           }),
         })
         if (!res.ok) {
@@ -652,12 +753,21 @@ export function DevoIntervenire(props: {
           //    al banco: il 422 nomina la casella svuotata col percorso dentro,
           //    il 409 dice che qualcuno ha toccato il lavoro. Sostituirli con
           //    «qualcosa è andato storto» butterebbe via l'unica cosa utile.
-          const messaggio = await messaggioDiErrore(res, 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.')
+          const { messaggio, updatedAt } = await esitoDiErrore(res, 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.')
+          // ⚖️ D323 — il 409 porta il gettone FRESCO: si raccoglie. Da solo non
+          //    riapre il tasto (resta `conflitto`), ma è ciò che rende utile
+          //    «Ricarica e riprendi» anche quando il rinfresco non porta niente
+          //    di nuovo — senza, la ripresa ripartirebbe dal gettone scaduto.
+          if (updatedAt) setGettone(updatedAt)
           if (res.status === 409) setConflitto(messaggio)
           errore(messaggio)
           return
         }
-        const esito = (await res.json()) as { numero?: string | null; numero_superato?: string | null }
+        const esito = (await res.json()) as { numero?: string | null; numero_superato?: string | null; updated_at?: string }
+        // 🔑 IL GETTONE AVANZA: la rotta lo manda apposta, e il suo commento
+        //    dice perché — «senza, una seconda correzione di fila troverebbe
+        //    sempre un conflitto». La correzione ha appena scritto su `lavori`.
+        if (typeof esito.updated_at === 'string' && esito.updated_at.length > 0) setGettone(esito.updated_at)
         setRiemissione({ numero: esito.numero ?? null, numeroSuperato: esito.numero_superato ?? null })
         // La carta è rifatta: quell'evento ha finito il suo lavoro e non va più
         // riusato. Il prossimo intervento è un fatto nuovo, e vuole la sua riga.
@@ -1007,10 +1117,13 @@ export function DevoIntervenire(props: {
               {conflitto}
               <span style={{ display: 'block', marginTop: 6 }}>
                 Quello che hai segnalato resta registrato: riprendendo da qui non se ne registra
-                una seconda.
+                una seconda. Anche le correzioni che hai scritto restano: non devi ridigitarle.
               </span>
             </Esito>
-            <TastoSecondario onClick={ricomincia}>Ricarica e riprendi</TastoSecondario>
+            {/* 🔴 CHIAMA `ricaricaERiprendi`, NON `ricomincia`: il secondo fa
+                `setCorrezioni({})`, cioè cancella le correzioni appena digitate.
+                Il tasto prometteva una ripresa e faceva un azzeramento. */}
+            <TastoSecondario onClick={ricaricaERiprendi}>Ricarica e riprendi</TastoSecondario>
           </>
         )}
 

@@ -85,6 +85,13 @@ function chainSpia(result: { data: unknown; error: unknown }, filtri: Array<[str
 }
 
 const LAVORO_RIGA = {
+  // ⚠️ Il gettone sta QUI, con lo stesso valore della costante `GETTONE` più
+  //    sotto — scritto a mano e non con la costante perché questo letterale si
+  //    valuta PRIMA di quella riga (TDZ), e non per una preferenza di stile.
+  //    Da D323 la rotta lo confronta col gettone arrivato nel corpo: una riga
+  //    senza `updated_at` renderebbe cieco il controllo anticipato, e ogni
+  //    prova di questo file misurerebbe una rotta che non fa il suo lavoro.
+  updated_at: '2026-08-08T10:54:08.314024+00:00',
   id: LAVORO_ID, laboratorio_id: LAB_ID, stato: 'consegnato', descrizione: 'Corona',
   tipo_dispositivo: 'protesi_fissa', classe_rischio: 'classe_iia',
   cliente: { id: 'c1', nome: 'Mario', cognome: 'Rossi' }, paziente: null,
@@ -403,6 +410,95 @@ describe('POST …/riemetti — con le CORREZIONI (Task C)', () => {
     banco()
     await POST(req(corpo({ descrizione: 'x' })), params())
     expect(mockCorreggi.mock.calls[0][3]).toBe(GETTONE)
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  ⚖️ D323 — IL CONTROLLO DEL GETTONE **PRIMA DEL RENDER**
+  //
+  //  La rotta ha già in mano la riga fresca del lavoro (la carica a inizio
+  //  handler, `updated_at` compreso): confrontare lì il gettone arrivato dal
+  //  corpo NON costa nessuna query in più, e risparmia un progressivo bruciato
+  //  e un PDF orfano a ogni conflitto — perché il documento si rende e si
+  //  carica PRIMA della transazione.
+  //
+  //  🛑 È UN FILTRO, NON UN SOSTITUTO: il controllo dentro la RPC resta, ed è
+  //     l'unico che copre la finestra fra questa lettura e la transazione.
+  // ══════════════════════════════════════════════════════════════════════════
+  const GETTONE_STANTIO = '2026-08-08T09:00:00.000000+00:00'
+
+  it('🔴 D323 — gettone stantìo → 409 PRIMA del render: l\'atto unico non parte nemmeno', async () => {
+    banco()
+    const res = await POST(req(corpo({ descrizione: 'x' }, GETTONE_STANTIO)), params())
+    expect(res.status).toBe(409)
+    // 🛑 QUESTA È LA RIGA CHE VALE: senza, la prova passerebbe anche su una
+    //    rotta che rende il PDF, prende il numero e SOLO POI si accorge.
+    expect(mockCorreggi).not.toHaveBeenCalled()
+  })
+
+  it('🔴 …e il 409 anticipato porta il gettone FRESCO, quello letto dalla riga', async () => {
+    banco()
+    const res = await POST(req(corpo({ descrizione: 'x' }, GETTONE_STANTIO)), params())
+    const body = await res.json()
+    expect(body.updated_at).toBe(GETTONE)
+    expect(String(body.error).length).toBeGreaterThan(0)
+  })
+
+  it('🛑 col gettone GIUSTO si arriva all\'atto unico, che lo riceve: il filtro non sostituisce la RPC', async () => {
+    banco()
+    const res = await POST(req(corpo({ descrizione: 'x' })), params())
+    expect(res.status).toBe(200)
+    expect(mockCorreggi).toHaveBeenCalledTimes(1)
+    expect(mockCorreggi.mock.calls[0][3]).toBe(GETTONE)
+  })
+
+  it('🔴 il controllo anticipato viene DOPO la porta d\'idempotenza: un ritentativo legittimo NON diventa un conflitto', async () => {
+    // Chi riprova una richiesta che era RIUSCITA (il server ha scritto, il
+    // cliente non ha visto la risposta) porta per costruzione il gettone di
+    // PRIMA. Se il confronto stesse davanti alla porta d'idempotenza, quel
+    // ritentativo legittimo prenderebbe 409 invece del documento già fatto.
+    banco(LAVORO_RIGA, 'errore_dato_dichiarazione', {
+      giaAnnullata: { id: 'v1', numero_ddc: 'DDC-2026-0001' },
+      successore: { id: 'n1', numero_ddc: 'DDC-2026-0002', pdf_url: 'https://nuovo.test/ddc.pdf', sostituisce_id: 'v1' },
+    })
+    const res = await POST(req(corpo({ descrizione: 'x' }, GETTONE_STANTIO)), params())
+    expect(res.status).toBe(200)
+    expect((await res.json()).gia_fatto).toBe(true)
+  })
+
+  it('🛑 il confronto è per ISTANTE, non per forma testuale: «Z» e «+00:00» sono lo stesso momento', async () => {
+    // 🔑 Il confronto anticipato dev'essere PIÙ DEBOLE di quello della RPC, che
+    //    confronta due `timestamptz` e quindi ignora la forma. Un confronto fra
+    //    stringhe qui inventerebbe un conflitto su due scritture identiche —
+    //    cioè un 409 che nessun ricaricamento sana.
+    banco()
+    const res = await POST(req(corpo({ descrizione: 'x' }, '2026-08-08T10:54:08.314024Z')), params())
+    expect(res.status).toBe(200)
+    expect(mockCorreggi).toHaveBeenCalledTimes(1)
+  })
+
+  it('🛑 e i microsecondi non fanno scattare il filtro: sotto il millisecondo decide la RPC', async () => {
+    // `Date` di JS arriva al millisecondo, `timestamptz` al microsecondo: due
+    // valori che differiscono solo nei microsecondi qui pareggiano, e la
+    // decisione resta a chi sa distinguerli. Rifiutare qui vorrebbe dire
+    // rifiutare più della RPC — cioè il verso sbagliato.
+    banco()
+    const res = await POST(req(corpo({ descrizione: 'x' }, '2026-08-08T10:54:08.314999+00:00')), params())
+    expect(res.status).toBe(200)
+    expect(mockCorreggi).toHaveBeenCalledTimes(1)
+  })
+
+  it('🛑 una riga senza gettone leggibile non INVENTA un conflitto: si passa la mano alla RPC', async () => {
+    banco({ ...LAVORO_RIGA, updated_at: null })
+    const res = await POST(req(corpo({ descrizione: 'x' })), params())
+    expect(res.status).toBe(200)
+    expect(mockCorreggi).toHaveBeenCalledTimes(1)
+  })
+
+  it('🛑 e nemmeno un gettone illeggibile nel corpo: resta il limite dichiarato, non un 409 finto', async () => {
+    banco()
+    const res = await POST(req(corpo({ descrizione: 'x' }, 'pippo')), params())
+    expect(res.status).not.toBe(409)
+    expect(mockCorreggi).toHaveBeenCalledTimes(1)
   })
 
   // ── le correzioni ─────────────────────────────────────────────────────────

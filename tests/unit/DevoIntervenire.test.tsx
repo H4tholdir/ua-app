@@ -872,6 +872,128 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
     expect(tasto.hasAttribute('disabled') || tasto.getAttribute('aria-disabled') === 'true').toBe(true)
   })
 
+  // ══════════════════════════════════════════════════════════════════════════
+  //  ⚖️ D323 — IL FOGLIO RACCOGLIE IL GETTONE CHE IL SERVER GIÀ GLI MANDA
+  //
+  //  La rotta restituisce `updated_at` sul SUCCESSO e sul 409, col commento che
+  //  dice perché: «senza, una seconda correzione di fila troverebbe sempre un
+  //  conflitto». Fino a D323 il foglio leggeva solo `numero` e
+  //  `numero_superato`, e li buttava tutti e due — il modello in casa è
+  //  `ModificaColoreSheet`, che il gettone lo tiene in stato e lo fa avanzare.
+  //
+  //  🛑 E IL GETTONE NON SI RICONVERTE MAI: `timestamptz` ha i microsecondi,
+  //     `Date` di JS no. Un solo `new Date(...).toISOString()` tronca `.123456`
+  //     a `.123` e il confronto non torna più uguale: 409 permanente.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  it('🔴 dopo una riemissione riuscita il gettone AVANZA: la seconda correzione parte da quello nuovo', async () => {
+    const spia = fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+    expect(corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0]).atteso_updated_at).toBe(GETTONE)
+
+    // Si porta a termine il giro e si chiude il foglio, come farebbe una persona.
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+    await waitFor(() => expect(screen.getAllByText(/Registrato/).length).toBeGreaterThan(0))
+    fireEvent.click(screen.getByRole('button', { name: 'Ho capito' }))
+
+    // Secondo intervento sullo stesso lavoro, senza ricaricare la pagina.
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 37')
+    arrivaAlToccoFinale()
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
+
+    // 🔑 LA RIGA CHE VALE: col gettone di partenza questa seconda correzione
+    //    prenderebbe un 409 garantito, perché la prima ha scritto su `lavori`.
+    expect(corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[1]).atteso_updated_at)
+      .toBe(RIEMISSIONE_OK.updated_at)
+    // …e viaggia INTATTO, microsecondi compresi.
+    expect(corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[1]).atteso_updated_at)
+      .toMatch(/\.\d{6}/)
+  })
+
+  it('🔴 sul 409 il foglio raccoglie il gettone fresco, e il tentativo dopo parte da quello', async () => {
+    const FRESCO = '2026-08-08T12:34:56.654321+00:00'
+    const spia = fingiFetchInstradato({
+      riemetti: { ok: false, stato: 409, corpo: { error: 'Qualcun altro ha toccato questo lavoro mentre stavi correggendo.', updated_at: FRESCO } },
+    })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+
+    fireEvent.click(screen.getByRole('button', { name: /Ricarica e riprendi/i }))
+    apriPassoCorrezione()
+    fireEvent.click(screen.getByRole('button', { name: /^Continua/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i }))
+
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
+    expect(corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[1]).atteso_updated_at).toBe(FRESCO)
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  🔴 «RICARICA E RIPRENDI» MENTEVA: cancellava le correzioni appena digitate
+  //     (`ricomincia()` faceva `setCorrezioni({})`). Non riprendeva: azzerava.
+  //     Il costo vero di ogni conflitto era **un giro intero da ridigitare**.
+  // ══════════════════════════════════════════════════════════════════════════
+  it('🔴 «Ricarica e riprendi» TIENE le correzioni digitate: riprende davvero', async () => {
+    const spia = fingiFetchInstradato({
+      riemetti: { ok: false, stato: 409, corpo: { error: 'Qualcun altro ha toccato questo lavoro mentre stavi correggendo.' } },
+    })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+
+    fireEvent.click(screen.getByRole('button', { name: /Ricarica e riprendi/i }))
+    // Ricarica davvero: la pagina si rinfresca, e con lei i valori mostrati.
+    expect(refreshMock).toHaveBeenCalled()
+
+    apriPassoCorrezione()
+    // 🔑 La correzione è ancora lì, con la sua pastiglia: non si ridigita niente.
+    expect(screen.getByText('Corona in zirconia su 36')).toBeTruthy()
+    expect(screen.getByText('Da rifare')).toBeTruthy()
+  })
+
+  it('🛑 e il tasto torna premibile: il conflitto non resta appiccicato al foglio', async () => {
+    const spia = fingiFetchInstradato({
+      riemetti: { ok: false, stato: 409, corpo: { error: 'Qualcun altro ha toccato questo lavoro mentre stavi correggendo.' } },
+    })
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    arrivaAlToccoFinale()
+    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
+
+    fireEvent.click(screen.getByRole('button', { name: /Ricarica e riprendi/i }))
+    apriPassoCorrezione()
+    fireEvent.click(screen.getByRole('button', { name: /^Continua/i }))
+    const tasto = screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i })
+    expect(tasto.hasAttribute('disabled') || tasto.getAttribute('aria-disabled') === 'true').toBe(false)
+  })
+
+  // 🛑 L'ALTRA USCITA NON DEVE TENERE NIENTE: chiudere il foglio (o rispondere
+  //    «ho premuto per sbaglio») è una rinuncia dichiarata, e portarsi dietro le
+  //    correzioni di un intervento abbandonato dentro il successivo sarebbe la
+  //    stessa famiglia di difetto al contrario.
+  it('🛑 chiudere il foglio invece BUTTA le correzioni: è una rinuncia, non una ripresa', async () => {
+    fingiFetchInstradato()
+    montaComponente()
+    apriPassoCorrezione()
+    correggiDescrizione('Corona in zirconia su 36')
+    fireEvent.click(screen.getByRole('button', { name: /^Continua/i }))
+    // Dal passo delle quattro caselle si torna indietro chiudendo: `onChiudi`.
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    apriPassoCorrezione()
+    expect(screen.queryByText('Da rifare')).toBeNull()
+  })
+
   it('🛑 il 422 si mostra col PERCORSO dentro: chi sta al banco deve sapere QUALE casella', async () => {
     const messaggio = 'La correzione di «prescrizione_caratteristiche.colore» è vuota: un campo svuotato finirebbe sul documento come un\'informazione mancante.'
     fingiFetchInstradato({ riemetti: { ok: false, stato: 422, corpo: { error: messaggio } } })
