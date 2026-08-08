@@ -237,6 +237,24 @@ vecchia `firmata`, la nuova sarebbe nata **firmata con `firmata_at` NULL**. Sull
 (vecchia `generata`) l'asserzione `a17` sarebbe stata **verde anche senza il valore forzato** — cioè
 inutile. *Una prova che non può fallire non è una prova.*
 
+### 🟠 ⑦ `anno_ddc` ASSENTE — la sonda che ha trovato il buco RESIDUO della mia stessa correzione
+
+Banco con la vecchia a `anno_ddc = 2098, progressivo 998001`; chiamata con
+`p_nuova = {'progressivo_ddc': 999005}` e **niente altro**.
+```
+esito: {"esito" : "ok", …, "numero" : "DDC-2098-999005", "numero_superato" : "DDC-2098-998001", …}
+
+numero_ddc         anno_ddc  progressivo_ddc
+DDC-2098-999005    2098      999005
+```
+🔴 **L'anno si eredita dalla vecchia.** Un laboratorio che a gennaio 2027 rifà la dichiarazione di un
+lavoro del 2026 stampa `DDC-2027-NNNN` sul PDF e, se il chiamante manda solo `progressivo_ddc`, la riga
+in banca dati dice `DDC-2026-NNNN`. È **esattamente** il modo di sbagliare contro cui ho scelto il
+rifiuto invece dell'override muto — sull'**altra metà della coppia**, che non ho preteso.
+📌 Oggi non si accende: `costruisciDichiarazione` manda `anno_ddc` (`generate-ddc.ts:235`). **Ed è
+proprio per questo che sopravviverebbe non visto.** Trattato in §8 D: non l'ho corretto — servirebbe una
+**terza** migration, e la scelta è dell'orchestratore.
+
 ### 📐 R-P4 — quante asserzioni si ACCENDONO davvero: **7 su 35**
 
 | sonda | asserzioni | discriminano il cambiamento |
@@ -391,6 +409,23 @@ La rotta che nascerà **non può passare `riga` di `costruisciDichiarazione` cos
 e la coppia `anno_ddc`+`progressivo_ddc` va passata **così com'è**, perché è con quella che il PDF è
 stato stampato.
 
+### 🔴 D · `anno_ddc` ASSENTE — il buco RESIDUO della mia stessa correzione, e va nominato per primo dal Task C
+
+`provato:` sonda ⑦ (§5). La derivazione legge `v_nuova.anno_ddc`, che quando il chiamante non lo manda è
+**ereditato dalla vecchia**: con una vecchia del 2098 e `p_nuova = {'progressivo_ddc': 999005}` atterra
+**`DDC-2098-999005`**. 🔑 **È la stessa classe di errore di C1, sull'altra metà della coppia:** il PDF
+porta l'anno corrente e la riga porterebbe quello vecchio, senza che nulla collida.
+
+🛑 **Non l'ho chiuso, e la ragione è di perimetro, non di comodo:** servirebbe una **terza** migration
+(`20260808103515` è già applicata e nel ledger, vale la stessa regola che ha protetto il file del
+Task B), e il mandato scritto nomina **due** porte. La chiusura è di una riga: **pretendere `anno_ddc`
+ogni volta che `p_nuova` porta `progressivo_ddc`** — i due sono una coppia, perché il progressivo esce da
+una serie **per anno** (`genera_progressivo(lab, 'ddc', anno)`).
+
+📌 **Perché sopravviverebbe non visto:** `costruisciDichiarazione` manda `anno_ddc`
+(`generate-ddc.ts:235`), quindi l'implementazione ovvia del Task C **non ci inciampa**. Un buco che il
+codice di oggi non tocca è un buco che nessuna prova troverà.
+
 ### 📌 Già noti, non miei, non toccati
 `{"denti_coinvolti": []}` cancella tutti i denti · **C2** (`p_correzioni` non rifiuta mai il vuoto — è
 del Task C) · `numero_prescrizione` vive in due posti · `tipo` accettato dalla penna della prescrizione
@@ -402,6 +437,10 @@ ma mai stampato (D213).
 
 - **Non ho toccato `riemetti_ddc_atomica`** (§8 A), benché porti gli stessi due buchi e abbia l'unico
   chiamante vivo.
+- 🔴 **Non ho chiuso `anno_ddc` assente** (§8 D), che è il **buco residuo della mia stessa correzione**:
+  senza l'anno, il numero derivato porta quello **vecchio**. Servirebbe una terza migration e il mandato
+  ne nominava due; la chiusura è una riga (`anno_ddc` obbligatorio quando c'è `progressivo_ddc`) e la
+  decisione è dell'orchestratore. **È la voce che il Task C deve leggere per prima.**
 - **Non ho toccato il resto del corpo**: ordine dei passi, fail-closed sull'annullo, allowlist delle
   otto, guardia di forma dei denti, chiamate alle penne, prova dell'atterraggio. Ribattuti identici.
 - **Non ho chiuso C2** (il vuoto in `p_correzioni`): è del Task C ed è nella rotta.
@@ -411,7 +450,10 @@ ma mai stampato (D213).
 - **Non ho toccato la rotta** `…/dichiarazione/riemetti/route.ts` né scritto la rotta nuova: è il
   Task C, dopo la revisione di questo.
 - **Non ho fatto FASE 9 / 9b** (prove a schermo, gate estetico): nessuna superficie è stata toccata.
-- **Non ho aggiornato `memory/MEMORY.md` né `ROADMAP-UFFICIALE.md`**: sono BP-1 dell'orchestratore a
-  fine ondata, e la funzione non ha ancora chiamanti da annunciare. **Se questa lettura è sbagliata, è
-  il buco più probabile di questo resoconto.**
+- 🔄 **CORREZIONE A ME STESSO — BP-1 l'ho fatto, dopo averlo prima saltato.** Avevo scritto qui che
+  memoria e roadmap erano dell'orchestratore. **Era sbagliato:** `ua-app/CLAUDE.md` §0A è una REGOLA
+  ZERO («non chiudere un task senza aver verificato questi 2 step»), e il Task B — stessa ondata, stesso
+  ruolo, un compito prima — li aveva aggiornati **nello stesso salvataggio**, cosa che la sua revisione
+  ha verificato. `memory/MEMORY.md` (voce 193) e `docs/roadmap/ROADMAP-UFFICIALE.md` (aggiornamento 99 +
+  voce 23) sono ora allineati.
 - **Non ho pubblicato niente** (`git push`): resta un salvataggio locale sul ramo.
