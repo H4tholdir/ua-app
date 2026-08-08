@@ -290,8 +290,16 @@ due rompe niente — ma **il messaggio del 409 deve essere onesto**, e il Passo 
   laboratorio resta su Storage anche dopo il rollback**. Prova: una richiesta con un `paziente_id` di
   un altro laboratorio → rifiutata, **e nessun file caricato**.
 - [ ] **Passo 4 — la porta d'ingresso sull'EVENTO:** esiste già una dichiarazione con
-  `annullata_da_evento_id = evento_id`? → restituisci quella. 🛑 **Mai** una porta su «esiste una
-  dichiarazione viva»: quella è vietata alla riemissione (`generate-ddc.ts:378-392`).
+  `annullata_da_evento_id = evento_id`? → 🔄 **restituisci il SUCCESSORE, mai «quella».**
+  🛑 **QUESTA RIGA ERA SBAGLIATA, e nel modo che il piano stesso chiama il peggiore possibile** —
+  trovata dall'esecutore del Task C. La riga che porta `annullata_da_evento_id` **è quella ANNULLATA**:
+  restituirla significa **consegnare il documento vecchio dicendo «rifatto»**. Il successore si trova per
+  `sostituisce_id`.
+  ⚠️ **E il caso «predecessore senza successore» è raggiungibile davvero** (riferito, non ipotetico):
+  `riapri_lavoro_atomica` e `riporta_a_pronto_atomica` scrivono `annullata_da_evento_id` **senza** creare
+  nessun successore. ➡️ Lì la risposta onesta è un **409**, mai un 200 vuoto.
+  🛑 **Mai** una porta su «esiste una dichiarazione viva»: quella è vietata alla riemissione
+  (`generate-ddc.ts:378-392`).
 - [ ] **Passo 5 — fondi in memoria** (`lavoroCorretto = merge(riga, correzioni)`) e passa **quello** al
   generatore. ⚠️ I testi passano da `CAMPI_TESTO_NORMALIZZATI`: uno snapshot **vuoto** vincerebbe sul
   nome vivo e stamperebbe **un'identificazione paziente assente** — è il difetto già pagato sul gemello
@@ -356,6 +364,37 @@ due rompe niente — ma **il messaggio del 409 deve essere onesto**, e il Passo 
    dire il falso» è **già fatta**: v. il Passo 5 emendato).
 2. **Task 10** — le prove d'integrazione e la chiusura dell'ondata.
 3. **Il gate estetico L2** (FASE 9b), dovuto prima del merge.
+
+### 🛑 CHE COSA IL TASK 10 È DAVVERO — riscritto l'08/08, e non è un adempimento di chiusura
+
+**Nulla di questa ondata ha mai girato contro Postgres da un chiamante reale.** Tre migration e una rotta
+sono verdi su **prove unitarie col contratto finto**, e l'esecutore del Task C lo dichiara per primo:
+«*non ho provato l'atto unico contro il database vero end-to-end — è il limite più pesante di questo
+compito*».
+
+🔑 **E i finti hanno già mentito una volta, dentro questo stesso compito:** il finto rispondeva **per
+ordine di chiamata** e inghiottiva i filtri, quindi le prove della porta d'idempotenza sarebbero state
+verdi **anche con le due letture invertite** — cioè col difetto peggiore possibile in opera.
+
+➡️ **Il Task 10 non è la chiusura formale: è il primo momento in cui sapremo se le tre migration e la
+rotta si parlano.** Serve un lavoro consegnato, con dichiarazione viva, evento del motivo giusto e
+prescrizione. Fino a lì, «verde» vuol dire *coerente con ciò che abbiamo immaginato del database*.
+
+### 📌 DUE COSE CHE IL TASK D DEVE SAPERE, e che non erano scritte
+
+- 🛑 **Il gate estetico L2 è dovuto DUE VOLTE** (§0③ dell'handoff): quello arretrato dell'ondata **più**
+  quello del Task A, deferito qui perché tocca la stessa superficie. **Se il Task D si chiude senza, il
+  gate resta scoperto e il merge è bloccato.** E la FASE 9 (390 · 768 · 1280, chiaro e scuro) resta
+  dovuta a parte: le due non si coprono a vicenda.
+- 🔑 **Il foglio deve PORTARSI DIETRO l'`updated_at` che ha mostrato** (P13) e restituirlo **intatto**
+  (P14, mai un `new Date(...)`). Il Passo 1 descrive righe con «il valore che c'è adesso»: quel valore e
+  il gettone **arrivano dalla stessa lettura e vanno tenuti insieme**, o il contratto «i valori che hai
+  visto sono ancora quelli» non ha modo di funzionare.
+- ⚠️ **E un caso raggiungibile proprio dal foglio:** `riapri_lavoro_atomica` e `riporta_a_pronto_atomica`
+  scrivono `annullata_da_evento_id` **senza creare un successore**. Con l'indice del Task B, uno di quei
+  percorsi **brucia l'evento**: `correggi(E)` dopo `riapri(E)` prende `23505`. La rotta lo tratta come
+  409 onesto — ma è il **foglio** a generare l'evento quando la persona sceglie il motivo, quindi è lì
+  che si decide se quel caso può nascere.
 
 ---
 
