@@ -1,17 +1,22 @@
 # Sessione attiva
 
-🏁 **CHIUSA il 07/08/2026, 21:35.**
+🏁 **CHIUSA l'08/08/2026, 10:45.**
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-07-torna-a-pronto-handoff.md` — **la §0 per prima**
+🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-08-atto-unico-handoff.md` — **la §0 per prima**
 (sette voci di cose NON fatte).
 
-🔴 **La §0 in una frase:** i compiti **6-10** del piano `2026-08-07-torna-a-pronto-documento-intatto.md`
-non sono stati toccati, e il **gate estetico L2** resta dovuto prima del merge. Il database è pronto per
-intero — quel che manca è tutto TypeScript.
+🔴 **La §0 in una frase:** l'ondata è finita in un **vicolo cieco** — il cancello di D308 indicava una
+strada che non esisteva — e ne è uscita con un **piano nuovo di cinque compiti, di cui UNO fatto**
+(`docs/superpowers/plans/2026-08-08-correzione-e-riemissione-atto-unico.md`, dal **Task B**). Restano
+anche i **Task 9 e 10** del piano precedente, e il **gate estetico L2** è dovuto **due volte**.
 
-🗺️ **Mappa di recupero:** `.superpowers/sdd/progress.md`, sezione «PIANO TORNA A PRONTO». I compiti
-marcati COMPLETO **non si rifanno**; i commit che nomina esistono in git.
+🛑 **Da leggere PRIMA di cercare il Task A in git:** vive in `128379ea` e `b5d0d4c8`, due salvataggi
+intitolati *chore(salvataggio)* — il mio `git add -A` li ha inghiottiti. Niente perso (D318).
 
-🌿 Ramo `intervento-post-consegna`, pubblicato, albero pulito. `main` **intatto** a `7427a680`.
-📌 `verify:full` uscita **0** · 5436 passate | 68 saltate su 450 file · 92 salvataggi sopra `main`.
-⚖️ Ultime decisioni: **D304-D311** (tornate 128-132).
+🗺️ **Mappa di recupero:** `.superpowers/sdd/progress.md`, sezioni «PIANO TORNA A PRONTO» e «PIANO
+CORREGGI E RIFAI LA DICHIARAZIONE». I compiti marcati COMPLETO non si rifanno.
+
+📌 **Misurato:** `verify:full` **uscita 0** — 5492 passate | 68 saltate su 451 file, tsc 0, build ok,
+sette guardie verdi. **114 salvataggi** sopra `main`, che è **intatto** a `7427a680`.
+
+⚖️ **D312-D318** (tornate 133-137). Totale: **318 in 137**.
