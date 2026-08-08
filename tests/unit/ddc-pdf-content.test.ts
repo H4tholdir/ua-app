@@ -1041,15 +1041,18 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
     expect(testoMassimale).toContain('Sì — vedere documentazione allegata')
   })
 
-  it('✅ e i tre appigli tenuti apposta, ognuno con la sua ragione', () => {
+  it('✅ e gli appigli tenuti apposta, ognuno con la sua ragione', () => {
+    // ⚖️ IL TITOLO DICEVA «i TRE appigli» e ne contava già più di tre: da D319
+    //    uno se n'è andato — il numero della prescrizione, sceso fra i tagli qui
+    //    sotto — quindi il numero è stato tolto dal nome invece di essere
+    //    corretto una seconda volta. Un numero dentro il nome di una prova si
+    //    tramanda più a lungo del codice che descrive.
     // data di emissione — Art. 52(8): «prima dell'immissione sul mercato».
     // Senza data non si dimostra di aver rispettato il termine.
     expect(testoMassimale).toContain('15/05/2026')
     // numero del documento — la chiave per ritrovarlo nei dieci anni di
     // conservazione che l'Allegato XIII punto 4 impone.
     expect(testoMassimale).toContain('DDC-2026-0001')
-    // numero della prescrizione — l'aggancio al foglio del dentista.
-    expect(testoMassimale).toContain('PRESCR-2026-77')
     // 🔑 PARTITA IVA — TENUTA PER SCELTA DI FRANCESCO, NON PER OBBLIGO.
     //    Il censimento non ha trovato nessuna norma che la imponga su questa
     //    dichiarazione. Sta scritto qui perché il prossimo che legge non la
@@ -1064,7 +1067,18 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
 
   // ── Ciò che NON deve esserci: i tagli che lasciano un testo da cercare ────
 
-  it('🔴 e NESSUNO dei NOVE tagli che lasciano un testo, su un foglio dove tutti avrebbero da stampare', () => {
+  it('🔴 e NESSUNO dei DIECI tagli che lasciano un testo, su un foglio dove tutti avrebbero da stampare', () => {
+    // ⚖️ DA NOVE A DIECI l'08/08/2026 (**D319**): il **numero della prescrizione**
+    //    è sceso qui dalla prova degli appigli, dove stava fra ciò che RESTA.
+    //    L'Allegato XIII punto 1, sulla prescrizione, chiede il NOME di chi ha
+    //    prescritto (che resta, ed è asserito sopra) e le CARATTERISTICHE
+    //    indicate nella prescrizione (voce 6, asserita sopra): un numero non
+    //    compare fra gli otto trattini.
+    // 🔑 E QUESTA È LA PROVA CHE VALE, perché la fixture qui sotto porta
+    //    `prescrizione_id: 'PRESCR-2026-77'` VALORIZZATO: il vecchio blocco era
+    //    condizionale, quindi una fixture col campo vuoto sarebbe restata verde
+    //    anche col blocco ancora al suo posto. Si prova l'assenza col caso in cui
+    //    la riga AVREBBE avuto qualcosa da stampare.
     // ⚖️ RINOMINATA nel giro di correzione del 07/08/2026, e il nome vecchio era
     //    «e NESSUNO dei DODICI tagli». Ne controllava DIECI, non dodici: il
     //    **logo** e i **metadati del file** non lasciano testo sul foglio —
@@ -1081,12 +1095,15 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
     // 🔑 Perché il nome conta quanto le asserzioni: un nome di prova si tramanda
     //    più a lungo del codice che descrive, e un numero sbagliato lì dentro fa
     //    credere coperto ciò che nessuno guarda.
-    // ⚠️ NOVE TAGLI, UNDICI RIGHE — e la differenza va detta qui, o chi conta le
+    // ⚠️ DIECI TAGLI, TREDICI RIGHE — e la differenza va detta qui, o chi conta le
     //    righe crede che anche questo nome menta: **i materiali ne portano due**
     //    (il nome del materiale e il numero di lotto sono due stringhe da
     //    cercare, ma un taglio solo) e **la ⑥ ne porta due** (la norma di
     //    riferimento e le norme armonizzate sono uscite insieme, con la stessa
-    //    ragione: la voce ⑦ chiede i requisiti NON rispettati).
+    //    ragione: la voce ⑦ chiede i requisiti NON rispettati). Il taglio nuovo
+    //    ne porta due a sua volta: il VALORE del numero e la sua ETICHETTA —
+    //    un'etichetta orfana senza il suo valore è il modo esatto in cui un
+    //    taglio si applica a metà.
     const vietati: Array<[string, string]> = [
       ['materiali e lotti', 'Zirconia IPS e.max ZirCAD'],
       ['materiali e lotti (lotto)', 'LOT-2025-ZR-0042'],
@@ -1099,6 +1116,10 @@ describe('D294 — il foglio massimale porta SOLO ciò che ci deve stare', () =>
       ['rischi residui', 'Rischio residuo di frattura'],
       ['responsabile (PRRC)', 'PRRC'],
       ['piè di pagina', 'Documento generato ai sensi'],
+      // D319 — il numero della prescrizione: il VALORE…
+      ['numero di prescrizione (valore)', 'PRESCR-2026-77'],
+      // …e la sua ETICHETTA, che è l'altra metà del taglio.
+      ['numero di prescrizione (etichetta)', 'N. prescrizione'],
     ]
     for (const [nome, ago] of vietati) {
       expect(testoMassimale, `taglio non applicato: ${nome}`).not.toContain(ago)

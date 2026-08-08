@@ -254,7 +254,7 @@ async function correggiERifai(
   //    solo a decidere se è vuoto — il valore spedito non si tocca.
   const atteso = attesoGrezzo
 
-  // ── ② LE OTTO VOCI ────────────────────────────────────────────────────────
+  // ── ② LE SETTE VOCI (erano OTTO fino a D319: v. `correzioni.ts`) ──────────
   const validate = validaCorrezioni(correzioniGrezze)
   if (!validate.ok) {
     return NextResponse.json({ error: validate.errore, valore: validate.valore }, { status: 422 })

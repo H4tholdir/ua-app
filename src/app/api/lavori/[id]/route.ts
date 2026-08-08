@@ -81,6 +81,19 @@ const LOCKED_PRICE_FIELDS = [
 // colonna omonima su `lavori` è legacy: riaprirla qui sarebbe una seconda
 // penna sullo stesso fatto, la classe già pagata con numero_cassetta.
 // Test di regressione: tests/unit/lavori-patch-istituzione-sanitaria.test.ts.
+//   🪦 E DALL'08/08/2026 (D319) LA RAGIONE È ANCORA PIÙ SEMPLICE, perché
+//   `lavori.numero_prescrizione` è un CIMITERO DICHIARATO: non la legge né la
+//   scrive più nessuno. Il numero della prescrizione non è un contenuto dovuto
+//   dall'Allegato XIII punto 1 — che sulla prescrizione chiede il NOME di chi ha
+//   prescritto e le CARATTERISTICHE indicate nella prescrizione — quindi è
+//   uscito dal documento, dalle voci correggibili della dichiarazione e
+//   dall'allowlist della RPC `correggi_e_riemetti_atomica`. Ultimo lettore:
+//   `generate-ddc.ts` (chiave `prescrizione_id`), tolto. Ultimo scrittore:
+//   l'UPDATE di quella RPC, tolto. `provato:` 0 lavori su 299 la portano.
+//   ⚠️ Questa riga NON riapre niente e NON è un invito: la voce non torna in
+//   allowlist, perché non c'è più niente da correggere. Sta qui perché fra sei
+//   mesi qualcuno non creda viva una colonna che nessuno alimenta — l'errore
+//   R34, già pagato una volta.
 // ═══ SENTINELLA D7 (spec portale-dentista-v2 §7) ══════════════════════════
 // proposta_dentista e proposta_at NON devono MAI entrare in questa allowlist:
 // si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).

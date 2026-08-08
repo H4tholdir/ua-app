@@ -4,7 +4,7 @@ import { normalizzaContenuto } from '@/lib/domain/prescrizione-mapper'
 import type { LavoroDettaglio, Paziente } from '@/types/domain'
 
 /**
- * LE OTTO VOCI CORREGGIBILI DEL DOCUMENTO — Task C dell'ondata «correggi e
+ * LE SETTE VOCI CORREGGIBILI DEL DOCUMENTO — Task C dell'ondata «correggi e
  * rifai la dichiarazione».
  *
  * 🛑 NON SONO «i campi di `lavori`», e la differenza è tutto il modulo. Una
@@ -13,12 +13,24 @@ import type { LavoroDettaglio, Paziente } from '@/types/domain'
  * D308) — cioè una SECONDA penna che diverge in silenzio dalla prima. Qui si
  * correggono le voci che il DOCUMENTO stampa, e sono quelle e basta.
  *
- * ⚠️ OTTO NOMI PER SETTE VOCI A SCHERMO, e non è un doppione: il paziente si
+ * ⚠️ SETTE NOMI PER SEI VOCI A SCHERMO, e non è un doppione: il paziente si
  * corregge **scegliendone un altro** (`paziente_id`, che cambia l'anagrafica a
  * cui il lavoro punta) **oppure** correggendo **l'identificativo stampato su
  * questo documento** (`paziente_nome_snapshot`, che è la fotografia). Le due
  * cose sono diverse e servono in momenti diversi: chi ha sbagliato persona usa
  * la prima, chi ha sbagliato a scrivere il nome usa la seconda.
+ *
+ * ⚖️ ERANO OTTO PER SETTE FINO A D319 (08/08/2026): `numero_prescrizione` è
+ * uscito da questo elenco, e la ragione è normativa, non di prodotto. Sulla
+ * prescrizione l'**Allegato XIII punto 1** chiede DUE cose — «il nome della
+ * persona che ha prescritto il dispositivo… e, se del caso, il nome
+ * dell'istituzione sanitaria» e «le caratteristiche specifiche del prodotto
+ * indicate nella prescrizione». **Un numero non compare fra gli otto trattini:**
+ * non è un contenuto dovuto, quindi non sta sul documento e non c'è niente da
+ * correggere. Le sei voci rimaste sono tutte e sei dovute dall'Allegato XIII.
+ * 🛑 E ciò che serviva davvero — ritrovare la prescrizione di carta — è già il
+ * mestiere di `fonte_tipo`/`fonte_riferimento` (ondata B): il numero sarebbe
+ * stato un secondo modo di fare la stessa cosa.
  *
  * 📌 L'elenco è lo stesso della RPC (`c_su_lavori || c_su_penne`). Sono due
  * scritture della stessa verità e si guardano in faccia in
@@ -30,7 +42,6 @@ export const CAMPI_CORREGGIBILI_DOCUMENTO = [
   'richiedente_nome',
   'paziente_id',
   'paziente_nome_snapshot',
-  'numero_prescrizione',
   'tipo_dispositivo',
   'descrizione',
   'denti_coinvolti',
@@ -39,12 +50,14 @@ export const CAMPI_CORREGGIBILI_DOCUMENTO = [
 
 export type CampoCorreggibile = (typeof CAMPI_CORREGGIBILI_DOCUMENTO)[number]
 
-/** Le cinque voci che sono TESTO su `lavori`. `paziente_id` non è fra queste:
- *  è un identificativo, e ha la sua forma. */
+/** Le quattro voci che sono TESTO su `lavori`. `paziente_id` non è fra queste:
+ *  è un identificativo, e ha la sua forma.
+ *  ⚖️ Erano CINQUE fino a D319: `numero_prescrizione` è uscito di qui insieme
+ *  all'allowlist sopra — un nome tolto da un elenco e lasciato nell'altro
+ *  sarebbe un tipo dichiarato che non esiste più (e `tsc` lo direbbe subito). */
 const CAMPI_TESTO: readonly CampoCorreggibile[] = [
   'richiedente_nome',
   'paziente_nome_snapshot',
-  'numero_prescrizione',
   'tipo_dispositivo',
   'descrizione',
 ]

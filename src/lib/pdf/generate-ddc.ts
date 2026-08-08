@@ -116,6 +116,25 @@ import { classificaErroreAttoUnico } from '@/lib/dichiarazione/atto-unico-errori
  *        non porta più — pur nascendo dagli stessi dati.
  *     ⚠️ Le voci precedenti NON si riscrivono e non si riusano: un'etichetta
  *        già emessa che cambiasse significato svuoterebbe il registro intero.
+ *
+ *  🔄 `ddc-v3` HA PERSO UN TREDICESIMO BLOCCO L'08/08/2026 (**D319**) E NON È
+ *     SALTATA A `ddc-v4`. Non è una scorciatoia, è la regola scritta qui sopra
+ *     applicata alla lettera: **il registro salta quando cambia ciò che il
+ *     documento DICE**, e qui nessuna dichiarazione emessa cambia di una riga.
+ *     Esce il **numero di prescrizione** (la riga «N. prescrizione» del §3), e
+ *     con lui la chiave `prescrizione_id` da questo costruttore — perché
+ *     l'Allegato XIII punto 1, sulla prescrizione, chiede il **nome** di chi ha
+ *     prescritto e le **caratteristiche** indicate nella prescrizione: un numero
+ *     non compare fra gli otto trattini. **Il nome del prescrittore resta**, ed è
+ *     dovuto.
+ *     `provato:` la riga del modello era **condizionale** e la condizione non si
+ *     è **mai** avverata —
+ *       SELECT template_version, count(*), count(prescrizione_id)
+ *         FROM dichiarazioni_conformita GROUP BY 1;
+ *       → ddc-v1 | 3 | 0   ·   (null) | 3 | 0
+ *     cioè **zero** dichiarazioni su sei portano quel numero, e **nessuna
+ *     dichiarazione `ddc-v3` è mai stata emessa**. È lo stesso ragionamento, con
+ *     gli stessi termini, già applicato a `contiene_sostanze_o_tessuti`.
  *  ═════════════════════════════════════════════════════════════════════════ */
 const VERSIONE_TEMPLATE_DDC = 'ddc-v3'
 
@@ -254,7 +273,33 @@ async function costruisciDichiarazione(
         lavoro.richiedente_nome,
         `${lavoro.cliente.cognome} ${lavoro.cliente.nome}`,
       ) ?? '',
-    prescrizione_id: lavoro.numero_prescrizione ?? null,
+    // 🛑 QUI C'ERA `prescrizione_id: lavoro.numero_prescrizione ?? null`, ed è
+    //    uscita l'08/08/2026 con **D319**: il numero della prescrizione non è un
+    //    contenuto dovuto dall'Allegato XIII punto 1 (che sulla prescrizione
+    //    chiede il NOME di chi ha prescritto — la riga qui sopra, che resta — e
+    //    le CARATTERISTICHE indicate nella prescrizione, la voce 6 più sotto).
+    //    Era anche l'ULTIMO lettore di `lavori.numero_prescrizione`, che da oggi
+    //    è una colonna dichiarata morta: v. `types/domain.ts` accanto alla
+    //    colonna, e `api/lavori/[id]/route.ts` accanto all'esclusione dalla PATCH.
+    //
+    // ⚠️ CONSEGUENZA MISURATA, e va detta perché non si scopra dopo:
+    //    `payload_sha256` si calcola su QUESTO oggetto (`improntaPayload(ddcConNorma)`,
+    //    più sotto) e `canonico` serializza le chiavi presenti — quindi una chiave
+    //    in meno **cambia l'impronta di tutte le emissioni future**. È accettabile
+    //    e non rompe niente: per la dichiarazione quell'impronta è un dato
+    //    d'archivio che nessuno riconfronta, mentre nel DPA — dove la stessa
+    //    funzione produce una CHIAVE DI RICERCA con tanto di indice unico
+    //    (`generate-dpa.ts:146,347`) — una modifica del genere sarebbe un'altra
+    //    cosa. Le impronte già scritte restano valide: certificano il payload di
+    //    allora, che è ciò che devono fare.
+    //
+    // 📌 E DIVERGE DA `firma_ddc_sha256` PIÙ SOTTO, che è l'altra chiave morta di
+    //    questo stesso oggetto e invece è stata TENUTA a `null` «perché il payload
+    //    mantenga la stessa FORMA». Le due scelte sono opposte e la differenza NON
+    //    è nei dati (`provato:` entrambe le colonne sono valorizzate in 0 righe su
+    //    6): lì moriva il VALORE, qui muore la voce — D319 toglie il dato dal
+    //    documento, non gli toglie il contenuto. Quale delle due forme sia la
+    //    regola di casa non è deciso da nessuna decisione numerata: riferito.
     // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
     paziente_nome: lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '',
     paziente_cognome: null as string | null,

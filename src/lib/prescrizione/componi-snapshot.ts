@@ -20,6 +20,19 @@
 export interface PrescrizioneInput {
   /** Testo del colore COME DIGITATO dall'addetta (D210) — mai normalizzato qui. */
   colore?: string
+  /** ⚖️ D319 (08/08/2026) — QUESTA CHIAVE NON ALIMENTA PIÙ NESSUN DOCUMENTO.
+   *  Il numero della prescrizione non è un contenuto dovuto dall'Allegato XIII
+   *  punto 1 (che sulla prescrizione chiede il NOME di chi ha prescritto e le
+   *  CARATTERISTICHE indicate nella prescrizione): è uscito dalla dichiarazione
+   *  e dalle voci correggibili. Ciò che serviva davvero — ritrovare il foglio di
+   *  carta del dentista — è il mestiere di `fonte_tipo`/`fonte_riferimento`.
+   *
+   *  🛑 RESTA ACCETTATA, e non è una svista: `POST /api/lavori` la valida e la
+   *  scrive ancora su `lavori_prescrizioni` (`api/lavori/route.ts:234-240`), e
+   *  il clone del rifacimento la propaga. Toglierla è un cambiamento di
+   *  contratto pubblico, cioè una decisione a sé — RIFERITA (R-E2), non presa
+   *  di nascosto dentro il compito che ha tolto il numero dal documento.
+   *  ⚠️ Il wizard non la manda: non ha la casella, e da D319 non l'avrà. */
   numero_prescrizione?: string
 }
 

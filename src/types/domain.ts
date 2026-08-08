@@ -271,6 +271,25 @@ export interface Lavoro {
   consegna_in_corso: boolean;          // lock ottimistico: TRUE mentre CONSEGNA è in esecuzione
   anno_lavoro: number;
   codice_interno: string | null;
+  /** 🪦 CIMITERO DICHIARATO dall'08/08/2026 (**D319**) — la colonna resta, e non
+   *  la legge né la scrive più nessuno.
+   *
+   *  🔑 PERCHÉ: il numero della prescrizione **non è un contenuto dovuto**
+   *  dall'Allegato XIII punto 1, che sulla prescrizione chiede il NOME di chi ha
+   *  prescritto e le CARATTERISTICHE indicate nella prescrizione. È uscito dal
+   *  documento, e con lui l'ultimo lettore (`generate-ddc.ts`, la chiave
+   *  `prescrizione_id`) e l'ultimo scrittore (l'`UPDATE` di
+   *  `correggi_e_riemetti_atomica`). Fuori dalla PATCH lo era già.
+   *  `provato:` 0 lavori su 299 la portano valorizzata.
+   *
+   *  ⚠️ SEMBRERÀ VIVA, e questa riga esiste per quello: due rotte di
+   *  fatturazione la SELEZIONANO ancora — `api/fatture/batch/route.ts:113` e
+   *  `api/fatture/[id]/xml/route.ts:97` — perché caricano la riga intera del
+   *  lavoro per costruire questo tipo. Nessuna la usa.
+   *
+   *  📌 NON confonderla con `Prescrizione.numero_prescrizione` più sotto, che è
+   *  un'altra colonna su un'altra tabella e **non** è un cimitero: quella si
+   *  scrive ancora da `POST /api/lavori`. */
   numero_prescrizione: string | null;
   numero_cassetta: string | null;
   cliente_id: string;
@@ -503,6 +522,19 @@ export interface LavoroPrescrizione {
   fonte_riferimento: string | null;
   // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
   // (colonna legacy, esclusa dalla PATCH con la sua ragione).
+  /** ⚖️ D319 (08/08/2026) — **NON alimenta più la dichiarazione**, e non la
+   *  alimenterà: il numero della prescrizione non è un contenuto dovuto
+   *  dall'Allegato XIII punto 1. Il compito che doveva spostare qui il lettore
+   *  del documento è stato CANCELLATO dalla stessa decisione.
+   *
+   *  🛑 MA QUESTA COLONNA NON È UN CIMITERO, a differenza dell'omonima su
+   *  `lavori`, e la differenza va tenuta: `POST /api/lavori` la accetta e la
+   *  valida (`api/lavori/route.ts:234-240` → `componiSnapshot`), il clone del
+   *  rifacimento la propaga, e `prescrizione-mapper.ts` la legge dentro questo
+   *  tipo. Quello che è vero è più stretto: **il wizard non ha la casella** e
+   *  nessun documento la stampa. `provato:` 0 righe in tabella.
+   *  ➡️ Chiudere quella porta d'ingresso è una decisione a sé, non un
+   *  allargamento silenzioso: riferita, non presa. */
   numero_prescrizione: string | null;
   confermata_da: string | null;
   confermata_at: string | null;
@@ -732,7 +764,30 @@ export interface DichiarazioneConformita {
   luogo_fabbricazione: string;
   // §3 — Prescrittore
   prescrittore_nome: string;
-  prescrizione_id: string | null;        // Numero prescrizione del dentista
+  /** 🪦 COLONNA SENZA PRODUTTORE dall'08/08/2026 (**D319**): nessuna strada
+   *  produce più un VALORE per questa colonna — `costruisciDichiarazione` non
+   *  compone più la chiave — e non aveva lettori oltre al modello, da cui la
+   *  riga «N. prescrizione» è uscita. Resta in banca dati e resta nel tipo
+   *  perché è ancora una colonna vera di `dichiarazioni_conformita`.
+   *
+   *  ⚠️ «SENZA PRODUTTORE» E NON «SENZA SCRITTORI», e la differenza è la stessa
+   *  che vale per `lavori_prescrizioni` qui sopra: la riemissione compone la
+   *  riga nuova con `jsonb_populate_record(v_vecchia, p_nuova || …)`, e una
+   *  chiave ASSENTE da `p_nuova` **si eredita dalla dichiarazione superata**
+   *  invece di essere scritta a `NULL`. Finché la chiave c'era, il successore
+   *  riceveva `NULL` per assegnazione; da oggi si porta avanti quello che
+   *  c'era. Oggi è sempre `NULL` — 0 righe valorizzate su 6 e nessun produttore
+   *  — ma è ereditarietà silenziosa, la stessa famiglia che C-ter ha chiuso
+   *  sulla coppia `anno_ddc`/`progressivo_ddc`, quindi si dice invece di
+   *  lasciarla scoprire.
+   *  📌 Il `COMMENT` della migration `20260808142358` dice «perde il suo unico
+   *  scrittore»: è la formulazione larga, ed è rimasta lì perché quella
+   *  migration è **applicata e nel ledger** e non si tocca. La prossima che
+   *  riscrive quella funzione porti questa precisazione.
+   *  `provato:` valorizzata in **0 righe su 6** — non l'ha mai portata nessuna
+   *  dichiarazione emessa, ed è la ragione per cui `ddc-v3` non è saltata a
+   *  `ddc-v4`: nessun documento cambia di una riga. */
+  prescrizione_id: string | null;        // Numero prescrizione del dentista (D319: non più scritto)
   // §4 — Paziente
   paziente_nome: string;
   paziente_cognome: string | null;

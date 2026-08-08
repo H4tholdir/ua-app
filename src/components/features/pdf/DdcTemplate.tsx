@@ -46,8 +46,10 @@
 // 🔑 RESTANO, e la ragione va lasciata scritta: la data di emissione (Art. 52(8)
 //    — la dichiarazione va redatta «prima dell'immissione sul mercato», e senza
 //    data non lo si dimostra), il numero del documento (la chiave per ritrovarlo
-//    nei dieci anni di conservazione dell'Allegato XIII punto 4), il numero
-//    della prescrizione, il titolo con la base giuridica, la nota sull'assenza
+//    nei dieci anni di conservazione dell'Allegato XIII punto 4), ~~il numero
+//    della prescrizione~~ (🔄 USCITO l'08/08/2026 con D319: v. il blocco qui
+//    sotto — la riga diceva che restava, e da quel giorno è falsa), il titolo
+//    con la base giuridica, la nota sull'assenza
 //    di marcatura CE (Art. 20(1)) — e la PARTITA IVA, che è tenuta **per scelta
 //    di Francesco e non per obbligo**: il censimento non ha trovato nessuna
 //    norma che la imponga su questa dichiarazione. Sta scritto qui perché il
@@ -399,12 +401,20 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
             <Text style={styles.label}>Nome prescrittore:</Text>
             <Text style={styles.valueBold}>{ddc.prescrittore_nome || '—'}</Text>
           </View>
-          {ddc.prescrizione_id ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>N. prescrizione:</Text>
-              <Text style={styles.value}>{ddc.prescrizione_id}</Text>
-            </View>
-          ) : null}
+          {/* 🛑 QUI C'ERA LA RIGA «N. prescrizione», ed è uscita l'08/08/2026 con
+              D319. L'Allegato XIII punto 1, sulla prescrizione, chiede DUE cose —
+              «il nome della persona che ha prescritto il dispositivo… e, se del
+              caso, il nome dell'istituzione sanitaria» e «le caratteristiche
+              specifiche del prodotto indicate nella prescrizione» (§5 più sotto):
+              un NUMERO non compare fra gli otto trattini.
+              ⚠️ Il §3 non resta con un buco né con un'etichetta orfana: il nome
+              del prescrittore qui sopra è il contenuto dovuto, ed è tutto ciò che
+              questa sezione deve portare.
+              📌 Il blocco era CONDIZIONALE e la condizione non si è mai avverata
+              (0 dichiarazioni su 6 con `prescrizione_id` valorizzato): per questo
+              `ddc-v3` non salta a `ddc-v4` — nessun documento emesso cambia di una
+              riga. Ragionamento per esteso accanto alla costante in
+              `generate-ddc.ts`. */}
         </View>
 
         {/* ── §4 PAZIENTE ── */}

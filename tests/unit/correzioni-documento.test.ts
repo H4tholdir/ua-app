@@ -9,15 +9,22 @@ import {
 } from '@/lib/dichiarazione/correzioni'
 
 /**
- * Task C — LE OTTO VOCI CORREGGIBILI DEL DOCUMENTO, e la regola sola che
+ * Task C — LE SETTE VOCI CORREGGIBILI DEL DOCUMENTO, e la regola sola che
  * chiude C2.
  *
  * 🔑 PERCHÉ QUESTO MODULO ESISTE E NON È «i campi di `lavori`»: una seconda
  * penna sul lavoro non conoscerebbe le ~200 righe di regole della PATCH
  * (colore di caso, tinta, sentinelle, blocco fiscale). Qui si correggono le
- * voci che il DOCUMENTO stampa, e sono otto nomi per sette voci a schermo — il
+ * voci che il DOCUMENTO stampa, e sono sette nomi per sei voci a schermo — il
  * paziente si corregge scegliendone un altro (`paziente_id`) OPPURE correggendo
  * l'identificativo per questo documento (`paziente_nome_snapshot`).
+ *
+ * ⚖️ ERANO OTTO NOMI PER SETTE VOCI FINO A D319 (08/08/2026): il numero di
+ * prescrizione è uscito, perché **non è un contenuto dovuto** dall'Allegato XIII
+ * punto 1 — sulla prescrizione l'elenco chiede il NOME di chi ha prescritto e le
+ * CARATTERISTICHE indicate nella prescrizione, e un numero non compare fra gli
+ * otto trattini. Da qui in avanti quel nome è **rifiutato** come qualsiasi altra
+ * chiave che non sia una voce del documento: v. il blocco «D319» più sotto.
  *
  * 🛑 C2, misurato dalla revisione del Task B: una sola chiamata con
  * `denti_coinvolti: []`, `paziente_id: null` e stringhe vuote è tornata `ok` e
@@ -41,16 +48,60 @@ function ok(grezzo: unknown) {
   return e.correzioni
 }
 
-describe('CAMPI_CORREGGIBILI_DOCUMENTO — otto nomi e non uno di più', () => {
-  it('sono esattamente le otto chiavi dell\'allowlist della RPC', () => {
+describe('CAMPI_CORREGGIBILI_DOCUMENTO — sette nomi e non uno di più', () => {
+  it('sono esattamente le sette chiavi dell\'allowlist della RPC', () => {
     // 🛑 Lo stesso elenco vive nella RPC (`c_su_lavori || c_su_penne`). Sono due
     // scritture della stessa verità e questo test è l'unico posto in cui si
     // guardano in faccia: la RPC è la penna, questa è la rete davanti.
+    // ⚠️ È un `toEqual` sull'elenco ESATTO, non un `toContain`: è ciò che lo fa
+    //    diventare rosso il giorno in cui qualcuno rimette dentro un nome — ed è
+    //    stato provato rimettendoci `numero_prescrizione` (R-P4, Task C-quinquies).
     expect([...CAMPI_CORREGGIBILI_DOCUMENTO].sort()).toEqual([
-      'denti_coinvolti', 'descrizione', 'numero_prescrizione', 'paziente_id',
+      'denti_coinvolti', 'descrizione', 'paziente_id',
       'paziente_nome_snapshot', 'prescrizione_caratteristiche',
       'richiedente_nome', 'tipo_dispositivo',
     ])
+  })
+})
+
+describe('⚖️ D319 — il numero di prescrizione NON è più una voce correggibile', () => {
+  // 🔑 IL FONDAMENTO, e non è una scelta di prodotto: l'Allegato XIII punto 1
+  //    chiede, sulla prescrizione, DUE cose — «il nome della persona che ha
+  //    prescritto il dispositivo… e, se del caso, il nome dell'istituzione
+  //    sanitaria» e «le caratteristiche specifiche del prodotto indicate nella
+  //    prescrizione». Un numero, codice o identificativo della prescrizione non
+  //    compare fra gli otto trattini: non è un contenuto dovuto, quindi non sta
+  //    sul documento e non c'è niente da correggere.
+  // 🛑 QUESTE PROVE SOSTITUISCONO quelle che asserivano il contrario, e non le
+  //    affiancano: prima `{numero_prescrizione: {n: 1}}` era rifiutato PERCHÉ
+  //    non era un testo — cioè passava sia con la regola vecchia sia con quella
+  //    nuova, ed era una prova che non poteva fallire.
+  it('🔴 `numero_prescrizione` con un valore BUONO è rifiutato: è il caso che distingue la regola nuova dalla vecchia', () => {
+    // Un testo pieno e sensato: sotto la regola vecchia sarebbe passato.
+    const e = validaCorrezioni({ numero_prescrizione: 'RX-2026-042' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('e il messaggio lo NOMINA, invece di scartarlo in silenzio', () => {
+    const e = validaCorrezioni({ numero_prescrizione: 'RX-2026-042' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('numero_prescrizione')
+  })
+
+  it('🛑 e non passa nemmeno in compagnia di una voce buona: l\'intera correzione cade', () => {
+    // Lo scarto muto di `route.ts:259-264` — «Salvato» su un dato che non c'è —
+    // su una carta a valore legale non si fa, nemmeno per una chiave sola.
+    const e = validaCorrezioni({ descrizione: 'Corona in zirconia', numero_prescrizione: 'RX-77' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('📌 …e l\'elenco che il messaggio propone NON lo nomina più fra le voci ammesse', () => {
+    // Il messaggio dice «si correggono: …». Se il nome restasse in quell'elenco,
+    // chi sta al banco lo rimanderebbe e verrebbe rifiutato una seconda volta.
+    const e = validaCorrezioni({ classe_rischio: 'classe_i' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    const ammesse = e.errore.split('si correggono:')[1] ?? ''
+    expect(ammesse).not.toContain('numero_prescrizione')
   })
 })
 
@@ -71,13 +122,13 @@ describe('validaCorrezioni — la forma dell\'ingresso', () => {
     expect(validaCorrezioni(valore).ok).toBe(false)
   })
 
-  it('una chiave fuori dalle otto è rifiutata, e il messaggio la NOMINA', () => {
+  it('una chiave fuori dalle sette è rifiutata, e il messaggio la NOMINA', () => {
     const e = validaCorrezioni({ classe_rischio: 'classe_i' })
     if (e.ok) throw new Error('atteso rifiuto')
     expect(e.errore).toContain('classe_rischio')
   })
 
-  it('🛑 una chiave fuori dalle otto non si scarta in silenzio insieme a una buona', () => {
+  it('🛑 una chiave fuori dalle sette non si scarta in silenzio insieme a una buona', () => {
     // È lo scarto muto di `route.ts:259-264` — l'utente legge «Salvato» su un
     // dato che non c'è. Su una carta a valore legale non si fa.
     const e = validaCorrezioni({ descrizione: 'Corona in zirconia', stato: 'consegnato' })
@@ -210,10 +261,16 @@ describe('validaCorrezioni — le forme che il database non saprebbe raccontare'
     expect(validaCorrezioni({ paziente_id: 'pippo' }).ok).toBe(false)
   })
 
+  // ⚖️ IL TERZO CASO ERA `{numero_prescrizione: {n: 1}}` FINO A D319, ed era una
+  //    prova che non poteva fallire: dopo l'uscita di quel nome dall'allowlist
+  //    sarebbe rimasta VERDE per la ragione sbagliata (chiave ignota, non «non è
+  //    un testo»), continuando a sembrare la rete sui tipi dei testi. Sostituito
+  //    con un nome che è ancora una voce del documento, così l'asserzione misura
+  //    ciò che il suo titolo dice.
   it.each([
     ['un numero al posto di un testo', { descrizione: 12 }],
     ['un booleano al posto di un testo', { tipo_dispositivo: true }],
-    ['un oggetto al posto di un testo', { numero_prescrizione: { n: 1 } }],
+    ['un oggetto al posto di un testo', { richiedente_nome: { n: 1 } }],
   ])('%s → rifiutato', (_n, corpo) => {
     expect(validaCorrezioni(corpo).ok).toBe(false)
   })
