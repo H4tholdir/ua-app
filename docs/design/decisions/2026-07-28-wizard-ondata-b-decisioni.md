@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentanovesima tornata (D320-D321: il nome del paziente si corregge in anagrafica, e il numero di prescrizione esce da tutto)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantesima tornata (D322: la correzione viene prima delle quattro caselle di legge)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**321 decisioni in centotrentanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**322 decisioni in centoquaranta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3683,3 +3683,36 @@ scrive** (`route.ts:234-240` → `lavoro_crea_atomico`) · il clone del rifacime
 censimento a deciderlo, ed è esattamente l'errore che D319 ha già fatto una volta («*nessuno lo scrive*»,
 falso). ➡️ **Chiude la riga 27 della coda di ROADMAP**, che chiedeva proprio se quella porta dovesse
 restare aperta: la risposta è **no**.
+
+---
+
+### Centoquarantesima tornata — D322: la correzione viene PRIMA delle quattro caselle di legge (08/08/2026, 18:46)
+
+**Nasce dal cancello del mockup** (§0B: l'anteprima precede sempre il codice React). Due varianti a
+confronto sullo stesso contenuto, chiaro e scuro, 390 px —
+`docs/design/mockups/2026-08-08-passo-correzione.html`, screenshot in `screenshots/`.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D322** | 🔑 **VARIANTE A — nel foglio «Devo intervenire», col motivo «c'è un dato sbagliato sulla dichiarazione», il passo di correzione viene PRIMA delle quattro caselle di legge** (origine · quando l'hai saputo · dov'è il manufatto · potenziale di danno) | «**variante A**» | 🔑 **È la cosa per cui la persona ha aperto il foglio.** Il piano dichiarava di **non avere una prova** per preferire un ordine all'altro (autorevisione, ultima riga): la scelta era di Francesco per costruzione, non un ripiego |
+
+📌 **Che cosa NON cambia con questa scelta**, e va detto perché la variante toccava **solo l'ordine**: le
+sei righe e i loro valori · la riga «paziente» che apre un **elenco di persone** e non un campo di testo
+(D320) · il blocco «da qui non si corregge» con le sue **due** destinazioni · il tasto finale spento **col
+perché scritto** · le caratteristiche prescritte come sotto-passo a **due** caselle (`elementi`, `colore`
+— **non** `tipo`, che il controllo d'ingresso accetterebbe ma che sul documento non arriva mai, D213).
+Erano identici in tutt'e due le varianti, e restano.
+
+🛑 **UNA MISURA FATTA PRIMA DI DISEGNARE, e senza la quale il foglio sarebbe nato rotto al primo uso
+vero.** Il foglio registra l'evento quando la persona conferma, e **alcuni motivi fanno partire
+un'azione automatica che CONSUMA quell'evento** (`riapri_lavoro_atomica` / `riporta_a_pronto_atomica`
+scrivono `annullata_da_evento_id`). Con l'indice unico del Task B, una correzione che riusasse un evento
+già consumato prenderebbe **`23505`** — è il caso che il piano segnalava nel blocco «DUE COSE CHE IL TASK
+D DEVE SAPERE».
+✅ `provato:` `src/lib/qualita/effetti.ts:112-115` — per `errore_dato_dichiarazione` l'effetto è
+**`azione: null`**, col commento che lo motiva (`:124-125`: «*la riemissione NON tocca `lavori.stato` e
+NON chiama `riapri_lavoro_atomica`*»). ➡️ **L'evento nasce pulito, e la correzione è il suo primo e unico
+consumatore.**
+🔑 *La domanda non era una formalità: se la risposta fosse stata l'opposta, nessun ordine dei passi
+avrebbe salvato niente — sarebbe servita un'altra architettura, e ce ne saremmo accorti al primo uso
+vero invece che sul mockup.*

@@ -373,6 +373,28 @@ contratto più consumatore.*
 
 **File:** `DevoIntervenire.tsx` · `src/lib/qualita/motivi-ui.ts` se servono parole nuove.
 
+### ✅ IL CANCELLO §0B È PASSATO — mockup approvato, VARIANTE A (D322, 08/08/2026 18:46)
+
+**Mockup:** `docs/design/mockups/2026-08-08-passo-correzione.html` · screenshot in `screenshots/`.
+⚖️ **D322 — la correzione viene PRIMA delle quattro caselle di legge.** L'ordine delle fasi diventa:
+`motivo` → **`correzione`** (nuova) → `dettagli` → `proposta`/`esito`.
+🔑 Il mockup è la **forma approvata**: il React le è fedele, e ogni scostamento si dichiara.
+
+### ✅ E LA DOMANDA CHE BLOCCAVA HA RISPOSTA — misurata, non assunta
+
+**Quando nasce l'evento, e chi lo consuma.** Il foglio non crea l'evento quando si sceglie il motivo
+(`scegliMotivo` muove **solo** lo stato): lo crea `registra()`, cioè **al tocco finale**. E il `POST
+/api/lavori/[id]/eventi-qualita` fa partire **subito** l'azione derivata dal motivo, che per alcuni
+motivi **consuma l'evento** scrivendo `annullata_da_evento_id` — il che, con l'indice del Task B, darebbe
+**`23505`** a una correzione successiva.
+✅ `provato:` `src/lib/qualita/effetti.ts:112-115` — `errore_dato_dichiarazione` ha **`azione: null`**,
+col commento che lo motiva (`:124-125`). ➡️ **Su questo motivo l'evento nasce pulito, e la correzione è
+il suo primo e unico consumatore. Nessun conflitto.**
+🛑 **Conseguenza operativa, e va nel codice:** l'`evento_id` che `registra()` riceve **si tiene nello
+stato** e si **riusa** se la chiamata di correzione fallisce e la persona riprova. Creare un evento nuovo
+a ogni tentativo lascerebbe eventi orfani; riusare quello vecchio è anche ciò che rende utile la porta
+d'idempotenza della rotta (che, dopo un successo, restituisce il **successore**).
+
 🔄 **L'ELENCO DELLE RIGHE È CAMBIATO DUE VOLTE DA QUANDO QUESTO PIANO È STATO SCRITTO, e il Passo 1
 qui sotto porta già la versione buona.** ⚠️ **Non si prende dalla prosa dei compiti precedenti**, che
 parla ancora di sette e di otto: si prende da `CAMPI_CORREGGIBILI_DOCUMENTO` **dopo il C-sexies**.
@@ -414,8 +436,23 @@ serve più.
 - [ ] **Passo 3 — il tasto finale dice quello che fa:** **«Correggi e rifai la dichiarazione»**, mai
   «Salva». Disabilitato finché non si è corretto nulla, **col perché scritto**.
 - [ ] **Passo 4 — niente si salva prima di quel tocco.** Prova: monta, correggi, **smonta** → nessuna
-  chiamata al server.
-- [ ] **Passo 5 — FASE 9**: 390 · 768 · 1280, chiaro e scuro.
+  chiamata al server. 🛑 **E il tocco finale sono DUE chiamate in fila**: `POST …/eventi-qualita` (che
+  crea l'evento e, per questo motivo, **non fa partire nessuna azione**) e poi `POST
+  …/dichiarazione/riemetti` col `correzioni` e il gettone. Se la seconda fallisce, **l'evento si tiene**
+  e si riusa al tentativo dopo.
+- [ ] **Passo 4-bis — 🔑 IL GETTONE E I VALORI ARRIVANO DALLA STESSA LETTURA E VIAGGIANO INSIEME**
+  (P13 · P14). Le righe mostrano «il valore che c'è adesso»: quel valore e l'`updated_at` **non si
+  prendono da due letture diverse**, o il contratto «i valori che hai visto sono ancora quelli» non ha
+  modo di funzionare. 🛑 **E il gettone si rimanda INTATTO: mai un `new Date(...)`** — `timestamptz` è al
+  microsecondo, `Date` di JS al millisecondo, e un solo riparsing dà un **409 permanente** che nemmeno
+  ricaricando si sana.
+- [ ] **Passo 5 — FASE 9**: 390 · 768 · 1280, chiaro e scuro. 🛑 **E il GATE ESTETICO L2 (FASE 9b), che
+  qui è dovuto DUE VOLTE**: quello arretrato dell'ondata **più** quello del **Task A** (che ha cambiato
+  titolo, corpo ed entrambe le etichette di una finestra e ha fatto nascere un riquadro → per D245 è
+  ASPETTO). ⚠️ **Gli screenshot devono coprire anche la finestra del Task A**, non solo il passo nuovo.
+  Cartella: `docs/design/screenshots/<data>-<superficie>/`, checklist
+  `docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md`. **Le due non si coprono a vicenda, e senza il gate
+  il merge resta bloccato.**
 
 ---
 
