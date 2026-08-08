@@ -981,7 +981,12 @@ export function DevoIntervenire(props: {
               🛑 Si naviga con `useNavigaDaOverlay`, mai `router.push` nudo: da
               dentro un overlay v3 un `push` impila la pagina nuova sopra
               l'entry del foglio e la lascia sepolta — difetto già pagato. */}
-          <div style={{ borderRadius: raggio.riga, padding: `14px ${spazio.m}px`, background: 'var(--bg-deep)' }}>
+          {/* ⚖️ D326 — il filo: `transparent` in chiaro, `--line` in scuro. Qui
+              non si preme niente: delimita il blocco dal pannello del foglio. */}
+          <div style={{
+            borderRadius: raggio.riga, padding: `14px ${spazio.m}px`,
+            background: 'var(--bg-deep)', border: '1px solid var(--filo-superficie)',
+          }}>
             <p style={{
               fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
               textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
@@ -1341,6 +1346,10 @@ function NastroPercorso() {
               fontSize: 12, fontWeight: tipografia.weight.bold, whiteSpace: 'nowrap',
               borderRadius: 999, padding: '5px 10px',
               background: i === qui ? 'var(--ink)' : 'var(--bg-deep)',
+              // ⚖️ D326 — il filo va sulle pastiglie SPENTE (fondo `--bg-deep`).
+              // Quella accesa lo prende del proprio colore: serve a tenere tutte
+              // le pastiglie della stessa altezza, non a disegnare un bordo.
+              border: `1px solid ${i === qui ? 'var(--ink)' : 'var(--filo-superficie)'}`,
               color: i === qui ? 'var(--bg)' : 'var(--faint)',
             }}
           >{passo}</span>
@@ -1439,17 +1448,21 @@ function RigaVoce(props: {
     //    visibile. `provato:` `src/app/ds-v3.css:52` — in scuro `--bg-deep` è
     //    `#100E0B`, cioè più SCURO sia del `--card` del pannello (`#211D18`)
     //    sia del fondo pagina (`#171411`): la riga non sale, **scende**.
-    // 🛑 QUESTA TINTA NON È VERIFICATA, e questo commento non finge il
-    //    contrario. La regola di casa è due righe sopra il token
-    //    (`ds-v3.css:50`, «*Dark — elevazione = superficie più chiara, MAI
-    //    ombre*») ed è già registrata come esito di un gate L2 in
-    //    `Sheet.tsx:499-501`; il mockup approvato scrive `--elv` sulle
-    //    superfici premibili dentro il foglio.
-    // ➡️ Cambiare la tinta è materia del GATE ESTETICO L2 (D245), non di questa
-    //    riga: chi ci arriva deve trovare un ❌ da valutare, non una verifica
-    //    che qualcuno dichiara di aver già fatto.
+    // ✅ IL GATE È STATO FATTO, e la tinta è stata DECISA — ⚖️ D326, Francesco,
+    //    09/08/2026: «*preferisco la seconda tipologia del tema scuro*», cioè la
+    //    variante (b) del referto — **tinta invariata, un filo**. Referto e
+    //    misure: `docs/design/screenshots/2026-08-09-devo-intervenire/GATE-L2.md`
+    //    ❌1. La variante che scriveva `--elv` è stata scartata: applicata senza
+    //    condizione di tema, in chiaro `--elv` È `--card` e le righe sparivano.
+    // ⚠️ E il filo NON raddrizza l'elevazione: in scuro la riga resta più scura
+    //    del pannello (1,15:1). Delimita, e basta. La riga sopra resta vera.
+    // 🛑 IL COLORE DEL FILO NON SI SCRIVE QUI: `--filo-superficie` vale
+    //    `transparent` in chiaro e `--line` in scuro (`ds-v3.css`). Il chiaro è
+    //    una decisione ANCORA APERTA (D326 ②) e si chiuderà su quel token.
     background: corretta ? 'var(--blue-tint)' : 'var(--bg-deep)',
-    border: '1px solid transparent', borderRadius: raggio.riga,
+    // Il filo vale anche sulla riga già corretta (fondo `--blue-tint`): dentro
+    // lo stesso elenco le righe si delimitano tutte allo stesso modo.
+    border: '1px solid var(--filo-superficie)', borderRadius: raggio.riga,
     padding: `13px ${spazio.m}px`, textAlign: 'left' as const,
     minHeight: 60, font: 'inherit',
   }
@@ -1668,7 +1681,10 @@ function PassoVoce(props: {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                     background: 'var(--bg-deep)', borderRadius: 16, minHeight: 56,
-                    border: `1px solid ${scelto?.id === p.id ? 'var(--ink)' : 'transparent'}`,
+                    // ⚖️ D326 — il bordo dice DUE cose e restano distinte: `--ink`
+                    // è «questa l'hai scelta», il filo è solo il contorno della
+                    // riga (`transparent` in chiaro, `--line` in scuro).
+                    border: `1px solid ${scelto?.id === p.id ? 'var(--ink)' : 'var(--filo-superficie)'}`,
                     padding: `12px ${spazio.m}px`, font: 'inherit', textAlign: 'left', cursor: 'pointer',
                   }}
                 >
@@ -1711,7 +1727,12 @@ function PassoVoce(props: {
             Sono le caratteristiche <b style={{ color: 'var(--ink)' }}>indicate dal medico</b> nella prescrizione:
             sul documento compaiono in una riga sola.
           </p>
-          <div style={{ borderRadius: raggio.riga, padding: `14px ${spazio.m}px`, background: 'var(--bg-deep)' }}>
+          {/* ⚖️ D326 — stesso filo del blocco «Da qui non si corregge»: qui non
+              si preme, delimita il riquadro dal pannello del foglio. */}
+          <div style={{
+            borderRadius: raggio.riga, padding: `14px ${spazio.m}px`,
+            background: 'var(--bg-deep)', border: '1px solid var(--filo-superficie)',
+          }}>
             <p style={{
               fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
               textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,

@@ -317,3 +317,177 @@ riemessa: tutti gli otto tentativi si sono chiusi in 409 **prima** del render.
 | `variante-0-comè` · `variante-a-elv-solo-scuro` · `variante-b-filo` · `variante-x-elv-sempre` | le due varianti del ❌1 **e la confutazione** del rimedio del brief, chiaro e scuro |
 | `scorrimento2-1…3` | il ❌4, sulla strada vera |
 | `misure-*` · `scorrimento-*` | le sonde di contrasto, bersagli e sforamento |
+
+---
+
+# D326 — applicata (9 agosto 2026, 01:11 · `provato:` `date` → `Sun Aug  9 01:11:35 CEST 2026`)
+
+> ⚖️ **D326, Francesco, 09/08/2026:** «*preferisco la seconda tipologia del tema scuro, su quello
+> chiaro aumentiamo il contrasto tra lo sfondo della scheda e le opzioni*»
+
+**Metà decisa, metà no.** ① il tema **scuro** prende la variante **(b)** ed è **nel codice**.
+② il tema **chiaro** ha **tre varianti** fotografate e misurate, **e nessuna scelta**: la scelta è di
+Francesco.
+
+---
+
+## ① Il tema scuro — che cosa è cambiato
+
+**Il filo NON è scritto nel componente: è un token.** `--filo-superficie` vale `transparent` in
+chiaro e `var(--line)` in scuro.
+
+| dove | che cosa |
+|---|---|
+| `src/app/ds-v3.css:37` | `--filo-superficie: transparent` (blocco `[data-ds="v3"]`, tema chiaro) |
+| `src/app/ds-v3.css:82` | `--filo-superficie: var(--line)` (blocco `[data-theme="dark"]`) |
+| `DevoIntervenire.tsx:988` | il blocco «Da qui non si corregge» — bordo **nuovo** |
+| `DevoIntervenire.tsx:1352` | le pastiglie del nastro — bordo **nuovo** (quella accesa lo prende `--ink`, per non restare 2px più bassa) |
+| `DevoIntervenire.tsx:1465` | `RigaVoce`, le sei righe del passo di correzione — `1px solid transparent` **→** `1px solid var(--filo-superficie)` |
+| `DevoIntervenire.tsx:1687` | le righe del selettore di persone — il ramo «non scelta» passa da `transparent` al filo; `--ink` resta il segno «questa l'hai scelta» |
+| `DevoIntervenire.tsx:1734` | il riquadro «Elementi» — bordo **nuovo** |
+
+🔑 **Perché un token e non una regola CSS:** quelle cinque superfici dipingono il bordo con uno
+`style` inline, e **uno style inline batte sempre una regola di foglio di stile** — un
+`border-color` scritto in `ds-v3.css` non le avrebbe toccate. Si ridefinisce quindi la **variabile**
+(stessa forma delle regole `.ds-medico-riga` / `.ds-via-d212` già in casa). Conseguenza utile: **il
+tema chiaro si chiuderà cambiando UNA riga**, non sette.
+
+### Prima e dopo, in scuro — e la misura di che cosa si è ottenuto
+
+| | prima | dopo |
+|---|---|---|
+| scatto | `06-correzione--390-dark.png` | **`d326-dopo-correzione--390-dark.png`** (+ `--768-` e `--1280-dark`) |
+| riga `--bg-deep` #100E0B ↔ pannello `--card` #211D18 | **1,15:1** | **1,15:1** (invariato) |
+| bordo | **nessuno** | `1px` **#342E26** — `provato:` sonda sul DOM, `getComputedStyle().borderTopColor` = `rgb(52, 46, 38)` su tutte e cinque |
+| bordo ↔ pannello | — | **1,25:1** |
+| bordo ↔ riga | — | **1,44:1** |
+
+Altri due scatti, perché due delle cinque superfici vivono in sotto-passi e **non si vedono dalla
+schermata principale**: `d326-dopo-persone--390-dark.png` (selettore di persone) e
+`d326-dopo-caratteristiche--390-dark.png` (riquadro «Elementi»).
+
+🛑 **E va detto per intero: (b) NON raddrizza l'elevazione, la delimita soltanto.** La riga resta più
+scura del pannello che la contiene — cioè il contrario della regola di §3.2 del design system. Era
+l'esito dichiarato della variante (b) nel referto («*elevazione ancora invertita, ma il bordo si
+legge*»), ma il numero non era mai stato scritto: **1,15:1**, identico a prima.
+
+---
+
+## ② Il tema chiaro — TRE varianti, TRE assi diversi, nessuna scelta
+
+Il vincolo del brief è confermato dalla misura: **in chiaro la variante (b) da sola non si vedrebbe**
+(filo `--line` #EBE4D6 contro pannello `--card` #FFFEFA = **1,25:1**). Per questo `--filo-superficie`
+in chiaro vale `transparent`: il tema chiaro è **una decisione aperta**, non una dimenticanza.
+
+🛑 **Le varianti NON sono nel codice.** Sono state iniettate sulla pagina viva e fotografate. Solo ①
+è entrato nel repository.
+
+| | asse | che cosa fa | separazione riga↔pannello | didascalie 12px sulla riga | scatti (390 · 768 · 1280) |
+|---|---|---|---|---|---|
+| **oggi** | — | `--bg-deep` nudo | **1,23:1** | `--faint` **4,17** ❌ AA | `d326-chiaro-c0-come--<w>-light.png` |
+| **C1** | **il bordo** | `--filo-superficie: color-mix(in srgb, var(--muted) 65%, var(--line))` → **#9A9183** | 1,23 (invariata) **+ filo a 3,08:1** ✅ (WCAG 1.4.11 chiede 3:1) | invariate: **4,17** ❌ | `d326-chiaro-c1-filo--<w>-light.png` |
+| **C2** | **la materia** | `--sh-press` sulle righe premibili, `--sh-card` sui due riquadri che non si premono | 1,23 (invariata) **+ banda d'ombra a 1,26:1** | invariate: **4,17** ❌ | `d326-chiaro-c2-ombra--<w>-light.png` |
+| **C3** | **la tinta** | riga `color-mix(in srgb, var(--muted) 12%, var(--bg-deep))` → **#DDD6C9**, **e** didascalie da `--faint` a `--ink` | **1,43:1** ✅ la sola che alza davvero questo numero | `--ink` **12,11** ✅ AA | `d326-chiaro-c3-riga-scura--<w>-light.png` |
+
+`provato:` i colori risolti sono stati riletti dal DOM, non dedotti — C1 `color(srgb 0.602941
+0.567843 0.51549)` = #9A9183, C3 `color(srgb 0.866196 0.840784 0.789804)` = #DDD6C9. Il calcolatore
+di contrasto (`scripts/tmp/contrasto.mjs`, usa e getta) è stato **tarato su quattro numeri
+indipendenti già scritti in questo referto** — 1,23 · 1,25 · 4,17 · 4,66 — e li riproduce tutti e
+quattro.
+
+**Le tre cose da sapere prima di scegliere:**
+
+1. 🔴 **C3 è l'unica che alza davvero la separazione, ed è anche l'unica che costa.** Alzarla oltre
+   costa in fretta: a **20%** di `--muted` la separazione arriva solo a **1,58** mentre `--faint`
+   scende a **3,25** e perfino `--muted` a **3,63** — tutti e due sotto AA. **È per questo che C3
+   porta con sé il cambio di colore delle didascalie**: senza, a 12% le didascalie starebbero a
+   **3,59**, cioè peggio di oggi. Il fondo del pannello è quasi bianco: scurire la riga allontana la
+   riga dal pannello **e** avvicina il testo alla riga, nella stessa mossa.
+2. **C1 è l'unica che raggiunge una soglia di legge** (3:1 per il contorno di un elemento
+   d'interfaccia, WCAG 1.4.11), e non tocca né la tinta né i testi.
+3. **C2 è gratis in scuro**: `--sh-press` e `--sh-card` valgono `none` nel tema scuro, quindi non può
+   entrare in conflitto con ①. In più dice **che cosa si preme**: l'ombra da premere va solo sulle
+   righe, i due riquadri informativi prendono l'ombra da carta.
+
+📌 **768 e 1280 non aggiungono niente:** a tutte e tre le larghezze il foglio è la stessa colonna da
+480 al centro, quindi le superfici sono identiche. Gli scatti ci sono lo stesso.
+
+---
+
+## 🔴 Dove il mandato di questo compito sbagliava — cinque cose, cercate apposta
+
+1. 🛑 **Il brief separa ❌1 da ❌3, ma il referto dice che vanno chiusi INSIEME** (❌3: «*i due difetti
+   vanno chiusi insieme o si chiude solo metà*»). Il mandato di oggi chiede tre varianti per il
+   **contrasto fra pannello e righe** e non nomina mai i **quattro testi sotto la soglia WCAG**.
+   Conseguenza concreta: **se Francesco sceglie C1 o C2, il ❌3 resta aperto** e servirà una seconda
+   decisione. **Solo C3 lo chiude**, e lo chiude perché è costretta a farlo.
+2. 🔴 **Le superfici `--bg-deep` dentro quel foglio sono SEI, non cinque — e la sesta non è in
+   `DevoIntervenire.tsx`.** `provato:` sonda sul DOM del passo di correzione: **11** superfici con
+   `var(--bg-deep)` dentro `.ds-sheet` (6 righe + 3 pastiglie spente + il blocco «Da qui non si
+   corregge» + **il tasto primario SPENTO**). Il tasto è `TastoPrimario.tsx:90`
+   (`background: disabled ? 'var(--bg-deep)' : …`): in scuro è **#100E0B su un pannello #211D18**,
+   cioè **1,15:1 e senza filo** — esattamente il difetto del ❌1, su una superficie che resta com'era.
+   🔑 **Il censimento del ❌2 era fatto su UN FILE**, e la regola di casa (R-P6) dice che l'elenco non
+   lo decide l'autore. **Non l'ho toccato** (è un componente del design system: R-E2 + migrazione per
+   route), lo riferisco.
+3. **Il brief chiama tutte e cinque «superfici premibili». Tre non si premono:** il blocco «Da qui
+   non si corregge» (988), le pastiglie spente del nastro (1352) e il riquadro «Elementi» (1734). Lì
+   il filo **delimita**, non promette un tocco — per questo il token si chiama `--filo-superficie` e
+   non `--filo-premibile`. Chi leggesse il brief alla lettera concluderebbe che in questo design
+   system un filo significa «si preme», e non è così.
+4. **La divergenza con le due superfici fuori perimetro è VISIBILE, anche se mai nella stessa
+   schermata.** Le nove voci dei motivi (`:926`) restano senza filo: si vedono al passo **prima**
+   (`03-motivo--390-dark.png`), le righe col filo al passo **dopo**
+   (`d326-dopo-correzione--390-dark.png`). Non convivono a schermo, ma **si susseguono a due secondi
+   di distanza dentro lo stesso foglio**. Il brief le dichiara «preesistenti, Task 6, fuori
+   perimetro»: giusto come confine di lavoro, **ma non vuol dire che non si notino**. Stesso discorso
+   per il riquadro «E sul lavoro» (`:1202`), che sta nel passo «dettagli».
+5. **Il brief propone tre assi come se fossero equivalenti** («un filo più marcato, un'ombra, o una
+   riga più scura»). **Misurati, non lo sono:** solo il filo arriva a una soglia di legge; l'ombra
+   vale come banda **1,26:1**, cioè quasi quanto il filo `--line` che il brief stesso dà per
+   invisibile (1,25); e la riga più scura paga in contrasto del testo più di quanto renda in
+   separazione. Non è un errore del brief — è una cosa che si sapeva solo dopo aver misurato, e ora
+   è scritta.
+
+---
+
+## FASE 7 — verde, e allineata alla base
+
+```
+npm run verify:full ; ESITO=$? ; echo "VERIFY_EXIT=$ESITO"
+```
+
+```
+Test Files  450 passed | 6 skipped (456)
+     Tests  5685 passed | 68 skipped (5753)
+✓ Compiled successfully in 4.5s
+VERIFY_EXIT=0
+```
+
+**Identica alla base dichiarata nel mandato** — 5685 passate · 68 saltate su 456 file, `tsc` senza
+errori, `next build` a posto. In più `eslint --max-warnings 0` e le guardie di casa, che stanno
+dentro `verify:full`.
+⚠️ **`$?` letto da variabile e MAI dietro una pipe** (dietro una pipe leggerebbe l'ultimo comando —
+errore già pagato due volte in questo progetto).
+📌 **Nessun test asserisce su questi stili:** `tests/unit/DevoIntervenire.test.tsx` (1239 righe) non
+nomina né `border` né `transparent`. Cercato prima di toccare il codice, non dopo.
+
+---
+
+## Che cosa NON è stato fatto
+
+- **Il tema chiaro NON è stato scelto.** Tre varianti, nessuna nel codice: aspetta Francesco.
+- **Le righe 926 (i nove motivi) e 1202 (il riquadro «E sul lavoro») NON sono state toccate**, né il
+  tasto primario spento del punto 🔴2.
+- **Nessuno degli altri rilievi del gate è stato chiuso:** ❌3 (WCAG), ❌4 (il foglio non torna in
+  cima), ❌5 (odontogramma), ❌6 (la frase tre volte dopo il 409), ⚠️7 (la gerarchia della finestra
+  del Task A) restano tutti aperti.
+- **Il ramo `prefers-reduced-motion` non è stato rifotografato.** Il filo è uno stile fermo e non
+  passa dal motore delle animazioni, quindi vale identico nei due rami — **ma non l'ho visto**.
+- **La guardia della navigazione negli overlay non è stata rilanciata:** questo compito non tocca
+  nessuna navigazione.
+- **Il banco è stato lasciato ESATTAMENTE come l'ho trovato.** La fixture del §7 era **ancora in
+  piedi** (3 denti, 1 prescrizione, la seconda persona): `provato:` contata prima e dopo, invariata.
+  Nessun evento depositato (`eventi_qualita` = **0** prima e dopo), nessuna dichiarazione riemessa
+  (**1**, la stessa). **Non ho creato né cancellato niente.**
+- **Niente è stato pubblicato.**

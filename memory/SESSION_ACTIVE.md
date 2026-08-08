@@ -1,26 +1,20 @@
-# Sessione attiva — 08/08/2026 notte (chiusa alle 23:27)
+# Sessione attiva — 09/08/2026 notte
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-08-atto-unico-si-vede-handoff.md`, **LA §0 PER PRIMA**.
+🚪 **PUNTO DI RIPRESA: far vedere a Francesco le TRE varianti del tema chiaro.** Sezione «D326 —
+applicata» in fondo a `docs/design/screenshots/2026-08-09-devo-intervenire/GATE-L2.md`; scatti
+`d326-chiaro-c1-filo` (bordo, **3,08:1**) · `c2-ombra` (materia, **1,26:1**, gratis in scuro) ·
+`c3-riga-scura` (tinta, separazione **1,23 → 1,43**, **l'unica che chiude anche il ❌3**).
 
-🔴 **La §0 in una riga — sei voci non fatte:** il **Task D-bis** blocca da solo il merge e porta **quattro**
-cose (FASE 9 · gate estetico L2 **×2** · la guardia sugli overlay che **quattro compiti di fila** non hanno
-lanciato · il riquadro del conflitto) · il **Task E** (avviso al dentista, D317) **non è mai stato
-iniziato** · i **Task 9 e 10** del piano precedente restano, e il 10 è **più urgente di prima** · una
-decisione **rimandata e mai portata a Francesco** (`contiene_sostanze_o_tessuti` cablato e **stampato**) ·
-sei righe di coda nuove · gli invariati.
+🎨 **⚖️ D326 ① FATTA — tema scuro.** Il filo è un **token**, non una riga nel componente:
+`--filo-superficie` (`ds-v3.css:37` chiaro `transparent` · `:82` scuro `var(--line)`), consumato dalle
+**cinque** superfici (`DevoIntervenire.tsx:988 · 1352 · 1465 · 1687 · 1734`). Motivo: uno **style inline
+batte sempre una regola CSS**. ⚠️ **(b) delimita e basta:** riga↔pannello resta **1,15:1**.
 
-🌿 Ramo `intervento-post-consegna`, **pubblicato** (`c890ac41`), albero pulito, **169** salvataggi oltre
-`main` — che è **intatto** a `7427a680`.
+🔴 **Riferito, non corretto:** le superfici `--bg-deep` in quel foglio sono **SEI** — l'undicesima sul
+DOM è **il tasto primario spento** (`TastoPrimario.tsx:90`), stesso difetto del ❌1, componente del
+design system (R-E2).
 
-📌 **Misurato in chiusura** (`verify:full`, uscita da variabile **senza pipe**): `VERIFY_EXIT=0` ·
-**5685 passate | 68 saltate su 456 file** · `tsc` 0 · build ok. Stamattina era **5621 | 68 su 454**.
+📌 `verify:full` → **`VERIFY_EXIT=0`** · **5685 | 68 su 456** · `tsc` 0 · build ok — **identica alla
+base**. Banco lasciato com'era (fixture intatta, `eventi_qualita` 0 → 0).
 
-⚖️ **D320-D324** ratificate (324 decisioni in 141 tornate). **D323 porta un EMENDAMENTO**: la forma
-ratificata rompeva due penne, l'esecutore ha deviato di un token e la revisione gli ha dato ragione.
-
-🔑 **La lezione della giornata:** un critico invisibile a **5.685 prove verdi**, perché le prove **fingono
-`fetch`**. *Finché una cosa non gira contro il database da un chiamante vero, «verde» vuol dire «coerente
-con ciò che abbiamo immaginato».*
-
-➡️ **Prima cosa da fare:** il **Task D-bis**, brief già pronto in
-`.superpowers/sdd/atto-unico-task-d-bis-brief.md`.
+🌿 Ramo `intervento-post-consegna`, `main` intatto a `7427a680`.
