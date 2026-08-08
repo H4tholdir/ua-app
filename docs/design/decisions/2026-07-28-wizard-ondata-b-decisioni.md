@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentaseiesima tornata (D315-D317: l'atto unico, i sette campi, e il dentista va avvisato)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentasettesima tornata (D318: un compito salva nominando i propri percorsi)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**317 decisioni in centotrentasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**318 decisioni in centotrentasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3514,3 +3514,50 @@ una che ha valutato.
 non riapre la fattura — emette un documento nuovo **e nello stesso atto atomico sblocca il lavoro**
 (`20260715110000_credito_storno_nota_credito.sql:154`). D308 aveva generalizzato **metà** di quel
 modello (il congelamento) senza l'atto compensativo che porta i valori nuovi. D315 mette la seconda metà.
+
+---
+
+### Centotrentasettesima tornata — D318: un compito salva NOMINANDO i propri percorsi (08/08/2026, 10:35)
+
+> ✅ Orario misurato: `provato:` `date` → **`08/08/2026, 10:35 CEST`**, comando separato.
+
+**Nasce da un errore mio, e l'ha trovato l'esecutore del Task A** riferendolo invece di correggerlo di
+nascosto (R-E2). Mentre lui lavorava in secondo piano su `DevoIntervenire.tsx`, io ho salvato **due
+volte** con `git add -A` un lavoro completamente diverso — l'orario della copia di sicurezza del
+database. Risultato, misurato:
+
+| salvataggio | titolo | che cosa contiene DAVVERO, oltre al titolo |
+|---|---|---|
+| `128379ea` | *chore(salvataggio): la copia si sposta alle 11:00* | `DevoIntervenire.tsx` **+121** · `DevoIntervenire.test.tsx` **+122** |
+| `b5d0d4c8` | *chore(salvataggio): tre sveglie invece di un orario* | il resoconto del Task A · `eventi-qualita-route.test.ts` **+10** |
+
+🛑 **Niente è andato perso** — il codice è tutto lì, e la suite è verde. **Il danno è alla
+RINTRACCIABILITÀ, ed è quello che costa dopo:** un salvataggio intitolato «la copia del database si
+sposta alle 11:00» contiene la correzione di un difetto per cui **l'app dichiarava il falso al posto
+della persona**. Chi fra sei mesi cercasse quando è stata chiusa quella bugia, cercando nei titoli,
+**non la troverebbe**.
+
+| # | Decisione | Regola | Conseguenza |
+|---|---|---|---|
+| **D318** | 📌 **Un compito salva NOMINANDO i propri percorsi: `git add <percorsi>`, mai `git add -A`** | vale per **chi orchestra** e per **ogni esecutore**, e vale **sempre**, non «quando c'è un agente in corso»: chi salva non può sapere che cosa sta scrivendo qualcun altro | R-E1 (un compito per esecutore) è un'**istruzione di processo**; `git add -A` è uno **strumento che la annulla in silenzio**. Erano in conflitto, e nessuno l'aveva scritto |
+
+**🔑 Perché la regola è formulata «sempre» e non «quando c'è lavoro in parallelo».** Una regola che
+chiede di *ricordarsi* che c'è un agente in corso è una regola che fallisce esattamente nel momento in
+cui serve — cioè quando si sta pensando ad altro. È la stessa forma di D155 sulla data: non «controlla
+l'orologio se hai dubbi», ma «esegui `date`, sempre».
+
+**⚠️ Che cosa NON si fa, e va scritto perché è la tentazione immediata:** **non si riscrive la
+storia**. I due salvataggi sono già pubblicati, e riscriverli per farli sembrare puliti costerebbe più
+di quanto vale — oltre a cancellare la prova dell'errore. ➡️ **Si rende trovabile invece che
+invisibile:** la mappa di recupero (`.superpowers/sdd/progress.md`) e la memoria nominano **tutti e tre**
+i salvataggi in cui vive il Task A (`128379ea` · `b5d0d4c8` · `cd8e0ac0`), così chi riprende trova il
+lavoro anche se il titolo non lo dice.
+
+📌 **Il Task A ha trovato altri tre difetti del piano**, tutti corretti da lui e riferiti:
+① «*la guardia ora può accendersi*» era **impreciso** — dopo il Task A la guardia dell'API resta
+**irraggiungibile dal foglio**, ed è **voluto**: l'app indica la strada *prima* del giro al server,
+invece di far guadagnare alla persona un 422 che leggerebbe come guasto · ② la mia diagnosi su
+`post_consegna_correzioni` era **sbagliata**: non è un effetto del cablaggio, è un predicato con la sua
+ragione scritta, **non va riparato** · ③ «*esiste una guardia automatica sul lessico*» **non era vera
+per quel file**: le due prove scorrono `MOTIVI` su altri moduli, e le stringhe dentro il componente non
+erano coperte da niente. La rete l'ha aggiunta lui.

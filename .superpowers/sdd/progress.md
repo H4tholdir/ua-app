@@ -536,3 +536,40 @@ Base del piano: `be6e2c59`. 🛑 I brief/report di QUESTO piano hanno prefisso `
   spegnerebbe «in silenzio». **È il contrario**, misurato: si accenderebbe **di più** (un valore assente
   risulta diverso), fino a un 422 su ogni salvataggio. Codice giusto, descrizione del rischio invertita.
   📈 `verify:full` **uscita 0**: 5487 passate | 68 saltate su **451** file (da 5470/450), tsc 0, build ok.
+
+## PIANO «CORREGGI E RIFAI LA DICHIARAZIONE» (ATTO UNICO) — 08/08/2026
+Piano: `docs/superpowers/plans/2026-08-08-correzione-e-riemissione-atto-unico.md` (5 compiti: A-E)
+Base: `22cc54f2`. 🛑 I brief/report di QUESTO piano hanno prefisso `atto-unico-`.
+Decisioni: **D314** (ogni campo che alimenta il documento) · **D315** (atto unico) · **D316** (sette
+voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
+
+- **ATTO-UNICO-A: COMPLETO** — «la bugia smette di essere silenziosa».
+  🛑 **I SALVATAGGI NON SONO QUELLI CHE IL TITOLO LASCEREBBE CREDERE, e va letto prima di cercarli:**
+  il compito vive in **`128379ea`** (titolo: *chore(salvataggio)…11:00*) · **`b5d0d4c8`** (titolo:
+  *chore(salvataggio)…tre sveglie*) · **`cd8e0ac0`** (il resoconto). Causa: `git add -A` di chi
+  orchestra mentre l'esecutore lavorava in secondo piano. **Niente perso, suite verde** — il danno è
+  alla rintracciabilità. ⚖️ **Chiuso da D318: un compito salva NOMINANDO i propri percorsi.**
+  ✅ **ESITO.** `registra()` non decide più al posto della persona: prende `statoDichiarato` dal
+  chiamante, e il ternario `sbaglio ? 'mai_uscito_dal_lab' : statoDisp` **è sparito**. La finestra che
+  c'era già è passata da **conferma a DOMANDA** — «Il manufatto è uscito dal laboratorio?» — con «Sì, è
+  uscito» che **non manda niente** e riporta all'elenco con la strada scritta in cima (D262), col nome
+  del motivo **preso da `MOTIVI_UI`** invece che ricopiato. La fase si chiama ora `domandaUscito`.
+  **R-P4: 2 su 12** (primo rosso 12/24 → abbozzo inerte 2/24 → verde 24/24).
+  🔑 **TRE DIFETTI DEL PIANO, tutti miei, trovati e corretti da lui:** ① «la guardia ora può accendersi»
+  era **impreciso** — dopo il Task A resta **irraggiungibile dal foglio**, ed è **voluto**: l'app indica
+  la strada *prima* del giro al server invece di far guadagnare un 422 che si legge come guasto ·
+  ② la mia diagnosi su `post_consegna_correzioni` era **sbagliata** (è un predicato con la sua ragione
+  scritta: **non si ripara**) · ③ «esiste una guardia sul lessico» **non era vera per quel file** — le
+  due prove scorrono `MOTIVI` su altri moduli, e le stringhe del componente non erano coperte da
+  niente: la rete l'ha aggiunta lui.
+  🟠 **FASE 9b DOVUTA E NON FATTA:** cambiano titolo, corpo ed entrambe le etichette della finestra, e
+  nasce un riquadro → per **D245 è ASPETTO**. Deferita al **Passo 5 del Task D**, che copre la stessa
+  superficie. 🛑 **Se il Task D non si facesse, il gate resta scoperto.**
+  🟠 Altri due riferiti: `Esc` sopra la finestra fa scattare **due** ascoltatori (`Sheet.tsx:160` e
+  `DialogConferma.tsx:87` — la pila di `storia-overlay.ts` protegge «indietro», non `Esc`; preesistente)
+  · `Esc`, scrim e gesto «indietro» finiscono sullo stesso `onAnnulla` di «Sì, è uscito», quindi chi
+  esce senza rispondere vede comunque l'avviso (distinguerli cambierebbe il contratto di
+  `DialogConferma`).
+  📌 **Per il Task B:** la firma `registra(statoDichiarato)` è nuova · la fase si chiama `domandaUscito`
+  · il contatore resta a zero **ed è giusto** · la prova di lessico copre il **solo** percorso corto.
+  📈 `verify:full` **uscita 0**: 5492 passate | 68 saltate su 451 file, tsc 0, build ok.
