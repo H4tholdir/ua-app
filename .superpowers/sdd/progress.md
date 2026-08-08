@@ -799,6 +799,69 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   foglio**, nato per una pagina intera e con token **v2.3**. Più le tinte delle quattro superfici nuove
   (**scostamento numero sette, non dichiarato**: il mockup scrive `--elv`, il codice `--bg-deep`).
 
+- **ATTO-UNICO-D-ter: COMPLETO** (`3fa0e319` · `01b62a0e`, revisione **APPROVATO CON RILIEVI**,
+  **1 critico + 3 importanti**). Chiude i quattro rilievi del Task D: il censimento delle prove (le
+  cinque mutazioni del revisore **prima 5/5 verdi → dopo 5/5 accese, e sull'asserzione giusta**), il
+  commento falso sui token, il vicolo cieco del 409 (**l'evento non si butta più**: sopravvive in
+  `eventoDaRiusare`) e **F1** (il gettone stantìo, chiuso in `ModificaRigaSheet.salva` prendendolo
+  **dalla risposta** e non dal patch della richiesta).
+  📈 `5649` → **`5659 | 68 su 454`** · `VERIFY_EXIT=0` rilanciato dal revisore.
+  🔑 **La decisione sul 409, e la sua ragione:** il riquadro **non racconta la causa** perché la rotta
+  manda **sei** 409 diversi distinti **solo a parole** — una causa scritta lì sarebbe falsa su cinque
+  rami su sei, cioè *lo stesso errore del commento falso, un piano più su*.
+  🔴 **DIFETTO DEL BRIEF, dell'orchestratore:** «*dopo un fallimento non è stato scritto niente*» è
+  **falso** — il PDF è già reso e caricato («*un file orfano e un numero bruciato*»). La conclusione
+  reggeva, la ragione no, e chi l'avesse presa alla lettera avrebbe scritto a schermo una rassicurazione
+  che il codice stesso mette in guardia dal dare.
+  🔴 **E IL CRITICO C1 DELLA REVISIONE → D323 e il Task D-quater** (v. sotto).
+
+- **ATTO-UNICO-D-quater: COMPLETO** (`4a03f365` · `bafc356d` · `ccfa3023`, revisione **APPROVATO CON
+  RILIEVI, nessun critico**). Esegue ⚖️ **D323**. Migration **`20260808195344_lavori_gettone_solo_se_cambia.sql`**,
+  applicata e nel ledger (pavimento nuovo); **corpo vivo identico byte a byte al file**; trigger
+  **riagganciato**; `trigger_set_updated_at` condivisa **intatta e ancora su 36 trigger**; ACL
+  `{postgres, service_role}`; `search_path` fissato.
+  📈 `5659 | 68 su 454` → **`5676 | 68 su 455`** · `VERIFY_EXIT=0` **rilanciato dal revisore** e
+  identico · **R-P4: 13 mutazioni, 13 accese**; il revisore ne ha riprodotte **6 su 6, sull'asserzione
+  giusta**.
+  🔴 **L'ESECUTORE HA DEVIATO DALLA FORMA RATIFICATA — di UN TOKEN — E AVEVA RAGIONE.**
+  `provato:` dal revisore, sonda propria con **penne vere** e **12 fixture**: forma **ratificata 4 casi
+  su 6**, forma **spedita 6 su 6**. Il caso peggiore è reale: con la forma ratificata
+  `lavoro_denti_sostituisci_atomica` **riesce** (`esito: ok`), **scrive davvero** i denti (`0M1`→`0M2`) e
+  **restituisce il gettone vecchio** — e siccome quella penna fa `DELETE` + `INSERT` dell'intera
+  collezione, **l'aggiornamento perso è TOTALE**. ➡️ **Il verbale è stato EMENDATO** (`f06408ba`), e la
+  ragione per cui l'emendamento sta lì e non in un resoconto: *la guardia dei documenti controlla la
+  coerenza, non la verità — non può vedere uno scarto fra un verbale e una funzione in banca dati.*
+  📌 **La deviazione non compra il critico** (il contatore è chiuso da **entrambe** le forme): **compra le
+  due penne.**
+  🔴 **SEI DIFETTI DEL BRIEF, due bloccanti, tutti dell'orchestratore:** **B1** il blocco SQL del brief
+  **non riagganciava il trigger** → applicato così sarebbe stato **un no-op verde**, e ogni sonda avrebbe
+  misurato il comportamento vecchio · **B2** la forma ratificata rompe le due penne · **B3** togliere
+  `PATCH:803` senza guardia trasforma un salvataggio a vuoto in un **500** (`PGRST116`, misurato), e ci
+  si arriva per **tre** strade · **B4** il §3 non diceva né **dove** stesse il controllo rispetto alla
+  porta d'idempotenza né che il confronto dovesse essere **più debole** di quello della RPC (`Z` contro
+  `+00:00` → 409 permanente) · **B5** l'elenco di 8 oggetti ne ometteva **5** (sono **13**) · **B6** sul
+  numero di riga aveva ragione il brief, non la revisione precedente.
+  🟠 **I QUATTRO RILIEVI DELLA REVISIONE.** 🔴 **I1 — IL CUORE DI D323 NON HA NESSUNA PROVA:** tre
+  mutazioni **nuove** sulla migration restano **verdi**, fra cui **rimettere `- 'updated_at'`** — cioè
+  **esattamente la regressione che l'emendamento dichiara di temere** — e **non riagganciare il trigger**
+  (il difetto B1). 🔑 Il modello per chiuderla è **già in casa**: `*-spia-migration.test.ts`, che gira
+  dentro `verify:full`. · **I2** chi può sfilarsi dalla pinzatura: misurato con `SET LOCAL ROLE`, **solo
+  il codice di server** (un update diretto come `authenticated` muore su `42501`) → il `COMMENT` dichiara
+  «fail-closed», **vero per le colonne, falso per gli scrittori** · **I3** la scorciatoia del carico
+  vuoto può rispondere **200 `{lavoro: null}`** (finestra stretta, terzo contratto di risposta) ·
+  **I4** il censimento vero è **20 funzioni** che scrivono `lavori`, non 11 — **nessun quattordicesimo
+  oggetto rotto**, quindi *la conclusione regge, il metodo no*.
+  ⚠️ **LA DOMANDA APERTA PIÙ SCOMODA, e va guardata in FASE 9:** il foglio si chiude con
+  `setFase('chiuso')` **ma è montato con `onChiudi={ricomincia}`**, e `ricomincia` cancella le
+  correzioni. **In jsdom quel meccanismo è finto**: se su un browser vero la chiusura programmatica
+  facesse partire anche `onChiudi`, il difetto tornerebbe intero.
+  🟠 Altri riferiti: `ddc_lavoro_attiva_unique` manca da `atto-unico-errori.ts:88-97` (**quattro** indici
+  unici, **tre** mappati → `throw` → 500 illeggibile) · i 409 sono ora **sette** e si distinguono solo a
+  parole · `useLavoroForm.ts:291` manda `?? null`, che la rotta dei denti rifiuta con 422 ·
+  🔑 **`_audit_lavori` registra ora righe con `old_data.updated_at == new_data.updated_at`, e D324
+  costruisce il registro su quella tabella** · il costo di `to_jsonb` due volte per `UPDATE` **non
+  misurato** su volumi.
+
 > 🔑 **IL FILO DELLA GIORNATA, e vale più di ogni singolo compito: QUATTRO VOLTE una prova che non
 > poteva fallire.** ① `now()` è costante in transazione → la sonda sul conflitto era verde per forza ·
 > ② `scripts/psql.mjs` si collega come **`postgres`**, cioè come proprietario → ogni sonda sui permessi
