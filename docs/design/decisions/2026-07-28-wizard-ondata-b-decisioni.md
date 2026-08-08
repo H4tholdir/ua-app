@@ -3746,6 +3746,39 @@ a caso insegna che gli allarmi sono rumore, e si paga su quelli veri.*
 |---|---|---|---|
 | **D323** | 🔑 **IL GETTONE DI `lavori` SI MUOVE SOLO SE CAMBIA DAVVERO QUALCOSA CHE NON SIA IL CONTATORE.** `lavori` riceve una **propria** funzione di trigger che confronta la riga vecchia con la nuova al netto di `post_consegna_correzioni` e `updated_at`, e se sono uguali **pinza** il gettone al valore vero. **Più due aggiunte:** il controllo del gettone si sposta **prima del render del PDF** dentro `…/riemetti` (che ha già la riga fresca in mano: **zero query in più**), e il foglio **raccoglie l'`updated_at` che il server già restituisce** su successo **e** su 409 | «**ok**» | ⚖️ **Panel a tre, convergente**: confini API · concorrenza · banco e normativa. **7 sonde** del secondo advisor, in transazione annullata, **compreso il valore che DEVE essere rifiutato** (un payload con `updated_at` falso **non atterra**). 🔑 E la sonda 3 ha trovato più del mandato: **anche un salvataggio che non cambia niente** brucia oggi il gettone — D323 chiude anche quello |
 
+> 🔄 **EMENDAMENTO A D323, MISURATO DALL'ESECUTORE E RIVERIFICATO SUL CATALOGO VIVO (08/08/2026, 22:29).
+> La riga qui sopra descriveva un predicato che AVREBBE ROTTO DUE PENNE.**
+>
+> Avevo scritto «al netto di `post_consegna_correzioni` **e `updated_at`**». **Sbagliato.** Il predicato
+> vero — `provato:` `pg_get_functiondef(public.lavori_set_updated_at)`, riletto dal catalogo e non dal
+> file — sottrae **solo `post_consegna_correzioni`**:
+> ```
+> IF to_jsonb(OLD) - 'post_consegna_correzioni'
+>    IS NOT DISTINCT FROM to_jsonb(NEW) - 'post_consegna_correzioni'
+> THEN NEW.updated_at = OLD.updated_at; ELSE NEW.updated_at = now(); END IF;
+> ```
+> 🔑 **La differenza è UN TOKEN e vale un aggiornamento perso TOTALE.** Sottraendo anche `updated_at`,
+> un `UPDATE` che assegna **soltanto** quel campo diventa indistinguibile da un no-op e viene **pinzato**.
+> Due penne del catalogo fanno esattamente così, ed erano state **misurate** dall'esecutore:
+> · `lavoro_prescrizione_correggi_typo` — `UPDATE lavori SET updated_at = now()` è la **sola** riga che
+> tocca `lavori`: pinzata, **il suo controllo di concorrenza diventa inerte**;
+> · `lavoro_denti_sostituisci_atomica` — una correzione che cambia **solo il codice colore** di un dente
+> lascia i tre array denormalizzati identici, e quella penna fa **DELETE + INSERT**: l'aggiornamento
+> perso sarebbe **totale**. *Il commento di quella penna lo aveva previsto per iscritto.*
+> 📌 **Censimento vero: 13 oggetti, non 8** (il panel ne elencava otto). Con la forma **spedita**: **0 si
+> rompono**. Con la forma che avevo **ratificato**: **2**.
+> 🛑 **Perché questa riga sta qui e non è un dettaglio da resoconto:** la guardia dei documenti controlla
+> la **coerenza**, non la **verità** — non può vedere uno scarto fra un verbale e una funzione in banca
+> dati. Se il testo restasse quello sbagliato, **la prima «pulizia» che nota la differenza rimetterebbe
+> `- 'updated_at'`** riaprendo l'aggiornamento perso, *con la convinzione di star sistemando un refuso.*
+> ⚖️ **Conseguenza accettata, e va detta:** il trigger e la riga `payload.updated_at = new Date()…` di
+> `PATCH /api/lavori/[id]` diventano **accoppiati** — chi rimettesse quella riga spegnerebbe la pinzatura
+> su ogni PATCH. Serve una sentinella che li tenga insieme.
+> 🔑 **E la lezione, che è quella della giornata al suo tredicesimo giro:** *il pezzo di SQL scritto in un
+> piano è **non eseguito** finché qualcuno non lo esegue.* Il blocco che avevo messo nel brief, per
+> giunta, **non riagganciava nemmeno il trigger** — applicato così sarebbe stato **un no-op verde**, e
+> ogni sonda avrebbe misurato il comportamento vecchio.
+
 **Le controindicazioni, scritte perché il panel le ha scritte e non si nascondono:**
 - **Cambia il SIGNIFICATO di `lavori.updated_at` per tutti**, da «ultimo tentativo di scrittura» a «ultimo
   cambiamento vero». Lo usano **tre funzioni del catalogo** più tre rotte e una schermata: il panel
