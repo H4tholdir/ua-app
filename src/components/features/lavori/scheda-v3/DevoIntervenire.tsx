@@ -21,6 +21,18 @@
 //    niente**; «ho sbagliato a premere CONSEGNA» è uno dei nove motivi e
 //    **ripristina tutto**. Sono nominati diversamente apposta.
 //
+// 🛑 E IL PERCORSO CORTO CHIEDE, NON AFFERMA — Task A dell'atto unico
+//    (08/08/2026, `docs/superpowers/plans/2026-08-08-correzione-e-riemissione-
+//    atto-unico.md`). Fino a quel giorno `stato_dispositivo` era **cablato** a
+//    `mai_uscito_dal_lab` su quel ramo: l'app dichiarava al posto della persona
+//    che il manufatto non era mai uscito di qui. Su un manufatto uscito davvero
+//    è una dichiarazione falsa — e quel motivo **annulla** il documento (D293 ·
+//    Art. 21(2) MDR). Era anche la strada più CORTA per correggere un refuso,
+//    cioè quella che le persone prendono.
+//    ➡️ Adesso la stessa finestra — nessun tocco in più (D269) — pone la
+//    domanda; chi risponde «sì, è uscito» non registra niente e torna
+//    all'elenco con la strada scritta in cima (D262).
+//
 // 🛑 UN SOLO OVERLAY PER TUTTO IL PERCORSO, E NON È UNA SCELTA DI STILE: È UN
 //    DIFETTO MISURATO IL 07/08 SULLO SCHERMO VERO, che quindici prove unitarie
 //    verdi non avevano visto.
@@ -68,11 +80,19 @@ import {
   FAMIGLIE, MOTIVI_UI, motiviDellaFamiglia,
   DOMANDE, ORIGINE_UI, STATO_UI, DANNO_UI, ESITO_UI,
 } from '@/lib/qualita/motivi-ui'
-import { effettoDaMotivo } from '@/lib/qualita/effetti'
+// 🔄 `effettoDaMotivo` NON SI IMPORTA PIÙ: era la fonte del testo del
+//    `DialogConferma` del percorso corto, che ora porta la DOMANDA del Task A e
+//    non più la descrizione dell'effetto. Il `perche` di quel motivo resta vivo
+//    dov'era già: arriva dal server dentro `risposta.effetto.perche`, e si legge
+//    sulla schermata d'esito.
 import type { AzioneAutomatica } from '@/lib/qualita/effetti'
 
-/** Le fasi del percorso. `chiuso` è lo stato a riposo: la riga sulla scheda. */
-type Fase = 'chiuso' | 'domanda' | 'motivo' | 'confermaSbaglio' | 'dettagli' | 'proposta' | 'esito'
+/** Le fasi del percorso. `chiuso` è lo stato a riposo: la riga sulla scheda.
+ *
+ *  🔄 `confermaSbaglio` SI CHIAMAVA COSÌ, e il nome è cambiato col Task A: quel
+ *  passo non conferma più niente, **chiede**. Un nome che dice «conferma» sopra
+ *  una domanda è il primo passo perché qualcuno la riscriva come conferma. */
+type Fase = 'chiuso' | 'domanda' | 'motivo' | 'domandaUscito' | 'dettagli' | 'proposta' | 'esito'
 
 /** Il titolo del foglio cambia col passo: è UN foglio solo, e il titolo è la
  *  sola cosa che dice a che punto si è. */
@@ -80,7 +100,7 @@ const TITOLI: Record<Fase, string> = {
   chiuso: '',
   domanda: 'Vuoi intervenire su questo lavoro?',
   motivo: 'Che cos\'è successo?',
-  confermaSbaglio: 'Che cos\'è successo?',
+  domandaUscito: 'Che cos\'è successo?',
   dettagli: 'Qualche dettaglio',
   proposta: 'Ecco cosa ne penso',
   esito: 'Fatto',
@@ -168,6 +188,9 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
   const [lavorando, setLavorando] = useState(false)
   const [confermata, setConfermata] = useState(false)
   const [daRinfrescare, setDaRinfrescare] = useState(false)
+  /** La persona ha risposto «sì, è uscito» alla domanda del percorso corto:
+   *  l'elenco dei motivi le mostra in cima la strada giusta (D262). */
+  const [uscitoDichiarato, setUscitoDichiarato] = useState(false)
 
   /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
    *  difetto MISURATO sullo schermo vero il 07/08 (FASE 9), e il giro nei dati
@@ -183,20 +206,36 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
     setEsitoScelto(null); setCambiando(false); setConfermata(false)
     setOrigine('laboratorio_interno'); setStatoDisp('consegnato_non_applicato')
     setDanno('da_valutare'); setConosciuto(adessoLocale())
+    setUscitoDichiarato(false)
     if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
   }
 
   function scegliMotivo(m: Motivo) {
     setMotivo(m)
-    // 🛑 «Ho premuto consegna per sbaglio» NON chiede le quattro caselle: la
-    //    consegna non è avvenuta, quindi non c'è un «dov'era il manufatto» da
-    //    rispondere. E l'app non lascia nemmeno sceglierlo — la rotta rifiuta
-    //    quel motivo con qualunque stato diverso da «mai uscito», perché
-    //    annullerebbe la dichiarazione di un manufatto uscito davvero.
-    setFase(m === 'errore_registrazione' ? 'confermaSbaglio' : 'dettagli')
+    // 🛑 «Ho premuto consegna per sbaglio» NON chiede le quattro caselle — la
+    //    consegna non è avvenuta, quindi non c'è nessuna delle altre tre da
+    //    rispondere — ma UNA la chiede: **dov'era il manufatto**. È l'unica che
+    //    decide se quel motivo sia lecito, perché porta l'annullamento della
+    //    dichiarazione (v. il riquadro sul `DialogConferma`).
+    setFase(m === 'errore_registrazione' ? 'domandaUscito' : 'dettagli')
   }
 
-  async function registra() {
+  /**
+   * `statoDichiarato` ARRIVA DAL CHIAMANTE, e non è un dettaglio di firma.
+   *
+   * 🔴 Qui c'era `stato_dispositivo: sbaglio ? 'mai_uscito_dal_lab' : statoDisp`
+   * — cioè, sul percorso corto, **il foglio affermava al posto della persona**
+   * che il manufatto non era mai uscito dal laboratorio. Nessuno gliel'aveva
+   * chiesto: la finestra che compariva era una conferma («Confermi? Il lavoro
+   * torna fra i pronti»), non una domanda.
+   * 🔑 Perché era grave: quel motivo riporta il lavoro fra i pronti **e annulla
+   * la dichiarazione**. Su un manufatto uscito davvero è una dichiarazione
+   * falsa (D293 · Art. 21(2) MDR) — ed era la strada **più corta** per
+   * correggere un refuso, cioè quella che le persone prendono.
+   * ➡️ Adesso il valore è la trascrizione di una risposta: il tasto che lo manda
+   * dice «No, è sempre rimasto qui», e i due si leggono in una schermata sola.
+   */
+  async function registra(statoDichiarato: StatoDispositivo) {
     if (!motivo) return
     setLavorando(true)
     try {
@@ -204,8 +243,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
       const corpo: Record<string, unknown> = {
         motivo,
         origine_informazione: sbaglio ? 'laboratorio_interno' : origine,
-        // 🛑 Fissato, non chiesto: v. `scegliMotivo`.
-        stato_dispositivo: sbaglio ? 'mai_uscito_dal_lab' : statoDisp,
+        stato_dispositivo: statoDichiarato,
         conosciuto_il: sbaglio ? adessoLocale() : conosciuto,
       }
       // 🔑 Sul percorso corto `potenziale_di_danno` NON si manda: lo mette il
@@ -328,6 +366,29 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
       {/* ③ I NOVE MOTIVI, IN CINQUE FAMIGLIE (D300) */}
       {fase === 'motivo' && (
         <>
+        {/* ⚖️ D262 — UN RIFIUTO INDICA LA STRADA, NON SI LIMITA A VIETARE.
+            Senza questa riga chi ha appena risposto «sì, è uscito» torna davanti
+            allo stesso elenco che l'ha appena rimandato indietro, e prende il
+            motivo più vicino: è così che una guardia su un campo produce un dato
+            falso su un altro.
+            🔑 Il nome del motivo si PRENDE da `MOTIVI_UI`, non si ricopia: se un
+            giorno l'etichetta cambia, questa frase non resta a indicare una voce
+            che a schermo non si chiama più così. */}
+        {uscitoDichiarato && (
+          <div style={{
+            borderRadius: raggio.riga, padding: `13px ${spazio.m}px`,
+            background: 'var(--blue-tint)',
+          }}>
+            <b style={{ display: 'block', fontSize: 15, color: 'var(--blue)', marginBottom: 3 }}>
+              Allora la consegna è avvenuta davvero
+            </b>
+            <span style={{ fontSize: 14.5, color: 'var(--muted)', lineHeight: 1.45 }}>
+              Se il problema è un dato scritto sulla dichiarazione, scegli{' '}
+              <b style={{ color: 'var(--ink)' }}>«{MOTIVI_UI.errore_dato_dichiarazione.etichetta}»</b>:
+              {' '}si corregge il dato e si rifà il documento, e quello vecchio resta in archivio.
+            </span>
+          </div>
+        )}
         <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
           Scegli il motivo: da quello l&apos;app capisce cosa fare.
         </p>
@@ -434,7 +495,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
         />
 
         <TastoPrimario
-          onClick={() => { if (!lavorando) void registra() }}
+          onClick={() => { if (!lavorando) void registra(statoDisp) }}
           disabled={lavorando || !puoContinuare}
           motivoDisabilitato={lavorando ? 'Sto registrando…' : 'Scrivi in due parole di cosa si tratta'}
         >
@@ -583,18 +644,32 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
 
       {/* ③-bis IL PERCORSO CORTO — il DialogConferma sta SOPRA il foglio, che
           resta aperto: è il caso che `storia-overlay.ts` sostiene per
-          costruzione, non una seconda consegna di testimone. */}
+          costruzione, non una seconda consegna di testimone.
+
+          🔴 ERA UNA CONFERMA, ED È DIVENTATO UNA DOMANDA (Task A dell'atto
+          unico). Il difetto, misurato: `stato_dispositivo` era cablato a
+          `mai_uscito_dal_lab` su questo percorso, quindi **l'app affermava al
+          posto della persona** che il manufatto non era mai uscito — e la
+          guardia della rotta che rifiuta quel motivo su un manufatto uscito
+          (`eventi-qualita/route.ts:246`) non poteva accendersi mai da qui.
+          🛑 ZERO TOCCHI IN PIÙ (D269): la finestra c'era già, cambia solo che
+          cosa chiede. L'`occhiello` «Confermi?» è stato tolto perché era
+          proprio la parola della conferma.
+          ⚠️ COSTO DICHIARATO: Esc, tocco sullo scrim e gesto «indietro»
+          finiscono sullo STESSO `onAnnulla` del tasto «Sì, è uscito» — il
+          componente di sistema espone due callback, non tre, e cambiarne il
+          contratto è fuori da questo mandato. Chi esce senza rispondere vede
+          quindi anche l'avviso in cima all'elenco. Non si scrive niente. */}
       <DialogConferma
-        aperto={fase === 'confermaSbaglio'}
-        occhiello="Confermi?"
-        titolo="Il lavoro torna fra i pronti"
-        testo={effettoDaMotivo('errore_registrazione').perche}
+        aperto={fase === 'domandaUscito'}
+        titolo="Il manufatto è uscito dal laboratorio?"
+        testo="Con questo motivo il lavoro torna fra quelli pronti e la dichiarazione già emessa viene annullata — non superata: annullata. Va bene solo se il manufatto non è mai uscito di qui."
         centraTesto
         primarioSopra
-        etichettaDistruttiva={lavorando ? 'Un attimo…' : 'Sì, riportalo indietro'}
-        etichettaSicura="Annulla"
-        onConferma={() => { if (!lavorando) void registra() }}
-        onAnnulla={() => setFase('motivo')}
+        etichettaDistruttiva={lavorando ? 'Un attimo…' : 'No, è sempre rimasto qui'}
+        etichettaSicura="Sì, è uscito"
+        onConferma={() => { if (!lavorando) void registra('mai_uscito_dal_lab') }}
+        onAnnulla={() => { setUscitoDichiarato(true); setFase('motivo') }}
       />
     </>
   )

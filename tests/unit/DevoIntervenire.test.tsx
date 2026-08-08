@@ -96,17 +96,79 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    // Va alla conferma, non ai dettagli.
-    expect(screen.getByRole('heading', { name: 'Il lavoro torna fra i pronti' })).toBeTruthy()
+    // Va alla domanda, non ai dettagli.
+    expect(screen.getByRole('heading', { name: 'Il manufatto è uscito dal laboratorio?' })).toBeTruthy()
     expect(screen.queryByText('Dov\'era il manufatto?')).toBeNull()
   })
 
-  it('🛑 e quando registra, manda «mai uscito» — mai uno stato scelto a mano', async () => {
+  // ─── TASK A — «LA BUGIA SMETTE DI ESSERE SILENZIOSA» ──────────────────────
+  //
+  // 🔴 IL DIFETTO CHE QUESTE QUATTRO PROVE CHIUDONO, misurato (P6 del piano
+  // dell'atto unico, `docs/superpowers/plans/2026-08-08-…`): il foglio
+  // AFFERMAVA al posto della persona che il manufatto non era mai uscito dal
+  // laboratorio — `stato_dispositivo: sbaglio ? 'mai_uscito_dal_lab' : …`,
+  // cablato. La domanda non veniva mai posta: veniva posta una CONFERMA.
+  // 🔑 Perché conta: quel motivo riporta il lavoro fra i pronti **e annulla la
+  // dichiarazione**. Su un manufatto uscito davvero è una dichiarazione falsa
+  // (D293, Art. 21(2) MDR) — ed era la strada **più corta** per correggere un
+  // refuso, cioè quella che le persone prendono. La bugia non la diceva la
+  // persona: la diceva l'app.
+  it('🛑 il percorso corto CHIEDE se il manufatto è uscito — non lo afferma al posto della persona', () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+
+    expect(screen.getByRole('heading', { name: 'Il manufatto è uscito dal laboratorio?' })).toBeTruthy()
+    // 🛑 La parola della conferma non c'è più: questa è una domanda, e le due
+    //    cose chiedono gesti diversi a chi legge.
+    expect(screen.queryByText('Confermi?')).toBeNull()
+    // Il testo dice il costo per intero, e non lo attenua.
+    expect(screen.getByText(/non superata: annullata/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'No, è sempre rimasto qui' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sì, è uscito' })).toBeTruthy()
+  })
+
+  it('🛑 «Sì, è uscito» NON registra niente: riporta all\'elenco dei motivi', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, è uscito' }))
+
+    await waitFor(() => expect(screen.getByText('Difetto di lavorazione')).toBeTruthy())
+    // 🔑 «non registra niente» è un'affermazione, e qui è una prova.
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  // ⚖️ D262 — un rifiuto INDICA LA STRADA invece di vietare. Senza questa riga
+  // la persona resta davanti a un elenco che ha già rifiutato, e prende il
+  // motivo più vicino: è il modo in cui una guardia produce un dato falso su un
+  // altro campo.
+  it('🛑 e l\'elenco porta in cima la strada da prendere, col nome esatto del motivo (D262)', async () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, è uscito' }))
+
+    await waitFor(() => expect(screen.getByText(/Allora la consegna è avvenuta davvero/)).toBeTruthy())
+    // Il nome del motivo si legge due volte — nell'avviso in cima e nella riga
+    // dell'elenco — ed è la STESSA stringa, perché l'avviso la prende da
+    // `MOTIVI_UI` invece di ricopiarla.
+    expect(screen.getAllByText(/C'è un dato sbagliato sulla dichiarazione/).length).toBeGreaterThanOrEqual(2)
+  })
+
+  // 🔄 SI CHIAMAVA «manda "mai uscito" — mai uno stato scelto a mano», ed era il
+  // nome giusto per il difetto: lo stato NON si sceglieva. Adesso si sceglie
+  // rispondendo, e un nome che dicesse il contrario sarebbe una prova verde che
+  // afferma la decisione rovesciata.
+  it('🛑 e «No, è sempre rimasto qui» manda lo stato che la persona ha DICHIARATO', async () => {
     const spia = fingiFetch({ ...RISPOSTA_OK, esito_azione: { stato: 'applicato', dichiarazione_assente: false } })
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(spia).toHaveBeenCalled())
     const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
@@ -116,6 +178,46 @@ describe('DevoIntervenire', () => {
     // default prudente. Mandare «nessuno» sarebbe affermare che non c'era
     // pericolo — una risposta che nessuno ha dato.
     expect(corpo).not.toHaveProperty('potenziale_di_danno')
+  })
+
+  // 🛑 USCIRE DALLA DOMANDA SENZA RISPONDERE NON REGISTRA NIENTE. Esc, tocco
+  // sullo scrim e gesto «indietro» del telefono finiscono tutti e tre sullo
+  // STESSO callback del `DialogConferma` (`:87-92`, `useTapScrim`,
+  // `entraOverlay('uaDialog', …)`): non sono distinguibili dal tasto «Sì, è
+  // uscito» senza cambiare il contratto del componente di sistema — fuori
+  // mandato. ➡️ Costo dichiarato: chi esce con Esc vede anche l'avviso in cima
+  // all'elenco. Non si scrive niente, e la cosa che conta è provata qui.
+  it('l\'uscita dalla domanda senza rispondere non registra niente', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Il manufatto è uscito dal laboratorio?' })).toBeNull())
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  // ⚖️ D301 · D302 — le parole di casa: «manufatto», mai «pezzo»;
+  // «dichiarazione», mai «carta».
+  // 🛑 NESSUNA GUARDIA AUTOMATICA COPRE LE STRINGHE SCRITTE DENTRO QUESTO
+  // COMPONENTE: `qualita-motivi-ui.test.ts:48` e `qualita-effetti.test.ts:175`
+  // scorrono `MOTIVI` sui due file di TESTI (`motivi-ui.ts`, `effetti.ts`), non
+  // sul JSX. Questa prova è la rete per le parole del percorso corto.
+  it('🛑 nessuna parola del percorso corto dice «pezzo» o «carta» (D301, D302)', async () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    const domanda = (document.body.textContent ?? '').toLowerCase()
+    expect(domanda).not.toMatch(/\bpezzo\b/)
+    expect(domanda).not.toMatch(/\bcarta\b/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, è uscito' }))
+    await waitFor(() => expect(screen.getByText(/Allora la consegna è avvenuta davvero/)).toBeTruthy())
+    const elenco = (document.body.textContent ?? '').toLowerCase()
+    expect(elenco).not.toMatch(/\bpezzo\b/)
+    expect(elenco).not.toMatch(/\bcarta\b/)
   })
 
   // ⚖️ spec §5 — «da valutare» è acceso, e «no» non è la via più rapida.
@@ -179,7 +281,7 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('Ma il lavoro non è tornato indietro').length).toBeGreaterThan(0))
     expect(screen.getByText('Riportalo tu fra quelli pronti.')).toBeTruthy()
@@ -190,7 +292,7 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('Il lavoro non era da riportare indietro').length).toBeGreaterThan(0))
     expect(screen.queryByText('Ma il lavoro non è tornato indietro')).toBeNull()
@@ -201,7 +303,7 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('Il lavoro è tornato fra i pronti').length).toBeGreaterThan(0))
     expect(screen.getByText(/Non c'era nessuna dichiarazione da annullare/)).toBeTruthy()
@@ -225,7 +327,7 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('Il lavoro è tornato fra i pronti').length).toBeGreaterThan(0))
     expect(screen.getByText(/La dichiarazione resta valida/)).toBeTruthy()
@@ -241,7 +343,7 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('Il lavoro è tornato fra i pronti').length).toBeGreaterThan(0))
     expect(screen.getByText(/ne verrà emessa una nuova/)).toBeTruthy()
@@ -260,7 +362,7 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
-    fireEvent.click(screen.getByRole('button', { name: /Sì, riportalo indietro/i }))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('È nato il lavoro 2026-0042').length).toBeGreaterThan(0))
     expect(screen.getByText(/Questo resta consegnato con la sua dichiarazione/)).toBeTruthy()
