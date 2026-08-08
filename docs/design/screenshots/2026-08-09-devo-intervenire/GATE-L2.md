@@ -366,6 +366,31 @@ Altri due scatti, perché due delle cinque superfici vivono in sotto-passi e **n
 schermata principale**: `d326-dopo-persone--390-dark.png` (selettore di persone) e
 `d326-dopo-caratteristiche--390-dark.png` (riquadro «Elementi»).
 
+### 🔄 CORREZIONE A ME STESSO — «in chiaro non cambia niente» era FALSO di 2px
+
+Avevo scritto che il tema chiaro resta identico. **È vero per il colore, non per la geometria.** Due
+delle cinque superfici (`:1465` e `:1687`) portavano già `1px solid transparent` e quindi non si
+muovono di un pixel; **le altre tre (`:988`, `:1352`, `:1734`) il bordo non ce l'avevano**, e un bordo
+trasparente **occupa comunque lo spazio**.
+
+`provato:` misurato sul DOM a 390 chiaro, togliendo il bordo per rileggere il «prima»:
+
+| superficie | prima | dopo |
+|---|---|---|
+| pastiglia spenta del nastro (`:1352`) | 60,91 × **28** | 62,91 × **30** |
+| blocco «Da qui non si corregge» (`:988`) | 342 × **253,25** | 342 × **255,25** |
+| `RigaVoce` (`:1465`) | 342 × **70,94** | 342 × **70,94** — invariata |
+
+**+2px, e crescono: nessun bersaglio scende sotto soglia** (e le pastiglie del nastro non sono
+premibili). La larghezza esterna dei blocchi non cambia — cambia di 2px quella **interna**, e
+l'altezza è cresciuta di **esattamente 2**, cioè **nessun testo è andato a capo in più**. Il riquadro
+«Elementi» (`:1734`) è lo stesso `div` con la stessa imbottitura di `:988`: **non l'ho misurato a
+parte**.
+🔑 **Perché lo scrivo invece di lasciarlo correre:** il referto qui sopra dichiara le righe a
+**70,94** e le pastiglie a una misura precisa. Una misura del gate contraddetta da una riga scritta
+dopo, nello stesso file, è esattamente il difetto che il commento riscritto in `DevoIntervenire.tsx:1435`
+esiste per impedire.
+
 🛑 **E va detto per intero: (b) NON raddrizza l'elevazione, la delimita soltanto.** La riga resta più
 scura del pannello che la contiene — cioè il contrario della regola di §3.2 del design system. Era
 l'esito dichiarato della variante (b) nel referto («*elevazione ancora invertita, ma il bordo si
@@ -403,11 +428,16 @@ quattro.
    porta con sé il cambio di colore delle didascalie**: senza, a 12% le didascalie starebbero a
    **3,59**, cioè peggio di oggi. Il fondo del pannello è quasi bianco: scurire la riga allontana la
    riga dal pannello **e** avvicina il testo alla riga, nella stessa mossa.
-2. **C1 è l'unica che raggiunge una soglia di legge** (3:1 per il contorno di un elemento
+2. ⚠️ **C3 non scurisce solo la riga: promuove le didascalie a inchiostro pieno.** A **12,11:1** una
+   scritta da 12px in maiuscoletto pesa quanto il testo del corpo — cioè **cambia la gerarchia della
+   schermata**, non solo il contrasto. È parte di ciò che si sceglie, e da un rapporto non si vede.
+3. **C1 è l'unica che raggiunge una soglia di legge** (3:1 per il contorno di un elemento
    d'interfaccia, WCAG 1.4.11), e non tocca né la tinta né i testi.
-3. **C2 è gratis in scuro**: `--sh-press` e `--sh-card` valgono `none` nel tema scuro, quindi non può
+4. **C2 è gratis in scuro**: `--sh-press` e `--sh-card` valgono `none` nel tema scuro, quindi non può
    entrare in conflitto con ①. In più dice **che cosa si preme**: l'ombra da premere va solo sulle
-   righe, i due riquadri informativi prendono l'ombra da carta.
+   righe, i due riquadri informativi prendono l'ombra da carta. 📌 **Quella metà si vede solo nello
+   scatto a 1280** (`d326-chiaro-c2-ombra--1280-light.png`): a 390 il blocco «Da qui non si corregge»
+   sta quasi tutto sotto il bordo dello schermo, e resta visibile solo «le righe hanno un'ombra».
 
 📌 **768 e 1280 non aggiungono niente:** a tutte e tre le larghezze il foglio è la stessa colonna da
 480 al centro, quindi le superfici sono identiche. Gli scatti ci sono lo stesso.

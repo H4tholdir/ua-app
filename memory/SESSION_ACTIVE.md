@@ -8,7 +8,9 @@ applicata» in fondo a `docs/design/screenshots/2026-08-09-devo-intervenire/GATE
 🎨 **⚖️ D326 ① FATTA — tema scuro.** Il filo è un **token**, non una riga nel componente:
 `--filo-superficie` (`ds-v3.css:37` chiaro `transparent` · `:82` scuro `var(--line)`), consumato dalle
 **cinque** superfici (`DevoIntervenire.tsx:988 · 1352 · 1465 · 1687 · 1734`). Motivo: uno **style inline
-batte sempre una regola CSS**. ⚠️ **(b) delimita e basta:** riga↔pannello resta **1,15:1**.
+batte sempre una regola CSS**. ⚠️ **(b) delimita e basta:** riga↔pannello resta **1,15:1**. 🔄 **E in chiaro non è del tutto invariato:**
+tre superfici crescono di **2px** (bordo trasparente che occupa spazio) — misurato, crescono, nessun
+bersaglio sotto soglia.
 
 🔴 **Riferito, non corretto:** le superfici `--bg-deep` in quel foglio sono **SEI** — l'undicesima sul
 DOM è **il tasto primario spento** (`TastoPrimario.tsx:90`), stesso difetto del ❌1, componente del
