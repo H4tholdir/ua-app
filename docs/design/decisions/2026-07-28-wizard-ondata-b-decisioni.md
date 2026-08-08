@@ -3598,8 +3598,21 @@ stesso ragionamento, con gli stessi termini, già applicato a `contiene_sostanze
 🛑 **R-P6 — il nome esce da un'allowlist, quindi porta la sua destinazione:** `numero_prescrizione` esce
 da `CAMPI_CORREGGIBILI_DOCUMENTO` (TypeScript) **e** dall'allowlist della RPC (SQL, quarta migration), e
 la sua destinazione è **nessuna: non si scrive più da nessuna parte, perché non serve più a niente**.
-Le due colonne **restano** in banca dati — non si cancella niente — ma da oggi **nessuno le legge e
-nessuno le scrive**, e questo va scritto accanto a entrambe, o fra sei mesi qualcuno le crederà vive.
+Le colonne **restano** in banca dati — non si cancella niente — e portano la loro riga scritta accanto,
+o fra sei mesi qualcuno le crederà vive.
+
+> 🔄 **DUE CORREZIONI A QUESTA RIGA, misurate dall'esecutore del compito che ne discende, e stanno qui
+> perché erano marcate come fatti.**
+> ① **Le colonne sono TRE, non due:** manca `dichiarazioni_conformita.prescrizione_id`, che questa
+> stessa decisione orfanizza togliendole il produttore.
+> ② 🔴 **«nessuno le scrive» è FALSO** per `lavori_prescrizioni.numero_prescrizione`: `POST /api/lavori`
+> la **valida e la scrive** (`route.ts:234-240` → `lavoro_crea_atomico`), il clone del rifacimento la
+> propaga, e `prescrizione-mapper` la legge. Vera è una cosa **più stretta**: *da D319 quel numero non
+> alimenta più la dichiarazione*. La porta d'ingresso dell'API **resta aperta**, e se debba chiudersi —
+> cioè se il numero sia un appunto interno del laboratorio o non serva affatto — è **la riga 27 della
+> coda di ROADMAP**, non deciso qui.
+> 🔑 *«Nessuno lo scrive» era il tipo di affermazione che questa giornata ha già smentito tre volte: un
+> elenco che sembra completo perché si è guardato dove ci si aspettava di trovare qualcosa.*
 
 **Che cosa cade con questa decisione, e va detto per intero:** il compito «sistemare prima la radice»
 scelto poche ore fa (spostare il lettore su `lavori_prescrizioni`) · la **quarta migration** che serviva
