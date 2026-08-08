@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentasettesima tornata (D318: un compito salva nominando i propri percorsi)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentottesima tornata (D319: il numero di prescrizione esce dal documento — la legge non lo chiede)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**318 decisioni in centotrentasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**319 decisioni in centotrentotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3561,3 +3561,49 @@ invece di far guadagnare alla persona un 422 che leggerebbe come guasto · ② l
 ragione scritta, **non va riparato** · ③ «*esiste una guardia automatica sul lessico*» **non era vera
 per quel file**: le due prove scorrono `MOTIVI` su altri moduli, e le stringhe dentro il componente non
 erano coperte da niente. La rete l'ha aggiunta lui.
+
+
+### Centotrentottesima tornata — D319: il numero di prescrizione esce dal documento, perché la legge non lo chiede (08/08/2026, pomeriggio)
+
+**Nasce da una domanda di Francesco**, fatta mentre stavo per lanciare il compito che avrebbe spostato
+quel dato da una colonna all'altra: «*ma siamo sicuri che il numero di prescrizione deve essere indicato?
+sia nella scheda del lavoro che sulla dichiarazione?*»
+
+🛑 **La domanda ha CANCELLATO un compito già istruito, e per questo la sua riga viene prima di tutto il
+resto** (§0A-bis②: *una decisione che cancella del lavoro si scrive PER PRIMA — il lavoro cancellato, se
+non risulta, viene rifatto*).
+
+| # | Decisione | Fondamento |
+|---|---|---|
+| **D319** | 🔑 **IL NUMERO DI PRESCRIZIONE ESCE DALLA DICHIARAZIONE E DALLE VOCI CORREGGIBILI.** Francesco, davanti alle tre vie: «**toglierlo**» | ⚖️ **Non è un contenuto dovuto.** `provato:` sul testo dell'**Allegato XIII punto 1**, letto per intero: sulla prescrizione l'elenco chiede **due** cose — «*il nome della persona che ha prescritto il dispositivo… e, se del caso, il nome dell'istituzione sanitaria*» e «*le caratteristiche specifiche del prodotto indicate nella prescrizione*». **Un numero, codice o identificativo della prescrizione NON compare fra gli otto trattini.** |
+
+**I tre fatti misurati che hanno retto la scelta:**
+- **`0` su `299`** — la colonna che il documento legge (`lavori.numero_prescrizione`) è vuota su **tutti**
+  i lavori, e la tabella «giusta» (`lavori_prescrizioni`) **non ha nemmeno una riga**;
+- **mai comparso su un documento**: la riga del PDF è **condizionale** (`DdcTemplate.tsx:402`) e la
+  condizione non si è **mai** avverata;
+- **nessuno può scriverlo**: il wizard non ha la casella (`crea-lavoro.ts:360`), e la riga di
+  `lavori_prescrizioni` nasce **dentro un `IF`** che nessun chiamante attiva.
+
+🔑 **E c'è già il campo giusto per lo scopo che quel numero sembrava servire:** ritrovare la prescrizione
+di carta è il mestiere di `fonte_tipo`/`fonte_riferimento` (ondata B). Il numero sarebbe stato **un
+secondo modo di fare la stessa cosa** — la famiglia «due fonti della stessa verità» che questa giornata
+ha già incontrato tre volte.
+
+📌 **`ddc-v3` NON si spacca in `ddc-v4`, e non è una scorciatoia: è la REGOLA GIÀ SCRITTA nel registro**
+(`generate-ddc.ts:104-110`) — *il registro salta quando cambia ciò che il documento **dice***. Qui
+**nessuna dichiarazione emessa cambia di una riga**, perché quella riga non è mai stata stampata. È lo
+stesso ragionamento, con gli stessi termini, già applicato a `contiene_sostanze_o_tessuti`.
+
+🛑 **R-P6 — il nome esce da un'allowlist, quindi porta la sua destinazione:** `numero_prescrizione` esce
+da `CAMPI_CORREGGIBILI_DOCUMENTO` (TypeScript) **e** dall'allowlist della RPC (SQL, quarta migration), e
+la sua destinazione è **nessuna: non si scrive più da nessuna parte, perché non serve più a niente**.
+Le due colonne **restano** in banca dati — non si cancella niente — ma da oggi **nessuno le legge e
+nessuno le scrive**, e questo va scritto accanto a entrambe, o fra sei mesi qualcuno le crederà vive.
+
+**Che cosa cade con questa decisione, e va detto per intero:** il compito «sistemare prima la radice»
+scelto poche ore fa (spostare il lettore su `lavori_prescrizioni`) · la **quarta migration** che serviva
+a spostare quella chiave fra i depositi · la casella nel wizard · e la contraddizione fra
+`lavori/[id]/route.ts:79-83` («*riaprirla sarebbe una seconda penna*») e l'allowlist dell'atto unico.
+➡️ **Le voci correggibili scendono da otto nomi a SETTE, e le voci a schermo da sette a SEI** — tutte e
+sei dovute dall'Allegato XIII.
