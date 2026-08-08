@@ -1,22 +1,25 @@
 # Sessione attiva
 
-🏁 **CHIUSA l'08/08/2026, 10:45.**
+🏁 **CHIUSA l'08/08/2026, 16:55.**
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-08-atto-unico-handoff.md` — **la §0 per prima**
+🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-08-atto-unico-costruito-handoff.md` — **la §0 per prima**
 (sette voci di cose NON fatte).
 
-🔴 **La §0 in una frase:** l'ondata è finita in un **vicolo cieco** — il cancello di D308 indicava una
-strada che non esisteva — e ne è uscita con un **piano nuovo di cinque compiti, di cui UNO fatto**
-(`docs/superpowers/plans/2026-08-08-correzione-e-riemissione-atto-unico.md`, dal **Task B**). Restano
-anche i **Task 9 e 10** del piano precedente, e il **gate estetico L2** è dovuto **due volte**.
+🔴 **La §0 in una frase:** l'atto unico è **costruito per intero sotto il cofano** — quattro migration,
+una rotta, sei compiti, sei revisioni — **e non si vede ancora**: `grep -c "scelta_intervento"` sul
+foglio → **0**, nessuna schermata lo chiama. Restano il **Task D** (il foglio, col **gate estetico L2
+dovuto DUE volte**) e il **Task E**, più i **Task 9 e 10** del piano precedente.
 
-🛑 **Da leggere PRIMA di cercare il Task A in git:** vive in `128379ea` e `b5d0d4c8`, due salvataggi
-intitolati *chore(salvataggio)* — il mio `git add -A` li ha inghiottiti. Niente perso (D318).
+🛑 **La cosa che cambia il significato di «verde»:** **nulla di quest'ondata ha mai girato contro
+Postgres da un chiamante reale** — tutto è provato col contratto **finto**, e i finti hanno già mentito
+una volta oggi. **Il Task 10 è il primo contatto vero.**
 
 🗺️ **Mappa di recupero:** `.superpowers/sdd/progress.md`, sezioni «PIANO TORNA A PRONTO» e «PIANO
 CORREGGI E RIFAI LA DICHIARAZIONE». I compiti marcati COMPLETO non si rifanno.
 
-📌 **Misurato:** `verify:full` **uscita 0** — 5492 passate | 68 saltate su 451 file, tsc 0, build ok,
-sette guardie verdi. **114 salvataggi** sopra `main`, che è **intatto** a `7427a680`.
+📌 **Misurato:** `verify:full` **uscita 0** — **5621 passate | 68 saltate su 454 file**, tsc 0, build ok,
+sette guardie verdi. **145 salvataggi** sopra `main`, che è **intatto** a `7427a680`. Ramo **pubblicato**.
+🗄️ **Quattro migration** nel ledger; pavimento **`20260808142358`**.
 
-⚖️ **D312-D318** (tornate 133-137). Totale: **318 in 137**.
+⚖️ **D319** (la 138ª tornata): il numero di prescrizione esce dal documento — **una domanda di Francesco
+ha cancellato un compito già istruito**. Totale: **319 in 138**.
