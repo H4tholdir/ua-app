@@ -355,6 +355,20 @@ contratto più consumatore.*
 
 ---
 
+> ### 🛑 UNA CONDIZIONE CHE VIAGGIA CON LA FUNZIONE, e non con un compito
+>
+> **R1 della revisione del C-sexies.** La **riga 8 del corpo VIVO** di `correggi_e_riemetti_atomica`
+> dice `-- 🧬 L'ALLOWLIST — SETTE NOMI SCRITTI A MANO` sopra un elenco di **SEI**.
+> ➡️ **Chiunque emetta una `CREATE OR REPLACE` su quella funzione corregge quella riga NELLO STESSO
+> ATTO, prima di ribattere il corpo.** 🔑 Non è un compito da accodare: è una condizione della funzione,
+> perché la regola di casa — *il file non è la prova, la verità è il catalogo vivo* — fa sì che chi
+> riemette **ricopi la riga sbagliata**. Un difetto che si auto-propaga non si mette in coda: si lega
+> all'oggetto che lo porta.
+> 📌 Al 08/08 nessun compito rimasto (D · E · F · 9 · 10) riemette quella funzione. Se uno lo farà, è
+> questa riga a doverglielo dire.
+
+---
+
 ## Task D — Il foglio: il passo di correzione
 
 **File:** `DevoIntervenire.tsx` · `src/lib/qualita/motivi-ui.ts` se servono parole nuove.

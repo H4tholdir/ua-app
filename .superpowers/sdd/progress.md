@@ -692,6 +692,57 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   all'apertura della sessione successiva. *La mappa di recupero è l'ultimo posto in cui ci si può
   permettere un buco.*
 
+- **ATTO-UNICO-C-sexies: COMPLETO** (`f595f171`, revisione **APPROVATO CON RILIEVI**, **zero critici**)
+  — esegue **D320**: `paziente_nome_snapshot` esce dalle **due** allowlist (TypeScript
+  `correzioni.ts`, e SQL dentro `correggi_e_riemetti_atomica` — migration **`20260808154033`**, applicata
+  e **nel ledger**; pavimento nuovo). **Sette nomi → SEI.** Nessuna colonna cancellata; generatore,
+  precheck, `PATCHABLE_FIELDS`, `riemetti_ddc_atomica`, `PATCH /api/pazienti/[id]` e il foglio **intatti**.
+  📈 `5621 | 68 su 454` → **`5628 | 68 su 454`** (+7, zero cancellate) · `VERIFY_EXIT=0` **rilanciato dal
+  revisore**, non ricopiato · FASE 6b: `gen types` **nessuna differenza** (`GEN_EXIT=0`, `diff` vuoto) ·
+  **R-P4: 7 su 8** (l'ottava è una controprova voluta — `paziente_id` da solo **resta** correggibile, e
+  deve restare verde con entrambe le regole).
+  ✅ **LE QUATTRO AFFERMAZIONI DELL'ESECUTORE, TUTTE E QUATTRO CONFERMATE dal revisore**, due con sonde
+  che l'esecutore non aveva fatto: la riga del `SET` tolta è sicura (**provato in positivo**: copia
+  usa-e-getta col `SET` di `richiedente_nome` tolto e il nome lasciato in allowlist → `P0001 … chiavi
+  accettate ma NON atterrate su lavori: {richiedente_nome}` — **la guardia d'atterraggio esiste
+  davvero**) · **zero scrittori** su censimento più largo (`prokind` senza filtro, tutti gli schemi,
+  6 trigger su `lavori` e `pazienti`) · corpo del file committato **byte-identico** al corpo vivo
+  (355=355) · `REVOKE` portante (`SET LOCAL ROLE authenticated` → `42501`).
+  🔑 **UN DATO CHE VALE PIÙ DEL COMPITO, misurato dal revisore:** il file di prova **vecchio** contro il
+  codice **nuovo** dà **1 fallita su 49** — cioè prima di questo compito l'intero cambiamento era
+  sorvegliato da **una sola asserzione**. *Quanto una modifica sia coperta si misura così, non contando
+  le prove che passano.*
+  🔴 **QUATTRO DIFETTI DEL BRIEF, tutti dell'orchestratore**, il primo serio: ① **«si corregge in
+  anagrafica» non vale sempre** — `PATCH /api/pazienti/[id]` scrive su `pazienti`, nessun trigger
+  propaga, e `generate-ddc.ts:304` legge lo snapshot **per primo**: la destinazione vale dove lo snapshot
+  è nullo, **298 lavori su 299**. 🛑 E l'unica riga che ce l'ha (`TEST-DdC-001`, snapshot `'F.R.'`) ha
+  **`paziente_id = NULL`**: quel nome **non è più correggibile da nessuna strada**, e su quel lavoro lo
+  snapshot è **l'unica cosa che soddisfa l'elemento 4 dell'Allegato XIII** al cancello di consegna
+  (`precheck.ts:99-101`) — *una colonna senza scrittori regge un cancello di consegna* · ②
+  `fondiCorrezioni` non può più riparare l'embed su un lavoro con snapshot (non è una regressione: è una
+  riparazione che il Task D non potrà offrire) · ③ **`007_rpc_rifacimento.sql:52-60` non è la verità
+  viva** — il corpo vivo di `crea_rifacimento_atomico` **non nomina affatto** la colonna (terza volta
+  in quest'ondata che un file superato passa per vivo) · ④ P3 del piano sbagliava la **provenienza**
+  della riga con lo snapshot (non è la fixture del seed; il numero 1/299 era giusto).
+  🟠 **R1 — L'UNICO RILIEVO CHE NON SI PUÒ SOLO ACCODARE, e sta nel CATALOGO VIVO:** la riga 8 del corpo
+  vivo dice `-- 🧬 L'ALLOWLIST — SETTE NOMI SCRITTI A MANO` sopra un elenco di **sei**. 🛑 **Si
+  auto-propaga**, perché la regola di casa è *ribattere il corpo dal catalogo*: chi riemette la funzione
+  ricopia la riga sbagliata. ➡️ **Chiunque emetta una `CREATE OR REPLACE` su
+  `correggi_e_riemetti_atomica` corregge quella riga NELLO STESSO ATTO, prima di ribattere il corpo.**
+  Scritto anche nel piano. ⚠️ Attenuante misurata: tre righe più sotto c'è la storia esatta
+  («*erano otto fino a D319 e sette fino a D320*»), quindi il lettore attento vede la contraddizione
+  subito. I due gemelli in TypeScript (`correzioni.ts` «le otto chiavi» e «i cinque testi») sono stati
+  **chiusi dall'orchestratore** chiudendo la revisione.
+  🟠 Altri riferiti, **preesistenti e non toccati**: `anon`/`authenticated` hanno `UPDATE` sulla colonna
+  (default Supabase, due politiche RLS di UPDATE presenti) — **domanda di perimetro vera**, perché
+  un'allowlist applicativa non protegge da una scrittura diretta · l'indice GIN `idx_lavori_search` è
+  **inerte** (la ricerca è `ilike('descrizione')`, `textSearch`/`to_tsquery` **zero occorrenze** in
+  `src/`) · `lavori/[id]/route.ts:69-73` motiva ancora l'esclusione con «*nessun writer nel form React
+  attuale*» — che CLAUDE.md §9 chiama «un buco che aspetta» — mentre **da D320 una ragione vera c'è**.
+  ⚠️ **Limiti dichiarati dal revisore, e vanno letti:** nessuna prova a schermo · **`PATCH
+  /api/pazienti/[id]` NON esercitato dal vivo**, ed è l'anello su cui poggia l'intera tesi «il nome si
+  corregge altrove» · nessun PDF generato · nessun giro HTTP · RLS letta ma non esercitata.
+
 > 🔑 **IL FILO DELLA GIORNATA, e vale più di ogni singolo compito: QUATTRO VOLTE una prova che non
 > poteva fallire.** ① `now()` è costante in transazione → la sonda sul conflitto era verde per forza ·
 > ② `scripts/psql.mjs` si collega come **`postgres`**, cioè come proprietario → ogni sonda sui permessi

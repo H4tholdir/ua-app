@@ -290,7 +290,7 @@ export function validaCorrezioni(grezzo: unknown): EsitoValidazioneCorrezioni {
         valore: scartate,
       }
     }
-    // 🔑 E LE SOTTO-CHIAVI SI RIPULISCONO AI BORDI come i cinque testi di primo
+    // 🔑 E LE SOTTO-CHIAVI SI RIPULISCONO AI BORDI come i TRE testi di primo
     //    livello (D242, C3): chi scrive di fretta al banco lascia uno spazio, e
     //    uno spazio non è un colore diverso. Prima di questa riga `'  A3  '`
     //    arrivava sulla riga vera **con dentro i suoi spazi**, mentre lo stesso
@@ -337,9 +337,13 @@ export function fondiCorrezioni(
   correzioni: Correzioni,
   pazienteNuovo?: Paziente | null
 ): LavoroDettaglio {
-  // Vista non tipizzata sulla COPIA: le otto chiavi sono nomi che arrivano da
+  // Vista non tipizzata sulla COPIA: le SEI chiavi sono nomi che arrivano da
   // fuori, e forzarne una per una il tipo esatto qui non aggiungerebbe nessuna
   // garanzia — la forma l'ha già decisa `validaCorrezioni`.
+  // ⚠️ Il numero qui NON si ricopia da una riga di prosa: si conta su
+  //    `CAMPI_CORREGGIBILI_DOCUMENTO`. È sceso due volte in un giorno — otto →
+  //    sette (D319) → sei (D320) — e tutt'e due le volte un commento vicino al
+  //    codice toccato è rimasto indietro.
   const fuso: Record<string, unknown> = { ...lavoro }
 
   for (const k of CAMPI_TESTO) {
