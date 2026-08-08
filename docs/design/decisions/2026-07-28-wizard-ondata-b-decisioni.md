@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantesima tornata (D322: la correzione viene prima delle quattro caselle di legge)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantunesima tornata (D323-D324: il gettone si muove solo se cambia qualcosa, e il registro del lavoro esiste già a metà)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**322 decisioni in centoquaranta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**324 decisioni in centoquarantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3716,3 +3716,70 @@ consumatore.**
 🔑 *La domanda non era una formalità: se la risposta fosse stata l'opposta, nessun ordine dei passi
 avrebbe salvato niente — sarebbe servita un'altra architettura, e ce ne saremmo accorti al primo uso
 vero invece che sul mockup.*
+
+---
+
+### Centoquarantunesima tornata — D323 · D324: il gettone si muove solo se cambia qualcosa, e il «registro del lavoro» esiste già a metà (08/08/2026, 21:35)
+
+**Nasce da un CRITICO** trovato dalla revisione del Task D-ter e **confermato dall'orchestratore sul
+catalogo vivo**, e dal **panel a tre** che ne è seguito (regola advisor, 17/07/2026).
+
+#### Il difetto, in una riga
+
+L'atto unico fa **due chiamate HTTP**: ① registra l'evento, ② corregge e riemette portando un **gettone
+di concorrenza** (`atteso_updated_at`, contratto: «*i valori che hai visto sono ancora quelli*»).
+🔴 **La ① sposta quel gettone da sola**: incrementa `post_consegna_correzioni` su `lavori`, e il trigger
+`trg_lavori_updated_at` (**BEFORE UPDATE FOR EACH ROW**, corpo `NEW.updated_at = now();` — `provato:`
+sul catalogo) lo muove. Due richieste = due transazioni = due `now()`. ➡️ **Conflitto falso**, e ogni
+tentativo **brucia un progressivo e lascia un PDF orfano**.
+
+🛑 **LA COSA PIÙ GRAVE NON È IL BLOCCO: È LA VIA D'USCITA CHE LA PERSONA SCOPRE DA SOLA.** La pastiglia
+`stato_dispositivo` è raggiungibile sul percorso di correzione (la fase `dettagli` è condivisa), e
+rispondere **«mai uscito dal laboratorio»** fa saltare l'incremento (`eventi-qualita/route.ts:695`) e
+**fa funzionare tutto**. ➡️ **È esattamente la bugia che il Task A ha tolto stamattina**, su un campo che
+alimenta `classifica()` e la proposta di incidente. *Un difetto che rende impossibile la strada onesta e
+funzionante quella disonesta è peggio di un difetto che blocca tutto.*
+📌 E il falso conflitto è **intermittente**, non costante — cinque risposte su sei: *un allarme che suona
+a caso insegna che gli allarmi sono rumore, e si paga su quelli veri.*
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D323** | 🔑 **IL GETTONE DI `lavori` SI MUOVE SOLO SE CAMBIA DAVVERO QUALCOSA CHE NON SIA IL CONTATORE.** `lavori` riceve una **propria** funzione di trigger che confronta la riga vecchia con la nuova al netto di `post_consegna_correzioni` e `updated_at`, e se sono uguali **pinza** il gettone al valore vero. **Più due aggiunte:** il controllo del gettone si sposta **prima del render del PDF** dentro `…/riemetti` (che ha già la riga fresca in mano: **zero query in più**), e il foglio **raccoglie l'`updated_at` che il server già restituisce** su successo **e** su 409 | «**ok**» | ⚖️ **Panel a tre, convergente**: confini API · concorrenza · banco e normativa. **7 sonde** del secondo advisor, in transazione annullata, **compreso il valore che DEVE essere rifiutato** (un payload con `updated_at` falso **non atterra**). 🔑 E la sonda 3 ha trovato più del mandato: **anche un salvataggio che non cambia niente** brucia oggi il gettone — D323 chiude anche quello |
+
+**Le controindicazioni, scritte perché il panel le ha scritte e non si nascondono:**
+- **Cambia il SIGNIFICATO di `lavori.updated_at` per tutti**, da «ultimo tentativo di scrittura» a «ultimo
+  cambiamento vero». Lo usano **tre funzioni del catalogo** più tre rotte e una schermata: il panel
+  *crede* che nessuna si rompa (un gettone fermo **continua a combaciare**) ma lo dichiara **una
+  convinzione, non una prova** → **va provata funzione per funzione**.
+- **`trigger_set_updated_at` è CONDIVISA da tutte le tabelle e NON si tocca**: `lavori` ha la sua, con un
+  nome proprio e il commento che dice **perché** è separata — o una pulizia futura «unifica i duplicati»
+  e riapre tutto in silenzio.
+- **L'esenzione è un'allowlist**, la classe per cui esiste R-P6. Attenuante misurata: il predicato è
+  scritto **per sottrazione**, quindi una colonna nuova entra **da sola** dalla parte protetta
+  (fail-closed). Il criterio va scritto accanto: **solo colonne che non compaiono su nessun documento e
+  su nessuna schermata che l'operatrice conferma**.
+- **`PATCH /api/lavori/[id]:803` (`payload.updated_at = new Date().toISOString()`) diventa una riga
+  bugiarda** e va tolta **nello stesso giro**.
+- 🛑 **Chiude il CASO, non la CLASSE.** Cambiare cassetta o tracking — cose che sul documento non
+  compaiono — continuerà a far scattare il blocco. La forma definitiva (**il gettone sono le sei voci
+  stampate**, non un orologio) è **la destinazione dichiarata**, e non si fa oggi: richiederebbe di
+  riscrivere `canonico()` (`generate-ddc.ts:171`) una seconda volta in SQL, cioè **due fonti della stessa
+  verità**, la famiglia di difetto già pagata più volte.
+- **Non tocca il costo di un conflitto VERO**: il PDF si rende e il numero si prende **prima** della
+  transazione, quindi un progressivo si brucia lo stesso. Il controllo anticipato lo rende **raro**, non
+  impossibile — e chi scriverà «adesso niente più file orfani» scriverà una cosa falsa.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D324** | 🔑 **IL «REGISTRO DEL LAVORO» SI FA, E NON SI COSTRUISCE DA ZERO: LA METÀ CHE C'È SI COMPLETA.** `post_consegna_correzioni` **resta** (D323 non lo tocca) ma **non è lo strumento**: è un numero senza chi, quando e cosa. Il registro si fa su `audit_log`, e nasce **due mezze cose**: ① far arrivare **l'autore** ② la schermata, **visibile al solo `titolare`** | «*potrebbe servire per un controllo? magari il titolare dello studio può controllare cosa è stato fatto su quel lavoro e da chi? se reputi che possa servire magari facciamo in modo che solo il titolare possa aprire un registro del lavoro*» | ⚖️ **Misurato sul banco, non ipotizzato.** `audit_log` **esiste ed è già acceso**: **1.870 righe** su **11 tabelle** (fra cui `lavori` — **1.092 righe** — e `dichiarazioni_conformita`), col **prima e il dopo per intero** (`old_data`/`new_data` in JSONB). 🔴 **MA L'AUTORE È VUOTO SU 1.869 RIGHE SU 1.870**: `_audit_trigger_fn` prende `auth.uid()`, e le rotte scrivono con la **chiave di servizio**, che non ha un'identità utente. ➡️ **Oggi il registro sa dire CHE COSA è cambiato e QUANDO, non CHI** — cioè manca proprio la metà che Francesco ha chiesto |
+
+🔑 **Perché il contatore non era la strada, e va detto:** `post_consegna_correzioni` è **un numero solo**,
+senza autore né data né contenuto — e **nessuno lo legge** (`provato:` dal panel: **0 consumatori** in
+tutta l'app; le sole occorrenze non-scrittura sono tipi, una fixture e due `select` di colonne che non
+usano il valore). Contro l'audit, che porta la riga intera prima e dopo, non è un'alternativa: è
+un'ombra. **Resta** perché D323 gli toglie il danno e tenerlo non costa niente, **non** perché serva al
+registro.
+
+📌 **Va in coda come DUE voci, e la prima è la portante:** senza l'autore, la schermata sarebbe un
+registro che dice «qualcuno». ⚠️ E il registro tocca **dati personali del paziente** (`old_data`/`new_data`
+portano la riga intera): la schermata nasce con la sua valutazione GDPR, non dopo.
