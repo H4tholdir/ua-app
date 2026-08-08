@@ -620,3 +620,65 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   🔑 *Dichiararlo serve: un numero fermo che nessuno spiega somiglia a una misura non fatta.*
   📌 **Verificato da me, non ricopiato:** funzione e indice esistono sul **catalogo vivo** con ACL
   giuste; migration **nel ledger**; `tsc` 0; `now()` costante in transazione.
+
+- **ATTO-UNICO-C-bis: COMPLETO** (`60cb4828..aabfd385`, revisione **APPROVATO CON RILIEVI**, nessun
+  critico). Migration `20260808103515`. `p_nuova` non accetta più `stato` (che ora è **forzato** a
+  `generata`) né `numero_ddc` (**derivato** da `anno_ddc`+`progressivo_ddc`).
+  🔑 **Il difetto stava nella chiusura che l'orchestratore aveva prescritto:** «rifiuta **oppure** forza»
+  — servono **tutti e due**. Rifiutare `stato` senza forzarlo lo fa **ereditare** dalla vecchia: con una
+  vecchia `firmata`, la nuova nasce **firmata con la firma vuota**. Difetto *nuovo*, creato dalla
+  correzione. Misurato dall'esecutore.
+  🔑 **E `lpad` TRONCA:** `lpad('10000',4,'0')` → `'1000'`, un numero **plausibile** su un documento di
+  legge. Chiuso con `greatest(4, length(…))`, equivalenza provata su 18 valori (`diff` vuoto) coi confini
+  999/1000/9999/10000.
+
+- **ATTO-UNICO-C-ter: COMPLETO** (`c2961055`, revisione **APPROVATO CON RILIEVI**, nessun critico).
+  Migration `20260808112700`. La coppia `anno_ddc`/`progressivo_ddc` è **indivisibile** (`XOR`).
+  🔑 **Non è un compito nuovo: è la seconda metà di C1.** E la regola asimmetrica proposta dal C-bis ne
+  avrebbe chiusa **metà** — la revisione ha provato il verso opposto (`anno_ddc` da solo → progressivo
+  **mai prenotato** per quell'anno).
+  ⚠️ **Perché SEDICI sonde non l'avevano visto:** fixture e dichiarazione vecchia vivevano **entrambe nel
+  2099**, quindi l'anno ereditato **coincideva per caso**. *Una fixture che sceglie i propri valori può
+  nascondere proprio il difetto che dovrebbe mostrare.*
+
+- **ATTO-UNICO-C: COMPLETO** (`28de17d0..8d201e54`, revisione **APPROVATO CON RILIEVI**, **tre critici**
+  → chiusi dal C-quater). La rotta `…/dichiarazione/riemetti` **estesa, non riscritta**: il confine è
+  **una chiave sola** (`correzioni`), e senza di essa fa esattamente ciò che faceva prima.
+  Moduli nuovi: `src/lib/dichiarazione/{correzioni,atto-unico-errori}.ts` · `correggiERiemettiDdC`
+  accanto a `riemettiDdC`, che **non** è stata toccata. **Nessuna migration.**
+  📈 **`5492 | 68 su 451` → `5606 | 68 su 454`** — la promessa riscossa.
+  🔴 **DUE DIFETTI DEL PIANO, entrambi dell'orchestratore:** ① il Passo 4 diceva «restituisci **quella**»
+  — ma quella è la **annullata**: restituirla significa **consegnare il documento vecchio dicendo
+  «rifatto»**, cioè il difetto che il piano stesso chiama il peggiore possibile. Si restituisce il
+  **successore** · ② **correggere `paziente_id` senza scambiare l'embed stampa il nome della persona
+  SBAGLIATA** (`generate-ddc.ts:258` ripiega sull'anagrafica ancora vecchia) — non era scritto in
+  **nessun** documento.
+
+- **ATTO-UNICO-C-quater: COMPLETO** (`691e94c4`) — i **tre critici** del Task C.
+  **C3 (codice vivo):** la regola sul vuoto **si fermava al primo livello**, quindi
+  `prescrizione_caratteristiche: {colore: ''}` passava e il documento **perdeva un contenuto
+  dell'Allegato XIII** con un **200 «rifatta»**. Chiusa **estendendo in profondità la regola esistente**,
+  col percorso nel messaggio. **C1 · C2 (prove):** due mutazioni del codice di produzione restavano
+  **verdi su 130 prove su 130** — la porta del tenant sul paziente (il finto inghiottiva i filtri) e il
+  fail-closed sull'esito ignoto (verde **per il motivo sbagliato**).
+  🔑 **E le mutazioni erano SEI, non tre** (trovato dall'esecutore): C3 sono **due** difetti, e la più
+  istruttiva è **C3c** — una prova che passava **sia con la regola vecchia sia con quella nuova**, cioè
+  che **nessuna mutazione poteva rendere rossa**. *Era decorazione; ora è una prova.*
+  📈 **`5606` → `5617`** · `VERIFY_EXIT=0`.
+  🟠 Riferiti e non toccati: **I3** la porta d'idempotenza ha **una sola** asserzione (con le colonne
+  invertite le due prove di comportamento restano verdi) · **M1** lo `switch` della rotta senza `default`
+  né guardia di esaustività · **I2** `paziente_nome_snapshot` vince sull'embed, e il **primo writer**
+  dello snapshot sta per essere questa rotta — **da decidere nel Task D**.
+
+> 🔑 **IL FILO DELLA GIORNATA, e vale più di ogni singolo compito: QUATTRO VOLTE una prova che non
+> poteva fallire.** ① `now()` è costante in transazione → la sonda sul conflitto era verde per forza ·
+> ② `scripts/psql.mjs` si collega come **`postgres`**, cioè come proprietario → ogni sonda sui permessi
+> senza `SET LOCAL ROLE` non provava niente · ③ la fixture viveva nell'anno che faceva **coincidere per
+> caso** il valore ereditato · ④ il finto rispondeva **per ordine di chiamata** e inghiottiva i filtri →
+> le prove restavano verdi **con le letture invertite**. *Nessuna era una svista: tutte e quattro erano
+> prove scritte bene che non avevano modo di accendersi.*
+
+> 🛑 **E IL LIMITE CHE RESTA, dichiarato da tutti e quattro gli esecutori: NULLA DI QUESTA ONDATA HA MAI
+> GIRATO CONTRO POSTGRES DA UN CHIAMANTE REALE.** Tre migration e una rotta sono verdi su prove unitarie
+> **col contratto finto** — e i finti hanno già mentito una volta. ➡️ **Il Task 10 non è l'adempimento di
+> chiusura: è il primo momento in cui sapremo se i pezzi si parlano.**
