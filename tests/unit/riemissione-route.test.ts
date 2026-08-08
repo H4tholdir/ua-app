@@ -60,6 +60,30 @@ function chain(result: { data: unknown; error: unknown }) {
   return c
 }
 
+/**
+ * Come `chain`, ma ANNOTA i filtri.
+ *
+ * 🔑 PERCHÉ SERVE, e l'ho scoperto rileggendo le mie stesse prove: un finto che
+ * risponde in base all'ORDINE della chiamata e non alla COLONNA su cui si
+ * filtra passa anche se le due letture della porta d'idempotenza fossero
+ * INVERTITE — cioè se la rotta cercasse per `sostituisce_id` la riga che deve
+ * cercare per `annullata_da_evento_id`. E quella colonna **è** il difetto del
+ * piano che questo compito ha trovato: una prova che non la guarda non prova
+ * proprio la cosa per cui esiste.
+ */
+function chainSpia(result: { data: unknown; error: unknown }, filtri: Array<[string, unknown]>) {
+  const c: Record<string, unknown> = {}
+  c.select = () => c
+  c.is = () => c
+  c.eq = (colonna: string, valore: unknown) => {
+    filtri.push([colonna, valore])
+    return c
+  }
+  c.single = async () => result
+  c.maybeSingle = async () => result
+  return c
+}
+
 const LAVORO_RIGA = {
   id: LAVORO_ID, laboratorio_id: LAB_ID, stato: 'consegnato', descrizione: 'Corona',
   tipo_dispositivo: 'protesi_fissa', classe_rischio: 'classe_iia',
@@ -76,11 +100,16 @@ type Extra = {
   successore?: unknown
 }
 
+/** I filtri di ogni lettura su `dichiarazioni_conformita`, in ordine di
+ *  chiamata: `filtriDdc[0]` è la prima lettura, `filtriDdc[1]` la seconda. */
+let filtriDdc: Array<Array<[string, unknown]>> = []
+
 function banco(
   lavoro: unknown = LAVORO_RIGA,
   motivoEvento: string | null = 'errore_dato_dichiarazione',
   extra: Extra = {}
 ) {
+  filtriDdc = []
   let letturaDdc = 0
   mockFrom.mockImplementation((t: string) => {
     if (t === 'lavori') return chain({ data: lavoro, error: lavoro ? null : { code: 'PGRST116' } })
@@ -91,7 +120,9 @@ function banco(
     if (t === 'dichiarazioni_conformita') {
       // ① la già annullata da questo evento, ② il suo successore.
       const dato = letturaDdc++ === 0 ? (extra.giaAnnullata ?? null) : (extra.successore ?? null)
-      return chain({ data: dato, error: null })
+      const filtri: Array<[string, unknown]> = []
+      filtriDdc.push(filtri)
+      return chainSpia({ data: dato, error: null }, filtri)
     }
     throw new Error(`tabella inattesa: ${t}`)
   })
@@ -466,6 +497,36 @@ describe('POST …/riemetti — con le CORREZIONI (Task C)', () => {
     expect(body.dichiarazione_id).toBe('n1')
     expect(mockCorreggi).not.toHaveBeenCalled()
     expect(mockRiemetti).not.toHaveBeenCalled()
+  })
+
+  it('🔴 …e le DUE letture guardano le colonne GIUSTE, non due colonne qualunque nell\'ordine giusto', async () => {
+    // 🛑 QUESTA È LA PROVA DEL DIFETTO DEL PIANO, e senza di lei le due qui
+    //    sopra sarebbero verdi anche con le due letture INVERTITE — cioè con la
+    //    rotta che cerca per `sostituisce_id` la riga da cercare per
+    //    `annullata_da_evento_id`, e restituisce il documento ANNULLATO dicendo
+    //    «rifatto». Il finto risponde per ordine di chiamata: l'ordine da solo
+    //    non prova niente sulla condizione.
+    banco(LAVORO_RIGA, 'errore_dato_dichiarazione', {
+      giaAnnullata: { id: 'v1', numero_ddc: 'DDC-2026-0001' },
+      successore: { id: 'n1', numero_ddc: 'DDC-2026-0002', pdf_url: 'https://nuovo.test/ddc.pdf' },
+    })
+    await POST(req(corpo({ descrizione: 'x' })), params())
+
+    expect(filtriDdc).toHaveLength(2)
+    // ① la dichiarazione che QUESTO evento ha annullato, dentro il laboratorio
+    //    della sessione: è la coppia di `ddc_evento_annulla_unique`
+    //    (`laboratorio_id, annullata_da_evento_id`), che è ciò che rende sicuro
+    //    il `maybeSingle()` — senza il filtro sul laboratorio quella lettura
+    //    potrebbe tornare più righe e diventare un errore a tempo d'esecuzione.
+    expect(filtriDdc[0]).toEqual(
+      expect.arrayContaining([['annullata_da_evento_id', EVENTO_ID], ['laboratorio_id', LAB_ID]])
+    )
+    expect(filtriDdc[0].map((f) => f[0])).not.toContain('sostituisce_id')
+    // ② e il SUCCESSORE, cercato per `sostituisce_id` sull'id della prima.
+    expect(filtriDdc[1]).toEqual(
+      expect.arrayContaining([['sostituisce_id', 'v1'], ['laboratorio_id', LAB_ID]])
+    )
+    expect(filtriDdc[1].map((f) => f[0])).not.toContain('annullata_da_evento_id')
   })
 
   it('🔴 evento già consumato da un ALTRO intervento (nessun successore) → 409, mai un 200 vuoto', async () => {

@@ -5,11 +5,12 @@
 
 | cosa | esito |
 |---|---|
-| `verify:full` | **uscita 0** — `5605 passate \| 68 saltate su 454 file` (prima: `5492 \| 68 su 451`) |
-| prove nuove | **+113**, file di prova **+3** |
+| `verify:full` | **uscita 0** — `5606 passate \| 68 saltate su 454 file` (prima: `5492 \| 68 su 451`) |
+| prove nuove | **+114**, file di prova **+3** |
 | R-P4 | **95 asserzioni su 129** si accendono con l'abbozzo inerte |
 | difetti del piano/brief trovati | **3** (uno non lo nominava nessun documento) |
-| ritrovamenti fuori mandato | **2 nuovi** + i 4 già noti, tutti riferiti e non toccati |
+| ritrovamenti fuori mandato | **2 nuovi** + i 4 già noti, **di cui uno era descritto a metà** — tutti riferiti e non toccati |
+| difetti nelle **mie** prove | **3**, trovati dall'abbozzo inerte, dal primo verde e dalla revisione finale |
 | contratto SQL | **non toccato** |
 
 ---
@@ -155,14 +156,14 @@ estrae le `RAISE EXCEPTION` col loro testo, e asserisce che sono **tredici**, ch
 | 13 | `prescrizione_caratteristiche` con sotto-chiave di forma sbagliata | ✅ 422 |
 | 14 | testi non-stringa (numero · booleano · oggetto) | ✅ 422, tre casi |
 | 15 | `paziente_id` non-UUID | ✅ 422 (altrimenti `22P02` → 500 illeggibile) |
-| 16 | `paziente_id` di un **altro laboratorio** | ✅ 422 **prima del render**, e nessun file caricato |
+| 16 | `paziente_id` di un **altro laboratorio** | ✅ 422, e **l'atto unico non viene chiamato** — quindi non si costruisce niente. ⚠️ **Precisione dovuta:** nessuna asserzione osserva `mockUpload`, perché il render vive **dentro** `correggiERiemettiDdC`, che nel finto della rotta è sostituito per intero. La prova è transitiva: «non chiamata» ⇒ «niente costruito, niente caricato». Il piano chiedeva letteralmente «e nessun file caricato»: quella riga sarebbe misurabile solo in una prova d'integrazione |
 | 17 | `paziente_id` valido → l'**embed** viaggia col lavoro corretto | ✅ asserito sull'oggetto passato al generatore |
 | 18 | gettone **assente** | ✅ 422 |
 | 19 | gettone stringa **vuota** / di soli spazi | ✅ 422 |
 | 20 | gettone non-stringa (numero) | ✅ 422 |
 | 21 | gettone **non interpretabile** come istante (`'pippo'`) | 🛑 **NON COPERTA, e il perché:** riconoscere qui tutte le forme che Postgres accetta non è il perimetro di questo compito. È lo **stesso limite già dichiarato** in `denti/route.ts:100-103`. Arriva come `22007` → **500**, cioè fail-closed |
 | 22 | correzione della prescrizione su un lavoro **senza** prescrizione | ✅ 422 prima del render |
-| 23 | secondo tocco con lo **stesso evento** | ✅ 200 col **successore**, e nessuna seconda generazione |
+| 23 | secondo tocco con lo **stesso evento** | ✅ 200 col **successore**, nessuna seconda generazione, **e le due letture filtrano sulle colonne giuste** (v. §5-bis) |
 | 24 | evento già consumato **senza successore** | ✅ 409 |
 | 25 | i **sei esiti gentili** | ✅ uno per uno, sia in libreria sia in rotta |
 | 26 | esito **ignoto** / risposta vuota / `ok` senza `nuova_id` | ✅ lancia → 500 |
@@ -193,6 +194,23 @@ Dopo il primo rosso (`51 fallite / 20 passate`) ho messo un **abbozzo inerte** �
 la porta d'idempotenza asseriva solo `mockCorreggi non chiamato` — e passava anche su una rotta che
 **ignorava del tutto le correzioni** e rifaceva il documento dalla strada vecchia. Ora asserisce che
 **nessuna delle due** strade è stata percorsa, più l'identità del documento restituito.
+
+### 🔴 5-bis — UN TERZO DIFETTO NELLE MIE PROVE, trovato alla revisione finale
+
+Il finto della rotta rispondeva alle due letture di `dichiarazioni_conformita` **in base all'ordine della
+chiamata**, e la catena inghiottiva i `.eq()` senza registrarli. ➡️ Le due prove della porta d'idempotenza
+sarebbero rimaste **verdi anche con le due letture INVERTITE** — cioè con la rotta che cerca per
+`sostituisce_id` la riga da cercare per `annullata_da_evento_id`, e restituisce il documento **annullato**
+dicendo «rifatto».
+
+🔑 **Cioè: la prova che doveva sorvegliare il difetto ① del piano non lo sorvegliava.** La condizione
+**è** il difetto; una prova che guarda solo l'ordine non guarda la condizione.
+
+➡️ Corretto: la catena finta **annota** ogni coppia `(colonna, valore)`, e una prova nuova asserisce che
+la prima lettura filtra su `annullata_da_evento_id` + `laboratorio_id` (**e non** su `sostituisce_id`) e
+la seconda su `sostituisce_id` + `laboratorio_id` (**e non** su `annullata_da_evento_id`). Il filtro sul
+laboratorio non è decorativo: è la coppia di `ddc_evento_annulla_unique`, ed è ciò che rende sicuro il
+`maybeSingle()` — toglierlo lo farebbe diventare un errore a tempo d'esecuzione fra laboratori.
 
 ### Due difetti nelle mie prove, trovati al primo verde
 
@@ -266,8 +284,23 @@ coda, non a questo mandato. **Non l'ho toccato.**
   coda**. 🔑 **E questo compito ne alza il rischio invece di abbassarlo:** da oggi le due funzioni hanno
   due chiamanti **nella stessa rotta**, separati da un `if`. La riga 26 è stata aggiornata perché lo dica.
 - `{"denti_coinvolti": []}` cancella tutti i denti — la rotta lo rifiuta a monte (C2), il **contratto no**.
-- `numero_prescrizione` vive in due posti (`lavori` e `lavori_prescrizioni`): l'atto unico scrive il
-  primo, che è quello che il documento stampa (`:256`). Coerente **oggi**.
+- 🔴 **`numero_prescrizione` — la riga «vive in due posti» è VERA ma dice METÀ della cosa, e la metà che
+  manca l'ho misurata solo alla revisione finale.** `src/app/api/lavori/[id]/route.ts:79-83` esclude
+  `numero_prescrizione` dall'allowlist della PATCH **con la sua ragione scritta**: «*vive su
+  `lavori_prescrizioni`, scrittura via RPC dedicate (ondata B, spec §3). La colonna omonima su `lavori` è
+  **legacy**: riaprirla qui sarebbe **una seconda penna sullo stesso fatto**, la classe già pagata con
+  `numero_cassetta`*». E `src/types/domain.ts:504-506` lo ripete: «*P38: il numero facoltativo vive QUI,
+  non su `lavori.numero_prescrizione` (colonna legacy)*».
+  ➡️ **L'allowlist dell'atto unico (`c_su_lavori`) scrive esattamente quella colonna legacy** — cioè
+  riapre la seconda penna che la PATCH tiene chiusa da mesi con una ragione scritta.
+  📌 **Il documento non ne soffre**, ed è il motivo per cui non si vede: `generate-ddc.ts:257` legge
+  `lavoro.numero_prescrizione`, cioè **la stessa colonna legacy**. Dopo una correzione, carta e riga di
+  `lavori` concordano. **A divergere è `lavori_prescrizioni.numero_prescrizione`**, che secondo P38 è
+  quella vera: chi legge di là vede il numero **vecchio** mentre il documento porta il nuovo.
+  🛑 **Non l'ho toccato, ed è la scelta giusta due volte:** il contratto è fermo (togliere la chiave
+  sarebbe una migration), e togliere il nome dalla sola allowlist della rotta la farebbe divergere dal
+  contratto — cioè creerebbe la terza penna al posto di chiudere la seconda. **Va deciso dov'è la penna
+  unica prima di scrivere altro codice**, ed è materia di roadmap.
 - `{anno_ddc: null}` supera il controllo di presenza e muore su `23502` nominando `numero_ddc`, una
   colonna che il chiamante non ha toccato. La rotta non può mandare quella forma (manda sempre la coppia
   che ha stampato), ma il contratto resta com'è.
@@ -314,7 +347,7 @@ $ npm run verify:full ; ESITO=$? ; echo "VERIFY_EXIT=$ESITO"
 VERIFY_EXIT=0
 
  Test Files  448 passed | 6 skipped (454)
-      Tests  5605 passed | 68 skipped (5673)
+      Tests  5606 passed | 68 skipped (5674)
 
 ✅ DS compliance OK (v2.3 legacy + v3)
 ✅ Guardia CSRF verde — ogni route mutante verifica l'origine, o è esclusa con una ragione scritta
@@ -325,7 +358,10 @@ VERIFY_EXIT=0
 ✅ verifica «full» registrata (.claude/state/ultima-verifica)
 ```
 
-🔑 **LA PROMESSA È RISCOSSA: `5492 | 68 su 451` → `5605 | 68 su 454`.** +113 prove, +3 file. Era
+📌 Questo è il **secondo** giro di FASE 7, dopo la correzione della prova sulla porta d'idempotenza
+(§5-bis): il primo era `5605 | 68 su 454`, questo `5606`.
+
+🔑 **LA PROMESSA È RISCOSSA: `5492 | 68 su 451` → `5606 | 68 su 454`.** +114 prove, +3 file. Era
 l'aspettativa dichiarata, ed è il primo compito TypeScript dell'ondata.
 
 ---
