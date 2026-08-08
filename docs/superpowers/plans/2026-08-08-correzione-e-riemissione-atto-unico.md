@@ -192,10 +192,26 @@ consumatore**, sarebbe libero di piegare il primo per far tornare il secondo —
 «*`p_correzioni` che diventa una PATCH generica… la cosa che un esecutore di fretta allargherà*»,
 il rischio numero uno dell'autorevisione. **Una revisione in mezzo è il cancello.**
 
-- **Task C-bis — l'irrigidimento in SQL** (C0 + C1, **una sola** `CREATE OR REPLACE`). 🕛 Migration
-  **NUOVA**, mai una modifica a quella del Task B, che è già **applicata e nel ledger**: pavimento
-  nuovo **`20260808093513`**. Percorso **GRANDE** d'ufficio (§0C: una migration lo impone).
-- **Task C — la rotta**, dopo la revisione del C-bis.
+- **Task C-bis — l'irrigidimento in SQL** (C0 + C1, **una sola** `CREATE OR REPLACE`). ✅ **COMPLETO**
+  (`20260808103515`, revisione **APPROVATO CON RILIEVI, nessun critico**).
+- **Task C-ter — la coppia `anno_ddc`/`progressivo_ddc` è INDIVISIBILE.** 🔄 **AGGIUNTO dopo la revisione
+  del C-bis**, e non è un compito nuovo: è **la seconda metà di C1**. Chiudendo `numero_ddc` è rimasta
+  scoperta la coppia da cui quel numero si deriva.
+  - `provato:` (esecutore) `p_nuova = {progressivo_ddc: N}` senza anno → **l'anno si eredita** dalla
+    vecchia; `provato:` (revisione, **il rovescio, che l'esecutore non aveva visto**)
+    `p_nuova = {anno_ddc: 2099}` da solo → `esito: ok`, e nasce `DDC-2099-998001` con un progressivo
+    **mai prenotato per quell'anno**.
+  - 🛑 **La regola è `XOR`: o entrambe, o nessuna** — non quella asimmetrica («pretendi l'anno quando
+    c'è il progressivo»), che ne chiuderebbe **metà**.
+  - 🔑 **Perché ORA e non dopo:** la funzione **non ha chiamanti**, quindi irrigidirla costa una `RAISE`.
+    Dopo il Task C costerebbe **contratto più chiamante**. E che sia sicuro imporlo lo dimostra il fatto
+    che mandarne **zero** già fallisce rumorosamente (`23505`), e l'unico chiamante legittimo le manda
+    **sempre tutte e due**.
+  - ⚠️ **Perché nessuna sonda l'aveva preso, ed è la lezione:** la fixture vive nel **2099**, quindi
+    l'anno ereditato **coincide per caso**. Spostandola al 2098 e lasciando tutto il resto identico,
+    l'asserzione sul numero diventa **rossa**. *Una fixture che sceglie i propri valori può nascondere
+    proprio il difetto che dovrebbe mostrare.*
+- **Task C — la rotta**, dopo la revisione del C-ter, **su contratto fermo**.
 
 **File:** `src/app/api/lavori/[id]/dichiarazione/riemetti/route.ts` (si **estende**, non si riscrive) ·
 allowlist nuova · prove.
@@ -207,8 +223,9 @@ allowlist nuova · prove.
 | **P13** | 🔑 **da dove arriva `p_atteso_updated_at`** — è ciò che decide se il cancello può accendersi | ✅ `provato:` `denti/route.ts:104-111` — **dal CORPO della richiesta** (`body.atteso_updated_at`), ed è **obbligatorio** dal rilievo M1 della revisione pre-merge del 28/07. ➡️ Il contratto è **«i valori che hai visto sono ancora quelli»**, non «la riga non è cambiata negli ultimi 200 ms». 🛑 Se il gettone lo producesse la rotta da una lettura fresca, la finestra sarebbe **il solo rendering del PDF** e la guardia non potrebbe quasi mai accendersi: una guardia che non può fallire, cioè **P10-bis applicato a un cancello invece che a una sonda**. **Il Task D dovrà quindi portarsi dietro l'`updated_at` che ha mostrato.** |
 | **P14** | il gettone si può riconvertire per comodità? | 🛑 **NO, e il perché è misurato** (`denti/route.ts:88-93`): `timestamptz` ha precisione al **microsecondo**, `Date` di JS al **millisecondo**. Un solo giro di `new Date(...)` tronca `.123456` a `.123`, e il confronto `IS DISTINCT FROM` **non torna MAI uguale**: **409 permanente**, che nemmeno ricaricando si sana. Il valore viaggia **così com'è**; il `.trim()` serve solo a decidere se è vuoto |
 | **P15** | il chiamante può scegliere il proprio laboratorio? | `denti/route.ts:129-130`: `laboratorio_id` e `lavoro_id` presenti nel corpo si **IGNORANO** — si derivano da sessione e URL. **Il client non sceglie il proprio tenant.** L'idioma è già in casa: si ricopia, non si reinventa |
-| **P16** | oggi `p_nuova` porta `stato`? | **No:** la riga la costruisce `costruisciDichiarazione` (`generate-ddc.ts:233-364`) e `stato` non è fra le chiavi. ➡️ **C0 è un irrigidimento difensivo, non un difetto vivo** — la porta è aperta, ma oggi non ci passa nessuno. Si chiude perché **la RPC non conosce i suoi chiamanti futuri** |
-| **P17** | e `numero_ddc`? | Lo **deriva già** `costruisciDichiarazione` (`:225-226`: `generaProgressivo` → `DDC-${anno}-${progressivo}`), **non** il chiamante HTTP. ➡️ Anche C1 è **difensivo sulla RPC**, non una falla della rotta di oggi. 🔑 Ma resta dovuto: il buco è nel **contratto**, e un contratto si giudica per ciò che permette, non per ciò che oggi gli si chiede |
+| ~~**P16**~~ | ~~oggi `p_nuova` porta `stato`?~~ | 🔴 **SBAGLIATA, E LA CORREZIONE È MIA.** Avevo scritto «*`stato` non è fra le chiavi*» dopo aver letto **solo la coda** di `costruisciDichiarazione`. `provato:` `generate-ddc.ts:326` → **`stato: 'generata' as const`**, dentro l'oggetto `ddc`. ➡️ **La porta non era aperta e inutilizzata: era in uso a ogni riemissione**, con un valore per ora innocuo. *Un controllo fatto su una parte del blocco risponde per tutto il blocco, e sembra una misura.* |
+| ~~**P17**~~ | ~~e `numero_ddc`?~~ | 🔴 **SBAGLIATA A METÀ, stessa causa.** Vero che il **chiamante HTTP** non lo sceglie; **falso** che non arrivi alla RPC: `provato:` `:234-236` → `riga` porta `numero_ddc`, `anno_ddc` **e** `progressivo_ddc`. ➡️ La conclusione che ne traevo — «*C0 e C1 sono difensivi, oggi non ci passa nessuno*» — **era falsa per entrambi**. Restano dovuti per la ragione giusta, che è l'altra che avevo scritto: **un contratto si giudica per ciò che permette** |
+| **P16-bis** | 🔴 **conseguenza operativa sul TASK C**, che nasce da quelle due righe sbagliate | 🛑 **`riemettiDdC` passa `riga` come `p_nuova`** (`generate-ddc.ts:461-468`), e `riga` porta **`stato` e `numero_ddc`** — che da C-bis in poi sono **rifiutati**. ➡️ **Il Task C NON può passare `riga` così com'è**: deve toglierle quelle due chiavi prima di chiamare la RPC nuova. 🔑 E questo vale **solo** per la funzione nuova: la vecchia continua ad accettarle, il che è precisamente il pericolo del punto ⑤ |
 
 🛑 **E UN COSTO DA DICHIARARE, non da scoprire:** il PDF si rende e si carica **PRIMA** della transazione
 (`generate-ddc.ts:457-460`, scelta dichiarata: è ciò che permette alla transazione di esistere). Quindi
@@ -279,8 +296,20 @@ due rompe niente — ma **il messaggio del 409 deve essere onesto**, e il Passo 
   generatore. ⚠️ I testi passano da `CAMPI_TESTO_NORMALIZZATI`: uno snapshot **vuoto** vincerebbe sul
   nome vivo e stamperebbe **un'identificazione paziente assente** — è il difetto già pagato sul gemello
   `richiedente_nome` (D242).
+- [ ] **Passo 5-bis — 🛑 TOGLI DA `riga` LE CHIAVI CHE LA RPC NUOVA NON ACCETTA PIÙ** (P16-bis):
+  `stato` e `numero_ddc`, che `costruisciDichiarazione` mette sempre (`:234`, `:326`). Senza questo, la
+  prima chiamata vera **alza**. ⚠️ `anno_ddc` e `progressivo_ddc` invece **restano tutte e due** — è la
+  regola `XOR` del C-ter, e `riga` le porta già entrambe.
 - [ ] **Passo 6 — traduci `23505`** in un esito leggibile, e `conflitto` in **409**.
-- [ ] **Passo 7 — verde + salva.**
+  🛑 **Ramifica sul NOME del vincolo, mai sul solo codice** (C3), e misura **prima** dove PostgREST mette
+  quel nome (`message` / `details` / `hint`): le eccezioni `RAISE` della RPC tornano invece come `P0001`
+  con messaggio nostro. **Due forme diverse, una sonda sola le misura entrambe.**
+- [ ] **Passo 7 — verde + salva.** 📌 **Aspettativa dichiarata: qui il numero delle prove DEVE muoversi.**
+  Il Task B e il C-bis l'hanno lasciato fermo a **5492** con ragione (erano SQL, e le sonde non girano in
+  CI). Il Task C è TypeScript: **se dopo il Task C `verify:full` torna ancora 5492, qualcosa non è stato
+  provato.** Forme d'input da enumerare (R-P4): corpo non-JSON · `correzioni` assente · `correzioni` non
+  oggetto · chiave fuori dalle otto · **valori vuoti** (C2) · `paziente_id` di un altro laboratorio ·
+  gettone assente · gettone non interpretabile.
 
 ---
 
