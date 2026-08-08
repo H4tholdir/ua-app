@@ -185,8 +185,36 @@ comando **separato** — D311; pavimento `20260807185858`)
 
 ## Task C — La rotta che riceve le correzioni
 
+🔄 **SPEZZATO IN DUE l'08/08, dopo la revisione del Task B — e la ragione è un rischio di cui questo
+piano si accusa da solo.** C0 e C1 non si chiudono in TypeScript: vivono **nella RPC**, quindi il Task C
+comincia con **una migration**. E se lo stesso esecutore scrivesse **il contratto e il suo
+consumatore**, sarebbe libero di piegare il primo per far tornare il secondo — cioè esattamente
+«*`p_correzioni` che diventa una PATCH generica… la cosa che un esecutore di fretta allargherà*»,
+il rischio numero uno dell'autorevisione. **Una revisione in mezzo è il cancello.**
+
+- **Task C-bis — l'irrigidimento in SQL** (C0 + C1, **una sola** `CREATE OR REPLACE`). 🕛 Migration
+  **NUOVA**, mai una modifica a quella del Task B, che è già **applicata e nel ledger**: pavimento
+  nuovo **`20260808093513`**. Percorso **GRANDE** d'ufficio (§0C: una migration lo impone).
+- **Task C — la rotta**, dopo la revisione del C-bis.
+
 **File:** `src/app/api/lavori/[id]/dichiarazione/riemetti/route.ts` (si **estende**, non si riscrive) ·
 allowlist nuova · prove.
+
+### 📐 MISURE DI APERTURA DEL TASK C — 08/08/2026
+
+| # | assunzione | esito |
+|---|---|---|
+| **P13** | 🔑 **da dove arriva `p_atteso_updated_at`** — è ciò che decide se il cancello può accendersi | ✅ `provato:` `denti/route.ts:104-111` — **dal CORPO della richiesta** (`body.atteso_updated_at`), ed è **obbligatorio** dal rilievo M1 della revisione pre-merge del 28/07. ➡️ Il contratto è **«i valori che hai visto sono ancora quelli»**, non «la riga non è cambiata negli ultimi 200 ms». 🛑 Se il gettone lo producesse la rotta da una lettura fresca, la finestra sarebbe **il solo rendering del PDF** e la guardia non potrebbe quasi mai accendersi: una guardia che non può fallire, cioè **P10-bis applicato a un cancello invece che a una sonda**. **Il Task D dovrà quindi portarsi dietro l'`updated_at` che ha mostrato.** |
+| **P14** | il gettone si può riconvertire per comodità? | 🛑 **NO, e il perché è misurato** (`denti/route.ts:88-93`): `timestamptz` ha precisione al **microsecondo**, `Date` di JS al **millisecondo**. Un solo giro di `new Date(...)` tronca `.123456` a `.123`, e il confronto `IS DISTINCT FROM` **non torna MAI uguale**: **409 permanente**, che nemmeno ricaricando si sana. Il valore viaggia **così com'è**; il `.trim()` serve solo a decidere se è vuoto |
+| **P15** | il chiamante può scegliere il proprio laboratorio? | `denti/route.ts:129-130`: `laboratorio_id` e `lavoro_id` presenti nel corpo si **IGNORANO** — si derivano da sessione e URL. **Il client non sceglie il proprio tenant.** L'idioma è già in casa: si ricopia, non si reinventa |
+| **P16** | oggi `p_nuova` porta `stato`? | **No:** la riga la costruisce `costruisciDichiarazione` (`generate-ddc.ts:233-364`) e `stato` non è fra le chiavi. ➡️ **C0 è un irrigidimento difensivo, non un difetto vivo** — la porta è aperta, ma oggi non ci passa nessuno. Si chiude perché **la RPC non conosce i suoi chiamanti futuri** |
+| **P17** | e `numero_ddc`? | Lo **deriva già** `costruisciDichiarazione` (`:225-226`: `generaProgressivo` → `DDC-${anno}-${progressivo}`), **non** il chiamante HTTP. ➡️ Anche C1 è **difensivo sulla RPC**, non una falla della rotta di oggi. 🔑 Ma resta dovuto: il buco è nel **contratto**, e un contratto si giudica per ciò che permette, non per ciò che oggi gli si chiede |
+
+🛑 **E UN COSTO DA DICHIARARE, non da scoprire:** il PDF si rende e si carica **PRIMA** della transazione
+(`generate-ddc.ts:457-460`, scelta dichiarata: è ciò che permette alla transazione di esistere). Quindi
+**un `conflitto` costa un file orfano su Storage e un progressivo bruciato**. È accettabile — nessuno dei
+due rompe niente — ma **il messaggio del 409 deve essere onesto**, e il Passo 3 (validare il laboratorio
+**prima** del render) vale per la stessa ragione.
 
 ### 🔴 QUATTRO COSE CHE IL TASK B HA LASCIATO SUL TAVOLO, e questo compito le raccoglie
 
