@@ -248,7 +248,8 @@ legge `risposta.lavoro.updated_at` — che la `PATCH` **restituisce già**
 lo passa nel patch locale. Sta lì e non nel padre perché quella funzione è
 «*l'unica via verso il backend, condivisa da tutti i rami*»: una copia per ramo
 divergerebbe alla prima revisione. `handleSalvato` fonde con `{...prev,
-...patch}` e **non va toccato**. La lettura resta **difensiva** come quella di
+...patch}` e **non l'ho toccato** — il che non vuol dire che sia sorvegliato:
+v. la dichiarazione in fondo a questo paragrafo. La lettura resta **difensiva** come quella di
 D251 sopra: un corpo senza `lavoro` non toglie niente a una scrittura riuscita,
 e le prove preesistenti (che fingono `{ok:true}` senza corpo) restano verdi.
 
@@ -292,14 +293,33 @@ dichiarata.**
 
 ## 6. FASE 7
 
+`npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"` — le righe qui sotto
+sono **incollate** da `scripts/tmp/verify-finale.log`, non riassunte:
+
 ```
-npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
-→ Test Files  448 passed | 6 skipped (454)
-→ Tests       5659 passed | 68 skipped (5727)
-→ ✓ Compiled successfully · TypeScript · eslint --max-warnings 0 · next build (82/82)
-→ ✅ DS compliance · CSRF · reduced-motion · coerenza documenti · salvataggio · progetti Playwright
-→ VERIFY_EXIT=0
+ Test Files  448 passed | 6 skipped (454)
+      Tests  5659 passed | 68 skipped (5727)
+   Duration  124.80s (transform 27.46s, setup 290.51s, import 128.54s, tests 433.59s, environment 857.94s)
+✓ Compiled successfully in 6.6s
+✓ Generating static pages using 15 workers (82/82) in 273ms
+✅ DS compliance OK (v2.3 legacy + v3)
+✅ Guardia CSRF verde — ogni route mutante verifica l'origine, o è esclusa con una ragione scritta
+✅ reduced-motion: niente si sposta a preferenza accesa, tutto arriva a riposo, la molla resta a preferenza spenta
+✅ Coerenza verde — conteggi giusti, nessun riferimento pendente, nessuna voce fantasma
+✅ copia allineata al progetto, e la rete di sicurezza è recente
+✅ 2 progetti dichiarati, 2 con prove, 5 file raccolti: nessuna squadra vuota, nessuna prova orfana
+✅ verifica «full» registrata (.claude/state/ultima-verifica)
+VERIFY_EXIT=0
 ```
+
+⚠️ **Correzione a me stesso, e va detta perché è la forma del difetto che questo
+compito esiste per chiudere.** La prima stesura di questo paragrafo portava un
+blocco di testo **composto a mano** — righe con la freccia, le sei guardie
+riassunte in una riga sola — dentro una recinzione di codice, cioè con l'aria di
+un output incollato. I numeri erano giusti, ma la **forma** affermava una cosa
+(«questo è ciò che il terminale ha stampato») che non era vera. È esattamente il
+§7① un piano più in su: la conclusione regge e la prova che la accompagna dice
+altro. Sostituito con le righe vere.
 
 **Base dichiarata: 5649 | 68 su 454 → adesso 5659 | 68 su 454. +10 prove**, i
 file restano 454 (le prove nuove stanno nei due file che già esistevano).
