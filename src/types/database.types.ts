@@ -6317,6 +6317,17 @@ export type Database = {
         Args: { p_laboratorio_id: string; p_lavoro_id: string }
         Returns: Json
       }
+      correggi_e_riemetti_atomica: {
+        Args: {
+          p_atteso_updated_at: string
+          p_correzioni: Json
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+          p_nuova: Json
+        }
+        Returns: Json
+      }
       crea_rifacimento_atomico: {
         Args: {
           p_costo_interno?: number
