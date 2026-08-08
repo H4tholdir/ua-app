@@ -2,7 +2,7 @@
 
 **Ramo:** `intervento-post-consegna` · **Salvataggio:** `4a03f365`
 **Migration:** `20260808195344_lavori_gettone_solo_se_cambia.sql`, **applicata** al banco
-**FASE 7:** `VERIFY_EXIT=0` — **5675 passate | 68 saltate** su **455** file
+**FASE 7:** `VERIFY_EXIT=0` — **5676 passate | 68 saltate** su **455** file
 
 | cosa | esito |
 |---|---|
@@ -11,8 +11,9 @@
 | ③ il foglio raccoglie l'`updated_at` | ✅ successo **e** 409 |
 | ④ «Ricarica e riprendi» non cancella più le correzioni | ✅ |
 | 🔴 prova oggetto per oggetto | **13 oggetti** (il brief ne elencava 8) — **0 rotti** con la forma spedita, **2 rotti** con la forma ratificata |
-| R-P4 | **12 mutazioni, 12 accese** |
+| R-P4 | **13 mutazioni, 13 accese** |
 | difetti trovati nel brief | **6**, di cui **due bloccanti** |
+| ⚠️ **aspetta Francesco** | la riga **D323 del verbale** descrive un predicato **che non è quello in banca dati** — v. §8 |
 
 ---
 
@@ -183,6 +184,11 @@ SELECT p.proname, (…righe che contengono 'updated_at'…) FROM pg_proc p
 | 12 | **`src/hooks/useLavoroForm.ts:291`** 🆕 | LEGGE | ✅ | ✅ |
 | 13 | **vista `lavori_dashboard`** 🆕 | **SELEZIONA** `l.updated_at`, ma **NON ci ordina** (`ORDER BY` su stato e data di consegna) | ✅ | ✅ |
 
+🔑 **E i due trigger AFTER di `lavori` sono chiusi anche loro, così nessuno lo richiede:**
+`_audit_trigger_fn()` e `trg_refresh_dashboard()` **non nominano `updated_at`** — il censimento
+`prosrc ILIKE '%updated_at%'` non li restituisce. Il primo copia `to_jsonb(OLD)`/`to_jsonb(NEW)` per
+intero (v. R3), il secondo rinfresca la vista; nessuno dei due ordina o decide su quel campo.
+
 **8 oggetti nel brief → 13 nel censimento.** I cinque in più sono #4, #5, #7, #12, #13.
 E il brief metteva `correggi_e_riemetti_atomica` fra «le tre del catalogo che usano il gettone»: è
 vero che lo usa, ma **non lo assegna** — cioè non è uno dei tre che la pinzatura poteva rompere.
@@ -206,7 +212,7 @@ E quella penna lo aveva **previsto per iscritto**, nel suo stesso commento:
 c'erano già per caso), 3 sulla PATCH (**3 rosse su 3**), 5 sul foglio (**4 rosse su 5**).
 Le verdi al primo giro sono esattamente quelle che i mutanti hanno poi acceso.
 
-**Dodici mutazioni deliberate sul codice finito — `12 su 12` accese**, e ognuna ha acceso
+**Tredici mutazioni deliberate sul codice finito — `13 su 13` accese**, e ognuna ha acceso
 l'asserzione che esiste per lei:
 
 | # | mutazione | prove accese |
@@ -223,6 +229,7 @@ l'asserzione che esiste per lei:
 | M10 | «Ricarica e riprendi» torna a chiamare `ricomincia` | 3 |
 | M11 | «Ricarica e riprendi» azzera **anche** le correzioni | 3 |
 | M12 | anche la **chiusura** del foglio tiene le correzioni | 1 — «chiudere il foglio BUTTA le correzioni» |
+| M13 | la guardia del carico vuoto messa **prima** dei blocchi colore/tinta | 2 — «mezza coppia di colore» · «non ingoia un avviso» |
 
 **Le forme d'input enumerate**, prima delle asserzioni, sul gettone che arriva dal corpo:
 assente (`422`, già coperta) · stringa vuota (`422`, già coperta) · non-stringa (`422`, già coperta) ·
@@ -231,6 +238,14 @@ millisecondo** (coperta, M2) · **non interpretabile** (`'pippo'`, coperta, M3) 
 gettone** (`null` in banca dati, coperta) · **gettone stantìo** (coperta, M5).
 **Non coperta, e perché:** un gettone **futuro** rispetto alla riga — è indistinguibile da uno
 stantìo per questo confronto, e la RPC lo tratta allo stesso modo.
+
+⚠️ **UNA PRECISAZIONE SULLA PROVA DEL 409, perché dice meno di quanto sembri.** In jsdom
+`router.refresh()` è finto e **non cambia i `props`**, quindi quella prova misura il ramo di
+**ripiego**: il rinfresco non ha portato niente di nuovo e il gettone raccolto dal corpo del 409 è
+l'unico che c'è. In produzione il rinfresco i `props` li cambia, e **vince quello** —
+`gettoneDeiProps` è la risincronizzazione. È esattamente l'ordine voluto (valore mostrato e gettone
+dalla **stessa** lettura), ma la prova copre il ripiego, non la strada principale: quella la vedrà
+la FASE 9 del Task D-bis.
 
 🔴 **UN DIFETTO MIO, e le prove esistenti l'hanno preso subito.** Modificando la composizione del
 corpo in `DevoIntervenire` ho **cancellato la riga `correzioni: carico,`**. Sette prove già in casa
@@ -245,15 +260,15 @@ comando**.
 ```
 $ npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
  Test Files  449 passed | 6 skipped (455)
-      Tests  5675 passed | 68 skipped (5743)
-   Duration  146.53s
+      Tests  5676 passed | 68 skipped (5744)
+   Duration  ~147s
 ✓ Compiled successfully in 6.4s        (next build)
 ✅ DS compliance · CSRF · reduced-motion · coerenza documenti · salvataggio · progetti Playwright
 VERIFY_EXIT=0
 ```
 
-**Base dichiarata: 5659 | 68 su 454. Ora: 5675 | 68 su 455.** Delta **+16 prove, +1 file**, e torna:
-14 `it(` aggiunte nei file esistenti − 1 sostituita + 3 nel file nuovo = **+16**.
+**Base dichiarata: 5659 | 68 su 454. Ora: 5676 | 68 su 455.** Delta **+17 prove, +1 file**, e torna:
+14 `it(` aggiunte nei file esistenti − 1 sostituita + 4 nel file nuovo = **+17**.
 
 **FASE 6b** fatta: `supabase gen types` → il file generato è **identico** (la migration aggiunge una
 funzione di trigger, che nei tipi non compare) · `tsc --noEmit` dentro `verify:full`, pulito.
@@ -363,6 +378,14 @@ due punti. Ma resta vero ciò che il panel ha riferito: senza un codice leggibil
 riquadro non può scegliere il gesto giusto fra «ricarica e rifai», «guarda prima di rifare» e
 «ripremi e basta».
 
+**R4-bis · DOMANDA CHIUSA, non un ritrovamento: la scorciatoia del carico vuoto NON ingoia un
+avviso.** La risposta della scorciatoia non porta `tinta_rimossa` / `tinta_scartata` /
+`colore_scartato`, e la domanda era se uno dei tre potesse essere vero con un carico vuoto — sarebbe
+un «salvato» che si mangia un avviso. **Non può**, ed è una proprietà della forma: tutti e tre si
+accendono solo dentro rami che **assegnano** chiavi al carico (`colore_scala`+`colore_codice`,
+`tinta_famiglia`+`tinta_codice`, o i due `null` del ramo D117). Carico vuoto ⇒ nessuno dei tre è
+passato. Prova ②-ter, e mutante **M13** che la accende.
+
 **R5 · Il lucchetto resta grossolano**, come dichiarato: anche a difetto chiuso, cambiare cassetta,
 tracking o stato fa scattare il blocco. La forma definitiva — **il gettone sono le sei voci
 stampate** — resta la destinazione dichiarata.
@@ -399,5 +422,17 @@ numerici **per valore**, non per forma testuale — su una colonna `numeric` un 
   perché il confronto è contro un `OLD` che viene da una transazione precedente. Una sonda a due
   transazioni avrebbe richiesto dati committati da ripulire a mano, senza aggiungere niente.
 - **Non ho pubblicato niente** (`git push` non richiesto dal mandato).
+- 🔴 **NON HO TOCCATO IL VERBALE, e questa è la cosa che aspetta Francesco.** La riga **D323**
+  della centoquarantunesima tornata dice che la funzione confronta «*al netto di
+  `post_consegna_correzioni` **e** `updated_at`*». **Non è ciò che c'è in banca dati:** il catalogo
+  vivo esclude **il solo contatore**, e il perché è misurato in §6 B2 (la forma ratificata rompe due
+  penne del catalogo, e su una l'aggiornamento perso sarebbe totale).
+  🛑 **Ratificare una deviazione da una decisione di Francesco non è mio** (§0A-bis: il numero lo dà
+  lui). Ma **dichiararla sì**, ed è urgente: chi apre la sessione dopo legge il verbale, crede che
+  la forma ratificata sia quella viva, e la prima «pulizia» che nota lo scarto **rimette
+  `- 'updated_at'`** riaprendo esattamente l'aggiornamento perso che ho misurato.
+  ⚠️ **`guardia-coerenza-documenti` non può vederlo:** controlla la **coerenza**, non la **verità**,
+  e i miei salvataggi non toccano nessun verbale, quindi nemmeno l'avviso `--staged` è scattato.
+  🔑 Vale la riga di casa: *«la riga sbagliata è pericolosa più della sua assenza»*.
 - **BP-1 (MEMORY.md · ROADMAP-UFFICIALE.md) non l'ho aggiornata:** è di chi chiude l'ondata, non di
   un esecutore di un singolo compito. ⚠️ **Ma D323 va scritta lì**, e la migration nuova con lei.

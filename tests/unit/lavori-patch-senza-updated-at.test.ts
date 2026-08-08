@@ -131,4 +131,25 @@ describe('PATCH /api/lavori/[id] — il gettone lo muove il database (D323)', ()
     expect(res.status).toBe(200)
     expect(quantiUpdate).toBe(0)
   })
+
+  it('🛑 ②-ter la scorciatoia NON ingoia un avviso: dove il carico è vuoto, i tre avvisi non c\'erano', async () => {
+    // 🔑 LA DOMANDA CHE QUESTA PROVA CHIUDE, e andava chiusa: la risposta della
+    //    scorciatoia non porta `tinta_rimossa` / `tinta_scartata` /
+    //    `colore_scartato`. Se uno dei tre potesse essere vero con un carico
+    //    vuoto, chi ha chiesto leggerebbe «salvato» e **perderebbe l'avviso**.
+    // ✅ Non può, ed è una proprietà della forma del codice, non una fortuna:
+    //    tutti e tre si accendono solo dentro rami che **assegnano** chiavi al
+    //    carico (`colore_scala`+`colore_codice`, `tinta_famiglia`+`tinta_codice`,
+    //    o i due `null` del ramo D117). Carico vuoto ⇒ nessuno dei tre è passato.
+    //    Qui si misura il caso di confine: una famiglia di tinta ORFANA, che
+    //    viene tolta dal carico prima di ogni ramo.
+    const res = await patch({ tinta_famiglia: 'a_denti' })
+
+    expect(res.status).toBe(200)
+    expect(quantiUpdate).toBe(0)
+    const corpo = await res.json()
+    expect(corpo).not.toHaveProperty('tinta_rimossa')
+    expect(corpo).not.toHaveProperty('tinta_scartata')
+    expect(corpo).not.toHaveProperty('colore_scartato')
+  })
 })
