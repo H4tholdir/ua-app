@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantunesima tornata (D323-D324: il gettone si muove solo se cambia qualcosa, e il registro del lavoro esiste già a metà)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaduesima tornata (D325-D328: «altro» diventa il lavoro neutro, e il segno delle sostanze si sposta dal lavoro al materiale)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**324 decisioni in centoquarantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**328 decisioni in centoquarantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3816,3 +3816,90 @@ registro.
 📌 **Va in coda come DUE voci, e la prima è la portante:** senza l'autore, la schermata sarebbe un
 registro che dice «qualcuno». ⚠️ E il registro tocca **dati personali del paziente** (`old_data`/`new_data`
 portano la riga intera): la schermata nasce con la sua valutazione GDPR, non dopo.
+
+---
+
+### Centoquarantaduesima tornata — D325 · D326 · D327 · D328: «altro» diventa il lavoro neutro, e il segno delle sostanze si sposta dal LAVORO al MATERIALE (09/08/2026, 00:48)
+
+**Come è nata:** dal censimento di chiusura dell'08/08 (§0④ dell'handoff) è riemersa una scelta
+**rimandata a un gate e mai portata a Francesco**: `contiene_sostanze_o_tessuti` cablato a `false` in
+`generate-ddc.ts:349`. Portata stanotte, ha aperto una ricerca normativa, **una decisione**, un **panel a
+tre** e **tre decisioni ancora**.
+
+🔄 **CORREZIONE A CIÒ CHE ERA STATO DETTO A FRANCESCO, prima di tutto il resto.** La riga era stata
+presentata come «cablata **e stampata** sul documento». **La seconda metà è falsa:** `DdcTemplate.tsx:508`
+tiene la riga dentro un `? :`, e con `false` **non compare niente**. Poiché il testo di legge chiede
+l'indicazione «**se del caso**», **tacere quando la sostanza non c'è è la forma giusta**.
+🔑 **Il difetto è quindi l'altro verso, ed è più sottile: non una falsa dichiarazione, ma un'omissione
+che nessuno può correggere** — se un dispositivo contenesse davvero quei materiali, **non esiste nessuna
+strada per dirlo**.
+
+**La norma, con la citazione giusta.** Allegato XIII **punto 1, ULTIMO trattino**: «*se del caso,
+l'indicazione che il dispositivo contiene o incorpora una sostanza medicinale, compreso un derivato dal
+sangue o dal plasma umani, o tessuti o cellule di origine umana o di origine animale di cui al
+regolamento (UE) n. 722/2012*».
+🔴 **`src/types/domain.ts:1223` cita «Allegato XIII §1(e)» ed è SBAGLIATO in due modi:** quel punto **non
+usa lettere, usa trattini**, e l'elemento è l'**ultimo**, non il quinto (**il quinto è il nome del
+prescrittore**). Riferito e **non corretto** (R-E2: l'albero era occupato dal Task D-bis).
+
+**Il perimetro, misurato.** Reg. (UE) **722/2012** art. 1: specie **bovini · ovini · caprini · cervi ·
+alci · visoni · gatti**; materiali **collagene · gelatina · sego**; **esclusi** i derivati del sego
+trattati con metodi rigorosi e i dispositivi che non toccano il corpo o toccano **solo cute integra**.
+**MDCG 2021-24 Rev.1 Nota 1** esclude i prodotti *fatti* dagli animali — **cera d'api**, lanolina, seta.
+🛑 **MA IL RINVIO AL 722/2012 LEGA SOLO IL RAMO ANIMALE:** «sostanza medicinale» e «origine umana»
+restano **senza perimetro**. *La ricerca aveva presentato mezza risposta come se fosse tutta* — corretto
+dall'advisor normativo.
+📌 **Allegato VIII Regola 18:** tessuti/cellule umani o animali non vitali → **classe III**, salvo
+contatto con **sola cute integra**. ➡️ **il campo non è una casella: è un innesco di classificazione.**
+
+**Il verdetto della ricerca, categoria per categoria** (`docs/roadmap/2026-08-09-sostanze-e-tessuti-ricerca.md`):
+nessuna delle **38 voci** del catalogo, nella pratica standard, incorpora quei materiali nel manufatto
+consegnato. **La decima categoria, «altro», è l'unica porta aperta** — ed è testo libero.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D325** | 🔑 **«ALTRO» DIVENTA IL LAVORO NEUTRO A COMPILAZIONE MANUALE:** tutte le opzioni che le altre lavorazioni portano predeterminate — **classe di rischio compresa** — devono poter essere scelte a mano. ⚠️ **La prima metà** (la domanda sulle sostanze **sul lavoro**, solo su «altro») è **EMENDATA da D327**: v. sotto | «*b e solo sul lavoro con altro, nel caso di altro, credo che si debba attivare una procedura per cui è come se fosse un lavoro "neutro" dove tutto deve essere compilato a mano e quindi tutte le possibili opzioni di un lavoro devono poter essere gestite, perchè altro potrebbe essere tutto o niente*» | ⚖️ **Inverte una scelta dichiarata nel codice.** `sequenza-passi.ts:73-96`: oggi il tipo libero **non è trovato** da `trovaTipo()` e il wizard **salta i passi denti e colore**, perché «*fallisce verso il CHIEDERE DI MENO quando il tipo non è riconosciuto*». 🔑 Francesco dice l'opposto per lo stesso motivo, girato: **un tipo che può essere qualunque cosa non può chiedere meno degli altri.** 📊 **E «altro» non è marginale:** `provato:` sul banco — **24 lavori su 299, terzo tipo più usato (~8%)**, e **tutti e 24 in `classe_iia`**, non la `classe_i` che il wizard cabla (`crea-lavoro.ts:153`): quella classe **non la sceglie nessuno, capita** |
+| **D326** | 🎨 **TEMA SCURO: VARIANTE (b)** — tinta invariata, **un filo `--line`**. 🔑 **E IL TEMA CHIARO NON È COPERTO DALLA (b): il contrasto fra il pannello e le righe VA AUMENTATO** | «*preferisco la seconda tipologia del tema scuro, su quello chiaro aumentiamo il contrasto tra lo sfondo della scheda e le opzioni*» | ⚖️ **Scelto su TRE immagini vere della pagina viva** (com'è · (a) · (b)), non su un mockup. 🔑 **E l'osservazione sul chiaro è una MISURA, non un gusto:** `provato:` `ds-v3.css:13` — righe `--bg-deep` **#ECE6D9** dentro pannello `--card` **#FFFEFA** = **1,23:1**, e il filo `--line` **#EBE4D6** contro lo stesso pannello dà **1,25:1**. ➡️ **in chiaro la (b) da sola non si vedrebbe**: Francesco l'ha visto guardando le immagini |
+| **D327** | 🔑 **IL SEGNO «CONTIENE SOSTANZE/TESSUTI» STA SUL MATERIALE, NON SUL LAVORO:** si spunta **una volta sola al carico in magazzino**, e da lì **lo ereditano tutti i lavori che quel materiale usano**. **EMENDA la prima metà di D325** (la domanda per-lavoro su «altro» decade). ⚠️ La seconda metà di D325 — «altro» lavoro neutro — **resta intera** | «*La loro proposta: il segno si mette una volta sola sul materiale, quando entra in magazzino, e da lì se lo portano dietro tutti i lavori che lo usano. Nessuno risponde più a niente, e il dato è più vero di prima.*» | ⚖️ **CONVERGENZA DI DUE ADVISOR SU TRE, indipendenti e da estremi opposti** — e **non era nessuna delle tre strade proposte**. **Normativo:** «*il flag appartiene al materiale, non al tipo di lavoro… una domanda per-lavoro diventa **stantia** il giorno in cui il laboratorio compra un ribasante nuovo*». **UX (riserva n. 1):** «*una domanda la cui risposta non cambia mai **addestra il riflesso del tocco automatico**, e poi scatta sull'unico caso che contava*». 🔑 Esiste già un aggancio in casa: `tracciabilita_materiali_ok` |
+| **D328** | 🔴 **SI APRE UNA VERIFICA A SÉ SULLA CLASSIFICAZIONE DEL MONCONE PERSONALIZZATO**, fuori da quest'ondata | «*ok*» (alla domanda «vuoi che apra una verifica a sé su quella classificazione?») | ⚖️ **Difetto VIVO trovato dal panel FUORI dal suo mandato.** `tipi-lavoro.ts:68` mette `abutment` in **`classe_iia`**; **MDCG 2021-24 Rev.1**, tabella della **Regola 8**, mette «*Dental implants **and abutments***» in **classe IIb**, e la **Nota 4** conferma. 🛑 **NON dichiarato risolto**, e la cautela è dell'advisor: dipende da una domanda che **l'app non fa mai** — se il moncone nasca da un **ti-base CE** (l'alias `'ti-base'` è già nel catalogo, riga 63), cioè **chi sia il fabbricante**. 📌 **Conseguenza misurabile:** `classe_rischio` alimenta `GruppoClassePsur` (`domain.ts:89-105`) e **Art. 86(1)** chiede il PSUR **almeno biennale** per la IIa, **almeno annuale** per IIb/III → **la scadenza detta all'odontotecnico è quella sbagliata**. 📊 Sul banco: **15 lavori `implantologia` in `classe_iia`** (quanti siano abutment: **non misurato**) |
+
+🔑 **PERCHÉ D327 VALE PIÙ DELLA DOMANDA CHE HA SOSTITUITO, e va scritto:** la risposta a quella domanda,
+in odontotecnica, è «no» **praticamente sempre**. Una domanda la cui risposta non cambia mai non
+raccoglie un dato: **addestra a non leggerla** — e il riflesso scatta poi sull'unico caso che contava.
+Spostata sul materiale, la risposta **si dà una volta e resta vera finché il materiale è quello**.
+
+⚠️ **RISERVE DEL PANEL NON ANCORA CHIUSE** — si integrano o si motivano, non si lasciano cadere:
+1. **L'impiantabile non è un dato**: nessun campo dice se il dispositivo lo sia, ma `DpaTemplate.tsx:162`
+   **promette già** la conservazione a **15 anni per gli impiantabili**.
+2. **Se «sì», l'indicazione va ANCHE SULL'ETICHETTA** (Allegato I, cap. III, **23.2**), non solo sulla
+   dichiarazione — **mancava dalla traccia data al panel**.
+3. **Art. 52(8) ha un'alternativa omessa:** Allegato IX capo I **oppure** Allegato XI parte A.
+4. **Un solo blocco duro è difendibile:** «sì» insieme a `classe_i`/`classe_iia`. **Mai bloccare
+   l'emissione**: il laboratorio ha diritto di consegnare.
+5. Il campo **deve entrare in `CAMPI_CORREGGIBILI_DOCUMENTO`** (`correzioni.ts:58`) o nasce una voce
+   obbligatoria **non correggibile**.
+6. **`DdcTemplate.tsx` stampa il ripiego «Sì — vedere documentazione allegata»**: promette un allegato
+   che **può non esistere**. ➡️ dettaglio **obbligatorio** con «sì», e quel ripiego **si toglie**.
+7. **Non chiedere la classe: chiedere la FAMIGLIA** e **suggerire** la classe, dicendo la ragione ad alta
+   voce (UX). *La stessa derivazione a domande avrebbe intercettato l'abutment* (normativo) — **le due
+   prospettive convergono anche qui**.
+8. **Non verificato:** se il macchinario consultivo del 722/2012 tocchi i su misura sotto la classe III
+   impiantabile (presuppone un organismo notificato che qui non c'è).
+
+🔴 **TRE DIFETTI VIVI RIFERITI DAL PANEL, tutti fuori mandato (R-E2), nessuno corretto:**
+- **`precheck.ts:141` è un VICOLO CIECO**: manda a correggere `classe_rischio` nella scheda «dati», dove
+  **il campo non esiste** e **non è in `PATCHABLE_FIELDS`**. In compenso il controllo è
+  **irraggiungibile**: `provato:` catalogo vivo — `lavori.classe_rischio` è `NOT NULL DEFAULT
+  'classe_iia'`, quindi `!lavoro.classe_rischio` non è mai vero.
+- **`api/lavori/route.ts:293`**: `body.classe_rischio ?? 'classe_i'` **senza validazione** (mentre
+  `tipo_dispositivo` è validato a `:141-142`) → un valore fuori dominio **aborta dentro la RPC dopo che
+  il progressivo è stato pescato**: 500 grezzo, lavoro perso.
+- **`api/qualita/psur/route.ts:37-49`** legge la classe di **tutti** i lavori senza filtro: **un solo**
+  lavoro portato a IIb aggiunge il gruppo `classe_iib_iii` e **dichiara dovuto un PSUR che non lo era**.
+
+📌 **Dimensionamento (advisor architettura):** la parte **classe di rischio** non ha migration (colonna
+già viva) → percorso **Medio**. La parte **sostanze** ha bisogno di una **colonna nuova** —
+`contiene_sostanze_o_tessuti` esiste **solo** su `dichiarazioni_conformita` — quindi **migration →
+dominio critico → percorso GRANDE**; e `generate-ddc.ts:106-111` dichiara che il **registro del modello
+salta a `ddc-v4`** proprio quando questo campo comincia a dire qualcosa. ⚠️ **D327 sposta il bersaglio
+della colonna dal lavoro al materiale: il dimensionamento va rifatto sul magazzino, non ereditato.**
