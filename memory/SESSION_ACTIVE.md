@@ -1,25 +1,26 @@
-# Sessione attiva
+# Sessione attiva — 08/08/2026 notte (chiusa alle 23:27)
 
-🏁 **CHIUSA l'08/08/2026, 16:55.**
+🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-08-atto-unico-si-vede-handoff.md`, **LA §0 PER PRIMA**.
 
-🚪 **PUNTO DI RIPRESA:** `docs/roadmap/2026-08-08-atto-unico-costruito-handoff.md` — **la §0 per prima**
-(sette voci di cose NON fatte).
+🔴 **La §0 in una riga — sei voci non fatte:** il **Task D-bis** blocca da solo il merge e porta **quattro**
+cose (FASE 9 · gate estetico L2 **×2** · la guardia sugli overlay che **quattro compiti di fila** non hanno
+lanciato · il riquadro del conflitto) · il **Task E** (avviso al dentista, D317) **non è mai stato
+iniziato** · i **Task 9 e 10** del piano precedente restano, e il 10 è **più urgente di prima** · una
+decisione **rimandata e mai portata a Francesco** (`contiene_sostanze_o_tessuti` cablato e **stampato**) ·
+sei righe di coda nuove · gli invariati.
 
-🔴 **La §0 in una frase:** l'atto unico è **costruito per intero sotto il cofano** — quattro migration,
-una rotta, sei compiti, sei revisioni — **e non si vede ancora**: `grep -c "scelta_intervento"` sul
-foglio → **0**, nessuna schermata lo chiama. Restano il **Task D** (il foglio, col **gate estetico L2
-dovuto DUE volte**) e il **Task E**, più i **Task 9 e 10** del piano precedente.
+🌿 Ramo `intervento-post-consegna`, **pubblicato** (`c890ac41`), albero pulito, **169** salvataggi oltre
+`main` — che è **intatto** a `7427a680`.
 
-🛑 **La cosa che cambia il significato di «verde»:** **nulla di quest'ondata ha mai girato contro
-Postgres da un chiamante reale** — tutto è provato col contratto **finto**, e i finti hanno già mentito
-una volta oggi. **Il Task 10 è il primo contatto vero.**
+📌 **Misurato in chiusura** (`verify:full`, uscita da variabile **senza pipe**): `VERIFY_EXIT=0` ·
+**5685 passate | 68 saltate su 456 file** · `tsc` 0 · build ok. Stamattina era **5621 | 68 su 454**.
 
-🗺️ **Mappa di recupero:** `.superpowers/sdd/progress.md`, sezioni «PIANO TORNA A PRONTO» e «PIANO
-CORREGGI E RIFAI LA DICHIARAZIONE». I compiti marcati COMPLETO non si rifanno.
+⚖️ **D320-D324** ratificate (324 decisioni in 141 tornate). **D323 porta un EMENDAMENTO**: la forma
+ratificata rompeva due penne, l'esecutore ha deviato di un token e la revisione gli ha dato ragione.
 
-📌 **Misurato:** `verify:full` **uscita 0** — **5621 passate | 68 saltate su 454 file**, tsc 0, build ok,
-sette guardie verdi. **145 salvataggi** sopra `main`, che è **intatto** a `7427a680`. Ramo **pubblicato**.
-🗄️ **Quattro migration** nel ledger; pavimento **`20260808142358`**.
+🔑 **La lezione della giornata:** un critico invisibile a **5.685 prove verdi**, perché le prove **fingono
+`fetch`**. *Finché una cosa non gira contro il database da un chiamante vero, «verde» vuol dire «coerente
+con ciò che abbiamo immaginato».*
 
-⚖️ **D319** (la 138ª tornata): il numero di prescrizione esce dal documento — **una domanda di Francesco
-ha cancellato un compito già istruito**. Totale: **319 in 138**.
+➡️ **Prima cosa da fare:** il **Task D-bis**, brief già pronto in
+`.superpowers/sdd/atto-unico-task-d-bis-brief.md`.
