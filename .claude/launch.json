@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3013
+    },
+    {
+      "name": "ua-prod-3020",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "-p", "3020"],
+      "port": 3020
     }
   ]
 }
