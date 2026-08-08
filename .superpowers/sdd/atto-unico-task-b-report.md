@@ -154,7 +154,7 @@ messo tutti e due nello stesso posto.
 
 ### Sonda 6 — IL GIRO BUONO, con l'atterraggio letto **una voce per volta**
 Eseguita **due volte**: dentro la transazione prima del push, e di nuovo contro la **funzione viva**
-dopo il push (stesso esito).
+dopo il push (stesso esito). Vedi §3-bis per le tre rieseguite dopo il push.
 ```
 esito: {"esito":"ok","nuova_id":"2243734a-ed9b-4dba-8aee-70f57c5da783","vecchia_id":"881e20d9-3d9e-4e21-9003-e22c32b899da","numero":"SONDA-2099-0002","numero_superato":"SONDA-2099-0001","updated_at":"2026-08-08T09:39:46.626207+00:00"}
 
@@ -202,6 +202,189 @@ risposta della penna non viene buttata via, e che l'errore **annulla anche l'ann
 ```
 nota: 'P0001 — atto unico: la penna della prescrizione ha risposto {"esito" : "campo_non_valido"} sul campo pippo'
 e1_annullo_disfatto: true | e2_causale_disfatta: true | e3_lavoro_disfatto: true | e4_nessuna_nuova: true
+```
+
+---
+
+## 3-bis. Le sonde rieseguite contro l'oggetto VIVO, dopo il push
+
+⚠️ **Un rilievo che mi sono fatto e che vale la pena scrivere:** le sonde 1·1b·2·3·5·7·8·9 nascono
+concatenando **il testo della migration** dentro la transazione, cioè provano una **copia** della
+funzione e — per la sonda 1 — una **copia dell'indice**. La coppia «indice vivo + funzione viva» non
+era stata provata **insieme** da nessuna parte. Rieseguite senza il testo della migration
+(`00-fixture.sql` + corpo della sonda), contro ciò che sta davvero in banca dati:
+
+**Sonda 1 (indice vivo + funzione viva):**
+```
+❌ 23505 duplicate key value violates unique constraint "ddc_evento_annulla_unique"
+   dettaglio: Key (laboratorio_id, annullata_da_evento_id)=(971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c, e4958216-5cb5-458c-ad87-6bb8fd7ec2a6) already exists.
+```
+**Sonda 6:** `verdi_su_14: 14` (§3).
+**Sonda 9:**
+```
+nota: 'P0001 — atto unico: la penna della prescrizione ha risposto {"esito" : "campo_non_valido"} sul campo pippo'
+e1_annullo_disfatto: true | e2_causale_disfatta: true | e3_lavoro_disfatto: true | e4_nessuna_nuova: true
+```
+
+---
+
+## 3-ter. La fixture e la sonda 6, **per intero** — perché `scripts/tmp/` sparisce
+
+🔑 Le sonde vivono in `scripts/tmp/sonde-b/`, che **git ignora**: fra una sessione e l'altra non
+esistono più. Chi scrive il **Task C** ha bisogno della forma delle asserzioni di atterraggio per
+rifarle al livello della rotta, e le sole uscite incollate non bastano a ricostruirle. Quindi il
+codice sta qui, ed è la copia che sopravvive.
+
+<details><summary><b>fixture (<code>00-fixture.sql</code>)</b></summary>
+
+```sql
+BEGIN;
+
+CREATE TEMP TABLE f ON COMMIT DROP AS
+SELECT
+  '971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c'::uuid AS lab,
+  '314cd040-0893-4e9d-9ad8-786e4eefd75f'::uuid AS lab_altro,
+  gen_random_uuid()                            AS lavoro,
+  gen_random_uuid()                            AS evento,
+  gen_random_uuid()                            AS evento2,
+  gen_random_uuid()                            AS ddc,
+  (SELECT id FROM lavori
+    WHERE laboratorio_id = '971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c'
+      AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)              AS src,
+  (SELECT id FROM pazienti
+    WHERE laboratorio_id = '971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c'
+    ORDER BY id LIMIT 1)                                                    AS paz_nuovo,
+  (SELECT id FROM pazienti
+    WHERE laboratorio_id = '971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c'
+    ORDER BY id OFFSET 1 LIMIT 1)                                           AS paz_vecchio,
+  (SELECT id FROM pazienti
+    WHERE laboratorio_id = '314cd040-0893-4e9d-9ad8-786e4eefd75f'
+    ORDER BY id LIMIT 1)                                                    AS paz_altro_lab;
+
+-- 🔑 `updated_at` ARRETRATO DI UN'ORA: sull'INSERT non c'è trigger, e dentro una
+--    transazione now() è costante. Senza questo scarto la catena dei gettoni non
+--    si può misurare e la sonda 6 è verde anche con la catena rotta.
+INSERT INTO lavori
+SELECT (jsonb_populate_record(l, jsonb_build_object(
+  'id',                     (SELECT lavoro       FROM f),
+  'anno_lavoro',            2099,
+  'numero_lavoro',          'SONDA-B-001',
+  'stato',                  'consegnato',
+  'deleted_at',             NULL,
+  'paziente_id',            (SELECT paz_vecchio  FROM f),
+  'paziente_nome_snapshot', NULL,
+  'richiedente_nome',       'VECCHIO Prescrittore',
+  'numero_prescrizione',    'VECCHIA-PRESCR',
+  'tipo_dispositivo',       'protesi_fissa',
+  'descrizione',            'VECCHIA descrizione',
+  'denti_coinvolti',        jsonb_build_array('11','12'),
+  'denti_mancanti',         '[]'::jsonb,
+  'denti_impianti',         '[]'::jsonb,
+  'tinta_famiglia',         NULL,
+  'tinta_codice',           NULL,
+  'created_at',             now(),
+  'updated_at',             now() - interval '1 hour'
+))).*
+FROM lavori l WHERE l.id = (SELECT src FROM f);
+
+INSERT INTO lavori_denti (laboratorio_id, lavoro_id, fdi, ruolo)
+SELECT f.lab, f.lavoro, v, 'elemento' FROM f, unnest(ARRAY[11,12]::smallint[]) AS v;
+
+INSERT INTO lavori_prescrizioni (laboratorio_id, lavoro_id, contenuto)
+SELECT f.lab, f.lavoro, '{"elementi":[11,12],"colore":"A2"}'::jsonb FROM f;
+
+INSERT INTO dichiarazioni_conformita (
+  id, laboratorio_id, lavoro_id, numero_ddc, anno_ddc, progressivo_ddc,
+  fabbricante_nome, fabbricante_indirizzo, fabbricante_piva,
+  prescrittore_nome, paziente_nome, tipo_dispositivo, descrizione_dispositivo,
+  classe_rischio, testo_conformita, prrc_nome, stato)
+SELECT f.ddc, f.lab, f.lavoro, 'SONDA-2099-0001', 2099, 999001,
+       'Lab Sonda', 'Via Sonda 1', 'IT00000000000',
+       'VECCHIO Prescrittore', 'VECCHIO Paziente', 'protesi_fissa',
+       'VECCHIA descrizione', 'classe_iia', 'testo di prova', 'PRRC Sonda', 'generata'
+FROM f;
+
+INSERT INTO eventi_qualita (id, laboratorio_id, lavoro_id, motivo, natura,
+  origine_informazione, conosciuto_il, stato_dispositivo)
+SELECT f.evento, f.lab, f.lavoro, 'errore_dato_dichiarazione', 'dato_documentale',
+       'laboratorio_interno', now(), 'consegnato_non_applicato' FROM f;
+INSERT INTO eventi_qualita (id, laboratorio_id, lavoro_id, motivo, natura,
+  origine_informazione, conosciuto_il, stato_dispositivo)
+SELECT f.evento2, f.lab, f.lavoro, 'errore_dato_dichiarazione', 'dato_documentale',
+       'laboratorio_interno', now(), 'consegnato_non_applicato' FROM f;
+
+CREATE TEMP TABLE g ON COMMIT DROP AS
+SELECT updated_at AS u0 FROM lavori WHERE id = (SELECT lavoro FROM f);
+
+-- 🛑 Senza questo GRANT la sonda muore sul PROPRIO 42501 invece che su quello
+--    che sta misurando: le tabelle d'appoggio sono di `postgres`.
+GRANT SELECT ON f, g TO service_role;
+```
+</details>
+
+<details><summary><b>sonda 6 — la chiamata e le 14 asserzioni di atterraggio</b></summary>
+
+```sql
+SET LOCAL ROLE service_role;
+
+SELECT public.correggi_e_riemetti_atomica(
+  f.lavoro, f.lab, f.evento,
+  jsonb_build_object(
+    'richiedente_nome',       'NUOVO Prescrittore',
+    'paziente_id',            f.paz_nuovo,
+    'paziente_nome_snapshot', 'NUOVO Paziente Snapshot',
+    'numero_prescrizione',    'NUOVA-PRESCR-2026',
+    'tipo_dispositivo',       'cad_cam',
+    'descrizione',            'NUOVA descrizione',
+    'denti_coinvolti',        jsonb_build_array(
+                                jsonb_build_object('fdi', 21, 'ruolo', 'elemento'),
+                                jsonb_build_object('fdi', 22, 'ruolo', 'elemento')),
+    'prescrizione_caratteristiche', jsonb_build_object(
+                                'colore', 'A3', 'elementi', jsonb_build_array(21, 22))
+  ),
+  jsonb_build_object(
+    'numero_ddc',              'SONDA-2099-0002',
+    'progressivo_ddc',         999002,
+    'prescrittore_nome',       'NUOVO Prescrittore',
+    'paziente_nome',           'NUOVO Paziente Snapshot',
+    'tipo_dispositivo',        'cad_cam',
+    'descrizione_dispositivo', 'NUOVA descrizione'),
+  (SELECT u0 FROM g)
+)::text AS esito
+FROM f;
+
+RESET ROLE;
+
+SELECT
+  COALESCE((SELECT richiedente_nome FROM lavori WHERE id = f.lavoro) = 'NUOVO Prescrittore', false)                      AS a01_richiedente_nome,
+  COALESCE((SELECT paziente_id      FROM lavori WHERE id = f.lavoro) = f.paz_nuovo, false)                               AS a02_paziente_id,
+  COALESCE((SELECT paziente_nome_snapshot FROM lavori WHERE id = f.lavoro) = 'NUOVO Paziente Snapshot', false)           AS a03_paziente_nome_snapshot,
+  COALESCE((SELECT numero_prescrizione FROM lavori WHERE id = f.lavoro) = 'NUOVA-PRESCR-2026', false)                    AS a04_numero_prescrizione,
+  COALESCE((SELECT tipo_dispositivo FROM lavori WHERE id = f.lavoro) = 'cad_cam', false)                                 AS a05_tipo_dispositivo,
+  COALESCE((SELECT descrizione      FROM lavori WHERE id = f.lavoro) = 'NUOVA descrizione', false)                       AS a06_descrizione,
+  COALESCE((SELECT array_agg(fdi::text ORDER BY fdi) FROM lavori_denti
+             WHERE lavoro_id = f.lavoro AND ruolo = 'elemento') = ARRAY['21','22'], false)                               AS a07_denti_tabella,
+  COALESCE((SELECT denti_coinvolti FROM lavori WHERE id = f.lavoro) = ARRAY['21','22'], false)                           AS a08_denti_denormalizzati,
+  COALESCE((SELECT contenuto->>'colore' FROM lavori_prescrizioni WHERE lavoro_id = f.lavoro) = 'A3', false)              AS a09_prescr_colore,
+  COALESCE((SELECT contenuto->'elementi' FROM lavori_prescrizioni WHERE lavoro_id = f.lavoro) = '[21,22]'::jsonb, false) AS a10_prescr_elementi,
+  COALESCE((SELECT stato FROM dichiarazioni_conformita WHERE id = f.ddc) = 'annullata', false)                           AS a11_vecchia_annullata,
+  COALESCE((SELECT annullata_da_evento_id FROM dichiarazioni_conformita WHERE id = f.ddc) = f.evento, false)             AS a12_causale_scritta,
+  COALESCE((SELECT count(*) FROM dichiarazioni_conformita
+             WHERE lavoro_id = f.lavoro AND stato <> 'annullata' AND id <> f.ddc) = 1, false)                            AS a13_nuova_viva,
+  COALESCE((SELECT sostituisce_id FROM dichiarazioni_conformita
+             WHERE lavoro_id = f.lavoro AND stato <> 'annullata' AND id <> f.ddc) = f.ddc, false)                        AS a14_filo_sostituisce
+FROM f;
+
+ROLLBACK;
+```
+</details>
+
+**Ricetta d'esecuzione**, una invocazione per sonda:
+```bash
+cd "…/ua-app"
+set -a && . ./.env.local; set +a
+cat scripts/tmp/sonde-b/00-fixture.sql scripts/tmp/sonde-b/06-corpo-giro-buono.sql > /tmp/S6.sql
+node scripts/psql.mjs /tmp/S6.sql
 ```
 
 ---
