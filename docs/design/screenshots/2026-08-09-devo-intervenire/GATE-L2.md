@@ -166,6 +166,10 @@ per componente.
 E la card **non se ne va da sola**: gli avvisi di tipo errore non scadono mai (`Avviso.tsx:139`, per
 D234) e il loro contenitore sta a `zIndex 1100`, sopra il foglio (1000). Dopo «Ricarica e riprendi» e il
 rientro, **copre ancora il titolo del foglio e le prime due tappe del nastro**.
+✅ **Ma una via d'uscita c'è, e va detto per non gonfiare il rilievo:** il contenitore ha
+`pointer-events: none`, però **la card lo riaccende** (`auto`). `provato:` nel punto del «Chiudi»
+`elementFromPoint` restituisce **il «Chiudi» stesso**, e premendolo la card sparisce (1 → 0). Il difetto
+è di **lettura e di ripetizione**, non di prigionia: non serve ricaricare la pagina.
 Due varianti: **(I)** sul 409 non chiamare `errore(...)` — il riquadro dice già la stessa cosa e **in
 più** dice che cosa resta salvo; **(II)** tenere l'avviso e togliere il messaggio dal `motivoDisabilitato`.
 **ESITO: riferito** — tocca il flusso, non le sole classi.
@@ -195,7 +199,7 @@ peso perché sono due risposte a una domanda e non un'azione con il suo annulla.
 | 5 Colore, contrasto, tema | ❌ | ❌1 (elevazione invertita in scuro) · ❌3 (4,17 in chiaro) · ❌5 (odontogramma) |
 | 6 Motion | ✅ | nessuna `duration`/easing inline nel codice toccato; il ramo `prefers-reduced-motion` rende gli stessi contenuti con le stesse misure — **misurato**, non dedotto |
 | 7 Suono & haptic | N/A | il passo nuovo non introduce eventi sonori |
-| 8 Touch target | ✅ nel foglio · ❌ nell'odontogramma | **tutti** i bersagli del foglio ≥ 44 (misurati con `getBoundingClientRect`, non col `minHeight` dichiarato): «Chiudi» 47,75 · «Torna all'elenco» 44 · righe 70,94-197,94 · pastiglie 48. 🔑 **Nessun 43,5 come il 06/08.** Sotto soglia solo «Adulto»/«Deciduo» a 30 (odontogramma) e la scorciatoia «Vai al contenuto» a 37 (preesistente, globale) |
+| 8 Touch target | ✅ nel foglio **e sulla riga della scheda** · ❌ nell'odontogramma | **tutti** i bersagli del foglio ≥ 44 (misurati con `getBoundingClientRect`, non col `minHeight` dichiarato): «Chiudi» 47,75 · «Torna all'elenco» 44 · righe 70,94-197,94 · pastiglie 48. ⚠️ **E la riga sulla scheda non sta nel foglio, quindi si misura a parte** (`DevoIntervenire.tsx:848` dichiara `minHeight: 52`): **100,5 × 350** a 390, **81 × 600** a 768, **81 × 632** a 1280 — in tutti e due i temi. 🔑 **Nessun 43,5 come il 06/08.** Sotto soglia solo «Adulto»/«Deciduo» a 30 (odontogramma) e la scorciatoia «Vai al contenuto» a 37 (preesistente, globale) |
 | 9 Stati | ✅ | «Continua» spento **col motivo scritto**; il 409 spegne il tasto e offre la via d'uscita; il messaggio del server si mostra com'è scritto |
 | 10 Responsive | ✅ | **nessuno scorrimento orizzontale di pagina** in nessuna delle 6 combinazioni × 15 passi. L'odontogramma a 390 sfora il suo riquadro di 18px ma **scorre dentro un contenitore `overflow-x: auto`**, non sfonda la pagina |
 | 11 Accessibilità | ✅ con riserva | `role="dialog"` + `aria-modal`, titolo legato, trappola del focus, Esc; icone `aria-hidden`. **Non percorso col Tab su tutte e sei le combinazioni** (v. §6) |
