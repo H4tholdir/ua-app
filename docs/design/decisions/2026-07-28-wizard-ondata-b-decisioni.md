@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centotrentottesima tornata (D319: il numero di prescrizione esce dal documento — la legge non lo chiede)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centotrentanovesima tornata (D320-D321: il nome del paziente si corregge in anagrafica, e il numero di prescrizione esce da tutto)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**319 decisioni in centotrentotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**321 decisioni in centotrentanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3620,3 +3620,66 @@ a spostare quella chiave fra i depositi · la casella nel wizard · e la contrad
 `lavori/[id]/route.ts:79-83` («*riaprirla sarebbe una seconda penna*») e l'allowlist dell'atto unico.
 ➡️ **Le voci correggibili scendono da otto nomi a SETTE, e le voci a schermo da sette a SEI** — tutte e
 sei dovute dall'Allegato XIII.
+
+---
+
+### Centotrentanovesima tornata — D320 · D321: il nome del paziente si corregge dove VIVE, e il numero di prescrizione esce da tutto (08/08/2026, 17:24)
+
+**Nasce da due risposte di Francesco** alla domanda di apertura di sessione sul Task D — la seconda e la
+terza delle tre che gli erano state poste.
+
+🛑 **D321 CANCELLA E RIAPRE del lavoro, quindi la sua riga viene per prima nel ragionamento** (§0A-bis②),
+anche se il numero le tocca in ordine.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D320** | 🔑 **IL NOME DEL PAZIENTE NON SI CORREGGE DAL FOGLIO DELLA DICHIARAZIONE.** Dal foglio si corregge **quale persona** è (`paziente_id`); se è il nome a essere scritto male, si corregge **in anagrafica**, e da lì si propaga | «*se ho sbagliato anagrafica di paziente, è giusto cambiare l'anagrafica, ma se il nome in anagrafica è sbagliato, non va cambiato da qua, ma va cambiato in anagrafica e poi tutto si deve aggiornare di conseguenza*» | ⚖️ **Una fotografia che vince per sempre è il contrario di «tutto si aggiorna di conseguenza».** `generate-ddc.ts:304` legge `paziente_nome_snapshot ?? paziente?.nome_cognome`: **lo snapshot VINCE**. Scriverlo dal foglio significherebbe congelare su quel lavoro un nome che l'anagrafica non governa più — e ogni correzione futura in anagrafica **non arriverebbe** su quel documento |
+| **D321** | 🔑 **IL NUMERO DI PRESCRIZIONE SI ELIMINA OVUNQUE**, non solo dal documento: colonne, porte d'ingresso dell'API, mappatori, propagazioni | «*eliminiamo ogni riferimento e ogni cosa che usa il numero di prescrizione, quello è un numero che utilizza il clinico, il medico, non noi del laboratorio*» | ⚖️ **Estende D319 dal documento a tutta la casa.** D319 aveva stabilito che il numero non è un contenuto dovuto dall'**Allegato XIII punto 1**; questa dice che allora **non è un dato del laboratorio**, e un dato che non è nostro non si chiede, non si valida e non si conserva. 🔑 Ciò che serviva davvero — ritrovare la prescrizione di carta — resta il mestiere di `fonte_tipo`/`fonte_riferimento` (ondata B) |
+
+**I fatti misurati che reggono D320, verificati oggi e non ricordati:**
+- 🔑 **La via di rettifica esiste già, ed è viva**: `PATCH /api/pazienti/[id]:99-140` porta la correzione
+  di nome e cognome, scritta apposta per l'**Art. 16 GDPR** (rilievo G4), con il commento che dichiara il
+  motivo — «*un cognome scritto male finisce in `dichiarazioni_conformita.paziente_nome`, che si conserva
+  10 anni; senza questa via non era correggibile da nessuna parte*». A schermo è `PazienteEditSheet.tsx`,
+  montata su `/pazienti/[id]` (`page.tsx:86`). ➡️ **Francesco non ha chiesto una strada nuova: ha chiesto
+  di non aprirne una seconda accanto a quella che c'è già.**
+- **`paziente_nome_snapshot` non ha oggi NESSUNO scrittore** (P5 del piano), ed è piena su **1 riga su
+  299** — la fixture del seed (P3). ➡️ Oggi l'identità del paziente sul documento **arriva già
+  interamente dall'anagrafica**: D320 non cambia un comportamento, **impedisce che cambi**.
+- 🛑 **E il primo scrittore stava per essere proprio l'atto unico**: è il ritrovamento **I2**, riferito
+  dalla revisione del Task C-quater e rimandato «da decidere nel Task D». **Questa è quella decisione.**
+
+🛑 **R-P6 — un nome esce da un'allowlist, quindi porta la sua destinazione.**
+`paziente_nome_snapshot` esce da `CAMPI_CORREGGIBILI_DOCUMENTO` (`src/lib/dichiarazione/correzioni.ts`)
+**e** dall'allowlist della RPC `correggi_e_riemetti_atomica` (SQL, quinta migration dell'ondata). **La sua
+destinazione è `pazienti.nome`/`pazienti.cognome`, via `PATCH /api/pazienti/[id]`** — che esiste, è
+provata e non va toccata. La colonna **resta** in banca dati con la sua riga scritta accanto: non si
+cancella niente, come già per le tre colonne di D319.
+
+🔑 **PERCHÉ SI CHIUDE ORA E NON DOPO IL FOGLIO, ed è la lezione già pagata due volte in quest'ondata**
+(C-bis e C-ter): la RPC **non ha ancora chiamanti a schermo**, quindi irrigidirla costa una riga. Dopo il
+Task D costerebbe **contratto più consumatore**. E *un contratto si giudica per ciò che permette, non per
+ciò che oggi gli si chiede*: se lo snapshot restasse accettato dalla rotta, la porta che D320 vieta
+resterebbe aperta **per ogni chiamante futuro**, e la sola cosa a tenerla chiusa sarebbe una schermata.
+
+➡️ **Le voci correggibili scendono da SETTE nomi a SEI; le righe a schermo restano SEI** —
+chi ha prescritto · **quale paziente** · tipo di dispositivo · descrizione · denti · caratteristiche
+prescritte. 📌 E cade la nota «*sette nomi per sei voci*»: da qui in avanti **un nome, una riga**, perché
+il nome che faceva del paziente una riga a due teste è proprio quello che esce.
+
+> 🔄 **CORREZIONE, scritta un minuto dopo la riga sopra e lasciata visibile.** Avevo scritto «*le voci a
+> schermo da sei a CINQUE*», e poi ne avevo elencate **sei**. Il conto giusto è: i **nomi** scendono
+> (7 → 6), le **righe** no (6 → 6) — perché la riga «paziente» aveva **due** nomi e ne perde uno, non se
+> ne perde una. 🔑 *È la stessa famiglia dell'errore del `:326` che ha attraversato tre documenti stamattina:
+> un numero ricopiato per simmetria invece che ricontato.* **Il conto autoritativo è l'array
+> `CAMPI_CORREGGIBILI_DOCUMENTO`, e si legge quando si scrive il codice.**
+
+**Che cosa apre D321, e va detto per intero perché è lavoro nuovo:** un compito a sé, **dopo** il Task D,
+che comincia da un **censimento** (R-P6) e non da una cancellazione. I punti già noti dalle due correzioni
+a D319 sono almeno cinque — `lavori.numero_prescrizione` · `lavori_prescrizioni.numero_prescrizione` ·
+`dichiarazioni_conformita.prescrizione_id` · la porta d'ingresso `POST /api/lavori` che lo **valida e lo
+scrive** (`route.ts:234-240` → `lavoro_crea_atomico`) · il clone del rifacimento che lo propaga · e
+`prescrizione-mapper` che lo legge — 🛑 **ma l'elenco non lo decide chi scrive questa riga**: è l'esito del
+censimento a deciderlo, ed è esattamente l'errore che D319 ha già fatto una volta («*nessuno lo scrive*»,
+falso). ➡️ **Chiude la riga 27 della coda di ROADMAP**, che chiedeva proprio se quella porta dovesse
+restare aperta: la risposta è **no**.

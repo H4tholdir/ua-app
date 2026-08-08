@@ -670,6 +670,28 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
   né guardia di esaustività · **I2** `paziente_nome_snapshot` vince sull'embed, e il **primo writer**
   dello snapshot sta per essere questa rotta — **da decidere nel Task D**.
 
+- **ATTO-UNICO-C-quinquies: COMPLETO** (`e9094cc4`) — esegue **D319**: il numero di prescrizione esce
+  **dal foglio del PDF, dal costruttore, dalle due allowlist TypeScript e dall'allowlist SQL**
+  (migration `20260808142358`). **Nessuna colonna cancellata**, come D319 prescrive: le orfane portano la
+  loro riga scritta accanto.
+  🔑 **E SONO TRE, NON DUE** (trovato dall'esecutore): il brief censiva `lavori.numero_prescrizione` e
+  `lavori_prescrizioni.numero_prescrizione`, ma manca **`dichiarazioni_conformita.prescrizione_id`**, che
+  perde il suo **unico** scrittore proprio con questo compito. R-P6 alla lettera, sulla colonna che il
+  mandato stesso orfanizza.
+  🔴 **«Nessuno le scrive» era FALSO, e lo era già in D319**: `POST /api/lavori` **valida e scrive**
+  `lavori_prescrizioni.numero_prescrizione` (`route.ts:234-240` → `componiSnapshot` →
+  `lavoro_crea_atomico`), il clone del rifacimento la propaga, `prescrizione-mapper:291` la legge.
+  ➡️ **Chiusa da D321** (centotrentanovesima tornata, 08/08 17:24): *si elimina ovunque*.
+  📈 `5617 | 68 su 454` → **`5621 | 68 su 454`** · `VERIFY_EXIT=0` · FASE 6b: `gen types` **nessuna
+  differenza** (la firma della RPC non cambia, cambia il corpo) · `tsc` 0.
+  🟠 Riferiti: `firma_ddc_sha256` e `prescrizione_id` sono **due chiavi morte dello stesso oggetto
+  trattate in modo opposto** (tenuta a `null` l'una, tolta l'altra), misurate **entrambe 0/6**, senza
+  decisione numerata che dica quale sia la regola.
+  🛑 **Questa voce mancava dalla mappa di recupero fino al 08/08 17:30**: il compito era fatto, salvato e
+  con resoconto, ma il documento che serve **proprio a non perdere i compiti** non lo sapeva. Aggiunta
+  all'apertura della sessione successiva. *La mappa di recupero è l'ultimo posto in cui ci si può
+  permettere un buco.*
+
 > 🔑 **IL FILO DELLA GIORNATA, e vale più di ogni singolo compito: QUATTRO VOLTE una prova che non
 > poteva fallire.** ① `now()` è costante in transazione → la sonda sul conflitto era verde per forza ·
 > ② `scripts/psql.mjs` si collega come **`postgres`**, cioè come proprietario → ogni sonda sui permessi

@@ -4,8 +4,12 @@
 **Nasce da:** il **Critico** trovato dalla revisione del Task 8 — *la strada che il rifiuto indica
 riporta nella stessa stanza* — e dal **panel a tre** che ne è seguito.
 **Decisioni che lo reggono:** **D314** (si corregge ogni campo che alimenta il documento) · **D315**
-(atto unico) · **D316** (sette voci) · **D317** (il dentista va avvisato) · e, invariate, D293 · D299 ·
+(atto unico) · ~~**D316** (sette voci)~~ · **D317** (il dentista va avvisato) · e, invariate, D293 · D299 ·
 D305 · D308.
+🔄 **DUE EMENDAMENTI ALLE VOCI, e vanno letti prima del Task D:** **D319** toglie `numero_prescrizione`
+(la legge non lo chiede) · **D320** toglie `paziente_nome_snapshot` (il nome si corregge **in anagrafica**,
+non qui). **Il «sette» di D316 è quindi storia: le voci sono SEI**, e l'elenco autoritativo è l'array
+`CAMPI_CORREGGIBILI_DOCUMENTO`, non questa riga. ➕ **D321** apre un compito nuovo (Task F, in fondo).
 **Verbale:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, **centotrentacinquesima e
 centotrentaseiesima tornata**.
 **Ramo:** `intervento-post-consegna` — 🛑 **MAI un git worktree.**
@@ -321,17 +325,77 @@ due rompe niente — ma **il messaggio del 409 deve essere onesto**, e il Passo 
 
 ---
 
+## Task C-sexies — Lo snapshot del nome esce dal contratto (D320)
+
+🔄 **AGGIUNTO l'08/08 alle 17:24**, dopo la risposta di Francesco alla domanda che il Task D aveva
+lasciato aperta (**I2**). **Non è un compito nuovo: è la terza volta che si chiude una porta del
+contratto prima di scriverne il consumatore** — come C-bis e C-ter, e per la stessa ragione misurata:
+*la RPC non ha ancora chiamanti a schermo, quindi irrigidirla costa una riga; dopo il Task D costerebbe
+contratto più consumatore.*
+
+**File:** `src/lib/dichiarazione/correzioni.ts` · migration nuova (🕛 `date -u`, pavimento
+`20260808142358`) · prove: `tests/unit/correzioni-documento.test.ts`.
+
+- [ ] **Passo 1 — `paziente_nome_snapshot` esce da `CAMPI_CORREGGIBILI_DOCUMENTO` e da `CAMPI_TESTO`**
+  (quest'ultimo scende da quattro voci a tre). ⚠️ **Anche l'intestazione del modulo va corretta**: dice
+  «sette nomi per sei voci» e la nota che spiega il doppione del paziente — entrambe cadono. È il difetto
+  **B3** del C-quinquies, che sarebbe rimasto stantìo un'altra volta.
+- [ ] **Passo 2 — esce dall'allowlist della RPC** `correggi_e_riemetti_atomica` (`c_su_lavori`), con la
+  **destinazione scritta nel `COMMENT`**: `pazienti.nome`/`pazienti.cognome`, via `PATCH
+  /api/pazienti/[id]`. 🛑 **`DROP` → `CREATE` → `REVOKE` → `GRANT` → `COMMENT`**, e la verità è il
+  **catalogo vivo**, non il file.
+- [ ] **Passo 3 — la colonna resta, e porta la sua riga** (come le tre di D319): `lavori.paziente_nome_snapshot`
+  non si cancella. ⚠️ **`generate-ddc.ts:304` continua a leggerla per prima** (`snapshot ?? nome_cognome`):
+  **non si tocca in questo compito** — su 1 riga su 299 è piena, e cambiare quel ripiego cambierebbe che
+  cosa stampa una riemissione di quel lavoro. Se vada tolto è una decisione a sé, **riferita, non presa**.
+- [ ] **Passo 4 — le prove, e devono diventare ROSSE.** Una chiamata con `paziente_nome_snapshot` deve
+  essere **rifiutata** dal filtro TypeScript **e** dalla RPC (sonda, messaggio incollato). 📌 Il numero
+  delle prove **deve muoversi**: qui si tocca TypeScript.
+- [ ] **Passo 5 — FASE 6b** (`gen types` → `tsc`) e salva.
+
+---
+
 ## Task D — Il foglio: il passo di correzione
 
 **File:** `DevoIntervenire.tsx` · `src/lib/qualita/motivi-ui.ts` se servono parole nuove.
 
+🔄 **L'ELENCO DELLE RIGHE È CAMBIATO DUE VOLTE DA QUANDO QUESTO PIANO È STATO SCRITTO, e il Passo 1
+qui sotto porta già la versione buona.** ⚠️ **Non si prende dalla prosa dei compiti precedenti**, che
+parla ancora di sette e di otto: si prende da `CAMPI_CORREGGIBILI_DOCUMENTO` **dopo il C-sexies**.
+**D319** ha tolto `numero_prescrizione` (otto nomi → sette, sette righe → sei) · **D320** toglie
+`paziente_nome_snapshot` (**sette nomi → sei**; le **righe restano sei**, perché quella del paziente ne
+aveva due e ne perde uno). Da qui in avanti **un nome, una riga**: la nota «*N nomi per M voci*» non
+serve più.
+
 - [ ] **Passo 1 — il passo mostra VALORI, non controlli.** Titolo: **«Che cosa c'è di sbagliato?»**,
-  poi le sette righe con accanto il valore che c'è adesso. Si tocca la riga, il **foglio cambia passo**
-  (🛑 **mai un secondo overlay** — `storia-overlay.ts`, difetto già pagato), si corregge, si torna
-  all'elenco e la riga dice: `Paziente — Mario Rossi → **Mario Russo** · da rifare`.
-- [ ] **Passo 2 — la riga che dichiara ciò che NON si corregge da qui** (D316): «Se è sbagliato un dato
-  del laboratorio — ragione sociale, indirizzo, partita IVA, luogo di fabbricazione — si corregge in
-  Impostazioni, e vale per tutte le dichiarazioni da lì in avanti.»
+  poi le **SEI** righe con accanto il valore che c'è adesso: **chi ha prescritto** (`richiedente_nome`) ·
+  **quale paziente** (`paziente_id`) · **tipo di dispositivo** · **descrizione** · **denti**
+  (`denti_coinvolti`) · **caratteristiche prescritte** (`prescrizione_caratteristiche`).
+  🛑 **Il conto non si ricopia da questa riga: si conta sull'array** `CAMPI_CORREGGIBILI_DOCUMENTO` nel
+  momento in cui si scrive il codice. *L'orchestratore ha sbagliato questo stesso conto scrivendo questa
+  stessa sezione, alle 17:30 — «cinque», e poi ne ha elencate sei.*
+  Si tocca la riga, il **foglio cambia passo** (🛑 **mai un secondo overlay** — `storia-overlay.ts`,
+  difetto già pagato), si corregge, si torna all'elenco e la riga dice:
+  `Paziente — Mario Rossi → **Giulia Bianchi** · da rifare`.
+  🛑 **Dentro «caratteristiche prescritte» si offrono SOLO `elementi` e `colore`.** `tipo` è accettato
+  dal controllo d'ingresso ma **non compare sul documento** ed è escluso apposta
+  (`caratteristiche-prescritte.ts:66-71`, D213): è ciò che il laboratorio **ha fatto**, non ciò che il
+  medico ha **prescritto**. 🔑 *Una riga che si può toccare e non cambia niente sul foglio è una riga che
+  mente.*
+  ⚠️ **E «svuota il colore» prende 422** (C3, dichiarato in `correzioni.ts:242-252`): cancellare una
+  caratteristica **non è raggiungibile da questa strada**, ed è voluto. A schermo si mostra il rifiuto,
+  non si nasconde il campo.
+- [ ] **Passo 2 — la riga che dichiara ciò che NON si corregge da qui** (D316), e ora **nomina DUE
+  cose**:
+  - «Se è sbagliato un dato del laboratorio — ragione sociale, indirizzo, partita IVA, luogo di
+    fabbricazione — si corregge in **Impostazioni**, e vale per tutte le dichiarazioni da lì in avanti.»
+  - ⚖️ **D320:** «Se il **nome del paziente** è scritto male, si corregge in **Anagrafica** — così vale
+    per tutti i suoi lavori. Poi torna qui e rifai la dichiarazione. Da questo foglio si cambia **quale
+    persona** è, non **come si chiama**.»
+    🔑 La strada esiste già ed è viva: `PazienteEditSheet` su `/pazienti/[id]` (`page.tsx:86`), scritta
+    per l'**Art. 16 GDPR** (rilievo G4). ⚠️ **Portarci la persona con un collegamento è la parte che
+    rende la riga utile invece che scoraggiante** — e da dentro un overlay v3 si naviga **solo** con
+    `useNavigaDaOverlay`, mai `router.push`.
   🔑 Un elenco che sembra completo e non lo è è il difetto che questo progetto ha già pagato tre volte.
 - [ ] **Passo 3 — il tasto finale dice quello che fa:** **«Correggi e rifai la dichiarazione»**, mai
   «Salva». Disabilitato finché non si è corretto nulla, **col perché scritto**.
@@ -364,6 +428,13 @@ due rompe niente — ma **il messaggio del 409 deve essere onesto**, e il Passo 
    dire il falso» è **già fatta**: v. il Passo 5 emendato).
 2. **Task 10** — le prove d'integrazione e la chiusura dell'ondata.
 3. **Il gate estetico L2** (FASE 9b), dovuto prima del merge.
+4. ⚖️ **Task F — il numero di prescrizione esce da TUTTO (D321).** 🔄 **Aggiunto l'08/08 alle 17:24.**
+   🛑 **Comincia da un CENSIMENTO (R-P6), non da una cancellazione**, e l'elenco **non lo decide chi
+   scrive questa riga**: D319 ha già affermato una volta «*nessuno lo scrive*» ed era **falso**. I punti
+   noti sono almeno sei — `lavori.numero_prescrizione` · `lavori_prescrizioni.numero_prescrizione` ·
+   `dichiarazioni_conformita.prescrizione_id` · `POST /api/lavori:234-240` → `componiSnapshot` →
+   `lavoro_crea_atomico` · il clone del rifacimento (`20260807185858:177-180`) · `prescrizione-mapper:291`
+   e la risposta della scheda. ➡️ **Chiude la riga 27 della coda di ROADMAP.**
 
 ### 🛑 CHE COSA IL TASK 10 È DAVVERO — riscritto l'08/08, e non è un adempimento di chiusura
 
