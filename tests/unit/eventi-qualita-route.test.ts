@@ -1047,6 +1047,13 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
   // realmente avvenuta cancella l'unica prova che quel manufatto è esistito ed è
   // andato a un paziente. La guardia sta QUI e non nell'interfaccia: il confine
   // di un atto distruttivo su un documento a valore legale è dell'API.
+  // 📌 IL MESSAGGIO È PARTE DELLA PROVA, e non è pignoleria (Task A dell'atto
+  // unico, 08/08/2026): finché il foglio cablava `mai_uscito_dal_lab` questa
+  // guardia non poteva accendersi da nessuna schermata, quindi il solo posto in
+  // cui si vede che cosa dice a chi la incontra è qui. E ciò che dice conta
+  // quanto il rifiuto: ⚖️ D262 vuole che un rifiuto INDICHI LA STRADA — «scegli
+  // il motivo che descrive che cosa è successo dopo» — invece di limitarsi a
+  // vietare.
   it('🛑 «ho sbagliato a premere consegna» su un manufatto APPLICATO → 422, e la RPC non parte', async () => {
     bancoEvento()
     const res = await POST_EVENTO(
@@ -1055,6 +1062,9 @@ describe('POST …/eventi-qualita — D288: l\'effetto si deriva dal motivo, e p
     )
     expect(res.status).toBe(422)
     expect(mockRpc).not.toHaveBeenCalled()
+    const messaggio = (await res.json()).error as string
+    expect(messaggio).toContain('la consegna è avvenuta davvero')
+    expect(messaggio).toContain('scegli il motivo che descrive che cosa è successo dopo')
   })
 
   it('🛑 e nemmeno su un manufatto CONSEGNATO o di cui non si sa: la consegna o è avvenuta o no', async () => {
