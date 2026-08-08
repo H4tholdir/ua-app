@@ -211,8 +211,14 @@ function normalizzaDivergenze(raw: unknown): Divergenza[] {
  *  della forma sbagliata si SCARTA (non si tiene onesta come campo/motivo di
  *  una divergenza): un `contenuto` malformato non è un fatto avvenuto in una
  *  forma inattesa, è rumore — tenerlo si spaccerebbe per una trascrizione
- *  vera (V2). Scartare la chiave equivale a trattarla come non trascritta. */
-function normalizzaContenuto(raw: unknown): PrescrizioneContenuto {
+ *  vera (V2). Scartare la chiave equivale a trattarla come non trascritta.
+ *
+ *  🔑 ESPORTATA l'08/08/2026 (Task C dell'atto unico), e per una ragione sola:
+ *  la correzione delle caratteristiche prescritte deve sapere quali sotto-chiavi
+ *  esistono — `elementi`, `colore`, `tipo` — e quell'elenco NON si ricopia. Una
+ *  seconda copia diverge dalla prima il giorno in cui una quarta sotto-chiave
+ *  nasce, e diverge **in silenzio**. Si chiama questa. */
+export function normalizzaContenuto(raw: unknown): PrescrizioneContenuto {
   if (raw === null || raw === undefined) {
     return {}
   }

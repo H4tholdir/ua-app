@@ -9,6 +9,7 @@ import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 import { annoRoma } from '@/lib/utils/data-roma'
 import { nomePrescrittore } from '@/lib/consegna/prescrittore'
 import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-prescritte'
+import { classificaErroreAttoUnico } from '@/lib/dichiarazione/atto-unico-errori'
 
 // ═══ `hashFirmaDdc` VIVEVA QUI, E NON C'È PIÙ (07/08/2026, giro di correzione
 //     di D294) ══════════════════════════════════════════════════════════════
@@ -495,5 +496,161 @@ export async function riemettiDdC(lavoro: LavoroDettaglio, eventoId: string): Pr
     nuovaId: risposta.nuova_id,
     vecchiaId: typeof risposta.vecchia_id === 'string' ? risposta.vecchia_id : '',
     numeroSuperato: typeof risposta.numero_superato === 'string' ? risposta.numero_superato : '',
+  }
+}
+
+/** L'esito dell'ATTO UNICO. È più lungo di `EsitoRiemissione` perché il
+ *  contratto nuovo sa dire più cose — e ognuna di esse **arriva come JSON, non
+ *  come errore**.
+ *
+ *  🛑 SEI DI QUESTI SONO IL DIFETTO PEGGIORE POSSIBILE SE LETTI MALE:
+ *  `non_trovato`, `conflitto`, `evento_non_valido`, `paziente_non_valido`,
+ *  `senza_prescrizione`, `nessuna_dichiarazione_viva` **non alzano**. Una
+ *  funzione che guardasse solo `error` li leggerebbe come **successo**, cioè
+ *  direbbe «rifatta» a una dichiarazione che non è stata rifatta. L'unione
+ *  discriminata è essa stessa la guardia: senza restringere su `'ok'` il
+ *  compilatore non concede `numero`. */
+export type EsitoAttoUnico =
+  | {
+      stato: 'ok'
+      numero: string
+      url: string
+      nuovaId: string
+      vecchiaId: string
+      numeroSuperato: string
+      /** Il gettone AGGIORNATO: serve a chi corregge due volte di fila. */
+      updatedAt: string | null
+    }
+  | { stato: 'non_trovato' }
+  | { stato: 'conflitto'; updatedAt: string | null }
+  | { stato: 'evento_non_valido' }
+  | { stato: 'paziente_non_valido' }
+  | { stato: 'senza_prescrizione' }
+  | { stato: 'nessuna_dichiarazione_viva' }
+  /** Un `P0001` dei nove: il contratto ha rifiutato la richiesta, e niente è
+   *  stato scritto. Il testo è quello che ha scritto il contratto. */
+  | { stato: 'richiesta_rifiutata'; messaggio: string }
+  | { stato: 'evento_gia_consumato' }
+  | { stato: 'gia_superata' }
+  | { stato: 'numero_gia_usato' }
+
+/** I sei esiti gentili, scritti UNA VOLTA: l'elenco è la stessa cosa che il
+ *  contratto può rispondere, e tenerlo qui evita sei `if` che si dimenticano. */
+const ESITI_GENTILI = [
+  'non_trovato',
+  'evento_non_valido',
+  'paziente_non_valido',
+  'senza_prescrizione',
+  'nessuna_dichiarazione_viva',
+] as const
+
+/**
+ * L'ATTO UNICO: **applica le correzioni e rifà il documento in una transazione
+ * sola**. È la funzione che il Task C aggiunge accanto a `riemettiDdC`, e le
+ * due convivono per una ragione dichiarata: chi vuole solo rifare la carta
+ * passa ancora di là (contratto vecchio, chiamante pubblicato), chi corregge
+ * passa di qua.
+ *
+ * 🛑 `lavoro` DEVE ESSERE GIÀ CORRETTO. Il PDF si rende e si carica **prima**
+ * della transazione — è ciò che permette alla transazione di esistere — quindi
+ * le correzioni devono essere già dentro l'oggetto che arriva qui, o la carta
+ * nuova ristamperebbe l'errore che si sta correggendo. La fusione la fa
+ * `fondiCorrezioni`, e la rotta le chiama in quest'ordine.
+ *
+ * 🛑 P16-bis — `riga` NON SI PUÒ PASSARE COSÌ COM'È. `costruisciDichiarazione`
+ * ci mette `numero_ddc` (`:234`) e `stato` (`:323`), che da C-bis in poi il
+ * contratto **rifiuta**: `numero_ddc` perché si DERIVA dalla coppia
+ * `anno_ddc`+`progressivo_ddc` (non ha un unico proprio: un numero incoerente
+ * non collide con niente e produrrebbe due carte con lo stesso numero
+ * stampato), `stato` perché la nuova nasce **sempre** `generata`.
+ * ⚠️ E `anno_ddc`/`progressivo_ddc` **restano tutte e due**: la coppia è
+ * INDIVISIBILE, una sola dà `P0001` e nessuna delle due dà `23505`.
+ *
+ * 📌 Il **numero** si prende da quello che torna il contratto, non si ricalcola:
+ * il formato vive in due posti (`:226` e la RPC) e si muovono insieme.
+ */
+export async function correggiERiemettiDdC(
+  lavoro: LavoroDettaglio,
+  eventoId: string,
+  correzioni: Record<string, unknown>,
+  attesoUpdatedAt: string
+): Promise<EsitoAttoUnico> {
+  const supabase = getTypedServiceClient()
+
+  const { riga, numero, pdfUrl } = await costruisciDichiarazione(supabase, lavoro)
+
+  // 🛑 Le due chiavi che il contratto non accetta dal chiamante (P16-bis). Si
+  //    tolgono per NOME e non con una allowlist di ciò che resta: l'allowlist
+  //    vera è in SQL, e una seconda qui divergerebbe alla prima colonna nuova.
+  const { stato: _stato, numero_ddc: _numeroDdc, ...nuova } = riga
+  void _stato
+  void _numeroDdc
+
+  const { data, error } = await supabase.rpc('correggi_e_riemetti_atomica', {
+    p_lavoro_id: lavoro.id,
+    p_laboratorio_id: lavoro.laboratorio_id,
+    p_evento_id: eventoId,
+    p_correzioni: correzioni as unknown as Record<string, never>,
+    p_nuova: nuova as unknown as Record<string, never>,
+    // 🔑 COSÌ COM'È, mai un `new Date(...)`: `timestamptz` ha precisione al
+    //    microsecondo e `Date` al millisecondo. Un solo riparsing tronca
+    //    `.123456` a `.123` e il confronto non torna MAI uguale: 409
+    //    permanente, che nemmeno ricaricando si sana.
+    p_atteso_updated_at: attesoUpdatedAt,
+  })
+
+  if (error) {
+    const classe = classificaErroreAttoUnico(error)
+    if (classe.tipo === 'richiesta') {
+      // Niente è stato scritto: è una richiesta da correggere, non un guasto.
+      return { stato: 'richiesta_rifiutata', messaggio: classe.messaggio }
+    }
+    if (classe.tipo === 'vincolo') return { stato: classe.vincolo }
+    // 🛑 Tutto il resto LANCIA — compresi i quattro `P0001` post-annullo, che
+    //    sono guasti interni. Tradurli in un 400 direbbe all'odontotecnico che
+    //    ha sbagliato lui mentre l'app si è rotta.
+    console.error('[ATTO UNICO] correggi_e_riemetti_atomica fallita:', error)
+    throw new Error('Non è stato possibile correggere e rifare la dichiarazione', { cause: error })
+  }
+
+  const risposta = (data ?? {}) as {
+    esito?: unknown
+    nuova_id?: unknown
+    vecchia_id?: unknown
+    numero?: unknown
+    numero_superato?: unknown
+    updated_at?: unknown
+  }
+
+  const esito = risposta.esito
+  if (esito === 'conflitto') {
+    return {
+      stato: 'conflitto',
+      updatedAt: typeof risposta.updated_at === 'string' ? risposta.updated_at : null,
+    }
+  }
+  for (const gentile of ESITI_GENTILI) {
+    if (esito === gentile) return { stato: gentile }
+  }
+
+  // 🛑 FAIL-CLOSED su tutto il resto (stessa regola di `riemettiDdC:480-487`):
+  //    un esito che questa funzione non riconosce — una risposta vuota, un
+  //    valore nuovo aggiunto al contratto domani — letto come successo
+  //    restituirebbe un numero senza sapere se la correzione è avvenuta.
+  if (esito !== 'ok' || typeof risposta.nuova_id !== 'string') {
+    console.error('[ATTO UNICO] esito inatteso', data)
+    throw new Error('Non è stato possibile correggere e rifare la dichiarazione')
+  }
+
+  return {
+    stato: 'ok',
+    // Il numero lo dice il contratto, sulla riga davvero scritta; quello
+    // calcolato qui è il ripiego, mai la fonte.
+    numero: typeof risposta.numero === 'string' ? risposta.numero : numero,
+    url: pdfUrl,
+    nuovaId: risposta.nuova_id,
+    vecchiaId: typeof risposta.vecchia_id === 'string' ? risposta.vecchia_id : '',
+    numeroSuperato: typeof risposta.numero_superato === 'string' ? risposta.numero_superato : '',
+    updatedAt: typeof risposta.updated_at === 'string' ? risposta.updated_at : null,
   }
 }
