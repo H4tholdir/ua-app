@@ -195,6 +195,27 @@ VERIFY_EXIT=0
 
 ---
 
+## ④-bis — L'albero condiviso: niente in attesa di altri, ma il push ha portato su un commit non mio
+
+`git status` prima di ogni salvataggio non ha mai mostrato file in attesa che non fossero i miei, e ho usato `git add <percorsi>` con i tre percorsi scritti a mano. **Ma la sessione viva ha comunque lasciato una traccia, in un modo che `git status` non poteva mostrare: ha COMMITTATO mentre lavoravo.**
+
+```
+provato:  git show --stat 3941b787
+   →  2026-08-09 13:14:31 +0200 · Francesco Formicola
+      docs(piano): l'avviso al dentista — dieci task, con il cancello del mockup…
+      docs/…/plans/2026-08-09-avviso-al-dentista.md | 419 +++++
+      1 file changed, 419 insertions(+)
+```
+
+Le 13:14:31 cadono **dentro il mio secondo giro** dei dieci. Il mio commit `eeb7701b` è nato sopra il suo, e **`git push` ha quindi portato sul server anche `3941b787`** — l'intervallo lo dice: `1af2d0b6..eeb7701b`, non `3941b787..eeb7701b`.
+
+**Tre conseguenze, tutte innocue, e le scrivo perché innocue lo sono qui e non in generale:**
+- **Le misure tengono:** è un documento nuovo, 419 righe aggiunte e nient'altro. Nessun file sorgente, nessuna configurazione, nessuna prova. Non poteva spostare né i conteggi né i tempi.
+- **Il mio commit non contiene lavoro altrui:** i tre percorsi erano espliciti, e il suo lavoro era già un commit, non roba in attesa.
+- **Il push l'ha pubblicato:** è un ramo, cioè la copia di sicurezza fuori dal Mac (D296), ed è lavoro di Francesco che va lì comunque. ⚠️ Ma vale la pena saperlo: **`git add <percorsi>` protegge il proprio commit, non il proprio push** — un push porta su tutta la catena, e in un albero condiviso la catena può contenere il lavoro di qualcun altro, anche se `git status` è pulito.
+
+---
+
 ## ⑤ Che cosa NON ho fatto
 
 - **Non ho toccato `main`**, in nessun modo: nessuna unione, nessuna spinta, nessuna richiesta di unione aperta. Vercel non è partito.
