@@ -49,7 +49,7 @@ sono usciti due difetti.
 
 ### 🔴 A — `admin_delete_laboratorio` È ROTTA OGGI, e non per gli avvisi
 
-`provato:` `scripts/tmp/sonda-A.sql`, con **zero avvisi** in tabella:
+`provato:` `scripts/sonde/2026-08-09-cancellazione-laboratorio-dpa.sql`, con **zero avvisi** in tabella:
 
 ```
 lab di prova: 971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c | avvisi presenti: 0
@@ -66,7 +66,8 @@ prima di arrivare a `utenti` (riga 84).
 
 ### 🟠 B — la quinta chiave morde davvero, e oggi la salva solo l'ordine
 
-`provato:` `scripts/tmp/sonda-C.sql` — un avviso vivo con l'autore valorizzato, poi si cancella l'autore:
+`provato:` `scripts/sonde/2026-08-09-avviso-chiave-autore.sql` — un avviso vivo con l'autore valorizzato,
+poi si cancella l'autore:
 
 ```
 premessa: avviso vivo con autore 2f78066e-64ef-4194-aef4-364dad2e7d4d
