@@ -7,9 +7,9 @@
 | Difetto | **nella PROVA**, non nel codice di produzione |
 | Causa | la prova descrive il `DELETE` del movimento `storno`, sostituito dal contro-movimento a delta (**D-2**) |
 | Da quando | commit **`2306f239`, 15/07/2026 21:29** — *non* il 06/08 come diceva il mandato |
-| Prove d'integrazione dopo | **84 su 84**, verdi 8 giri su 9 |
-| FASE 7 | vedi §6 |
-| 🛑 Ritrovamento fuori mandato | la suite d'integrazione ha un **deadlock intermittente** (~1 giro su 9) — **riferito, non corretto** (R-E2) |
+| Prove d'integrazione dopo | **84 su 84**, verdi 9 giri su 10 |
+| FASE 7 | 5725 passate \| 84 saltate su 458 file · `VERIFY_EXIT=0` — base invariata |
+| 🛑 Ritrovamento fuori mandato | la suite d'integrazione ha un **deadlock intermittente** (1 giro su 10) in un file non mio — **riferito, non corretto** (R-E2). 🔴 **Da solo, il verde non basta ad accendere `ci.yml`: v. §7 punto 3** |
 
 ---
 
@@ -174,7 +174,7 @@ Cosa ho cambiato nella prova (5 blocchi `it()` prima, 5 dopo — il conteggio de
    Duration  17.92s
 ```
 
-**80 su 84 → 84 su 84.** Ripetuto **8 giri su 9** con lo stesso esito (il nono in §7).
+**80 su 84 → 84 su 84.** Ripetuto **9 giri su 10** con lo stesso esito (il decimo in §7).
 
 ---
 
@@ -215,9 +215,15 @@ error: deadlock detected
  Tests  1 failed | 83 passed (84)
 ```
 
-Poi **otto giri verdi di fila**: ~**1 fallimento su 9**, in un file che **non è il mio** e su cui non ho toccato niente. Le prove girano in parallelo, ognuna con la sua connessione e la sua transazione aperta sullo stesso banco: due transazioni che inseriscono sulle stesse tabelle si incrociano e Postgres ne uccide una.
+Poi **nove giri verdi di fila**: **1 fallimento su 10**, in un file che **non è il mio** e su cui non ho toccato niente.
 
-➡️ **Accendere le prove in CI oggi, così come sono, produrrebbe una pubblicazione rossa circa una volta su nove per un motivo che non c'entra col codice** — cioè esattamente «l'allarme che suona sempre» contro cui il mandato mette in guardia. Il compito successivo su `ci.yml` **ha bisogno di saperlo prima di partire**, e la scelta (girare i file d'integrazione in serie con `--no-file-parallelism`, oppure un lab dedicato per file) va fatta lì, non qui.
+`provato:` il meccanismo è la **corsa fra file di prova paralleli**, non un difetto del file — `vitest.config.ts` **non dichiara né `fileParallelism` né `pool`**, quindi vale il default di vitest: i file girano in **parallelo**, ognuno con la sua connessione e la sua transazione aperta sullo stesso banco. Due transazioni che inseriscono sulle stesse tabelle si incrociano, e Postgres ne uccide una.
+
+➡️ **Accendere le prove in CI oggi, così come sono, produrrebbe una pubblicazione rossa circa una volta su dieci per un motivo che non c'entra col codice** — cioè esattamente «l'allarme che suona sempre» contro cui il mandato mette in guardia.
+
+🔑 **E c'è un dettaglio che rende la scelta meno ovvia di quanto sembri, scritto nel commento di `vitest.config.ts:25-30`:** la CI usa **`vitest run` senza argomenti**, e quel comando **raccoglie già anche `tests/integration/**`** — oggi si salvano da soli per via dello `skipIf`. Quindi, appena `SUPABASE_DB_URL` arriva nell'ambiente del passo «Unit tests», i 7 file d'integrazione entrano **nello stesso giro dei 451 file unitari e nella stessa piscina di lavoratori**. Conseguenza pratica: `--no-file-parallelism` **serializzerebbe tutta la suite**, non solo l'integrazione — 194 s che diventano molti di più.
+
+📌 **La scelta è del compito su `ci.yml`, non mia**, e le forme sul tavolo sono almeno tre: un **passo separato** per `tests/integration` (che è anche l'unico modo di serializzare solo quelli), un **laboratorio dedicato per file di prova** invece del `LAB_E2E_ID` condiviso, oppure un **rinvio con ripetizione** sui codici di deadlock. Non ho deciso e non ho provato nessuna delle tre: il compito successivo **ha bisogno di saperlo prima di partire**.
 
 **Dove il mandato aveva ragione, e conviene dirlo:** le prove d'integrazione davvero non sorvegliano niente oggi, il salto silenzioso di `pg-client.ts:9` è davvero il meccanismo, e il catalogo vivo è davvero l'unica fonte attendibile — i file di migration mostrano *una* versione della funzione, non quella in vigore.
 
