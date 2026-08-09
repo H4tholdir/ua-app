@@ -16,6 +16,7 @@ import type { CampoTypo, FonteTipo, MotivoDivergenza } from '@/lib/domain/prescr
 // modulo si tira dietro l'altro a runtime). Copiare qui la forma sarebbe la
 // duplicazione che il censimento della riga 22 ha appena finito di contare.
 import type { TintaManufatto, TintaScelta } from '@/lib/domain/tinta'
+import type { AvvisoRiga } from '@/lib/avvisi/queries'
 
 // ============================================================
 // LABORATORIO
@@ -573,6 +574,21 @@ export interface LavoroDettaglio extends Lavoro {
   // lettura dimenticata.
   tinta?: TintaScelta | null;
   tinteDisponibili?: TintaManufatto[];
+  // Ondata «l'avviso al dentista» Task 6 — il promemoria ex Art. 19 GDPR ancora
+  // APERTO su questo lavoro, o `null` se non ce n'è. Opzionale sullo stesso
+  // modello di `tinta?`: lo attacca chi rende la schermata (`avvisiDaComunicare`
+  // in `lavori/[id]/page.tsx`), e dove nessuno l'ha chiesto è `undefined` — la
+  // riga non compare, mai una riga vuota per una lettura dimenticata.
+  //
+  // 🛑 `undefined` e `null` NON dicono la stessa cosa, e la differenza conta più
+  //    qui che sulla tinta: `undefined` = «nessuno ha guardato» (una pagina che
+  //    non fa quella lettura, o un ruolo che non può chiudere l'avviso), `null` =
+  //    «guardato, e non ce n'è». Per la schermata sono lo stesso silenzio; per
+  //    chi legge questo tipo non lo sono.
+  // 🔑 Il tipo viene da `@/lib/avvisi/queries` ed è un `import type`, quindi
+  //    sparisce alla compilazione: nessun modulo di lettura entra nel fagotto
+  //    del browser per colpa di questa riga.
+  avvisoDaComunicare?: AvvisoRiga | null;
 }
 
 // ============================================================

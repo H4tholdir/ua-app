@@ -82,6 +82,7 @@ import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButto
 import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
 import { DevoIntervenire, vociDelDocumento } from './DevoIntervenire'
+import { AvvisoDentista } from './AvvisoDentista'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
@@ -576,6 +577,70 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
               momenti diversi, è il modo di perdere una riga per strada. */}
           {lavoro.stato === 'consegnato' && lavoro.data_consegna_effettiva && (
             <AnnullaConsegnaBanner lavoroId={lavoro.id} dataConsegnaEffettiva={lavoro.data_consegna_effettiva} />
+          )}
+
+          {/* ══ «Avvisa il dentista» (ondata «l'avviso al dentista», Task 6) ═══
+              Il promemoria ex Art. 19 GDPR: la dichiarazione è stata corretta e
+              rifatta, e il dentista ha ancora in mano quella vecchia.
+
+              🛑 LA CONDIZIONE È UNA SOLA — esiste un avviso ancora aperto. NON si
+                 copia la guardia del gemello qui sotto (`stato === 'consegnato'`):
+                 quella è sua e ha la sua ragione, mentre qui una seconda
+                 condizione potrebbe solo NASCONDERE un promemoria che esiste. Il
+                 senso di tutta l'ondata è che non si spenga da solo.
+              🔑 CHI PUÒ VEDERLO lo decide il componente server (⚖️ D342,
+                 `page.tsx`): se `ruolo` non è fra quelli che possono chiudere
+                 l'avviso, `avvisoDaComunicare` arriva già `null`. Non è una
+                 seconda condizione sullo stesso asse — è *chi guarda*, non *che
+                 cosa c'è* — e sta lì perché l'elenco dei ruoli vive in un modulo
+                 che un componente client non può importare (v. il riquadro in
+                 `page.tsx`).
+              🛑 QUI NON SI DISEGNA NESSUNA RIGA: `AvvisoDentista` **è** la riga
+                 (`AvvisoDentista.tsx:150` — «*`chiuso` è lo stato a riposo: la riga
+                 sulla scheda*»). Una riga scritta qui che aprisse il foglio
+                 toglierebbe alla via di fuga di ⚖️ D351 il posto in cui comparire:
+                 mentre una scrittura «a voce» aspetta, l'«Annulla» prende **il
+                 posto** della riga, e ci riesce solo perché la riga è sua. */}
+          {lavoro.avvisoDaComunicare && (
+            <AvvisoDentista
+              lavoroId={lavoro.id}
+              avvisoId={lavoro.avvisoDaComunicare.id}
+              numeroLavoro={lavoro.numero_lavoro}
+              // `clienteDisplay` e non una seconda formula: è l'etichetta con cui
+              // questa scheda chiama già lo studio, due righe più sotto.
+              nomeStudio={clienteDisplay(lavoro.cliente)}
+              // ⚖️ D350 (09/08/2026, centocinquantesima tornata) — TERZA DEROGA al
+              // paziente pseudonimizzato del DS v3 §2.1, e VIVE IN QUESTA RIGA.
+              // Francesco: «*Sì, come sulla parete*». Il foglio lo vede solo chi è
+              // dentro il laboratorio, e si apre nel momento in cui si corregge una
+              // dichiarazione già consegnata — cioè quando bisogna essere sicuri di
+              // non aver sbagliato persona.
+              // 🔑 Si passa `pazienteTesto`, cioè LO STESSO valore che la carta sta
+              //    già mostrando dietro il foglio: una seconda derivazione sarebbe
+              //    un secondo nome da tenere allineato.
+              // 🛑 REVOCARE LA DEROGA È CAMBIARE QUESTA RIGA, e nient'altro: il
+              //    componente rende ciò che riceve.
+              // 🛑 E la deroga NON si estende a WhatsApp: il nome non entra nel
+              //    messaggio, e la difesa non è questa nota — è la firma di
+              //    `buildAvvisoMessage`, che non ha un parametro per portarlo.
+              pazienteMostrato={pazienteTesto}
+              // ⚖️ D348 — il gettone non scade più: nessun ramo «scaduto». Il
+              // ripiego a stringa vuota è il caso «lettura che non l'ha chiesto»,
+              // e il foglio lo dice apertamente invece di mandare un collegamento
+              // morto (`AvvisoDentista.tsx:758-768`).
+              portalToken={lavoro.cliente?.portale_token ?? ''}
+              // ⚖️ D345 — la firma del messaggio è il nome del laboratorio, un dato
+              // passato e mai una costante.
+              nomeLaboratorio={lavoro.laboratorio?.nome ?? null}
+              // 🔴 `cellulare_whatsapp`, MAI `telefono`, benché la proprietà si
+              //    chiami `telefonoStudio` e il suo commento nel Task 5 dica
+              //    «`clienti.telefono`»: quel commento è sbagliato ed è riferito nel
+              //    resoconto (R-E2). La regola di casa è scritta sul tipo —
+              //    `src/types/domain.ts:174-176`: «*telefono può essere un fisso
+              //    dello studio — chi manda WhatsApp legge SEMPRE questo campo*» —
+              //    e tutti i chiamanti veri di `buildWhatsappUrl` fanno così.
+              telefonoStudio={lavoro.cliente?.cellulare_whatsapp ?? null}
+            />
           )}
 
           {/* «Devo intervenire» (Task 6, D269/D288) — SEMPRE presente su un

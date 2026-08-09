@@ -5,6 +5,13 @@ import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLav
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import { caricaTinteScheda } from '@/lib/lavori/tinta-scheda'
+import { avvisiDaComunicare } from '@/lib/avvisi/queries'
+// 🛑 L'ELENCO DEI RUOLI SI LEGGE DA DOVE VIVE, e non se ne tiene una copia:
+//    `RUOLI_CHIUSURA_AVVISO` è esportata dalla rotta che chiude l'avviso proprio
+//    perché due posti la leggano (v. il riquadro a `avviso/route.ts:185-190`).
+//    Due elenchi di permessi divergono — in questa casa è già successo con
+//    `admin_sistema`, dimenticato per giorni pur essendo usato 15 volte.
+import { RUOLI_CHIUSURA_AVVISO } from '@/app/api/lavori/[id]/avviso/route'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
@@ -102,7 +109,33 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   lavoroDettaglio.tinta = tinte.scelta
   lavoroDettaglio.tinteDisponibili = tinte.disponibili
 
-  const [signedDdcUrl] = await Promise.all([
+  // ══ Task 6 «l'avviso al dentista» — CHI VEDE IL PROMEMORIA (⚖️ D342) ══════
+  //
+  // 🔑 «*La visibilità è un SOTTOINSIEME del permesso: nessuno vede un promemoria
+  //    che non può chiudere*» (verbale, centoquarantottesima tornata). Un
+  //    `admin_rete` che vedesse la riga toccherebbe un tasto che risponde 403.
+  // 🛑 FAIL-CLOSED SENZA UN SECONDO RAMO: un ruolo assente, nuovo o scritto male
+  //    non è un caso a parte — `includes()` risponde `false` e non si legge
+  //    niente. Un ramo in più per «ruolo sconosciuto» sarebbe un posto in più
+  //    dove sbagliare il verso del confronto.
+  // 🔑 E IL CANCELLO STA QUI, NON NELLA SCHEDA, per un fatto misurato e non per
+  //    gusto: `SchedaLavoroV3` è un componente CLIENT, e importare da lì la
+  //    costante trascina `getServiceClient` (che apre con `import 'server-only'`)
+  //    nel fagotto del browser. `provato:` innestato l'import nel componente e
+  //    lanciato `npx next build` → `BUILD_EXIT=1`, «*'server-only' cannot be
+  //    imported from a Client Component module*», con la traccia
+  //    `server-service.ts → avviso/route.ts → SchedaLavoroV3.tsx [Client
+  //    Component Browser]` (09/08/2026). ➡️ Deciderlo dal server è anche
+  //    STRETTAMENTE MEGLIO: l'identificativo dell'avviso non entra nemmeno nella
+  //    pagina di chi non potrebbe chiuderlo.
+  const puoVedereAvviso = (RUOLI_CHIUSURA_AVVISO as readonly string[]).includes(context.ruolo)
+
+  // 🔑 La lettura entra NEL `Promise.all` che c'era già: è indipendente dalla
+  //    firma degli allegati, quindi non costa un millisecondo in più di attesa.
+  //    ⚠️ `caricaTinteScheda` qui sopra resta invece un `await` in fila per conto
+  //    suo — inefficienza preesistente, fuori da questo mandato: riferita, non
+  //    spostata (R-E2).
+  const [signedDdcUrl, , avvisiAperti] = await Promise.all([
     lavoroDettaglio.ddc?.storage_path_pdf
       ? getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
       : Promise.resolve(null),
@@ -112,8 +145,20 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
         if (signedImgUrl) img.url = signedImgUrl
       })
     ),
+    puoVedereAvviso
+      ? avvisiDaComunicare(svc, { lavoroId: id, laboratorioId: context.laboratorioId })
+      : Promise.resolve([]),
   ])
   if (signedDdcUrl && lavoroDettaglio.ddc) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
+
+  // ⚠️ UNO SOLO, ANCHE QUANDO SONO DUE — e il fatto è vero, non teorico:
+  //    `correggi_e_riemetti_atomica` fa un `INSERT` incondizionato, quindi due
+  //    riemissioni non comunicate lasciano DUE righe aperte sullo stesso lavoro.
+  //    Si mostra la **più vecchia** (la lettura ordina crescente): due righe
+  //    identiche sulla stessa carta non direbbero niente a nessuno, e chiudendo
+  //    la prima la riga ricompare per la seconda — che è la verità, non un
+  //    difetto: il promemoria non si spegne da solo finché un obbligo resta.
+  lavoroDettaglio.avvisoDaComunicare = avvisiAperti[0] ?? null
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
