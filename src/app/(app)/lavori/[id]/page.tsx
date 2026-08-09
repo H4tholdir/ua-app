@@ -6,12 +6,20 @@ import { getSignedUrl } from '@/lib/storage/signed-url'
 import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import { caricaTinteScheda } from '@/lib/lavori/tinta-scheda'
 import { avvisiDaComunicare } from '@/lib/avvisi/queries'
-// 🛑 L'ELENCO DEI RUOLI SI LEGGE DA DOVE VIVE, e non se ne tiene una copia:
-//    `RUOLI_CHIUSURA_AVVISO` è esportata dalla rotta che chiude l'avviso proprio
-//    perché due posti la leggano (v. il riquadro a `avviso/route.ts:185-190`).
-//    Due elenchi di permessi divergono — in questa casa è già successo con
-//    `admin_sistema`, dimenticato per giorni pur essendo usato 15 volte.
-import { RUOLI_CHIUSURA_AVVISO } from '@/app/api/lavori/[id]/avviso/route'
+// 🛑 IL CANCELLO PER RUOLO SI LEGGE DA DOVE VIVE, e non se ne tiene una copia:
+//    `@/lib/avvisi/ruoli` è un modulo FOGLIA — nessun import, quindi lo possono
+//    leggere il server, il browser e una prova. Due elenchi di permessi divergono:
+//    in questa casa è già successo con `admin_sistema`, dimenticato per giorni pur
+//    essendo usato 15 volte.
+// 🔄 FINO ALLA REVISIONE DEL TASK 6 QUESTA RIGA IMPORTAVA DALLA ROTTA, e non era
+//    innocuo: era l'unico import **di valore** verso un `route.ts` in tutto
+//    `src/` (gli altri undici sono `import type` e spariscono in compilazione), e
+//    tirava nel grafo di questa pagina l'intero gestore della rotta —
+//    `next/server`, csrf, `lab-guard`, `getServiceClient`. `route.ts` è un file
+//    speciale di Next: qualunque effetto a livello di modulo ci finisse verrebbe
+//    eseguito al render della pagina. Ora l'elenco vive in un modulo FOGLIA
+//    (`src/lib/avvisi/ruoli.ts`, nessun import), che la rotta ri-esporta.
+import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
@@ -118,17 +126,19 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   //    non è un caso a parte — `includes()` risponde `false` e non si legge
   //    niente. Un ramo in più per «ruolo sconosciuto» sarebbe un posto in più
   //    dove sbagliare il verso del confronto.
-  // 🔑 E IL CANCELLO STA QUI, NON NELLA SCHEDA, per un fatto misurato e non per
-  //    gusto: `SchedaLavoroV3` è un componente CLIENT, e importare da lì la
-  //    costante trascina `getServiceClient` (che apre con `import 'server-only'`)
-  //    nel fagotto del browser. `provato:` innestato l'import nel componente e
-  //    lanciato `npx next build` → `BUILD_EXIT=1`, «*'server-only' cannot be
-  //    imported from a Client Component module*», con la traccia
-  //    `server-service.ts → avviso/route.ts → SchedaLavoroV3.tsx [Client
-  //    Component Browser]` (09/08/2026). ➡️ Deciderlo dal server è anche
-  //    STRETTAMENTE MEGLIO: l'identificativo dell'avviso non entra nemmeno nella
-  //    pagina di chi non potrebbe chiuderlo.
-  const puoVedereAvviso = (RUOLI_CHIUSURA_AVVISO as readonly string[]).includes(context.ruolo)
+  // 🔑 E IL CANCELLO STA QUI, NON NELLA SCHEDA: deciderlo dal server è
+  //    STRETTAMENTE MEGLIO, perché l'identificativo dell'avviso non entra nemmeno
+  //    nella pagina di chi non potrebbe chiuderlo. (Prima della revisione del Task
+  //    6 era anche l'unica strada possibile — la costante viveva nella rotta, e un
+  //    componente client non poteva importarla; ora `@/lib/avvisi/ruoli` è una
+  //    foglia leggibile da entrambe le parti, quindi la scelta è di merito.)
+  // ⚠️ **LIMITE DICHIARATO, e nessuna prova lo copre oggi:** questo ternario è la
+  //    sola riga del cancello che nessuna prova esercita a runtime — capovolgerlo
+  //    lascerebbe verdi tutte le prove unitarie, perché questo file è un
+  //    componente server asincrono che nessuna di esse rende. Il predicato **è**
+  //    provato contro i cinque ruoli veri (`tests/unit/avvisi-ruoli.test.ts`); il
+  //    suo *uso* qui lo prova solo il giro sul banco del **Task 10**.
+  const mostraIlPromemoria = puoVedereAvviso(context.ruolo)
 
   // 🔑 La lettura entra NEL `Promise.all` che c'era già: è indipendente dalla
   //    firma degli allegati, quindi non costa un millisecondo in più di attesa.
@@ -145,7 +155,7 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
         if (signedImgUrl) img.url = signedImgUrl
       })
     ),
-    puoVedereAvviso
+    mostraIlPromemoria
       ? avvisiDaComunicare(svc, { lavoroId: id, laboratorioId: context.laboratorioId })
       : Promise.resolve([]),
   ])

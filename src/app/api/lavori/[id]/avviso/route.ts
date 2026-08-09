@@ -10,6 +10,7 @@ import {
   ammetteTestoInviato,
 } from '@/lib/avvisi/stati'
 import type { StatoAvviso, StatoAvvisoChiuso } from '@/lib/avvisi/stati'
+import { puoChiudereAvviso } from '@/lib/avvisi/ruoli'
 
 /**
  * POST /api/lavori/[id]/avviso — segna un avviso al dentista come COMUNICATO,
@@ -37,22 +38,14 @@ import type { StatoAvviso, StatoAvvisoChiuso } from '@/lib/avvisi/stati'
  *
  * ⚖️ **D342 — chi chiude un avviso sta *IN* laboratorio: `titolare` ·`tecnico` ·
  * `front_desk`. Esclusi `admin_rete` E `admin_sistema`, entrambi PER NOME.**
- * L'elenco è `RUOLI_CHIUSURA_AVVISO` qui sotto, ed è **esportato** perché il
- * Task 7 deve leggere lo stesso.
- * - **`tecnico` resta DENTRO** — ed è il ribaltamento della proposta che il Task
- *   4 aveva portato: escluderlo non protegge la prova, la **peggiora**. Se ha
- *   telefonato lui e non può registrarlo, registra un altro, e nella riga resta
- *   scritto un nome che non corrisponde al fatto: un'**attribuzione falsa**. E in
- *   un laboratorio di due persone il titolare *è* il tecnico — un cancello può
- *   lasciare **zero** persone in grado di adempiere.
- * - **`admin_rete` esce** perché sta sopra più laboratori e chiuderebbe l'obbligo
- *   di un laboratorio in cui non lavora.
- * - **`admin_sistema` esce** perché è personale UÀ: responsabile del trattamento
- *   che agisce su istruzione documentata (GDPR **Art. 28(3)(a)**), e **non era
- *   presente alla telefonata**.
+ * 🛑 **L'elenco e la motivazione di ogni nome vivono in `src/lib/avvisi/ruoli.ts`**
+ * — un modulo foglia, senza import, che server, browser e prove possono leggere
+ * tutti. Questa rotta lo **ri-esporta** (v. il riquadro più sotto) e usa
+ * `puoChiudereAvviso`: qui non c'è nessuna seconda copia da tenere allineata.
  * 🔑 **La visibilità è un SOTTOINSIEME del permesso:** nessuno vede un promemoria
  * che non può chiudere. Non è un bicondizionale — si può mostrare *meno* di ciò
- * che si permette, mai il contrario.
+ * che si permette, mai il contrario. È il motivo per cui `ruoli.ts` esporta
+ * **due** predicati e non uno.
  * 📌 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`,
  * **centoquarantottesima tornata**.
  *
@@ -152,48 +145,25 @@ const STATI_APERTI: StatoAvviso[] = STATI_AVVISO.filter((s) => !chiudeIlPromemor
 const CHIAVI_AMMESSE = ['avviso_id', 'come', 'testo'] as const
 
 /**
- * 🛑 **CHI PUÒ CHIUDERE UN AVVISO — ⚖️ D342, e i due esclusi lo sono PER NOME.**
+ * 🛑 **L'ELENCO NON VIVE PIÙ QUI, E LA SUA MOTIVAZIONE NEMMENO: STANNO IN
+ * `src/lib/avvisi/ruoli.ts`.** Qui resta una **ri-esportazione**, mai una seconda
+ * copia — chi importava `RUOLI_CHIUSURA_AVVISO` da questa rotta continua a
+ * trovarlo, e i due posti restano un posto solo.
  *
- * **Allowlist, mai blocklist** (`CLAUDE.md` §9): si elencano i **tre ammessi**.
- * Un ruolo nuovo in banca dati nasce quindi **fuori**, e per entrare qualcuno
- * deve scriverlo qui — che è il verso giusto per un permesso.
- *
- * 🛑 **`context.ruolo` è `string`, non un'unione: `tsc` NON protegge da un
- * `'admin'` nudo scritto per sbaglio**, e `admin` nudo **non esiste** in questo
- * progetto. Il refuso lo prende una **prova** che confronta questo elenco con i
- * cinque ruoli veri (`api-avviso.test.ts`, `㉔`), non il compilatore.
- * `provato:` il CHECK vivo, letto sul catalogo il 09/08/2026 —
- * `pg_get_constraintdef` di `utenti_ruolo_check` →
- * `CHECK ((ruolo = ANY (ARRAY['titolare','tecnico','front_desk','admin_rete','admin_sistema'])))`
- * e, con un valore che **deve** essere rifiutato (R-P1), `UPDATE … SET
- * ruolo='admin'` in transazione annullata → `❌ 23514 … violates check
- * constraint "utenti_ruolo_check"`.
- *
- * 🔑 **PERCHÉ `admin_sistema` STA IN QUESTA RIGA E NON SOLO NEL 403 DI SOPRA.**
- * `lab-context.ts:16` dice che *laboratorio nullo ⟹ `admin_sistema`*, **non** il
- * converso: non è provato che ogni `admin_sistema` abbia il laboratorio nullo, e
- * il banco **permette il contrario**. `provato:` in transazione annullata,
- * `UPDATE public.utenti SET laboratorio_id=(un laboratorio vero) WHERE
- * ruolo='admin_sistema'` → **`[2] UPDATE — 1 righe`, accettato** (l'altro
- * vincolo, `utenti_lab_required_for_non_admin`, chiede soltanto *`ruolo =
- * 'admin_sistema'` **OR** `laboratorio_id IS NOT NULL`*: è un'implicazione in
- * una direzione sola). ➡️ Il giorno in cui a quell'utente si valorizzasse il
- * laboratorio, il 403 di `!laboratorioId` **non scatterebbe più** e senza questa
- * riga passerebbe. Un cancello che si regge su un invariante mai misurato è la
- * classe di difetto che `CLAUDE.md` §9 nomina per prima.
- *
- * 📌 **Ed è ESPORTATA di proposito**, idioma di casa (`PATCHABLE_FIELDS` in
- * `src/app/api/lavori/[id]/route.ts:211`, letto dalla sua prova): il **Task 7**
- * deve mostrare il promemoria **agli stessi tre**, e «*la visibilità è un
+ * 🔑 **Perché è stato spostato** (revisione del Task 6, 09/08/2026): `route.ts` è
+ * un file speciale di Next e importa `getServiceClient`, che apre con
+ * `import 'server-only'`. Chi importava l'elenco da qui **come valore** si
+ * trascinava nel proprio grafo l'intero gestore della rotta; da un componente
+ * client il fagotto non compilava affatto. La scheda del lavoro lo faceva davvero
+ * (`lavori/[id]/page.tsx`), ed era l'unico import **di valore** verso una rotta
+ * in tutto `src/`: gli altri undici sono `import type` e spariscono in
+ * compilazione.
+ * 📮 **Il Task 7 legge da `@/lib/avvisi/ruoli`**, non da qui: la striscia della
+ * home mostra il promemoria **agli stessi tre**, e «*la visibilità è un
  * SOTTOINSIEME del permesso*» (verbale, centoquarantottesima tornata) regge solo
- * se i due posti leggono **un elenco solo**. Due copie di un elenco di permessi
- * divergono — è già successo in questa casa con `admin_sistema`.
+ * se i posti leggono **un elenco solo**.
  */
-export const RUOLI_CHIUSURA_AVVISO = ['titolare', 'tecnico', 'front_desk'] as const
-
-function puoChiudereUnAvviso(ruolo: string): boolean {
-  return (RUOLI_CHIUSURA_AVVISO as readonly string[]).includes(ruolo)
-}
+export { RUOLI_CHIUSURA_AVVISO } from '@/lib/avvisi/ruoli'
 
 /**
  * `Object.hasOwn` e non `v in STATO_DA_COME` né `STATO_DA_COME[v]`: con
@@ -242,7 +212,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   // L'unico stato a laboratorio nullo che il banco ammette è `admin_sistema`.
   // ➡️ Le due guardie sono due, e provano due cose diverse: questa il NOME,
   // quella di sopra il fatto che ci sia un laboratorio su cui agire.
-  if (!puoChiudereUnAvviso(context.ruolo)) {
+  if (!puoChiudereAvviso(context.ruolo)) {
     return err('Il tuo ruolo non può segnare un avviso al dentista come comunicato: lo fa chi lavora in laboratorio.', 403)
   }
 

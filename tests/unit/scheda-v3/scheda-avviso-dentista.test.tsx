@@ -176,14 +176,16 @@ describe('La riga «Avvisa il dentista» sulla scheda (Task 6)', () => {
 })
 
 describe('⚖️ D342 — chi VEDE la riga, e il cancello sta nel componente server', () => {
-  // 🔴 IL CANCELLO NON PUÒ STARE IN `SchedaLavoroV3`, ED È UN FATTO MISURATO, non
-  //    una preferenza: `RUOLI_CHIUSURA_AVVISO` è esportata da
-  //    `src/app/api/lavori/[id]/avviso/route.ts`, che importa `getServiceClient`,
-  //    che apre con `import 'server-only'`. Un componente client che la importasse
-  //    fa fallire `next build` («'server-only' cannot be imported from a Client
-  //    Component module»). ➡️ Il filtro vive in `lavori/[id]/page.tsx`, che è un
-  //    componente server — e lì è anche STRETTAMENTE MEGLIO: l'identificativo
-  //    dell'avviso non entra nemmeno nella pagina di chi non può chiuderlo.
+  // 🔴 QUESTE SENTINELLE SONO STATE DECLASSATE DALLA REVISIONE DEL TASK 6, E LA
+  //    NOTA VA LETTA PRIMA DI FIDARSENE. Provano che il cancello **esiste** e che
+  //    la pagina non tiene una copia dell'elenco. **Non provano che guardi dal
+  //    verso giusto:** scambiando i due rami del ternario in `page.tsx` la parola
+  //    `puoVedereAvviso` resta dov'è e queste tre restano verdi, mentre a vedere
+  //    il promemoria sarebbero rimasti solo i due ruoli che D342 esclude.
+  //    ➡️ La decisione è ora una FUNZIONE PURA (`src/lib/avvisi/ruoli.ts`), provata
+  //    contro i cinque ruoli veri in `tests/unit/avvisi-ruoli.test.ts`. Il verso
+  //    del ternario di `page.tsx` resta scoperto: lo prova il giro sul banco del
+  //    **Task 10**, ed è dichiarato lì e nel commento della riga stessa.
   //
   // 🛑 Perché una sentinella sul SORGENTE e non una prova di rendering: la pagina
   //    è un componente server asincrono che apre una sessione e un client di
@@ -194,10 +196,15 @@ describe('⚖️ D342 — chi VEDE la riga, e il cancello sta nel componente ser
   const PAGINA = join(process.cwd(), 'src/app/(app)/lavori/[id]/page.tsx')
   const sorgente = readFileSync(PAGINA, 'utf8')
 
-  it('la pagina legge l’elenco dei ruoli DA DOVE VIVE, e non ne tiene una copia', () => {
+  it('la pagina legge il cancello DA DOVE VIVE — dal modulo foglia, non dalla rotta', () => {
     expect(sorgente).toMatch(
-      /import\s*\{[^}]*RUOLI_CHIUSURA_AVVISO[^}]*\}\s*from\s*'@\/app\/api\/lavori\/\[id\]\/avviso\/route'/
+      /import\s*\{[^}]*puoVedereAvviso[^}]*\}\s*from\s*'@\/lib\/avvisi\/ruoli'/
     )
+    // 🛑 E NON dal `route.ts`: un import di VALORE da un file di rotta trascina
+    //    nel grafo della pagina l'intero gestore (`next/server`, csrf, lab-guard,
+    //    il client di servizio), e `route.ts` è un file speciale di Next — un
+    //    effetto a livello di modulo ci girerebbe al render della pagina.
+    expect(sorgente).not.toMatch(/^\s*import\s*\{[^}]*\}\s*from\s*'@\/app\/api\//m)
     // Due copie di un elenco di permessi divergono — è già successo in questa
     // casa con `admin_sistema`. Qui i tre nomi non si scrivono affatto.
     expect(sorgente).not.toMatch(/'titolare'/)
@@ -206,28 +213,30 @@ describe('⚖️ D342 — chi VEDE la riga, e il cancello sta nel componente ser
     expect(sorgente).not.toMatch(/'admin_sistema'/)
   })
 
-  it('e l’elenco è USATO per decidere, non solo importato', () => {
+  it('e il cancello è USATO per decidere, non solo importato', () => {
     // L'importazione da sola sarebbe una prova vacua: `tsc` toglierebbe la riga e
     // nessuno se ne accorgerebbe. Si chiede che il nome compaia una SECONDA volta,
-    // fuori dalla riga di importazione.
+    // fuori dalla riga di importazione, e che sia CHIAMATO.
     const fuoriDallImport = sorgente
       .split('\n')
-      .filter((r) => r.includes('RUOLI_CHIUSURA_AVVISO') && !r.trimStart().startsWith('import'))
+      .filter((r) => r.includes('puoVedereAvviso(') && !r.trimStart().startsWith('import'))
     expect(fuoriDallImport.length).toBeGreaterThan(0)
-    expect(fuoriDallImport.join('\n')).toContain('.includes(')
+    expect(fuoriDallImport.join('\n')).toMatch(/puoVedereAvviso\(context\.ruolo\)/)
   })
 
   it('la lettura degli avvisi è chiamata solo dietro quel cancello (fail-closed)', () => {
     // Un ruolo assente o sconosciuto non è un caso a parte: `includes()` risponde
-    // `false` e non si legge niente. È la regola di casa (fail-closed) ottenuta
-    // senza un secondo ramo che qualcuno potrebbe sbagliare.
+    // `false` dentro il predicato e non si legge niente. È la regola di casa
+    // (fail-closed) ottenuta senza un secondo ramo che qualcuno potrebbe sbagliare.
     const dove = sorgente.indexOf('avvisiDaComunicare(svc')
     expect(dove).toBeGreaterThan(-1)
     // Il cancello sta SUBITO PRIMA della chiamata (è il ramo di un ternario), e
     // non basta che la variabile esista da qualche parte nel file: si guarda la
     // finestra che precede la chiamata. Il numero è largo quanto serve a
     // contenere il ternario anche mandato a capo dal formattatore.
+    // ⚠️ Ripetuto dal riquadro in cima: questa asserzione NON vede il ternario
+    //    capovolto. È una sentinella di presenza, non di verso.
     const prima = sorgente.slice(Math.max(0, dove - 200), dove)
-    expect(prima).toContain('puoVedereAvviso')
+    expect(prima).toContain('mostraIlPromemoria')
   })
 })
