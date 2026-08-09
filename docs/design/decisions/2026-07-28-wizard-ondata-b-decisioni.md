@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantatreesima tornata (D329: per il tema chiaro vince la variante che chiude due difetti, non uno)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaquattresima tornata (D330: il fondo torna indietro, il bordo non si usa, e il gate si chiude com'è)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**329 decisioni in centoquarantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**330 decisioni in centoquarantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3947,6 +3947,51 @@ cambiando UNA riga, non sette.**
 riga↔pannello resta **1,15:1**, cioè **l'elevazione resta invertita** rispetto alla regola del design
 system (una superficie premibile dovrebbe *salire* dentro un `--card`). Il filo dà **1,25:1** sul
 pannello e **1,44:1** sulla riga. *La (b) rende la riga visibile, non la rende rialzata.*
+
+---
+
+### Centoquarantaquattresima tornata — D330: il fondo torna indietro, il bordo NON si usa, e il gate si chiude com'è (09/08/2026, 09:55)
+
+**Come è nata, e la ragione è una misura contraria alla decisione precedente.** Applicata la C3, la
+verifica dal vivo ha trovato che **il difetto non si era chiuso: si era spostato e triplicato.**
+
+| | prima di C3 | dopo C3 |
+|---|---|---|
+| i 4 testi del **❌3** (`--faint`) | 4,17 ❌ | **12,11** ✅ |
+| i **12** testi rimasti `--muted` | 4,66 ✅ | **4,01** ❌ |
+| il **13°**, didascalia condivisa (`Campo.tsx:28`) | 4,17 ❌ | **3,59** ❌❌ |
+
+🔑 **La diagnosi, ed è più utile del rimedio: l'ASSE ERA FINITO.** Col pannello quasi bianco, scurire la
+riga per staccarla dal pannello **avvicina anche le scritte al loro fondo — è la stessa mossa**. E i
+`--muted` partivano da **4,66**, cioè con **0,16** di margine sulla soglia 4,5: **qualunque scurimento
+abbastanza utile da vedersi li sfonda.**
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D330** | 🔑 **IL FONDO TORNA INDIETRO** (`--fondo-superficie` chiaro → `var(--bg-deep)`), **IL BORDO NON SI USA** (C1 scartata), **e il resto resta com'è**: il **❌1 in tema chiaro è DEFERITO PER DECISIONE**, non per mancanza di rimedio. ➡️ **Il gate si chiude così, e si torna allo sviluppo della PWA** | «*torniamo indietro sul fondo ma non usiamo il bordo, lasciamo per adesso così come sta e procediamo nello sviluppo della pwa*» | ⚖️ **La metà buona di C3 resta:** la promozione delle didascalie a `--ink` **non si tocca**, perché è ciò che ha chiuso il ❌3 — e **col fondo riportato indietro perde il suo effetto collaterale**. ✅ **MISURATO DOPO L'APPLICAZIONE, non previsto:** i dodici tornano a **4,66**, e i quattro **non restano a 12,11 ma salgono a 14,06** (12,11 era il valore *sul fondo scurito*: riportando il fondo, l'inchiostro guadagna). 🔑 **Il tredicesimo torna a 4,17, cioè com'era prima di tutto: preesistente, e in un componente CONDIVISO** (`Campo.tsx:28`) — non è di questa ondata. ⚠️ **Il tema scuro non si tocca, e non è un'opinione: `provato:` conteggio dei pixel, D326 → D330 = ZERO pixel diversi su 302.640** |
+
+🔴 **DOVE IL CONSIGLIO DELL'ORCHESTRATORE ERA SBAGLIATO, e la colpa è di un conteggio, non di un gusto.**
+La C3 era stata raccomandata a Francesco con la frase «*è l'unica che chiude DUE difetti invece di
+uno*». Quella frase contava **i quattro testi che il rilievo ❌3 nominava**, e li ha trattati come il
+totale. **Nessuno aveva misurato TUTTI i testi di quelle superfici** — quando l'esecutore l'ha fatto,
+il numero è saltato da 4 a **13**.
+🔑 **La lezione è del censimento, non del colore, ed è la terza volta in due giorni sullo stesso elenco:**
+*contando solo ciò che un elenco nomina si trova sempre ciò che l'elenco dice.* (Le altre due: le
+superfici erano quattro → cinque → **sei**.)
+
+✅ **ESITO MISURATO, e la domanda vera era «quanti in totale», non «quanti dell'elenco»:** su **84**
+scritte censite sulle superfici del foglio, **in chiaro ne resta UNA sotto soglia** («COLORE», 4,17,
+`Campo.tsx:28`, **preesistente e condivisa**) e **in scuro ZERO**. Le altre — 6 in chiaro e 45 in scuro
+sul totale della schermata — sono tutte **l'odontogramma**, che dipinge il proprio fondo con token
+**v2.3** (`OdontogrammaFDI.tsx:537`): è il **❌5** già agli atti, coi numeri identici a prima di D329.
+
+⚠️ **RESTA APERTO, e va portato a Francesco, non deciso qui:** la promozione delle didascalie **ha
+tolto il «sei qui» al nastro del percorso** — le tappe già fatte hanno ora lo **stesso peso** di quella
+corrente, e a distinguerle resta il solo riempimento della pastiglia. **Nasce dalla promozione, non dal
+fondo: col fondo indietro RESTA** — anzi, di un soffio è **più marcato** (14,06 invece di 12,11).
+🔑 **E il rimedio è una riga, ma RIAPRIREBBE il ❌3:** le due cose sono la stessa promozione.
+Scatti: `d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png` e `d330-nastro-tre-stadi--390-light.png`.
+➡️ **Riga 37 della coda** finché Francesco non decide.
 
 📌 **D329 È STATA APPLICATA lo stesso giorno** (`ds-v3.css:38-39` chiaro · `:97-98` scuro, token
 `--fondo-superficie` e `--didascalia-superficie`; cinque fondi e sei scritte in
