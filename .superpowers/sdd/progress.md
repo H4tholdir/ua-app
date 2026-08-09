@@ -998,3 +998,43 @@ così*» (⚖️ D313, 07/08), quindi la modifica **si vede in `git status`** in
 ➡️ **Regola operativa: dopo OGNI `review-package` (e dopo `task-brief`), `git status` su quel file.**
 🔑 Se il primo esecutore non avesse riferito «*un residuo non mio nell'albero condiviso*» invece di
 ignorarlo, il brief del Task 7 sarebbe nato **invisibile a git**.
+
+Task 7 (la striscia della home): **complete** (ba831dea..2fb7a4e1 — impl ba831dea · autocorrezione 5a59ff85 ·
+  **revisione APPROVATA al primo giro**, zero Critici e zero Importanti). BASE del pacchetto: **0a9a11f9**.
+  🔴 **LA TRAPPOLA DEL BRIEF ERA VERA MA STAVA ALTROVE, misurato:** il ripiego `?? tecnico` di
+  `striscia.ts` è irraggiungibile dai due chiamanti vivi — la falla stava nell'**anteprima admin**
+  (`live/page.tsx:58`), che pretende `admin_sistema` e poi passa `'titolare'` **cablato**: con la lettura
+  dentro `fetchIngressiStriscia`, il personale UÀ avrebbe visto il promemoria di un laboratorio altrui.
+  Difesa strutturale sul modello di casa (`leggiTecniciSenzaAnagrafica`): la lettura è **propagata dal
+  chiamante**, per l'anteprima resta `undefined`, tre sentinelle.
+  🔑 **I due cancelli sono provati SEPARATAMENTE** (M1 e M3 accendono tre prove ciascuno, insiemi diversi)
+  — la lezione del Task 6 applicata: un'inversione non può più passare per «il cancello esiste».
+  📌 FASE 9: **accorpata al Task 10** (proposta dell'esecutore, accolta: la fixture con un avviso vero
+  esiste solo lì — l'INSERT è revocato a `service_role`).
+  🔴 **Difetto del piano riferito:** lo snippet del Task 7 leggeva `.numero` (la colonna è `numero_lavoro`)
+  e usava `.id` dell'avviso come id del lavoro nell'href — confermato indipendentemente anche dall'advisor
+  del banco nel panel di stanotte.
+
+### Task 7 — i rilievi MINORI (per la revisione finale di ramo)
+
+- 🟡 **M-T7-1** — `striscia.test.ts:913`: `toContain('avvisoPerLaStriscia')` è soddisfatta dalla **prosa**
+  del commento a `dashboard/page.tsx:64`, non dalla chiamata. La rete regge comunque (tsc prende ogni
+  rimozione realistica). Correzione da una riga: `toMatch(/avvisoPerLaStriscia\s*\(/)`.
+- 🟡 **M-T7-2** — `queries.ts:307-343` senza `try/catch`, a differenza dei due modelli che cita
+  (`leggiTecniciSenzaAnagrafica`, `leggiLiberazioneRecente`): una promessa **rifiutata** porterebbe giù la
+  dashboard intera. Probabilità bassa (postgrest normalizza in `{error}`), nessuna prova sul ramo.
+- 🟡 **M-T7-3** — nessun filtro `lavori.deleted_at` sull'embed (`queries.ts:319-321`). Oggi irraggiungibile
+  (nessuno scrive quel campo), ma il modo del fallimento va detto: vince il più vecchio, la scheda di un
+  lavoro cancellato è irraggiungibile → **un avviso inchiudibile metterebbe a tacere il promemoria per
+  tutto il laboratorio, per sempre**.
+- 🟡 **M-T7-4** — `striscia.ts:254`: la riga `admin_rete` porta `sAvvisoDentista` senza la nota a margine
+  che ogni altra riga ha (il filtro sta 14 righe sotto): chi scorre gli array conclude che lo vede.
+- 🟡 **M-T7-5** — `avvisi-queries.test.ts:519` non prova ciò che il nome dice (il finto non ordina): la
+  regola «più vecchio» la prova l'asserzione su `spia.ordini` accanto.
+- 🟡 **M-T7-6** — due note di prosa: `striscia.ts:240` afferma «s5 davanti in ogni lista» senza pin ·
+  il titolo §6 del resoconto dice «otto» mutazioni su una tabella che ne elenca nove.
+
+🟠 **Contro-argomento sull'ORDINE, riferito dall'esecutore e non agito** (striscia.ts:234-246): i quattro
+ritardi hanno una pila sotto la striscia, il promemoria **non ha nulla** — se non nomina lui, tace. Stessa
+forma con cui il trial ≤3gg fu portato in testa il 26/07. **Da pesare al gate o da Francesco**; se accolto,
+è una riga in ognuno dei quattro array.
