@@ -5,9 +5,9 @@
 | cosa | esito |
 |---|---|
 | La riga | **messa** — `SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}` nel passo «Unit tests» |
-| ① Dieci giri in locale | **10 verdi su 10** · `458/458` file · `5809/5809` prove · **zero saltate** · zero deadlock |
+| ① Dieci giri in locale | **10 verdi su 10** · `458/458` file · `5809/5809` prove · **zero saltate** · zero deadlock (**+5 verdi** dall'alternanza di §③) |
 | ② La CI su GitHub | 🛑 **NON È GIRATA, E NON PUÒ GIRARE DA QUESTO RAMO** — nessun numero di esecuzione da incollare, perché non esiste |
-| ③ Tempi (locale, stesso comando) | prima **46,1 s** medi → dopo **50,4 s** medi: **+4,3 s (+9%)**. 🔴 Il mandato diceva «non allunga» |
+| ③ Tempi (locale) | **accenderle costa: direzione certa, cifra no** (da +6,6 s a +16,7 s). 🔴 Il mandato diceva «non allunga»; 🔴 la mia prima correzione diceva «+9%» ed era misurata male |
 | FASE 7 | `VERIFY_EXIT=0` · `458/458` · `5809/5809` · zero saltate |
 | 🛑 Aspetta Francesco | **una scelta su come far partire la CI** (§②-bis) e **la conferma che il segreto sia il pooler** (§②-ter) |
 
@@ -103,7 +103,20 @@ provato:  lettura di .env.local (solo la forma, mai la credenziale)
       port: 6543              user: postgres.iagibumwjstnveqpjbwq
 ```
 
-🔑 **Perché la forma è la cosa importante, e non un dettaglio.** `…pooler.supabase.com` risponde su **IPv4**. La forma *diretta* — `db.<progetto>.supabase.co:5432` — oggi risponde **solo su IPv6**, e **i server di GitHub non hanno IPv6**. ➡️ Se il segreto su GitHub è stato incollato nella forma diretta invece che in quella del pooler, la CI fallirà con un errore di rete, e **fallirà su tutte le 84 prove insieme**. Questo è il modo di sbagliare che il passo ② esisteva per escludere, ed è rimasto **non escluso**.
+🔑 **Perché la forma è la cosa importante, e non un dettaglio — e qui la misura c'è, perché è la riga su cui poggia tutto il rischio di questo referto e non poteva restare un ragionamento (R-P1):**
+
+```
+provato:  dig +short db.iagibumwjstnveqpjbwq.supabase.co A
+   →  (vuoto)                                        ← NESSUN indirizzo IPv4
+
+provato:  dig +short db.iagibumwjstnveqpjbwq.supabase.co AAAA
+   →  2a05:d018:1701:d200:9d3c:def1:a507:b2c2        ← solo IPv6
+
+provato:  dig +short aws-0-eu-west-1.pooler.supabase.com A
+   →  52.209.89.87 · 34.241.16.247 · 108.128.216.176 ← tre indirizzi IPv4
+```
+
+La forma **diretta** del nostro progetto — `db.<progetto>.supabase.co:5432` — **non ha proprio un indirizzo IPv4**, e i server di GitHub non hanno IPv6. La forma del **pooler**, quella che ho in locale, ne ha tre. ➡️ **Se il segreto su GitHub è stato incollato nella forma diretta invece che in quella del pooler, i server di GitHub non arriveranno mai al database**, e cadranno **tutte e 84 le prove insieme**. È il modo di sbagliare che il passo ② esisteva per escludere, ed è rimasto **non escluso**.
 
 **Tre modi di rompersi, invece, li ho tolti di mezzo qui:**
 - `pg` è una dipendenza dichiarata (`dependencies: ^8.22.0`) ed è nel lockfile → `npm ci` la installa. Non è un pacchetto che ho solo io.
@@ -144,18 +157,59 @@ provato:  git ls-remote origin refs/heads/intervento-post-consegna refs/heads/ma
 
 ## ③ I tempi, prima e dopo — e qui il mandato ha un numero sbagliato
 
-**Il confronto è a parità di condizioni**: stessa macchina, stesso comando, stessa mezz'ora, **unica differenza la variabile**.
+### 🔴 Prima correzione a me stesso: la mia prima misura era confusa quanto quella che stavo correggendo
 
-| | comando | file | prove | durate | media |
-|---|---|---|---|---|---|
-| **prima** | `npx vitest run` **senza** `SUPABASE_DB_URL` | 451 passed \| **7 skipped** (458) | 5725 passed \| **84 skipped** (5809) | 46,73 · 45,82 · 45,62 | **46,06 s** |
-| **dopo** | `npx vitest run` **con** la variabile | **458 passed (458)** | **5809 passed (5809)** | i dieci giri di §① | **50,41 s** |
+**Avevo scritto «+4,3 s, il 9%», e quel numero non regge.** Avevo confrontato **due serie di fila** — dieci giri accesi, poi tre spenti — e in una serie sequenziale la macchina deriva: i miei due giri più veloci in assoluto erano **accesi** (40,08 e 42,85 s), cioè più rapidi di *tutti* gli spenti. Un costo fisso non può fare questo. E i due giri accesi più lenti circondano le **13:14:31**, l'istante in cui l'altra sessione ha committato e ha fatto girare `eslint` sulla stessa macchina. **Stavo indicando il mandato per un confronto fra cose non confrontabili (§④.2) mentre ne facevo uno anch'io.**
 
-**Accenderle costa circa 4-5 secondi, cioè il 9%.** Togliendo i due primi giri (40,08 e 42,85 — la macchina era appena uscita dall'inattività e sono più veloci di tutti gli altri otto, non più lenti), gli otto giri a regime fanno **52,65 s**: il costo sale a **+6,6 s, il 14%**.
+**L'ho rifatto alternando** — acceso, spento, acceso, spento, cinque volte ciascuno: l'alternanza annulla la deriva, perché ogni coppia vive nello stesso minuto.
 
-🔴 **Il mandato dice «accenderle non allunga», e la misura dice il contrario.** Vedi §④ punto 2 per il perché quella riga si era formata così. **Resta comunque un costo piccolo e accettabile:** quattro-sei secondi su una CI il cui passo di prove ne dura una cinquantina, e in cambio 84 prove che parlano davvero col database smettono di essere facoltative.
+| coppia | acceso | spento | differenza |
+|---|---|---|---|
+| 1 | 41,60 s | 49,66 s | **−8,06 s** (acceso più veloce!) |
+| 2 | 82,16 s | 51,42 s | +30,74 s |
+| 3 | 66,43 s | 46,83 s | +19,60 s |
+| 4 | 60,01 s | 38,85 s | +21,16 s |
+| 5 | 58,25 s | 38,32 s | +19,93 s |
+| **media** | **61,69 s** | **45,02 s** | **+16,67 s (+37%)** |
 
-⚠️ **Sono secondi misurati sul Mac, a orologio da parete, e sui server possono essere altri** — lì la latenza verso il database di Francoforte è diversa dalla mia, e le prove d'integrazione sono quasi tutte attesa di rete. **Sui server questa misura non esiste, perché la CI non è girata.**
+**Su tutti e 23 i giri della giornata:** mediana accesa **52,83 s** contro spenta **46,28 s** → **+6,6 s**. Le due stime — +6,6 s di mediana e +16,7 s di media alternata — non coincidono, **e la loro distanza è essa stessa il risultato**: gli spenti sono stabilissimi (45,0 e 46,1 s di media in due serie diverse), gli accesi ballano fra 41,6 e 82,2 s, cioè **il doppio da un giro all'altro**. È la firma di un lavoro dominato dall'attesa di rete verso un database remoto, non dalla CPU.
+
+### La cosa che invece si separa in modo netto
+
+L'orologio da parete si sovrappone; **il tempo speso *dentro* le prove no.** È la sotto-misura `tests` che vitest stampa, e su **23 giri su 23 non c'è un solo punto di sovrapposizione**:
+
+| | valori | minimo | massimo |
+|---|---|---|---|
+| **acceso** (15 giri) | 170,0 · 172,0 · 175,0 · 205,5 · 206,3 · 206,3 · 206,4 · 208,3 · 210,6 · 212,4 · 218,9 · 225,3 · 237,0 · 252,3 · 304,7 | **170,0 s** | 304,7 s |
+| **spento** (8 giri) | 126,5 · 128,9 · 152,8 · 155,5 · 157,9 · 162,3 · 162,4 · 163,2 | 126,5 s | **163,2 s** |
+
+**Il minimo degli accesi (170,0 s) sta sopra il massimo degli spenti (163,2 s).** ➡️ **La suite fa dimostrabilmente più lavoro** — il che era ovvio (84 prove in più che parlano con un database), ma ora è misurato invece che dedotto.
+
+### Che cosa si può dire, e che cosa no
+
+- ✅ **Accenderle costa.** Direzione confermata da ogni aggregato: mediana, media alternata, e la separazione netta del tempo dentro le prove.
+- 🛑 **Quanto costa, NON lo so dire con un numero solo.** Le stime vanno da +6,6 s a +16,7 s sul mio Mac, e la variabilità di un singolo giro (41-82 s) è più grande della differenza che sto misurando. **Chiunque citi una cifra sola da questo referto la sta citando male.**
+- 🛑 **E sui server questa misura non esiste**, perché la CI non è girata. Lì la latenza verso il database in Irlanda è un'altra, ed è proprio la latenza a dominare. ⚠️ Va però detto: se il costo vero fosse dalle parti dei **+17 s alternati** invece che dei +6,6 s di mediana, il passo di prove passerebbe da ~45 s a ~62 s, **un terzo in più** — non un dettaglio, ma neanche una cifra che cambi la decisione: 84 prove che parlano col database valgono largamente venti secondi di CI.
+
+**FASE 7** — `npm run verify:full`, con l'integrazione accesa:
+
+```
+ Test Files  458 passed (458)
+      Tests  5809 passed (5809)
+   Duration  58.81s
+
+✓ Compiled successfully in 3.3s        (next build)
+✅ DS compliance OK (v2.3 legacy + v3)
+✅ Guardia CSRF verde — ogni route mutante verifica l'origine, o è esclusa con una ragione scritta
+✅ reduced-motion: niente si sposta a preferenza accesa, tutto arriva a riposo
+✅ Coerenza verde — conteggi giusti, nessun riferimento pendente, nessuna voce fantasma
+✅ copia allineata al progetto, e la rete di sicurezza è recente
+✅ 2 progetti dichiarati, 2 con prove, 5 file raccolti
+✅ verifica «full» registrata (.claude/state/ultima-verifica)
+VERIFY_EXIT=0
+```
+
+📌 **E i cinque giri «acceso» dell'alternanza sono cinque conferme in più di §①**: `Tests 5809 passed (5809)`, zero saltate, cinque volte su cinque. **Fanno 15 giri accesi verdi in totale, oltre alla FASE 7.**
 
 **FASE 7** — `npm run verify:full`, con l'integrazione accesa:
 
@@ -181,9 +235,11 @@ VERIFY_EXIT=0
 
 **1. 🛑 Il difetto grosso: «Pubblica e guarda l'esito reale» dà per scontato che pubblicare il ramo faccia partire la CI. Non la fa partire.** Il mandato prescrive `gh run list`, `gh run watch`, `gh run view --log-failed` — tre strumenti che presuppongono un'esecuzione che non nascerà mai, perché i filtri di `ci.yml` non contengono questo ramo e il workflow non è avviabile a mano (§②). **E il mandato vieta esplicitamente l'unica strada che resta**: `main`. ➡️ Il passo ② non era eseguibile dentro il mandato, e il mandato non poteva accorgersene perché **la riga sui filtri di `ci.yml` non è mai stata guardata**: il brief cita `ci.yml:33-37`, cioè il passo «Unit tests», e le righe 3-7 dello stesso file — quelle che decidono *se* quel passo gira — non compaiono. 🔑 **È lo stesso modo di sbagliare del difetto del referto precedente: si guarda il punto giusto del file giusto, e non si guarda se quel file viene mai eseguito.**
 
-**2. «Accenderle non allunga» poggia su un confronto fra due cose diverse.** Il mandato mette «47-60 s» contro «64 s», e le due cifre vengono da due comandi diversi: la prima da `npx vitest run` da solo, la seconda dalla FASE 7 con l'integrazione spenta — cioè `verify:full`, che prima di vitest fa girare `tsc` e `eslint`. **A parità di comando il segno si rovescia**: 46,06 → 50,41 s, cioè accenderle allunga del 9-14% (§③). La conclusione pratica non cambia — è un costo piccolo — ma **la frase era falsa, e sarebbe diventata la premessa del compito successivo**, che è precisamente come il referto precedente descrive la nascita del proprio difetto n. 4.
+**2. «Accenderle non allunga» poggia su un confronto fra due cose diverse — e la mia prima correzione poggiava su un confronto storto pure lei.** Il mandato mette «47-60 s» contro «64 s», e le due cifre vengono da due comandi diversi: la prima da `npx vitest run` da solo, la seconda dalla FASE 7 con l'integrazione spenta — cioè `verify:full`, che prima di vitest fa girare anche `tsc` e `eslint`. **A parità di comando il segno si rovescia: accenderle allunga** (§③). ⚠️ **Ma la mia prima cifra — «+4,3 s, il 9%» — era a sua volta il frutto di due serie messe una dopo l'altra**, dove la deriva della macchina e il commit dell'altra sessione entravano nel conto; rifatta **alternando**, la differenza sale a +16,7 s medi, e la mediana su 23 giri dice +6,6 s. **La direzione è certa, il numero no**, e in §③ ho smesso di darne uno solo. 🔑 **Questo è il difetto n. 4 del referto di ieri che si ripete a una generazione di distanza**: un marchio che copre la premessa mentre la conclusione parte da sola verso il compito successivo. Ci sono ricascato dentro io, nello stesso documento in cui lo stavo indicando.
 
 **3. «Il segreto è già inserito su GitHub» è vero come nome e falso come garanzia.** Che il segreto **esista** l'ho verificato (`gh secret list`, ore 10:03 di oggi). Che **funzioni** no, e non è verificabile da qui: il valore di un segreto non si legge. Il mandato tratta la sua esistenza come il pezzo difficile e la corsa della CI come conferma; in realtà **l'esistenza era il pezzo facile**, e l'unica cosa che poteva retirare il rischio della forma diretta contro pooler (§②-ter) è proprio il passo che non si è potuto fare.
+
+**3-bis. E «una riga» sono diventate cinque — lo dichiaro invece di lasciarlo scoprire dal diff.** In `ci.yml` ho aggiunto **la riga direttiva** chiesta dal mandato **più quattro righe di commento** che dicono perché esiste e dove sta il meccanismo (`vitest.config.ts`, `pg-client.ts:9`). Non cambia niente di ciò che la CI esegue — YAML, sono commenti — ma il mandato diceva «una riga» e le righe sono cinque. ⚠️ **E in quelle quattro righe ho subito piantato un difetto mio:** il commento rimandava a `vitest.config.ts:31-35`, numeri che la mia *stessa altra modifica* aveva già spostato a **35-39** allungando il commento lì accanto. `provato:` `sed -n '35,39p' vitest.config.ts` → è il blocco `include:`. Corretto. 🔑 **È la famiglia di difetto che questo repository si è già visto** (`generate-ddc.ts:99-108`, «*numero di riga corretto il 07/08/2026: diceva 85-95*») — e l'ho prodotto a quattro righe di distanza dalla modifica che lo invalidava, nella stessa sessione.
 
 **4. «Aggiungi una riga» ne lasciava indietro una seconda, e sarebbe rimasta falsa.** Il commento di `vitest.config.ts:25-30` — quello che il mandato cita come prova che una riga basta — **dice** che in CI le prove d'integrazione «*si saltano da sole senza SUPABASE_DB_URL*». Dal momento in cui la variabile entra nell'ambiente, quella frase descrive un mondo che non esiste più, **nel file che chi verrà dopo leggerà per capire come gira la CI**. L'ho riscritto: non è una correzione fuori mandato (R-E2), è una falsità che avrei introdotto io.
 
@@ -224,7 +280,7 @@ Le 13:14:31 cadono **dentro il mio secondo giro** dei dieci. Il mio commit `eeb7
 - **Non ho toccato `vitest.config.ts` nella sostanza**: la modifica è di solo commento, non una riga di configurazione (§④ punto 4). `include`, `pool` e `fileParallelism` sono come erano.
 - **Non ho aggiunto `workflow_dispatch` a `ci.yml`** — è la modifica che renderebbe la CI avviabile a mano in futuro, ma **non avrebbe aiutato oggi**: GitHub la riconosce solo quando quel trigger esiste già sul ramo predefinito, cioè `main`. Va con la prossima unione, se Francesco la vuole.
 - **Non ho verificato il valore del segreto su GitHub**: non è leggibile (§②-ter).
-- **Non ho misurato la contemporaneità in CI** né il tempo della CI sui server: la CI non è girata.
+- **Non ho misurato la contemporaneità in CI** né il tempo della CI sui server: la CI non è girata. **E non do una cifra sola per il costo in locale**, perché i miei stessi giri non la reggono (§③).
 - **Non ho corretto `trg_refresh_dashboard`**, il difetto di produzione riferito ieri (R-E2): resta aperto e resta fuori da ogni mandato finora.
 - **Non ho toccato** `memory/MEMORY.md`, la roadmap né il verbale.
 - I dieci giri, i tre giri «prima» e i log stanno nella cartella temporanea della sessione, **fuori dal repository**, e non sono stati committati.
