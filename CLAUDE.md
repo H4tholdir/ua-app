@@ -728,23 +728,37 @@ contesto ce l'ha chi esegue e il rischio è basso, il passaggio *aggiunge* risch
   chi la autorizza.
 - **Il verde si misura PRIMA**, con `verify:full` e l'uscita letta **da variabile**.
 
-🛑 **MA ATTENZIONE — IL CLASSIFICATORE DEI COMANDI BLOCCA `git push` LO STESSO, e l'ho verificato lo
-stesso giorno della ratifica (07/08/2026):** `git push -u origin <ramo>` → *«Permission for this action
-was denied by the Claude Code auto mode classifier»*. ➡️ **D296 toglie il permesso di FRANCESCO, non il
-blocco dello STRUMENTO**, e i due sono cose diverse. Finché il classificatore non è configurato, il
-comando **si passa a Francesco già pronto e con la cartella dentro** — e vale la regola pagata con D284:
-**il terminale parte dalla cartella superiore**, quindi il `cd` non è un abbellimento.
+✅ **IL PUSH DI UN RAMO SI ESEGUE, E BASTA: il permesso è NEL REPO e FUNZIONA.**
 ```bash
 cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && git push -u origin <ramo>
 ```
-⚠️ **Non si aggira** (niente alias, niente script che lo eseguono di nascosto): la regola di casa è
-**«si chiede, non si aggira»**, e un blocco raggirato è peggio di un blocco subito.
+`provato:` **09/08/2026** — `git push -u origin intervento-post-consegna` →
+`4a9f0a92..ff97d2fa  intervento-post-consegna -> intervento-post-consegna`, **riuscito, senza chiedere
+niente a nessuno**. La riga che lo consente è `"Bash(git push*)"` in `ua-app/.claude/settings.json`
+(`permissions.allow`), messa a mano da Francesco il 07/08 e **versionata**, quindi sopravvive a un cambio
+di macchina. 🛑 **Non si passa più il comando a Francesco, e non gli si dice che «lo strumento blocca».**
+
+🔴 **QUI C'ERA SCRITTO IL CONTRARIO, ED È COSTATO DUE VOLTE — la riga va letta come una lezione sulla
+FORMA di questo file, non solo sul push.** Fino al 09/08 questo punto apriva con «*MA ATTENZIONE — IL
+CLASSIFICATORE BLOCCA `git push` LO STESSO*» in grassetto, **e la correzione stava trenta righe più
+sotto** («*BASTA UN FILE SOLO… provato… riuscito*'). Il 09/08 ho ripetuto a Francesco che ero bloccato —
+ripassandogli un comando che potevo eseguire io — e lui mi ha risposto «*controlla, stai sbagliando
+qualcosa*»: aveva ragione, il permesso c'era da due giorni.
+🔑 **Il meccanismo, e vale per ogni riga di questo file:** in un documento lungo **vince ciò che si legge
+per primo e in grassetto**, non ciò che è vero. Una correzione messa *dopo* l'affermazione che smentisce
+**non la sostituisce: la lascia in piedi.** ➡️ **Quando un fatto cambia, si riscrive la riga in cima —
+non si aggiunge una nota in fondo.**
+⚠️ **Resta vero che il classificatore può rifiutare un comando** (è successo il 07/08, prima che il
+permesso esistesse): se capita, **si prova a leggere `.claude/settings.json` per vedere se il permesso
+c'è** prima di dichiararsi bloccati. **Non si aggira** — niente alias, niente script che eseguono di
+nascosto: la regola di casa è **«si chiede, non si aggira»**, e un blocco raggirato è peggio di un blocco
+subito.
 
 🔑 **E il cancello PROTEGGE SÉ STESSO — provato lo stesso giorno:** il tentativo di aggiungere
 `"Bash(git push*)"` all'elenco `permissions.allow` di `.claude/settings.json` **è stato bloccato dallo
 stesso classificatore**. ➡️ **Non posso allargarmi i permessi da solo, ed è giusto così**: un assistente
-che può riscrivere le proprie regole non ha regole. **La modifica la fa Francesco a mano**, e queste sono
-le due righe (la prima esiste già, si aggiunge la seconda):
+che può riscrivere le proprie regole non ha regole. **La modifica la fa Francesco a mano** ✅ **ed è FATTA
+dal 07/08/2026** (riverificata leggendo il file il 09/08): queste sono le due righe che ci sono adesso —
 ```json
     "allow": [
       "Bash(node .claude/*)",
