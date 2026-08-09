@@ -197,9 +197,20 @@ vedono `.env.local`: **non è una regressione**, e in CI girano tutte.
 - **Dove questo lavoro può sbagliare:** ① la scelta del «più vecchio» fra due avvisi aperti non ha
   una prova che la guardi in faccia (§4.3) e non ha una ratifica (§8③) · ② la sentinella sul
   sorgente di `page.tsx` è una prova **statica**: protegge dal togliere il cancello, non prova che a
-  runtime un `admin_rete` non veda la riga — quella la dà il giro del Task 10 · ③ la prova ⚖️ D350
-  conta **due** occorrenze del nome a schermo: se un domani la carta lo mostrasse in un terzo posto,
-  quella prova andrebbe letta di nuovo prima di «aggiustare il numero».
+  runtime un `admin_rete` non veda la riga — quella la dà il giro del Task 10.
+- 🔄 **UNA PROVA L'HO SCRITTA FRAGILE E L'HO RIFATTA, e vale scriverlo.** La prova di ⚖️ D350
+  contava le occorrenze del nome a schermo («devono essere **due**»): un numero che dipende da quante
+  volte la **carta** nomina il paziente, cioè da qualcosa che con D350 non c'entra niente. Il giorno
+  in cui la scheda lo mostrasse anche in testata, quella prova sarebbe diventata rossa parlando di
+  tutt'altro. Ora si guarda **dentro il foglio** (`within(getByRole('dialog'))`), che è la domanda
+  vera: «il foglio mostra lo stesso valore della carta?». Rifatta la mutazione ③ dopo il cambio —
+  **ancora rossa**, quindi la forza è intatta e l'aggancio di troppo non c'è più.
+- ⚠️ **Un limite dichiarato della sentinella di `page.tsx`:** le sue asserzioni negative
+  (`not.toMatch(/'titolare'/)` e le altre tre) passano oggi perché quel file **non contiene nessun
+  nome di ruolo**. Sono un **proxy**, non la regola: il giorno in cui la pagina gaterà qualcos'altro
+  su `titolare` per una ragione sua, quella prova diventerà rossa dicendo «hai ricopiato l'elenco
+  degli avvisi», che sarà **falso**. Chi ci arriva restringa l'asserzione al contorno della lettura
+  degli avvisi invece di cancellarla.
 
 ---
 

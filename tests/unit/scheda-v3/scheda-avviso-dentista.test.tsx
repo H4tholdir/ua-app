@@ -12,7 +12,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
@@ -131,8 +131,16 @@ describe('La riga «Avvisa il dentista» sulla scheda (Task 6)', () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro({ avvisoDaComunicare: AVVISO_APERTO })} ruolo="titolare" />)
     expect(screen.getByText('ROSSI MARIO')).toBeInTheDocument() // la riga «Paziente» della carta
     apriIlFoglio()
-    // Due occorrenze: quella della carta, dietro, e quella dentro il foglio.
-    expect(screen.getAllByText('ROSSI MARIO')).toHaveLength(2)
+    // 🛑 SI GUARDA DENTRO IL FOGLIO, e non si CONTANO le occorrenze a schermo.
+    //    Contarle («devono essere due») legherebbe questa prova a quante volte la
+    //    CARTA nomina il paziente — un numero che non ha niente a che fare con
+    //    D350: il giorno in cui la scheda lo mostrasse anche in testata, questa
+    //    prova diventerebbe rossa parlando di tutt'altro.
+    // 🔑 `role="dialog"` è la marca sui DUE rami dello `Sheet`, quello animato e
+    //    `SheetRidotto` (v. `AvvisoDentista.tsx:333`): l'àncora regge anche a
+    //    movimento ridotto.
+    const foglio = screen.getByRole('dialog')
+    expect(within(foglio).getByText('ROSSI MARIO')).toBeInTheDocument()
   })
 
   it('🔴 il collegamento WhatsApp porta il CELLULARE dello studio, mai il fisso', () => {
