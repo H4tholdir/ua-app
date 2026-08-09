@@ -1,34 +1,43 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { withRollback, skipIntegrationTests } from './helpers/pg-client'
 
 // riapri_lavoro_atomica — Task 3 dell'ondata «si deve sempre poter intervenire».
 // Spec: docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md §7.
 //
-// ⚠️ LA MIGRATION NON È ANCORA APPLICATA AL DATABASE VERO (va lanciata da
-// Francesco: `npx supabase db push`, vedi il referto). Questo file la applica
-// DENTRO la transazione di ogni test (CREATE OR REPLACE FUNCTION è DDL
-// transazionale in Postgres) e la lascia sparire col ROLLBACK — mai una
-// migration registrata due volte. `CREATE OR REPLACE` è idempotente: lo
-// stesso identico file resta corretto anche il giorno dopo che la migration
-// vera è stata applicata.
+// 🔴 QUESTO FILE HA PROVATO PER TRE GIORNI UNA FUNZIONE CHE NON ESISTEVA PIÙ, e
+// la riga che lo giustificava era scaduta senza che nessuno la rileggesse.
+// Fino al 09/08/2026 in testa a ogni prova c'era `applicaMigrazione(client)`:
+// il file `20260806210400_riapri_lavoro_atomica.sql` veniva RIAPPLICATO dentro
+// la transazione, quindi i 15 verdi parlavano del corpo del **6 agosto**, non
+// di quello vivo. Il motivo scritto qui — «la migration non è ancora applicata
+// al database vero» — è **scaduto la sera del 6 agosto**, quando la migration è
+// stata spinta (D284). Da allora la scorciatoia non serviva più a niente e
+// nascondeva due cambiamenti veri, misurati sul CATALOGO (`pg_get_functiondef`,
+// 09/08/2026) e non sui file:
+//   ① il corpo vivo NON aggiorna più `lavori` da sé: chiama
+//      `PERFORM public.ripristina_lavoro_a_pronto(...)` (20260807182614), cioè
+//      l'atomicità che questo file dichiara di provare passa oggi per una
+//      chiamata ANNIDATA, che il corpo del 6 agosto non aveva;
+//   ② l'UPDATE sulla dichiarazione scrive `annullata_da_evento_id = p_evento_id`
+//      (20260807143623 §③) — la causale dell'annullamento, che NESSUNA di
+//      queste prove poteva vedere.
+// 🔑 La lezione, ed è la stessa del 07/08 in un altro vestito: *una prova non
+// può vedere un difetto che vive nella cosa che la prova sostituisce*. Lì era
+// il framework del browser, qui era la funzione stessa.
+// ➡️ Da oggi si chiama la funzione VIVA, come già fa
+// `tests/integration/riemetti-ddc-atomica.rpc.test.ts`. Se la migration non
+// fosse applicata, questi test falliscono — ed è la direzione giusta: un verde
+// su un corpo inventato è peggio di un rosso.
 //
 // Perché una RPC NUOVA e non un allargamento di annulla_consegna_atomica: §7
 // della spec — quella vecchia porta i cancelli fiscali (fattura_gia_emessa,
 // incluso_in_fattura) che farebbero rifiutare esattamente la correzione che
 // D265 impone di lasciar passare sempre.
 
-const MIGRATION_PATH = 'supabase/migrations/20260806210400_riapri_lavoro_atomica.sql'
 const LAB_A = '00000000-0000-0000-0000-000000000001' // lab E2E dedicato — mai il lab Filippo
 
 type Client = Parameters<Parameters<typeof withRollback>[0]>[0]
-
-/** Applica la migration DENTRO la transazione corrente (mai fuori, mai registrata). */
-async function applicaMigrazione(client: Client) {
-  const sql = readFileSync(MIGRATION_PATH, 'utf8')
-  await client.query(sql)
-}
 
 function progressivoUnico() {
   return 700000 + (parseInt(randomUUID().replace(/-/g, '').slice(0, 6), 16) % 200000)
@@ -136,11 +145,10 @@ async function riapri(client: Client, lavoroId: string, labId: string, eventoId:
   return rows[0].r as Record<string, unknown>
 }
 
-describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento reale (DB, migration non applicata)', () => {
+describe.skipIf(skipIntegrationTests)("riapri_lavoro_atomica — la FUNZIONE VIVA del catalogo (nessuna migration riapplicata)", () => {
   // ── Passo 2 del brief — IL CANCELLO FISCALE NON BLOCCA (senso di D265) ────
   it('lavoro CON FATTURA EMESSA: riapre comunque — esito ok, non fattura_gia_emessa', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId, { inclusoInFattura: true })
       await creaFatturaAttiva(client, LAB_A, clienteId, lavoroId)
@@ -163,7 +171,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── R-P1 — p_evento_id inesistente DEVE essere rifiutato ──────────────────
   it('p_evento_id inesistente → evento_non_valido (rifiuto)', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
 
@@ -177,7 +184,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
 
   it('p_evento_id di UN ALTRO LAVORO (stesso laboratorio) → evento_non_valido (rifiuto)', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const altroLavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
@@ -191,7 +197,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── R-P1 — cross-tenant: p_laboratorio_id di B, p_lavoro_id di A ──────────
   it('cross-tenant: lab B chiama sul lavoro di lab A → non_trovato, riga di A intatta', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const labB = await creaLaboratorioB(client)
       const clienteA = await creaCliente(client, LAB_A)
       const lavoroA = await creaLavoroConsegnato(client, LAB_A, clienteA)
@@ -211,7 +216,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── R-P1 — lavoro non consegnato ──────────────────────────────────────────
   it('lavoro in stato "pronto" (non consegnato) → non_consegnato (rifiuto)', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       await client.query(`UPDATE lavori SET stato = 'pronto' WHERE id = $1`, [lavoroId])
@@ -224,7 +228,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
 
   it('lavoro inesistente → non_trovato (rifiuto)', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const r = await riapri(
         client, '00000000-0000-0000-0000-000000000000', LAB_A, '00000000-0000-0000-0000-000000000000'
       )
@@ -235,7 +238,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── R-P1 — lavoro con soft-delete non va riaperto ─────────────────────────
   it('lavoro con deleted_at IS NOT NULL → non_trovato (rifiuto, anche se stato="consegnato")', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId, { deletedAt: new Date().toISOString() })
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -248,7 +250,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── La divergenza dal corpo vivo, PROVATA: 'consegnata' viene annullata ──
   it('dichiarazione in stato "consegnata": viene annullata e lo slot attivo resta libero (divergenza voluta dal corpo vivo)', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -269,10 +270,67 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
     })
   })
 
+  // ── LA CAUSALE — la colonna che il corpo del 6 agosto NON scriveva ────────
+  // 🔑 QUESTA È LA PROVA CHE IL FILE GUARDA DAVVERO IL CORPO VIVO. Sotto la
+  // vecchia scorciatoia (`applicaMigrazione`) questa asserzione sarebbe
+  // ROSSA: il corpo del 6 agosto fa `SET stato = 'annullata'` e basta, senza
+  // `annullata_da_evento_id` (20260807143623 §③ è ciò che l'ha aggiunta).
+  // Provato il 09/08/2026 riapplicando a mano il file vecchio in una
+  // transazione annullata: la colonna resta NULL. Vedi il resoconto del Task 10.
+  it('annullando la dichiarazione ne scrive la CAUSALE: annullata_da_evento_id = l\'evento che ha chiesto la riapertura', async () => {
+    await withRollback(async (client) => {
+      const clienteId = await creaCliente(client, LAB_A)
+      const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
+      const eventoId = await creaEvento(client, LAB_A, lavoroId)
+      const ddcId = await creaDichiarazione(client, LAB_A, lavoroId, 'generata')
+
+      const r = await riapri(client, lavoroId, LAB_A, eventoId)
+      expect(r.esito).toBe('ok')
+
+      const { rows: [dopo] } = await client.query(
+        `SELECT stato, annullata_da_evento_id FROM dichiarazioni_conformita WHERE id = $1`, [ddcId]
+      )
+      expect(dopo.stato).toBe('annullata')
+      // Non «non è nullo»: è ESATTAMENTE quell'evento. Una causale sbagliata
+      // sarebbe peggio di una causale assente — il filo verso il motivo è ciò
+      // che rende leggibile una catena di riemissioni (§8.2).
+      expect(dopo.annullata_da_evento_id).toBe(eventoId)
+    })
+  })
+
+  // ── R-P1 — il valore che DEVE essere rifiutato, sulla stessa colonna ──────
+  // `ddc_evento_annulla_unique` (20260808093513:52) afferma: UN evento annulla
+  // AL PIÙ UNA dichiarazione per laboratorio. L'effetto su questa funzione era
+  // stato DICHIARATO fuori mandato dall'esecutore del Task B e mai provato:
+  // «la sequenza riapri → riconsegna → riapri di nuovo CON LO STESSO evento
+  // oggi riesce, da qui in poi darebbe 23505».
+  it('lo STESSO evento non può annullare una seconda dichiarazione: 23505 (ddc_evento_annulla_unique)', async () => {
+    await withRollback(async (client) => {
+      const clienteId = await creaCliente(client, LAB_A)
+      const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
+      const eventoId = await creaEvento(client, LAB_A, lavoroId)
+      await creaDichiarazione(client, LAB_A, lavoroId, 'generata')
+
+      expect((await riapri(client, lavoroId, LAB_A, eventoId)).esito).toBe('ok')
+
+      // Si simula la riconsegna: il lavoro torna 'consegnato' e riceve una
+      // dichiarazione nuova (è ciò che fa `generate-ddc.ts` alla riconsegna).
+      await client.query(`UPDATE lavori SET stato = 'consegnato' WHERE id = $1`, [lavoroId])
+      await creaDichiarazione(client, LAB_A, lavoroId, 'generata')
+
+      await client.query('SAVEPOINT prima_del_doppione')
+      await expect(riapri(client, lavoroId, LAB_A, eventoId)).rejects.toThrow(/ddc_evento_annulla_unique/)
+      await client.query('ROLLBACK TO SAVEPOINT prima_del_doppione')
+
+      // E il rifiuto è ATOMICO: il lavoro non resta a metà strada.
+      const { rows: [dopo] } = await client.query(`SELECT stato FROM lavori WHERE id = $1`, [lavoroId])
+      expect(dopo.stato).toBe('consegnato')
+    })
+  })
+
   // ── R-P1 — fail-closed: la garanzia conservata dal corpo vivo ─────────────
   it('fail-closed: dichiarazione esistente ma GIÀ tutta annullata (nessuna riga da annullare, ma non è "assente") → RAISE EXCEPTION', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -289,10 +347,17 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
     // Il ripristino a 'pronto' avviene PRIMA del controllo sulla dichiarazione.
     // Se l'eccezione non annullasse anche quello, resterebbe un lavoro riaperto
     // con la sua dichiarazione ancora viva: lo stato peggiore dei due.
+    // 🔄 IL SIGNIFICATO DI QUESTA PROVA È CAMBIATO IL 09/08 senza che una riga
+    // di essa cambiasse, e va detto: contro il corpo del 6 agosto misurava
+    // l'atomicità di un blocco MONOLITICO (l'UPDATE su `lavori` stava dentro
+    // questa funzione); contro il corpo vivo misura l'atomicità **attraverso
+    // una chiamata annidata** — `PERFORM public.ripristina_lavoro_a_pronto(...)`
+    // — cioè che la funzione chiamata non si porta dietro un blocco EXCEPTION
+    // che ne assorba il fallimento. È una proprietà più forte, sullo stesso
+    // testo.
     // Serve un SAVEPOINT perché in PostgreSQL l'errore aborta l'intera
     // transazione, e senza non si potrebbe leggere niente dopo.
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -314,7 +379,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
     'una dichiarazione in stato "%s" viene annullata come le altre — il filtro non elenca, esclude',
     async (stato) => {
       await withRollback(async (client) => {
-        await applicaMigrazione(client)
         const clienteId = await creaCliente(client, LAB_A)
         const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
         const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -337,7 +401,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── dato legacy: nessuna dichiarazione per il lavoro → si procede, si segnala ───────
   it('nessuna dichiarazione per il lavoro (dato legacy) → ok, ddc_assente=true', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -352,7 +415,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── Il ripristino completo, inclusi i quattro campi in più del mandato ───
   it('ripristino completo: pronto + i 4 campi extra azzerati (consegna_in_corso/tap/proposta) — non solo i 2 elencati nel mandato', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId, {
         consegnaInCorso: true, propostaDentista: 'fatturare',
@@ -384,7 +446,6 @@ describe.skipIf(skipIntegrationTests)('riapri_lavoro_atomica — comportamento r
   // ── Permessi dal CATALOGO — indipendenti dal ruolo della connessione ──────
   it('permessi: solo service_role può eseguire la RPC (PUBLIC/anon/authenticated no)', async () => {
     await withRollback(async (client) => {
-      await applicaMigrazione(client)
       const { rows } = await client.query(`
         SELECT has_function_privilege('anon', 'public.riapri_lavoro_atomica(uuid,uuid,uuid)', 'EXECUTE') AS anon_puo,
                has_function_privilege('authenticated', 'public.riapri_lavoro_atomica(uuid,uuid,uuid)', 'EXECUTE') AS auth_puo,
