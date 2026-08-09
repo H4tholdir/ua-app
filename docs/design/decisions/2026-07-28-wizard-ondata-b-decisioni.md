@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantanovesima tornata (D344-D349: il cancello §0B è passato, il portale del dentista si migra intero a v3, e il collegamento non scade più)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantesima tornata (D350-D351: la terza deroga sul nome del paziente, e «a voce» si chiude con un tocco)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**349 decisioni in centoquarantanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**351 decisioni in centocinquanta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4169,3 +4169,24 @@ messaggio proposto era **tagliato** (225px di contenuto in 176 visibili) e una d
 📌 **Che cosa cambia nel piano, subito:** il **Task 5** disegna la A2 · il **Task 8** disegna la B1 ·
 la **firma** esce dal codice e diventa un dato passato (D345) · il **Task 5 non deve più rigenerare**
 un gettone scaduto (D348) · e la migrazione del portale (D347) **non è un task di questo piano**.
+
+---
+
+### Centocinquantesima tornata — D350 · D351: la terza deroga sul nome del paziente, e «a voce» si chiude con UN tocco (09/08/2026, 21:14)
+
+**Come è nata.** Il Task 5 ha costruito il foglio (variante A2) e l'esecutore **non ha deciso da solo** due
+cose: ha reso il nome del paziente **un valore che gli viene passato** — scrivendo nel codice che «*questa
+sarebbe la terza deroga*» — e ha aggiunto a «a voce» un passo di conferma **che il mockup non mostrava**,
+portandolo a Francesco invece di lasciarlo passare. 🔑 **Entrambe le domande nascono da un esecutore che si
+è fermato sul confine del proprio mandato**: è R-E2 usata in avanti, non solo per i difetti.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D350** | 🔑 **TERZA DEROGA AL PAZIENTE PSEUDONIMIZZATO: nel foglio dell'avviso il nome del paziente SI VEDE**, come sulla targa della parete | «*Sì, come sulla parete*» | La regola è **§2.1** del DS v3: «*Pazienti pseudonimizzati per difetto: `PZ-0231`. Il nome del paziente non compare in UI, notifiche, WhatsApp — salvo deroga esplicita, datata e motivata di Francesco*». Le deroghe erano **due**: **D8** (targa della parete, 27/07: «*in un laboratorio piccolo il tecnico conosce comunque i pazienti*») e **D7** (ricerca per cognome nel wizard, 28/07). ➡️ **Questa è la terza, e la motivazione è la stessa della prima:** il foglio lo vede **solo chi è dentro il laboratorio**, e si apre nel momento in cui si corregge una dichiarazione **già consegnata** — cioè quando l'odontotecnico deve essere sicuro di non aver sbagliato persona. 🛑 **E la deroga NON si estende di un millimetro a WhatsApp:** il nome non può finire nel messaggio, e la difesa non è una regola scritta ma **la forma della funzione**, che non ha nessun modo di riceverlo (`buildAvvisoMessage`). **§2.1 va aggiornata con la terza voce.** |
+| **D351** | 🔑 **«L'HO AVVISATO IO, A VOCE» CHIUDE CON UN TOCCO SOLO**, senza passo di conferma | «*Un tocco solo*» | ⚖️ **Cambia ciò che il Task 5 ha costruito:** l'esecutore aveva messo un secondo passo che rileggeva ciò che sarebbe restato scritto, per tenere le due strade **pari nei tocchi** (anche WhatsApp ne costa due: scegli, poi mandi). Francesco ha scelto la via corta. 🔴 **E la conseguenza era scritta nella domanda stessa: «*servirebbe un modo per annullare*».** Con la conferma, la via di fuga della **Legge 6** («*ogni azione irreversibile ha una via di fuga visibile, entro 10s*») viveva **prima** della scrittura; con un tocco solo, **deve vivere dopo**. ⚠️ **E non è gratis:** la tabella **non ha** uno stato «annullato» (scelta del Task 1: *un promemoria cancellabile è una casella da spuntare*) e la rotta risponde **409** a un avviso già chiuso. 📌 **Il precedente in casa esiste ed è la consegna:** `FINESTRA_ANNULLO_MS = 10 minuti` (`src/lib/consegna/costanti.ts:7`). ➡️ **Come si costruisce la via di fuga lo decide chi esegue**, con il censimento dei precedenti — differire la scrittura, oppure un ritorno a `da_comunicare` dentro una finestra — **ma senza via di fuga la Legge 6 è violata**, e questo non è negoziabile |
+
+🔑 **Un fatto che vale oltre queste due:** il Task 5 ha misurato **0 testi sotto soglia su 42 schermate**
+(7 passi × 3 viewport × 2 temi), **ma la prima sonda dava 15 falsi positivi** perché leggeva solo
+`background-color` e i gradienti rispondono `transparent`. ➡️ *Una sonda sbagliata non dice «non lo so»:
+dice un numero.* E dopo la correzione **due testi erano davvero sotto soglia, ed erano suoi** (4,499 e
+4,09): li ha portati a `--ink`.
