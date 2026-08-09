@@ -196,6 +196,11 @@ Le **2** che passano, passano **a vuoto**, e vale dirlo: ① «*nessun colore n�
 sorgente*» — un file inerte non ha hex; ② «*un valore che non è un istante torna `null`*» — l'abbozzo torna
 `null` sempre. Nessuna delle due è una prova sul comportamento vero.
 
+📌 **Perché il conto dice 40 e il file oggi ne ha 41:** la quarantunesima è la prova dello **scorrimento**, ed
+è nata **dopo**, dalla misura della FASE 9 (v. ②) — non c'era niente da contare prima di averla misurata.
+Il numero `38 su 40` resta quello dell'istante in cui è stato preso, che è l'unico modo in cui una misura
+significa qualcosa.
+
 **Le forme d'input, enumerate PRIMA delle asserzioni** (le forme di un componente sono i suoi props e le
 risposte che gli tornano da fuori):
 
