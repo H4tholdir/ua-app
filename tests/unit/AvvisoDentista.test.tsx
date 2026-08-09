@@ -1,0 +1,593 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { AvvisiProvider } from '@/components/ds/Avviso'
+import { AvvisoDentista, quandoLeggibile } from '@/components/features/lavori/scheda-v3/AvvisoDentista'
+// 🔑 IL TESTO PROPOSTO NON SI RICOPIA QUI: è quello di `buildAvvisoMessage`, e la
+//    firma è quella di `firmaMessaggio` (⚖️ D345). Se un giorno cambia la forma
+//    del messaggio, queste prove la seguono invece di fissarla una seconda volta.
+import { buildAvvisoMessage } from '@/lib/avvisi/messaggio'
+import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+
+/**
+ * «Avvisa il dentista» (Task 5) — il foglio della VARIANTE A2, ⚖️ D344.
+ *
+ * 🔑 LE DECISIONI CHE QUESTE PROVE SORVEGLIANO, e non i pixel:
+ *   ⚖️ D335/D344 — le due strade valgono UGUALE, e la parità non è solo la tinta
+ *      delle righe: è anche il **numero di tocchi**. Una strada da un tocco e una
+ *      da due non sono pari, e la corta diventa la strada che si prende — cioè il
+ *      difetto per cui la variante A1 è stata scartata.
+ *   ⚖️ D334 — il testo è modificabile, e **quello modificato è quello spedito**.
+ *   ⚖️ D339 — nessuna bozza si conserva: si registra solo il testo mandato.
+ *   ⚖️ D331 — l'app propone, la persona manda. Quel che resta scritto è
+ *      un'**autodichiarazione**: nessuna prova qui dice, né fa credere, che l'app
+ *      sappia se il messaggio è davvero partito.
+ *   ⚖️ D345 — la firma è il nome del laboratorio, non una costante.
+ *   🛑 Il vincolo in banca dati (`avviso_testo_solo_se_dall_app`) è STRETTO: con
+ *      «l'ho avvisato a voce» il corpo **non porta `testo`**, o la rotta risponde
+ *      422 (`src/app/api/lavori/[id]/avviso/route.ts:317-324`).
+ */
+
+const refreshMock = vi.fn()
+const pushMock = vi.fn()
+const replaceMock = vi.fn()
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock, replace: replaceMock, refresh: refreshMock }),
+}))
+
+// 🛑 Si finge l'HOOK, non il router (CLAUDE.md §9): in jsdom
+//    `cediEntryAllaNavigazione()` ripiega comunque su `router.push`, quindi
+//    guardando il router un `push` nudo e l'hook sarebbero indistinguibili.
+//    Questo foglio non naviga da nessuna parte — la spia resta a zero, ed è
+//    proprio ciò che si prova.
+const navigaMock = vi.fn()
+vi.mock('@/components/ds/useNavigaDaOverlay', () => ({ useNavigaDaOverlay: () => navigaMock }))
+
+const LAVORO_ID = '11111111-1111-1111-1111-111111111111'
+const AVVISO_ID = '55555555-5555-5555-5555-555555555555'
+/** Il formato maggioritario in banca dati (276 righe su 299), non `2026/0042`. */
+const NUMERO = 'STOR/2021/016'
+const STUDIO = 'Studio Bianchi'
+const LAB = 'Laboratorio Odontotecnico Formicola'
+const TOKEN = 'a1b2c3d4-0000-4000-8000-000000000001'
+const TELEFONO = '333 1234567'
+
+const PROPS = {
+  lavoroId: LAVORO_ID,
+  avvisoId: AVVISO_ID,
+  numeroLavoro: NUMERO,
+  nomeStudio: STUDIO,
+  pazienteMostrato: 'ROSSI MARIO',
+  portalToken: TOKEN,
+  nomeLaboratorio: LAB as string | null,
+  telefonoStudio: TELEFONO as string | null,
+}
+
+function monta(extra: Partial<typeof PROPS> = {}) {
+  return render(
+    <AvvisiProvider>
+      <AvvisoDentista {...PROPS} {...extra} />
+    </AvvisiProvider>
+  )
+}
+
+/** L'ora salvata dalla rotta, costruita sull'orologio LOCALE: un ISO fisso
+ *  renderebbe la lettura «oggi alle 14:32» dipendente dal fuso della macchina. */
+function oraSalvata(): string {
+  const d = new Date()
+  d.setHours(14, 32, 0, 0)
+  return d.toISOString()
+}
+
+/** La risposta della rotta, che porta **la riga davvero salvata** (Task 4). */
+function rispostaOk(stato = 'comunicato_dall_app', comunicatoAt: string | null = oraSalvata()) {
+  return {
+    ok: true,
+    avviso: {
+      id: AVVISO_ID,
+      lavoro_id: LAVORO_ID,
+      cliente_id: '22222222-2222-2222-2222-222222222222',
+      stato,
+      comunicato_at: comunicatoAt,
+      comunicato_da: '33333333-3333-3333-3333-333333333333',
+      testo_inviato: null,
+    },
+  }
+}
+
+type Spia = ReturnType<typeof vi.fn>
+
+function fingiRotta(risposta?: unknown, ok = true): Spia {
+  const corpo = risposta ?? rispostaOk()
+  const spia = vi.fn().mockResolvedValue({ ok, json: async () => corpo })
+  vi.stubGlobal('fetch', spia)
+  return spia
+}
+
+function corpoDi(spia: Spia, i = 0): Record<string, unknown> {
+  const chiamata = spia.mock.calls[i] as [string, RequestInit]
+  return JSON.parse(chiamata[1].body as string) as Record<string, unknown>
+}
+
+function apriFoglio() {
+  fireEvent.click(screen.getByRole('button', { name: /Avvisa il dentista/i }))
+}
+function stradaWhatsApp() {
+  return screen.getByRole('button', { name: /Glielo mando su WhatsApp/i })
+}
+function stradaVoce() {
+  return screen.getByRole('button', { name: /a voce/i })
+}
+function tastoVerde() {
+  return screen.getByRole('link', { name: /Mandalo su WhatsApp/i })
+}
+function campoMessaggio() {
+  return screen.getByLabelText(/Il messaggio che manderai/i) as HTMLTextAreaElement
+}
+function testoDelFoglio(): string {
+  return document.querySelector('[role="dialog"]')?.textContent ?? ''
+}
+
+describe('AvvisoDentista — la riga sulla scheda', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('la riga dice DOVE si va, e il fatto in una riga sola', () => {
+    monta()
+    const riga = screen.getByRole('button', { name: /Avvisa il dentista/i })
+    expect(riga.textContent).toContain('La dichiarazione è stata rifatta')
+  })
+
+  it('la riga non apre niente da sola: il foglio compare al tocco', () => {
+    monta()
+    expect(screen.queryByRole('heading', { name: /Come avvisi il dentista/i })).toBeNull()
+    apriFoglio()
+    expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy()
+  })
+})
+
+describe('AvvisoDentista — passo 1: DUE STRADE PARI (⚖️ D335 · D344)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('una domanda sola, e due risposte (L1)', () => {
+    monta()
+    apriFoglio()
+    expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy()
+    expect(stradaWhatsApp()).toBeTruthy()
+    expect(stradaVoce()).toBeTruthy()
+  })
+
+  it('🛑 le due righe hanno lo STESSO peso visivo: fondo, filo, raggio, altezza', () => {
+    monta()
+    apriFoglio()
+    const a = stradaWhatsApp()
+    const b = stradaVoce()
+    expect(a.style.background).toBe(b.style.background)
+    expect(a.style.border).toBe(b.style.border)
+    expect(a.style.borderRadius).toBe(b.style.borderRadius)
+    expect(a.style.minHeight).toBe(b.style.minHeight)
+    // 🛑 E nessuna delle due è un tasto fisico: sul passo della scelta non esiste
+    //    un tasto primario, o una delle due sarebbe la strada suggerita (A1).
+    expect(a.style.background).not.toContain('gradient')
+    expect(b.style.background).not.toContain('gradient')
+  })
+
+  it('entrambe portano il gallone «entra»: promettono un passo, non un atto', () => {
+    monta()
+    apriFoglio()
+    expect(stradaWhatsApp().textContent).toContain('›')
+    expect(stradaVoce().textContent).toContain('›')
+  })
+
+  it('🛑 e lo stesso NUMERO DI TOCCHI: nessuna delle due scrive al primo tocco', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaVoce())
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Resta scritto/i })).toBeTruthy())
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  it('«Perché te lo chiedo» dice che il promemoria non si spegne da solo', () => {
+    monta()
+    apriFoglio()
+    expect(screen.getByText(/Perché te lo chiedo/i)).toBeTruthy()
+    expect(screen.getByText(/non si spegne da solo/i)).toBeTruthy()
+  })
+
+  it('il colore non è l’unica fonte di stato: ogni strada porta le sue parole (L3)', () => {
+    monta()
+    apriFoglio()
+    expect(stradaWhatsApp().textContent).toContain('lo puoi cambiare')
+    expect(stradaVoce().textContent).toContain('l’hai fatto tu')
+  })
+})
+
+describe('AvvisoDentista — la strada di WhatsApp (⚖️ D331 · D334)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  function apriMessaggio() {
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+  }
+
+  it('il testo proposto è quello di `buildAvvisoMessage`, firmato col nome del laboratorio', () => {
+    monta()
+    apriMessaggio()
+    const atteso = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB })
+    expect(campoMessaggio().value).toBe(atteso)
+    expect(atteso).toContain(`— ${LAB}`)
+  })
+
+  it('🛑 il testo non nomina mai il paziente, benché il foglio lo mostri', () => {
+    monta()
+    apriMessaggio()
+    expect(campoMessaggio().value).not.toContain('ROSSI')
+    expect(campoMessaggio().value).not.toContain('MARIO')
+  })
+
+  it('⚖️ D334 — il testo MODIFICATO è quello che parte: nel collegamento e nel registrato', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriMessaggio()
+    fireEvent.change(campoMessaggio(), { target: { value: 'Dottore, la dichiarazione è cambiata.' } })
+
+    expect(tastoVerde().getAttribute('href')).toContain(
+      encodeURIComponent('Dottore, la dichiarazione è cambiata.')
+    )
+
+    fireEvent.click(tastoVerde())
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
+    expect(corpoDi(spia).testo).toBe('Dottore, la dichiarazione è cambiata.')
+  })
+
+  it('il corpo per «dall_app» porta ESATTAMENTE le tre chiavi del contratto', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriMessaggio()
+    fireEvent.click(tastoVerde())
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
+    expect(Object.keys(corpoDi(spia)).sort()).toEqual(['avviso_id', 'come', 'testo'])
+    expect(corpoDi(spia).come).toBe('dall_app')
+    expect(corpoDi(spia).avviso_id).toBe(AVVISO_ID)
+    const chiamata = spia.mock.calls[0] as [string, RequestInit]
+    expect(chiamata[0]).toBe(`/api/lavori/${LAVORO_ID}/avviso`)
+    expect(chiamata[1].method).toBe('POST')
+  })
+
+  it('🔑 l’apertura di WhatsApp e la registrazione stanno nello STESSO gesto', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriMessaggio()
+    const link = tastoVerde()
+    // Il collegamento resta un collegamento: si apre da sé, dentro il gesto della
+    // persona — nessuna finestra aperta da noi dopo un `await`.
+    expect(link.getAttribute('href')?.startsWith('https://wa.me/')).toBe(true)
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toContain('noopener')
+    expect(spia).not.toHaveBeenCalled()
+    fireEvent.click(link)
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
+  })
+
+  it('🛑 un doppio tocco registra UNA volta sola', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriMessaggio()
+    const link = tastoVerde()
+    fireEvent.click(link)
+    fireEvent.click(link)
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
+    expect(spia).toHaveBeenCalledTimes(1)
+  })
+
+  it('🛑 campo svuotato: il tasto verde non c’è, quello spento dice cosa manca, e non si registra niente', () => {
+    const spia = fingiRotta()
+    monta()
+    apriMessaggio()
+    fireEvent.change(campoMessaggio(), { target: { value: '   ' } })
+    expect(screen.queryByRole('link', { name: /Mandalo su WhatsApp/i })).toBeNull()
+    const spento = screen.getByRole('button', { name: /Mandalo su WhatsApp/i })
+    expect(spento).toBeDisabled()
+    expect(screen.getByText(/Senza testo non c’è niente da mandare/i)).toBeTruthy()
+    fireEvent.click(spento)
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  it('il tetto del testo è quello della rotta: 1000 caratteri', () => {
+    monta()
+    apriMessaggio()
+    expect(campoMessaggio()).toHaveAttribute('maxlength', '1000')
+  })
+
+  it('e si torna alla scelta senza scrivere niente', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriMessaggio()
+    fireEvent.click(screen.getByRole('button', { name: /Torna alla scelta/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy())
+    expect(spia).not.toHaveBeenCalled()
+  })
+})
+
+describe('AvvisoDentista — la strada «a voce» e il vincolo STRETTO in banca dati', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  function apriVoce() {
+    apriFoglio()
+    fireEvent.click(stradaVoce())
+  }
+
+  it('🛑 il corpo per «a_voce» NON porta `testo`: il vincolo lo rifiuterebbe con un 422', async () => {
+    const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    apriVoce()
+    fireEvent.click(screen.getByRole('button', { name: /l’ho avvisato io/i }))
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
+    const corpo = corpoDi(spia)
+    expect(Object.keys(corpo).sort()).toEqual(['avviso_id', 'come'])
+    expect('testo' in corpo).toBe(false)
+    expect(corpo.come).toBe('a_voce')
+  })
+
+  it('prima di registrare, il passo rilegge che cosa resterà scritto', () => {
+    monta()
+    apriVoce()
+    const foglio = testoDelFoglio()
+    expect(foglio).toContain('a voce')
+    expect(foglio).toContain(NUMERO)
+    expect(foglio).toContain(STUDIO)
+  })
+
+  it('🛑 e non promette un orologio che non ha ancora: nessuna ora prima della scrittura', () => {
+    monta()
+    apriVoce()
+    expect(testoDelFoglio()).not.toMatch(/alle \d{2}:\d{2}/)
+  })
+
+  it('e si torna alla scelta senza scrivere niente', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriVoce()
+    fireEvent.click(screen.getByRole('button', { name: /Torna alla scelta/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy())
+    expect(spia).not.toHaveBeenCalled()
+  })
+})
+
+describe('AvvisoDentista — il caso peggiore: il messaggio è partito e la registrazione no', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  async function invioConRottaRotta(): Promise<Spia> {
+    const spia = fingiRotta(
+      { error: 'Non sono riuscita a segnare l’avviso come comunicato: riprova fra un momento.' },
+      false
+    )
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    fireEvent.click(tastoVerde())
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
+    return spia
+  }
+
+  it('🔴 lo dice per intero: il messaggio è partito, la registrazione no', async () => {
+    await invioConRottaRotta()
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+  })
+
+  it('🛑 e non si rimanda: al posto del tasto verde una registrazione che non riapre WhatsApp', async () => {
+    const spia = await invioConRottaRotta()
+    await waitFor(() => expect(screen.queryByRole('link', { name: /Mandalo su WhatsApp/i })).toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: /Registra l’avviso/i }))
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(2))
+  })
+
+  it('🛑 il testo diventa di sola lettura: si registra QUELLO CHE È PARTITO, non uno riscritto dopo', async () => {
+    const spia = await invioConRottaRotta()
+    await waitFor(() => expect(campoMessaggio().readOnly).toBe(true))
+    const partito = campoMessaggio().value
+    fireEvent.change(campoMessaggio(), { target: { value: 'un altro testo' } })
+    fireEvent.click(screen.getByRole('button', { name: /Registra l’avviso/i }))
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(2))
+    expect(corpoDi(spia, 1).testo).toBe(partito)
+  })
+
+  it('🛑 il promemoria NON si chiude: la pagina non si rinfresca su un fallimento', async () => {
+    await invioConRottaRotta()
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+    // 🔑 `within` sul foglio, e non `screen`: l'avviso d'errore porta il suo
+    //    «Chiudi» (e non sparisce da solo, §5.18) — due bersagli con lo stesso
+    //    nome. La via di fuga che si prova è quella del FOGLIO.
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Chiudi' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(refreshMock).not.toHaveBeenCalled()
+  })
+
+  it('la rete assente si racconta allo stesso modo', async () => {
+    const spia = vi.fn().mockRejectedValue(new Error('rete assente'))
+    vi.stubGlobal('fetch', spia)
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    fireEvent.click(tastoVerde())
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+  })
+})
+
+describe('AvvisoDentista — la schermata finale RILEGGE ciò che è stato scritto', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('legge stato e ora dalla RIGA SALVATA, non da una previsione locale', async () => {
+    fingiRotta(rispostaOk('comunicato_dall_app'))
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    fireEvent.click(tastoVerde())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
+    expect(testoDelFoglio()).toContain('oggi alle 14:32')
+    expect(testoDelFoglio()).toContain('dall’app')
+    expect(testoDelFoglio()).not.toContain('undefined')
+  })
+
+  it('«a voce» si rilegge come «a voce», e la parola viene dallo STATO salvato', async () => {
+    fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaVoce())
+    fireEvent.click(screen.getByRole('button', { name: /l’ho avvisato io/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
+    expect(testoDelFoglio()).toContain('a voce')
+  })
+
+  it('🛑 se la rotta non manda l’ora, si rilegge senza orologio — mai un «undefined»', async () => {
+    fingiRotta(rispostaOk('comunicato_a_voce', null))
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaVoce())
+    fireEvent.click(screen.getByRole('button', { name: /l’ho avvisato io/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
+    expect(testoDelFoglio()).not.toContain('undefined')
+    expect(testoDelFoglio()).not.toMatch(/alle \d{2}:\d{2}/)
+  })
+
+  it('🛑 il rinfresco della pagina avviene alla CHIUSURA, mai a foglio aperto', async () => {
+    fingiRotta()
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    fireEvent.click(tastoVerde())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
+    expect(refreshMock).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /Ho capito/i }))
+    await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('AvvisoDentista — i rami che un dato mancante apre, e che si dicono invece di fingerli', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('senza gettone del portale: nessun collegamento morto nel testo, e lo dice', () => {
+    monta({ portalToken: '' })
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    expect(campoMessaggio().value).not.toContain('/portale/')
+    expect(screen.getByText(/non porta il collegamento/i)).toBeTruthy()
+  })
+
+  it('senza cellulare dello studio: il collegamento non porta cifre, e lo dice', () => {
+    monta({ telefonoStudio: null })
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    expect(tastoVerde().getAttribute('href')?.startsWith('https://wa.me/?text=')).toBe(true)
+    expect(screen.getByText(/scegliere il contatto/i)).toBeTruthy()
+  })
+
+  it('⚖️ D345 — senza nome del laboratorio il messaggio esce senza firma, mai con una firma finta', () => {
+    monta({ nomeLaboratorio: null })
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    const testo = campoMessaggio().value
+    expect(testo).not.toContain('—')
+    expect(testo).not.toContain('undefined')
+    expect(testo).not.toContain('UÀ Lab')
+  })
+})
+
+describe('AvvisoDentista — le regole di casa', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('parole del banco, mai del software (L2, §2.3) — su tutti e tre i passi', () => {
+    fingiRotta()
+    monta()
+    apriFoglio()
+    expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
+    fireEvent.click(stradaWhatsApp())
+    expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: /Torna alla scelta/i }))
+    fireEvent.click(stradaVoce())
+    expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
+  })
+
+  it('🛑 nessuna navigazione: né `router.push` né l’hook degli overlay', () => {
+    monta()
+    apriFoglio()
+    fireEvent.click(stradaWhatsApp())
+    expect(pushMock).not.toHaveBeenCalled()
+    expect(navigaMock).not.toHaveBeenCalled()
+  })
+
+  it('bersagli ≥ 44px: la riga sulla scheda e le due righe della scelta', () => {
+    monta()
+    const riga = screen.getByRole('button', { name: /Avvisa il dentista/i })
+    expect(parseFloat(riga.style.minHeight)).toBeGreaterThanOrEqual(44)
+    apriFoglio()
+    expect(parseFloat(stradaWhatsApp().style.minHeight)).toBeGreaterThanOrEqual(44)
+    expect(parseFloat(stradaVoce().style.minHeight)).toBeGreaterThanOrEqual(44)
+  })
+
+  /**
+   * 🔴 IL DIFETTO EREDITATO DA `Sheet`, e la via locale che lo chiude.
+   * `Sheet.tsx` non azzera mai `scrollTop` al cambio di contenuto
+   * (`grep -n scrollTop` → zero righe). `misurato:` sul banco vero a 195×422
+   * (390×844 con zoom del browser al 200%, §13.3): scorso il passo 1 in fondo
+   * (`scrollTop` 712), al cambio di passo restava **216**, col titolo del passo
+   * nuovo a **−150 px**, fuori dal pannello.
+   * 🛑 jsdom non fa layout, quindi qui non si misura un'altezza: si prova il
+   *    MECCANISMO — il pannello torna in cima quando il passo cambia.
+   */
+  it('🔴 al cambio di passo lo scorrimento torna in cima (difetto ereditato da `Sheet`)', () => {
+    monta()
+    apriFoglio()
+    const pannello = screen.getByRole('dialog')
+    pannello.scrollTop = 380
+    expect(pannello.scrollTop).toBe(380)
+    fireEvent.click(stradaWhatsApp())
+    expect(pannello.scrollTop).toBe(0)
+  })
+
+  it('🛑 nessun colore, nessuna ombra e nessuna durata scritti a mano nel sorgente', () => {
+    const sorgente = readFileSync(
+      join(process.cwd(), 'src/components/features/lavori/scheda-v3/AvvisoDentista.tsx'),
+      'utf8'
+    )
+    // Solo le righe di CODICE: i commenti citano misure e token per iscritto.
+    const codice = sorgente
+      .split('\n')
+      .filter((r) => !/^\s*(\/\/|\*|\/\*)/.test(r))
+      .join('\n')
+    expect(codice).not.toMatch(/#[0-9A-Fa-f]{6}\b/)
+    expect(codice).not.toMatch(/rgba?\(/)
+    expect(codice).not.toMatch(/duration:\s*[0-9]/)
+  })
+})
+
+describe('quandoLeggibile — l’ora si legge in parole, mai 09/08/2026 (§2.1)', () => {
+  const ADESSO = new Date(2026, 7, 9, 18, 0, 0)
+
+  it('oggi porta solo l’ora', () => {
+    expect(quandoLeggibile(new Date(2026, 7, 9, 14, 32).toISOString(), ADESSO)).toBe('oggi alle 14:32')
+  })
+
+  it('un altro giorno porta il giorno breve, mai la data in cifre', () => {
+    const testo = quandoLeggibile(new Date(2026, 7, 7, 9, 5).toISOString(), ADESSO) ?? ''
+    expect(testo).toContain('alle 09:05')
+    expect(testo).not.toMatch(/\d{2}\/\d{2}\/\d{4}/)
+  })
+
+  it('un valore che non è un istante torna `null`, non una stringa rotta', () => {
+    expect(quandoLeggibile(null, ADESSO)).toBeNull()
+    expect(quandoLeggibile(undefined, ADESSO)).toBeNull()
+    expect(quandoLeggibile('non-una-data', ADESSO)).toBeNull()
+    expect(quandoLeggibile(42, ADESSO)).toBeNull()
+  })
+})

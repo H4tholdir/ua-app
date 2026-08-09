@@ -19,6 +19,18 @@ import { inizioGiorno, aggiungiGiorni, stessoGiorno } from '@/lib/date/giorni'
 
 const ALTEZZA_CAMPO = 64 // §5.27 — letterale, non in scala spazio/raggio
 
+/**
+ * Altezza minima del campo multilinea (§5.27, variante multilinea) — **MISURATA,
+ * non scelta**: è l'altezza che il contenuto vero chiede a 390 px, il viewport
+ * primario, sul testo più lungo che l'app propone oggi (l'avviso al dentista, con
+ * un numero di lavoro nella forma `STOR/2021/016`, un gettone uuid e un nome di
+ * laboratorio per esteso). Sotto questa soglia il testo nasce tagliato, e un
+ * testo tagliato non si rilegge prima di mandarlo (⚖️ D334).
+ * 📌 Il numero si rimisura quando cambia la forma del messaggio: è la ragione per
+ *    cui `altezzaMinima` è una proprietà e non una costante privata.
+ */
+const ALTEZZA_TESTO_LUNGO = 296
+
 const stileLabel: CSSProperties = {
   display: 'block',
   fontSize: tipografia.size.label,
@@ -107,6 +119,120 @@ export function CampoTesto(props: {
         autoFocus={autoFocus}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onCambia(e.target.value)}
         style={stileCampo()}
+      />
+      {aiuto && (
+        <p id={idAiuto} style={stileAiuto}>
+          {aiuto}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * CampoTestoLungo — il campo per un TESTO CHE SI LEGGE, non per una riga (§5.27,
+ * variante multilinea).
+ *
+ * 🔴 PERCHÉ NASCE QUI E NON DENTRO IL FOGLIO CHE LO USA PER PRIMO.
+ *    `provato:` `grep -rln textarea src/components/ds/` → **un solo file**,
+ *    `trappola-focus.ts`, e lì `textarea` è un *selettore* di elementi
+ *    focalizzabili, non un campo. In tutte le superfici v3 non esiste una
+ *    `<textarea>`: questo è **il primo campo multilinea dell'app**. Scriverlo
+ *    dentro `AvvisoDentista.tsx` lo farebbe nascere **fuori** dal design system
+ *    (§13.1 p.3: i componenti vivono solo in `src/components/ds/`), e il secondo
+ *    foglio che avesse bisogno di un testo lungo ne scriverebbe una copia — che
+ *    è il modo in cui un'anatomia diverge.
+ *
+ * 🛑 E NON È UN COMPONENTE NUOVO: è un MEMBRO DELLA FAMIGLIA §5.27, accanto a
+ *    `CampoTesto`/`CampoNumero`/`CampoData`. Per questo condivide `stileLabel` e
+ *    l'anello di focus, e per questo l'anatomia è stata scritta come
+ *    **emendamento a §5.27**, non come una §5.x a sé.
+ *
+ * ⚠️ DOVE DIVERGE DAI FRATELLI, e la ragione di ciascuna divergenza:
+ *    · **altezza**: non 64 (una riga), ma `altezzaMinima` — una misura, non un
+ *      gusto (v. `ALTEZZA_TESTO_LUNGO`);
+ *    · **fondo e filo**: `--fondo-superficie` / `--filo-superficie` invece di
+ *      `--card` / `--line`. È la coppia di token nata con ⚖️ D326 · D329 · D330
+ *      per le superfici che stanno DENTRO un foglio: il pannello del foglio è
+ *      `--card`, e un campo `--card` su pannello `--card` è la classe di difetto
+ *      già misurata su quel foglio. Il mockup approvato (⚖️ D344,
+ *      `docs/design/mockups/2026-08-09-avviso-al-dentista.html`, classe
+ *      `.messaggio`) porta esattamente questi due token;
+ *    · **testo 17/600 con `line-height 1.45`** invece di 19/700: è un testo da
+ *      LEGGERE prima che da correggere — 19/700 su sei righe è un blocco, e il
+ *      mockup approvato lo scrive così. 17 è il minimo di legge per il testo di
+ *      lettura (§4.1), quindi non si scende.
+ *
+ * 📌 `resize: 'vertical'` (dal mockup): chi riscrive il messaggio a mano può
+ *    allargarlo. Mai orizzontale — allargherebbe oltre il pannello.
+ */
+export function CampoTestoLungo(props: {
+  label: string
+  valore: string
+  onCambia: (v: string) => void
+  /** Riga sotto il campo, legata con `aria-describedby` (come i fratelli). */
+  aiuto?: string
+  /**
+   * 🛑 Il tetto lo decide CHI CHIAMA, perché è il tetto della sua rotta: un
+   * numero scritto qui sarebbe una seconda copia di un limite che vive altrove.
+   */
+  massimo?: number
+  /**
+   * Il testo si legge ma non si tocca più. 🔑 Serve al caso in cui quel testo è
+   * **già uscito**: lasciarlo modificabile permetterebbe di registrare una
+   * stringa diversa da quella che il destinatario ha ricevuto.
+   */
+  soloLettura?: boolean
+  /** Altezza minima in px — si MISURA sul contenuto vero, non si sceglie. */
+  altezzaMinima?: number
+}) {
+  const {
+    label,
+    valore,
+    onCambia,
+    aiuto,
+    massimo,
+    soloLettura = false,
+    altezzaMinima = ALTEZZA_TESTO_LUNGO,
+  } = props
+  const id = useId()
+  const idAiuto = `${id}-aiuto`
+
+  return (
+    <div>
+      <style>{`
+        .ds-campo-testo-lungo:focus {
+          outline: 2px solid var(--blue);
+          outline-offset: 2px;
+        }
+      `}</style>
+      <label htmlFor={id} style={stileLabel}>
+        {label}
+      </label>
+      <textarea
+        id={id}
+        className="ds-campo-testo-lungo"
+        aria-describedby={aiuto ? idAiuto : undefined}
+        value={valore}
+        maxLength={massimo}
+        readOnly={soloLettura}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onCambia(e.target.value)}
+        style={{
+          display: 'block',
+          boxSizing: 'border-box',
+          width: '100%',
+          minHeight: altezzaMinima,
+          resize: 'vertical',
+          borderRadius: raggio.riga,
+          border: '1px solid var(--filo-superficie)',
+          background: 'var(--fondo-superficie)',
+          color: 'var(--ink)',
+          fontFamily: tipografia.famiglia,
+          fontSize: tipografia.size.body,
+          fontWeight: tipografia.weight.semibold,
+          lineHeight: 1.45,
+          padding: '14px 16px',
+        }}
       />
       {aiuto && (
         <p id={idAiuto} style={stileAiuto}>
