@@ -146,10 +146,15 @@ non `uachelab.com`: questo ramo non è pubblicato, quindi in produzione il fogli
 
 🔑 **La misura più forte non viene dal confronto prima/dopo: viene dall'`audit_log`.** Ho estratto la
 **differenza campo per campo** di ogni riga scritta durante il giro (cinque `UPDATE`), e
-**`prima_immissione_at` non compare in nessuna**. Non «era uguale alla fine»: **non è mai stata
-toccata**, nemmeno da una consegna nuova. È l'invariante dell'Allegato XIII punto 4 — il termine dei
-dieci anni decorre dalla **prima** immissione — e vive in una riga sola (`orchestrate.ts:337`,
-`prima_immissione_at: lavoro.prima_immissione_at ?? now`) che nessuna prova toccava.
+**`prima_immissione_at` non compare in nessuna**.
+
+🔴 **E l'assenza dice più di «non è stata toccata» — dice che è stata RISCRITTA UGUALE, che è la cosa
+che serviva provare.** La differenza è calcolata vecchio-contro-nuovo, quindi «assente» significa
+«vecchio = nuovo». La riconsegna **quella colonna la scrive**: `orchestrate.ts:337` la mette
+esplicitamente nel `SET`, come `lavoro.prima_immissione_at ?? now`. Se avessi letto l'assenza come «il
+cammino non ci passa», avrei provato molto meno: quello che è provato è che **il cammino ci passa e la
+guardia `??` regge**. Ed è l'invariante dell'Allegato XIII punto 4 — il termine dei dieci anni decorre
+dalla **prima** immissione — che vive in quella riga sola e che nessuna prova toccava.
 
 E la promessa del dialogo di conferma — «*DdC e buono di consegna si generano al tocco*» — sul secondo
 giro **non si avvera, ed è giusto così**: la porta di idempotenza di `generate-ddc.ts:99-108` trova la
@@ -341,7 +346,20 @@ importa `SCELTE` da `effetti.ts` e percorre le strade da lì**: se le due liste 
 prova di categoria coprirebbe la copia **sbagliata** senza dirlo. Chi farà crescere il vocabolario deve
 toccarle tutte e due.
 
-**4. 🟡 `buoni_consegna` è VUOTA su tutto il laboratorio E2E** mentre `progressivi_anno.buono` è a 7.
+**4. 🔴 LE MIE 16 PROVE D'INTEGRAZIONE NON GIRERANNO MAI DA SOLE — e la casa ha già ratificato che
+cosa vuol dire.** Non è solo `verify:full` (§⑥-2): `provato:` `.github/workflows/ci.yml:34-38` lancia
+`npx vitest run` con un `env` che porta **solo** `NEXT_PUBLIC_SUPABASE_URL` e la chiave anonima —
+**niente `SUPABASE_DB_URL`**. Quindi in CI si saltano, esattamente come le 4 rosse preesistenti che
+questo stesso resoconto riferisce al §④. Il verdetto è già scritto in roadmap dal 06/08, su quel
+medesimo file: «*nessuno poteva accorgersene… **una prova che non gira non è una prova***».
+🔑 **Le 16 nuove ereditano quella condizione dal primo giorno**, e vale la pena dirlo qui perché sono
+proprio le prove che questo compito esisteva per scrivere.
+➡️ **Che cosa la chiuderebbe** (non l'ho fatto, è fuori mandato): un segreto `SUPABASE_DB_URL` in CI e
+un passo `npm run test:integration` **separato**, condizionato alla presenza del segreto — così a
+mancare è **il passo, in modo rumoroso**, invece delle prove in silenzio. Finché non c'è, l'unica
+invocazione che le esercita è quella scritta al §④, e va nell'handoff.
+
+**5. 🟡 `buoni_consegna` è VUOTA su tutto il laboratorio E2E** mentre `progressivi_anno.buono` è a 7.
 Il buono vive sulle colonne del lavoro (`buono_numero`, `buono_pdf_url`, `orchestrate.ts:301-305`), non
 in quella tabella — quindi **non è per forza un difetto**, e la causa **non l'ho verificata**: la
 scrivo perché una tabella vuota con un progressivo a 7 è il genere di cosa che si scopre tardi.

@@ -341,6 +341,15 @@ describe.skipIf(skipIntegrationTests)('riporta_a_pronto_atomica — la funzione 
    * guardia parte. Il trigger nasce e muore dentro la transazione annullata
    * (il DDL in Postgres è transazionale) — nessuna migration registrata.
    *
+   * ⚠️ IL PREZZO, SCRITTO QUI PERCHÉ NON SI PAGHI DUE VOLTE: `CREATE TRIGGER …
+   * ON public.lavori` prende un lock **ACCESS EXCLUSIVE sull'intera tabella**
+   * per tutta la transazione. Vitest gira i file in parallelo, e gli altri file
+   * d'integrazione scrivono `lavori` sullo stesso laboratorio di prova: se un
+   * giorno questa suite si pianta invece di fallire, **è questa riga**, non un
+   * difetto del database. Oggi è accettabile perché la transazione dura
+   * millisecondi e il banco è di sole prove; se dà noia, si lancia
+   * `npx vitest run tests/integration --no-file-parallelism`.
+   *
    * ➡️ Effetto collaterale utile: prova che quella «rete difensiva
    * irraggiungibile» è viva e non codice morto.
    */
