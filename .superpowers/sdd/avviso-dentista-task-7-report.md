@@ -1,7 +1,7 @@
 # Task 7 — resoconto: «il promemoria parla dalla home»
 
 **Ondata:** «l'avviso al dentista» · **ramo:** `intervento-post-consegna` · **10/08/2026** (`date` → `Mon Aug 10 00:59:16 CEST 2026`)
-**Salvataggio:** `ba831dea` — *feat(avvisi): il promemoria dell'avviso al dentista parla dalla home*
+**Salvataggi:** `ba831dea` (implementazione + prove) · `a006f940` (questo resoconto) · `1c0e7ec1` (§11 — un commento falso che avevo scritto io, corretto e pinnato)
 **Stato:** `DONE_WITH_CONCERNS` — il lavoro è finito e verde; restano **una prova a schermo non fatta** (§8) e **un contro-argomento sull'ordine** che non è di un esecutore chiudere (§7).
 
 ---
@@ -143,13 +143,16 @@ npm run verify:full > …/verify.log 2>&1; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
 
 ```
 Test Files  459 passed | 10 skipped (469)
-      Tests  5979 passed | 128 skipped (6107)
-✓ Compiled successfully in 3.3s
+      Tests  5980 passed | 128 skipped (6108)
+✓ Compiled successfully in 3.2s
 ```
+(Rilanciato dopo la correzione della §11 — il giro precedente diceva `5979`, cioè una prova in meno:
+è quella aggiunta lì.)
 `npx tsc --noEmit` → **nessun output** (zero errori), lanciato anche a parte.
 
 **Il riferimento del brief torna esatto, e la quadratura è la prova che non ho mosso altro:**
-5949 → **5979** = **+30**, che è precisamente `+16` (striscia) `+14` (avvisi-queries) misurate contro
+5949 → **5979** = **+30** (poi **5980**, +31, con la prova della §11), che è precisamente `+16` (striscia,
+poi 17) `+14` (avvisi-queries) misurate contro
 `HEAD` (`git show HEAD:<file> | grep -cE "^\s+it\("`). 126 → **128** = **+2**, che sono esattamente le due
 prove d'integrazione nuove, saltate in locale perché `verify:full` non carica `.env.local`.
 ➡️ **Nessuna prova preesistente cambia stato.**
@@ -170,6 +173,7 @@ Riferimento a mutazione zero: `Tests  106 passed (106)` sui due file unitari.
 | **M6** | sposto il promemoria **in testa** alla lista del titolare | `2 failed \| 104 passed` | `acceso INSIEME a un ritardo: parla il ritardo` · `…altri vale 2` |
 | **M7** | tolgo `.eq('laboratorio_id', …)` dalla lettura | `2 failed \| 104 passed` | `interroga … i filtri giusti, e sono TUTTI E DUE` · `il filtro sul laboratorio porta il laboratorio CHIESTO` |
 | **M8** | `DAL_PIU_VECCHIO` → `{ ascending: false }` | `2 failed \| 104 passed` | **una del Task 6** (`DUE riemissioni fanno DUE avvisi aperti…`) **e una del Task 7** (`chiede UNA riga sola, la PIÙ VECCHIA…`) |
+| **M9** | sposto il promemoria appena **sopra `s1`** — la mutazione che il commento falso della §11 invitava a fare | `3 failed \| 68 passed` | `🛑 ma sta SOTTO la fattura scartata…` (la prova nuova) + le due dell'ordine |
 
 🔑 **M1 e M3 sono le due che contano davvero**, ed erano il punto debole da chiudere: invertire
 `puoVedereAvviso` capovolge **tutti e due** gli strati insieme, quindi proverebbe solo «un cancello
@@ -269,3 +273,29 @@ dove la fixture esiste già. Se preferisci farla prima, va preparata a mano una 
 - **Non ho misurato il costo della query aggiunta sulla home**, che è la pagina più caricata dell'app. Sta
   nel `Promise.all` (zero latenza aggiunta in serie) e usa un indice parziale guidato da `laboratorio_id`,
   ma è un ragionamento, non una misura.
+
+---
+
+## 11. 🔴 Una correzione a me stesso, trovata in revisione finale
+
+**Avevo scritto nel commento sopra `LIVELLO1_PER_RUOLO` una frase che l'array subito sotto smentiva:**
+
+> ~~«② Sta **sopra** i pagamenti **e la fattura scartata**…»~~
+
+**Falso.** `s1` (fattura scartata) — e `s5` (materiale) — precedono `sAvvisoDentista` in **tutte e quattro**
+le liste. Il promemoria sta sopra `s7` **e basta**. Il piano diceva «prima dei pagamenti», non «prima di
+tutto il fiscale», e l'array era giusto: era la **prosa** a promettere più di quello che il codice fa.
+
+🔑 **È esattamente la patologia che `CLAUDE.md` §9 nomina due volte** — «*la frase che c'era qui diceva una
+cosa che il codice smentiva*» e «*vince ciò che si legge per primo e in grassetto, non ciò che è vero*». Un
+commento che descrive un ordine diverso da quello reale non è un refuso: **è un invito a “sistemare”
+l'array per farlo combaciare**, cioè a introdurre il difetto che il commento descrive.
+
+**Corretto**, e — perché non sia solo prosa migliore — **pinnato con una prova che prima non c'era**:
+`🛑 ma sta SOTTO la fattura scartata…`, su `titolare` **e** `front_desk` (dove `s1` sta a metà lista, non
+in testa). La mutazione **M9** conferma che ora quel riordino diventa rosso: prima sarebbe passato verde,
+perché nessuna asserzione confrontava il promemoria con `s1`.
+
+⚠️ **La §7 di questo resoconto era invece già giusta** («sopra i pagamenti», senza aggiunte): la frase
+sbagliata viveva **solo nel codice**. È il verso peggiore dei due — il resoconto lo legge una persona una
+volta, il commento lo legge chiunque tocchi quel file da qui in avanti.

@@ -830,6 +830,22 @@ describe('scegliSegnale — Task 7: il promemoria dell\'avviso al dentista', () 
     expect(s.altri).toBe(1)
   })
 
+  it('🛑 ma sta SOTTO la fattura scartata: «prima dei pagamenti» non vuol dire «prima di tutto il fiscale»', () => {
+    // Senza questa prova, l'unica cosa che pinna la posizione è il confronto coi ritardi (M6): un
+    // riordino che portasse il promemoria appena SOPRA `s1` resterebbe verde. E s1 lo precede in
+    // TUTTE E QUATTRO le liste, `front_desk` compreso — dove s1 sta a metà invece che in testa.
+    const i: IngressiStriscia = { ...VUOTO,
+      avvisoDaComunicare: AVVISO, fatturaScartata: { id: 'f1', numero: '2026-0139' } }
+
+    const titolare = scegliSegnale('titolare', i)
+    expect(titolare.forte).toBe('Fattura n.2026-0139')
+    expect(titolare.altri).toBe(1)
+
+    const frontDesk = scegliSegnale('front_desk', i)
+    expect(frontDesk.forte).toBe('Fattura n.2026-0139')
+    expect(frontDesk.altri).toBe(1)
+  })
+
   it('acceso INSIEME a un pagamento scaduto: parla il promemoria, il pagamento si conta', () => {
     const s = scegliSegnale('titolare', { ...VUOTO,
       avvisoDaComunicare: AVVISO, pagamentoScaduto: 'Studio Verdi' })

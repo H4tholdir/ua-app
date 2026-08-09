@@ -231,9 +231,13 @@ const sPareteIntro: Candidato = (i) =>
 //     aspettando: la finestra è oggi. Il promemoria è un obbligo di legge (Art. 19 GDPR) senza
 //     una scadenza a giorni — «senza ingiustificato ritardo» si misura in giorni, non in ore. Fra
 //     due cose che chiedono di essere fatte, parla per prima quella che scade prima.
-//   ② Sta **sopra** i pagamenti e la fattura scartata per il verso opposto: un pagamento arretrato
-//     non peggiora se lo si guarda domani, un obbligo di informazione sì — e chi lo deve adempiere
-//     è la stessa persona che sta guardando la home, non un commercialista.
+//   ② Sta sopra **i pagamenti**, e sopra quelli soltanto: la fattura scartata (s1) e il materiale in
+//     esaurimento (s5) gli restano DAVANTI in ogni lista. Il piano diceva «prima dei pagamenti», non
+//     «prima di tutto il fiscale», e questa riga rispetta quello — s1 è a sua volta una scadenza con
+//     un orologio (una fattura rifiutata dallo SdI va rifatta), mentre un pagamento arretrato non
+//     peggiora se lo si guarda domani, e un obbligo di informazione sì.
+//     ⚠️ La posizione rispetto a s1 è PINNATA da una prova apposta: senza, il primo riordino la
+//     cambierebbe senza che niente diventi rosso.
 //
 // 🔴 E IL CONTRO-ARGOMENTO SI SCRIVE QUI, perché chi legge fra sei mesi deve poterlo pesare, non
 //    scoprirlo. I quattro ritardi operativi (s2→pila rossa, s2b→ambra, s3→viola, s4→blu) hanno
