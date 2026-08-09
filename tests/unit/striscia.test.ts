@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, leggiTecniciSenzaAnagrafica, leggiLiberazioneRecente, type IngressiStriscia } from '@/lib/dashboard/striscia'
+// Task 7 — ⚖️ D342: il perimetro si INTERROGA, non si ribatte (v. il blocco in fondo).
+import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PileHome } from '@/lib/dashboard/pile-home'
 
@@ -727,5 +731,187 @@ describe('leggiLiberazioneRecente — ultima liberazione per consegna nelle ulti
       expect.stringContaining('lettura liberazioneRecente fallita — degrado a null:'),
       expect.any(Error)
     )
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// Task 7 dell'ondata «l'avviso al dentista» — IL PROMEMORIA PARLA DALLA HOME.
+//
+// Il Task 6 ha portato il promemoria sulla SCHEDA del lavoro: per vederlo bisogna
+// però sapere che c'è, cioè aprire proprio quel lavoro. Qui parla dalla striscia,
+// che è il posto dove la home dice «guarda questo».
+//
+// 🛑 IL PERIMETRO NON SI RIBATTE, SI IMPORTA — ⚖️ D342. L'elenco dei tre ammessi
+//    vive in `src/lib/avvisi/ruoli.ts` e queste prove lo INTERROGANO
+//    (`puoVedereAvviso`) invece di ricopiarlo: una prova che ribattesse i tre nomi
+//    resterebbe verde il giorno in cui la decisione cambiasse in un posto solo, e
+//    sarebbe il terzo elenco che il Task 6 esisteva per togliere.
+//
+// 🔑 E IL CANDIDATO STA IN TUTTI E QUATTRO GLI ARRAY DI RUOLO, DI PROPOSITO.
+//    `LIVELLO1_PER_RUOLO` dice DOVE parla (l'ordine); `puoVedereAvviso` dice SE
+//    parla (il permesso). Metterlo a mano in esattamente tre array sarebbe
+//    scrivere D342 una terza volta, in forma di appartenenza a una lista.
+
+/** I cinque veri, dal CHECK su `public.utenti.ruolo` — non i quattro di `schema.sql`. */
+const CINQUE_RUOLI = ['titolare', 'tecnico', 'front_desk', 'admin_rete', 'admin_sistema'] as const
+
+/** Il promemoria come arriva dal chiamante: l'id è del LAVORO, e il nome lo dice. */
+const AVVISO = { lavoroId: 'lav-77', numeroLavoro: '2026-0147' }
+
+describe('scegliSegnale — Task 7: il promemoria dell\'avviso al dentista', () => {
+  it('titolare, un avviso aperto → nomina la striscia con numero, testo e CTA verso la scheda', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, avvisoDaComunicare: AVVISO })
+    expect(s).toEqual({
+      attenzione: true,
+      forte: 'n.2026-0147',
+      testo: 'aspetta l\'avviso al dentista',
+      azione: { etichetta: 'Apri ›', href: '/lavori/lav-77' },
+    })
+  })
+
+  it('nessun avviso (null) → nessun segnale: si cade sul silenzio', () => {
+    expect(scegliSegnale('titolare', { ...VUOTO, avvisoDaComunicare: null }).silenzio).toBe(true)
+  })
+
+  it('🛑 campo ASSENTE (undefined) → nessun segnale: è il caso dell\'anteprima admin, che non legge il dato', () => {
+    // `getSegnaleStriscia` non popola `avvisoDaComunicare` (la lettura vive fuori da
+    // `fetchIngressiStriscia`, v. la sentinella in fondo a questo file): per l'anteprima il campo
+    // resta `undefined`, e il promemoria non compare. È il modo in cui ⚖️ D342 tiene fuori
+    // `admin_sistema`, che l'anteprima la guarda con il ruolo cablato 'titolare'.
+    expect('avvisoDaComunicare' in VUOTO).toBe(false)
+    expect(scegliSegnale('titolare', VUOTO).silenzio).toBe(true)
+  })
+
+  // ⚖️ D342 — IL PERIMETRO, provato sui CINQUE ruoli veri e senza ribattere l'elenco.
+  it('i cinque ruoli: vede il promemoria ESATTAMENTE chi `puoVedereAvviso` ammette, nessun altro', () => {
+    for (const ruolo of CINQUE_RUOLI) {
+      const s = scegliSegnale(ruolo, { ...VUOTO, avvisoDaComunicare: AVVISO })
+      const loVede = s.testo === 'aspetta l\'avviso al dentista'
+      expect(loVede, `ruolo ${ruolo}`).toBe(puoVedereAvviso(ruolo))
+    }
+  })
+
+  it('🛑 `admin_rete` NON lo vede NEMMENO se il dato gli arriva in mano (⚖️ D342, escluso per nome)', () => {
+    // Il dato non dovrebbe nemmeno essere letto per lui (il cancello sta nella lettura), ma questa
+    // prova salta quel primo strato di proposito: verifica il SECONDO, cioè il filtro dentro
+    // `candidatiLivello1`. Senza, quel filtro sarebbe codice non provato.
+    const s = scegliSegnale('admin_rete', { ...VUOTO, avvisoDaComunicare: AVVISO })
+    expect(s.silenzio).toBe(true)
+    expect(s.altri).toBeUndefined()
+  })
+
+  it('🛑 un ruolo SCONOSCIUTO non lo vede, benché `LIVELLO1_PER_RUOLO` ripieghi sulla lista del tecnico', () => {
+    // `candidatiLivello1` fa `LIVELLO1_PER_RUOLO[ruolo] ?? LIVELLO1_PER_RUOLO.tecnico`: un ruolo
+    // fuori elenco eredita la lista del tecnico, che il promemoria ce l'ha. Il ripiego è
+    // fail-OPEN, e questa prova pinna il fatto che per QUESTO candidato non lo sia — il permesso
+    // non passa dall'appartenenza all'array ma da `puoVedereAvviso`, che dice no.
+    const s = scegliSegnale('ruolo_che_non_esiste', { ...VUOTO, avvisoDaComunicare: AVVISO })
+    expect(s.silenzio).toBe(true)
+    // …ma la lista del tecnico la eredita davvero: il ripiego esiste, non l'ho spento io.
+    expect(scegliSegnale('ruolo_che_non_esiste', { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } }).forte).toBe('n.144')
+  })
+
+  it('front_desk e tecnico lo vedono, e con la stessa copy del titolare', () => {
+    for (const ruolo of ['front_desk', 'tecnico']) {
+      const s = scegliSegnale(ruolo, { ...VUOTO, avvisoDaComunicare: AVVISO })
+      expect(s.forte, ruolo).toBe('n.2026-0147')
+      expect(s.azione, ruolo).toEqual({ etichetta: 'Apri ›', href: '/lavori/lav-77' })
+    }
+  })
+
+  // ── L'ORDINE (piano Task 7): dopo i ritardi operativi, prima dei pagamenti ──
+  it('acceso INSIEME a un ritardo: parla il ritardo, il promemoria si conta', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      avvisoDaComunicare: AVVISO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 3 } } })
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire 3 giorni fa')
+    expect(s.altri).toBe(1)
+  })
+
+  it('acceso INSIEME a un pagamento scaduto: parla il promemoria, il pagamento si conta', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      avvisoDaComunicare: AVVISO, pagamentoScaduto: 'Studio Verdi' })
+    expect(s.forte).toBe('n.2026-0147')
+    expect(s.altri).toBe(1)
+  })
+
+  it('per il tecnico sta in fondo alla propria lista: un ritardo lo precede, e lo conta', () => {
+    const s = scegliSegnale('tecnico', { ...VUOTO,
+      avvisoDaComunicare: AVVISO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(1)
+  })
+
+  it('un ritardo e un pagamento insieme al promemoria: nomina il ritardo, `altri` vale 2', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      avvisoDaComunicare: AVVISO, pagamentoScaduto: 'Studio Verdi',
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(2)
+  })
+
+  it('il trial ≤3gg resta in TESTA anche al promemoria (ratifica 26/07, «ordine di parola»)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, avvisoDaComunicare: AVVISO, trial: { giorniRimasti: 1 } })
+    expect(s.forte).toBe('Prova:')
+    expect(s.altri).toBe(1)
+  })
+
+  it('è un allarme, non un racconto: precede i racconti quieti della catena di ripiego', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      avvisoDaComunicare: AVVISO, parete: { n: 12, introVista: false }, ddcOggi: 4 })
+    expect(s.attenzione).toBe(true)
+    expect(s.forte).toBe('n.2026-0147')
+    expect(s.intro).toBeUndefined()
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// LA SENTINELLA DEL CABLAGGIO — Task 7.
+//
+// 🔴 IL FATTO CHE LA RENDE NECESSARIA, ed è il ritrovamento di questo compito.
+//    `/admin/labs/[id]/live/page.tsx:58` chiama `getSegnaleStriscia(svc, id,
+//    'titolare', pile)` — il ruolo è CABLATO. Quella pagina la guarda un
+//    `admin_sistema` (`:24` lo pretende), cioè il ruolo che ⚖️ D342 esclude PER
+//    NOME (GDPR Art. 28(3)(a): personale UÀ, non era alla telefonata). ➡️ Se la
+//    lettura del promemoria vivesse dentro `fetchIngressiStriscia`, l'anteprima
+//    la farebbe partire col ruolo 'titolare' e il personale UÀ vedrebbe il
+//    promemoria di un laboratorio in cui non lavora.
+//    La difesa è STRUTTURALE: la lettura sta FUORI, e il chiamante che la vuole
+//    se la porta (stile `trial`/`tecniciSenzaAnagrafica`/`liberazioneRecente` —
+//    il commento su `leggiTecniciSenzaAnagrafica`, striscia.ts, dichiara questa
+//    stessa trappola per la propria query).
+//
+// 🛑 MA UNA DIFESA STRUTTURALE NON PROVATA È UNA DIFESA CHE UN RIORDINO SPEGNE.
+//    Nessuna prova unitaria rende un componente server asincrono, quindi nessuna
+//    mutazione dentro `page.tsx` può diventare rossa (è la lezione misurata del
+//    Task 6, `queries.ts:144-154`). Si legge il SORGENTE, come fa
+//    `tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx`.
+describe('Task 7 — la sentinella: dove vive la lettura del promemoria', () => {
+  const leggi = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
+
+  it('la home CHIAMA la lettura e ne passa l\'esito a `scegliSegnale`', () => {
+    const home = leggi('src/app/(app)/dashboard/page.tsx')
+    expect(home).toContain('avvisoPerLaStriscia')
+    expect(home).toContain('avvisoDaComunicare')
+  })
+
+  it('🛑 `striscia.ts` NON può eseguire la lettura: se ci finisse dentro, l\'anteprima admin la eseguirebbe', () => {
+    // 🔑 Si guarda l'IMPORT, non il nome: `striscia.ts` il nome lo cita eccome, nei commenti che
+    // spiegano perché la lettura sta altrove — e una sentinella che cercasse la stringa sarebbe
+    // rossa proprio per la prosa che documenta la difesa. L'import invece è la condizione
+    // NECESSARIA per chiamarla: senza, dentro `fetchIngressiStriscia` non ci può finire.
+    // (⚠️ `@/lib/avvisi/ruoli` è un altro modulo e resta ammesso: è il cancello, non la lettura.)
+    const striscia = leggi('src/lib/dashboard/striscia.ts')
+    expect(striscia).not.toMatch(/from ['"]@\/lib\/avvisi\/queries['"]/)
+    expect(striscia).not.toMatch(/avvisoPerLaStriscia\s*\(/)
+  })
+
+  it('🛑 e l\'anteprima admin non se la porta per conto proprio', () => {
+    const anteprima = leggi('src/app/admin/labs/[id]/live/page.tsx')
+    expect(anteprima).not.toMatch(/from ['"]@\/lib\/avvisi\/queries['"]/)
+    expect(anteprima).not.toMatch(/avvisoPerLaStriscia\s*\(/)
   })
 })

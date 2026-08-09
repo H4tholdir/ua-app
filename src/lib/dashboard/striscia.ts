@@ -2,6 +2,9 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMaterialiEsaurimento, getPagamentiScadutiTop } from '@/lib/dashboard/queries'
 import { adessoRoma } from '@/lib/utils/data-roma'
+// Task 7 — ⚖️ D342: chi vede il promemoria dell'avviso al dentista. L'elenco NON si riscrive qui,
+// si importa: `ruoli.ts` è una foglia senza import proprio perché ogni superficie possa leggerlo.
+import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
 import type { DatiPileStriscia, PileHome } from './pile-home'
 
 export type SegnaleStriscia = {
@@ -59,6 +62,19 @@ export type IngressiStriscia = {
   // `fetchIngressiStriscia`, per lo stesso motivo di `leggiTecniciSenzaAnagrafica`: è lab-wide,
   // non uno dei 4 ingressi fiscali/pagamenti/ddc gestiti lì.
   liberazioneRecente?: { cassettaId: string; nome: string; quando: string } | null
+  // Task 7 (ondata «l'avviso al dentista») — il promemoria ex Art. 19 GDPR ancora aperto in
+  // QUESTO laboratorio: una dichiarazione già consegnata è stata corretta e rifatta, e il
+  // dentista non lo sa ancora. Propagato dal chiamante (stile `trial`/`tecniciSenzaAnagrafica`),
+  // letto da `avvisoPerLaStriscia` in `src/lib/avvisi/queries.ts` — 🛑 e NON da
+  // `fetchIngressiStriscia`, per una ragione misurata che vale la pena leggere per intero nel
+  // commento sopra `sAvvisoDentista`.
+  //
+  // 🔑 I DUE CAMPI SI CHIAMANO COSÌ PERCHÉ UN `id` QUI MENTIREBBE. La struttura si chiama
+  // «avviso», ma l'identificativo che serve alla striscia è quello del LAVORO (la CTA apre
+  // `/lavori/…`, non l'avviso, che una schermata propria non ce l'ha) e il numero è il numero
+  // del lavoro. Un campo `id` dentro una cosa chiamata «avviso», contenente l'id di un'altra
+  // cosa, è una trappola per chi legge dopo: qui i nomi dicono di chi sono.
+  avvisoDaComunicare?: { lavoroId: string; numeroLavoro: string } | null
   pile: DatiPileStriscia
 }
 
@@ -112,6 +128,25 @@ const s5: Candidato = (i) => i.materialeRosso ? { attenzione: true, forte: i.mat
 const s6: Candidato = (i) => i.pile.fermo && i.pile.fermo.giorni >= 5 ? { attenzione: true, forte: `n.${i.pile.fermo.numero}`, testo: `è fermo da ${i.pile.fermo.giorni} giorni`, azione: { etichetta: 'Apri ›', href: `/lavori/${i.pile.fermo.id}` } } : null
 const s7: Candidato = (i) => i.pagamentoScaduto ? { attenzione: true, forte: i.pagamentoScaduto, testo: 'ha un pagamento scaduto', azione: { etichetta: 'Guarda ›', href: '/scadenzario' } } : null
 const s8: Candidato = (i) => i.ddcOggi > 0 ? { attenzione: false, forte: null, testo: `Oggi ho preparato ${i.ddcOggi} DdC ✓`, azione: null } : null
+// Task 7 (ondata «l'avviso al dentista») — UNA DICHIARAZIONE GIÀ CONSEGNATA È STATA CORRETTA E
+// RIFATTA, E IL DENTISTA NON LO SA ANCORA. Il Task 6 ha messo il promemoria sulla scheda del
+// lavoro; per vederlo lì bisogna però aprire proprio quel lavoro, cioè sapere già che c'è. Qui
+// parla dalla home.
+//
+// 🔑 IL DATO ARRIVA DAL CHIAMANTE, e non è una preferenza di stile: v. il commento lungo in
+//    `(app)/dashboard/page.tsx` sopra la chiamata a `avvisoPerLaStriscia` — l'anteprima admin
+//    passa un ruolo cablato, e una lettura dentro `fetchIngressiStriscia` scavalcherebbe ⚖️ D342.
+//
+// 🛑 QUANDO SONO DUE, PARLA IL PIÙ VECCHIO — e la scelta NON è ripetuta qui. La lettura ne
+//    consegna uno solo, il più vecchio, ed è la stessa regola (e lo stesso commento) di
+//    `avvisoPerLaScheda`: i due avvisi portano `campi_corretti` diversi, sono due rettifiche
+//    distinte ex Art. 19 GDPR, e si consuma prima l'obbligo nato prima. ⚠️ La regola è a panel:
+//    se cambiasse, cambia in `src/lib/avvisi/queries.ts` e le due superfici si muovono insieme —
+//    scriverla anche qui vorrebbe dire due schermate che un giorno si contraddicono.
+const sAvvisoDentista: Candidato = (i) => i.avvisoDaComunicare
+  ? { attenzione: true, forte: `n.${i.avvisoDaComunicare.numeroLavoro}`, testo: 'aspetta l\'avviso al dentista',
+      azione: { etichetta: 'Apri ›', href: `/lavori/${i.avvisoDaComunicare.lavoroId}` } }
+  : null
 // Il vecchio segnale 9 «Tutto a posto: N consegne oggi…» è MORTO (D3 §3.4, Task 16, 3-bis):
 // compariva SEMPRE, anche a costo di dire il nulla. Ora, se nessun candidato accende nulla,
 // `scegliSegnale` restituisce `silenzio: true` — il saluto respira, la striscia sparisce.
@@ -190,15 +225,44 @@ const sPareteIntro: Candidato = (i) =>
 // si usa `s2bDedup`, non `s2b` — ritardo e consegna-oggi-non-pronta NON sono garantiti disgiunti
 // (v. commento su `stessoLavoroRitardoOggi` sopra s2bDedup), un lavoro in stato `in_ritardo` con
 // consegna prevista oggi accende ENTRAMBI per lo stesso lavoro fisico.
+// Task 7 — DOVE STA `sAvvisoDentista` IN QUEST'ORDINE, E PERCHÉ. Posizione: **dopo i ritardi
+// operativi, prima dei pagamenti** (piano, Task 7). L'argomento che la regge:
+//   ① Un ritardo è **una consegna che slitta**, e ha dall'altra parte un dentista che sta già
+//     aspettando: la finestra è oggi. Il promemoria è un obbligo di legge (Art. 19 GDPR) senza
+//     una scadenza a giorni — «senza ingiustificato ritardo» si misura in giorni, non in ore. Fra
+//     due cose che chiedono di essere fatte, parla per prima quella che scade prima.
+//   ② Sta **sopra** i pagamenti e la fattura scartata per il verso opposto: un pagamento arretrato
+//     non peggiora se lo si guarda domani, un obbligo di informazione sì — e chi lo deve adempiere
+//     è la stessa persona che sta guardando la home, non un commercialista.
+//
+// 🔴 E IL CONTRO-ARGOMENTO SI SCRIVE QUI, perché chi legge fra sei mesi deve poterlo pesare, non
+//    scoprirlo. I quattro ritardi operativi (s2→pila rossa, s2b→ambra, s3→viola, s4→blu) hanno
+//    **una seconda voce sulla stessa schermata**: la loro pila sta subito sotto la striscia, con
+//    il suo numero. Il promemoria **non ha nessuna pila**. Quando non nomina la striscia gli resta
+//    solo il «e un'altra» dell'aggregato, che non dice *quale* — e siccome un laboratorio ha un
+//    lavoro in ritardo quasi ogni giorno, in pratica tace quasi sempre. È la stessa forma
+//    dell'argomento con cui il trial ≤3gg è stato portato in TESTA il 26/07 («a giorni dal blocco
+//    dell'app dev'essere lui a parlare»): raro, conseguente, senza altra voce.
+//    ➡️ Non è una decisione da esecutore: la posizione qui è quella del piano, il contro-argomento
+//    è riferito nel resoconto del Task 7 (R-E2). Se un panel lo accoglie, si sposta di una riga.
 const LIVELLO1_PER_RUOLO: Record<string, Candidato[]> = {
-  titolare: [s1, s2, s2bDedup, s3, s4, s5, s6, s7],
-  admin_rete: [s1, s2, s2bDedup, s3, s4, s5, s6, s7],
-  front_desk: [s2, s2bDedup, s3, s4, s1, s5, s6], // niente s7 (pagamenti — P7: solo tit/admin_rete)
-  tecnico: [s2, s2bDedup, s3, s4, s6], // niente s1/s5/s7 (fiscali/pagamenti — P7: mai al tecnico)
+  titolare: [s1, s2, s2bDedup, s3, s4, s5, s6, sAvvisoDentista, s7],
+  admin_rete: [s1, s2, s2bDedup, s3, s4, s5, s6, sAvvisoDentista, s7],
+  front_desk: [s2, s2bDedup, s3, s4, s1, s5, s6, sAvvisoDentista], // niente s7 (pagamenti — P7: solo tit/admin_rete)
+  tecnico: [s2, s2bDedup, s3, s4, s6, sAvvisoDentista], // niente s1/s5/s7 (fiscali/pagamenti — P7: mai al tecnico)
 }
 function candidatiLivello1(ruolo: string, i: IngressiStriscia): SegnaleStriscia[] {
   const perRuolo = LIVELLO1_PER_RUOLO[ruolo] ?? LIVELLO1_PER_RUOLO.tecnico
-  const accesi = perRuolo.map((c) => c(i)).filter((s): s is SegnaleStriscia => !!s)
+  // Task 7 — ⚖️ D342, e la divisione dei compiti è il punto: l'array qui sopra dice DOVE il
+  // promemoria parla (l'ordine), `puoVedereAvviso` dice SE parla (il permesso). Per questo
+  // `sAvvisoDentista` sta in TUTTI E QUATTRO gli array, compreso quello di `admin_rete` che non
+  // lo vedrà mai: metterlo a mano in esattamente tre sarebbe scrivere l'elenco di D342 una TERZA
+  // volta, in forma di appartenenza a una lista — cioè rifare il difetto che il Task 6 ha chiuso
+  // spostando l'elenco in `src/lib/avvisi/ruoli.ts`.
+  // 🛑 E chiude anche il ripiego della riga sopra, che è fail-OPEN: un ruolo fuori elenco eredita
+  // la lista del tecnico, promemoria compreso. Il filtro non gliela lascia prendere.
+  const ammessi = puoVedereAvviso(ruolo) ? perRuolo : perRuolo.filter((c) => c !== sAvvisoDentista)
+  const accesi = ammessi.map((c) => c(i)).filter((s): s is SegnaleStriscia => !!s)
   const g = i.trial?.giorniRimasti
   if ((ruolo === 'titolare' || ruolo === 'admin_rete') && g !== undefined && g !== null && g >= 0 && g <= 3) {
     const t = sTrial(i)

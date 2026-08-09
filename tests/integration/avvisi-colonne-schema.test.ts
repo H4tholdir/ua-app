@@ -14,6 +14,7 @@ import {
   avvisiDaComunicare,
   archivioCliente,
   avvisoPerLaScheda,
+  avvisoPerLaStriscia,
 } from '@/lib/avvisi/queries'
 
 // LE COLONNE CHE `src/lib/avvisi/queries.ts` CHIEDE ESISTONO DAVVERO.
@@ -76,6 +77,32 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — le colonne che il cod
           WHERE laboratorio_id = $1 AND lavoro_id = $1 AND cliente_id = $1
             AND stato = ANY($2::text[])
           ORDER BY created_at ASC, id ASC
+          LIMIT 0`,
+        ['00000000-0000-0000-0000-000000000000', ['da_comunicare']]
+      )
+      expect(rows).toHaveLength(0)
+    })
+  })
+
+  it('Task 7 — e il numero del lavoro, che su questa tabella NON c’è, si prende da `lavori`', async () => {
+    // 🔑 `avvisoPerLaStriscia` non usa `COLONNE`: chiede due campi, e uno dei due
+    //    (`numero_lavoro`) sta su un'ALTRA tabella, incorporato attraverso la FK
+    //    `avvisi_dentista.lavoro_id → lavori.id`. Le prove qui sopra non lo toccano.
+    // 🛑 E STA IN QUESTO GRUPPO, non in quello col client di servizio più sotto,
+    //    perché QUESTO gira in CI e quello no (v. il cancello là). La colonna si
+    //    chiama `numero_lavoro` e **non** `numero` — ed è l'errore naturale da
+    //    fare, visto che ogni candidato della striscia chiama «numero» ciò che
+    //    mostra. Se sparisse o cambiasse nome, la lettura risponderebbe errore e il
+    //    promemoria ex Art. 19 GDPR sparirebbe **in silenzio**: `nienteConNota`
+    //    inghiotte l'errore e torna `null`, che è indistinguibile da «non c'è
+    //    nessun avviso».
+    await withRollback(async (client) => {
+      const { rows } = await client.query(
+        `SELECT a.lavoro_id, l.numero_lavoro
+           FROM public.avvisi_dentista a
+           JOIN public.lavori l ON l.id = a.lavoro_id
+          WHERE a.laboratorio_id = $1 AND a.stato = ANY($2::text[])
+          ORDER BY a.created_at ASC, a.id ASC
           LIMIT 0`,
         ['00000000-0000-0000-0000-000000000000', ['da_comunicare']]
       )
@@ -213,6 +240,29 @@ describe.skipIf(saltaViaServizio)('le due letture passano davvero da PostgREST c
     })
 
     expect(guasti(), 'PostgREST ha rifiutato la lettura').toBe('')
+    expect(avviso).toBeNull()
+  })
+
+  it('Task 7 — `avvisoPerLaStriscia`: PostgREST accetta l’EMBED, che `pg` non può provare', async () => {
+    // 🔑 QUESTA È L'UNICA PROVA CHE GUARDA L'EMBED NELLA FORMA IN CUI IL CODICE LO
+    //    SCRIVE. La sorella nel gruppo di sopra fa un `JOIN` in SQL: prova che la
+    //    colonna e la chiave esistano, non che `select('lavoro_id,
+    //    lavori(numero_lavoro)')` sia una frase che PostgREST capisce. Sono due
+    //    linguaggi diversi, e un embed si può sbagliare in modi che l'SQL non ha
+    //    (nome della relazione invece della tabella, FK ambigua fra due colonne).
+    //    ⚠️ Il giorno in cui `avvisi_dentista` guadagnasse una SECONDA FK verso
+    //    `lavori`, PostgREST rifiuterebbe l'embed come ambiguo (PGRST201) e questa
+    //    prova diventerebbe rossa **con ragione**.
+    ascoltaIGuasti()
+    const svc = getServiceClient()
+
+    const avviso = await avvisoPerLaStriscia({
+      svc,
+      laboratorioId: LAB_INESISTENTE,
+      ruolo: 'titolare',
+    })
+
+    expect(guasti(), 'PostgREST ha rifiutato la lettura o l’embed').toBe('')
     expect(avviso).toBeNull()
   })
 

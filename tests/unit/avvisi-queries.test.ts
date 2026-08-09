@@ -44,13 +44,17 @@
 //    riemissione, col suo corredo di lavoro, evento e dichiarazione.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { avvisiDaComunicare, archivioCliente, avvisoPerLaScheda } from '@/lib/avvisi/queries'
+import { avvisiDaComunicare, archivioCliente, avvisoPerLaScheda, avvisoPerLaStriscia } from '@/lib/avvisi/queries'
+// Task 7 — ⚖️ D342: il perimetro si INTERROGA, non si ribatte.
+import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
 import { STATI_AVVISO, STATI_CHIUSI } from '@/lib/avvisi/stati'
 
 const LAB = '11111111-1111-1111-1111-111111111111'
 const ALTRO_LAB = '22222222-2222-2222-2222-222222222222'
 const LAVORO = '33333333-3333-3333-3333-333333333333'
 const CLIENTE = '44444444-4444-4444-4444-444444444444'
+/** I cinque veri, dal CHECK su `public.utenti.ruolo` — non i quattro di `schema.sql`. */
+const CINQUE_RUOLI = ['titolare', 'tecnico', 'front_desk', 'admin_rete', 'admin_sistema'] as const
 
 type Spia = {
   consultato: number
@@ -61,10 +65,12 @@ type Spia = {
   filtri: Array<[string, unknown]>
   /** OGNI `.order()`: `['created_at', true]` = crescente. */
   ordini: Array<[string, boolean | undefined]>
+  /** Il `.limit()`, se c'è. `null` = la lettura non ne chiede nessuno. */
+  limite: number | null
 }
 
 function svcFinto(righe: Array<Record<string, unknown>>, guasto = false) {
-  const spia: Spia = { consultato: 0, tabella: null, colonne: null, filtri: [], ordini: [] }
+  const spia: Spia = { consultato: 0, tabella: null, colonne: null, filtri: [], ordini: [], limite: null }
 
   // La catena è un oggetto solo, «thenable»: `.eq()/.in()/.order()` tornano se
   // stessi e l'`await` finale legge `then`. Così l'ordine delle chiamate non
@@ -81,6 +87,10 @@ function svcFinto(righe: Array<Record<string, unknown>>, guasto = false) {
     },
     order(colonna: string, opzioni?: { ascending?: boolean }) {
       spia.ordini.push([colonna, opzioni?.ascending])
+      return catena
+    },
+    limit(n: number) {
+      spia.limite = n
       return catena
     },
     then(risolvi: (v: unknown) => unknown, rifiuta?: (e: unknown) => unknown) {
@@ -413,5 +423,164 @@ describe('archivioCliente — tutte le comunicazioni di QUEL cliente (consumator
 
     await expect(archivioCliente(svc, { clienteId: CLIENTE, laboratorioId: LAB })).resolves.toEqual([])
     expect(spiaLog).toHaveBeenCalled()
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// Task 7 — LA TERZA LETTURA: «c'è un promemoria aperto in QUESTO laboratorio?».
+//
+// 🔑 Diversa dalle altre due, e per questo esiste: `avvisiDaComunicare` guarda un
+//    LAVORO, `archivioCliente` guarda un CLIENTE, questa guarda un LABORATORIO
+//    intero — è la domanda che si fa la striscia della home, e nessuna delle due
+//    poteva rispondere.
+//
+// 🛑 LE DUE DOMANDE CHE OGNI PROVA QUI DEVE SUPERARE, e sono quelle costate care
+//    in questa casa: «se tolgo il cancello, questa diventa rossa?» e — quella che
+//    conta di più — «se lo INVERTO, diventa rossa?». Nel Task 6 le prove
+//    sorvegliavano che il cancello *esistesse*, e capovolgendolo restavano tutte
+//    verdi mentre a vedere il promemoria erano rimasti solo gli esclusi.
+
+/** Una riga come la chiede la striscia: due campi, e il numero arriva incorporato da `lavori`. */
+function rigaStriscia(over: Record<string, unknown> = {}) {
+  return { lavoro_id: LAVORO, lavori: { numero_lavoro: '2026-0147' }, ...over }
+}
+
+describe('avvisoPerLaStriscia — il promemoria aperto di QUESTO laboratorio', () => {
+  it('interroga `avvisi_dentista` con i filtri giusti, e sono TUTTI E DUE', async () => {
+    const { svc, spia } = svcFinto([rigaStriscia()])
+    await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(spia.consultato).toBe(1)
+    expect(spia.tabella).toBe('avvisi_dentista')
+    // 🛑 L'insieme intero: niente filtro sul lavoro (è lab-wide), ma il laboratorio e lo stato
+    //    devono esserci tutt'e due. Con `toContainEqual` toglierne uno resterebbe verde.
+    expect(spia.filtri).toEqual([
+      ['eq:laboratorio_id', LAB],
+      ['in:stato', ['da_comunicare']],
+    ])
+  })
+
+  it('🛑 il filtro sul laboratorio porta il laboratorio CHIESTO: è l’unica difesa, il servizio scavalca la RLS', async () => {
+    const { svc, spia } = svcFinto([])
+    await avvisoPerLaStriscia({ svc, laboratorioId: ALTRO_LAB, ruolo: 'titolare' })
+
+    const perLaboratorio = spia.filtri.filter(([c]) => c === 'eq:laboratorio_id')
+    expect(perLaboratorio).toHaveLength(1)
+    expect(perLaboratorio[0][1]).toBe(ALTRO_LAB)
+  })
+
+  it('lo stato è DERIVATO dal vocabolario, non battuto a mano: nessuno stato chiuso ci entra', async () => {
+    const { svc, spia } = svcFinto([])
+    await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    const [, statiChiesti] = spia.filtri.find(([c]) => c === 'in:stato')!
+    // Si confronta con `stati.ts`, mai con una copia: l'insieme chiesto è «tutti meno i chiusi».
+    expect(statiChiesti).toEqual(STATI_AVVISO.filter((s) => !(STATI_CHIUSI as readonly string[]).includes(s)))
+    for (const chiuso of STATI_CHIUSI) expect(statiChiesti).not.toContain(chiuso)
+  })
+
+  it('chiede UNA riga sola, la PIÙ VECCHIA, con `id` come pareggio deterministico', async () => {
+    // ⚖️ La stessa scelta della scheda (`avvisoPerLaScheda`), e non è ricopiata: la costante
+    //    `DAL_PIU_VECCHIO` la tiene in un posto solo. Due rettifiche distinte ex Art. 19 GDPR: si
+    //    consuma prima l'obbligo nato prima.
+    const { svc, spia } = svcFinto([])
+    await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(spia.ordini).toEqual([
+      ['created_at', true],
+      ['id', true],
+    ])
+    expect(spia.limite).toBe(1)
+  })
+
+  it('chiede il numero del LAVORO incorporato: sulla tabella degli avvisi non c’è', async () => {
+    const { svc, spia } = svcFinto([rigaStriscia()])
+    await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(spia.colonne).toContain('lavoro_id')
+    // ⚠️ `numero_lavoro`, non `numero`: la colonna su `lavori` si chiama così (schema.sql).
+    expect(spia.colonne).toContain('lavori(numero_lavoro)')
+  })
+
+  it('la riga diventa i due campi della striscia, e nessuno dei due si chiama `id`', async () => {
+    const { svc } = svcFinto([rigaStriscia()])
+    const esito = await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(esito).toEqual({ lavoroId: LAVORO, numeroLavoro: '2026-0147' })
+  })
+
+  it('l’embed arriva come ARRAY (è così che postgrest-js lo tipa senza generic): si normalizza', async () => {
+    const { svc } = svcFinto([rigaStriscia({ lavori: [{ numero_lavoro: '2026-0150' }] })])
+    const esito = await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(esito).toEqual({ lavoroId: LAVORO, numeroLavoro: '2026-0150' })
+  })
+
+  it('DUE promemoria aperti: si consegna il primo che il banco dà, cioè il più vecchio', async () => {
+    // Il plurale è vero: `correggi_e_riemetti_atomica` fa un INSERT incondizionato
+    // (20260809133546:488) e nessun indice unico parziale lo impedisce. La striscia ne nomina
+    // UNO; chiuso quello, il promemoria ricompare per il secondo — che è la verità.
+    const { svc } = svcFinto([
+      rigaStriscia({ lavoro_id: 'lav-vecchio', lavori: { numero_lavoro: '2026-0100' } }),
+      rigaStriscia({ lavoro_id: 'lav-nuovo', lavori: { numero_lavoro: '2026-0200' } }),
+    ])
+    const esito = await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(esito).toEqual({ lavoroId: 'lav-vecchio', numeroLavoro: '2026-0100' })
+  })
+
+  it('nessun promemoria aperto → `null`, e non è un guasto', async () => {
+    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = svcFinto([])
+
+    expect(await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })).toBeNull()
+    expect(spiaLog, 'un laboratorio in regola non deve scrivere niente nei log').not.toHaveBeenCalled()
+  })
+
+  it('se il banco non risponde → `null`, e lo dice nei log (il silenzio non è muto)', async () => {
+    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = svcFinto([], true)
+
+    expect(await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })).toBeNull()
+    expect(spiaLog).toHaveBeenCalled()
+  })
+
+  it('riga SENZA numero incorporato → `null` e un log: mai «n.undefined» in cima alla home', async () => {
+    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = svcFinto([rigaStriscia({ lavori: null })])
+
+    expect(await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'titolare' })).toBeNull()
+    expect(spiaLog).toHaveBeenCalled()
+  })
+
+  // ── ⚖️ D342 — IL CANCELLO, e si misura sulle DOMANDE PARTITE, non sul ritorno ──
+  it('🛑 un ruolo escluso non riceve `null` DOPO aver interrogato il banco: non lo interroga', async () => {
+    // 🔑 Il valore di ritorno è `null` in tutti e due i casi, quindi guardarlo NON distingue un
+    //    cancello giusto da uno rotto. Si conta `from()`.
+    const { svc, spia } = svcFinto([rigaStriscia()])
+    const esito = await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo: 'admin_rete' })
+
+    expect(esito).toBeNull()
+    expect(spia.consultato, 'chi non può vedere il promemoria non deve nemmeno chiedere').toBe(0)
+  })
+
+  it('🛑 i CINQUE ruoli veri: interroga il banco ESATTAMENTE per chi `puoVedereAvviso` ammette', async () => {
+    // L'elenco NON si ribatte qui: si interroga `ruoli.ts`. Una prova che ricopiasse i tre nomi
+    // proverebbe la propria copia. E capovolgere il cancello rende questa rossa su tutte e cinque.
+    for (const ruolo of CINQUE_RUOLI) {
+      const { svc, spia } = svcFinto([rigaStriscia()])
+      const esito = await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo })
+
+      expect(spia.consultato > 0, `ruolo ${ruolo}: ha interrogato il banco?`).toBe(puoVedereAvviso(ruolo))
+      expect(esito !== null, `ruolo ${ruolo}: ha ricevuto il promemoria?`).toBe(puoVedereAvviso(ruolo))
+    }
+  })
+
+  it('ruolo assente (`null`/`undefined`) → fail-closed senza un secondo ramo, e nessuna domanda parte', async () => {
+    for (const ruolo of [null, undefined]) {
+      const { svc, spia } = svcFinto([rigaStriscia()])
+      expect(await avvisoPerLaStriscia({ svc, laboratorioId: LAB, ruolo })).toBeNull()
+      expect(spia.consultato).toBe(0)
+    }
   })
 })

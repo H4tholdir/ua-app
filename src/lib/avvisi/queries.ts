@@ -99,10 +99,42 @@ export const COLONNE =
  * ancora acceso in banca dati — cioè esattamente ciò che tutta quest'ondata
  * esiste per impedire. Nei log resta scritto.
  */
-function vuotoConNota(dove: string, errore: { message?: string } | null): [] {
+function logGuasto(dove: string, errore: { message?: string } | null): void {
   console.error(`[AVVISI] ${dove}: lettura fallita, il promemoria non è visibile —`, errore?.message)
+}
+
+function vuotoConNota(dove: string, errore: { message?: string } | null): [] {
+  logGuasto(dove, errore)
   return []
 }
+
+/** Come `vuotoConNota`, per le letture che consegnano **una riga sola**. */
+function nienteConNota(dove: string, errore: { message?: string } | null): null {
+  logGuasto(dove, errore)
+  return null
+}
+
+/**
+ * ⚖️ **SI CONSUMA PRIMA L'OBBLIGO NATO PRIMA — e la regola vive QUI, in un posto solo.**
+ *
+ * Quando su un lavoro (o in un laboratorio) ci sono **due** promemoria aperti — e ci possono
+ * essere: `correggi_e_riemetti_atomica` fa un `INSERT` incondizionato
+ * (`20260809133546:488`) — quello che si mostra è il **più vecchio**. I due portano
+ * `campi_corretti` diversi e sono **due rettifiche distinte** ex Art. 19 GDPR: il registro si
+ * legge nell'ordine in cui i fatti sono avvenuti, e chiudendo il primo il promemoria **ricompare**
+ * per il secondo — che è la verità, non un difetto.
+ *
+ * 🛑 **È UNA COSTANTE E NON UNA RIGA RIPETUTA PERCHÉ LA SCELTA È A PANEL.** La scheda del lavoro
+ * (Task 6) e la striscia della home (Task 7) mostrano lo **stesso** promemoria: se un giorno si
+ * decidesse di mostrare il più recente, due `ascending: true` scritti a mano in due funzioni
+ * diverse si cambierebbero **uno solo**, e le due superfici direbbero cose diverse sulla stessa
+ * schermata. Da qui si cambiano insieme.
+ *
+ * ⚠️ **`archivioCliente` NON usa questa costante, ed è giusto così:** è una regola diversa —
+ * un archivio si legge dal più recente (⚖️ D337), non dal più vecchio. Due ordini che si
+ * somigliano non sono la stessa decisione.
+ */
+const DAL_PIU_VECCHIO = { ascending: true } as const
 
 /**
  * Il promemoria ancora aperto di **quel** lavoro.
@@ -130,8 +162,8 @@ export async function avvisiDaComunicare(
     .eq('lavoro_id', filtro.lavoroId)
     .eq('laboratorio_id', filtro.laboratorioId)
     .in('stato', STATI_APERTI)
-    .order('created_at', { ascending: true })
-    .order('id', { ascending: true })
+    .order('created_at', DAL_PIU_VECCHIO)
+    .order('id', DAL_PIU_VECCHIO)
 
   if (error || !data) return vuotoConNota('avvisiDaComunicare', error)
   return data as unknown as AvvisoRiga[]
@@ -221,6 +253,96 @@ export async function avvisoPerLaScheda(arg: {
  *   escono ora in un ordine ora nell'altro si vedono benissimo — e su un registro
  *   che è la **prova ex Art. 5(2) GDPR** un ordine ballerino è un difetto vero.
  */
+/**
+ * Ciò che serve alla striscia della home, e **nient'altro**.
+ *
+ * 🔑 **DUE CAMPI, E NESSUNO DEI DUE SI CHIAMA `id`.** La cosa si chiama «avviso», ma
+ * l'identificativo che serve è quello del **lavoro** — la CTA apre `/lavori/…`, perché l'avviso
+ * una schermata propria non ce l'ha — e il numero è il numero del lavoro. Un campo `id` dentro
+ * una struttura chiamata «avviso», contenente l'id di un'altra cosa, è una trappola per chi legge
+ * dopo: qui i nomi dicono di chi sono.
+ * ⚠️ Non è `AvvisoRiga`: la striscia scrive **una riga di testo**, e portarsi dietro
+ * `campi_corretti`, `testo_inviato` o la ricevuta di lettura del dentista vorrebbe dire far
+ * viaggiare fino alla home dati che nessuno mostra.
+ */
+export interface AvvisoStriscia {
+  lavoroId: string
+  numeroLavoro: string
+}
+
+/**
+ * IL PROMEMORIA DA METTERE NELLA STRISCIA DELLA HOME — «c'è un avviso da comunicare in **questo
+ * laboratorio**?». Task 7.
+ *
+ * 🔑 **È LA TERZA LETTURA DI QUESTA TABELLA, E LA REGOLA DEL PIANO REGGE LO STESSO.** «Due letture,
+ * niente terza fonte» vieta una seconda *strada* per lo stesso dato — una rotta, un'altra query
+ * sparsa in una pagina — non una domanda nuova. E la domanda è davvero nuova: `avvisiDaComunicare`
+ * guarda **un lavoro**, `archivioCliente` guarda **un cliente**, questa guarda **un laboratorio
+ * intero**. Nessuna delle due poteva rispondere. Sta qui, con le altre, e usa lo stesso
+ * vocabolario: violare quella regola sarebbe scriverla altrove.
+ *
+ * 🛑 **IL CANCELLO È DENTRO, E LA NON-LETTURA È IL CANCELLO.** Chi ⚖️ D342 non ammette non riceve
+ * `null` dopo aver interrogato il banco: **non lo interroga**. È il modo di casa — `usaFiscali` in
+ * `src/lib/dashboard/striscia.ts` fa esattamente questo per i dati fiscali — e insieme è la lezione
+ * del Task 6: un ternario nel chiamante (`puoVedere ? leggi : null`) è **invertibile senza che una
+ * sola prova diventi rossa**, perché nessuna prova unitaria rende un componente server. Qui la
+ * riga sta dove una prova la esercita (`tests/unit/avvisi-queries.test.ts`) e dove capovolgerla si
+ * vede.
+ *
+ * 🛑 **`laboratorio_id` NON È DECORATIVO.** Il client è quello di servizio, che **scavalca la RLS**:
+ * quella `.eq()` è l'unica cosa che impedisce alla home di un laboratorio di annunciare il
+ * promemoria di un altro.
+ *
+ * 🔑 **UNO SOLO, ANCHE QUANDO SONO DUE** — il **più vecchio**, come sulla scheda: v.
+ * `DAL_PIU_VECCHIO`, dove la regola è scritta una volta per tutte e due le superfici.
+ *
+ * ⚠️ **L'INDICE C'È GIÀ E VA BENE COSÌ:** `idx_avvisi_da_comunicare (laboratorio_id, created_at
+ * DESC) WHERE stato = 'da_comunicare'` (migration `20260809123206`) è **parziale** ed è guidato da
+ * `laboratorio_id`, cioè esattamente questa domanda. È dichiarato `DESC` e qui si chiede `ASC`:
+ * non è un problema, un indice si percorre anche all'indietro. ⚠️ Il predicato parziale però
+ * enumera lo stato **a mano**: il giorno in cui nascesse un quarto stato aperto, `STATI_APERTI` lo
+ * includerebbe e l'indice **no** — la lettura resterebbe corretta e diventerebbe una scansione.
+ * Sta nella coda della roadmap, non qui.
+ */
+export async function avvisoPerLaStriscia(arg: {
+  svc: Svc
+  laboratorioId: string
+  ruolo: string | null | undefined
+}): Promise<AvvisoStriscia | null> {
+  if (!puoVedereAvviso(arg.ruolo)) return null
+
+  const { data, error } = await arg.svc
+    .from('avvisi_dentista')
+    // 🛑 NON `COLONNE`: quella è la riga intera, per la scheda e per l'archivio. Qui servono due
+    //    campi, e il numero del lavoro **non è su questa tabella** — si incorpora da `lavori`
+    //    (FK `lavoro_id`). ⚠️ La colonna è `numero_lavoro`, non `numero`.
+    .select('lavoro_id, lavori(numero_lavoro)')
+    .eq('laboratorio_id', arg.laboratorioId)
+    .in('stato', STATI_APERTI)
+    .order('created_at', DAL_PIU_VECCHIO)
+    .order('id', DAL_PIU_VECCHIO)
+    .limit(1)
+
+  if (error || !data) return nienteConNota('avvisoPerLaStriscia', error)
+
+  // Senza un generic `Database` sul client, postgrest-js tipa anche un embed to-one come array —
+  // stessa cautela di `leggiLiberazioneRecente` in `striscia.ts`: si normalizzano tutt'e due le
+  // forme.
+  const riga = (data as unknown as Array<{
+    lavoro_id: string
+    lavori: { numero_lavoro: string } | { numero_lavoro: string }[] | null
+  }> | null)?.[0]
+  if (!riga) return null
+
+  const numeroLavoro = Array.isArray(riga.lavori) ? riga.lavori[0]?.numero_lavoro : riga.lavori?.numero_lavoro
+  // 🛑 Senza numero non si scrive «n.undefined» in cima alla home: si tace. Non dovrebbe accadere
+  //    (`lavoro_id` è `NOT NULL` con FK), ma il ripiego di questa lettura è il silenzio, e un
+  //    silenzio va **dichiarato nei log** — è un promemoria di legge che sparisce dalla vista.
+  if (!numeroLavoro) return nienteConNota('avvisoPerLaStriscia', { message: 'riga senza numero_lavoro incorporato' })
+
+  return { lavoroId: riga.lavoro_id, numeroLavoro }
+}
+
 export async function archivioCliente(
   svc: Svc,
   filtro: { clienteId: string; laboratorioId: string }
