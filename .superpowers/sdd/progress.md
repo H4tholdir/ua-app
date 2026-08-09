@@ -913,3 +913,26 @@ voci) · **D317** (il dentista va avvisato). Panel a tre, convergente.
 > GIRATO CONTRO POSTGRES DA UN CHIAMANTE REALE.** Tre migration e una rotta sono verdi su prove unitarie
 > **col contratto finto** — e i finti hanno già mentito una volta. ➡️ **Il Task 10 non è l'adempimento di
 > chiusura: è il primo momento in cui sapremo se i pezzi si parlano.**
+
+## ONDATA «L'AVVISO AL DENTISTA» — ramo `intervento-post-consegna`, piano `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md` (09/08/2026)
+
+🛑 **Questa sezione mancava del tutto fino al 09/08 sera**: cinque task erano stati eseguiti e revisionati
+**senza una riga di ledger**, e la traccia viveva solo nei file `avviso-dentista-task-*` di questa cartella.
+Ricostruita da `git log` prima di dispacciare il Task 6 — è il caso che la skill chiama «il fallimento più
+caro osservato»: un controllore che perde il segno **ridispaccia lavoro già fatto**.
+
+Task 1 (la tabella + i tre stati): complete (c68910ef..f3ecd85b · revisione f88c14d6 — 3 righe del resoconto smentite)
+Task 2 (l'avviso nasce dentro la transazione): complete (fc551f02..d75a9998 · revisione feb15657 — il piano mandava a leggere una migration superata)
+Task 3 (il testo proposto): complete (0792fbaa · revisione: la prova del piano era verde su un abbozzo VUOTO)
+Task 4 (la rotta che chiude l'avviso) + 4-bis (⚖️ D342, i ruoli): complete (aa85fa5f..838ba125 · revisione 4bc92308)
+Task 4-ter (⚖️ D345, la firma = `laboratori.nome`): complete (8ae9bc05..e07d31b1 · revisione d37b7ab9 — un mio fatto falso in tre documenti)
+🎨 CANCELLO §0B: PASSATO il 09/08 19:17 (29438783 · a500d4b9) → ⚖️ D344 (foglio = A2) · D346 (portale = B1)
+Task 5 (il foglio, variante A2) + 5-bis (⚖️ D351, «a voce» con un tocco): complete (48e014ae..8bfd63e8 · revisione 957f73eb)
+
+Task 6 (il montaggio: `queries.ts` + la scheda) — 🔄 **IN CORSO**, esecutore fresco dispacciato il 09/08 22:5x.
+  BASE per il pacchetto di revisione: **b38beab1**.
+  🔴 Il testo del piano (righe 396-399) è **due righe e non è il compito**: il montaggio vero vive nella
+  §0① dell'handoff del 09/08 sera, e con lui ⚖️ D350 (`pazienteMostrato`) e ⚖️ D345 (`nomeLaboratorio`).
+  Il mandato completo sta in `avviso-dentista-task-6-brief.md`.
+
+Task 7 · 8 · 9 · 10: **non iniziati** (censiti col codice nella §0② dell'handoff).
