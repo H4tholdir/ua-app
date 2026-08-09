@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaduesima tornata (D325-D328: «altro» diventa il lavoro neutro, e il segno delle sostanze si sposta dal lavoro al materiale)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantatreesima tornata (D329: per il tema chiaro vince la variante che chiude due difetti, non uno)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**328 decisioni in centoquarantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**329 decisioni in centoquarantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -3903,3 +3903,47 @@ già viva) → percorso **Medio**. La parte **sostanze** ha bisogno di una **col
 dominio critico → percorso GRANDE**; e `generate-ddc.ts:106-111` dichiara che il **registro del modello
 salta a `ddc-v4`** proprio quando questo campo comincia a dire qualcosa. ⚠️ **D327 sposta il bersaglio
 della colonna dal lavoro al materiale: il dimensionamento va rifatto sul magazzino, non ereditato.**
+
+---
+
+### Centoquarantatreesima tornata — D329: per il tema chiaro vince la variante che chiude DUE difetti, non uno (09/08/2026, 09:23)
+
+**Come è nata:** D326 aveva lasciato il tema chiaro **aperto di proposito** — «più contrasto fra il
+pannello e le righe» era la direzione, non il rimedio. L'esecutore ha preparato **tre varianti su tre
+assi diversi** (il bordo · l'ombra · la tinta), ognuna fotografata sui tre viewport e **col suo rapporto
+di contrasto calcolato**, e **non ha scelto** (preferenza permanente di Francesco: mai una variante
+sola). Francesco ha scelto **guardando le immagini e leggendo i numeri**.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D329** | 🎨 **TEMA CHIARO: VARIANTE C3 — la riga più scura (#DDD6C9) E le didascalie promosse a `--ink`.** Sono **la stessa variante**, non due: è anche la ragione per cui vince | «*c3*» | ⚖️ **Scelta su tre assi misurati, non su tre sfumature.** **C1 — il bordo:** unico a toccare **una soglia di legge** (filo a **3,08:1**, minimo 3 per gli elementi premibili). **C2 — l'ombra:** gratis in scuro (lì quelle ombre valgono `none`), ma la sua metà semantica **si legge solo a 1280**. **C3 — la tinta:** separazione riga↔pannello da **1,23** a **1,43:1**. 🔑 **E LA FRASE CHE DECIDE, dichiarata dall'esecutore stesso: solo C3 chiude ANCHE il ❌3** — i quattro testi in chiaro a **4,17** contro la soglia 4,5 passano a **12,11**. Con C1 o C2 quel rilievo **resta aperto** e serve una seconda decisione. ⚠️ **Il rovescio, detto a Francesco prima della scelta:** C3 **sposta la gerarchia**, non solo il contrasto — le didascalie diventano inchiostro pieno, quindi la schermata cambia peso |
+
+🔑 **PERCHÉ QUESTA TORNATA VALE COME PRECEDENTE, e non per il colore:** la scelta è stata possibile
+perché l'esecutore ha misurato **tre assi diversi** invece di tre gradazioni dello stesso, e perché ha
+**dichiarato la conseguenza fuori dal proprio rilievo** («solo C3 chiude anche il ❌3»). *Tre varianti
+dello stesso asse non sono una scelta: sono la stessa proposta ripetuta.*
+
+🔄 **CORREZIONE DELL'ESECUTORE A SÉ STESSO, misurata — e vale come modello:** aveva scritto «in chiaro
+il filo non cambia niente» ed era **falso di 2px**. Tre superfici su cinque il bordo non ce l'avevano, e
+**un bordo trasparente occupa spazio lo stesso**: pastiglia **28 → 30**, blocco «Da qui non si corregge»
+**253,25 → 255,25**. Crescono, quindi nessun bersaglio scende sotto i 44px e nessun testo va a capo —
+**ma il numero è stato rimisurato, non dedotto**.
+
+🔴 **DIFETTO DEL MANDATO, trovato contando sulla PAGINA VIVA invece che nel file (R-P6):** il brief
+diceva «le superfici sono **cinque**, non quattro» — correggendo l'errore del giorno prima. **Erano
+SEI.** La sesta è il **tasto primario spento** (`src/components/ds/TastoPrimario.tsx:90`): in scuro
+**#100E0B su pannello #211D18 = 1,15:1 senza filo**, esattamente il difetto del ❌1 su una superficie
+rimasta com'era. **Non toccata** (fuori perimetro, R-E2 + migrazione per route) → **riga 37 della coda**.
+🔑 *Il censimento del gate era stato fatto su un file solo. Due conteggi sbagliati di fila sullo stesso
+elenco, e il terzo è venuto da una sonda sul DOM.*
+
+📌 **Il filo NON è scritto nel componente: è il token `--filo-superficie`** (`ds-v3.css:37` = `transparent`
+in chiaro, `:82` = `var(--line)` in scuro). La ragione è tecnica e decide il seguito: quelle superfici
+dipingono il bordo con uno stile **dentro il tag**, che **batte sempre** una regola del foglio di stile —
+l'unico modo di renderlo condizionale al tema è ridefinire la **variabile**. ➡️ **il chiaro si chiude
+cambiando UNA riga, non sette.**
+
+⚠️ **Misura che nessuno aveva scritto, e ridimensiona la (b):** in scuro il filo **delimita e basta** —
+riga↔pannello resta **1,15:1**, cioè **l'elevazione resta invertita** rispetto alla regola del design
+system (una superficie premibile dovrebbe *salire* dentro un `--card`). Il filo dà **1,25:1** sul
+pannello e **1,44:1** sulla riga. *La (b) rende la riga visibile, non la rende rialzata.*
