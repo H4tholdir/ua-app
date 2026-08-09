@@ -38,16 +38,20 @@ eseguire): nessun parametro può portare il nome del paziente (GDPR §9), né il
 `tsconfig.json` estende a `**/*.ts` — quindi anche a `tests/` — e che è il **primo** comando di
 `verify:full`.
 
-🔑 **E la guardia è stata provata come R-P1 chiede — con un valore che DEVE essere rifiutato.**
-`provato:` firma allargata con `pazienteNome?: string` → `npx tsc --noEmit`:
+🔑 **E le tre guardie sono state provate come R-P1 chiede — con valori che DEVONO essere rifiutati.**
+`provato:` firma allargata con `pazienteNome?: string; valorePrecedente?: string; campiCorretti?: string[]`
+→ `npx tsc --noEmit`:
 
 ```
 tests/unit/avviso-messaggio.test.ts(84,1): error TS2578: Unused '@ts-expect-error' directive.
+tests/unit/avviso-messaggio.test.ts(88,1): error TS2578: Unused '@ts-expect-error' directive.
+tests/unit/avviso-messaggio.test.ts(92,1): error TS2578: Unused '@ts-expect-error' directive.
 ```
 
-Poi ripristinata → `TSC_EXIT=0`. Il giorno in cui quel parametro nascesse davvero, il cancello si
-accende da sé. **Senza questa misura avrei affermato che la guardia funziona invece di averla vista
-scattare.**
+**Tutte e tre**, una per direttiva — non una sola misurata e due date per buone. Poi la firma è stata
+ripristinata → `TSC_EXIT=0`, albero pulito (`git diff --stat` vuoto). Il giorno in cui uno di quei
+parametri nascesse davvero, il cancello si accende da sé. **Senza questa misura avrei affermato che
+le guardie funzionano invece di averle viste scattare.**
 
 **Gamba ② — il TESTO INTERO.** Il messaggio si confronta per **uguaglianza**, non con `toContain`.
 È la sola forma che prova che dentro non c'è un **terzo** dato: `toContain` vede ciò che cerca e non
@@ -224,7 +228,21 @@ Controprova sul **corpo vivo** della RPC (`pg_get_functiondef`, non il file di m
 | Per lavoro o per cliente | **per CLIENTE.** Un lavoro non ha un gettone suo |
 | Chi lo rigenera | `POST /api/clienti/[id]/rigenera-portale-token` (`route.ts:33-34`), che riscrive anche la scadenza a **+365 giorni** |
 | Scadenza | `portale_token_scade_at`, default `now() + '1 year'`; verificata da `portale/[token]/page.tsx:298-299` e `lib/portale/guardie.ts:75` |
-| **È raggiungibile da chi manderà l'avviso?** | **SÌ.** `src/app/(app)/lavori/[id]/page.tsx:27` fa `cliente:clienti(*)`, e `Cliente.portale_token: string` (`src/types/domain.ts:193`) è dentro `LavoroDettaglio.cliente`. La scheda del lavoro lo ha già, server-side |
+| **È raggiungibile da chi manderà l'avviso?** | **SÌ, e il percorso è stato aperto e seguito riga per riga** (non dedotto da un `grep`) |
+
+**Il percorso, per intero:** `src/app/(app)/lavori/[id]/page.tsx:22-43` fa `cliente:clienti(*)` →
+riga 50 `lavoro as unknown as LavoroDettaglio` → riga **120**
+`<SchedaLavoroV3 lavoro={lavoroDettaglio} … />` → `SchedaLavoroV3.tsx:144` riceve
+`props: { lavoro: LavoroDettaglio; … }`, cioè **l'oggetto intero, senza restringimenti**. E
+`LavoroDettaglio.cliente` è `Cliente` (`src/types/domain.ts:560`), che porta
+`portale_token: string` (`domain.ts:193`).
+⚠️ **Controllato anche ciò che potrebbe togliercelo per strada:** `minimizzaPhi`
+(`src/lib/portale/minimizza-phi.ts`) **non** è su questa strada — i suoi soli usi sono
+`portale/[token]/page.tsx:369` e `api/portale/[token]/fatturazione/route.ts:85`, cioè il lato
+dentista.
+📌 **E `SchedaLavoroV3.tsx:1` è `'use client'`**: il gettone attraversa **già oggi** verso il
+browser. Due conseguenze per il Task 5, entrambe favorevoli: il testo si può comporre nel
+componente, e `NEXT_PUBLIC_APP_URL` funziona lì perché Next la inserisce nel pacchetto client.
 
 ➡️ **La firma del piano non è sbagliata.** Ma tre cose che il Task 5 deve sapere, e che nessuna di
 esse è risolvibile qui:
@@ -318,8 +336,10 @@ iniezione in questo modulo: produce testo piano.
 
 ## ⑥ I numeri, misurati da me
 
-**Base, misurata prima di creare qualunque file** (`npx vitest run`, la stessa invocazione che
-`verify:full` contiene — `vitest run` senza argomenti):
+**Base, misurata prima di creare qualunque file** — `npx vitest run`, cioè gli **stessi argomenti**
+che `verify:full` passa a vitest (`vitest run` senza argomenti), lanciato **a sé** e non dentro la
+catena: `verify:full` lo esegue dopo `tsc` ed `eslint`, nella stessa shell. Le conte non ne
+dipendono (stessa configurazione, stessi `include`), e il passaggio 461 → 462 file lo conferma:
 
 ```
  Test Files  452 passed | 9 skipped (461)
@@ -376,7 +396,8 @@ I 14 sono esattamente i 14 `it` del file nuovo. Verdi anche `tsc --noEmit`, `esl
 
 1. 🟠 **L'indirizzo dell'app è scritto a mano in 8 punti** (7 preesistenti + il mio). Due di essi
    (`api/stripe/portal:7`, `api/stripe/checkout:9`) usano `!` invece del ripiego: se la variabile
-   mancasse, quelli producono `undefined/...` invece di `https://uachelab.com/...`. Unificare è
+   mancasse, quelli interpolano la stringa letterale `"undefined"` — cioè un indirizzo tipo
+   `undefined/impostazioni/abbonamento` mandato a Stripe, non un errore. Unificare è
    un'ondata a sé — tocca 7 file e almeno una prova
    (`tests/unit/PortaleLinkButtons-indirizzo.test.tsx`).
 2. 🟠 **Un avviso senza gettone del portale è metà di ⚖️ D332** («l'avviso vive nel portale,
