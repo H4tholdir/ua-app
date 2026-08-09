@@ -308,6 +308,25 @@ npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
   `src/app/api/lavori/[id]/avviso/route.ts(111,7): error TS2322: Type 'true' is not assignable to type 'never'.`
   Poi rimesso, e riverificato a **0**.
 
+**E il permesso per colonna, letto sul CATALOGO VIVO e non sulla migration** — è il fatto **portante** di
+questa rotta, perché `service_role` aggira la RLS e quel permesso è l'unica cosa che limita davvero cosa si
+può scrivere:
+
+```
+node scripts/psql.mjs -c "SELECT grantee, column_name FROM information_schema.column_privileges
+  WHERE table_name='avvisi_dentista' AND privilege_type='UPDATE' ORDER BY grantee, column_name;"
+→ 20 righe
+  authenticated : comunicato_at · comunicato_da · stato · testo_inviato        (QUATTRO)
+  service_role  : comunicato_at · comunicato_da · stato · testo_inviato        (QUATTRO)
+  postgres      : tutte e dieci, visto_dal_dentista_at compreso                (il PROPRIETARIO)
+```
+
+✅ **Combacia con la migration `20260809124517`, e `visto_dal_dentista_at` NON compare per nessun ruolo
+dell'app** — solo per `postgres`, che è il proprietario della tabella. Cioè le quattro chiavi che la rotta
+scrive sono esattamente le quattro che il banco le concede, e **la ricevuta di lettura del dentista è
+inarrivabile da qui anche volendo**. 🔑 `anon` **non compare affatto** in questo elenco: il `REVOKE UPDATE`
+della stessa migration ha tenuto.
+
 🔴 **Una correzione a me stesso, sulla misura di quest'ultima.** La **prima** volta ho letto l'uscita con
 `npx tsc --noEmit 2>&1 | head -12; echo "TSC_EXIT=$?"` e ho ottenuto **`TSC_EXIT=0`** — cioè l'uscita di
 `head`, **non** di `tsc`, su un file che **non compilava**. È esattamente il difetto che la regola di casa
@@ -324,9 +343,10 @@ nel resoconto che il cancello non si accende, e avrei tolto il cancello.**
 | Che il `CHECK` `avviso_testo_solo_se_dall_app` **morda** davvero sui casi che la rotta previene | La prova è **unitaria**: finge il client, quindi non tocca Postgres. Il `CHECK` è stato provato sul banco dal **Task 1**; il giro vero è il **Task 10**. La rotta è la **prima** guardia, non l'unica. |
 | Che l'aggiornamento condizionato regga una **corsa vera** fra due richieste concorrenti | Servono due connessioni e una transazione vera. L'argomento è solido (una sola istruzione `UPDATE … WHERE stato IN (aperti)`: Postgres serializza le due), **ma è un argomento, non una misura** → **Task 10**. |
 | Che la **politica RLS di scrittura** funzioni fra laboratori diversi | Resta aperto dal Task 1 (voce 4 della sua revisione), e **questa rotta non la esercita**: scrive con `service_role`, che aggira la RLS. A tenere la scrittura dentro il laboratorio è il filtro `laboratorio_id`, **provato** (`⑯⑰`), non la politica. ⚠️ **Chi credesse che la RLS lo protegga qui si sbaglia.** |
-| Che le quattro colonne concesse siano **esattamente** quelle che serviva scrivere | Ora **lo sono**, e la prova `㉑` asserisce che il payload ha *esattamente* quelle quattro chiavi. Ma la corrispondenza col `GRANT` **vivo** l'ho letta dalla migration, non dal catalogo: `information_schema.column_privileges` non l'ho interrogato io (l'ha fatto la revisione del Task 1). **Riferito, non riverificato.** |
+| ~~Che le quattro colonne concesse siano esattamente quelle che serviva scrivere~~ | 🔄 **CHIUSO — era «riferito, non riverificato», ed è stato un mio buco: tutte le mie prove fingono il client, quindi NESSUNA di esse toccava il permesso vero.** Se il `GRANT` vivo fosse diverso dalla migration, la rotta prenderebbe un errore di permessi a runtime **e le 26 prove resterebbero verdi**. Interrogato il catalogo (v. sotto): **combacia**. |
 | Che un avviso su un lavoro **cestinato** (`lavori.deleted_at`) debba restare chiudibile | Scelta **dichiarata**: la rotta non legge `lavori`, quindi lo chiude. L'obbligo GDPR non sparisce perché il lavoro è stato cestinato — ma **nessuno ha deciso** se il promemoria vada mostrato. È un rilievo per il Task 6, §⑧. |
 | Che il testo registrato sia quello **davvero** ricevuto dal dentista | Impossibile da provare per costruzione (⚖️ D331). Dichiarato nel codice invece che sottinteso. |
+| Che un guasto **passeggero** del database sulla lettura di disambiguazione non venga letto come «non esiste» | **Limite dichiarato, non chiuso.** Quella lettura scarta l'`error` (`const { data: esistente } = …`), quindi una banca dati momentaneamente irraggiungibile esce **404 «Avviso non trovato»** — cioè «il tuo avviso non c'è» quando la verità è «non sono riuscita a chiedere». **È l'idioma di casa** (la rotta modello fa lo stesso sulla lettura di `lavori`, `eventi-qualita/route.ts:348-356`), e cambiarlo qui creerebbe una rotta che si comporta diversamente dalle sorelle: **riferito, non corretto**. ⚠️ Sul percorso che **scrive** l'errore non è scartato: lì esce **500**. |
 
 ---
 
@@ -373,7 +393,11 @@ laboratorio è proprio quella che non riesce a scrivere. **Da decidere una volta
 (Task 8).
 
 **R6 🟠 `tests/unit/lab-guard-routes-enforce.test.ts` dice di provare «le route reali» ma ne campiona
-DUE** su 123 file di rotta (`clienti` GET e `cicli` POST). Non è una bugia — l'intestazione dichiara che
+DUE** (`clienti` GET e `cicli` POST) su **124** file di rotta — `provato:`
+`find src/app/api -name "route.ts" | wc -l` → `124`, **la mia compresa**, cioè 123 prima di questo task.
+📌 Il numero è rifatto: la prima misura veniva da un `grep` che aveva **stampato un avvertimento**
+(`ugrep: warning: route.ts: No such file or directory`), e un conteggio uscito da un comando che si è
+lamentato non è un conteggio. Non è una bugia — l'intestazione dichiara che
 la matrice è coperta altrove — **ma un nome al plurale su un campione di due invita a credere che una
 rotta nuova sia sorvegliata da lì.** La mia non lo è: la guardia del laboratorio, nel mio file, è provata
 perché **non l'ho finta** (`③` e `④` fanno girare quella vera). ➡️ Chi scrive rotte nuove non conti su
