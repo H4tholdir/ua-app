@@ -110,11 +110,35 @@ provato:  lettura di .env.local (solo la forma, mai la credenziale)
 - Le prove d'integrazione **non chiedono nient'altro all'ambiente**: `provato:` `grep -rn "process\.env\." tests/integration/` → **due sole righe, entrambe `SUPABASE_DB_URL`** (`helpers/pg-client.ts:9,20`). Nessun client Supabase, nessuna chiave di servizio: `provato:` gli unici `import` di tutta la cartella sono `pg`, `vitest`, `node:crypto` e il proprio helper.
 - Un segreto **non viene passato** alle richieste di unione che arrivano da una copia esterna del repository, quindi «pubblico» non vuol dire «la credenziale del banco è alla portata di chiunque apra una PR». ⚠️ Resta però una scelta consapevole da tenere a mente: **una credenziale diretta al database vive ora nella CI di un repository pubblico**, ed è il motivo per cui il commento in `pg-client.ts:5-8` la distingueva dalle chiavi REST già in uso.
 
-### ②-quater — Il push, e il conteggio rimasto a zero
+### ②-quater — Il push è avvenuto, e il conteggio è rimasto a zero
+
+**Non è un ragionamento: è la stessa domanda fatta al server DOPO aver pubblicato.** Commit `eeb7701b`.
 
 ```
-(esito incollato in §⑥, insieme al numero del commit)
+provato:  git push origin intervento-post-consegna
+   →  To https://github.com/H4tholdir/ua-app.git
+         1af2d0b6..eeb7701b  intervento-post-consegna -> intervento-post-consegna
+
+provato:  (25 s dopo)  gh run list --branch intervento-post-consegna --limit 10
+   →  (nessuna riga)
+
+provato:  gh run list --limit 5        # tutto il repository, non solo il ramo
+   →  perf-budget   main  schedule     31298122302  2026-08-09T06:05:46Z
+      perf-budget   main  schedule     31243081295  2026-08-08T06:03:55Z
+      perf-budget   main  schedule     31154909177  2026-08-07T06:42:45Z
+      CD — Deploy   main  workflow_run 31091991804  2026-08-06T10:07:46Z
+      CD — Deploy   main  workflow_run 31091930471  2026-08-06T10:06:53Z
 ```
+
+**La cosa più recente successa su questo repository è la misura di prestazioni programmata delle 06:05 di stamattina.** Il push delle 13:29 non ha prodotto niente: nessuna CI, e — di conseguenza — **nessun Vercel**.
+
+```
+provato:  git ls-remote origin refs/heads/intervento-post-consegna refs/heads/main
+   →  eeb7701b…  refs/heads/intervento-post-consegna     ← il lavoro è al sicuro fuori dal Mac
+      7427a680…  refs/heads/main                         ← invariato, non l'ho sfiorato
+```
+
+🔑 **Questo elenco vuoto È la risposta al punto ②, non la sua mancanza.** Il numero di esecuzione che il mandato chiedeva di incollare non esiste, e ora si sa perché.
 
 ---
 
