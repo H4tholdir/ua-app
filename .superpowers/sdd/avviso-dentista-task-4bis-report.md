@@ -11,7 +11,7 @@ migration · niente di visibile. Pavimento migration invariato.
 | costante dei cinque ruoli già in casa? | ❌ **non esiste** — e `supabase/schema.sql` ne porta **quattro**, vecchi |
 | cancello | allowlist esplicita esportata `RUOLI_CHIUSURA_AVVISO` = `titolare` · `tecnico` · `front_desk` |
 | i cinque ruoli | 3 passano (200) · 2 prendono 403 **per nome** |
-| `N su M` | **4 su 6** contro «nessun cancello» · **1 su 6** contro la blocklist · **2 su 6** contro il refuso `'admin'` |
+| `N su M` | **4 su 6** contro «nessun cancello» · **1 su 6** contro la blocklist · **3 su 6** contro il refuso `'admin'` · **2 su 6** contro un nome tolto |
 | `VERIFY_EXIT` | **0** — `5793 passate | 119 saltate` (+5 netto, saltate invariate) |
 
 ---
@@ -89,9 +89,16 @@ npx tsc --noEmit; TSC=$?; echo "TSC_EXIT=$TSC"   →   TSC_EXIT=0      ← compi
 × ㉔ la allowlist contiene SOLO ruoli che esistono davvero…
   AssertionError: «admin» non è un ruolo di questo progetto:
                   expected [ 'titolare', 'tecnico', …(3) ] to include 'admin'
+× ㉕ i TRE ammessi chiudono l'avviso…
+  AssertionError: ruolo front_desk: expected 403 to be 200
 × ㉙ un ruolo FUORI dai cinque è rifiutato…
   AssertionError: ruolo "admin": expected 200 to be 403
+      Tests  3 failed | 28 passed (31)
 ```
+
+(`㉕` si accende perché il refuso **prende il posto** di `front_desk`: un elenco di tre resta di tre, e chi
+sparisce non lo dice nessuno. È la riga 22 della coda dei difetti — *un nome tolto da un'allowlist senza
+destinazione è un dato che smette di salvarsi in silenzio*, R-P6.)
 
 E l'elenco vero **non è ricordato, è letto dal banco** (`provato:`, catalogo vivo, 09/08/2026):
 
@@ -212,13 +219,26 @@ essere scritto per nome**: non c'è un utente che avrebbe mostrato il buco.
 D342. Il primo rosso utile **non** è un `import` mancante (R-P4): la costante è stata scritta **giusta e
 non collegata**, così il rosso viene dal comportamento.
 
-| abbozzo | quante si accendono | quali |
-|---|---|---|
-| ① **nessun cancello** (costante presente, non collegata) | **4 su 6** | `㉖` `㉗` `㉘` `㉙` |
-| ② **cancello scritto come BLOCKLIST** dei due esclusi (forma sbagliata *plausibile*) | **1 su 6** | `㉙` soltanto |
-| ③ **refuso `'admin'` nudo** nell'allowlist | **2 su 6** | `㉔` `㉙` |
-| ④ **`front_desk` tolto** dall'allowlist (un nome che sparisce in silenzio) | **2 su 6** | `㉔` `㉕` |
-| cancello vero | **0 su 6** — tutte verdi | |
+🛑 **Tutte e quattro le righe sono RIMISURATE sull'albero finale**, dopo l'ultima modifica alle prove — v.
+la correzione a me stesso in fondo a questo paragrafo.
+
+| abbozzo | quante si accendono | quali | cosa compra quella riga |
+|---|---|---|---|
+| ① **nessun cancello** (costante presente, non collegata) | **4 su 6** | `㉖` `㉗` `㉘` `㉙` | che il cancello **esista** |
+| ② **cancello scritto come BLOCKLIST** dei due esclusi (forma sbagliata *plausibile*) | **1 su 6** | `㉙` soltanto | che sia una **allowlist** |
+| ③ **refuso `'admin'` nudo** nell'allowlist | **3 su 6** | `㉔` `㉕` `㉙` | che un membro **sbagliato** si veda — come elenco **e** come comportamento |
+| ④ **`front_desk` tolto** dall'allowlist (un nome che sparisce in silenzio) | **2 su 6** | `㉔` `㉕` | che un membro **mancante** si veda, idem |
+| cancello vero | **0 su 6** — tutte verdi | | |
+
+Le tre asserzioni dell'abbozzo ③, per intero:
+
+```
+× ㉔  AssertionError: «admin» non è un ruolo di questo progetto:
+                     expected [ 'titolare', 'tecnico', …(3) ] to include 'admin'
+× ㉕  AssertionError: ruolo front_desk: expected 403 to be 200
+× ㉙  AssertionError: ruolo "admin": expected 200 to be 403
+      Tests  3 failed | 28 passed (31)
+```
 
 🔑 **Il conteggio ha cambiato il codice due volte, ed è per questo che si conta.**
 
@@ -235,6 +255,17 @@ una blocklist**. Contare contro l'assenza del cancello non l'avrebbe mai chiesta
 `'admin'` e passava, e con `front_desk` **tolto** girava su due nomi e passava — la prova si **adattava** al
 difetto invece di trovarlo. ➡️ Riscritta con i tre nomi **a mano**. Solo dopo, l'abbozzo ④ accende `㉕`
 (`ruolo front_desk: expected 403 to be 200`).
+
+🔴 **E una correzione a me stesso proprio su questa tabella, perché è la stessa classe di errore che il
+resoconto denuncia.** La prima volta avevo scritto **«③ → 2 su 6 (`㉔` `㉙`)»**: era vero **quando l'ho
+misurato**, cioè con la `㉕` **vecchia** — quella che ciclava sulla costante e col refuso provava `'admin'`
+passando. Poi ho rinforzato `㉕`, **e non ho rifatto la misura**: la riga descriveva una suite che non
+esisteva più. In un resoconto la cui unica autorità è «*il numero è misurato, non ricordato*», un numero
+sopravvissuto alla cosa che misurava è il difetto peggiore che ci si possa lasciare dentro. **Tutte e
+quattro le righe sono state rimisurate sull'albero finale** — ① e ② confermate identiche (i tre ammessi
+prendono 200 in entrambi i casi, quindi la `㉕` nuova non le cambia), ③ **corretta da 2 a 3**, ④ era già
+stata misurata dopo il rinforzo. 🔑 **La lezione, che vale oltre questa tabella:** una misura non è vera in
+assoluto, è vera **di una versione**. Chi tocca ciò che ha misurato deve rimisurare, o cancellare il numero.
 
 **Forme d'input enumerate per il cancello** (R-P4, prima delle asserzioni): i cinque ruoli veri · `'admin'`
 nudo · `'front-desk'` col trattino · un ruolo futuro mai visto (`'apprendista'`) · stringa vuota · maiuscole
