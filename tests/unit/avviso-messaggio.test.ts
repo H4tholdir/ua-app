@@ -73,6 +73,23 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { buildAvvisoMessage, descriviCampiCorretti } from '@/lib/avvisi/messaggio'
 import { CAMPI_CORREGGIBILI_DOCUMENTO } from '@/lib/dichiarazione/correzioni'
 
+/**
+ * ⚖️ **D345** (09/08/2026) — LA FIRMA È IL NOME DEL LABORATORIO, non «UÀ Lab».
+ * Sta **prima** delle sonde di tipo qui sotto e non fra le altre fixture perché
+ * quelle sonde girano alla valutazione del modulo: un `const` dichiarato dopo
+ * darebbe un `ReferenceError` (zona morta temporale), non un errore di tipo.
+ *
+ * 🔴 E LE TRE SONDE HANNO DOVUTO CAMBIARE CON LA FIRMA, altrimenti si
+ *    **degradavano in silenzio**: aggiunta la chiave obbligatoria
+ *    `nomeLaboratorio`, ognuna di quelle chiamate sarebbe stata in errore perché
+ *    la chiave **mancava**, non perché la proprietà vietata è **rifiutata** — la
+ *    direttiva sarebbe restata «usata», `tsc` verde, e il cancello GDPR
+ *    dell'intestazione avrebbe smesso di provare qualcosa continuando a
+ *    dichiararsi fail-closed. È il modo esatto in cui una difesa muore senza che
+ *    nessuno lo veda.
+ */
+const LAB = 'Laboratorio Odontotecnico di Prova'
+
 // ─── GAMBA ①: LA PROVA DI TIPO ─────────────────────────────────────────────
 // Non è un `it` e non ha asserzioni: non c'è niente da eseguire. La verifica la
 // fa `tsc --noEmit`. Il giorno in cui uno di questi campi diventasse un
@@ -83,15 +100,15 @@ import { CAMPI_CORREGGIBILI_DOCUMENTO } from '@/lib/dichiarazione/correzioni'
 
 // @ts-expect-error — 🛑 GDPR (`CLAUDE.md` §9): nessun parametro porta il nome
 //   del paziente, e non deve diventarlo.
-void buildAvvisoMessage({ numeroLavoro: '2026/0042', portalToken: 'tok', pazienteNome: 'Mario Rossi' })
+void buildAvvisoMessage({ numeroLavoro: '2026/0042', portalToken: 'tok', nomeLaboratorio: LAB, pazienteNome: 'Mario Rossi' })
 
 // @ts-expect-error — ⚖️ D336: nessun parametro porta il VALORE PRECEDENTE di un
 //   campo. Il valore vecchio non si mostra mai, da nessuna parte.
-void buildAvvisoMessage({ numeroLavoro: '2026/0042', portalToken: 'tok', valorePrecedente: 'A3' })
+void buildAvvisoMessage({ numeroLavoro: '2026/0042', portalToken: 'tok', nomeLaboratorio: LAB, valorePrecedente: 'A3' })
 
 // @ts-expect-error — ⚖️ D334: il dettaglio dei campi corretti NON entra nel
 //   testo di WhatsApp, quindi non entra nemmeno nella firma che lo costruisce.
-void buildAvvisoMessage({ numeroLavoro: '2026/0042', portalToken: 'tok', campiCorretti: ['descrizione'] })
+void buildAvvisoMessage({ numeroLavoro: '2026/0042', portalToken: 'tok', nomeLaboratorio: LAB, campiCorretti: ['descrizione'] })
 
 // ─── la fixture ────────────────────────────────────────────────────────────
 /** Un nome vero, che la firma non ha modo di ricevere: è la fixture della
@@ -112,12 +129,12 @@ function attesoConLink(numero: string, base: string, token: string): string {
     `Trovi quella aggiornata qui:`,
     `${base}/portale/${token}`,
     ``,
-    `— UÀ Lab`,
+    `— ${LAB}`,
   ].join('\n')
 }
 
 function attesoSenzaLink(numero: string): string {
-  return [`📄 La dichiarazione del lavoro #${numero} è stata rifatta.`, ``, `— UÀ Lab`].join('\n')
+  return [`📄 La dichiarazione del lavoro #${numero} è stata rifatta.`, ``, `— ${LAB}`].join('\n')
 }
 
 describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331, D334)', () => {
@@ -140,7 +157,7 @@ describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331,
   })
 
   it('è ESATTAMENTE il fatto più il collegamento: nessun terzo dato ci sta dentro', () => {
-    expect(buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN })).toBe(
+    expect(buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB })).toBe(
       attesoConLink(NUMERO, PUBBLICO, TOKEN)
     )
   })
@@ -149,7 +166,7 @@ describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331,
     // 📌 Le tre righe del piano, tenute: da sole non provavano niente (passano
     //    con `return ''`), accanto all'uguaglianza qui sopra dicono la cosa
     //    giusta a chi legge — quel nome non ha una strada per arrivare.
-    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN })
+    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB })
     expect(testo).not.toContain(PAZIENTE)
     expect(testo).not.toContain('Mario')
     expect(testo).not.toContain('Rossi')
@@ -160,7 +177,7 @@ describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331,
     // finali, non quattro, e due barre. La fixture del piano (`2026/0042`) è
     // vera ma minoritaria — 19 righe su 299.
     const storico = 'STOR/2021/016'
-    expect(buildAvvisoMessage({ numeroLavoro: storico, portalToken: TOKEN })).toBe(
+    expect(buildAvvisoMessage({ numeroLavoro: storico, portalToken: TOKEN, nomeLaboratorio: LAB })).toBe(
       attesoConLink(storico, PUBBLICO, TOKEN)
     )
   })
@@ -169,19 +186,19 @@ describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331,
     // La codifica è di `buildWhatsappUrl`, non di qui: questo modulo produce
     // testo piano, e un numero importato a mano può contenere qualsiasi cosa.
     const strano = 'STOR/2021/016 (rifatto) – è così'
-    expect(buildAvvisoMessage({ numeroLavoro: strano, portalToken: TOKEN })).toContain(strano)
+    expect(buildAvvisoMessage({ numeroLavoro: strano, portalToken: TOKEN, nomeLaboratorio: LAB })).toContain(strano)
   })
 
   it("rispetta NEXT_PUBLIC_APP_URL quando c'è: chi sviluppa non manda link a uachelab.com", () => {
     process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
-    expect(buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN })).toBe(
+    expect(buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB })).toBe(
       attesoConLink(NUMERO, 'http://localhost:3000', TOKEN)
     )
   })
 
   it("senza NEXT_PUBLIC_APP_URL ripiega sull'indirizzo pubblico", () => {
     delete process.env.NEXT_PUBLIC_APP_URL
-    expect(buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN })).toBe(
+    expect(buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB })).toBe(
       attesoConLink(NUMERO, PUBBLICO, TOKEN)
     )
   })
@@ -192,7 +209,7 @@ describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331,
     //    «…/portale/» — un indirizzo che non porta da nessuna parte.
     //    ⚠️ Il vuoto è raggiungibile: `orchestrate.ts:131` fa `?? ''` quando
     //    l'embed del cliente manca dalla lettura.
-    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: '' })
+    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: '', nomeLaboratorio: LAB })
     expect(testo).toBe(attesoSenzaLink(NUMERO))
     expect(testo).not.toContain('/portale/')
   })
@@ -201,7 +218,7 @@ describe('buildAvvisoMessage — la PROPOSTA di testo per WhatsApp (⚖️ D331,
     // ⑦ del brief + `CLAUDE.md` §6: per i dispositivi su misura quel nome è
     // improprio (Art. 10(6) MDR, MDCG 2021-3 Q9), e ogni testo NUOVO usa il
     // nome corretto. Qui è una prova, non una raccomandazione.
-    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN }).toLowerCase()
+    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB }).toLowerCase()
     const vietati = ['ddc', 'certificat', 'dichiarazione di conformità', 'conformità']
     expect(vietati.filter((v) => testo.includes(v))).toEqual([])
   })
@@ -270,7 +287,7 @@ describe('IL CONFINE — su WhatsApp il fatto, nel portale il dettaglio (⚖️ 
     //    protetto è un dettaglio clinico, e D334 lo vieta.
     // 🔑 Le stringhe vietate si DERIVANO dalle voci vive: una settima voce entra
     //    in questa prova da sola, senza che nessuno la ricopi qui.
-    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN }).toLowerCase()
+    const testo = buildAvvisoMessage({ numeroLavoro: NUMERO, portalToken: TOKEN, nomeLaboratorio: LAB }).toLowerCase()
     const descrizioni = descriviCampiCorretti(CAMPI_CORREGGIBILI_DOCUMENTO)
     // ⚠️ Contro il vuoto, come sopra: senza descrizioni non trapela niente e la
     //    prova sarebbe verde per finta.

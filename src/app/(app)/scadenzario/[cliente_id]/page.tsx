@@ -62,7 +62,11 @@ export default async function EstrattoContoPage({ params }: Props) {
         subtitle="Contabilità cliente"
         backHref="/scadenzario"
       />
-      <EstrattoContoView dati={dati} />
+      {/* ⚖️ D345 — la firma dei solleciti è il NOME DEL LABORATORIO, e arriva dal
+          contesto che questa pagina ha già letto sopra (`getLabContext()`, che
+          porta di suo `laboratori(nome)`): nessuna seconda via di lettura, e
+          niente nel contratto `EstrattoContoResponse`, che descrive il cliente. */}
+      <EstrattoContoView dati={dati} nomeLaboratorio={context.lab?.nome ?? null} />
     </PageWrapper>
   )
 }

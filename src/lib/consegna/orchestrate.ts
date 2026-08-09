@@ -10,6 +10,34 @@ import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/dom
 import { annoRoma } from '@/lib/utils/data-roma'
 
 /**
+ * IL NOME DEL LABORATORIO CHE FIRMA IL MESSAGGIO — ⚖️ **D345**.
+ *
+ * 🔑 Perché è una funzione e non `lavoro.laboratorio.nome` scritto due volte: i
+ *    due rami di questa consegna (idempotente e normale) fanno **due letture
+ *    diverse** dello stesso lavoro, e prima di stasera lo stesso genere di
+ *    duplicazione aveva già prodotto due comportamenti diversi sullo stesso dato
+ *    (il gettone del portale). Un punto solo, così i due rami non divergono.
+ *
+ * ⚠️ **REGGE ENTRAMBE LE FORME DELL'INCASTRO, e non è pignoleria pagata a
+ *    caso:** questo file porta già la lezione — «*PostgREST restituisce
+ *    `prescrizione` come ARRAY*» — e passarlo così a valle aveva dato un campo
+ *    sempre `undefined`, cioè il difetto mascherato da correzione. Qui la FK
+ *    (`lavori_laboratorio_id_fkey`, colonna singola verso la chiave primaria) dà
+ *    un oggetto, ma la difesa costa una riga e l'alternativa è una firma che
+ *    sparisce in silenzio.
+ *
+ * 🛑 Torna `null` quando l'incastro non c'è, e **non ripiega su «UÀ Lab»**: che
+ *    cosa fa un messaggio senza nome lo decide `src/lib/messaggi/firma.ts`, in un
+ *    posto solo.
+ */
+function nomeLaboratorioDa(lavoro: unknown): string | null {
+  const incastro = (lavoro as { laboratorio?: unknown } | null)?.laboratorio
+  const riga = Array.isArray(incastro) ? incastro[0] : incastro
+  const nome = (riga as { nome?: unknown } | null | undefined)?.nome
+  return typeof nome === 'string' ? nome : null
+}
+
+/**
  * Libera la cassetta del lavoro alla consegna (Task 7, spec §9.1 — L5),
  * via `cassetta_libera_atomica(p_lab, p_lavoro, p_motivo:'consegna')`
  * (Task 1/4a), avvolta in `callRpcWithRetry` (coda di deadlock 40P01
@@ -115,7 +143,7 @@ export async function orchestraConsegna(
 
     const { data: lavoro } = await supabase
       .from('lavori')
-      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(id, telefono, cellulare_whatsapp, cognome, portale_token)')
+      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(id, telefono, cellulare_whatsapp, cognome, portale_token), laboratorio:laboratori(nome)')
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
       .single()
@@ -133,6 +161,11 @@ export async function orchestraConsegna(
     const waMessage = buildWhatsappMessage({
       numeroLavoro,
       portalToken: portaleToken,
+      // ⚖️ D345 — la firma è il nome del laboratorio. Arriva come INCASTRO della
+      // lettura che c'è già (FK `lavori_laboratorio_id_fkey`), non con una
+      // seconda andata al banco: la consegna è un flusso fiscale in produzione
+      // e un round trip in più su ogni consegna si paga per sempre.
+      nomeLaboratorio: nomeLaboratorioDa(lavoro),
     })
     const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
 
@@ -198,7 +231,8 @@ export async function orchestraConsegna(
         paziente:pazienti(*),
         lavorazioni:lavori_lavorazioni(*),
         materiali:lavori_materiali(*),
-        prescrizione:lavori_prescrizioni(*)
+        prescrizione:lavori_prescrizioni(*),
+        laboratorio:laboratori(nome)
       `)
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
@@ -396,6 +430,8 @@ export async function orchestraConsegna(
     const waMessage = buildWhatsappMessage({
       numeroLavoro: lavoro.numero_lavoro as string,
       portalToken: portaleToken,
+      // ⚖️ D345 — stessa firma, stessa funzione: i due rami non divergono.
+      nomeLaboratorio: nomeLaboratorioDa(lavoro),
     })
     const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
 

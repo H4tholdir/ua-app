@@ -32,6 +32,7 @@
  *    rifatta. Le due forme si somigliano **perché è la stessa regola**.
  */
 import type { CampoCorreggibile } from '@/lib/dichiarazione/correzioni'
+import { firmaMessaggio } from '@/lib/messaggi/firma'
 
 /**
  * L'indirizzo pubblico dell'app.
@@ -57,9 +58,21 @@ function indirizzoApp(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'https://uachelab.com'
 }
 
-/** La firma della PWA nei messaggi al dentista, uguale al gemello. Non è il nome
- *  del laboratorio: quello è un dato del cliente e non ci va. */
-const MITTENTE = '— UÀ Lab'
+// 🔄 QUI C'ERA UNA COSTANTE, E ⚖️ **D345** L'HA TOLTA (09/08/2026): `MITTENTE`,
+//    che valeva il gallone seguito da «UÀ Lab», col commento «*Non è il nome del
+//    laboratorio: quello è un dato del cliente e non ci va*».
+//    📌 La vecchia firma **non si ricopia per intero nemmeno in un commento**: la
+//    sentinella di `tests/unit/firma-messaggi-nome-laboratorio.test.ts` legge il
+//    sorgente e non sa distinguere il codice dalla prosa — ed è giusto così, una
+//    guardia che si può aggirare spiegandole le proprie ragioni non è una guardia.
+//    🔴 Quel commento sbagliava **il ragionamento**, non solo la stringa: il
+//    laboratorio non è «un dato del cliente» — è il **mittente**, il tenant,
+//    chi manda il messaggio. Da quella premessa nasceva un messaggio che esce
+//    dal laboratorio e non dice chi è. Francesco: «*ogni messaggio che inviamo
+//    non deve essere firmato da UA lab, ma dal nome del laboratorio*».
+//    ➡️ La firma non è più una costante di questo file: è un **dato che il
+//    chiamante passa**, e la sua forma la decide `src/lib/messaggi/firma.ts`
+//    (uno solo, per i due gemelli).
 
 /**
  * Il fatto: «la dichiarazione di quel lavoro è stata rifatta», più il
@@ -98,17 +111,31 @@ const MITTENTE = '— UÀ Lab'
 export function buildAvvisoMessage({
   numeroLavoro,
   portalToken,
+  nomeLaboratorio,
 }: {
   numeroLavoro: string
   portalToken: string
+  /** ⚖️ D345 — `laboratori.nome`: **la firma è un dato, non una costante**.
+   *  Chiave **obbligatoria** (con `?` nessun chiamante si sarebbe rotto, e
+   *  `tsc` non avrebbe censito nessuno) e valore che ammette `null` (il ramo
+   *  «lettura senza laboratorio» esiste — v. `src/lib/messaggi/firma.ts`).
+   *  🛑 E resta un parametro che **non può portare un dato del paziente**: la
+   *  gamba ① di `tests/unit/avviso-messaggio.test.ts` continua a sorvegliarlo. */
+  nomeLaboratorio: string | null
 }): string {
-  const fatto = `📄 La dichiarazione del lavoro #${numeroLavoro} è stata rifatta.`
+  const righe = [`📄 La dichiarazione del lavoro #${numeroLavoro} è stata rifatta.`]
 
-  if (!portalToken) return [fatto, ``, MITTENTE].join('\n')
+  if (portalToken) {
+    righe.push(``, `Trovi quella aggiornata qui:`, `${indirizzoApp()}/portale/${portalToken}`)
+  }
 
-  return [fatto, ``, `Trovi quella aggiornata qui:`, `${indirizzoApp()}/portale/${portalToken}`, ``, MITTENTE].join(
-    '\n'
-  )
+  // ⚠️ La riga vuota entra CON la firma: senza nome il messaggio non finisce con
+  //    una riga vuota appesa. E niente `.filter(Boolean)` — le righe vuote di
+  //    separazione sono volute e falsy.
+  const firma = firmaMessaggio(nomeLaboratorio)
+  if (firma) righe.push(``, firma)
+
+  return righe.join('\n')
 }
 
 /**
