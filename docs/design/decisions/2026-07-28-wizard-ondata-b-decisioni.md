@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centocinquantesima tornata (D350-D351: la terza deroga sul nome del paziente, e «a voce» si chiude con un tocco)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantunesima tornata (D352: l'archivio delle comunicazioni lo vedono tutti quelli del laboratorio)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**351 decisioni in centocinquanta tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**352 decisioni in centocinquantuno tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4190,3 +4190,30 @@ portandolo a Francesco invece di lasciarlo passare. 🔑 **Entrambe le domande n
 `background-color` e i gradienti rispondono `transparent`. ➡️ *Una sonda sbagliata non dice «non lo so»:
 dice un numero.* E dopo la correzione **due testi erano davvero sotto soglia, ed erano suoi** (4,499 e
 4,09): li ha portati a `--ink`.
+
+---
+
+### Centocinquantunesima tornata — D352: l'archivio delle comunicazioni lo vedono tutti quelli del laboratorio (10/08/2026, 00:36)
+
+**Come è nata.** La revisione del Task 6 ha trovato un'**asimmetria** fra le due letture della stessa
+tabella: il promemoria (`avvisoPerLaScheda`) nasce con un cancello per ruolo — ⚖️ D342 — e l'archivio
+(`archivioCliente`, che servirà al Task 9 sulla scheda del dentista) **non ne ha nessuno**. L'esecutore
+**non l'ha inventato**: ha scritto che «*chi può vedere l'archivio di un dentista è una decisione di quella
+superficie e va presa col suo verbale*». 🔑 **È la stessa forma delle due domande della tornata scorsa: un
+esecutore che si ferma sul confine invece di istituire una regola di permessi per conto proprio.**
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D352** | 🔑 **L'ARCHIVIO DELLE COMUNICAZIONI DI UN DENTISTA LO VEDONO TUTTI QUELLI CHE STANNO IN LABORATORIO: `titolare` · `tecnico` · `front_desk`.** Esclusi `admin_rete` e `admin_sistema`, **per nome** | «*tutti gli elementi di un laboratorio*» | ➡️ **Coincide con ⚖️ D342, e la coincidenza NON è pigrizia: è la stessa frase applicata due volte.** D342 escludeva `admin_rete` perché «*sta sopra più laboratori e chiuderebbe l'obbligo di un laboratorio in cui non lavora*», e `admin_sistema` perché è **personale UÀ** — responsabile del trattamento che agisce su istruzione documentata (GDPR **Art. 28(3)(a)**). Nessuno dei due è «un elemento del laboratorio». 🛑 **Ma il rapporto fra i due cancelli è ROVESCIATO, e va detto:** su D342 la regola era «*la visibilità è un sottoinsieme del permesso — nessuno vede un promemoria che non può chiudere*»; qui **non c'è niente da chiudere**, l'archivio è **sola lettura**, quindi il cancello non discende dal permesso di agire ma da **chi è dentro il perimetro del titolare del trattamento**. Arrivano allo stesso elenco per due strade diverse. 🔑 **E il tecnico dentro è coerente col ribaltamento di D342:** se ha telefonato lui, deve poter **rileggere** ciò che risulta scritto sotto il proprio nome |
+
+⚠️ **Ciò che D352 NON decide, e va scritto perché non venga dato per deciso:** se l'archivio debba essere
+interrogabile **per PAZIENTE** — riserva normativa aperta dall'handoff del 09/08 (§0⑧②: l'Art. 19 seconda
+frase impone al titolare di poter dire all'interessato **quali** destinatari ha informato). Quella resta a
+panel, insieme al fondamento (Art. 19 su richiesta *contro* Art. 5(1)(d) + 5(2) di propria iniziativa).
+
+🟠 **E UNA DOMANDA DI FRANCESCO È RIMASTA APERTA, non risposta:** «*se il primo promemoria è ancora attivo,
+quando nasce il secondo non dovrebbe spegnere il primo che ormai è superato? chiedo non ne sono sicuro*».
+🛑 **Non ratificata di getto:** tocca il vocabolario della tabella (i tre stati **non** prevedono
+«superato»), la prova ex **Art. 5(2)** di un obbligo nato e mai adempiuto, e ciò che il portale mostra al
+dentista come «voci cambiate». ➡️ **Va a panel** (regola advisor: normativa + dominio), e fino ad allora
+vale ciò che il Task 6 ha costruito: **fra due avvisi aperti si mostra il più vecchio.**
