@@ -109,7 +109,15 @@ Chi correggesse «tutte e quattro» ne lascerebbe indietro una.
 Rimedi possibili: `--muted` #6E6457 sullo stesso fondo → **4,66** (calcolato), oppure il fondo passa a
 `--card` → **5,14** (misurato con la variante x). ⚠️ **La variante (a) del ❌1 NON lo tocca**, perché in
 chiaro lascia `--bg-deep`: i due difetti vanno chiusi insieme o si chiude solo metà.
-**ESITO: deferito, col motivo** — l'esito dipende da quale variante del ❌1 viene scelta.
+
+> ✅ **ESITO AGGIORNATO IL 09/08/2026 — CHIUSO da ⚖️ D329** (variante C3: riga più scura **e**
+> didascalie a inchiostro pieno). `provato:` **rimisurato sulla pagina viva**, non ricalcolato — i
+> quattro testi sono `rgb(29, 25, 19)` su `rgb(221, 214, 201)` = **12,11:1** (erano 4,17).
+> 🔴 **MA IL DIFETTO NON SPARISCE DALLA SUPERFICIE: SI SPOSTA, E CRESCE.** Sulle stesse cinque
+> superfici i testi `--muted` scendono da **4,66** a **4,01**, cioè sotto la soglia. Contati sulla
+> pagina viva: **prima 4 testi sotto 4,5, adesso 12.** Dettaglio e scatti nella sezione «D329 —
+> applicata», in fondo.
+> ~~ESITO: deferito~~ (era: l'esito dipende da quale variante del ❌1 viene scelta).
 
 ### ❌4 — Il foglio **non torna in cima** quando cambia passo
 
@@ -521,3 +529,145 @@ nomina né `border` né `transparent`. Cercato prima di toccare il codice, non d
   Nessun evento depositato (`eventi_qualita` = **0** prima e dopo), nessuna dichiarazione riemessa
   (**1**, la stessa). **Non ho creato né cancellato niente.**
 - **Niente è stato pubblicato.**
+
+---
+
+# D329 — applicata (9 agosto 2026)
+
+> ⚖️ **D329, Francesco, 09/08/2026:** «*c3*» — la variante **C3** del tema chiaro: **riga più scura**
+> e **didascalie a inchiostro pieno**. Le due cose sono una variante sola.
+
+## ① Che cosa è cambiato, e dove
+
+Come per D326, non è scritto nel componente: sono **due token**.
+
+| dove | chiaro | scuro |
+|---|---|---|
+| `src/app/ds-v3.css:38` · `:97` | `--fondo-superficie: color-mix(in srgb, var(--muted) 12%, var(--bg-deep))` | `var(--bg-deep)` |
+| `src/app/ds-v3.css:39` · `:98` | `--didascalia-superficie: var(--ink)` | `var(--faint)` |
+
+Consumati in `DevoIntervenire.tsx` — **cinque fondi** (`:991 · 1353 · 1475 · 1700 · 1751`) e **sei
+scritte piccole** (`:996 · 1360 · 1421 · 1445 · 1493 · 1756`).
+
+🔑 **Perché anche il tema scuro compare nella tabella.** Se le due righe del blocco scuro si
+omettessero, il tema scuro **erediterebbe la resa del chiaro**: `--muted` in scuro è **chiaro**
+(#A69B8C), quindi la riga si **schiarirebbe** invece di scurirsi, e le didascalie diventerebbero
+#F2EEE7. Sarebbe una decisione mai presa, entrata per omissione.
+
+## ② Prima e dopo in chiaro, coi numeri RIMISURATI sulla pagina viva
+
+`provato:` sonda sul DOM del banco, 390 chiaro, passo di correzione. **Non sono i numeri calcolati in
+anticipo: sono quelli letti da `getComputedStyle` dopo il cambiamento.**
+
+| | prima | dopo |
+|---|---|---|
+| fondo della riga | `--bg-deep` **#ECE6D9** | **#DDD6C9** (`rgb(221, 214, 201)`) |
+| riga ↔ pannello `--card` | **1,23:1** | **1,43:1** |
+| le quattro scritte del ❌3 | `--faint` **4,17** ❌ | `--ink` **12,11** ✅ |
+| altezza pastiglia del nastro | 62,91 × **30** | 62,91 × **30** — **invariata** |
+| altezza riga del selettore | 342 × **71,5** | 342 × **71,5** — **invariata** |
+
+📌 **I 2px non si ripetono, ed è stato ricontrollato invece che dedotto:** D326 aveva aggiunto un
+bordo (che occupa spazio); D329 cambia **solo colori**, quindi la geometria non si muove. Misurato,
+non supposto.
+
+Scatti: **`d329-dopo-correzione--390-light.png`** (+ `--768-` e `--1280-light`) ·
+`d329-dopo-persone--390-light.png` · `d329-dopo-caratteristiche--390-light.png`.
+A 768 e 1280 non cambia nulla: il foglio è la stessa colonna da 480 al centro.
+
+## ③ Il tema scuro NON è cambiato — verificato, non dichiarato
+
+`provato:` stessa sonda, 390 scuro. **Tutti e tre i valori che D326 aveva fissato sono identici:**
+
+| | dopo D326 | dopo D329 |
+|---|---|---|
+| fondo della riga | `rgb(16, 14, 11)` | `rgb(16, 14, 11)` |
+| filo | `rgb(52, 46, 38)` 1px | `rgb(52, 46, 38)` 1px |
+| didascalie | `--faint` `rgb(154, 143, 128)`, **6,07:1** | idem |
+| pastiglia · riga persone | 62,91 × 30 · 342 × 71,5 | idem |
+
+**Testi sotto soglia in scuro sulle cinque superfici: 0 su 30** (il passo di correzione).
+Scatti di controllo: `d329-dopo-correzione--390-dark.png` e i due sotto-passi.
+
+---
+
+## 🔴 ④ IL DIFETTO NUOVO — c'è, è misurato, e NON l'ho aggiustato
+
+### (a) Il conto dei testi sotto soglia in chiaro passa da 4 a 12
+
+Scurire la riga allontana la riga dal pannello **e** avvicina il testo alla riga: è la stessa mossa.
+Le scritte promosse a `--ink` guadagnano; **quelle rimaste `--muted` perdono.**
+
+| testo | prima (su #ECE6D9) | dopo (su #DDD6C9) |
+|---|---|---|
+| le sei etichette delle righe («Chi ha prescritto», «Paziente»…) — 13px/700 | 4,66 ✅ | **4,01** ❌ |
+| i due paragrafi di «Da qui non si corregge» — 14px | 4,66 ✅ | **4,01** ❌ |
+| i due **collegamenti** «Impostazioni» e «Anagrafica» — 14,5px | 4,66 ✅ | **4,01** ❌ |
+| le due righe di sotto del selettore di persone — 13px | 4,66 ✅ | **4,01** ❌ |
+
+`provato:` sonda su **tutti** i testi delle cinque superfici — **10 su 30 sotto soglia** al passo di
+correzione, **2 su 4** al selettore di persone. Prima erano 4 in tutto.
+🛑 **Due dei dodici sono collegamenti** — l'unica via per andare in Impostazioni e in Anagrafica da
+quel blocco.
+🔑 **E non è la scelta di C3 a essere sbagliata: è che su questo asse non si vince.** Con `--card`
+quasi bianco, **qualunque** scurimento della riga porta `--muted` sotto 4,5 — parte da 4,66, e il
+primo passo utile lo sfonda. **Il rimedio non è cambiare variante, è spostare quei dodici testi**
+(per esempio a `--ink`, che sullo stesso fondo dà **12,11**). **Non l'ho fatto: non è mio da
+decidere** (R-E2), ed è la stessa mossa che ha appena chiuso il ❌3.
+
+### (b) Il nastro del percorso non dice più «sei qui»
+
+🖼️ **`d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png`** — prima sopra, dopo sotto.
+Le tre tappe **spente** erano grigie: si leggevano come «già fatte / non ancora». Adesso sono
+**nero pieno**, cioè lo stesso peso del testo della tappa **corrente**. A distinguerle resta il solo
+riempimento della pastiglia (chiara contro scura), non più l'intensità.
+🔑 È esattamente il rischio che la variante portava con sé: **C3 sposta la gerarchia, non solo il
+contrasto.** **Riferito, non aggiustato.**
+
+### (c) Un dettaglio dell'immagine che le parole non dicevano
+
+La decisione parla di «**didascalie**». Nell'immagine che Francesco ha scelto era passato a
+inchiostro **ogni** `--faint` su quelle superfici — quindi anche i **galloni `›`** in fondo a ogni
+riga e la freccia `→`. Ho applicato **l'immagine**, perché è l'immagine che è stata scelta, e lo
+scrivo perché i due non coincidono. Se si volevano le sole didascalie, si torna indietro cambiando
+**tre righe** (`:1421`, `:1445`, `:1493`) da `--didascalia-superficie` a `--faint`.
+
+---
+
+## ⑤ FASE 7
+
+```
+npm run verify:full ; ESITO=$? ; echo "VERIFY_EXIT=$ESITO"
+```
+
+```
+Test Files  450 passed | 6 skipped (456)
+     Tests  5685 passed | 68 skipped (5753)
+✓ Compiled successfully in 6.0s
+VERIFY_EXIT=0
+```
+
+🔄 **E il primo giro era ROSSO, per colpa mia.** Avevo messo un commento JSX (`{/* … */}`) **dentro**
+un `{condizione && ( … )}`, dove non ci può stare: `tsc` ha dato **cinque errori di sintassi**,
+`VERIFY_EXIT=2`. Corretto spostando il commento fuori dalla parentesi, e rilanciato per intero. Lo
+scrivo perché un verde raccontato senza il rosso che l'ha preceduto è un verde più fragile di quel
+che sembra.
+
+🔄 **Seconda correzione a me stesso, e questa aveva prodotto NUMERI FALSI.** La prima sonda leggeva
+`color-mix` come Chrome lo risolve — `color(srgb 0.866 0.840 0.789)`, cioè in scala **0-1** — e lo
+trattava come 0-255: ogni fondo diventava quasi nero e i contrasti uscivano **1,19** invece di
+**12,11**. Se avessi creduto a quella tabella avrei scritto che C3 rompe tutto. **Il numero l'ho
+riconosciuto sbagliato perché non tornava con la previsione**, non perché me ne sono accorto a
+schermo.
+
+## ⑥ Che cosa resta fuori
+
+- **Nessuno dei dodici testi a 4,01 è stato toccato**, né il nastro, né i galloni. Tutti **riferiti**.
+- **Le righe 926 e 1205** (i nove motivi, il riquadro «E sul lavoro») restano `--bg-deep`: fuori
+  perimetro, e adesso la differenza in chiaro è **di tinta**, non più solo di filo.
+- **Il tasto primario spento** (`TastoPrimario.tsx:90`) resta `--bg-deep`: **in chiaro adesso è più
+  chiaro delle righe** che gli stanno sopra, dove prima era uguale. Sesta superficie, sempre fuori
+  mandato.
+- **Gli altri rilievi del gate** — ❌4, ❌5, ❌6, ⚠️7 — restano aperti.
+- **Il ramo `prefers-reduced-motion` non è stato rifotografato** (D329 non tocca il movimento).
+- **Il banco è stato lasciato com'era:** fixture intatta, `eventi_qualita` 0 prima e dopo.

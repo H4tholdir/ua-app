@@ -3947,3 +3947,28 @@ cambiando UNA riga, non sette.**
 riga↔pannello resta **1,15:1**, cioè **l'elevazione resta invertita** rispetto alla regola del design
 system (una superficie premibile dovrebbe *salire* dentro un `--card`). Il filo dà **1,25:1** sul
 pannello e **1,44:1** sulla riga. *La (b) rende la riga visibile, non la rende rialzata.*
+
+📌 **D329 È STATA APPLICATA lo stesso giorno** (`ds-v3.css:38-39` chiaro · `:97-98` scuro, token
+`--fondo-superficie` e `--didascalia-superficie`; cinque fondi e sei scritte in
+`DevoIntervenire.tsx`). `provato:` **rimisurato sulla pagina viva, non ricalcolato** — riga #DDD6C9,
+separazione **1,43:1**, i quattro testi del ❌3 a **12,11**. In scuro **non è cambiato un pixel**
+(fondo `rgb(16,14,11)`, filo `rgb(52,46,38)`, didascalie 6,07): i due token risolvono ai valori di
+prima, e le due righe del blocco scuro **esistono apposta** — senza, il tema scuro erediterebbe la
+resa del chiaro e la riga si **schiarirebbe**, perché in scuro `--muted` è chiaro.
+
+🔴 **E IL ROVESCIO ANNUNCIATO SI È MATERIALIZZATO, COL SUO NUMERO: il conto dei testi sotto soglia in
+chiaro passa da 4 a 12.** Le scritte promosse a `--ink` guadagnano (4,17 → 12,11); **quelle rimaste
+`--muted` perdono** (4,66 → **4,01**): le sei etichette delle righe, i due paragrafi di «Da qui non si
+corregge», i **due collegamenti** «Impostazioni» e «Anagrafica», le due righe di sotto del selettore di
+persone. **Riferito e NON aggiustato** (R-E2).
+🔑 **La lezione, e non è sul colore: su questo asse non si vince.** Con un pannello quasi bianco,
+scurire la riga la allontana dal pannello **e** avvicina il testo alla riga — è la stessa mossa. **Ogni**
+scurimento utile porta `--muted` sotto 4,5, perché parte da 4,66. ➡️ Il seguito non è cambiare variante:
+è **spostare quei dodici testi**, la stessa mossa che ha appena chiuso il ❌3.
+⚠️ **Secondo effetto, riferito con lo scatto** (`d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png`):
+le tre tappe **spente** del nastro erano grigie e adesso sono **nero pieno**, cioè lo stesso peso della
+tappa corrente — *il nastro non dice più «sei qui» con l'intensità, solo col riempimento.*
+📌 **E le parole non coincidono con l'immagine:** la decisione dice «didascalie», ma nell'immagine scelta
+era passato a inchiostro **ogni** `--faint` su quelle superfici, **galloni `›` compresi**. È stata
+applicata **l'immagine** — si torna indietro cambiando tre righe. Referto:
+`docs/design/screenshots/2026-08-09-devo-intervenire/GATE-L2.md`, sezione «D329 — applicata».

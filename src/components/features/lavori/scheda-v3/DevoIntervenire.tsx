@@ -982,15 +982,18 @@ export function DevoIntervenire(props: {
               dentro un overlay v3 un `push` impila la pagina nuova sopra
               l'entry del foglio e la lascia sepolta — difetto già pagato. */}
           {/* ⚖️ D326 — il filo: `transparent` in chiaro, `--line` in scuro. Qui
-              non si preme niente: delimita il blocco dal pannello del foglio. */}
+              non si preme niente: delimita il blocco dal pannello del foglio.
+              ⚖️ D329 — e il fondo è `--fondo-superficie`, la didascalia
+              `--didascalia-superficie`: in chiaro riga più scura e didascalia a
+              inchiostro pieno (era 4,17:1, ora 12,11), in scuro identici a prima. */}
           <div style={{
             borderRadius: raggio.riga, padding: `14px ${spazio.m}px`,
-            background: 'var(--bg-deep)', border: '1px solid var(--filo-superficie)',
+            background: 'var(--fondo-superficie)', border: '1px solid var(--filo-superficie)',
           }}>
             <p style={{
               fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
               textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
-              color: 'var(--faint)', margin: `0 0 ${spazio.s}px`,
+              color: 'var(--didascalia-superficie)', margin: `0 0 ${spazio.s}px`,
             }}>Da qui non si corregge</p>
             <p style={{ fontSize: 14, color: 'var(--muted)', margin: `0 0 ${spazio.s}px`, lineHeight: 1.5 }}>
               Se è sbagliato un dato del <b style={{ color: 'var(--ink)' }}>laboratorio</b> — ragione sociale,
@@ -1345,12 +1348,16 @@ function NastroPercorso() {
             style={{
               fontSize: 12, fontWeight: tipografia.weight.bold, whiteSpace: 'nowrap',
               borderRadius: 999, padding: '5px 10px',
-              background: i === qui ? 'var(--ink)' : 'var(--bg-deep)',
-              // ⚖️ D326 — il filo va sulle pastiglie SPENTE (fondo `--bg-deep`).
+              // ⚖️ D329 — la pastiglia spenta prende `--fondo-superficie`: in
+              // chiaro è più scura, in scuro è il `--bg-deep` di sempre.
+              background: i === qui ? 'var(--ink)' : 'var(--fondo-superficie)',
+              // ⚖️ D326 — il filo va sulle pastiglie SPENTE.
               // Quella accesa lo prende del proprio colore: serve a tenere tutte
               // le pastiglie della stessa altezza, non a disegnare un bordo.
               border: `1px solid ${i === qui ? 'var(--ink)' : 'var(--filo-superficie)'}`,
-              color: i === qui ? 'var(--bg)' : 'var(--faint)',
+              // ⚖️ D329 — «Motivo · Le quattro caselle · Esito»: sono TRE dei
+              // quattro testi del ❌3, quelli misurati a 4,17:1.
+              color: i === qui ? 'var(--bg)' : 'var(--didascalia-superficie)',
             }}
           >{passo}</span>
         </span>
@@ -1409,7 +1416,9 @@ function RigaVoce(props: {
             <span style={{ color: 'var(--muted)', textDecoration: 'line-through', fontWeight: tipografia.weight.semibold }}>
               {adesso}
             </span>
-            <span aria-hidden style={{ color: 'var(--faint)' }}>→</span>
+            {/* ⚖️ D329 — vive sulla superficie della riga, quindi segue il suo
+                colore di scritta piccola (in chiaro inchiostro, in scuro come prima). */}
+            <span aria-hidden style={{ color: 'var(--didascalia-superficie)' }}>→</span>
             <span>{corretta.mostrato}</span>
           </>
         ) : (
@@ -1431,8 +1440,9 @@ function RigaVoce(props: {
           borderRadius: 999, padding: '3px 9px',
         }}>Da rifare</span>
       )}
+      {/* ⚖️ D329 — anche questa sta SULLA riga, quindi segue `--didascalia-superficie`. */}
       {precluso && (
-        <span style={{ display: 'block', fontSize: 13.5, color: 'var(--faint)', marginTop: 4, lineHeight: 1.4 }}>
+        <span style={{ display: 'block', fontSize: 13.5, color: 'var(--didascalia-superficie)', marginTop: 4, lineHeight: 1.4 }}>
           {precluso}
         </span>
       )}
@@ -1459,7 +1469,10 @@ function RigaVoce(props: {
     // 🛑 IL COLORE DEL FILO NON SI SCRIVE QUI: `--filo-superficie` vale
     //    `transparent` in chiaro e `--line` in scuro (`ds-v3.css`). Il chiaro è
     //    una decisione ANCORA APERTA (D326 ②) e si chiuderà su quel token.
-    background: corretta ? 'var(--blue-tint)' : 'var(--bg-deep)',
+    // ⚖️ D329 — riga più scura in chiaro (#DDD6C9), `--bg-deep` in scuro. La riga
+    // GIÀ CORRETTA resta `--blue-tint`: quel colore dice «qui hai messo mano», e
+    // D329 riguarda le righe ancora da toccare.
+    background: corretta ? 'var(--blue-tint)' : 'var(--fondo-superficie)',
     // Il filo vale anche sulla riga già corretta (fondo `--blue-tint`): dentro
     // lo stesso elenco le righe si delimitano tutte allo stesso modo.
     border: '1px solid var(--filo-superficie)', borderRadius: raggio.riga,
@@ -1474,7 +1487,10 @@ function RigaVoce(props: {
   return (
     <button type="button" onClick={onApri} style={{ ...stile, cursor: 'pointer' }}>
       {corpo}
-      <span aria-hidden style={{ color: 'var(--faint)', fontSize: 17, flex: 'none' }}>›</span>
+      {/* ⚖️ D329 — il gallone sta SULLA riga: nell'immagine scelta da Francesco è
+          inchiostro pieno come le didascalie. V. il resoconto: «didascalie» a parole,
+          «ogni scritta piccola sulla superficie» nell'immagine — e ha vinto l'immagine. */}
+      <span aria-hidden style={{ color: 'var(--didascalia-superficie)', fontSize: 17, flex: 'none' }}>›</span>
     </button>
   )
 }
@@ -1680,7 +1696,8 @@ function PassoVoce(props: {
                   onClick={() => setScelto({ id: p.id, mostrato })}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                    background: 'var(--bg-deep)', borderRadius: 16, minHeight: 56,
+                    // ⚖️ D329 — riga più scura in chiaro, invariata in scuro.
+                    background: 'var(--fondo-superficie)', borderRadius: 16, minHeight: 56,
                     // ⚖️ D326 — il bordo dice DUE cose e restano distinte: `--ink`
                     // è «questa l'hai scelta», il filo è solo il contorno della
                     // riga (`transparent` in chiaro, `--line` in scuro).
@@ -1731,12 +1748,12 @@ function PassoVoce(props: {
               si preme, delimita il riquadro dal pannello del foglio. */}
           <div style={{
             borderRadius: raggio.riga, padding: `14px ${spazio.m}px`,
-            background: 'var(--bg-deep)', border: '1px solid var(--filo-superficie)',
+            background: 'var(--fondo-superficie)', border: '1px solid var(--filo-superficie)',
           }}>
             <p style={{
               fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
               textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
-              color: 'var(--faint)', margin: `0 0 ${spazio.s}px`,
+              color: 'var(--didascalia-superficie)', margin: `0 0 ${spazio.s}px`,
             }}>Elementi</p>
             {/* 🔴 NON È UN CAMPO DI TESTO, e il mockup lo disegnava così: sul
                 contratto `elementi` è una lista di NUMERI di dente
