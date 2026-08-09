@@ -596,3 +596,181 @@ registro è quello preesistente sulla deprecazione di `middleware`, che con ques
 c'entra.
 
 🛑 **Nessun `git push`**: il ramo lo pubblica l'orchestratore.
+
+---
+
+# 10. Terzo giro — il ternario chiuso, e la strada vera provata (10/08/2026 — `date` → `Mon Aug 10 00:08:07 CEST 2026`)
+
+**Stato:** `DONE`. I due buchi che il secondo giro aveva **dichiarato aperti** sono chiusi, ed
+entrambi con una mutazione che diventa rossa. Nessun nuovo buco dichiarato.
+
+| voce | esito |
+|---|---|
+| ① l'involucro: cancello + lettura in una funzione sola | ✅ `avvisoPerLaScheda`, 10 prove nuove, 2 mutazioni rosse |
+| ② la strada vera: le letture attraverso il client di servizio | ✅ 4 prove nuove, mutazione rossa **col messaggio vero del banco** |
+| ③ il `.gitignore` | chiuso dall'orchestratore, niente da fare qui |
+| `verify:full` | **`VERIFY_EXIT=0`** — 5949 passate \| 126 saltate su 469 file |
+
+---
+
+## 10.1 ① L'INVOLUCRO — il ternario non ha più dove vivere
+
+**Che cosa ho fatto.** `avvisoPerLaScheda({ svc, lavoroId, laboratorioId, ruolo })` in
+`src/lib/avvisi/queries.ts`: tiene **il cancello di ⚖️ D342 e la lettura dentro la stessa funzione**,
+e torna l'avviso aperto oppure `null`. `page.tsx` è ora **una chiamata sola**, senza nessun ternario
+e senza nessuna variabile di cancello. `avvisiDaComunicare` **non cambia firma** — l'involucro la
+chiama, e le sue dodici prove sono rimaste quelle.
+
+🛑 **`ruolo` è una chiave OBBLIGATORIA del tipo, non opzionale:** chi dimentica di dichiarare *chi
+guarda* **non compila**. È la differenza fra fail-closed **per costruzione** e fail-closed *per
+disciplina* — e la disciplina è esattamente ciò che il ternario aveva lasciato scoperto.
+
+🔑 **E si è spostata anche la scelta «uno solo, anche quando sono due»**, che stava in `page.tsx`
+come `avvisiAperti[0] ?? null`: aveva lo stesso identico problema — una decisione vera in un file che
+nessuna prova rende. Ora ha la sua asserzione.
+
+**Le prove sono dieci, e guardano LA SPIA, non solo il valore di ritorno.** Il motivo è che
+«torna `null`» non distingue «non ha letto» da «ha letto e non c'era», mentre tutto il senso del
+cancello è che l'identificativo dell'avviso **non entri nemmeno** nella pagina di chi non potrebbe
+chiuderlo. Quindi: per i tre ammessi `spia.consultato === 1` e l'avviso torna; per i due esclusi
+`spia.consultato === 0` e torna `null` — **con il finto che ha una riga aperta da dare**, così un
+cancello girato dalla parte sbagliata la restituirebbe. I cinque nomi sono scritti a mano.
+
+### LE MUTAZIONI — questa volta su ciò che ha preso il posto del ternario
+
+**Ⓐ il cancello CAPOVOLTO dentro l'involucro** (`if (puoVedereAvviso(arg.ruolo)) return null`):
+```
+$ npx vitest run tests/unit/avvisi-queries.test.ts
+ Test Files  1 failed (1)
+      Tests  10 failed | 12 passed (22)
+
+AssertionError: expected undefined to be 'avv-vecchio'
+ ❯ tests/unit/avvisi-queries.test.ts:316:23
+AssertionError: expected "error" to be called at least once
+ ❯ tests/unit/avvisi-queries.test.ts:326:21
+```
+**Tutte e dieci** le prove dell'involucro arrossiscono. 🔑 **Ed è esattamente la mutazione che il
+giro scorso restava verde:** nella forma vecchia lo stesso capovolgimento dava `4 files, 68 passed`.
+
+**Ⓑ il cancello TOLTO** (riga commentata):
+```
+ Test Files  1 failed (1)
+      Tests  3 failed | 19 passed (22)
+
+AssertionError: admin_rete non deve vedere nessun avviso: expected { id: 'avv-1', …(10) } to be null
+AssertionError: admin_sistema non deve vedere nessun avviso: expected { id: 'avv-1', …(10) } to be null
+AssertionError: «null» non deve vedere nessun avviso: expected { id: 'avv-1', …(10) } to be null
+```
+Ripristinato → `22 passed (22)`.
+
+### Le sentinelle vecchie: da unica difesa a **guardia di forma**
+
+Le tre di `scheda-avviso-dentista.test.tsx` non provano più il cancello — non ne sono più capaci e
+non devono esserlo. Ora provano ciò che una sentinella sul sorgente sa fare davvero:
+① la pagina non tiene copie dei nomi di ruolo e **non importa da `@/app/api/`** ·
+② 🔑 **la pagina NON chiama `avvisiDaComunicare`** — è l'unico modo in cui il cancello potrebbe
+tornare aggirabile, perché quella funzione non ha nessun parametro `ruolo` e chiamarla da lì vorrebbe
+dire rifare il ternario a mano · ③ il ruolo che le arriva è `context.ruolo`, non una costante (senza
+questa riga la pagina potrebbe passare `'titolare'` fisso e tutto resterebbe verde).
+
+## 10.2 ② LA STRADA VERA — le letture attraverso il client di servizio
+
+**Il dubbio era fondato, e la conseguenza pesava più di quanto avessi scritto.** Con `pg` si prova
+che i nomi delle colonne **esistano**, non che **PostgREST** — la strada che il codice usa davvero —
+li accetti nella forma in cui gliela passiamo. Sull'unico ambiente autorevole restavano provate solo
+contro un finto.
+
+➡️ **Aggiunto un secondo gruppo nello stesso file**, con il client di servizio vero. Quattro prove:
+`avvisiDaComunicare`, `archivioCliente`, `avvisoPerLaScheda` con un ruolo ammesso — e la quarta,
+che è la migliore: **con un ruolo escluso `svc.from` non viene chiamato nemmeno una volta**, cioè
+⚖️ D342 provato sulla strada vera e non su un finto.
+
+🔑 **E si guarda `console.error`, non il valore di ritorno**, perché è tutto il punto della faccenda:
+`vuotoConNota` **inghiotte** l'errore e torna una lista vuota, indistinguibile da «non c'è nessun
+avviso». Una prova che guardasse il ritorno sarebbe verde **anche con lo schema rotto** — cioè
+riprodurrebbe il silenzio che stiamo chiudendo.
+
+🛑 **Il cancello di questo gruppo è dichiarato dentro il file, non silenzioso:** salta quando manca
+`SUPABASE_SERVICE_ROLE_KEY`, cioè **in CI** — e il commento dice perché, e dice che è il motivo per
+cui il gruppo `pg` esiste separato e gira **sempre**. ⚠️ Il giorno in cui quella chiave entrasse nei
+segreti del passo «Unit tests», questo gruppo comincerebbe a girare in CI **da solo**.
+
+```
+$ set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-colonne-schema.test.ts
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+```
+
+### MUTAZIONE Ⓒ — e qui si legge il messaggio VERO del banco
+
+`created_at` → `creato_at` dentro `COLONNE`, **6 prove su 7 rosse**, e questa è la riga che vale:
+```
+AssertionError: PostgREST ha rifiutato la lettura: expected '[AVVISI] avvisiDaComunicare: lettura …' to be ''
++ [AVVISI] avvisiDaComunicare: lettura fallita, il promemoria non è visibile —
+  column avvisi_dentista.creato_at does not exist
+```
+🔑 **Quello è, alla lettera, ciò che in produzione sarebbe finito nei log mentre il promemoria ex
+Art. 19 GDPR spariva dalla scheda senza che nessuno se ne accorgesse.** Ripristinato → 7 passate.
+
+## 10.3 Un difetto MIO, trovato dalla catena e non da me
+
+Il primo `verify:full` di questo giro è uscito **`VERIFY_EXIT=2`**:
+```
+tests/integration/avvisi-colonne-schema.test.ts(159,36): error TS7006: Parameter 'c' implicitly has an 'any' type.
+```
+Avevo tenuto la spia in una variabile tipizzata `ReturnType<typeof vi.spyOn>` e ci leggevo
+`.mock.calls`. **`npx vitest run` non se ne accorge — non compila i tipi — e `tsc` sì.** Le prove
+erano verdi e il codice non compilava: è esattamente il motivo per cui la FASE 7 sono **tre** comandi
+e non uno. Rifatto raccogliendo il **testo** dei guasti invece della spia, e — 🛑 **la parte che
+conta** — **ho rifatto la mutazione Ⓒ sulla forma nuova** per accertarmi che l'asserzione non fosse
+diventata vacua: **ancora 6 rosse su 7**, con lo stesso messaggio.
+
+## 10.4 Le prove, e FASE 7
+
+```
+$ npx tsc --noEmit ; echo TSC_EXIT=$?
+TSC_EXIT=0
+
+$ npx vitest run tests/unit/avvisi-ruoli.test.ts tests/unit/avvisi-queries.test.ts \
+                 tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx tests/unit/api-avviso.test.ts
+ Test Files  4 passed (4)
+      Tests  78 passed (78)
+
+$ set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-colonne-schema.test.ts
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+
+$ npm run verify:full > …/verify4.log 2>&1; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
+VERIFY_EXIT=0
+
+ Test Files  459 passed | 10 skipped (469)
+      Tests  5949 passed | 126 skipped (6075)
+✓ Compiled successfully in 3.1s
+✅ DS compliance OK (v2.3 legacy + v3)
+✅ Guardia CSRF verde · ✅ reduced-motion · ✅ Coerenza verde
+✅ copia allineata al progetto · ✅ 2 progetti dichiarati, 2 con prove
+```
+📌 **I conti tornano:** era **5939 | 122 su 469**, ora **5949 | 126**. +10 passate = le dieci
+dell'involucro; +4 saltate = le quattro del client di servizio, che in `verify:full` non vedono
+`.env.local`; nessun file nuovo. 🔑 **Le prove della rotta dell'avviso non hanno cambiato esito**,
+ancora una volta: era il tripwire di perimetro.
+
+## 10.5 Ciò che resta, e non è un buco
+
+- **`avvisiDaComunicare` resta esportata e senza cancello.** È deliberato: è la lettura grezza, e le
+  sue dodici prove valgono. Chi rende una schermata usa `avvisoPerLaScheda`; la sentinella su
+  `page.tsx` controlla che quella pagina non torni alla grezza. 📮 **Al Task 9:** l'archivio del
+  dentista (`archivioCliente`) **non ha un cancello di ruolo**, e non gliene ho messo uno — chi lo
+  vede è una decisione di quella superficie, non di questa, e inventarla qui vorrebbe dire farla
+  senza il verbale.
+- **Il giro sul banco del Task 10 resta dovuto**, ma non più come *unica* copertura del cancello:
+  ora prova il giro dell'utente, non una riga che nessuno guardava.
+- **Restano aperti** i rilievi del §7.5 e del §7.2 (il commento di `telefonoStudio` nel componente
+  del Task 5), invariati.
+
+### 10.6 I salvataggi del terzo giro
+
+| hash | contenuto |
+|---|---|
+| `4d8bddd9` | `fix(avvisi): il cancello e la lettura in una funzione sola, e il ternario non ha più dove vivere` — ① e ② · 5 file, 370 righe aggiunte, 84 tolte |
+| — | il salvataggio che porta questa sezione non può nominare sé stesso: `git log --oneline 4d8bddd9~1..` |
