@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantottesima tornata (D342-D343: chi chiude l'avviso al dentista sta IN laboratorio, e la data è quella della registrazione)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantanovesima tornata (D344-D349: il cancello §0B è passato, il portale del dentista si migra intero a v3, e il collegamento non scade più)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**343 decisioni in centoquarantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**349 decisioni in centoquarantanove tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4145,3 +4145,27 @@ pratico è identico, **l'etichetta no** — e oggi quell'etichetta è scritta ne
 titolare di poter dire all'interessato **quali** destinatari ha informato. 🛑 **Nessuna delle due è
 stata verificata contro una fonte primaria in questa tornata:** vanno a **panel normativo**, insieme
 alla riga **35** (il moncone).
+
+---
+
+### Centoquarantanovesima tornata — D344 → D349: il cancello §0B è PASSATO, e una riga del mockup ha scoperto una firma sbagliata in PRODUZIONE (09/08/2026, 19:17)
+
+**Come è nata.** Mockup del cancello §0B: **due superfici, tre varianti ciascuna**, 390 · 768 · 1280, chiaro
+e scuro (`docs/design/mockups/2026-08-09-avviso-al-dentista.html`, sei scatti in
+`docs/design/mockups/screenshots/2026-08-09-avviso-al-dentista/`). Francesco ha scelto **una variante per
+superficie**, ha corretto una firma, e ha **ribaltato una premessa del disegno** (la scadenza del
+collegamento). 📌 Prima delle scelte, due difetti del mockup erano stati trovati **misurando**: il
+messaggio proposto era **tagliato** (225px di contenuto in 176 visibili) e una data stava a **2,54:1**.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D347** 🔴 | 🔑 **IL PORTALE DEL DENTISTA SI MIGRA INTERO AL DS v3 — ondata a sé, con TEMA SCURO e tutte le varianti per ogni viewport.** E nella stessa ondata si **rivede cosa il dentista può vedere e fare**: ogni lavoro collegato a lui, con tutte le azioni possibili sui lavori **e sulle comunicazioni col laboratorio** | «*va migrato completamente al design system v3, e deve avere il tema scuro e tutte le varianti per ogni viewport… potremmo anche rivedere più di una variante per comprendere se la pagina del dentista dia modo di visionare ogni lavoro a lui collegato con tutte le possibili azioni… ovviamente capisco che va sviluppato tutto in un ondata a sè*» | **Scritta PER PRIMA perché rimanda del lavoro** (§0A-bis regola 2). La misura che l'ha resa necessaria: quella pagina **non è né v3 né v2.3** — hex scritti a mano, DM Sans, fondo `#F8F9FA` che **contraddice l'invariante del fondo unico**, `zero` `data-ds`, **zero** `prefers-color-scheme`, **zero** breakpoint. ➡️ Il tema scuro là non esiste, e per questo il cancello §0B **non poteva** essere soddisfatto su quella superficie. **Riga nuova di roadmap**, non un pezzo di questo piano |
+| **D344** | 🔑 **Il foglio nell'app è la VARIANTE A2 — «due strade pari»:** una domanda sola, due risposte con lo **stesso peso** visivo; il messaggio si apre al passo dopo | «*il foglio nell'app a2*» | È la lettura letterale di ⚖️ **D335** (i due modi valgono uguale) e della **Legge 1** del DS v3 (una cosa alla volta). 📌 **Costo accettato e dichiarato nel mockup: due tap invece di uno** per la strada normale, più un secondo passo da disegnare |
+| **D345** 🔴 | 🛑 **NESSUN messaggio è firmato «UÀ Lab»: la firma è il NOME DEL LABORATORIO. Vale per OGNI messaggio che l'app propone**, non solo per l'avviso | «*ricorda che ogni messaggio che inviamo non deve essere firmato da UA lab, ma dal nome del laboratorio*» | 🔴 **E non era «solo il mockup», come Francesco stesso sospettava: `provato:` `grep -rn "UÀ Lab" src/` → TRE punti, e DUE sono in `src/lib/consegna/whatsapp-template.ts:18,30`, cioè in PRODUZIONE.** Quel modulo è usato da **quattro** componenti veri — fra cui i **solleciti di pagamento** (`ScadenzarioList`, `EstrattoContoView`): ogni sollecito mandato finora si firma col nome dello **strumento** invece che del **mittente**. 🔑 **La firma diventa un dato che viene passato** (`laboratori.nome`), non una costante scritta nel codice |
+| **D346** | 🔑 **La sezione nel portale è la VARIANTE B1 — «una sezione come le altre»:** gli avvisi in cima, sopra i lavori in corso, con la stessa card che il dentista già conosce | «*per la sezione avvisi B1*» | Zero elementi nuovi da imparare per il dentista. ⚠️ **Il dubbio scritto nel mockup resta e passa a D347:** una card fra tante **si può scorrere via**, e questa è l'unica che chiede di fare qualcosa — la rivalutazione avviene nell'ondata della migrazione |
+| **D348** 🔴 | 🔑 **IL COLLEGAMENTO AL PORTALE NON SCADE PIÙ A TEMPO.** Vive finché il dentista collabora col laboratorio; **si spegne quando il laboratorio dichiara nell'anagrafica del cliente che la collaborazione è finita**, e **si può riaccendere in qualsiasi momento** | «*il collegamento al portale non deve mai scadere finchè il dottore lavora e collabora con lo studio, cessa di funzionare quando il laboratorio nell'anagrafica del cliente segnala che è terminata la collaborazione e questa cosa può essere ripristinata in qualsiasi momento*» | Sostituisce la scadenza a un anno di `clienti.portale_token_scade_at` (oggi controllata a `portale/[token]/page.tsx:299-302`). ➡️ **Chiude il problema ② del mockup**: non serve più rigenerare un gettone scaduto mentre si compone un avviso, perché **non scade**. ⚠️ **Riserva di sicurezza, scritta e non nascosta:** un collegamento permanente inoltrato per sbaglio dà accesso permanente; con la scadenza il danno si chiudeva da sé. **La mitigazione esiste già** (la rotta che rigenera il gettone) e l'interruttore della collaborazione **diventa** la revoca — ma va progettato: **serve una migration, un comando in anagrafica e la logica del portale.** Lavoro a sé, riga nuova |
+| **D349** | 🔑 **I due difetti di contrasto nei componenti CONDIVISI vanno sistemati — quando e come lo decide chi esegue** | «*3. va sistemato, vedi tu come e quando*» | Sono il **tasto primario spento** (`TastoPrimario.tsx:90`, 1,15:1 in scuro) e la **didascalia dei campi** (`Campo.tsx:28`, 4,17:1 in chiaro). 🔑 **Perché la delega di tempo conta:** stanno in `src/components/ds/`, quindi **ogni** superficie v3 li erediterà — compreso il foglio nuovo di questa ondata — e toccarli è un lavoro che vale per tutta l'app, non per un foglio. Restano fuori da questa ondata, **ma non tornano a essere «deferiti senza destinazione»** |
+
+📌 **Che cosa cambia nel piano, subito:** il **Task 5** disegna la A2 · il **Task 8** disegna la B1 ·
+la **firma** esce dal codice e diventa un dato passato (D345) · il **Task 5 non deve più rigenerare**
+un gettone scaduto (D348) · e la migrazione del portale (D347) **non è un task di questo piano**.

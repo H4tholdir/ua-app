@@ -332,12 +332,36 @@ export function descriviCampiCorretti(campi: readonly CampoCorreggibile[]): stri
 
 ---
 
-## 🎨 CANCELLO §0B — prima del Task 5 e del Task 8
+## 🎨 CANCELLO §0B — ✅ **PASSATO il 09/08/2026, 19:17**
 
-- [ ] **Mockup HTML** in `docs/design/mockups/2026-08-XX-avviso-al-dentista.html` — **due superfici**: il foglio dell'avviso (app) e la sezione «Avvisi» (portale). 🆕 (da creare)
-- [ ] **Chiaro e scuro, 390 · 768 · 1280**, screenshot in `docs/design/mockups/screenshots/`.
-- [ ] 🛑 **PIÙ VARIANTI, mai una sola** — preferenza permanente di Francesco.
-- [ ] **Approvazione esplicita di Francesco** → decisione scritta nel verbale **prima** di scrivere React.
+- [x] **Mockup HTML**: `docs/design/mockups/2026-08-09-avviso-al-dentista.html` — due superfici, **tre varianti ciascuna**.
+- [x] **Chiaro e scuro, 390 · 768 · 1280**: sei scatti in `docs/design/mockups/screenshots/2026-08-09-avviso-al-dentista/`.
+- [x] **PIÙ VARIANTI**: tre per superficie.
+- [x] **Approvazione di Francesco** → ⚖️ **D344 (foglio = A2)** · ⚖️ **D346 (portale = B1)**, verbale **centoquarantanovesima tornata**.
+
+🔑 **Due difetti del mockup trovati MISURANDO, non guardando, e corretti prima di far scegliere:** il
+messaggio proposto era **tagliato** (225px di contenuto in 176 visibili) · una data stava a **2,54:1**
+contro 4,5. 📌 **Sonda sul DOM vivo:** nel foglio v3 **zero** testi sotto soglia nei due temi; l'unico
+residuo è la riproduzione fedele di ciò che il portale fa **oggi**.
+
+🔴 **E dalle risposte di Francesco sono nate QUATTRO decisioni oltre alla scelta delle varianti** —
+D345 (la firma), D347 (il portale si migra intero), D348 (il collegamento non scade), D349 (i due
+condivisi). **Due cambiano questo piano**, e sono qui sotto.
+
+---
+
+## Task 4-ter — 🔴 LA FIRMA DEI MESSAGGI (⚖️ D345) — **prima del Task 5**
+
+**Nasce da una riga del mockup**, e non era un difetto del mockup: `provato:` `grep -rn "UÀ Lab" src/`
+→ **TRE punti**, di cui **DUE in produzione** (`src/lib/consegna/whatsapp-template.ts:18,30`), usati da
+**quattro** componenti veri — fra cui i **solleciti di pagamento**.
+
+- [ ] **Nessun messaggio è firmato «UÀ Lab»: la firma è il NOME DEL LABORATORIO** (`laboratori.nome`).
+- [ ] La firma **esce dal codice e diventa un dato passato**: cambia la firma di `buildAvvisoMessage`
+      (oggi `{ numeroLavoro, portalToken }`) e delle funzioni di `whatsapp-template.ts`.
+- [ ] 🛑 **Perimetro pieno, non solo l'avviso:** D345 dice «*ogni messaggio che inviamo*».
+- [ ] ⚠️ **Tocca superfici in PRODUZIONE** (scadenzario, accettazione, consegna) → **FASE 3 obbligatoria**,
+      percorso **Medio**: il censimento dei chiamanti **decide** l'elenco dei file, non l'autore del piano.
 
 ---
 
@@ -346,8 +370,21 @@ export function descriviCampiCorretti(campi: readonly CampoCorreggibile[]): stri
 **File:** Crea `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` · Prova `tests/unit/AvvisoDentista.test.tsx` — 🆕 (da creare) entrambi
 **Apri PRIMA:** `DevoIntervenire.tsx` — stesso posto, stessi token, e porta i difetti da non ripetere (`--fondo-superficie`, `--filo-superficie`, `--didascalia-superficie`).
 
-- [ ] Testo **modificabile** (D334) · due tasti: «Mandalo su WhatsApp» e «L'ho avvisato di persona».
-- [ ] 🛑 **Il tasto distruttivo non è il più invitante:** qui nessuno dei due distrugge, ma «a voce» **chiude un obbligo senza mandare niente** — non deve essere il più facile da premere per sbaglio.
+🎨 **DISEGNO APPROVATO: la VARIANTE A2 «due strade pari»** — ⚖️ **D344**. Il mockup è la fonte:
+`docs/design/mockups/2026-08-09-avviso-al-dentista.html`, colonna centrale della sezione A.
+
+- [ ] **Passo 1 — una domanda sola:** «*Come avvisi il dentista?*», e **due righe di scelta con lo stesso
+      peso visivo** (`--fondo-superficie`, `raggio.riga` 18, `minHeight` 60, gallone `›`): «*Glielo mando su
+      WhatsApp*» e «*L'ho avvisato io, a voce*», ognuna con la sua riga di spiegazione.
+      🛑 **Nessuna delle due è più invitante dell'altra: è il punto di D335, e la A2 è stata scelta per
+      questo.** Sotto, la superficie «*Perché te lo chiedo*» che dice che il promemoria non si spegne da solo.
+- [ ] **Passo 2 — solo se sceglie WhatsApp:** il testo **modificabile** (D334) e il tasto di invio.
+      📌 **Costo accettato da Francesco: due tap invece di uno** per la strada normale.
+- [ ] 🛑 **La firma del messaggio arriva dal Task 4-ter** (D345): il nome del laboratorio, **non** una
+      costante scritta qui.
+- [ ] ✅ **Il gettone del portale NON si rigenera più qui:** ⚖️ **D348** — non scade a tempo. Se il
+      collegamento è spento perché la collaborazione è finita, **è un altro discorso** (riga di roadmap),
+      non un ramo di questo foglio.
 - [ ] 🛑 **Navigare da dentro l'overlay: `useNavigaDaOverlay`, MAI `router.push`** (`CLAUDE.md` §9).
 - [ ] Componenti da `src/components/ds/`, motion da `src/design-system/v3/motion.ts`.
 - [ ] Prove: il testo modificato **è quello spedito** · i bersagli ≥ 44px · il colore non è l'unica fonte di stato.
@@ -389,6 +426,18 @@ const sAvvisoDentista: Candidato = (i) => i.avvisoDaComunicare
 ## Task 8 — La sezione «Avvisi» nel portale
 
 **File:** Modifica `src/app/portale/[token]/page.tsx` · `src/lib/portale/audit.ts:10`
+
+🎨 **DISEGNO APPROVATO: la VARIANTE B1 «una sezione come le altre»** — ⚖️ **D346**. Gli avvisi in cima,
+**sopra i lavori in corso**, con la **stessa card** che il dentista già conosce (`LavoroCard`), titolo
+`«Avvisi dal laboratorio (N)»` nello stile dei titoli di sezione (13/700 maiuscolo, `+0.06em`, `#374151`).
+🛑 **Si resta nello stile che il portale ha OGGI** — colori scritti a mano, DM Sans, nessun tema scuro —
+perché ⚖️ **D347** ha deciso che quella pagina si migra **intera** al v3 in un'**ondata a sé**: portarci il
+v3 da qui sarebbe una migrazione per componente, vietata (v3 §14).
+⚠️ **Il dubbio scritto nel mockup resta aperto e passa a D347:** una card fra tante **si può scorrere via**,
+e questa è l'unica che chiede di fare qualcosa.
+📌 **Una parte nuova non eredita un difetto noto:** la didascalia della data va a `#6B7280` (**4,83:1**),
+non al `#9CA3AF` che il portale usa altrove (**2,54:1**, misurato).
+
 - [ ] La sezione mostra: **quale lavoro**, **quali voci** sono cambiate (`descriviCampiCorretti`), la **dichiarazione nuova** da scaricare.
 - [ ] 🛑 ⚖️ **D336 — il valore vecchio non compare MAI.** Prova esplicita.
 - [ ] `AzionePortale` guadagna `view_avviso`, e l'apertura scrive `visto_dal_dentista_at`.
