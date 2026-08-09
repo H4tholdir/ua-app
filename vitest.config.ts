@@ -22,12 +22,16 @@ export default defineConfig({
         'src/app/api/auth/**',
       ],
     },
-    // tests/integration/** non gira mai di default: `test`/`test:unit` sono
+    // tests/integration/** non gira con `npm test`: `test`/`test:unit` sono
     // scope-limitati esplicitamente a tests/unit (vedi script in package.json,
     // allineati con D209 il 04/08/2026), mentre `test:integration` punta
-    // esplicitamente a tests/integration. La CI (`.github/workflows/ci.yml`)
-    // usa `vitest run` senza argomenti: lì le integration vengono raccolte ma
-    // si saltano da sole senza SUPABASE_DB_URL (skipIf).
+    // esplicitamente a tests/integration.
+    // ⚠️ In CI invece GIRANO, da D333 (09/08/2026): `.github/workflows/ci.yml`
+    // usa `vitest run` senza argomenti — che le raccoglie da questo `include` —
+    // e da quella data il passo «Unit tests» riceve SUPABASE_DB_URL, quindi
+    // skipIntegrationTests è false e nessun file si salta più
+    // (tests/integration/helpers/pg-client.ts:9). Restano saltate solo in
+    // locale, per chi non ha quella variabile in .env.local.
     include: [
       'tests/unit/**/*.test.ts',
       'tests/unit/**/*.test.tsx',
