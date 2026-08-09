@@ -65,11 +65,11 @@
 |---|---|
 | `supabase/migrations/<ts>_avvisi_dentista.sql` | la tabella, il CHECK sui tre stati, gli indici, le politiche RLS |
 | `supabase/migrations/<ts>_correggi_e_riemetti_con_avviso.sql` | la RPC riscritta: **stesso contratto**, un `INSERT` in più |
-| `src/lib/avvisi/stati.ts` | il vocabolario dei tre stati — **una fonte sola** |
-| `src/lib/avvisi/messaggio.ts` | il testo proposto per WhatsApp e per il portale |
-| `src/lib/avvisi/queries.ts` | le due letture: promemoria del laboratorio · archivio di un cliente |
-| `src/app/api/lavori/[id]/avviso/route.ts` | `POST` — segna l'avviso come comunicato (dall'app o a voce) |
-| `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` | il foglio: testo modificabile + due tasti |
+| `src/lib/avvisi/stati.ts` | il vocabolario dei tre stati — **una fonte sola** 🆕 |
+| `src/lib/avvisi/messaggio.ts` | il testo proposto per WhatsApp e per il portale 🆕 |
+| `src/lib/avvisi/queries.ts` | le due letture: promemoria del laboratorio · archivio di un cliente 🆕 |
+| `src/app/api/lavori/[id]/avviso/route.ts` | `POST` — segna l'avviso come comunicato (dall'app o a voce) 🆕 |
+| `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` | il foglio: testo modificabile + due tasti 🆕 |
 | `src/lib/dashboard/striscia.ts` | un candidato nuovo |
 | `src/app/portale/[token]/page.tsx` | la sezione «Avvisi» |
 | `src/app/(app)/clienti/[id]/page.tsx` | la sezione «Comunicazioni» |
@@ -80,8 +80,8 @@
 
 **File:**
 - Crea: `supabase/migrations/<timestamp>_avvisi_dentista.sql`
-- Crea: `src/lib/avvisi/stati.ts`
-- Prova: `tests/integration/avvisi-dentista-schema.rpc.test.ts`
+- Crea: `src/lib/avvisi/stati.ts` 🆕 (da creare)
+- Prova: `tests/integration/avvisi-dentista-schema.rpc.test.ts` 🆕 (da creare)
 
 **Interfacce prodotte:** `StatoAvviso = 'da_comunicare' | 'comunicato_dall_app' | 'comunicato_a_voce'` · `STATI_AVVISO` (readonly array) · la tabella `public.avvisi_dentista`.
 
@@ -205,7 +205,7 @@ node scripts/psql.mjs -c "SELECT pg_get_functiondef(oid) FROM pg_proc WHERE pron
 
 - [ ] **Passo 2 — la prova d'integrazione, PRIMA (TDD)**
 
-In `tests/integration/avvisi-dentista-schema.rpc.test.ts`, dentro `withRollback`:
+🆕 (da creare) In `tests/integration/avvisi-dentista-schema.rpc.test.ts`, dentro `withRollback`:
 ① dopo una riemissione riuscita **esiste esattamente un avviso** `da_comunicare` per quel lavoro, con `campi_corretti` uguale alle chiavi di `p_correzioni`;
 ② se la riemissione **fallisce**, **nessun avviso resta** (è il punto di tutto: stessa transazione);
 ③ due riemissioni di fila sullo stesso lavoro → **due** avvisi, non uno aggiornato.
@@ -252,7 +252,7 @@ npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
 
 ## Task 3 — Il testo proposto, e la prova che non nomina mai il paziente
 
-**File:** Crea `src/lib/avvisi/messaggio.ts` · Prova `tests/unit/avviso-messaggio.test.ts`
+**File:** Crea `src/lib/avvisi/messaggio.ts` · Prova `tests/unit/avviso-messaggio.test.ts` — 🆕 (da creare) entrambi
 
 **Interfacce prodotte:**
 `buildAvvisoMessage({ numeroLavoro, portalToken }): string` · `descriviCampiCorretti(campi: readonly CampoCorreggibile[]): string[]`
@@ -315,7 +315,7 @@ export function descriviCampiCorretti(campi: readonly CampoCorreggibile[]): stri
 
 ## Task 4 — La rotta che segna l'avviso come comunicato
 
-**File:** Crea `src/app/api/lavori/[id]/avviso/route.ts` · Prova `tests/unit/api-avviso.test.ts`
+**File:** Crea `src/app/api/lavori/[id]/avviso/route.ts` · Prova `tests/unit/api-avviso.test.ts` — 🆕 (da creare) entrambi
 **Apri PRIMA:** `src/app/api/lavori/[id]/eventi-qualita/route.ts` — è il modello di casa per guardie, `isSameOrigin`, `getFreshLabContext`, `assertLabOperativo`.
 
 **Interfacce:** `POST /api/lavori/[id]/avviso` — corpo `{ avviso_id: string, come: 'dall_app' | 'a_voce', testo?: string }` → `200 { ok: true }`.
@@ -334,7 +334,7 @@ export function descriviCampiCorretti(campi: readonly CampoCorreggibile[]): stri
 
 ## 🎨 CANCELLO §0B — prima del Task 5 e del Task 8
 
-- [ ] **Mockup HTML** in `docs/design/mockups/2026-08-XX-avviso-al-dentista.html` — **due superfici**: il foglio dell'avviso (app) e la sezione «Avvisi» (portale).
+- [ ] **Mockup HTML** in `docs/design/mockups/2026-08-XX-avviso-al-dentista.html` — **due superfici**: il foglio dell'avviso (app) e la sezione «Avvisi» (portale). 🆕 (da creare)
 - [ ] **Chiaro e scuro, 390 · 768 · 1280**, screenshot in `docs/design/mockups/screenshots/`.
 - [ ] 🛑 **PIÙ VARIANTI, mai una sola** — preferenza permanente di Francesco.
 - [ ] **Approvazione esplicita di Francesco** → decisione scritta nel verbale **prima** di scrivere React.
@@ -343,7 +343,7 @@ export function descriviCampiCorretti(campi: readonly CampoCorreggibile[]): stri
 
 ## Task 5 — Il foglio dell'avviso
 
-**File:** Crea `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` · Prova `tests/unit/AvvisoDentista.test.tsx`
+**File:** Crea `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` · Prova `tests/unit/AvvisoDentista.test.tsx` — 🆕 (da creare) entrambi
 **Apri PRIMA:** `DevoIntervenire.tsx` — stesso posto, stessi token, e porta i difetti da non ripetere (`--fondo-superficie`, `--filo-superficie`, `--didascalia-superficie`).
 
 - [ ] Testo **modificabile** (D334) · due tasti: «Mandalo su WhatsApp» e «L'ho avvisato di persona».
@@ -356,7 +356,7 @@ export function descriviCampiCorretti(campi: readonly CampoCorreggibile[]): stri
 
 ## Task 6 — Il promemoria sulla scheda del lavoro
 
-**File:** Modifica `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` (righe da censire) · Crea `src/lib/avvisi/queries.ts`
+**File:** Modifica `src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx` (righe da censire) · Crea `src/lib/avvisi/queries.ts` 🆕 (da creare)
 - [ ] `avvisiDaComunicare(lavoroId)` e `archivioCliente(clienteId)` — **due letture della stessa tabella**, niente terza fonte.
 - [ ] La riga compare **solo** se esiste un avviso `da_comunicare`; sparisce quando è chiuso.
 

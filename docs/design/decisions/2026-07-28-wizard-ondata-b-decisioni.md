@@ -2,7 +2,7 @@
 
 **Data:** 28 luglio 2026 · **aggiornato alla centoquarantaseiesima tornata (D336-D339: il valore vecchio non si mostra mai, le comunicazioni hanno il loro archivio, e la bozza non si conserva)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**339 decisioni in centoquarantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**341 decisioni in centoquarantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4078,3 +4078,24 @@ non era chiara e **gli è stata rispiegata** invece di essere data per decisa.
 
 **➡️ Con D339 la spec del Task E non ha più questioni aperte:**
 `docs/superpowers/specs/2026-08-09-avviso-al-dentista-design.md`.
+
+---
+
+### Centoquarantasettesima tornata — D340 · D341: la CI si fa partire con una PR in bozza, e il Task E si esegue un compito alla volta (09/08/2026, 14:1x)
+
+**Come è nata:** la riga per accendere le prove sul database era stata aggiunta e pubblicata, e **non
+era successo niente**. `provato:` quattro volte — i filtri del workflow sono `push: [main, develop]` e
+`pull_request: [main]`, e **un ramo di lavoro non corrisponde a nessuno dei due**: `gh run list
+--branch …` **vuoto da sempre**, `gh workflow run` → **HTTP 422**. 🔑 **Il silenzio è la forma peggiore
+del guasto: la CI non falliva, semplicemente non partiva.**
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D340** | 🔑 **LA CI SI FA PARTIRE CON UNA RICHIESTA DI UNIONE IN BOZZA** verso `main` (`H4tholdir/ua-app/pull/1`) — **non** creando `develop`, **non** allargando i filtri | «*per il controllo vedi tu il modo migliore*» (delega esplicita fra le tre strade presentate) | ⚖️ **Tre strade a confronto.** La bozza **fa girare la CI senza pubblicare niente**, **non tocca la configurazione** (`pull_request: [main]` è già lì) ed è **il posto dove si guarda il verde prima di decidere il merge** — cioè risolve **anche** la decisione successiva invece di rimandarla. ✅ `provato:` esecuzione **`31312042122`**, esito **`success`**: **458/458 file · 5809/5809 prove · ZERO saltate**. 🔑 **E il rischio del segreto è caduto:** `SUPABASE_DB_URL` è nella **forma del pooler**, che ha IPv4 — verificato **guardando solo l'host**, mai il valore |
+| **D341** | 🔑 **IL PIANO DEL TASK E SI ESEGUE UN COMPITO ALLA VOLTA, con esecutore fresco e revisione fra l'uno e l'altro — e in una SESSIONE NUOVA** | «*il piano del task e va eseguito un compito alla volta con esecutore e revisione, ma facciamo tutto in una nuova sessione*» | ⚖️ È il modo che in due giorni ha trovato **un difetto reale in diciotto mandati su diciotto**, compresi quelli scritti dall'orchestratore. 📌 **E il piano stesso dichiara tre punti dove può sbagliare** — un nome di variabile **presunto**, un perimetro per ruolo che è **una proposta e non una decisione di Francesco**, e tre `CHECK` **mai eseguiti insieme** |
+
+🔴 **UN FATTO NUOVO, e vale oltre queste due decisioni: `verify:full` NON carica `.env.local`.**
+In locale le **84** prove d'integrazione **si saltano** (`5725 | 84 saltate su 458`), in CI girano tutte
+(`5809/5809`). ➡️ **Da oggi la pubblicazione automatica è PIÙ SEVERA della verifica locale: un verde
+locale non garantisce un verde in CI.** Se `verify:full` debba caricare `.env.local` quando c'è **non è
+stato deciso** — riga **39** della coda.
