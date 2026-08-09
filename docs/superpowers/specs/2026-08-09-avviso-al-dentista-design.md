@@ -103,7 +103,7 @@ quello nuovo. Il confronto fra vecchio e nuovo lo fa **con il documento**, non c
 | `dichiarazione_id` | **quale** dichiarazione è stata rifatta — l'avviso è di quella, non del lavoro in generale |
 | `stato` | `da_comunicare` · `comunicato_dall_app` · `comunicato_a_voce` (CHECK, tre valori) |
 | `campi_corretti` | quali voci sono cambiate — l'elenco viene da `CAMPI_CORREGGIBILI_DOCUMENTO` |
-| `testo_inviato` | **il testo davvero mandato**, non quello proposto: è ciò che si dimostra |
+| `testo_inviato` | **il testo davvero mandato** — ⚖️ **D339: la bozza proposta dall'app NON si conserva.** È ciò che si dimostra, ed è **l'unica versione** che esiste in banca dati |
 | `comunicato_at` · `comunicato_da` | **quando** e **chi** — il cuore dell'Art. 5(2) |
 | `visto_dal_dentista_at` | quando il destinatario ha aperto l'avviso nel portale |
 | `created_at` | quando è nato |
@@ -115,6 +115,11 @@ con una sua storia** (nasce, viene comunicato, viene visto), e una dichiarazione
 🛑 **L'avviso nasce DENTRO la stessa transazione della riemissione.** Se nascesse dopo, una
 riemissione riuscita potrebbe restare **senza** il suo promemoria — e nessuno se ne accorgerebbe,
 perché il documento nuovo c'è.
+
+📌 **La stessa tabella regge DUE superfici, e non serve altro:** il **promemoria** (le righe
+`da_comunicare`, filtrate per laboratorio) e l'**archivio nella scheda del dentista** (⚖️ D337 — tutte
+le righe di quel `cliente_id`, in ordine di data). *Un archivio che è solo una lettura diversa dello
+stesso dato non può divergere da ciò che archivia.*
 
 ---
 
@@ -165,10 +170,16 @@ perché il documento nuovo c'è.
    (`CLAUDE.md` §8), quindi non si perde nulla di reale — **ma la riga sta qui perché la scelta sia
    scritta invece che capitata**, e perché **alla prima onboarding vera vada riletta**: da quel
    momento «partire da zero» vorrebbe dire lasciare scoperto un obbligo su documenti veri.
-4. 🟡 **APERTA — se conservare anche il testo PROPOSTO dall'app**, oltre a quello davvero mandato.
-   Spiegata a Francesco il 09/08, in attesa di risposta. Due usi diversi: ① in un contenzioso, poter
-   mostrare che l'app proponeva un testo corretto; ② capire, se **tutti** lo cambiano allo stesso
-   modo, che **il testo proposto è scritto male**. Per la legge basta quello mandato.
+4. ✅ **CHIUSA — ⚖️ D339: la bozza NON si conserva.** Si registra **solo il testo davvero mandato**.
+   Francesco: «*non ci serve la bozza, interessa solo quello che abbiamo effettivamente mandato*».
+   🔑 **È anche la scelta più difendibile sul piano della protezione dei dati:** quel testo riguarda
+   un lavoro e quindi, indirettamente, un paziente — **conservare due versioni di un dato personale
+   invece di una vuole una ragione**, e i due usi ipotizzati (difendersi in un contenzioso · capire
+   se il testo proposto è scritto male) **non sono necessità**, sono comodità.
+   📌 *La minimizzazione non è un principio astratto: è la domanda «questo dato in più a che cosa
+   serve davvero?», e qui la risposta era «a niente di obbligatorio».*
+
+**➡️ Tutte e quattro chiuse. La spec non ha più questioni aperte.**
 
 ---
 

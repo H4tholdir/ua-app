@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaseiesima tornata (D336-D338: il valore vecchio non si mostra mai, e le comunicazioni al dentista hanno il loro archivio)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaseiesima tornata (D336-D339: il valore vecchio non si mostra mai, le comunicazioni hanno il loro archivio, e la bozza non si conserva)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**338 decisioni in centoquarantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**339 decisioni in centoquarantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4074,8 +4074,7 @@ non era chiara e **gli è stata rispiegata** invece di essere data per decisa.
 | **D337** | 🔑 **NASCE UNA SEZIONE «COMUNICAZIONI» NELLA SCHEDA DEL DENTISTA** — l'archivio di tutto ciò che è stato comunicato a quel destinatario: **quando · come · chi · se e quando l'ha aperta**. 🛑 **È un ARCHIVIO, NON un allarme** | «*magari possiamo creare una sezione nella scheda del dentista, che tenga conto delle comunicazioni dirette a lui. Poi tanto abbiamo il registro che segna quando l'ha aperto*» | ⚖️ **La domanda posta era un'altra, e la risposta l'ha migliorata.** Era: «*ti dico che il dentista non ha ancora aperto l'avviso?*». 🔑 Un «non l'ha ancora aperto» attaccato al promemoria sarebbe stato **un secondo allarme su una cosa che non dipende dall'odontotecnico** — proprio il difetto che la domanda voleva evitare. Una **sezione nella scheda** è invece **la forma che l'Art. 5(2) chiede**: *tutto ciò che è stato comunicato a quel destinatario, in un posto solo*, da guardare quando serve. ➡️ `src/app/(app)/clienti/[id]/page.tsx` |
 | **D338** | 🔑 **SI PARTE DA ZERO: nessun avviso retroattivo** per le dichiarazioni già rifatte | «*si parte da zero*» | ⚖️ Il database contiene **solo dati di prova** (`CLAUDE.md` §8), quindi non si perde nulla di reale. 🛑 **La riga esiste perché la scelta sia SCRITTA invece che CAPITATA** — e perché **alla prima onboarding di un laboratorio vero vada riletta**: da quel momento «partire da zero» vorrebbe dire lasciare scoperto un obbligo su documenti veri |
 
-📌 **La quarta questione resta APERTA, e non è stata chiusa per finta:** se conservare **anche il testo
-proposto dall'app**, oltre a quello davvero mandato. Francesco: «*questa non l'ho capita, spiegamela
-meglio*» → rispiegata nello stesso turno. **Due usi diversi:** ① in un contenzioso, poter mostrare che
-l'app proponeva un testo corretto; ② capire, se **tutti** lo cambiano allo stesso modo, che **il testo
-proposto è scritto male**. Per la legge basta quello mandato.
+| **D339** | 🔑 **LA BOZZA NON SI CONSERVA: si registra SOLO il testo davvero mandato.** Il messaggio che l'app propone, se l'odontotecnico lo cambia, **sparisce** — in banca dati resta una versione sola | «*non ci serve la bozza, interessa solo quello che abbiamo effettivamente mandato*» | ⚖️ **Domanda posta due volte:** la prima formulazione **non era chiara** («*questa non l'ho capita, spiegamela meglio*») ed è stata **rispiegata invece che data per decisa**. I due usi ipotizzati — ① mostrare in un contenzioso che l'app proponeva un testo corretto ② capire, se **tutti** lo cambiano allo stesso modo, che il testo proposto è **scritto male** — sono **comodità, non necessità**. 🔑 **Ed è anche la scelta più difendibile sulla protezione dei dati:** quel testo riguarda un lavoro e quindi, indirettamente, **un paziente**; *conservare due versioni di un dato personale invece di una vuole una ragione*, e qui la ragione non c'era |
+
+**➡️ Con D339 la spec del Task E non ha più questioni aperte:**
+`docs/superpowers/specs/2026-08-09-avviso-al-dentista-design.md`.
