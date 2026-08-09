@@ -72,8 +72,19 @@ export interface AvvisoRiga {
  * legge in un posto solo. E il Task 9 ha bisogno di **tutte** queste — «quando ·
  * come · chi · se e quando l'ha aperta» sono `created_at` · `stato` ·
  * `comunicato_da` · `visto_dal_dentista_at`.
+ *
+ * 🛑 **ED È ESPORTATA PERCHÉ UNA PROVA LA LEGA ALLO SCHEMA VERO.** Il ripiego a
+ * lista vuota qui sotto (`vuotoConNota`) è deliberato — una lettura caduta non
+ * porta giù la scheda — ma ha un prezzo: il giorno in cui una di queste colonne
+ * venisse rinominata, la lettura risponderebbe errore, il promemoria **ex Art. 19
+ * GDPR sparirebbe per sempre e in silenzio**, e le dodici prove unitarie
+ * resterebbero verdi perché interrogano un finto. La rete è
+ * `tests/integration/avvisi-colonne-schema.test.ts`: una lettura a zero righe
+ * contro il banco vero, che fallisce su qualunque nome sbagliato.
+ * ⚠️ Chi importa questa costante lo fa per **verificarla**, non per comporre una
+ * seconda lettura: le letture di questa tabella sono due, e stanno qui.
  */
-const COLONNE =
+export const COLONNE =
   'id, lavoro_id, cliente_id, dichiarazione_id, stato, campi_corretti, testo_inviato, comunicato_at, comunicato_da, visto_dal_dentista_at, created_at'
 
 /**
@@ -143,8 +154,17 @@ export async function avvisiDaComunicare(
  * proprio quelle che servono — sono la prova, ex Art. 5(2) GDPR, che il dentista
  * fu avvisato. Un filtro qui cancellerebbe l'archivio invece di comporlo.
  *
- * 📌 L'ordine decrescente è quello che `idx_avvisi_per_cliente (cliente_id,
- * created_at DESC)` sa dare senza ordinare a parte.
+ * 📌 L'ORDINE, E LA FRASE CHE C'ERA QUI DICEVA UNA COSA CHE IL CODICE SMENTIVA.
+ * Diceva che il decrescente «è quello che `idx_avvisi_per_cliente (cliente_id,
+ * created_at DESC)` sa dare senza ordinare a parte» — ma i criteri sono **due**, e
+ * `id` in quell'indice **non c'è**. Come stanno davvero le cose:
+ * - `created_at DESC` è il criterio che l'indice serve, ed è il motivo per cui è
+ *   fatto così;
+ * - `id DESC` è il **pareggio deterministico**, e per ottenerlo il pianificatore
+ *   può dover ordinare comunque. Si accetta: su un archivio di poche righe per
+ *   cliente un sort non si sente, mentre due righe nate nello stesso istante che
+ *   escono ora in un ordine ora nell'altro si vedono benissimo — e su un registro
+ *   che è la **prova ex Art. 5(2) GDPR** un ordine ballerino è un difetto vero.
  */
 export async function archivioCliente(
   svc: Svc,

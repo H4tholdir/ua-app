@@ -580,11 +580,22 @@ export interface LavoroDettaglio extends Lavoro {
   // in `lavori/[id]/page.tsx`), e dove nessuno l'ha chiesto è `undefined` — la
   // riga non compare, mai una riga vuota per una lettura dimenticata.
   //
-  // 🛑 `undefined` e `null` NON dicono la stessa cosa, e la differenza conta più
-  //    qui che sulla tinta: `undefined` = «nessuno ha guardato» (una pagina che
-  //    non fa quella lettura, o un ruolo che non può chiudere l'avviso), `null` =
-  //    «guardato, e non ce n'è». Per la schermata sono lo stesso silenzio; per
-  //    chi legge questo tipo non lo sono.
+  // 🛑 `undefined` e `null` NON dicono la stessa cosa: `undefined` = **nessun
+  //    chiamante ha attaccato il campo** (una pagina che quella lettura non la fa
+  //    affatto), `null` = **il chiamante l'ha attaccato e non c'è niente da
+  //    mostrare**. Per la schermata sono lo stesso silenzio; per chi legge questo
+  //    tipo non lo sono.
+  // 🔄 QUI C'ERA SCRITTO ANCHE «*…o un ruolo che non può chiudere l'avviso*»,
+  //    ED ERA FALSO — corretto dalla revisione del Task 6. L'unico scrittore
+  //    (`lavori/[id]/page.tsx`) assegna sempre `avvisiAperti[0] ?? null`, quindi
+  //    per un ruolo escluso il valore è `null`, mai `undefined`: il tipo
+  //    istituiva una distinzione che il suo unico chiamante violava.
+  // 🔑 **E il codice ha ragione, non il commento:** un ruolo escluso deve
+  //    ricevere **esattamente lo stesso silenzio** di «non ce n'è». Distinguere i
+  //    due casi vorrebbe dire far sapere a chi guarda che da qualche parte esiste
+  //    un promemoria che lui non può chiudere — cioè il contrario di ⚖️ D342, che
+  //    quel promemoria lo nasconde apposta. L'indistinguibilità è la funzione,
+  //    non un ripiego.
   // 🔑 Il tipo viene da `@/lib/avvisi/queries` ed è un `import type`, quindi
   //    sparisce alla compilazione: nessun modulo di lettura entra nel fagotto
   //    del browser per colpa di questa riga.
