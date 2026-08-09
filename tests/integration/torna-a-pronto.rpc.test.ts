@@ -341,20 +341,52 @@ describe.skipIf(skipIntegrationTests)('riporta_a_pronto_atomica — la funzione 
    * guardia parte. Il trigger nasce e muore dentro la transazione annullata
    * (il DDL in Postgres è transazionale) — nessuna migration registrata.
    *
-   * ⚠️ IL PREZZO, SCRITTO QUI PERCHÉ NON SI PAGHI DUE VOLTE: `CREATE TRIGGER …
-   * ON public.lavori` prende un lock **ACCESS EXCLUSIVE sull'intera tabella**
-   * per tutta la transazione. Vitest gira i file in parallelo, e gli altri file
-   * d'integrazione scrivono `lavori` sullo stesso laboratorio di prova: se un
-   * giorno questa suite si pianta invece di fallire, **è questa riga**, non un
-   * difetto del database. Oggi è accettabile perché la transazione dura
-   * millisecondi e il banco è di sole prove; se dà noia, si lancia
-   * `npx vitest run tests/integration --no-file-parallelism`.
+   * 🔴 IL PREZZO ERA STATO PREVISTO QUI SOPRA, E SI È PAGATO — 09/08/2026.
+   * La riga che stava qui diceva «se un giorno questa suite si pianta invece di
+   * fallire, è questa riga»: aveva ragione sul colpevole e torto su tutto il
+   * resto, e i tre errori insieme rendevano il difetto impossibile da attribuire.
+   *   ① non si «piantava»: **andava in deadlock**, e Postgres uccideva SEMPRE
+   *      l'altro — quindi il rosso compariva in `riapri-lavoro-atomica` e in
+   *      `riemetti-ddc`, mai qui. La vittima non è il colpevole;
+   *   ② `CREATE TRIGGER` non prende ACCESS EXCLUSIVE ma **SHARE ROW EXCLUSIVE**
+   *      (misurato su `pg_locks`, 09/08); l'ACCESS EXCLUSIVE lo prendeva il
+   *      `DROP TRIGGER` che stava in fondo, ed è stato tolto;
+   *   ③ non era raro: **5 giri su 10**, 7 prove cadute.
+   *
+   * 🔑 IL MECCANISMO, perché la regola qui sotto non sembri superstizione. Due
+   * lucchetti, presi in ordine opposto:
+   *   • ogni altra transazione fa `INSERT INTO lavori` → prende ROW EXCLUSIVE
+   *     sulla TABELLA `lavori`, e solo dopo il trigger `trg_refresh_dashboard`
+   *     le fa scrivere l'UNICA riga `dashboard_kpi_cache[LAB_A]`;
+   *   • questa faceva l'opposto: prima l'INSERT (quindi la riga della cache),
+   *     poi `CREATE TRIGGER` che chiede il lucchetto sulla TABELLA.
+   * Rapporto di Postgres, verbatim: «*Process A waits for ShareLock on
+   * transaction N; blocked by process B. Process B waits for
+   * ShareRowExclusiveLock on relation 20422*» (20422 = `lavori`), con contesto
+   * «*while inserting index tuple (3,2) in relation "dashboard_kpi_cache"*».
+   *
+   * ✅ LA CURA, ed è la cura di manuale per un incrocio di lucchetti: **un solo
+   * ordine per tutti**. La `LOCK TABLE` qui sotto è la PRIMA istruzione della
+   * transazione, quando questa non tiene ancora niente: una transazione che
+   * aspetta senza tenere nulla non può chiudere un cerchio. Da lì in poi il
+   * lucchetto è già suo e nessun passo successivo torna ad aspettarlo.
+   * 🛑 Non spostarla più in basso: basta un `INSERT` prima, e il cerchio si
+   * riforma. E non serve `DROP TRIGGER` alla fine — il DDL in Postgres è
+   * transazionale, quindi il ROLLBACK di `withRollback` porta via trigger e
+   * funzione temporanea da sé.
    *
    * ➡️ Effetto collaterale utile: prova che quella «rete difensiva
    * irraggiungibile» è viva e non codice morto.
    */
   it('se la chiamata annidata solleva, il lavoro resta consegnato — e la funzione NON risponde ok', async () => {
     await withRollback(async (client) => {
+      // 🛑 PRIMA DI OGNI ALTRA COSA — vedi «LA CURA» qui sopra. È il modo
+      // esatto (SHARE ROW EXCLUSIVE) che `CREATE TRIGGER` chiederà più giù:
+      // presa ora, la si prende a mani vuote; presa lì, si prende con in mano
+      // la riga di `dashboard_kpi_cache` che tutti gli altri file aspettano.
+      // Non blocca chi legge: SHARE ROW EXCLUSIVE non urta ACCESS SHARE.
+      await client.query(`LOCK TABLE public.lavori IN SHARE ROW EXCLUSIVE MODE`)
+
       const clienteId = await creaCliente(client, LAB_A)
       const lavoroId = await creaLavoroConsegnato(client, LAB_A, clienteId)
       const eventoId = await creaEvento(client, LAB_A, lavoroId)
@@ -382,8 +414,9 @@ describe.skipIf(skipIntegrationTests)('riporta_a_pronto_atomica — la funzione 
       expect(dopo.stato).toBe('consegnato')
       expect(dopo.conformato).toBe(true)
       expect(dopo.data_consegna_effettiva).not.toBeNull()
-
-      await client.query(`DROP TRIGGER zz_sonda_blocca_pronto ON public.lavori`)
+      // 🛑 Nessun `DROP TRIGGER` qui: era l'unico a chiedere ACCESS EXCLUSIVE su
+      // `lavori`, e non serviva a niente — il ROLLBACK di `withRollback` annulla
+      // anche il DDL.
     })
   })
 
