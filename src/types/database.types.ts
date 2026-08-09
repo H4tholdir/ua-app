@@ -156,6 +156,108 @@ export type Database = {
         }
         Relationships: []
       }
+      avvisi_dentista: {
+        Row: {
+          campi_corretti: string[]
+          cliente_id: string
+          comunicato_at: string | null
+          comunicato_da: string | null
+          created_at: string
+          dichiarazione_id: string
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          stato: string
+          testo_inviato: string | null
+          visto_dal_dentista_at: string | null
+        }
+        Insert: {
+          campi_corretti?: string[]
+          cliente_id: string
+          comunicato_at?: string | null
+          comunicato_da?: string | null
+          created_at?: string
+          dichiarazione_id: string
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          stato?: string
+          testo_inviato?: string | null
+          visto_dal_dentista_at?: string | null
+        }
+        Update: {
+          campi_corretti?: string[]
+          cliente_id?: string
+          comunicato_at?: string | null
+          comunicato_da?: string | null
+          created_at?: string
+          dichiarazione_id?: string
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          stato?: string
+          testo_inviato?: string | null
+          visto_dal_dentista_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avvisi_dentista_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clienti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "partitario_clienti"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_comunicato_da_fkey"
+            columns: ["comunicato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
+            columns: ["dichiarazione_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_conformita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
+            columns: ["dichiarazione_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_in_scadenza"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buoni_consegna: {
         Row: {
           anno_buono: number
