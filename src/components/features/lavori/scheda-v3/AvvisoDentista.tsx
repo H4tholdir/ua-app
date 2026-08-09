@@ -282,7 +282,7 @@ export function AvvisoDentista(props: {
   const router = useRouter()
   const { errore } = useAvvisi()
 
-  const [passo, setPasso] = useState<Passo>('chiuso')
+  const [passo, applicaPasso] = useState<Passo>('chiuso')
   /** Il testo proposto, e poi quello corretto a mano (⚖️ D334). Nasce qui e
    *  muore qui: ⚖️ D339 — nessuna bozza si conserva da nessuna parte. */
   const [testo, setTesto] = useState(() =>
@@ -385,17 +385,32 @@ export function AvvisoDentista(props: {
   useEffect(() => fermaOrologi, [fermaOrologi])
 
   /**
-   * Il passo corrente, leggibile da un orologio che scade **dopo**.
-   * 🔑 Serve perché `orologioScrittura` chiude su un render vecchio: dieci secondi
-   * più tardi «il foglio è aperto?» va riletto adesso, non allora. Dove basta
-   * l'aggiornatore di `setPasso` (che riceve il valore vivo) il `ref` non si usa —
-   * qui serve perché la decisione non è **cosa** diventa `passo`, ma **se
-   * rinfrescare la pagina**, che non è uno stato.
+   * 🔴 IL PASSO SI LEGGE DA UN POSTO SOLO, E QUEL POSTO È SINCRONO.
+   *
+   * **Il problema vero**, trovato in revisione prima che diventasse un difetto:
+   * `orologioScrittura` chiude su un render vecchio, quindi dieci secondi più
+   * tardi la domanda «il foglio è aperto?» va **riletta adesso**. Ci sono due modi
+   * di rileggerla — l'aggiornatore che React passa al setter, e un
+   * `ref` — e **usarli entrambi nella stessa decisione è la trappola**: un `ref`
+   * aggiornato da un effetto è indietro di un commit, quindi se la persona chiude
+   * il foglio nello stesso istante in cui la richiesta si risolve, i due possono
+   * **rispondere diverso**. Il danno concreto sarebbe questo: il passo resta
+   * (giustamente) `chiuso`, ma il rinfresco viene rimandato a una chiusura **che
+   * non arriverà più** — e la riga resterebbe a schermo su un promemoria spento.
+   *
+   * ✅ Risolto **togliendo il secondo modo**: `passoRef` è la verità sincrona, e
+   * ogni transizione passa da `vaiA`, che aggiorna il `ref` **e** lo stato nello
+   * stesso gesto. Niente effetto di sincronia, niente ritardo di un commit.
+   * 🛑 L'INVARIANTE, ed è grep-abile: `applicaPasso` si chiama **solo** dentro
+   * `vaiA`. Se un giorno compare un `applicaPasso(` altrove, questo ragionamento
+   * salta — ed è per questo che il setter non si chiama `setPasso`.
    */
   const passoRef = useRef<Passo>('chiuso')
-  useEffect(() => {
-    passoRef.current = passo
-  }, [passo])
+  function vaiA(prossimo: Passo | ((corrente: Passo) => Passo)) {
+    const nuovo = typeof prossimo === 'function' ? prossimo(passoRef.current) : prossimo
+    passoRef.current = nuovo
+    applicaPasso(nuovo)
+  }
 
   /**
    * ⚖️ D351 — IL TOCCO SOLO: la riga «a voce» non scrive, PROGRAMMA.
@@ -407,7 +422,7 @@ export function AvvisoDentista(props: {
     // arriva da una riga che, in quel momento, non è più a schermo).
     if (restanoSec !== null || lavorando) return
     setRestanoSec(FINESTRA_ANNULLO_AVVISO_S)
-    setPasso('voce')
+    vaiA('voce')
     orologioContatore.current = setInterval(() => {
       // 🛑 Si ferma a 1 e non scende a 0: lo zero non lo mostra nessuno, e la
       //    scrittura la decide l'altro orologio.
@@ -434,12 +449,12 @@ export function AvvisoDentista(props: {
   }
 
   /**
-   * Si torna alla DOMANDA. 🛑 Con l'aggiornatore e non con `setPasso('scelta')`
+   * Si torna alla DOMANDA. 🛑 Con l'aggiornatore e non con `vaiA('scelta')`
    * nudo: questa funzione la chiama anche una scrittura fallita, che può arrivare
    * **a foglio chiuso** — e un foglio non si apre da solo.
    */
   function tornaAllaDomanda() {
-    setPasso((p) => (p === 'chiuso' ? 'chiuso' : 'scelta'))
+    vaiA((p) => (p === 'chiuso' ? 'chiuso' : 'scelta'))
   }
 
   /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
@@ -449,7 +464,7 @@ export function AvvisoDentista(props: {
    *  finale non compariva mai. Qui costerebbe di più: la riuscita è l'unico posto
    *  in cui la persona legge che cosa è rimasto scritto. */
   function chiudi() {
-    setPasso('chiuso')
+    vaiA('chiuso')
     setSalvata(null)
     setLavorando(false)
     // 🔴 `mandato` E `nonRegistrato` NON SI AZZERANO QUI, e sono due righe assenti
@@ -530,13 +545,14 @@ export function AvvisoDentista(props: {
       //      `chiudi`). A foglio CHIUSO non c'è nessuna chiusura che verrà: si
       //      rinfresca subito, o la riga «Avvisa il dentista» resterebbe a
       //      schermo su un promemoria già spento.
-      setPasso((p) => (p === 'chiuso' ? 'chiuso' : 'fatto'))
-      if (passoRef.current === 'chiuso') {
-        setDaRinfrescare(false)
-        router.refresh()
-      } else {
-        setDaRinfrescare(true)
-      }
+      // 🛑 UNA LETTURA SOLA, PRESA PRIMA, e le due decisioni la condividono: se
+      //    ognuna rileggesse per conto suo potrebbero rispondere diverso (v. il
+      //    riquadro su `vaiA`), e la coppia sbagliata è quella che rimanda il
+      //    rinfresco a una chiusura che non arriverà più.
+      const foglioChiuso = passoRef.current === 'chiuso'
+      vaiA(foglioChiuso ? 'chiuso' : 'fatto')
+      setDaRinfrescare(!foglioChiuso)
+      if (foglioChiuso) router.refresh()
     } catch {
       const messaggio =
         'Non sono riuscita a segnare l’avviso come comunicato: controlla la connessione e riprova.'
@@ -606,7 +622,7 @@ export function AvvisoDentista(props: {
         //    partito e non è stato scritto, riaprire sulla domanda «come avvisi il
         //    dentista?» offrirebbe due mosse false (rimandare · dire «a voce»): il
         //    foglio riprende esattamente da dove si era interrotto.
-        onClick={() => setPasso(mandato !== null ? 'messaggio' : 'scelta')}
+        onClick={() => vaiA(mandato !== null ? 'messaggio' : 'scelta')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -686,7 +702,7 @@ export function AvvisoDentista(props: {
                 glifo="💬"
                 titolo="Glielo mando su WhatsApp"
                 spiegazione="Ti mostro il messaggio, lo puoi cambiare"
-                onApri={() => setPasso('messaggio')}
+                onApri={() => vaiA('messaggio')}
               />
               <RigaStrada
                 glifo="📞"
@@ -724,7 +740,7 @@ export function AvvisoDentista(props: {
                 o registrare «a voce» una telefonata che non c'è stata. Il fatto è
                 avvenuto; l'unica cosa che resta da fare è scriverlo — o chiudere e
                 rientrare, che riporta qui. */}
-            {mandato === null && <TornaAllaScelta onClick={() => setPasso('scelta')} />}
+            {mandato === null && <TornaAllaScelta onClick={() => vaiA('scelta')} />}
 
             <CampoTestoLungo
               label="Il messaggio che manderai"

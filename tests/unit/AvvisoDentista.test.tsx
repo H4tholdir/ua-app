@@ -513,6 +513,32 @@ describe('AvvisoDentista — ⚖️ D351: la finestra di «a voce» (Legge 6)', 
     expect(refreshMock).toHaveBeenCalledTimes(1)
   })
 
+  /**
+   * 🔴 IL CASO STRETTO: si chiude il foglio **all'ultimo istante**, e la finestra
+   * scade nello stesso gesto. È il momento in cui «il foglio è aperto?» viene
+   * riletta da chi decide il passo e da chi decide il rinfresco: se i due
+   * rispondessero diverso, il rinfresco resterebbe appeso a una chiusura che non
+   * arriverà più e la riga rimarrebbe a schermo su un promemoria spento.
+   * 🛑 In jsdom gli effetti si svuotano dentro `act`, quindi questa prova **non
+   *    riproduce** il ritardo di un commit: la difesa vera è strutturale (una
+   *    lettura sola, `passoRef` aggiornato da `vaiA`). Questa prova fissa il
+   *    COMPORTAMENTO atteso, e lo dico invece di far credere che dimostri di più.
+   */
+  it('🔴 chiusura all’ultimo istante e finestra che scade insieme: un rinfresco solo, nessun foglio', async () => {
+    const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    tocca()
+    await passano(FINESTRA_ANNULLO_AVVISO_MS - 200)
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Chiudi' }))
+    await passano(400)
+    expect(spia).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+    // E la striscia se ne è andata: non è rimasta una finestra senza scrittura.
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('a foglio APERTO la riuscita porta al passo «Fatto», e il rinfresco resta alla chiusura', async () => {
     fingiRotta(rispostaOk('comunicato_a_voce'))
     monta()

@@ -9,11 +9,12 @@ dall'orologio e non da un documento — D155).
 | cosa | esito |
 |---|---|
 | `VERIFY_EXIT` | **0** |
-| prove, prima → dopo | **5891 \| 119 su 465 file** → **5901 \| 119 su 465 file** (+10 prove, **nessun file nuovo**) |
+| prove, prima → dopo | **5891 | 119 su 465 file** → **5902 | 119 su 465 file** (+11 prove, **nessun file nuovo**) |
 | via di fuga scelta | **differire la scrittura di 10 s** (strada 1) — e **non** è un ripiego: è la metà del precedente di casa che si applica a questa tabella |
 | tocchi, dalla scheda | WhatsApp **3** (invariato) · «a voce» **3 → 2**. **La parità nei tocchi di ⚖️ D335 non c'è più**, ed è una conseguenza dichiarata |
-| prove arrossite togliendo la conferma | **3 su 45** al primo giro, **5 su 45** col disegno finale — e **2 restate verdi per il motivo sbagliato**, riferite in ③ |
-| forza delle prove nuove (R-P4) | **8 su 55** con la finestra tolta · **1 su 55** con l'«Annulla» reso inerte |
+| prove che sorvegliavano la conferma | **3 su 45** — ed è **questo** il numero che risponde alla domanda del mandato. 🔑 E **2 sono restate verdi per il motivo sbagliato**: riferite in ③ |
+| prove rotte dal disegno nuovo | **5 su 45** — misura **diversa** (contabilità: tre di quelle cinque cadono solo perché la scrittura è finita dietro un orologio), non una seconda risposta alla stessa domanda |
+| forza delle prove nuove (R-P4) | **8 su 56** con la finestra tolta · **1 su 56** con l'«Annulla» reso inerte |
 | contrasti sul DOM vivo | **0 sotto soglia** su **162** nodi (3 viewport × 2 temi × 3 schermate + movimento ridotto) |
 | difetto trovato misurando, mio | **1**: a 390 la striscia è **25 px più alta** della riga che sostituisce — misurato, dichiarato, non nascosto |
 | ritrovamenti fuori mandato | **4**, fra cui **una correzione al mandato stesso** (il ritorno chiede TRE campi a `NULL`, non due) |
@@ -143,6 +144,12 @@ sulla strada di WhatsApp, che è D334.
 
 ### Giro 2 — col disegno finale, prove **ancora non toccate**: **5 rosse su 45**
 
+🛑 **E i due numeri NON sono la stessa misura, quindi non si sommano e non si sostituiscono.** Il giro 1
+risponde alla domanda del mandato — *che cosa sorvegliava la conferma* — e la risposta è **3**. Il giro 2 è
+**contabilità del cambiamento**: dice quante prove si rompono quando la scrittura finisce dietro un orologio,
+e **tre delle cinque cadono solo per questo** (avevano bisogno dell'orologio finto), non perché sorvegliassero
+il passo. Presentare 5 come «le prove della conferma» gonfierebbe il numero.
+
 Le tre di sopra **meno una**, più due che chiedono l'orologio finto (`il corpo per «a_voce» NON porta testo`,
 `«a voce» si rilegge come «a voce»`, `se la rotta non manda l'ora`).
 
@@ -174,6 +181,10 @@ sono omonimi.
 |---|---|
 | **(A) nessuna finestra**: la riga scrive subito | **8 su 55** prove del file (7 delle 15 del blocco D351 + il conto dei tocchi) |
 | **(B) la finestra c'è, ma «Annulla» non ferma niente** | **1 su 55** — ed è `🔴 «Annulla» ferma la scrittura: non parte MAI` |
+
+📌 I due numeri sono presi quando il file ne aveva **55**; la prova della chiusura all'ultimo istante (v. ⑦.2)
+è arrivata **dopo**, dalla revisione, e porta il totale a **56**. Il numero resta quello dell'istante in cui è
+stato preso — è l'unico modo in cui una misura significa qualcosa.
 
 🔑 **Il secondo numero è piccolo apposta, e la sua piccolezza è l'informazione:** una via di fuga **inerte**
 è sorvegliata da **una** prova sola, quella che verifica che la richiesta **non parta mai** — non dal fatto
@@ -243,9 +254,10 @@ riannuncerebbe dieci volte).
 **Perché:** a 390 la via di fuga occupa 84 px in larghezza e comprime la colonna del testo a 177, che va a
 capo due volte in più (anatomia letta sul DOM vivo).
 **Perché resta così, e sono due fatti misurati:** ① lo scambio riga → striscia avviene **nello stesso commit
-in cui il foglio si apre**, quindi lo spostamento accade **sotto lo scrim** e nessuno lo guarda muoversi;
-② l'alternativa — smontare la striscia — costerebbe **101 px** invece di 25, e alla chiusura del foglio
-lascerebbe la via di fuga **da nessuna parte**.
+in cui il foglio si apre**, quindi lo spostamento accade **mentre il foglio gli sale sopra** — ⚠️ e questo è
+ciò che ho misurato, non «*nessuno lo vede*»: lo scrim è **semitrasparente** (si vede nei miei stessi scatti),
+quindi lo spostamento è attenuato, non invisibile; ② l'alternativa — smontare la striscia — costerebbe
+**101 px** invece di 25, e alla chiusura del foglio lascerebbe la via di fuga **da nessuna parte**.
 ⚠️ **Il numero è preso su un banco con la spaziatura di pagina scelta da me:** quella vera è della scheda, e
 la decide il **Task 6**. Vale l'ordine di grandezza, non la cifra.
 
@@ -263,8 +275,8 @@ striscia sono presi a 1500 ms e non a 700, dove avrebbero fotografato l'animazio
 |---|---|
 | `VERIFY_EXIT` | **0** (`npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"` — da variabile, mai dietro una pipe) |
 | prove **prima** | **5891 passate \| 119 saltate su 465 file** (`456 passed \| 9 skipped`) — **rimisurato** sull'albero pulito a `84be689f`, coincide col numero del mandato |
-| prove **dopo** | **5901 passate \| 119 saltate su 465 file** (`456 passed \| 9 skipped`) |
-| differenza | **+10 prove** (il file del foglio passa da 45 a 55), **nessun file nuovo** |
+| prove **dopo** | **5902 passate \| 119 saltate su 465 file** (`456 passed \| 9 skipped`) |
+| differenza | **+11 prove** (il file del foglio passa da 45 a **56**), **nessun file nuovo** |
 | guardie | tutte verdi: DS compliance · CSRF · reduced-motion · coerenza documenti · salvataggio installato · progetti Playwright |
 | `tsc` · `eslint` | **0** errori, **0** avvertimenti (`eslint src --max-warnings 0`) |
 
@@ -281,21 +293,35 @@ codice.
    fare, e **non è mio**: **§2.1 della spec v3 va aggiornata con la terza voce** — oggi elenca due deroghe
    (D8 · D7) e dice che ogni altra vuole una deroga esplicita, datata e motivata. La deroga ora **esiste** ed
    è a verbale; la spec non lo sa ancora. Riferito in ⑧.
-2. **La finestra su un telefono vero.** Il giro è su Chromium con viewport emulati: dieci secondi di attesa
+2. **🔴 IL RITARDO DI UN COMMIT NON È RIPRODUCIBILE IN PROVA, e la difesa è STRUTTURALE.** In revisione è
+   emerso che leggere «il foglio è aperto?» da **due** posti (l'aggiornatore del setter e un `ref`
+   aggiornato da un effetto) può dare **risposte diverse** se la persona chiude il foglio nello stesso
+   istante in cui la richiesta si risolve — e la coppia sbagliata rimanderebbe il rinfresco a una chiusura
+   che non arriva più. ✅ **Chiuso togliendo il secondo posto:** ogni transizione passa da `vaiA`, che
+   aggiorna il `ref` **e** lo stato nello stesso gesto, e la decisione legge **una volta sola**.
+   🛑 **Ma la prova non lo dimostra:** in jsdom gli effetti si svuotano dentro `act`, quindi la prova nuova
+   («*chiusura all'ultimo istante e finestra che scade insieme*») **passerebbe anche col disegno vecchio**.
+   Fissa il comportamento atteso; la garanzia è l'invariante nel codice — `applicaPasso` compare **in un
+   posto solo**, dentro `vaiA` (grep-abile, e il setter si chiama così proprio per renderlo visibile).
+3. **Che `role="status"` sulla striscia venga davvero annunciato una volta sola.** Il ragionamento è scritto
+   (frase statica annunciata all'apparire, numero in `aria-hidden` per non riannunciare dieci volte), ma
+   **né jsdom né Playwright leggono con una voce sintetica**: nessuno dei due strumenti misura un
+   annuncio. È una scelta motivata, non una misura — e il precedente di casa fa **peggio** (v. ⑧.4).
+4. **La finestra su un telefono vero.** Il giro è su Chromium con viewport emulati: dieci secondi di attesa
    con lo schermo che si spegne, l'app in secondo piano o una scheda sospesa sono comportamenti del
    **sistema**, non del componente. 🔑 Su iOS un `setTimeout` in una scheda in background **può essere
    rimandato o non eseguito**: in quel caso la scrittura non parte e **il promemoria resta aperto** — la
    direzione recuperabile — ma **non l'ho misurato**, e chi lo misurerà deve saperlo.
-3. **Il giro sul banco vero, dalla riemissione al promemoria chiuso.** Invariato dal Task 5: il foglio non è
+5. **Il giro sul banco vero, dalla riemissione al promemoria chiuso.** Invariato dal Task 5: il foglio non è
    montato su nessuna superficie (Task 6) e non esiste una fixture con un avviso `da_comunicare`. È il
    **Task 10**.
-4. **Il ramo dedicato al 409 «già comunicato»** — invariato dal Task 5, e oggi **più interessante**: con la
+6. **Il ramo dedicato al 409 «già comunicato»** — invariato dal Task 5, e oggi **più interessante**: con la
    finestra, la corsa fra due persone che chiudono lo stesso avviso ha dieci secondi in più per accadere. Il
    messaggio della rotta si mostra così com'è, ma non c'è un ramo che dica «l'ha già segnato qualcun altro».
    Riferito.
-5. **Il gate estetico L2 (FASE 9b, D245)**: **dovuto**, a fine ondata e prima del merge — è il Task 10. La
+7. **Il gate estetico L2 (FASE 9b, D245)**: **dovuto**, a fine ondata e prima del merge — è il Task 10. La
    FASE 9 è stata fatta per intero sulle superfici cambiate.
-6. **`admin_sistema`**: invariato dal Task 5 — la visibilità della riga è del Task 6.
+8. **`admin_sistema`**: invariato dal Task 5 — la visibilità della riga è del Task 6.
 
 ---
 
@@ -339,7 +365,7 @@ perché la finestra non porta nessun tasto spento e la striscia usa `--card`/`--
 | file | cosa |
 |---|---|
 | `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` | ⚖️ D351: il tocco solo, la finestra da 10 s, la striscia sulla scheda. **Due blocchi di intestazione RISCRITTI**, non annotati in fondo (v. sotto) |
-| `tests/unit/AvvisoDentista.test.tsx` | il blocco nuovo di ⚖️ D351 (15 prove, 39 asserzioni); il file passa da 45 a 55 prove |
+| `tests/unit/AvvisoDentista.test.tsx` | il blocco nuovo di ⚖️ D351 (**16** prove); il file passa da 45 a **56** prove |
 | `docs/design/screenshots/2026-08-09-avviso-dentista/MISURE.md` | la sezione «FASE 9 — Task 5-bis» |
 | `docs/design/screenshots/2026-08-09-avviso-dentista/t5b-*.png` | 28 scatti nuovi |
 
