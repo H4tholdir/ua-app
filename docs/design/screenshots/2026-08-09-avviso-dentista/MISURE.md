@@ -84,6 +84,12 @@ scorrimento torna in cima*».
 
 Scatti: `z-195x422-zoom200-1-scelta-scorsa-*.png` · `z-195x422-zoom200-2-messaggio-dopo-*.png` ·
 `z-390x667-*.png`.
+🛑 **E questi scatti sono il DOPO, non il PRIMA — va detto o contraddicono la tabella.** Sono stati
+rigenerati con la correzione in casa, quindi `z-…-2-messaggio-dopo-*.png` mostra il titolo **dentro** il
+pannello e `scrollTop` **0**. Il «prima» vive nei numeri della tabella qui sopra e **non è riproducibile**
+senza togliere la correzione: chi vuole rivederlo commenta l'effetto dell'àncora in `AvvisoDentista.tsx` e
+rilancia la sonda. In un repo la cui regola è che *un commento sbagliato viene citato*, una didascalia che
+punta all'immagine sbagliata è la stessa cosa.
 
 ---
 

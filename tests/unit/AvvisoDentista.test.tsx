@@ -410,6 +410,66 @@ describe('AvvisoDentista — il caso peggiore: il messaggio è partito e la regi
     expect(refreshMock).not.toHaveBeenCalled()
   })
 
+  /**
+   * 🔴 IL RICUPERO DEVE SOPRAVVIVERE ALLA CHIUSURA DEL FOGLIO, e queste quattro
+   * prove chiudono un difetto vero: `chiudi()` azzerava il testo mandato. La
+   * sequenza raggiungibile era — messaggio partito → registrazione fallita → la
+   * persona chiude (Esc, scrim, «Chiudi») → riapre, e si ritrovava davanti alla
+   * SCELTA, dove le uniche due mosse sono **mandare un secondo messaggio** o
+   * registrare «a voce» una telefonata che non c'è stata.
+   */
+  it('🔴 chiuso e riaperto, il foglio RIPRENDE dal ricupero — non dalla scelta', async () => {
+    await invioConRottaRotta()
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Chiudi' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    apriFoglio()
+    // 🛑 NON la domanda «come avvisi il dentista?»: il messaggio è già uscito.
+    expect(screen.queryByRole('heading', { name: 'Come avvisi il dentista?' })).toBeNull()
+    expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Registra l’avviso/i })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /Mandalo su WhatsApp/i })).toBeNull()
+  })
+
+  it('🛑 e dal ricupero la SCELTA non è raggiungibile: nessuna delle due mosse false', async () => {
+    await invioConRottaRotta()
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+    expect(screen.queryByRole('button', { name: /Torna alla scelta/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /a voce/i })).toBeNull()
+  })
+
+  it('🔑 e dopo il rientro si registra ANCORA il testo partito, non uno ricostruito', async () => {
+    const spia = await invioConRottaRotta()
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+    const partito = campoMessaggio().value
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Chiudi' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    apriFoglio()
+    expect(campoMessaggio().value).toBe(partito)
+    expect(campoMessaggio().readOnly).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: /Registra l’avviso/i }))
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(2))
+    expect(corpoDi(spia, 1).testo).toBe(partito)
+  })
+
+  it('la riuscita SPEGNE il ricupero: dopo, il foglio riparte dalla scelta', async () => {
+    // Prima il fallimento, poi una rotta che risponde bene al ricupero.
+    await invioConRottaRotta()
+    await waitFor(() => expect(screen.getByText(/Il messaggio è partito/i)).toBeTruthy())
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => rispostaOk() }))
+    fireEvent.click(screen.getByRole('button', { name: /Registra l’avviso/i }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /Ho capito/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    apriFoglio()
+    expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy()
+  })
+
   it('la rete assente si racconta allo stesso modo', async () => {
     const spia = vi.fn().mockRejectedValue(new Error('rete assente'))
     vi.stubGlobal('fetch', spia)

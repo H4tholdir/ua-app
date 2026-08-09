@@ -271,11 +271,26 @@ export function AvvisoDentista(props: {
    *  in cui la persona legge che cosa è rimasto scritto. */
   function chiudi() {
     setPasso('chiuso')
-    setMandato(null)
-    setNonRegistrato(null)
     setSalvata(null)
     setLavorando(false)
-    setTesto(buildAvvisoMessage({ numeroLavoro, portalToken, nomeLaboratorio }))
+    // 🔴 `mandato` E `nonRegistrato` NON SI AZZERANO QUI, e sono due righe assenti
+    //    APPOSTA: sono l'unica cosa che attraversa la chiusura del foglio.
+    //    Il fatto: messaggio partito → registrazione fallita → la persona chiude
+    //    (Esc, tocco sullo scrim, «Chiudi» — tutti passano da qui). In banca dati
+    //    il promemoria resta giustamente aperto, ma azzerando quei due la
+    //    riapertura mostrerebbe il passo della SCELTA, e da lì le uniche due mosse
+    //    sono **mandare un secondo messaggio** al dentista oppure registrare «a
+    //    voce» una telefonata che non c'è stata. Cioè il foglio costringerebbe a
+    //    una delle due bugie — e la sua stessa frase («*da qui lo registri senza
+    //    rimandare niente*») scadrebbe alla prima chiusura.
+    //    🔑 Il precedente in casa è `eventoDaRiusare` del foglio gemello, col suo
+    //    commento: «*è l'unica cosa che attraversa la chiusura del foglio*».
+    //    🛑 E NON è una bozza conservata: ⚖️ D339 vieta di **salvare** la proposta,
+    //    e qui non si salva niente — è una stringa **già uscita**, tenuta in memoria
+    //    dal componente per il tempo che serve a registrarla. Muore alla riuscita.
+    if (mandato === null) {
+      setTesto(buildAvvisoMessage({ numeroLavoro, portalToken, nomeLaboratorio }))
+    }
     if (daRinfrescare) {
       setDaRinfrescare(false)
       router.refresh()
@@ -313,7 +328,10 @@ export function AvvisoDentista(props: {
         return
       }
       const esito = (await res.json()) as { avviso?: RigaSalvata }
+      // La riuscita è l'unica cosa che spegne il ricupero: da qui in poi non c'è
+      // più niente di partito che aspetti di essere scritto.
       setNonRegistrato(null)
+      setMandato(null)
       setSalvata(esito.avviso ?? null)
       setDaRinfrescare(true)
       setPasso('fatto')
@@ -362,7 +380,11 @@ export function AvvisoDentista(props: {
           se un avviso `da_comunicare` esiste, e chi lo decide è il Task 6. */}
       <button
         type="button"
-        onClick={() => setPasso('scelta')}
+        // 🔴 SI RIENTRA DAL RICUPERO, NON DALLA SCELTA. Se un messaggio è già
+        //    partito e non è stato scritto, riaprire sulla domanda «come avvisi il
+        //    dentista?» offrirebbe due mosse false (rimandare · dire «a voce»): il
+        //    foglio riprende esattamente da dove si era interrotto.
+        onClick={() => setPasso(mandato !== null ? 'messaggio' : 'scelta')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -474,7 +496,12 @@ export function AvvisoDentista(props: {
         {/* ③-a PASSO 2, STRADA WHATSAPP — il testo MODIFICABILE (⚖️ D334) */}
         {passo === 'messaggio' && (
           <>
-            <TornaAllaScelta onClick={() => setPasso('scelta')} />
+            {/* 🛑 A MESSAGGIO GIÀ PARTITO NON SI TORNA ALLA SCELTA, e non è una
+                gabbia: dalla scelta le due mosse sarebbero rimandare il messaggio
+                o registrare «a voce» una telefonata che non c'è stata. Il fatto è
+                avvenuto; l'unica cosa che resta da fare è scriverlo — o chiudere e
+                rientrare, che riporta qui. */}
+            {mandato === null && <TornaAllaScelta onClick={() => setPasso('scelta')} />}
 
             <CampoTestoLungo
               label="Il messaggio che manderai"

@@ -9,7 +9,7 @@ sezione A (⚖️ D344).
 | cosa | esito |
 |---|---|
 | `VERIFY_EXIT` | **0** |
-| prove, prima → dopo | **5833 \| 119 su 464 file** → **5887 \| 119 su 465 file** (+54 prove, +1 file) |
+| prove, prima → dopo | **5833 \| 119 su 464 file** → **5891 \| 119 su 465 file** (+58 prove, +1 file) |
 | forza delle prove (R-P4) | **38 su 40** asserzioni si accendono sull'abbozzo inerte |
 | contrasti sul DOM vivo | **0 testi sotto soglia su 42 schermate** (7 passi × 3 viewport × 2 temi) + giro a movimento ridotto |
 | difetto ereditato da `Sheet` | **misurato e chiuso in locale**: `scrollTop` 712 → **216** col titolo a −150 px; ora **0** |
@@ -120,6 +120,28 @@ il gesto, e non può essere bloccato. La registrazione parte nello stesso `click
   un registro che esiste per provare cosa gli è stato comunicato.
 - **La rete assente** si racconta allo stesso modo, e lo prova una prova sua.
 
+### 🔴 E il ricupero SOPRAVVIVE ALLA CHIUSURA — un difetto mio, trovato in revisione e chiuso
+
+**Prima non sopravviveva, e la sequenza era raggiungibile:** messaggio partito → registrazione fallita → la
+persona chiude il foglio (Esc, tocco sullo scrim, «Chiudi» — tutti passano da `chiudi()`), che azzerava
+`mandato` e `nonRegistrato`. In banca dati il promemoria restava giustamente aperto, ma alla **riapertura**
+il foglio mostrava il passo della **scelta**, e da lì le uniche due mosse sono **mandare un secondo
+messaggio al dentista** oppure registrare **«a voce» una telefonata che non c'è stata**. Cioè il foglio
+costringeva a una delle due bugie — e la sua stessa frase, «*da qui lo registri senza rimandare niente al
+dentista*», **scadeva alla prima chiusura**.
+
+✅ **Chiuso così:** `mandato` e `nonRegistrato` **non si azzerano** alla chiusura (due righe assenti apposta,
+col precedente in casa: `eventoDaRiusare` del foglio gemello, «*è l'unica cosa che attraversa la chiusura del
+foglio*») · la riga sulla scheda **riapre sul ricupero**, non sulla scelta · dal ricupero **la scelta non è
+raggiungibile** (nessun «‹ Torna alla scelta»), perché da lì le due mosse sarebbero false · **solo la
+riuscita** spegne il ricupero.
+🛑 **E non è una bozza conservata:** ⚖️ D339 vieta di **salvare** la proposta, e qui non si salva niente — è
+una stringa **già uscita**, tenuta in memoria dal componente per il tempo che serve a scriverla.
+`provato:` rimesse le due righe `setMandato(null)` / `setNonRegistrato(null)` in `chiudi()` →
+**2 delle 4 prove nuove diventano rosse** («*chiuso e riaperto, il foglio riprende dal ricupero*» e «*dopo
+il rientro si registra ancora il testo partito*»). Le altre due passano in entrambi i casi perché non
+attraversano la chiusura: lo dico invece di far contare quattro prove come quattro guardie.
+
 **⚖️ D331 — quel che resta scritto è un'autodichiarazione, in entrambe le strade.** L'app non può sapere se
 il messaggio è davvero partito, e nessun testo del foglio fa credere il contrario.
 
@@ -196,10 +218,11 @@ Le **2** che passano, passano **a vuoto**, e vale dirlo: ① «*nessun colore n�
 sorgente*» — un file inerte non ha hex; ② «*un valore che non è un istante torna `null`*» — l'abbozzo torna
 `null` sempre. Nessuna delle due è una prova sul comportamento vero.
 
-📌 **Perché il conto dice 40 e il file oggi ne ha 41:** la quarantunesima è la prova dello **scorrimento**, ed
-è nata **dopo**, dalla misura della FASE 9 (v. ②) — non c'era niente da contare prima di averla misurata.
-Il numero `38 su 40` resta quello dell'istante in cui è stato preso, che è l'unico modo in cui una misura
-significa qualcosa.
+📌 **Perché il conto dice 40 e il file oggi ne ha 45:** la 41ª è la prova dello **scorrimento**, nata dalla
+misura della FASE 9 (v. ②); le quattro dalla 42ª alla 45ª sono nate dalla **revisione**, sul ricupero che non
+sopravviveva alla chiusura (v. ③). Nessuna delle cinque poteva essere contata prima: **non c'era niente da
+contare prima di aver misurato**. Il numero `38 su 40` resta quello dell'istante in cui è stato preso, che è
+l'unico modo in cui una misura significa qualcosa.
 
 **Le forme d'input, enumerate PRIMA delle asserzioni** (le forme di un componente sono i suoi props e le
 risposte che gli tornano da fuori):
@@ -285,8 +308,8 @@ un collegamento.
 |---|---|
 | `VERIFY_EXIT` | **0** (`npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"` — da variabile, mai dietro una pipe) |
 | prove **prima** | **5833 passate \| 119 saltate su 464 file** (`455 passed \| 9 skipped`) — rimisurato, coincide col numero del mandato |
-| prove **dopo** | **5887 passate \| 119 saltate su 465 file** (`456 passed \| 9 skipped`) |
-| differenza | **+54 prove** (41 sul foglio, 13 sul campo), **+1 file** |
+| prove **dopo** | **5891 passate \| 119 saltate su 465 file** (`456 passed \| 9 skipped`) |
+| differenza | **+58 prove** (45 sul foglio, 13 sul campo), **+1 file** |
 | guardie | tutte verdi: DS compliance · CSRF · reduced-motion · coerenza documenti · salvataggio installato · progetti Playwright |
 
 ⚠️ **Il primo `verify:full` è uscito 2, e non per il codice:** `.next/dev/types/validator.ts` conteneva
@@ -349,6 +372,16 @@ il rosso che ne esce sembra un errore di codice.
 6. **Due doppioni dichiarati, entrambi già noti:** il tetto del testo (**1000**) è scritto anche qui perché
    `LIMITE_TESTO` non è esportato dalla rotta; e `NEXT_PUBLIC_APP_URL` resta con le sue **otto** copie (già
    riferito dal Task 3, ancora aperto).
+7. **🔶 UNA DOMANDA PER FRANCESCO, e va posta perché il costo è VISIBILE: «a voce» ora costa DUE tocchi.**
+   Il piano dice «*Passo 2 — **solo se sceglie WhatsApp***», e il mockup approvato non mostrava **nessuno**
+   dei due secondi passi. Io ne ho messo uno anche su «a voce» (rilegge cosa resterà scritto, poi si
+   conferma), e la ragione è la più forte che avevo: **la parità di ⚖️ D335 è anche parità di tocchi** — con
+   una strada da un tocco e una da due, la corta diventa quella che si prende, che è il difetto per cui la
+   A1 è stata scartata; e un tocco solo su «a voce» vuol dire che **una pressione per sbaglio chiude
+   l'obbligo** su una telefonata mai fatta, senza annullo possibile. Ma il costo dichiarato dal mockup era
+   «*due tap invece di uno per la strada normale*», non per entrambe. **Se preferisce un tocco solo su «a
+   voce», si toglie quel passo:** è la riga `setPasso('voce')` che diventa la registrazione diretta.
+   📌 Il costo è già negli scatti: `04-voce--390-light.png`.
 
 📌 **Non trattati come difetti, ma dichiarati:** il campo multilinea **non è nel catalogo** (v. ①); la
 strada ricca «il cellulare manca → chiedilo» (⚖️ D183) qui non c'è, perché vuole una scrittura
