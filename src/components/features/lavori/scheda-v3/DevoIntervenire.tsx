@@ -96,7 +96,15 @@ import type {
 import {
   FAMIGLIE, MOTIVI_UI, motiviDellaFamiglia,
   DOMANDE, ORIGINE_UI, STATO_UI, DANNO_UI, ESITO_UI,
+  DOMANDA_SCELTA, SCELTA_UI, TASTO_SCELTA,
 } from '@/lib/qualita/motivi-ui'
+// 🔑 IL BIVIO SI DERIVA, NON SI RICOPIA. `richiedeScelta` e `SCELTE` sono la
+//    stessa fonte che usa la rotta per pretendere `scelta_intervento`; il
+//    `perche` di `effettoDaMotivoEScelta` è lo stesso testo con cui la rotta
+//    decide che cosa fare. Un elenco di due voci scritto a mano qui sarebbe la
+//    terza copia dello stesso vocabolario.
+import { richiedeScelta, effettoDaMotivoEScelta, SCELTE } from '@/lib/qualita/effetti'
+import type { Scelta } from '@/lib/qualita/effetti'
 // 🔄 `effettoDaMotivo` NON SI IMPORTA PIÙ: era la fonte del testo del
 //    `DialogConferma` del percorso corto, che ora porta la DOMANDA del Task A e
 //    non più la descrizione dell'effetto. Il `perche` di quel motivo resta vivo
@@ -457,6 +465,20 @@ export function DevoIntervenire(props: {
   //    «nessuno» sarebbe un generatore silenzioso di sotto-classificazione,
   //    contro l'Art. 87(7).
   const [danno, setDanno] = useState<PotenzialeDiDanno>('da_valutare')
+  /**
+   * 🔴 IL BIVIO DEI DUE DIFETTI (⚖️ D304) — E QUESTA RIGA CHIUDE UN DIFETTO
+   * MISURATO: `grep -c "scelta_intervento" ` su questo file dava **0**, mentre
+   * la rotta la PRETENDE su `difetto_lavorazione` e `difetto_materiale`
+   * (`eventi-qualita/route.ts:259-262`). Due motivi su nove rispondevano
+   * **422** e la persona vedeva un errore a schermo — dopo aver compilato tutto.
+   *
+   * 🛑 NASCE `null`, e non è pigrizia: è l'unica forma che dice «nessuno ha
+   * ancora risposto». Un valore d'apertura sarebbe la stessa cosa che il Task A
+   * ha appena tolto dal percorso corto — l'app che dichiara al posto della
+   * persona. Finché è `null` il tasto finale resta spento, con scritto che cosa
+   * manca.
+   */
+  const [scelta, setScelta] = useState<Scelta | null>(null)
   const [risposta, setRisposta] = useState<RispostaEvento | null>(null)
   const [esitoScelto, setEsitoScelto] = useState<Esito | null>(null)
   const [cambiando, setCambiando] = useState(false)
@@ -557,7 +579,7 @@ export function DevoIntervenire(props: {
     setEsitoScelto(null); setCambiando(false); setConfermata(false)
     setOrigine('laboratorio_interno'); setStatoDisp('consegnato_non_applicato')
     setDanno('da_valutare'); setConosciuto(adessoLocale())
-    setUscitoDichiarato(false)
+    setUscitoDichiarato(false); setScelta(null)
     setCorrezioni({}); setVoceAperta(null); setRiemissione(null); setConflitto(null)
     // 🛑 `eventoDaRiusare` NON SI AZZERA QUI, ed è una riga assente apposta: è
     //    l'unica cosa che attraversa la chiusura del foglio. Azzerarlo insieme
@@ -597,7 +619,7 @@ export function DevoIntervenire(props: {
     setConflitto(null)
     setFase('chiuso'); setMotivo(null); setMotivoLibero(''); setRisposta(null)
     setEsitoScelto(null); setCambiando(false); setConfermata(false)
-    setVoceAperta(null); setRiemissione(null)
+    setVoceAperta(null); setRiemissione(null); setScelta(null)
     setDaRinfrescare(false)
     router.refresh()
   }
@@ -666,6 +688,12 @@ export function DevoIntervenire(props: {
     //    database col suo default prudente. Mandare «nessuno» sarebbe
     //    affermare che non c'era pericolo — una risposta che nessuno ha dato.
     if (!sbaglio) corpo.potenziale_di_danno = danno
+    // 🔴 LA CHIAVE CHE QUESTO FOGLIO NON HA MAI MANDATO (⚖️ D304). Sui due
+    //    difetti la rotta la pretende e senza risponde 422; su tutti gli altri
+    //    motivi la rifiuta, e **`null` esplicito conta come presente** per
+    //    quella guardia (`route.ts:264-268`). Quindi la chiave si mette solo
+    //    dove ha significato: qui non esiste una terza forma da mandare.
+    if (richiedeScelta(motivo) && scelta !== null) corpo.scelta_intervento = scelta
     if (motivo === 'altro') {
       corpo.motivo_libero = motivoLibero.trim()
       // Per «altro» la natura si CHIEDE (spec §5). Finché la schermata non la
@@ -812,7 +840,14 @@ export function DevoIntervenire(props: {
   }
 
   const etichettaMotivo = motivo ? MOTIVI_UI[motivo].etichetta : ''
-  const puoContinuare = motivo !== 'altro' || motivoLibero.trim().length > 0
+  /** Questo motivo passa dal bivio? La fonte è `MOTIVI_CON_SCELTA`, la stessa
+   *  della rotta: qui non si elencano due nomi a mano (⚖️ D304). */
+  const alBivio = motivo !== null && richiedeScelta(motivo)
+  const puoContinuare =
+    (motivo !== 'altro' || motivoLibero.trim().length > 0) &&
+    // 🛑 SENZA SCELTA NON SI PARTE. La rotta risponderebbe 422 a modulo
+    //    compilato: il rifiuto si dice PRIMA, e con scritto che cosa manca.
+    (!alBivio || scelta !== null)
 
   // ── Task D ────────────────────────────────────────────────────────────────
   const correggendo = motivo === 'errore_dato_dichiarazione'
@@ -1095,6 +1130,18 @@ export function DevoIntervenire(props: {
           etichette={STATO_UI}
           scelta={statoDisp}
           onScegli={setStatoDisp}
+          // ⚖️ Passo 4 — «è andato alla persona sbagliata» e «non è mai uscito
+          //    di qui» non possono essere vere insieme. La rotta lo sa già
+          //    (`route.ts:278-280`) e risponde 422: qui si dice prima.
+          //    🔑 Il nome del motivo si PRENDE da `MOTIVI_UI`, non si ricopia —
+          //    stessa riga dell'avviso in cima all'elenco: se l'etichetta
+          //    cambia, questa frase non resta a indicare una voce che a
+          //    schermo non si chiama più così.
+          preclusa={(s) =>
+            motivo === 'destinatario_errato' && s === 'mai_uscito_dal_lab'
+              ? `Se il manufatto non è mai uscito dal laboratorio non può essere andato alla persona sbagliata: quel caso è «${MOTIVI_UI.errore_registrazione.etichetta}», e ha il suo motivo nell'elenco.`
+              : null
+          }
         />
 
         <GruppoChip
@@ -1104,6 +1151,54 @@ export function DevoIntervenire(props: {
           scelta={danno}
           onScegli={setDanno}
         />
+
+        {/* ⚖️ D304 · Passo 3 del Task 9 — IL BIVIO DEI DUE DIFETTI.
+            Sta in fondo alle quattro caselle e subito PRIMA del tasto: è
+            l'ultima cosa che si risponde, perché è quella che fa partire
+            l'azione.
+
+            🔄 IL PIANO LO VOLEVA COME `DialogConferma` SOPRA IL FOGLIO, E NON
+            SI PUÒ — e la ragione è misurabile sul componente di sistema, non
+            un'opinione. `DialogConferma` espone DUE callback, e `onAnnulla` è
+            lo stesso identico per il tasto sicuro, per Esc
+            (`DialogConferma.tsx:87-92`), per il tocco sullo scrim (`:83`) e per
+            il gesto «indietro» (`:111`). Il bivio ha DUE rami che SCRIVONO
+            tutti e due — uno riporta il lavoro fra i pronti, l'altro fa nascere
+            un lavoro nuovo bruciando un progressivo. Mappandone uno su
+            `onAnnulla`, un Esc dato per chiudere depositerebbe un evento nel
+            registro di qualità e sposterebbe un lavoro.
+            🔑 La differenza col percorso corto, che quel dialogo lo usa
+            davvero (`:1322-1332`): là il ramo di `onAnnulla` **non scrive
+            niente** — è scritto nel suo costo dichiarato. Qui scriverebbero
+            entrambi. E cambiare il contratto del componente di sistema è già
+            dichiarato fuori mandato nello stesso riquadro.
+            🔑 E IL CONTO DEI TOCCHI NON CAMBIA: pastiglia + tasto sono due,
+            esattamente come tasto + opzione dentro un dialogo. Nessun terzo
+            tocco di conferma, che sarebbe contro D269 (`route.ts:440-447`).
+            🛑 Nessun valore d'apertura, ed è la stessa riga del Task A: una
+            scelta è una RISPOSTA, e un default la darebbe al posto della
+            persona. */}
+        {motivo && richiedeScelta(motivo) && (
+          <>
+            <GruppoChip
+              domanda={DOMANDA_SCELTA}
+              voci={SCELTE}
+              etichette={SCELTA_UI}
+              scelta={scelta}
+              onScegli={setScelta}
+            />
+            {/* 🔑 LA CONSEGUENZA NON SI RISCRIVE QUI: è il `perche` di
+                `effettoDaMotivoEScelta`, cioè la stessa funzione con cui la
+                rotta decide che cosa fare. Ricopiarlo vorrebbe dire due testi
+                che divergono alla prima revisione — e il secondo a divergere
+                sarebbe quello che la persona legge. */}
+            {scelta && (
+              <p style={{ fontSize: 14.5, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
+                {effettoDaMotivoEScelta(motivo, scelta).perche}
+              </p>
+            )}
+          </>
+        )}
 
         {/* 🔴 LA VIA D'USCITA DAL CONFLITTO — senza, da qui non si torna
             indietro: il tasto è spento e l'unico gesto rimasto è chiudere il
@@ -1144,10 +1239,22 @@ export function DevoIntervenire(props: {
           disabled={lavorando || !puoContinuare || conflitto !== null}
           motivoDisabilitato={
             lavorando ? 'Sto registrando…'
-              : conflitto ?? 'Scrivi in due parole di cosa si tratta'
+              : conflitto ?? (alBivio && scelta === null
+                // 🔑 LA STESSA FRASE, non una seconda: la riga sotto il tasto
+                //    spento dice ciò che manca, e ciò che manca è esattamente
+                //    la domanda del bivio. Scriverne qui una variante sarebbe
+                //    la terza copia di una frase sola (v. `DOMANDA_SCELTA`).
+                ? DOMANDA_SCELTA
+                : 'Scrivi in due parole di cosa si tratta')
           }
         >
-          {lavorando ? 'Un attimo…' : correggendo ? 'Correggi e rifai la dichiarazione' : 'Continua'}
+          {lavorando ? 'Un attimo…'
+            : correggendo ? 'Correggi e rifai la dichiarazione'
+            // ⚖️ Passo 3 — il ramo che fa NASCERE un lavoro non può portare la
+            //    stessa parola del ramo che lo riporta indietro, e nessuno dei
+            //    due può dire «Continua»: da qui l'azione parte davvero.
+            : alBivio && scelta ? TASTO_SCELTA[scelta]
+            : 'Continua'}
         </TastoPrimario>
         {correggendo && !lavorando && conflitto === null && (
           <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
@@ -1165,6 +1272,18 @@ export function DevoIntervenire(props: {
                 l'atto unico è già avvenuto, e tacerlo qui sarebbe «riuscire
                 senza dirlo». La classificazione ISO resta una decisione a
                 parte, e la si prende sotto. */}
+            {/* 🔴 E QUI VA L'IMPREVISTO, PRIMA DI TUTTO IL RESTO. L'azione è già
+                partita: la rotta la esegue nello stesso giro in cui registra
+                l'evento (`route.ts:455-462`). Se è andata storta, questa
+                schermata lo deve dire SUBITO — sotto, «E sul lavoro» racconta
+                al futuro una cosa che non è successa, e la persona confermerebbe
+                una classificazione credendo che il resto sia a posto. */}
+            <RiquadroEsitoAzione
+              esito={risposta.esito_azione}
+              azione={risposta.effetto.azione}
+              soloImprevisti
+              onApri={(id) => navigaDaOverlay(`/lavori/${id}`)}
+            />
             <RiquadroRiemissione riemissione={riemissione} />
             <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
               Se non ti torna, cambiala: decidi tu.
@@ -1224,77 +1343,21 @@ export function DevoIntervenire(props: {
       {fase === 'esito' && (
         <>{risposta && (
           <>
+            {/* ⚖️ Passo 5 ① — L'ORDINE È INVERTITO, e non è un gusto: «Registrato»
+                era la prima card, incondizionata e verde, e su 390px spingeva
+                l'eventuale guasto **sotto la piega**. In cima va che cosa è
+                successo al LAVORO; che l'evento sia agli atti si legge sotto. */}
+            <RiquadroEsitoAzione
+              esito={risposta.esito_azione}
+              azione={risposta.effetto.azione}
+              onApri={(id) => navigaDaOverlay(`/lavori/${id}`)}
+            />
+            <RiquadroRiemissione riemissione={riemissione} />
             <Esito tono="ok" titolo={confermata ? 'Registrato e valutato' : 'Registrato'}>
               {confermata
                 ? 'La registrazione e la valutazione sono agli atti.'
                 : 'La registrazione è agli atti.'}
             </Esito>
-            <RiquadroRiemissione riemissione={riemissione} />
-            {/* 🔴 QUESTO BLOCCO ERA UN TESTO FALSO, e l'ha trovato la revisione del
-                Task 7. Diceva «La dichiarazione è stata annullata» **proprio sul ramo
-                che la tiene viva**: il ternario guardava `dichiarazione_assente`, che
-                su `torna_pronto` non arriva affatto (la rotta manda `dichiarazione_viva`),
-                quindi cadeva sempre nel ramo «annullata». 🛑 È l'inversione esatta di
-                D293 e dell'Art. 21(2) MDR — e la porta era già aperta, perché
-                `destinatario_errato` non ha nessun cancello a monte.
-                📌 I testi sono quelli **già ratificati** nel Passo 5 del Task 9: qui si
-                chiude la bugia, non si progetta la schermata. Al Task 9 restano
-                l'inversione dell'ordine (l'esito sopra la conferma) e la via per
-                **aprire** il lavoro nuovo. */}
-            {risposta.esito_azione?.stato === 'applicato' && (
-              risposta.effetto.azione === 'crea_rifacimento' ? (
-                <Esito
-                  tono="ok"
-                  titolo={
-                    risposta.esito_azione.lavoro_nuovo
-                      ? `È nato il lavoro ${risposta.esito_azione.lavoro_nuovo.numero_lavoro}`
-                      : 'È nato un lavoro nuovo'
-                  }
-                >
-                  Questo resta consegnato con la sua dichiarazione.
-                </Esito>
-              ) : risposta.effetto.azione === 'torna_pronto' ? (
-                <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
-                  {risposta.esito_azione.dichiarazione_viva === false
-                    ? 'Su questo lavoro non c\'era una dichiarazione valida: quando lo riconsegnerai ne verrà emessa una nuova.'
-                    : 'La dichiarazione resta valida.'}
-                </Esito>
-              ) : (
-                <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
-                  {risposta.esito_azione.dichiarazione_assente
-                    ? 'Non c\'era nessuna dichiarazione da annullare.'
-                    : 'La dichiarazione è stata annullata.'}
-                </Esito>
-              )
-            )}
-            {/* 🛑 «Non applicabile» NON è un guasto: il lavoro non era da
-                riportare indietro. Trattarlo come errore insegnerebbe a
-                ignorare gli avvisi. */}
-            {risposta.esito_azione?.stato === 'non_applicabile' && (
-              risposta.effetto.azione === 'crea_rifacimento' ? (
-                <Esito tono="attesa" titolo="Non c'era niente da rifare su questo lavoro">
-                  La registrazione è salva.
-                </Esito>
-              ) : (
-                <Esito tono="attesa" titolo="Il lavoro non era da riportare indietro">
-                  Era già fra i pronti, o non è più consegnato. La registrazione è salva.
-                </Esito>
-              )
-            )}
-            {/* 🛑 IL GUASTO VERO, e questa riga è la ragione per cui la rotta
-                distingue tre esiti invece di un sì/no: senza, «registrato»
-                sembrerebbe «fatto tutto». */}
-            {risposta.esito_azione?.stato === 'fallito' && (
-              risposta.effetto.azione === 'crea_rifacimento' ? (
-                <Esito tono="guasto" titolo="Ma il lavoro nuovo non è stato creato">
-                  {risposta.esito_azione.messaggio ?? 'Crealo dalla scheda, oppure riprova fra un momento.'}
-                </Esito>
-              ) : (
-                <Esito tono="guasto" titolo="Ma il lavoro non è tornato indietro">
-                  {risposta.esito_azione.messaggio ?? 'Riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
-                </Esito>
-              )
-            )}
             <TastoPrimario onClick={ricomincia}>Ho capito</TastoPrimario>
           </>
         )}</>
@@ -1363,6 +1426,118 @@ function NastroPercorso() {
         </span>
       ))}
     </div>
+  )
+}
+
+/**
+ * CHE COSA È SUCCESSO AL LAVORO — i sei testi del Passo 5 (tre stati × le due
+ * azioni nuove), più i due della riapertura di sempre.
+ *
+ * 🔴 IL BLOCCO DA CUI NASCE DICEVA UN TESTO FALSO, e l'ha trovato la revisione
+ * del Task 7: «La dichiarazione è stata annullata» compariva **proprio sul ramo
+ * che la tiene viva**, perché il ternario guardava `dichiarazione_assente`, che
+ * su `torna_pronto` non arriva affatto (la rotta manda `dichiarazione_viva`).
+ * È l'inversione esatta di D293 e dell'Art. 21(2) MDR, ed era raggiungibile:
+ * `destinatario_errato` non ha nessun cancello a monte. Quel difetto è chiuso;
+ * qui si porta a termine il disegno.
+ *
+ * 🔑 PERCHÉ È UN COMPONENTE E NON UN BLOCCO IN LINEA: si mostra su DUE passi.
+ * Il modello è `RiquadroRiemissione`, che vive su `proposta` e su `esito` per
+ * la ragione scritta accanto — «tacerlo qui sarebbe riuscire senza dirlo».
+ *
+ * 🔴 E SU `proposta` IL SILENZIO ERA UN DIFETTO VERO, non un dettaglio: fra la
+ * registrazione e la schermata finale c'è un passo intero (la valutazione), e
+ * in quel passo il riquadro «E sul lavoro» racconta l'azione al futuro —
+ * «*nasce subito un lavoro nuovo*» — **anche quando non è nata**. Cioè la §8.1
+ * vista dall'altro lato: fallire senza dirlo, mentre la persona conferma
+ * tranquilla una classificazione.
+ * 🛑 Ma sulla proposta si mostra SOLO ciò che contraddice quella promessa
+ * (`soloImprevisti`): la riuscita la racconta già «E sul lavoro», e ripeterla
+ * sarebbe rumore su una schermata che deve far prendere una decisione.
+ */
+function RiquadroEsitoAzione(props: {
+  esito: EsitoAzione | undefined
+  azione: AzioneAutomatica | null
+  /** Sulla PROPOSTA: solo ciò che è andato diversamente da come è stato detto. */
+  soloImprevisti?: boolean
+  onApri: (idLavoroNuovo: string) => void
+}) {
+  const { esito, azione, soloImprevisti = false, onApri } = props
+  // Sette motivi su nove non portano nessuna azione: qui non c'è niente da
+  // dire, e un riquadro vuoto sarebbe una promessa.
+  if (!esito) return null
+
+  if (esito.stato === 'applicato') {
+    if (soloImprevisti) return null
+    if (azione === 'crea_rifacimento') {
+      const nuovo = esito.lavoro_nuovo
+      return (
+        <Esito tono="ok" titolo={nuovo ? `È nato il lavoro ${nuovo.numero_lavoro}` : 'È nato un lavoro nuovo'}>
+          Questo resta consegnato con la sua dichiarazione.
+          {/* ⚖️ Passo 5 ② — LA VIA PER APRIRLO. Senza, la persona sa che un
+              lavoro esiste e deve andarselo a cercare nell'elenco.
+              🛑 Si naviga con `useNavigaDaOverlay`, MAI `router.push`: da dentro
+              un overlay v3 un `push` impila la pagina nuova sopra un doppione
+              dell'entry e lascia un «indietro» morto (direttiva permanente,
+              `CLAUDE.md` §9).
+              🔑 E il collegamento c'è SOLO se la rotta ha mandato il lavoro: un
+              bersaglio che si preme e non porta da nessuna parte è peggio di un
+              bersaglio che non c'è. */}
+          {nuovo && (
+            <span style={{ display: 'block', marginTop: spazio.s }}>
+              <LinkQuieto onClick={() => onApri(nuovo.id)}>Apri il lavoro {nuovo.numero_lavoro}</LinkQuieto>
+            </span>
+          )}
+        </Esito>
+      )
+    }
+    if (azione === 'torna_pronto') {
+      return (
+        <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
+          {esito.dichiarazione_viva === false
+            ? 'Su questo lavoro non c\'era una dichiarazione valida: quando lo riconsegnerai ne verrà emessa una nuova.'
+            : 'La dichiarazione resta valida.'}
+        </Esito>
+      )
+    }
+    return (
+      <Esito tono="ok" titolo="Il lavoro è tornato fra i pronti">
+        {esito.dichiarazione_assente
+          ? 'Non c\'era nessuna dichiarazione da annullare.'
+          : 'La dichiarazione è stata annullata.'}
+      </Esito>
+    )
+  }
+
+  // 🛑 «Non applicabile» NON è un guasto: il lavoro non era da riportare
+  //    indietro. Trattarlo come errore insegnerebbe a ignorare gli avvisi.
+  if (esito.stato === 'non_applicabile') {
+    return azione === 'crea_rifacimento' ? (
+      <Esito tono="attesa" titolo="Non c'era niente da rifare su questo lavoro">
+        La registrazione è salva.
+      </Esito>
+    ) : (
+      <Esito tono="attesa" titolo="Il lavoro non era da riportare indietro">
+        Era già fra i pronti, o non è più consegnato. La registrazione è salva.
+      </Esito>
+    )
+  }
+
+  // 🛑 IL GUASTO VERO, ed è la ragione per cui la rotta distingue tre esiti
+  //    invece di un sì/no: senza, «registrato» sembrerebbe «fatto tutto».
+  // 🔄 I DUE TITOLI COMINCIAVANO CON «Ma», e la parola aveva un antecedente:
+  //    «Registrato» stava sopra. Con l'inversione del Passo 5 questo riquadro è
+  //    il PRIMO della schermata, e un «Ma» in cima non si regge su niente. Il
+  //    fatto che la registrazione è salva lo dice il messaggio della rotta, che
+  //    lo porta già dentro (`route.ts:510-514`).
+  return azione === 'crea_rifacimento' ? (
+    <Esito tono="guasto" titolo="Il lavoro nuovo non è stato creato">
+      {esito.messaggio ?? 'La registrazione è salva: crealo dalla scheda, oppure riprova fra un momento.'}
+    </Esito>
+  ) : (
+    <Esito tono="guasto" titolo="Il lavoro non è tornato indietro">
+      {esito.messaggio ?? 'La registrazione è salva: riportalo tu fra quelli pronti, oppure riprova fra un momento.'}
+    </Esito>
   )
 }
 
@@ -1799,10 +1974,28 @@ function GruppoChip<T extends string>(props: {
   domanda: string
   voci: readonly T[]
   etichette: Record<T, string>
-  scelta: T
+  /** `null` = nessuno ha ancora risposto. Serve al bivio (⚖️ D304), dove un
+   *  valore d'apertura sarebbe una risposta data al posto della persona. */
+  scelta: T | null
   onScegli: (v: T) => void
+  /**
+   * Le voci che su QUESTO percorso non si possono scegliere, con la ragione.
+   *
+   * ⚖️ Passo 4 del Task 9 — LA COMBINAZIONE VIETATA SI IMPEDISCE, NON SI SERVE
+   * COME VICOLO CIECO. `destinatario_errato` + «Mai uscito» era liberamente
+   * componibile a schermo, e il 422 della rotta arrivava **a modulo compilato**.
+   * 🛑 LA GUARDIA DELL'API RESTA, ed è lì che sta il confine
+   * (`eventi-qualita/route.ts:278-280`): questa è la cortesia di dirlo prima,
+   * non la difesa.
+   * 🔑 E la ragione si SCRIVE: una pastiglia spenta senza spiegazione è un
+   * divieto muto, cioè la cosa che D262 vieta.
+   */
+  preclusa?: (v: T) => string | null
 }) {
-  const { domanda, voci, etichette, scelta, onScegli } = props
+  const { domanda, voci, etichette, scelta, onScegli, preclusa } = props
+  // Le ragioni, senza doppioni e nell'ordine delle voci: se un giorno due
+  // pastiglie fossero precluse dalla stessa ragione, si legge una volta sola.
+  const ragioni = [...new Set(voci.map((v) => preclusa?.(v) ?? null).filter((r): r is string => r !== null))]
   return (
     <div>
       <p style={{
@@ -1811,11 +2004,21 @@ function GruppoChip<T extends string>(props: {
       }}>{domanda}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
         {voci.map((v) => (
-          <ChipScelta key={v} selezionata={scelta === v} onClick={() => onScegli(v)}>
+          <ChipScelta
+            key={v}
+            selezionata={scelta === v}
+            disabilitata={preclusa?.(v) != null}
+            onClick={() => onScegli(v)}
+          >
             {etichette[v]}
           </ChipScelta>
         ))}
       </div>
+      {ragioni.map((r) => (
+        <p key={r} style={{
+          fontSize: 13.5, color: 'var(--muted)', margin: `${spazio.s}px 0 0`, lineHeight: 1.45,
+        }}>{r}</p>
+      ))}
     </div>
   )
 }

@@ -223,6 +223,17 @@ export function effettoDaMotivo(motivo: Motivo): Effetto {
 /** Il bivio dei due difetti: la sceglie chi registra, e non si indovina (D290 · D297 · D304). */
 export type Scelta = 'si_sistema' | 'si_rifa'
 
+/** Le due strade, NELL'ORDINE in cui si mostrano.
+ *
+ *  🔑 Sta qui, accanto al tipo, per la stessa ragione per cui `MOTIVI` sta in
+ *  `qualita-costanti.ts` e le sue etichette in `motivi-ui.ts`: il vocabolario e
+ *  le parole che una persona legge sono due cose, e vivono in due posti.
+ *  `satisfies readonly Scelta[]` fa protestare `tsc` se un giorno il tipo
+ *  cresce e questo elenco resta indietro.
+ *  ⚠️ La rotta ne tiene una copia privata (`eventi-qualita/route.ts:115`),
+ *  scritta prima di questa: RIFERITA, non toccata — è fuori da questo mandato. */
+export const SCELTE = ['si_sistema', 'si_rifa'] as const satisfies readonly Scelta[]
+
 /** I soli motivi che ammettono — e pretendono — una scelta. 🔑 Questa è la FONTE:
  *  il database porta solo l'implicazione «se c'è una scelta, il motivo è uno di
  *  questi», perché il biconditionale abortirebbe sulle righe già esistenti. */

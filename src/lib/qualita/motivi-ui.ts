@@ -25,6 +25,7 @@ import type {
   StatoDispositivo,
   PotenzialeDiDanno,
 } from '@/lib/domain/qualita-costanti'
+import type { Scelta } from '@/lib/qualita/effetti'
 
 /** Le CINQUE famiglie, nell'ordine in cui compaiono nel foglio.
  *
@@ -55,15 +56,54 @@ export interface VoceMotivo {
   glifo: string
 }
 
+/**
+ * LA DOMANDA DEL BIVIO, IN UNA FORMULAZIONE SOLA (⚖️ D304).
+ *
+ * 🛑 ERA SCRITTA DUE VOLTE ALLA LETTERA — i sottotitoli dei due difetti — e il
+ * foglio stava per aggiungerne una terza a schermo, dove la domanda si pone
+ * davvero. Tre copie della stessa frase divergono alla prima revisione: la
+ * prima che si corregge lascia le altre due a dire un'altra cosa, ed è la
+ * stessa famiglia di difetto per cui questo file esiste (v. il cappello).
+ * ➡️ Una costante, tre usi: i due sottotitoli e la domanda del passo.
+ */
+export const DOMANDA_SCELTA = 'Si sistema questo manufatto o se ne fa uno nuovo — scegli tu'
+
+/**
+ * Le due strade del bivio, con le etichette **ratificate** dal Passo 3 del
+ * piano del 07/08.
+ *
+ * 🔑 PERCHÉ NON DICONO «SÌ» E «NO», e nemmeno «Continua». Il secondo ramo
+ * **brucia un progressivo di anno**: fa nascere un lavoro nuovo, con il suo
+ * numero, e da qui non si torna indietro. Un'etichetta che non lo dicesse
+ * darebbe all'atto che crea il tasto più debole dei due — mentre il ramo
+ * reversibile, in questa stessa app, ha già un'etichetta esplicita.
+ *
+ * `Record<Scelta, …>`: il giorno in cui il vocabolario del bivio cambiasse,
+ * una voce senza etichetta non compila.
+ */
+export const SCELTA_UI: Record<Scelta, string> = {
+  si_sistema: 'Si sistema questo manufatto',
+  si_rifa: 'Se ne fa uno nuovo — nasce subito un lavoro nuovo',
+}
+
+/** Che cosa dice il tasto finale quando la scelta è stata fatta.
+ *
+ *  ⚖️ D322 — IL TASTO FINALE DICE QUELLO CHE FA, mai «Continua»: da qui parte
+ *  l'azione, non un altro passo. */
+export const TASTO_SCELTA: Record<Scelta, string> = {
+  si_sistema: 'Registra e riportalo fra i pronti',
+  si_rifa: 'Registra e fai il lavoro nuovo',
+}
+
 export const MOTIVI_UI: Record<Motivo, VoceMotivo> = {
   difetto_lavorazione: {
     etichetta: 'Difetto di lavorazione',
-    sottotitolo: 'Si sistema questo manufatto o se ne fa uno nuovo — scegli tu',
+    sottotitolo: DOMANDA_SCELTA,
     famiglia: 'manufatto', tinta: 'rossa', glifo: '🔧',
   },
   difetto_materiale: {
     etichetta: 'Difetto del materiale',
-    sottotitolo: 'Si sistema questo manufatto o se ne fa uno nuovo — scegli tu',
+    sottotitolo: DOMANDA_SCELTA,
     famiglia: 'manufatto', tinta: 'rossa', glifo: '🧱',
   },
   reso_senza_difetto: {

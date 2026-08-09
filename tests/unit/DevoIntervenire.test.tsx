@@ -285,7 +285,11 @@ describe('DevoIntervenire', () => {
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Difetto di lavorazione'))
     fireEvent.click(screen.getByRole('button', { name: 'Già applicato' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+    // 🔄 QUI C'ERA «Continua», E LA PROVA ERA VERDE SU UN CORPO CHE LA ROTTA
+    //    RIFIUTA. Questo motivo passa dal bivio (D304) e la rotta pretende
+    //    `scelta_intervento` (`eventi-qualita/route.ts:259-262`): finché il
+    //    `fetch` è finto, un contratto rotto col server non si vede da qui.
+    scegliNelBivio('si_sistema')
 
     await waitFor(() => expect(spia).toHaveBeenCalled())
     const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
@@ -301,7 +305,8 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Difetto di lavorazione'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+    // 🔄 Era «Continua»: su questo motivo il bivio è dovuto (v. il riquadro sopra).
+    scegliNelBivio('si_sistema')
 
     await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
     expect(screen.getByText(/Ce l'ha segnalato l'odontoiatra/)).toBeTruthy()
@@ -315,7 +320,8 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Difetto di lavorazione'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+    // 🔄 Era «Continua»: su questo motivo il bivio è dovuto (v. il riquadro sopra).
+    scegliNelBivio('si_sistema')
     await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: /Non è così — cambia/i }))
     expect(screen.getByRole('button', { name: 'Incidente grave' })).toBeTruthy()
@@ -330,7 +336,11 @@ describe('DevoIntervenire', () => {
     fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
     fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
-    await waitFor(() => expect(screen.getAllByText('Ma il lavoro non è tornato indietro').length).toBeGreaterThan(0))
+    // 🔄 IL TITOLO COMINCIAVA CON «Ma», e la parola aveva un antecedente:
+    //    «Registrato» stava sopra. Col Passo 5 del Task 9 l'ordine si inverte e
+    //    questo riquadro è il PRIMO della schermata — un «Ma» in cima non si
+    //    regge su niente. Il testo cambia perché è cambiato ciò che ha davanti.
+    await waitFor(() => expect(screen.getAllByText('Il lavoro non è tornato indietro').length).toBeGreaterThan(0))
     expect(screen.getByText('Riportalo tu fra quelli pronti.')).toBeTruthy()
   })
 
@@ -342,7 +352,7 @@ describe('DevoIntervenire', () => {
     fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
 
     await waitFor(() => expect(screen.getAllByText('Il lavoro non era da riportare indietro').length).toBeGreaterThan(0))
-    expect(screen.queryByText('Ma il lavoro non è tornato indietro')).toBeNull()
+    expect(screen.queryByText('Il lavoro non è tornato indietro')).toBeNull()
   })
 
   it('la riapertura riuscita si vede, col caveat quando non c\'era una dichiarazione', async () => {
@@ -424,7 +434,8 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Difetto di lavorazione'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+    // 🔄 Era «Continua»: su questo motivo il bivio è dovuto (v. il riquadro sopra).
+    scegliNelBivio('si_sistema')
     await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
 
@@ -455,7 +466,8 @@ describe('DevoIntervenire', () => {
     montaComponente()
     apriElencoMotivi()
     fireEvent.click(screen.getByText('Difetto di lavorazione'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+    // 🔄 Era «Continua»: su questo motivo il bivio è dovuto (v. il riquadro sopra).
+    scegliNelBivio('si_sistema')
     await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
 
     // Il fatto è registrato, il foglio è aperto sulla proposta: NIENTE rinfresco.
@@ -1235,5 +1247,414 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
 
     await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
     expect(chiamateA(spia, '/eventi-qualita').length).toBe(2)
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════
+//  TASK 9 — IL BIVIO DEI DUE DIFETTI, E LA SCHERMATA FINALE
+//
+//  Il fatto che le ha generate, misurato prima di scriverle: sul foglio
+//  `grep -c "scelta_intervento" DevoIntervenire.tsx` dava **0**, mentre la
+//  rotta la PRETENDE sui due difetti (`eventi-qualita/route.ts:259-262`).
+//  ➡️ Due motivi su nove rispondevano 422 e la persona vedeva un errore.
+//
+//  🛑 E LE PROVE DI QUESTO STESSO FILE ERANO VERDI SU QUEL CORPO: cinque
+//  premevano «Continua» su «Difetto di lavorazione» senza nessuna scelta e
+//  passavano, perché il `fetch` è finto e non ha la guardia della rotta. Una
+//  prova che finge il server non può vedere un contratto rotto col server.
+//
+//  📋 FORME D'INGRESSO CENSITE (R-P4) — quelle del CORPO che il foglio compone:
+//   ① motivo del bivio + scelta valida → la chiave c'è, col valore scelto
+//   ② motivo del bivio + NESSUNA scelta → il corpo non parte affatto (tasto
+//      spento): è il modo in cui «chiave assente su un motivo che la pretende»
+//      non può nascere da questa schermata
+//   ③ motivo FUORI dal bivio → la chiave è **assente**, mai `null` (`null`
+//      esplicito prende 422 dalla rotta, `:264-268`)
+//   ④ `errore_registrazione`, percorso corto → chiave assente
+//   ⑤ `errore_dato_dichiarazione`, l'atto unico → chiave assente
+//   ⑥ una scelta fuori vocabolario → **non coperta, e perché**: le uniche due
+//      voci a schermo vengono da `SCELTA_UI`, che è un `Record<Scelta, …>` —
+//      una terza voce non compila. Il vocabolario lo sorveglia `tsc`, non una
+//      prova di interfaccia.
+//
+//  📋 E quelle della RISPOSTA che la schermata finale deve rendere: `esito_azione`
+//  assente · `applicato` × due azioni · `applicato` senza `lavoro_nuovo` ·
+//  `non_applicabile` × due azioni · `fallito` × due azioni · `fallito` senza
+//  `messaggio`. La combinazione `azione: null` **con** `esito_azione` non è
+//  coperta: la rotta non la produce (`route.ts:455-462` popola il campo solo
+//  quando un'azione c'è).
+// ══════════════════════════════════════════════════════════════════════════
+
+/** Il bivio: si sceglie, e poi il tasto DICE che cosa fa (mai «Continua»). */
+function scegliNelBivio(quale: 'si_sistema' | 'si_rifa') {
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: quale === 'si_sistema' ? 'Si sistema questo manufatto' : /Se ne fa uno nuovo/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: quale === 'si_sistema' ? 'Registra e riportalo fra i pronti' : 'Registra e fai il lavoro nuovo',
+    })
+  )
+}
+
+/** La posizione di un testo nel corpo del documento: serve a provare un ORDINE. */
+function posizioneDi(frammento: string): number {
+  return (document.body.textContent ?? '').indexOf(frammento)
+}
+
+describe('DevoIntervenire — il bivio dei due difetti (D304)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  // ① la chiave c'è, col valore scelto — è il difetto che chiude questo task.
+  it('🔴 «difetto di lavorazione» + «si sistema» manda `scelta_intervento`, che oggi non partiva affatto', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+    scegliNelBivio('si_sistema')
+
+    await waitFor(() => expect(spia).toHaveBeenCalled())
+    const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
+    expect(corpo.motivo).toBe('difetto_lavorazione')
+    expect(corpo.scelta_intervento).toBe('si_sistema')
+  })
+
+  it('e «difetto del materiale» + «se ne fa uno nuovo» manda l\'altra scelta', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto del materiale'))
+    scegliNelBivio('si_rifa')
+
+    await waitFor(() => expect(spia).toHaveBeenCalled())
+    const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
+    expect(corpo.motivo).toBe('difetto_materiale')
+    expect(corpo.scelta_intervento).toBe('si_rifa')
+  })
+
+  // ② senza scelta non si parte: il 422 della rotta non deve MAI essere il modo
+  //    in cui la persona scopre che mancava una risposta.
+  it('🛑 senza scelta il tasto è spento, e dice che cosa manca — non si scopre con un 422', () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+
+    const tasto = screen.getByRole('button', { name: /Continua/i })
+    expect(tasto.hasAttribute('disabled') || tasto.getAttribute('aria-disabled') === 'true').toBe(true)
+    fireEvent.click(tasto)
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  // 🛑 Nessuna delle due è accesa all'apertura: la scelta è una RISPOSTA, e un
+  //    default la darebbe al posto della persona — lo stesso difetto del Task A.
+  it('🛑 all\'apertura NESSUNA delle due è scelta: l\'app non risponde al posto della persona', () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+
+    const sistema = screen.getByRole('button', { name: 'Si sistema questo manufatto' })
+    const rifa = screen.getByRole('button', { name: 'Se ne fa uno nuovo — nasce subito un lavoro nuovo' })
+    expect(sistema.getAttribute('aria-pressed')).toBe('false')
+    expect(rifa.getAttribute('aria-pressed')).toBe('false')
+
+    // 🛑 E LA SECONDA METÀ È QUELLA CHE CONTA (R-P4): senza, questa prova
+    //    passerebbe anche su due pastiglie disegnate e non collegate a niente —
+    //    misurato, era una delle tre che si accendevano sull'abbozzo inerte.
+    fireEvent.click(rifa)
+    expect(rifa.getAttribute('aria-pressed')).toBe('true')
+    expect(sistema.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(sistema)
+    expect(sistema.getAttribute('aria-pressed')).toBe('true')
+    expect(rifa.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  // ⚖️ Passo 3 — il ramo che BRUCIA un progressivo di anno non può avere il
+  //    tasto più debole: le etichette dicono che cosa succede, mai «Continua».
+  it('🛑 il tasto finale DICE che cosa fa, e le due strade non hanno la stessa frase', () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Si sistema questo manufatto' }))
+    expect(screen.getByRole('button', { name: 'Registra e riportalo fra i pronti' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Se ne fa uno nuovo/ }))
+    expect(screen.getByRole('button', { name: 'Registra e fai il lavoro nuovo' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Registra e riportalo fra i pronti' })).toBeNull()
+  })
+
+  // 🔑 IL PERCHÉ NON SI RISCRIVE: viene da `effettoDaMotivoEScelta`, la stessa
+  //    funzione che la rotta usa per decidere. Se un giorno cambia il testo,
+  //    cambia in un posto solo.
+  it('🛑 la conseguenza mostrata è quella di `effettoDaMotivoEScelta`, non un testo ricopiato', async () => {
+    const { effettoDaMotivoEScelta } = await import('@/lib/qualita/effetti')
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+
+    const perRifa = effettoDaMotivoEScelta('difetto_lavorazione', 'si_rifa').perche
+    const perSistema = effettoDaMotivoEScelta('difetto_lavorazione', 'si_sistema').perche
+
+    fireEvent.click(screen.getByRole('button', { name: /Se ne fa uno nuovo/ }))
+    expect(screen.getByText(perRifa)).toBeTruthy()
+    // 🛑 L'ASSERZIONE CHE RENDE FORTE LA PROVA (R-P4): il testo deve CAMBIARE
+    //    con la scelta. Senza questa riga passava anche stampandone uno fisso —
+    //    misurato sull'abbozzo inerte.
+    expect(screen.queryByText(perSistema)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Si sistema questo manufatto' }))
+    expect(screen.getByText(perSistema)).toBeTruthy()
+    expect(screen.queryByText(perRifa)).toBeNull()
+  })
+
+  // ③ e ④ — la chiave NON si manda dove non ha significato, e nemmeno `null`.
+  it('🛑 sugli altri sette motivi la chiave è ASSENTE, mai `null`: `null` prende 422', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Prezzo o quantità sbagliati'))
+    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+
+    await waitFor(() => expect(spia).toHaveBeenCalled())
+    const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
+    expect(Object.hasOwn(corpo, 'scelta_intervento')).toBe(false)
+  })
+
+  it('e nemmeno sul percorso corto, che non passa dalle quattro caselle', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Ho premuto «consegna» per sbaglio'))
+    fireEvent.click(screen.getByRole('button', { name: /No, è sempre rimasto qui/i }))
+
+    await waitFor(() => expect(spia).toHaveBeenCalled())
+    const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
+    expect(Object.hasOwn(corpo, 'scelta_intervento')).toBe(false)
+  })
+
+  // 🛑 Il bivio è dei DUE difetti e di nessun altro: `MOTIVI_CON_SCELTA` è la
+  //    fonte, e la schermata non deve inventarsi un terzo motivo con la scelta.
+  it('🛑 il bivio compare esattamente sui motivi di `MOTIVI_CON_SCELTA`, e su nessun altro', async () => {
+    const { MOTIVI_CON_SCELTA } = await import('@/lib/qualita/effetti')
+    const { MOTIVI_UI } = await import('@/lib/qualita/motivi-ui')
+    const { MOTIVI } = await import('@/lib/domain/qualita-costanti')
+
+    for (const m of MOTIVI) {
+      // Questi due hanno un percorso proprio e non arrivano alle quattro caselle.
+      if (m === 'errore_registrazione' || m === 'errore_dato_dichiarazione') continue
+      fingiFetch()
+      const vista = montaComponente()
+      apriElencoMotivi()
+      fireEvent.click(screen.getByText(MOTIVI_UI[m].etichetta))
+      const cePerLui = screen.queryByRole('button', { name: 'Si sistema questo manufatto' }) !== null
+      expect(cePerLui, m).toBe((MOTIVI_CON_SCELTA as readonly string[]).includes(m))
+      vista.unmount()
+    }
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════
+//  TASK 9, PASSO 4 — la combinazione vietata si IMPEDISCE, non si serve come
+//  vicolo cieco. La guardia dell'API resta (`route.ts:278-280`): è lì che sta
+//  il confine. Questa è la cortesia di dirlo prima del modulo compilato.
+// ══════════════════════════════════════════════════════════════════════════
+
+describe('DevoIntervenire — «mai uscito» non si può scegliere su «persona sbagliata» (Passo 4)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('🛑 la pastiglia «Mai uscito» è spenta, e la ragione si legge a schermo', () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('È andato alla persona sbagliata'))
+
+    const mai = screen.getByRole('button', { name: 'Mai uscito' })
+    expect(mai.hasAttribute('disabled') || mai.getAttribute('aria-disabled') === 'true').toBe(true)
+    expect(screen.getByText(/non può essere andato alla persona sbagliata/)).toBeTruthy()
+  })
+
+  it('🛑 e premerla non cambia la risposta: il corpo parte con lo stato di prima', async () => {
+    const spia = fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('È andato alla persona sbagliata'))
+    fireEvent.click(screen.getByRole('button', { name: 'Mai uscito' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continua' }))
+
+    await waitFor(() => expect(spia).toHaveBeenCalled())
+    const corpo = JSON.parse((spia.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>
+    expect(corpo.stato_dispositivo).not.toBe('mai_uscito_dal_lab')
+  })
+
+  // 🛑 E su tutti gli altri motivi la pastiglia resta VIVA: una guardia che
+  //    spegne più del dovuto toglie una risposta vera a chi ce l'ha.
+  it('🛑 su un altro motivo «Mai uscito» resta scegliibile', () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+
+    const mai = screen.getByRole('button', { name: 'Mai uscito' })
+    expect(mai.hasAttribute('disabled') || mai.getAttribute('aria-disabled') === 'true').toBe(false)
+    fireEvent.click(mai)
+    expect(mai.getAttribute('aria-pressed')).toBe('true')
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════
+//  TASK 9, PASSO 5 — la schermata finale dice PRIMA che cosa è successo al
+//  LAVORO, e la conferma che l'evento è agli atti viene sotto.
+// ══════════════════════════════════════════════════════════════════════════
+
+/** Registra un difetto scegliendo `si_rifa`, con la risposta che si vuole. */
+function giroBivio(risposta: unknown) {
+  fingiFetch(risposta)
+  montaComponente()
+  apriElencoMotivi()
+  fireEvent.click(screen.getByText('Difetto di lavorazione'))
+  scegliNelBivio('si_rifa')
+}
+
+const RISPOSTA_RIFACIMENTO = {
+  ...RISPOSTA_OK,
+  effetto: { ...RISPOSTA_OK.effetto, azione: 'crea_rifacimento' },
+  esito_azione: {
+    stato: 'applicato',
+    lavoro_nuovo: { id: '55555555-5555-5555-5555-555555555555', numero_lavoro: '2026-0042' },
+  },
+}
+
+describe('DevoIntervenire — la schermata finale (Passo 5)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  // ⚖️ Passo 5 ① — l'inversione. Su 390px «Registrato» in cima spingeva
+  //    l'unica cosa che conta sotto la piega.
+  it('🛑 in cima c\'è che cosa è successo al LAVORO, e «Registrato» viene SOTTO', async () => {
+    giroBivio(RISPOSTA_RIFACIMENTO)
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+
+    await waitFor(() => expect(screen.getByText('È nato il lavoro 2026-0042')).toBeTruthy())
+    expect(posizioneDi('È nato il lavoro 2026-0042')).toBeLessThan(posizioneDi('Registrato e valutato'))
+  })
+
+  // ⚖️ Passo 5 ② — la via per APRIRLO, e si naviga con `useNavigaDaOverlay`.
+  it('🛑 il lavoro nato si può APRIRE, e non con `router.push` (CLAUDE.md §9)', async () => {
+    giroBivio(RISPOSTA_RIFACIMENTO)
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+
+    await waitFor(() => expect(screen.getByText('È nato il lavoro 2026-0042')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /Apri il lavoro 2026-0042/i }))
+    expect(navigaMock).toHaveBeenCalledWith('/lavori/55555555-5555-5555-5555-555555555555')
+    expect(pushMock).not.toHaveBeenCalled()
+  })
+
+  // 🛑 Un collegamento MORTO è peggio della sua assenza: se la rotta non ha
+  //    mandato il lavoro nuovo, non si disegna nessuna via per aprirlo.
+  it('🛑 senza `lavoro_nuovo` non c\'è nessun collegamento da premere', async () => {
+    giroBivio({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'crea_rifacimento' },
+      esito_azione: { stato: 'applicato' },
+    })
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+
+    await waitFor(() => expect(screen.getByText('È nato un lavoro nuovo')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: /Apri il lavoro/i })).toBeNull()
+  })
+
+  // 🔴 IL GUASTO NON PUÒ RESTARE MUTO SULLA PROPOSTA. Fra la registrazione e la
+  //    schermata finale c'è un passo intero — la valutazione — e in quel passo
+  //    il riquadro «E sul lavoro» racconta l'azione al FUTURO («nasce subito un
+  //    lavoro nuovo») anche quando NON è nata. È la §8.1 vista dall'altro lato:
+  //    fallire senza dirlo. Il modello in casa è `RiquadroRiemissione`, che si
+  //    mostra su TUTTI E DUE i passi per la stessa ragione (`:1168` e `:1232`).
+  it('🔴 se il lavoro nuovo NON è nato, la proposta lo dice subito — non alla fine', async () => {
+    giroBivio({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'crea_rifacimento' },
+      esito_azione: { stato: 'fallito', messaggio: 'Crealo dalla scheda, oppure riprova.' },
+    })
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    expect(screen.getByText('Il lavoro nuovo non è stato creato')).toBeTruthy()
+    expect(screen.getByText('Crealo dalla scheda, oppure riprova.')).toBeTruthy()
+  })
+
+  // 🛑 Ma una RIUSCITA non si racconta due volte: sulla proposta il riquadro
+  //    «E sul lavoro» dice già che cosa succede, e ripeterlo sarebbe rumore.
+  it('🛑 una riuscita NON si ripete sulla proposta: lì parla già «E sul lavoro»', async () => {
+    giroBivio(RISPOSTA_RIFACIMENTO)
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    expect(screen.queryByText('È nato il lavoro 2026-0042')).toBeNull()
+    expect(screen.getByText('E sul lavoro')).toBeTruthy()
+  })
+
+  it('«non applicabile» compare anch\'esso sulla proposta: non è un successo', async () => {
+    giroBivio({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'crea_rifacimento' },
+      esito_azione: { stato: 'non_applicabile', motivo: 'non_consegnato' },
+    })
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    expect(screen.getByText('Non c\'era niente da rifare su questo lavoro')).toBeTruthy()
+  })
+
+  // 🛑 Il ripiego quando la rotta non manda un messaggio: mai un riquadro muto.
+  it('un guasto senza messaggio porta comunque la sua via d\'uscita', async () => {
+    giroBivio({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'crea_rifacimento' },
+      esito_azione: { stato: 'fallito' },
+    })
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    // 🔑 Il ripiego dice anche che la REGISTRAZIONE è salva: il messaggio della
+    //    rotta lo porta già dentro (`route.ts:510-514`), e senza quello qui
+    //    resterebbe solo la metà cattiva della notizia.
+    expect(screen.getByText(/La registrazione è salva: crealo dalla scheda/)).toBeTruthy()
+  })
+
+  // 🛑 E senza `esito_azione` non si disegna niente: sette motivi su nove non
+  //    portano nessuna azione, e un riquadro vuoto sarebbe una promessa.
+  it('🛑 senza `esito_azione` non compare nessun riquadro d\'azione', async () => {
+    fingiFetch()
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+    scegliNelBivio('si_sistema')
+
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+    await waitFor(() => expect(screen.getByText('Registrato e valutato')).toBeTruthy())
+    expect(screen.queryByText(/Il lavoro è tornato fra i pronti/)).toBeNull()
+    expect(screen.queryByText(/È nato il lavoro/)).toBeNull()
+  })
+
+  it('«si sistema»: il lavoro torna fra i pronti, e la dichiarazione resta valida', async () => {
+    fingiFetch({
+      ...RISPOSTA_OK,
+      effetto: { ...RISPOSTA_OK.effetto, azione: 'torna_pronto' },
+      esito_azione: { stato: 'applicato', dichiarazione_viva: true },
+    })
+    montaComponente()
+    apriElencoMotivi()
+    fireEvent.click(screen.getByText('Difetto di lavorazione'))
+    scegliNelBivio('si_sistema')
+
+    await waitFor(() => expect(screen.getByText('Ecco cosa ne penso')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Registra' }))
+    await waitFor(() => expect(screen.getByText('Il lavoro è tornato fra i pronti')).toBeTruthy())
+    expect(screen.getByText(/La dichiarazione resta valida/)).toBeTruthy()
+    expect(posizioneDi('Il lavoro è tornato fra i pronti')).toBeLessThan(posizioneDi('Registrato e valutato'))
   })
 })
