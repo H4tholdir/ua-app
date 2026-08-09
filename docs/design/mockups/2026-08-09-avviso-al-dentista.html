@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avviso al dentista — mockup (cancello §0B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* ────────────────────────────────────────────────────────────────────────────
+   TOKEN — copiati VERBATIM da src/app/ds-v3.css. Chiaro :13-71, scuro :91-126.
+   Il selettore scuro nel progetto è DISCENDENTE ([data-theme="dark"] [data-ds="v3"]):
+   qui è riprodotto uguale, così il mockup mente come mentirebbe il codice.
+   ──────────────────────────────────────────────────────────────────────────── */
+[data-ds="v3"]{
+  --bg:#F4F0E7; --card:#FFFEFA; --elv:var(--card); --bg-deep:#ECE6D9;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E; --green:#1B7F3B; --green-tint:#EAF4EC;
+  --amber:#9A5C00; --blue:#1D5FBF;
+  --filo-superficie:transparent; --fondo-superficie:var(--bg-deep); --didascalia-superficie:var(--ink);
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  --font-v3:'Plus Jakarta Sans', system-ui, sans-serif;
+}
+[data-theme="dark"] [data-ds="v3"]{
+  --bg:#171411; --card:#211D18; --elv:#2B2620; --bg-deep:#100E0B;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#9A8F80; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910; --green:#34C468; --green-tint:rgba(52,196,104,.14);
+  --amber:#E8A13D; --blue:#5B9BFF;
+  --filo-superficie:var(--line); --didascalia-superficie:var(--faint);
+  --sh-card:none; --sh-press:none;                 /* spec :128 — in scuro l'elevazione è una superficie più chiara, MAI un'ombra */
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+  background:#F4F0E7; color:#1D1913;
+}
+[data-theme="dark"] body{background:#171411; color:#F2EEE7}
+
+/* ─── impalcatura del mockup (NON fa parte del disegno) ─── */
+.doc{max-width:1360px;margin:0 auto;padding:20px 16px 64px}
+.doc h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+.doc .sub{font-size:14px;line-height:1.5;opacity:.75;margin:0 0 4px}
+.doc h2{font-size:17px;font-weight:800;margin:34px 0 4px;padding-top:18px;border-top:1.5px solid rgba(128,110,80,.28)}
+.doc .nota{font-size:13px;line-height:1.55;opacity:.72;margin:6px 0 14px}
+.griglia{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col{flex:1 1 390px;min-width:0;max-width:430px}
+.tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+     padding:4px 9px;border-radius:999px;background:rgba(128,110,80,.16);margin-bottom:8px}
+.tag b{font-weight:800}
+.didasc{font-size:12.5px;line-height:1.5;opacity:.72;margin:8px 2px 0}
+
+/* ─── il finto telefono: serve solo a mostrare il foglio nel suo contesto ─── */
+.telefono{position:relative;border-radius:26px;overflow:hidden;background:var(--bg);
+          box-shadow:0 0 0 1.5px rgba(128,110,80,.25)}
+[data-theme="dark"] .telefono{box-shadow:0 0 0 1.5px rgba(255,255,255,.10)}
+.dietro{padding:14px 16px 8px;filter:saturate(.9)}
+.dietro .titolone{font-size:21px;font-weight:800;letter-spacing:-.01em;color:var(--ink);margin:2px 0 10px}
+.dietro .rigaScheda{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px;
+                    display:flex;gap:12px;align-items:center;min-height:52px;box-shadow:var(--sh-card)}
+.dietro .rigaScheda .t{font-size:17px;font-weight:700;color:var(--ink)}
+.dietro .rigaScheda .s{font-size:13px;color:var(--muted);margin-top:2px}
+.dietro .rigaScheda .g{margin-left:auto;font-size:17px;color:var(--faint)}
+.scrim{position:absolute;inset:0;background:rgba(29,25,19,.35)}   /* tokens.ts:40 */
+
+/* ─── SHEET v3 — Sheet.tsx:502-539 ─── */
+.foglio{position:relative;background:var(--card);border-radius:28px 28px 0 0;
+        padding:32px 24px 24px;box-shadow:var(--sh-card)}
+.grabber{position:absolute;top:8px;left:50%;transform:translateX(-50%);
+         width:36px;height:4px;border-radius:999px;background:var(--line)}
+.foglio > h3{font-size:21px;font-weight:800;color:var(--ink);margin:0 0 16px;letter-spacing:-.01em}
+.corpo{display:flex;flex-direction:column;gap:16px}
+.chiudi{display:block;text-align:center;margin-top:24px;font-size:14.5px;font-weight:600;
+        color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+/* ─── pezzi del DS ─── */
+.istruzione{font-size:15.5px;font-weight:600;color:var(--muted);margin:0;line-height:1.45}
+.superficie{background:var(--fondo-superficie);border:1px solid var(--filo-superficie);
+            border-radius:18px;padding:14px 16px}
+.didascaliaSup{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+               color:var(--didascalia-superficie);margin:0 0 8px}
+.riga{background:var(--fondo-superficie);border:1px solid var(--filo-superficie);border-radius:18px;
+      padding:13px 16px;min-height:60px;display:flex;align-items:center;gap:12px}
+.riga .et{font-size:13px;font-weight:700;color:var(--muted)}
+.riga .va{font-size:16.5px;font-weight:700;color:var(--ink);margin-top:2px}
+.elenco{display:flex;flex-direction:column;gap:8px}
+
+/* Campo di testo: l'altezza 64 di Campo.tsx non basta per un messaggio.
+   Fuori scala DICHIARATO: textarea, stesso fondo/filo/raggio del campo DS. */
+/* min-height MISURATA, non scelta a occhio: il contenuto chiede 225px a 1280 e
+   di più a 390, dove il collegamento va a capo. 296 copre entrambi senza tagliare. */
+.messaggio{width:100%;resize:vertical;min-height:296px;font-family:inherit;
+           font-size:17px;font-weight:600;line-height:1.45;color:var(--ink);
+           background:var(--fondo-superficie);border:1px solid var(--filo-superficie);
+           border-radius:18px;padding:14px 16px}
+.messaggio:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.contatore{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--didascalia-superficie);text-align:right;margin:0}
+
+/* TastoWhatsApp — tokens.ts:51,180 · h62 r18 */
+.tWa{width:100%;min-height:62px;border:0;border-radius:18px;cursor:pointer;
+     background:linear-gradient(180deg,#208650,#17663A);box-shadow:0 5px 0 #0E4A28;
+     color:#fff;font-family:inherit;font-size:19px;font-weight:800;letter-spacing:.01em;
+     display:flex;align-items:center;justify-content:center;gap:10px}
+/* TastoPrimario — TastoPrimario.tsx:69-96 · h70 r20 */
+.tPrim{width:100%;min-height:70px;border:0;border-radius:20px;cursor:pointer;
+       background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+       box-shadow:0 6px 0 var(--red-dark);color:#fff;font-family:inherit;
+       font-size:21px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+/* TastoSecondario — TastoSecondario.tsx:58-81 · h58 r18, bordo solo in chiaro */
+.tSec{width:100%;min-height:58px;border:1.5px solid var(--line);border-radius:18px;cursor:pointer;
+      background:var(--elv);box-shadow:var(--sh-press);color:var(--ink);
+      font-family:inherit;font-size:17px;font-weight:700}
+[data-theme="dark"] .tSec{border:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.quieto{background:none;border:0;cursor:pointer;font-family:inherit;font-size:14.5px;font-weight:700;
+        color:var(--muted);text-decoration:underline;text-underline-offset:3px;min-height:44px}
+
+/* ─── PORTALE — nessun token: hex letterali, come page.tsx ─── */
+.portale{background:#F8F9FA;border-radius:20px;overflow:hidden;
+         box-shadow:0 0 0 1.5px rgba(0,0,0,.08);font-family:'DM Sans','Plus Jakarta Sans',sans-serif}
+.portale .head{background:#fff;border-bottom:1px solid #E5E7EB;padding:16px 20px}
+.portale .head h4{margin:0;font-size:18px;font-weight:700;color:#111827}
+.portale .head p{margin:2px 0 0;font-size:13px;color:#6B7280}
+.portale .corpoP{padding:20px 20px 28px}
+.portale .h3s{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+              color:#374151;margin:0 0 12px}
+.cardP{background:#fff;border-radius:12px;padding:16px;margin-bottom:8px;
+       box-shadow:0 1px 4px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04)}
+.cardP .l1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cardP .num{font-size:12px;font-weight:500;color:#6B7280}
+.badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+       border-radius:6px;padding:3px 10px;white-space:nowrap}
+.badge.aggiornata{color:#92400E;background:#FEF3C7;border:1px solid #FDE68A}
+.badge.consegnato{color:#2ECC9A;background:color-mix(in srgb,#2ECC9A 13%,transparent)}
+.cardP .tit{font-size:15px;font-weight:600;color:#111827;margin:6px 0 0}
+.cardP .sot{font-size:13px;color:#6B7280;margin:3px 0 0}
+.cardP .pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
+.cardP .et{font-size:12px;color:#9CA3AF}
+.cardP .dt{font-size:13px;font-weight:600;color:#374151}
+.chipDoc{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;
+         background:#F3F4F6;border-radius:8px;font-size:12px;font-weight:700;color:#374151;
+         text-decoration:none;border:1px solid #E5E7EB}
+.avvisoBanner{background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.avvisoBanner .t{font-size:14.5px;font-weight:700;color:#92400E;margin:0}
+.avvisoBanner .s{font-size:13px;color:#92400E;opacity:.9;margin:4px 0 0;line-height:1.45}
+.rigaEv{background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:12px;display:flex;gap:14px;
+        align-items:flex-start;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+/* #6B7280 e non #9CA3AF: misurato, il grigio chiaro del portale dà 2,54:1 su bianco.
+   Questa colonna è NUOVA, quindi non eredita il difetto — 4,83:1. */
+.rigaEv .data{min-width:64px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;line-height:1.35}
+.etOk{color:#6B7280 !important}   /* idem: etichetta di una card nuova */
+.rigaEv .cosa{font-size:15px;font-weight:700;color:#111827;margin:0}
+.rigaEv .det{font-size:13px;color:#6B7280;margin:3px 0 0;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <h1>Avviso al dentista — mockup del cancello §0B</h1>
+  <p class="sub"><b>Due superfici, tre varianti ciascuna.</b> A sinistra il foglio che vede l'odontotecnico
+     nell'app; a destra la sezione che vede il dentista nel suo portale.</p>
+  <p class="sub">Token copiati verbatim da <code>src/app/ds-v3.css</code>. Il portale usa <b>colori scritti a mano</b>,
+     come fa oggi <code>src/app/portale/[token]/page.tsx</code>: non è né v3 né v2.3, e <b>non ha tema scuro</b>.</p>
+
+  <!-- ══════════════════════ SUPERFICIE A — IL FOGLIO NELL'APP ══════════════════════ -->
+  <h2>A · Il foglio dell'avviso (app, DS v3)</h2>
+  <p class="nota">Vincoli: il testo è <b>modificabile</b> prima di mandarlo (D334) · i due modi di chiudere
+     <b>valgono uguale</b> (D335) · <b>il valore vecchio non si mostra mai</b> (D336) · si registra
+     <b>solo il testo mandato</b> (D339) · il messaggio <b>non nomina il paziente</b> (GDPR).
+     Il nome del paziente compare <i>solo</i> nel foglio, che è per l'odontotecnico.</p>
+
+  <div class="griglia">
+
+    <!-- ─────────── A1 ─────────── -->
+    <div class="col">
+      <span class="tag">Variante A1 · <b>il messaggio è il protagonista</b></span>
+      <div class="telefono" data-ds="v3">
+        <div class="dietro">
+          <div class="titolone">Lavoro 2026/0042</div>
+          <div class="rigaScheda">
+            <span style="font-size:21px">✉️</span>
+            <div><div class="t">Avvisa il dentista</div><div class="s">La dichiarazione è stata rifatta</div></div>
+            <span class="g">›</span>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="foglio">
+          <div class="grabber"></div>
+          <h3>Avvisa il dentista</h3>
+          <div class="corpo">
+            <p class="istruzione">Hai rifatto la dichiarazione di <b style="color:var(--ink)">ROSSI MARIO</b>.
+               Lo Studio Bianchi ha in mano quella vecchia: va avvisato.</p>
+            <label class="didascaliaSup" for="m1" style="margin:0">Il messaggio che manderai</label>
+            <textarea class="messaggio" id="m1" rows="6">📄 La dichiarazione del lavoro #2026/0042 è stata rifatta.
+
+Trovi quella aggiornata qui:
+https://uachelab.com/portale/a1b2c3d4
+
+— UÀ Lab</textarea>
+            <p class="contatore">Puoi cambiarlo prima di mandarlo</p>
+            <button class="tWa"><span style="font-size:21px">💬</span> Mandalo su WhatsApp</button>
+            <button class="tSec">L'ho avvisato io, a voce</button>
+          </div>
+          <span class="chiudi">Chiudi</span>
+        </div>
+      </div>
+      <p class="didasc"><b>L'idea:</b> il messaggio occupa il centro, si legge e si corregge subito.
+         WhatsApp è il gesto normale; «a voce» sta sotto, visibile e non nascosto — <b>ma è più piccolo</b>,
+         quindi non è il tasto che si preme per sbaglio.
+         <br><b>Il dubbio:</b> D335 dice che i due modi valgono uguale, e qui uno pesa più dell'altro.</p>
+    </div>
+
+    <!-- ─────────── A2 ─────────── -->
+    <div class="col">
+      <span class="tag">Variante A2 · <b>due strade pari</b></span>
+      <div class="telefono" data-ds="v3">
+        <div class="dietro">
+          <div class="titolone">Lavoro 2026/0042</div>
+          <div class="rigaScheda">
+            <span style="font-size:21px">✉️</span>
+            <div><div class="t">Avvisa il dentista</div><div class="s">La dichiarazione è stata rifatta</div></div>
+            <span class="g">›</span>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="foglio">
+          <div class="grabber"></div>
+          <h3>Come avvisi il dentista?</h3>
+          <div class="corpo">
+            <p class="istruzione">Hai rifatto la dichiarazione di <b style="color:var(--ink)">ROSSI MARIO</b>.
+               Scegli come far sapere allo Studio Bianchi che quella in mano non vale più.</p>
+            <div class="elenco">
+              <div class="riga" style="align-items:flex-start">
+                <span style="font-size:21px;line-height:1.1">💬</span>
+                <div><div class="va">Glielo mando su WhatsApp</div>
+                     <div class="et" style="margin-top:3px">Ti mostro il messaggio, lo puoi cambiare</div></div>
+                <span style="margin-left:auto;font-size:17px;color:var(--didascalia-superficie)">›</span>
+              </div>
+              <div class="riga" style="align-items:flex-start">
+                <span style="font-size:21px;line-height:1.1">📞</span>
+                <div><div class="va">L'ho avvisato io, a voce</div>
+                     <div class="et" style="margin-top:3px">Resta scritto che l'hai fatto tu, oggi</div></div>
+                <span style="margin-left:auto;font-size:17px;color:var(--didascalia-superficie)">›</span>
+              </div>
+            </div>
+            <div class="superficie">
+              <p class="didascaliaSup">Perché te lo chiedo</p>
+              <p style="font-size:14px;line-height:1.5;color:var(--muted);margin:0">
+                 La legge vuole che il dentista sappia della correzione, e che resti scritto come gliel'hai detto.
+                 <b style="color:var(--ink)">Il promemoria non si spegne da solo.</b></p>
+            </div>
+          </div>
+          <span class="chiudi">Chiudi</span>
+        </div>
+      </div>
+      <p class="didasc"><b>L'idea:</b> una domanda sola (Legge 1), due risposte con lo <b>stesso peso</b>:
+         è la lettura letterale di D335. Il messaggio si apre al passo dopo, dove c'è spazio per correggerlo.
+         <br><b>Il costo:</b> <b>due tap invece di uno</b> per la strada normale, e un secondo passo da disegnare.</p>
+    </div>
+
+    <!-- ─────────── A3 ─────────── -->
+    <div class="col">
+      <span class="tag">Variante A3 · <b>prima il fatto, poi il gesto</b></span>
+      <div class="telefono" data-ds="v3">
+        <div class="dietro">
+          <div class="titolone">Lavoro 2026/0042</div>
+          <div class="rigaScheda">
+            <span style="font-size:21px">✉️</span>
+            <div><div class="t">Avvisa il dentista</div><div class="s">La dichiarazione è stata rifatta</div></div>
+            <span class="g">›</span>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="foglio">
+          <div class="grabber"></div>
+          <h3>Avvisa lo Studio Bianchi</h3>
+          <div class="corpo">
+            <div class="superficie">
+              <p class="didascaliaSup">Che cosa hai corretto</p>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:16.5px;font-weight:700;color:var(--ink)">• i denti indicati</div>
+                <div style="font-size:16.5px;font-weight:700;color:var(--ink)">• le caratteristiche prescritte</div>
+              </div>
+              <p style="font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.45">
+                 Al dentista arriva <b style="color:var(--ink)">il fatto</b>, non i valori: il dettaglio lo legge
+                 nel suo portale, dove è al riparo.</p>
+            </div>
+            <label class="didascaliaSup" for="m3" style="margin:0">Il messaggio che manderai</label>
+            <textarea class="messaggio" id="m3" rows="6">📄 La dichiarazione del lavoro #2026/0042 è stata rifatta.
+
+Trovi quella aggiornata qui:
+https://uachelab.com/portale/a1b2c3d4
+
+— UÀ Lab</textarea>
+            <button class="tWa"><span style="font-size:21px">💬</span> Mandalo su WhatsApp</button>
+            <button class="quieto" style="width:100%">Oppure: l'ho già avvisato io, a voce</button>
+          </div>
+          <span class="chiudi">Chiudi</span>
+        </div>
+      </div>
+      <p class="didasc"><b>L'idea:</b> in cima <b>cosa</b> è stato corretto — così l'odontotecnico controlla
+         di aver rifatto la cosa giusta prima di mandare — e la riga spiega perché al dentista arriva meno.
+         <br><b>Il dubbio:</b> «a voce» come <b>testo</b> e non come tasto è la forma più lontana dal tocco
+         per sbaglio, ma <b>contraddice D335 più di A1</b>: qui non sembra proprio una strada pari.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ SUPERFICIE B — IL PORTALE ══════════════════════ -->
+  <h2>B · La sezione «Avvisi» nel portale del dentista</h2>
+  <p class="nota">🛑 <b>Questa superficie non ha un tema scuro e non usa il design system:</b> fondo
+     <code>#F8F9FA</code>, font DM Sans, colori scritti a mano. Le tre varianti stanno <b>nello stile che il
+     portale ha oggi</b>, perché portarci il v3 è una migrazione di rotta, non un componente (v3 §14).
+     <br>⚠️ Il nome del paziente nel portale passa già da una riduzione: <code>ROSSI MARIO → R. MARIO</code>.</p>
+
+  <div class="griglia">
+
+    <!-- ─────────── B1 ─────────── -->
+    <div class="col">
+      <span class="tag">Variante B1 · <b>una sezione come le altre</b></span>
+      <div class="portale">
+        <div class="head"><h4>Laboratorio Formicola</h4><p>Tel: 081 555 0123</p></div>
+        <div class="corpoP">
+          <p class="h3s">Avvisi dal laboratorio (1)</p>
+          <div class="cardP">
+            <div class="l1"><span class="num">#2026/0042</span><span class="badge aggiornata">Aggiornata</span></div>
+            <p class="tit">R. MARIO</p>
+            <p class="sot">La dichiarazione è stata rifatta: sono cambiati i denti indicati e le caratteristiche prescritte.</p>
+            <div class="pie"><span class="et etOk">9 agosto 2026</span>
+              <a class="chipDoc" href="#">📄 Dichiarazione aggiornata</a></div>
+          </div>
+          <p class="h3s" style="margin-top:26px">Lavori in corso (2)</p>
+          <div class="cardP">
+            <div class="l1"><span class="num">#2026/0043</span><span class="badge consegnato">In lavorazione</span></div>
+            <p class="tit">B. GIULIA</p><p class="sot">Corona — zirconia, 2.6</p>
+            <div class="pie"><span class="et">Consegna prevista</span><span class="dt">14 agosto 2026</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="didasc"><b>L'idea:</b> una sezione in più, sopra i lavori in corso, fatta con la stessa card
+         che il dentista già conosce. Zero elementi nuovi da imparare.
+         <br><b>Il dubbio:</b> una card fra tante <b>si può scorrere via senza vederla</b> — e questa è
+         l'unica che chiede di fare qualcosa.</p>
+    </div>
+
+    <!-- ─────────── B2 ─────────── -->
+    <div class="col">
+      <span class="tag">Variante B2 · <b>un cartello in cima, poi lo storico</b></span>
+      <div class="portale">
+        <div class="head"><h4>Laboratorio Formicola</h4><p>Tel: 081 555 0123</p></div>
+        <div class="corpoP">
+          <div class="avvisoBanner">
+            <p class="t">⚠️ C'è una dichiarazione aggiornata</p>
+            <p class="s">Il lavoro <b>#2026/0042</b> (R. MARIO) ha una dichiarazione rifatta il 9 agosto.
+               <b>Quella che hai ricevuto prima non è più valida.</b></p>
+            <p style="margin:10px 0 0"><a class="chipDoc" href="#" style="background:#fff;border-color:#FDE68A">📄 Scarica quella aggiornata</a></p>
+          </div>
+          <p class="h3s" style="margin-top:22px">Comunicazioni ricevute</p>
+          <div class="rigaEv">
+            <div class="data">9 AGO<br>2026</div>
+            <div><p class="cosa">Dichiarazione rifatta — #2026/0042</p>
+                 <p class="det">Sono cambiati i denti indicati e le caratteristiche prescritte. R. MARIO.</p></div>
+          </div>
+          <div class="rigaEv">
+            <div class="data">2 AGO<br>2026</div>
+            <div><p class="cosa">Dichiarazione rifatta — #2026/0031</p>
+                 <p class="det">È cambiata la descrizione. V. ANNA.</p></div>
+          </div>
+        </div>
+      </div>
+      <p class="didasc"><b>L'idea:</b> il cartello ambra è la cosa che si vede per prima, e dice
+         <b>a parole</b> che il documento vecchio non vale — poi l'elenco fa da archivio,
+         che è la forma che l'Art. 5(2) chiede.
+         <br><b>Il dubbio:</b> due posti per la stessa cosa. E se ci sono tre avvisi, il cartello si allunga.</p>
+    </div>
+
+    <!-- ─────────── B3 ─────────── -->
+    <div class="col">
+      <span class="tag">Variante B3 · <b>dentro il lavoro che riguarda</b></span>
+      <div class="portale">
+        <div class="head"><h4>Laboratorio Formicola</h4><p>Tel: 081 555 0123</p></div>
+        <div class="corpoP">
+          <p class="h3s">Ultimi consegnati</p>
+          <div class="cardP" style="border-left:4px solid #FDE68A">
+            <div class="l1"><span class="num">#2026/0042</span><span class="badge consegnato">Consegnato</span></div>
+            <p class="tit">R. MARIO</p><p class="sot">Corona — disilicato, 1.4</p>
+            <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;margin-top:10px">
+              <p style="margin:0;font-size:13px;font-weight:700;color:#92400E">Dichiarazione rifatta il 9 agosto</p>
+              <p style="margin:3px 0 0;font-size:12.5px;color:#92400E;opacity:.92;line-height:1.45">
+                 Sono cambiati i denti indicati e le caratteristiche prescritte. La versione che avevi non è più valida.</p>
+            </div>
+            <div class="pie" style="margin-top:12px">
+              <a class="chipDoc" href="#">📄 Dichiarazione aggiornata</a>
+              <a class="chipDoc" href="#">🧾 Buono di consegna</a></div>
+          </div>
+          <div class="cardP">
+            <div class="l1"><span class="num">#2026/0038</span><span class="badge consegnato">Consegnato</span></div>
+            <p class="tit">C. LUCA</p><p class="sot">Faccetta — 2.1</p>
+            <div class="pie"><a class="chipDoc" href="#">📄 Dichiarazione</a><a class="chipDoc" href="#">🧾 Buono</a></div>
+          </div>
+        </div>
+      </div>
+      <p class="didasc"><b>L'idea:</b> nessuna sezione nuova. L'avviso vive <b>attaccato al lavoro</b> che
+         riguarda, dove il dentista va già a scaricare il documento: il vecchio e il nuovo non si possono
+         confondere perché stanno nello stesso posto.
+         <br><b>Il dubbio:</b> se il lavoro è vecchio, sta in fondo all'elenco (max 10) — <b>e l'avviso è
+         invisibile</b>. Non c'è un posto solo dove il dentista veda «cosa mi hanno comunicato».</p>
+    </div>
+  </div>
+
+  <h2>Ciò che resta da decidere, e che nessuna variante può risolvere da sola</h2>
+  <p class="nota">
+     ① <b>Il tema scuro del portale non esiste.</b> Il cancello §0B chiede chiaro e scuro su entrambe le
+     superfici: sul portale oggi è impossibile senza migrare la rotta.<br>
+     ② <b>Il collegamento al portale scade dopo un anno.</b> Se è scaduto quando l'odontotecnico manda
+     l'avviso, il dentista trova una porta chiusa: va rigenerato <i>mentre si compone il messaggio</i>.<br>
+     ③ <b>Il tasto primario spento e la didascalia dei campi</b> hanno un difetto di contrasto in due
+     componenti <b>condivisi</b>: il foglio nuovo li erediterà comunque, e non si aggiustano da qui.<br>
+     ④ <b>Misurato su questo mockup, non giudicato a occhio</b> (sonda sul DOM vivo, ogni nodo con testo,
+     esclusa l'impalcatura di questa pagina): nel foglio v3 <b>zero testi sotto soglia</b> in entrambi i
+     temi. In tutto il mockup resta <b>UN solo</b> testo sotto soglia, uguale nei due temi — il grigio
+     <code>#9CA3AF</code> su bianco = <b>2,54:1</b> contro 4,5 della didascalia «Consegna prevista»:
+     <b>è la riproduzione fedele di ciò che il portale fa oggi</b> (<code>page.tsx</code>), non una scelta
+     di questo disegno. Le due parti <b>nuove</b> che lo avrebbero ereditato sono state portate a
+     <code>#6B7280</code> = <b>4,83:1</b>. Nessuna sbordatura, nessuno scorrimento orizzontale a 390.
+     <br><small>(La sonda segnala anche due emoji 💬 dentro i tasti a gradiente: sono <b>falsi positivi</b>
+     — un'emoji porta il proprio colore e non usa <code>color</code>.)</small>
+  </p>
+
+</div>
+</body>
+</html>
