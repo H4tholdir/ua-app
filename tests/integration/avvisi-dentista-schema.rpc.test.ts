@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { withRollback, skipIntegrationTests } from './helpers/pg-client'
+import { STATI_AVVISO, STATI_CHIUSI } from '@/lib/avvisi/stati'
 
 // Comportamento REALE della tabella `public.avvisi_dentista` (Task 1
 // dell'ondata «l'avviso al dentista»), contro il database vero, in
@@ -366,10 +367,12 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
       })
     })
 
-    it('(p2) il CATALOGO: i tre ruoli hanno SELECT e UPDATE, mai INSERT/DELETE/TRUNCATE', async () => {
+    it('(p2) il CATALOGO: i tre ruoli hanno SELECT, mai INSERT/DELETE/TRUNCATE — né UPDATE di TABELLA', async () => {
       // Controllo indipendente dal ruolo della connessione: nessun SET ROLE lo
       // può falsare. È l'unica cosa che prova che REVOKE/GRANT siano atterrati
       // — `db push` che esce 0 non lo mostra.
+      // ⚠️ `upd` è false ANCHE per chi può aggiornare: con un permesso per
+      // COLONNA il privilegio di tabella non esiste. Il dettaglio sta in (p7).
       await withRollback(async (client) => {
         const { rows } = await client.query(`
           SELECT r AS ruolo,
@@ -381,8 +384,69 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
             FROM unnest(ARRAY['anon','authenticated','service_role']) AS r`)
         expect(rows).toHaveLength(3)
         for (const p of rows) {
-          expect(p).toMatchObject({ sel: true, upd: true, ins: false, del: false, trunc: false })
+          expect(p).toMatchObject({ sel: true, upd: false, ins: false, del: false, trunc: false })
         }
+      })
+    })
+
+    it('(p7) l\'UPDATE è concesso SOLO sulle quattro colonne della chiusura', async () => {
+      // 🔑 Perché per colonna e non per tabella: questa tabella è «la prova che
+      // è avvenuta» (GDPR Art. 5(2)), e `service_role` — che AGGIRA la RLS — è
+      // il client sia delle rotte sia del portale. Il permesso di colonna è
+      // quindi l'UNICA cosa che impedisce a una rotta di riscrivere l'autore,
+      // retrodatare la comunicazione o riscrivere il testo già mandato.
+      await withRollback(async (client) => {
+        const scrivibili = ['stato', 'comunicato_at', 'comunicato_da', 'testo_inviato']
+        const vietate = [
+          'visto_dal_dentista_at', 'laboratorio_id', 'lavoro_id',
+          'cliente_id', 'dichiarazione_id', 'campi_corretti', 'created_at', 'id',
+        ]
+        for (const ruolo of ['authenticated', 'service_role']) {
+          for (const col of scrivibili) {
+            const { rows } = await client.query(
+              `SELECT has_column_privilege($1, 'public.avvisi_dentista', $2, 'UPDATE') AS ok`,
+              [ruolo, col]
+            )
+            expect(rows[0].ok, `${ruolo} deve poter scrivere ${col}`).toBe(true)
+          }
+          for (const col of vietate) {
+            const { rows } = await client.query(
+              `SELECT has_column_privilege($1, 'public.avvisi_dentista', $2, 'UPDATE') AS ok`,
+              [ruolo, col]
+            )
+            expect(rows[0].ok, `${ruolo} NON deve poter scrivere ${col}`).toBe(false)
+          }
+        }
+        // `anon` non scrive nulla: il portale usa service_role, non la chiave
+        // anonima. Nessuna colonna, nemmeno quelle della chiusura.
+        for (const col of [...scrivibili, ...vietate]) {
+          const { rows } = await client.query(
+            `SELECT has_column_privilege('anon', 'public.avvisi_dentista', $1, 'UPDATE') AS ok`,
+            [col]
+          )
+          expect(rows[0].ok, `anon NON deve poter scrivere ${col}`).toBe(false)
+        }
+      })
+    })
+
+    it('(p8) e il divieto MORDE: `service_role` non può fabbricare la lettura del dentista', async () => {
+      // 🛑 `visto_dal_dentista_at` è l'unico campo che NON è un atto del
+      // laboratorio (D332). Se fosse scrivibile, il laboratorio potrebbe
+      // fabbricare la prova di essere stato letto — cioè proprio il fatto che
+      // questa tabella esiste per documentare.
+      await withRollback(async (client) => {
+        const rif = await riferimentiVeri(client)
+        const { rows: [avviso] } = await inserisci(client, rif, { stato: 'da_comunicare' })
+
+        await client.query('SET LOCAL ROLE service_role')
+        const e = await attesoRifiuto(client, 'UPDATE di visto_dal_dentista_at', () =>
+          client.query(
+            `UPDATE public.avvisi_dentista SET visto_dal_dentista_at = now() WHERE id = $1`,
+            [avviso.id]
+          )
+        )
+        expect(e.message).toMatch(/permission denied/i)
+        await client.query('RESET ROLE')
       })
     })
 
@@ -446,6 +510,37 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
         )
         expect(rows[0].relrowsecurity).toBe(true)
       })
+    })
+  })
+
+  // ── lo specchio fra TypeScript e il CHECK vivo ──────────────────────────
+  describe('il vocabolario TypeScript e il CHECK vivo non possono divergere in silenzio', () => {
+    it('STATI_AVVISO contiene esattamente i valori del CHECK, e NIENTE DI PIÙ', async () => {
+      // `src/lib/avvisi/stati.ts` si dichiara «specchio del CHECK vivo», e
+      // fino a questa prova nulla lo verificava: esattamente la deriva che il
+      // suo commento dice di temere.
+      // 🔑 L'asserzione portante è la SECONDA (il conteggio): la prima cattura
+      // un valore aggiunto al TypeScript e non al database; la seconda cattura
+      // il verso opposto — un valore aggiunto al CHECK e non al TypeScript —
+      // che è quello che produce un 23514 illeggibile invece di un 422.
+      await withRollback(async (client) => {
+        const { rows } = await client.query(`
+          SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+           WHERE conrelid = 'public.avvisi_dentista'::regclass
+             AND conname = 'avviso_stato_vocabolario'`)
+        expect(rows).toHaveLength(1)
+        const def = rows[0].def as string
+        for (const s of STATI_AVVISO) expect(def).toContain(`'${s}'`)
+        expect(def.match(/'[a-z_]+'::text/g)).toHaveLength(STATI_AVVISO.length)
+      })
+    })
+
+    it('STATI_CHIUSI è un sottoinsieme vero: contiene tutto tranne «da_comunicare»', async () => {
+      // Il CHECK `avviso_comunicato_ha_autore_e_data` divide il mondo in
+      // «da_comunicare» e tutto il resto. Se STATI_CHIUSI si accorciasse, un
+      // avviso chiuso resterebbe nel promemoria per sempre.
+      expect([...STATI_CHIUSI].sort())
+        .toEqual(STATI_AVVISO.filter((s) => s !== 'da_comunicare').sort())
     })
   })
 

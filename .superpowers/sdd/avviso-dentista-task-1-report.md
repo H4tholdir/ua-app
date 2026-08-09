@@ -5,12 +5,13 @@
 
 | cosa | esito |
 |---|---|
-| Difetti del piano trovati | **7** — 6 dal brief (①-⑥) + 1 non previsto da nessuno |
-| Timestamp migration | `20260809123206` (pavimento `20260808195344` verificato) |
-| Prove d'integrazione nuove | **23 passate su 23**, zero saltate |
+| Difetti del piano trovati | **8** — 6 dal brief (①-⑥) + 2 non previsti da nessuno |
+| **Difetto MIO, trovato e chiuso** | **1** — avevo concesso `UPDATE` su tutta la riga di una tabella di prova (§ ⑨) |
+| Migration | `20260809123206` + `20260809124517` (pavimento `20260808195344` verificato) |
+| Prove nuove | **50 passate su 50** — 27 d'integrazione + 23 statiche, zero saltate |
 | Forza delle prove (R-P4) | **9 su 22** si accendono contro la SQL del piano scritta com'è |
 | `tsc --noEmit` | `TSC_EXIT=0` |
-| Suite completa | **5832 passate su 5832**, 459 file, zero saltate |
+| Suite completa | **5859 passate su 5859**, 460 file, zero saltate |
 | Righe lasciate nel banco | **0** (tutto in transazione annullata) |
 
 ---
@@ -254,12 +255,85 @@ direzioni:
 
 ```
 ✓ (p1) come `authenticated` l'INSERT è rifiutato: nessuna politica di INSERT
-✓ (p2) il CATALOGO: i tre ruoli hanno SELECT e UPDATE, mai INSERT/DELETE/TRUNCATE
+✓ (p2) il CATALOGO: i tre ruoli hanno SELECT, mai INSERT/DELETE/TRUNCATE — né UPDATE di TABELLA
 ✓ (p3) e nemmeno `service_role` — che AGGIRA la RLS — riesce a inserire
 ✓ (p4) TRUNCATE è rifiutato ai tre ruoli — e TRUNCATE ignora la RLS
 ✓ (p5) la lettura resta isolata per laboratorio: la politica usa public.current_lab_id()
 ✓ (p6) la RLS è ACCESA: senza, le politiche sarebbero decorative
+✓ (p7) l'UPDATE è concesso SOLO sulle quattro colonne della chiusura        ← v. § ⑨
+✓ (p8) e il divieto MORDE: `service_role` non può fabbricare la lettura del dentista
 ```
+
+---
+
+### ⑨ 🔴 IL DIFETTO CHE HO INTRODOTTO IO, e come si è trovato
+
+**Va scritto per intero e senza attenuanti, perché è la parte più utile di questo resoconto.**
+
+Nel chiudere ⑤ ho aggiunto `REVOKE ALL` + `GRANT SELECT, UPDATE` con il ragionamento giusto — «la
+RLS non basta, `service_role` la aggira» — e poi **ho concesso l'`UPDATE` su tutta la riga**. Cioè:
+ho fatto il ragionamento per l'`INSERT` e **l'ho lasciato a metà per l'`UPDATE`**, nella stessa
+migration in cui avevo appena scritto perché quel ragionamento serviva.
+
+**Cosa permetteva.** `authenticated` e `service_role` potevano riscrivere **ogni colonna** di
+qualunque avviso: cambiare `comunicato_da` (l'autore), retrodatare `comunicato_at`, riscrivere il
+`testo_inviato` **già mandato**, ripuntare la riga a un altro lavoro — e scrivere
+`visto_dal_dentista_at`, cioè **fabbricare la prova che il dentista aveva letto**.
+🔑 E il `COMMENT` che avevo scritto io due righe sopra dice *«la prova che è avvenuta»* e cita
+**GDPR Art. 5(2)**, dove l'onere della prova è del titolare. **Una prova riscrivibile a piacere non è
+una prova**, e il ruolo non filtrava niente: `getServiceClient` — `service_role`, `BYPASSRLS` — è il
+client sia delle rotte (`src/app/api/lavori/[id]/route.ts:2`) sia del portale
+(`src/app/portale/[token]/page.tsx:1`). Misurato, non supposto.
+
+**E il precedente che avevo citato andava già nell'altra direzione:** `valutazioni_evento` riceve
+`GRANT SELECT, INSERT` e **nessun `UPDATE`**, con l'unica transizione legittima dentro una funzione
+`SECURITY DEFINER`. Avevo letto quel file, ne avevo copiato la lezione sul `TRUNCATE`, e avevo
+concesso proprio la cosa che quel file **nega**.
+
+**Chiuso con `20260809124517_avvisi_dentista_update_per_colonne.sql`:**
+
+```sql
+REVOKE UPDATE ON public.avvisi_dentista FROM anon, authenticated, service_role;
+GRANT UPDATE (stato, comunicato_at, comunicato_da, testo_inviato)
+  ON public.avvisi_dentista TO authenticated, service_role;
+```
+
+`anon` perde l'`UPDATE` del tutto: il portale non scrive con la chiave anonima.
+
+🛑 **E `visto_dal_dentista_at` non è concesso a nessuno, deliberatamente.** È l'unico campo della
+tabella che **non è un atto del laboratorio** (⚖️ D332): se il laboratorio potesse scriverlo,
+potrebbe fabbricare la ricevuta di lettura — cioè esattamente il fatto che la tabella esiste per
+documentare. ➡️ **Consegna al Task 8:** la sezione «Avvisi» del portale **non potrà** scriverlo con
+un `UPDATE` diretto; serve una `SECURITY DEFINER` (modello già in casa: `valutazione_supera`). Se il
+Task 8 preferisse un permesso di colonna, **è una decisione che va scritta**, non presa di striscio:
+è la differenza fra una ricevuta di lettura e un'autocertificazione.
+
+**Il catalogo dopo la correzione:**
+
+```
+permessi tabella: {postgres=arwdDxtm/postgres, anon=r/postgres, authenticated=r/postgres, service_role=r/postgres}
+
+┌─────────────────┬──────────────────────────────────────────────────────┐
+│ grantee         │ colonne_update                                       │
+├─────────────────┼──────────────────────────────────────────────────────┤
+│ 'authenticated' │ 'comunicato_at, comunicato_da, stato, testo_inviato' │
+│ 'service_role'  │ 'comunicato_at, comunicato_da, stato, testo_inviato' │
+└─────────────────┴──────────────────────────────────────────────────────┘
+```
+
+`anon` non compare: zero colonne.
+
+⚠️ **E una prova è DOVUTA cambiare, ed è la dimostrazione che il permesso si è mosso davvero:**
+`has_table_privilege(ruolo, tabella, 'UPDATE')` risponde **`false`** quando il permesso è per
+colonna. La `(p2)` è passata da `upd: true` a `upd: false`, e il dettaglio è finito nella `(p7)`, che
+verifica **colonna per colonna** con `has_column_privilege` — quattro concesse e otto negate, per
+due ruoli, più `anon` a zero.
+
+**Come si è trovato.** Non da un test rosso: la suite era verde a 23 su 23. È uscito da una
+**rilettura mirata** che ha chiesto «l'argomento di ⑤ vale anche per l'`UPDATE`?». 🔑 **La lezione:
+una tabella verde con un permesso troppo largo è invisibile a qualunque prova che non pensi a
+provarlo** — il permesso di scrittura va enumerato come si enumerano le colonne, non ereditato da un
+`GRANT` copiato.
 
 ---
 
@@ -339,6 +413,21 @@ permessi:   {postgres=arwdDxtm/postgres, anon=rw/postgres, authenticated=rw/post
 
 `rw` = `SELECT` + `UPDATE`. **Nessun `a` (INSERT), nessun `d` (DELETE), nessun `D` (TRUNCATE).**
 
+🔴 **E questa rilettura è ANCHE il punto in cui il difetto ⑨ era già visibile e non l'ho visto:**
+quel `w` è l'`UPDATE` su tutta la riga. **Il catalogo lo diceva, e l'ho letto come una conferma
+invece che come una domanda** — avevo controllato che ci fosse ciò che volevo, non che non ci fosse
+altro. Stato finale dopo la correzione (`20260809124517`):
+
+```
+permessi:   {postgres=arwdDxtm/postgres, anon=r/postgres, authenticated=r/postgres, service_role=r/postgres}
+```
+
+**Solo `r`.** L'`UPDATE` non è più un privilegio di tabella: vive per colonna, quattro e non una di
+più (§ ⑨).
+
+🔑 **Vale come metodo, non come aneddoto:** rileggere il catalogo serve solo se si guarda **anche
+quello che non si è chiesto**. Un elenco di permessi si legge per intero, come un elenco di ruoli.
+
 ---
 
 ## 2. I due numeri che non ho ricopiato
@@ -368,14 +457,16 @@ l'integrazione accesa. **Misurato oggi, con l'ambiente caricato:**
 
 ```
 $ set -a && . ./.env.local; set +a && npx vitest run
- Test Files  459 passed (459)
-      Tests  5832 passed (5832)
+ Test Files  460 passed (460)
+      Tests  5859 passed (5859)
 ```
 
-**Zero saltate.** E il conto torna esattamente: `5809 + 23 = 5832`, `458 + 1 = 459` — le 23 prove
-nuove e il file nuovo sono l'intera differenza. Nessuna prova preesistente è stata toccata.
+**Zero saltate.** E il conto torna esattamente: `5809 + 50 = 5859`, `458 + 2 = 460` — le 50 prove
+nuove (27 d'integrazione + 23 statiche) e i due file nuovi sono l'intera differenza. **Nessuna prova
+preesistente è stata toccata**, e l'unica prova modificata è la mia `(p2)`, che **doveva** cambiare
+(§ ⑨).
 
-**FASE 6b:**
+**FASE 6b, eseguita dopo ENTRAMBE le migration:**
 
 ```
 $ npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
@@ -383,6 +474,19 @@ exit=0   (nessun messaggio del CLI in fondo al file: termina con `} as const`)
 $ npx tsc --noEmit
 TSC_EXIT=0
 ```
+
+Dopo la seconda migration `gen types` produce **zero diff** (`git diff --stat` vuoto): i permessi non
+cambiano la forma dei tipi. Rieseguita comunque, perché «dovuta» non dipende da cosa mi aspetto di
+trovare.
+
+**Nessuna riga lasciata nel banco**, verificato dopo la suite completa:
+
+```
+avvisi_dentista: 0   ·   utenti: 7   ·   laboratori: 3   ·   auth.users: 7
+```
+
+I conteggi sono quelli di partenza: il laboratorio di prova, l'utente usa-e-getta e la sua riga in
+`auth.users` sono nati e morti dentro transazioni annullate.
 
 ---
 
@@ -423,7 +527,39 @@ INSERT dai tre ruoli ✅ · TRUNCATE dai tre ruoli ✅.
 **Non coperte, col perché:** `UPDATE` cross-tenant tramite la politica di scrittura — **serve una
 sessione con un JWT vero** perché `public.current_lab_id()` legge il token, e con
 `SET LOCAL ROLE` non c'è claim; va col Task 4, che è il primo a fare `UPDATE` dall'applicazione.
-`visto_dal_dentista_at` non ha vincoli propri: nulla da provare finché il Task 8 non lo scrive.
+
+### Censimento degli identificatori che ho aggiunto (R-P6)
+
+Il piano dichiara per il Task 1 tre interfacce (riga 86): `StatoAvviso` · `STATI_AVVISO` · la
+tabella. **`src/lib/avvisi/stati.ts` ne esporta quattro in più**, e R-P6 chiede che ogni nome porti
+la sua destinazione — quindi eccole, invece di lasciarle superficie muta:
+
+| nome | perché esiste | destinazione |
+|---|---|---|
+| `STATI_CHIUSI` | i due stati che chiudono il promemoria | è già nel Passo 3 del piano (riga 162) · letture del promemoria, **Task 6/7** |
+| `StatoAvvisoChiuso` | il tipo dei due di sopra | **Task 4** (esito della chiusura) |
+| `isStatoAvviso` | il confine con l'esterno: nel corpo di una richiesta `StatoAvviso` è una promessa, non un fatto | **Task 4**, `POST …/avviso` — serve per rispondere **422** invece di far arrivare un `23514` al database |
+| `chiudeIlPromemoria` | ⚖️ D335 scritto una volta sola: i due modi di avvisare valgono uguale | **Task 6/7** (promemoria e striscia) |
+| `ammetteTestoInviato` | ⚖️ D339 scritto una volta sola, specchio del CHECK stretto | **Task 4** (validazione) · **Task 5** (il foglio) |
+
+🛑 **Erano superficie esportata senza prova**, cioè la forma esatta in cui un difetto entra in
+silenzio — e qui dentro vivono **due decisioni ratificate**, non dei semplici predicati. Coperte ora
+da `tests/unit/avvisi-stati.test.ts` (**23 prove**), che è anche il **gemello statico**: gira senza
+credenziali, quindi protegge D335 e D339 anche se un domani la variabile del database sparisse dalla CI.
+
+**E lo specchio col database, che nessuna prova verificava.** `stati.ts` si dichiara «specchio del
+CHECK vivo `avviso_stato_vocabolario`» e **niente lo controllava** — esattamente la deriva che il suo
+commento dice di temere. Aggiunte due asserzioni nel gemello d'integrazione:
+
+```
+✓ STATI_AVVISO contiene esattamente i valori del CHECK, e NIENTE DI PIÙ
+✓ STATI_CHIUSI è un sottoinsieme vero: contiene tutto tranne «da_comunicare»
+```
+
+🔑 **La metà portante è il conteggio** (`toHaveLength(STATI_AVVISO.length)`): senza, si cattura solo
+un valore aggiunto al TypeScript e non al database. Il verso opposto — un valore aggiunto al `CHECK`
+e non al TypeScript — è quello che produce **un `23514` illeggibile a runtime invece di un `422`**,
+ed è il verso che il commento di `stati.ts` dichiara di voler prevenire.
 
 ---
 
@@ -434,6 +570,7 @@ sessione con un JWT vero** perché `public.current_lab_id()` legge il token, e c
 | La politica `avvisi_scrittura_lab` **impedisce** a un laboratorio di chiudere l'avviso di un altro | Provata la **presenza e la forma** dal catalogo (`qual` e `with_check` usano `public.current_lab_id()`), **non il comportamento**: `current_lab_id()` legge il JWT, e né la connessione proprietaria né `SET LOCAL ROLE` ne hanno uno. Serve una sessione autenticata vera → **Task 4**. Fail-closed: non la dichiaro provata. |
 | L'avviso nasce **solo** dentro `correggi_e_riemetti_atomica` | Provato il **contrario in negativo** (nessun ruolo dell'app può inserire: `p1`/`p2`/`p3`). Che la RPC **riesca** a inserirlo non è provato: la RPC non scrive ancora in questa tabella → **Task 2**. |
 | `campi_corretti` contiene solo voci di `CAMPI_CORREGGIBILI_DOCUMENTO` | **Nessun vincolo lo impone**, e non l'ho aggiunto: la colonna è `text[]` libera. Il piano non lo chiede e la fonte è applicativa. 🟠 **Segnalato come scelta aperta al Task 2**, che è chi la riempie. |
+| Le quattro colonne concesse in `UPDATE` sono **esattamente** quelle che il Task 4 scrive | Dedotte da ⚖️ D335 (chi + quando) e D339 (il testo mandato) e dai `CHECK` che governano la chiusura, **non lette da una rotta che ancora non esiste**. Se il Task 4 avesse bisogno di una quinta colonna, se ne accorgerà con un `permission denied` **chiaro** — che è il verso giusto in cui sbagliare (fail-closed). ⚠️ `visto_dal_dentista_at` è escluso **per scelta motivata**, non per dimenticanza: v. § ⑨. |
 
 ---
 
@@ -471,19 +608,35 @@ sessione con un JWT vero** perché `public.current_lab_id()` legge il token, e c
 
 ```
 supabase/migrations/20260809123206_avvisi_dentista.sql
+supabase/migrations/20260809124517_avvisi_dentista_update_per_colonne.sql
 src/lib/avvisi/stati.ts
 tests/integration/avvisi-dentista-schema.rpc.test.ts
+tests/unit/avvisi-stati.test.ts
 src/types/database.types.ts
-.superpowers/sdd/avviso-dentista-task-1-report.md
+.superpowers/sdd/avviso-dentista-task-1-{brief,report}.md
 ```
 
 Aggiunti a percorso, mai `git add -A` (⚖️ D318). Nessun `git push`, `main` non toccata, nessun
-worktree.
+worktree, nessun `rm -rf`.
 
-**Commit:** `c68910ef` — *«feat(avvisi): la tabella degli avvisi al dentista, e i tre stati»*
-(6 file, 1441 inserzioni, 0 rimozioni). Tutte le guardie del pre-commit verdi: CSRF,
-reduced-motion, coerenza documenti, salvataggio automatico.
+**I salvataggi, in ordine:**
 
-Il messaggio di commit porta per intero i quattro scostamenti dalla SQL del piano, il difetto ⑦
-fuori elenco, i numeri misurati e ciò che resta `non provato` — così chi legge il registro dei
-salvataggi non ha bisogno di questo file per sapere cosa è cambiato e perché.
+| hash | cosa |
+|---|---|
+| `c68910ef` | *feat(avvisi): la tabella degli avvisi al dentista, e i tre stati* — 6 file, 1441 inserzioni |
+| `8ce8038e` | *docs(avvisi): l'hash del salvataggio nel resoconto del Task 1* |
+| **(questo)** | *fix(avvisi): l'UPDATE si stringe alle quattro colonne della chiusura* — la correzione di ⑨ + il gemello statico + lo specchio col CHECK |
+
+Tutte le guardie del pre-commit verdi a ogni salvataggio: CSRF, reduced-motion, coerenza documenti,
+salvataggio automatico.
+
+🛑 **Perché la correzione di ⑨ è una migration NUOVA e non una modifica di `20260809123206`:** quella
+è **già registrata nel ledger** e applicata al banco. Riscriverne il testo lascerebbe il file e il
+database d'accordo solo per caso, ed è il modo in cui l'ordine di applicazione vivo si stacca da
+quello dei file (⚖️ D311). Il difetto e la sua correzione restano **due righe della storia**, che è
+anche il solo modo perché si possa leggere cosa era sbagliato.
+
+Il messaggio del primo commit porta per intero i quattro scostamenti dalla SQL del piano, il difetto
+⑦ fuori elenco, i numeri misurati e ciò che resta `non provato`; il terzo porta ⑨ per intero — così
+chi legge il registro dei salvataggi non ha bisogno di questo file per sapere cosa è cambiato e
+perché.
