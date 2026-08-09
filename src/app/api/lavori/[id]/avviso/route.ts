@@ -29,24 +29,32 @@ import type { StatoAvviso, StatoAvvisoChiuso } from '@/lib/avvisi/stati'
  * davvero** — registra che l'odontotecnico dichiara di averlo mandato. Nessun
  * commento e nessuna prova deve far credere il contrario.
  *
- * ═══ IL PERIMETRO PER RUOLO — 🔴 DOMANDA APERTA, NON UNA DECISIONE ══════════
- * 🛑 **Il piano non dice quali dei cinque ruoli possano chiudere un avviso**, e
- * qui NON se ne è inventato uno. Si applica il perimetro della **rotta modello**
- * (`src/app/api/lavori/[id]/eventi-qualita/route.ts`) e della rotta che gli
- * avvisi li **crea** (`…/dichiarazione/riemetti/route.ts`): nessuna delle due
- * porta un cancello di ruolo, quindi nemmeno questa.
- * ➡️ **Il perimetro effettivo è di QUATTRO ruoli, non cinque**, e il quarto
- * escluso non è una scelta ma una **conseguenza**: `admin_sistema` ha
- * `laboratorio_id` nullo per disegno (`lab-context.ts:16`) e cade sul 403 di
- * `!context.laboratorioId`, che sta **prima** della guardia del laboratorio.
- * 🔴 **La conseguenza da guardare in faccia:** così `tecnico` può chiudere un
- * obbligo di legge dichiarando «l'ho avvisato di persona», mentre il **Task 7**
- * del piano propone di non mostrargli nemmeno il promemoria nella striscia della
- * home. Le due superfici direbbero cose diverse. La domanda è **una sola** e va
- * portata a Francesco una volta (v. il resoconto del Task 4 §③); finché non c'è
- * risposta, il comportamento di oggi è **fissato da una prova** (`㉓` in
- * `tests/unit/api-avviso.test.ts`), così una decisione futura deve far arrossire
- * qualcosa invece di passare inosservata.
+ * ═══ IL PERIMETRO PER RUOLO — ⚖️ D342, DECISO IL 09/08/2026 ══════════════════
+ * 🔄 **QUI C'ERA SCRITTO «DOMANDA APERTA, NON UNA DECISIONE», e non lo è più.**
+ * La riga è **riscritta al suo posto** e non corretta in fondo: in un file lungo
+ * vince ciò che si legge per primo, e una correzione messa *dopo* l'affermazione
+ * che smentisce non la sostituisce — la lascia in piedi (`CLAUDE.md` §9, D296).
+ *
+ * ⚖️ **D342 — chi chiude un avviso sta *IN* laboratorio: `titolare` ·`tecnico` ·
+ * `front_desk`. Esclusi `admin_rete` E `admin_sistema`, entrambi PER NOME.**
+ * L'elenco è `RUOLI_CHIUSURA_AVVISO` qui sotto, ed è **esportato** perché il
+ * Task 7 deve leggere lo stesso.
+ * - **`tecnico` resta DENTRO** — ed è il ribaltamento della proposta che il Task
+ *   4 aveva portato: escluderlo non protegge la prova, la **peggiora**. Se ha
+ *   telefonato lui e non può registrarlo, registra un altro, e nella riga resta
+ *   scritto un nome che non corrisponde al fatto: un'**attribuzione falsa**. E in
+ *   un laboratorio di due persone il titolare *è* il tecnico — un cancello può
+ *   lasciare **zero** persone in grado di adempiere.
+ * - **`admin_rete` esce** perché sta sopra più laboratori e chiuderebbe l'obbligo
+ *   di un laboratorio in cui non lavora.
+ * - **`admin_sistema` esce** perché è personale UÀ: responsabile del trattamento
+ *   che agisce su istruzione documentata (GDPR **Art. 28(3)(a)**), e **non era
+ *   presente alla telefonata**.
+ * 🔑 **La visibilità è un SOTTOINSIEME del permesso:** nessuno vede un promemoria
+ * che non può chiudere. Non è un bicondizionale — si può mostrare *meno* di ciò
+ * che si permette, mai il contrario.
+ * 📌 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`,
+ * **centoquarantottesima tornata**.
  *
  * ═══ PERCHÉ I FILTRI DELL'AGGIORNAMENTO SONO TRE, E NESSUNO È DECORATIVO ════
  * Questa rotta scrive con `getServiceClient`, cioè `service_role`, che ha
@@ -144,6 +152,50 @@ const STATI_APERTI: StatoAvviso[] = STATI_AVVISO.filter((s) => !chiudeIlPromemor
 const CHIAVI_AMMESSE = ['avviso_id', 'come', 'testo'] as const
 
 /**
+ * 🛑 **CHI PUÒ CHIUDERE UN AVVISO — ⚖️ D342, e i due esclusi lo sono PER NOME.**
+ *
+ * **Allowlist, mai blocklist** (`CLAUDE.md` §9): si elencano i **tre ammessi**.
+ * Un ruolo nuovo in banca dati nasce quindi **fuori**, e per entrare qualcuno
+ * deve scriverlo qui — che è il verso giusto per un permesso.
+ *
+ * 🛑 **`context.ruolo` è `string`, non un'unione: `tsc` NON protegge da un
+ * `'admin'` nudo scritto per sbaglio**, e `admin` nudo **non esiste** in questo
+ * progetto. Il refuso lo prende una **prova** che confronta questo elenco con i
+ * cinque ruoli veri (`api-avviso.test.ts`, `㉔`), non il compilatore.
+ * `provato:` il CHECK vivo, letto sul catalogo il 09/08/2026 —
+ * `pg_get_constraintdef` di `utenti_ruolo_check` →
+ * `CHECK ((ruolo = ANY (ARRAY['titolare','tecnico','front_desk','admin_rete','admin_sistema'])))`
+ * e, con un valore che **deve** essere rifiutato (R-P1), `UPDATE … SET
+ * ruolo='admin'` in transazione annullata → `❌ 23514 … violates check
+ * constraint "utenti_ruolo_check"`.
+ *
+ * 🔑 **PERCHÉ `admin_sistema` STA IN QUESTA RIGA E NON SOLO NEL 403 DI SOPRA.**
+ * `lab-context.ts:16` dice che *laboratorio nullo ⟹ `admin_sistema`*, **non** il
+ * converso: non è provato che ogni `admin_sistema` abbia il laboratorio nullo, e
+ * il banco **permette il contrario**. `provato:` in transazione annullata,
+ * `UPDATE public.utenti SET laboratorio_id=(un laboratorio vero) WHERE
+ * ruolo='admin_sistema'` → **`[2] UPDATE — 1 righe`, accettato** (l'altro
+ * vincolo, `utenti_lab_required_for_non_admin`, chiede soltanto *`ruolo =
+ * 'admin_sistema'` **OR** `laboratorio_id IS NOT NULL`*: è un'implicazione in
+ * una direzione sola). ➡️ Il giorno in cui a quell'utente si valorizzasse il
+ * laboratorio, il 403 di `!laboratorioId` **non scatterebbe più** e senza questa
+ * riga passerebbe. Un cancello che si regge su un invariante mai misurato è la
+ * classe di difetto che `CLAUDE.md` §9 nomina per prima.
+ *
+ * 📌 **Ed è ESPORTATA di proposito**, idioma di casa (`PATCHABLE_FIELDS` in
+ * `src/app/api/lavori/[id]/route.ts:211`, letto dalla sua prova): il **Task 7**
+ * deve mostrare il promemoria **agli stessi tre**, e «*la visibilità è un
+ * SOTTOINSIEME del permesso*» (verbale, centoquarantottesima tornata) regge solo
+ * se i due posti leggono **un elenco solo**. Due copie di un elenco di permessi
+ * divergono — è già successo in questa casa con `admin_sistema`.
+ */
+export const RUOLI_CHIUSURA_AVVISO = ['titolare', 'tecnico', 'front_desk'] as const
+
+function puoChiudereUnAvviso(ruolo: string): boolean {
+  return (RUOLI_CHIUSURA_AVVISO as readonly string[]).includes(ruolo)
+}
+
+/**
  * `Object.hasOwn` e non `v in STATO_DA_COME` né `STATO_DA_COME[v]`: con
  * `'__proto__'`, `'constructor'` o `'toString'` le altre due forme risalgono al
  * prototipo di `Object` e restituiscono qualcosa di vero. È la lezione già
@@ -171,6 +223,28 @@ export async function POST(req: Request, { params }: RouteContext) {
   const context = await getFreshLabContext()
   if (!context) return err('Non autorizzato', 401)
   if (!context.laboratorioId) return err('Laboratorio non trovato', 403)
+
+  // ⚖️ D342 — IL CANCELLO DI RUOLO, e sta QUI: dopo l'identità, **prima** di
+  // qualunque lettura o scrittura. Il 403 arriva senza toccare la banca dati, ed
+  // è provato dalla stessa coppia usata per il 422 («codice giusto» **+** «il
+  // finto client non è stato chiamato»): `㉖` `㉗` `㉙`.
+  // 📌 Prima di `assertLabOperativo` di proposito: un permesso negato per nome
+  // non deve poter essere anticipato dalla guardia dell'abbonamento — e per
+  // `admin_sistema` quella guardia fa comunque «bypass totale»
+  // (`lab-guard.ts:50`), quindi da lì non passerebbe nessun rifiuto.
+  // 🛑 E DOPO `!context.laboratorioId`, che NON è un ripiego: spostandolo sopra,
+  // la prova `③` («un contesto senza laboratorio risponde 403») non
+  // raggiungerebbe più la guardia che dichiara di provare — diventerebbe **vacua**.
+  // E non si può riscriverla con un ruolo ammesso, perché quello stato **non
+  // esiste in banca dati**: `provato:` `UPDATE public.utenti SET
+  // laboratorio_id=NULL WHERE ruolo='titolare'` in transazione annullata →
+  // `❌ 23514 … violates check constraint "utenti_lab_required_for_non_admin"`.
+  // L'unico stato a laboratorio nullo che il banco ammette è `admin_sistema`.
+  // ➡️ Le due guardie sono due, e provano due cose diverse: questa il NOME,
+  // quella di sopra il fatto che ci sia un laboratorio su cui agire.
+  if (!puoChiudereUnAvviso(context.ruolo)) {
+    return err('Il tuo ruolo non può segnare un avviso al dentista come comunicato: lo fa chi lavora in laboratorio.', 403)
+  }
 
   const guard = assertLabOperativo(context, 'POST')
   if (guard) return guard
