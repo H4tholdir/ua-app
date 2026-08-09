@@ -133,3 +133,68 @@ prima che il campo cominci a scorrere.
 
 📌 **FASE 9b (gate estetico L2, D245) non è questo documento**: è dovuta a **fine ondata, prima del merge**,
 e sta nel **Task 10** del piano.
+
+---
+
+# FASE 9 — Task 5-bis (⚖️ D351): la finestra di «a voce» e la striscia sulla scheda
+
+**Quando:** 9 agosto 2026, 21:40-21:52 (`provato:` `date` → `Sun Aug  9 21:52:26 CEST 2026`, letto
+dall'orologio e non da un documento — D155).
+**Che cosa è cambiato, e quindi che cosa è stato rifatto:** ⚖️ **D351** ha tolto il passo di conferma di
+«a voce». Al suo posto ci sono **due superfici nuove** — la **finestra** dentro il foglio («*Lo segno fra un
+attimo*», con «Annulla») e la **striscia** che prende il posto della riga sulla scheda a foglio chiuso.
+🛑 **La strada di WhatsApp non è stata rimisurata**, perché non è cambiata di un pixel: il suo giro resta
+quello di sopra.
+**Banco:** `src/app/ds-v3-catalogo/banco-t5bis/page.tsx` — usa-e-getta, **cancellato prima del
+salvataggio** (R-P1). Sonda: `scripts/tmp/t5bis-fase9.mjs` (cartella ignorata da git).
+
+## 1. I contrasti sulle superfici NUOVE — 0 sotto soglia
+
+Sonda **corretta** del Task 5 (quella che legge gli **stop dei gradienti**: un tasto a gradiente risponde
+`transparent` su `background-color`, ed è il difetto che produsse **15 falsi positivi**).
+
+| | esito |
+|---|---|
+| combinazioni | **6** (390 · 768 · 1280 × chiaro · scuro) × 3 schermate + **2** a movimento ridotto |
+| nodi con testo proprio sondati | **162** |
+| **testi sotto soglia** | **0** |
+| peggiore sulla **finestra** | **5,74** chiaro · **6,07** scuro (soglia **4,5**) — «*Da qui non parte nessun messaggio…*» `--muted`, e la didascalia «COSA RESTA SCRITTO» |
+| peggiore sulla **striscia** | **5,74** chiaro · **6,13** scuro (soglia **4,5**) |
+| peggiore sul passo «Fatto» | **4,11** chiaro · **3,52** scuro contro soglia **3** — è il bianco 21/800 sul gradiente del `TastoPrimario` (§5.1, valore **ratificato**), identico al giro del Task 5 |
+| movimento ridotto (`SheetRidotto`, ramo di codice diverso §8.4) | **0 sotto soglia** — **5,74** chiaro · **6,07/6,13** scuro |
+| sbordatura orizzontale | **nessuna**: `document.scrollWidth == window.innerWidth` a 390 · 768 · 1280 |
+
+🔑 **La via di fuga è `LinkQuieto` (§5.5), e il bersaglio è misurato:** **47,8 px** di altezza in tutte e sei
+le combinazioni, e **dentro lo schermo senza scorrere** in tutte e sei — che è letteralmente ciò che la
+**Legge 6** chiede («*"Annulla" leggibile senza scrollare*»).
+
+## 2. 🔴 UN DIFETTO MISURATO E DICHIARATO: a 390 la striscia è più alta della riga
+
+| viewport | riga | striscia | scostamento |
+|---|---|---|---|
+| **390** | **101 px** | **126 px** | **+25 px** |
+| 768 | 81 px | 81 px | **0** |
+| 1280 | 81 px | 81 px | **0** |
+
+**Perché:** a 390 la via di fuga occupa **84 px** in larghezza e comprime la colonna del testo a **177 px**,
+che va a capo due volte in più (anatomia letta sul DOM vivo).
+**Perché resta così, e sono due fatti misurati:** ① lo scambio riga → striscia avviene **nello stesso commit
+in cui il foglio si apre**, quindi lo spostamento accade **sotto lo scrim** e nessuno lo guarda muoversi;
+② l'alternativa — smontare la striscia a foglio aperto — costerebbe **101 px** invece di 25, e alla chiusura
+del foglio lascerebbe la via di fuga **da nessuna parte**.
+⚠️ **Il numero è preso su un banco con la spaziatura di pagina scelta da me:** quella vera è della scheda e
+la decide il **Task 6**. Vale l'ordine di grandezza, non la cifra.
+
+## 3. Due comportamenti provati a schermo, non solo nelle prove
+
+| cosa | misura |
+|---|---|
+| **il foglio NON si apre da solo** quando la scrittura differita arriva a foglio chiuso | `[role="dialog"]` = **assente** in **6 su 6** le combinazioni, dopo `finestra + 900 ms` |
+| **il pannello in uscita convive con la striscia** per la durata dell'animazione | a **300 ms** e **700 ms** dalla chiusura il pannello è ancora nel documento e sta scendendo (`top` **1144 → 1221** su viewport 844); a **1500 ms** `[role="dialog"]` è **zero**. Non è una perdita: è l'uscita — e per questo gli scatti della striscia sono presi a 1500 ms |
+
+## 4. Gli scatti — 28 file nuovi
+
+`t5b-01-finestra` · `t5b-02-striscia` · `t5b-03-dopo-a-foglio-chiuso` · `t5b-04-fatto-a-voce`, ognuno in
+`--{390,768,1280}-{light,dark}`; più `t5b-r-ridotto-{finestra,striscia}--390-{light,dark}`.
+
+📌 **FASE 9b (gate estetico L2, D245) resta del Task 10**, come sopra.

@@ -2,10 +2,10 @@
 
 // src/components/features/lavori/scheda-v3/AvvisoDentista.tsx
 //
-// Task 5 dell'ondata «l'avviso al dentista».
+// Task 5 dell'ondata «l'avviso al dentista», emendato dal Task 5-bis (⚖️ D351).
 // Mockup APPROVATO: docs/design/mockups/2026-08-09-avviso-al-dentista.html —
 // colonna CENTRALE della sezione A, targhetta «Variante A2 · due strade pari».
-// Verbale: ⚖️ D331 · D332 · D334 · D335 · D339 · D344 · D345 · D348.
+// Verbale: ⚖️ D331 · D332 · D334 · D335 · D339 · D344 · D345 · D348 · D350 · D351.
 //
 // 🔑 LA FORMA, e ogni pezzo ha la sua decisione dietro:
 //   ① una RIGA sulla scheda, come il foglio gemello: dice DOVE si va;
@@ -13,19 +13,28 @@
 //      di risposta con lo STESSO peso (⚖️ D335). Sotto, «Perché te lo chiedo»:
 //      il promemoria non si spegne da solo;
 //   ③ PASSO 2 — la strada scelta. Su WhatsApp il testo è MODIFICABILE (⚖️ D334);
-//      a voce si rilegge che cosa resterà scritto e si conferma;
+//      «a voce» NON chiede più una conferma (⚖️ D351): il tocco sulla riga
+//      PROGRAMMA la scrittura, e il passo che si apre è la finestra in cui la si
+//      può ancora fermare;
 //   ④ PASSO 3 — si rilegge ciò che È STATO scritto, letto dalla riga che la
 //      rotta ha restituito.
 //
-// 🛑 LA PARITÀ DELLE DUE STRADE NON È SOLO LA TINTA DELLE RIGHE: È IL NUMERO DI
-//    TOCCHI. Una strada da un tocco e una da due non sono pari — la corta
-//    diventa la strada che si prende, ed è esattamente il difetto per cui la
-//    variante A1 è stata scartata (⚖️ D335). Per questo «a voce» NON scrive al
-//    tocco della riga: entrambe le righe portano un gallone `›`, che in questo
-//    sistema vuol dire «entra» (§4.4), e ognuna apre il suo passo.
-//    🔑 E il secondo tocco di «a voce» non è un attrito buttato: è l'unico posto
-//    in cui la persona LEGGE che cosa resterà scritto prima che ci resti — cioè
-//    la via di fuga che L6 chiede su un atto che non si disfa.
+// ⚖️ D351 — «L'HO AVVISATO IO, A VOCE» CHIUDE CON UN TOCCO SOLO.
+//    🔄 QUI C'ERA SCRITTO IL CONTRARIO, e la riga è stata riscritta invece di
+//    corretta in fondo: il Task 5 sosteneva che la parità di ⚖️ D335 fosse anche
+//    parità di TOCCHI, e teneva un secondo passo di conferma su «a voce».
+//    Francesco ha scelto la via corta («*Un tocco solo*», 09/08/2026).
+//    ➡️ Il conto dei tocchi, dalla scheda: WhatsApp **3** (apri · scegli · manda),
+//    a voce **2** (apri · scegli). La parità nei tocchi NON c'è più, ed è una
+//    conseguenza dichiarata della decisione, non un difetto da riequilibrare: il
+//    passo del messaggio su WhatsApp è ⚖️ D334 e non si tocca.
+//    🔑 Ciò che resta pari è il resto, e non è poco: le due righe sono lo STESSO
+//    componente con gli stessi token, e **entrambe portano ancora il gallone `›`**
+//    — perché entrambe aprono davvero un passo (§4.4). Se «a voce» avesse scritto
+//    senza aprire niente, quel gallone sarebbe diventato falso.
+//    🔑 E il passo si è tenuto ciò per cui valeva: la RILETTURA di quello che
+//    resterà scritto. D351 ha tolto il TOCCO, non la lettura — la si legge
+//    mentre la finestra scorre, senza pagarla.
 //
 // 🛑 UN SOLO OVERLAY PER TUTTO IL PERCORSO, e non è una scelta di stile: è il
 //    difetto misurato del foglio gemello (v. il riquadro in testa a
@@ -56,15 +65,54 @@
 //      l'app non può sapere se il messaggio è davvero partito, e nessun testo di
 //      questo foglio fa credere il contrario.
 //
-// 🛑 NESSUN «ANNULLA» DOPO IL TOCCO, e la ragione non è la fretta:
-//    `avvisi_dentista` **non ha uno stato «annullato»** (Task 1: «un avviso nasce
-//    da un fatto»), e la rotta rifiuta con 409 un secondo aggiornamento. Un
-//    annullo vorrebbe dire una migration e un contratto nuovo — fuori da questo
-//    mandato — e vorrebbe dire cancellare la registrazione di una comunicazione
-//    ex Art. 19 GDPR che, per dichiarazione della persona, è avvenuta. La via di
-//    fuga che L6 chiede vive **prima** della scrittura, ed è visibile senza
-//    scorrere: «Chiudi», «‹ Torna alla scelta», e il secondo tocco su entrambe le
-//    strade.
+// 🔴 LA VIA DI FUGA DELLA LEGGE 6 SU «A VOCE»: LA SCRITTURA SI FA ATTENDERE.
+//    🔄 QUI C'ERA SCRITTO CHE LA VIA DI FUGA VIVEVA **PRIMA** DELLA SCRITTURA —
+//    era vero col passo di conferma, ed ⚖️ D351 l'ha reso falso. Riscritto qui,
+//    non annotato in fondo.
+//
+//    **Come è fatta ora:** il tocco sulla riga non scrive, PROGRAMMA. Per
+//    `FINESTRA_ANNULLO_AVVISO_MS` non parte nessuna richiesta e in banca dati non
+//    cambia niente; nel frattempo un «Annulla» sta a schermo — nel foglio e, se il
+//    foglio si chiude, al posto della riga sulla scheda.
+//
+//    🔑 PERCHÉ SI DIFFERISCE INVECE DI TORNARE INDIETRO, e la ragione è un
+//    PRECEDENTE IN CASA, non una preferenza. La consegna — l'unico annullo già
+//    costruito in questa app — non ha UN meccanismo: ne ha DUE, e li divide per
+//    reversibilità.
+//      · ciò che ha uno stato di ritorno si SCRIVE SUBITO e si rovescia:
+//        `annulla_consegna_atomica` riporta `lavori.stato` a `pronto` e mette la
+//        dichiarazione in `stato = 'annullata'`
+//        (`supabase/migrations/20260710091500_rpc_consegna_annullo_atomiche.sql:96-108`);
+//      · ciò che NON si disfa si DIFFERISCE per la durata esatta della finestra:
+//        la fattura non viene emessa al tocco, viene messa in coda con
+//        `emetti_dopo = now() + p_finestra_ms` (stessa migration, righe 30-37), e
+//        l'annullo si limita a segnare la voce in coda come `annullata` prima che
+//        il cron la prenda.
+//    🛑 `avvisi_dentista` sta sul secondo ramo, e non per caso: **non ha uno stato
+//    «annullato»** — il vocabolario ammette tre valori e basta (Task 1: «un
+//    promemoria cancellabile è una casella da spuntare»). Il primo meccanismo qui
+//    non è disponibile per costruzione. ➡️ Quindi non ci sono «due modi di
+//    annullare che divergeranno»: c'è UN modello di casa con due metà, e questa
+//    tabella ricade sulla metà del differimento.
+//
+//    ✅ E c'è una seconda ragione, che vale più della prima. `misurato:` il ritorno
+//    a `da_comunicare` sarebbe scrivibile, ma **azzerando TRE campi, non due**:
+//    lasciando `testo_inviato` il vincolo `avviso_testo_solo_se_dall_app` risponde
+//    **23514** (sonda su schema usa-e-getta, transazione annullata, 09/08/2026).
+//    Cioè un ritorno CANCELLA il testo comunicato — la prova ex Art. 5(2) GDPR che
+//    questa tabella esiste per tenere. 🔑 Un tocco per sbaglio è un fatto che non è
+//    mai avvenuto: differire vuol dire che nel registro **non ci finisce affatto**,
+//    invece di finirci e poi essere sbiancato senza traccia.
+//
+//    ⚠️ IL PREZZO, DICHIARATO: per la durata della finestra la scrittura non è
+//    ancora avvenuta, e **nessuna parola del foglio dice il contrario** («*Lo segno
+//    fra un attimo*», non «fatto»). Se la pagina muore nel frattempo, la scrittura
+//    non parte e **il promemoria resta aperto** — la direzione recuperabile, la
+//    stessa già scelta per il caso «il messaggio è partito e la rotta è fallita».
+//
+//    📌 SULLA STRADA DI WHATSAPP NON CAMBIA NIENTE: lì la via di fuga vive ancora
+//    prima della scrittura, perché il secondo tocco c'è ancora (⚖️ D334) — e dopo
+//    di lui il messaggio è **davvero uscito**, quindi non c'è niente da fermare.
 //
 // ✅ ⚖️ D348 — IL GETTONE DEL PORTALE NON SI RIGENERA QUI: non scade più a tempo.
 //    Non esiste nessun ramo «gettone scaduto» in questo foglio.
@@ -73,7 +121,7 @@
 //    scrittura prima del tocco: da qui parte UNA sola richiesta, e porta il testo
 //    mandato.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sheet } from '@/components/ds/Sheet'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
@@ -81,6 +129,9 @@ import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
 import { CampoTestoLungo, formattaGiornoBreve } from '@/components/ds/Campo'
 import { useAvvisi } from '@/components/ds/Avviso'
+// ⚖️ D351 — la via di fuga della Legge 6 ha il SUO componente, e §5.5 lo riserva
+//    proprio a questo: «Aspetta, annulla la consegna». Non un tasto.
+import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 // 🔑 IL TESTO PROPOSTO NON SI COMPONE QUI: `buildAvvisoMessage` è la fonte sola
 //    (⚖️ D334 · D336 · GDPR), e la firma la decide `firmaMessaggio` dentro di
@@ -109,6 +160,29 @@ type Passo = 'chiuso' | 'scelta' | 'messaggio' | 'voce' | 'fatto'
  * dentro il campo scopre il rifiuto **dopo** che il messaggio è partito.
  */
 const TETTO_TESTO = 1000
+
+/**
+ * ⚖️ D351 — QUANTO DURA LA FINESTRA IN CUI «A VOCE» SI PUÒ ANCORA FERMARE.
+ *
+ * 🔑 IL NUMERO È DERIVATO DALLA LEGGE 6, non scelto per gusto. §1 la scrive
+ * così: «*Ogni azione irreversibile ha una via di fuga visibile — «Annulla»
+ * leggibile senza scrollare, **entro 10s dall'azione***». Se la finestra si
+ * chiudesse a 5 secondi, una persona che reagisce all'ottavo non troverebbe più
+ * niente: la legge sarebbe violata **col suo stesso numero**. Dieci secondi è il
+ * minimo che rende vera la promessa che L6 fa.
+ * 📌 Confronto col precedente: la consegna tiene **dieci minuti**
+ * (`FINESTRA_ANNULLO_MS`, `src/lib/consegna/costanti.ts:7`). Là si può, perché la
+ * finestra la controlla il server sulla data salvata e non fa aspettare nessuno.
+ * Qui la finestra è **un'attesa a schermo**, quindi la si misura in secondi.
+ *
+ * 🛑 STA QUI E NON IN `src/lib/avvisi/costanti.ts`: quel file **non esiste**, e
+ * crearlo vorrebbe dire un file nuovo fuori dal perimetro di questo compito («il
+ * componente e la sua prova»). ➡️ Il giorno in cui una seconda superficie avrà
+ * bisogno di questa finestra, la costante si sposta lì — esattamente come la
+ * consegna tiene la sua in un modulo condiviso, e per lo stesso motivo.
+ */
+export const FINESTRA_ANNULLO_AVVISO_MS = 10_000
+const FINESTRA_ANNULLO_AVVISO_S = FINESTRA_ANNULLO_AVVISO_MS / 1000
 
 /**
  * Come si legge lo stato salvato, nelle parole del banco.
@@ -225,6 +299,13 @@ export function AvvisoDentista(props: {
   const [lavorando, setLavorando] = useState(false)
   const [salvata, setSalvata] = useState<RigaSalvata | null>(null)
   const [daRinfrescare, setDaRinfrescare] = useState(false)
+  /**
+   * ⚖️ D351 — I SECONDI CHE RESTANO PRIMA CHE «A VOCE» VENGA SCRITTO.
+   * `null` = niente in attesa. Diverso da zero: è **l'unico** stato che dice se
+   * una scrittura è programmata, e per questo la riga sulla scheda e il passo del
+   * foglio lo leggono entrambi.
+   */
+  const [restanoSec, setRestanoSec] = useState<number | null>(null)
 
   /**
    * 🔴 LO SCORRIMENTO NON SI AZZERA DA SÉ AL CAMBIO DI PASSO — MISURATO SU QUESTO
@@ -263,6 +344,104 @@ export function AvvisoDentista(props: {
     if (pannello) pannello.scrollTop = 0
   }, [passo])
 
+  /**
+   * ⚖️ D351 — LA FINESTRA DI «A VOCE»: DUE OROLOGI, e ognuno fa una cosa sola.
+   *
+   * 🛑 SONO DUE APPOSTA, e non è pignoleria: mettere la scrittura dentro
+   *    l'aggiornatore di `setRestanoSec` la farebbe partire **due volte** in
+   *    `StrictMode`, che invoca gli aggiornatori due volte proprio per scoprire
+   *    chi non è puro. Quindi la divisione è netta —
+   *    · `orologioScrittura` (un `setTimeout` solo) è **l'unico che scrive**, e
+   *      scade una volta;
+   *    · `orologioContatore` (un `setInterval`) fa scendere il numero e **non
+   *      decide niente**: se i due derivassero di qualche millesimo, sbaglierebbe
+   *      il numero a schermo, non il momento della scrittura.
+   * 🔑 Stanno in due `ref` e non in due stati: fermarli non deve ridisegnare
+   *    nulla, e il gestore del tocco li ferma senza passare da un effetto — dove
+   *    `setState` è vietato dalla regola di casa (`react-hooks/set-state-in-effect`,
+   *    quella con la deroga dichiarata in `AnnullaConsegnaBanner.tsx:32`).
+   */
+  const orologioScrittura = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const orologioContatore = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const fermaOrologi = useCallback(() => {
+    if (orologioScrittura.current !== null) {
+      clearTimeout(orologioScrittura.current)
+      orologioScrittura.current = null
+    }
+    if (orologioContatore.current !== null) {
+      clearInterval(orologioContatore.current)
+      orologioContatore.current = null
+    }
+  }, [])
+
+  /**
+   * 🛑 Se il componente se ne va con una scrittura in attesa, gli orologi si
+   *    fermano — e questo è anche **il prezzo dichiarato del differimento**: la
+   *    finestra vive nel browser, quindi se la pagina muore la scrittura non parte
+   *    e il promemoria **resta aperto**. È la direzione recuperabile, la stessa già
+   *    scelta per «il messaggio è partito e la rotta è fallita».
+   */
+  useEffect(() => fermaOrologi, [fermaOrologi])
+
+  /**
+   * Il passo corrente, leggibile da un orologio che scade **dopo**.
+   * 🔑 Serve perché `orologioScrittura` chiude su un render vecchio: dieci secondi
+   * più tardi «il foglio è aperto?» va riletto adesso, non allora. Dove basta
+   * l'aggiornatore di `setPasso` (che riceve il valore vivo) il `ref` non si usa —
+   * qui serve perché la decisione non è **cosa** diventa `passo`, ma **se
+   * rinfrescare la pagina**, che non è uno stato.
+   */
+  const passoRef = useRef<Passo>('chiuso')
+  useEffect(() => {
+    passoRef.current = passo
+  }, [passo])
+
+  /**
+   * ⚖️ D351 — IL TOCCO SOLO: la riga «a voce» non scrive, PROGRAMMA.
+   * 🛑 Da qui non parte nessuna richiesta: per `FINESTRA_ANNULLO_AVVISO_MS` in
+   *    banca dati non cambia niente, e il passo che si apre è la via di fuga.
+   */
+  function programmaAVoce() {
+    // Difesa in profondità: una finestra già aperta non si riapre (il tocco
+    // arriva da una riga che, in quel momento, non è più a schermo).
+    if (restanoSec !== null || lavorando) return
+    setRestanoSec(FINESTRA_ANNULLO_AVVISO_S)
+    setPasso('voce')
+    orologioContatore.current = setInterval(() => {
+      // 🛑 Si ferma a 1 e non scende a 0: lo zero non lo mostra nessuno, e la
+      //    scrittura la decide l'altro orologio.
+      setRestanoSec((s) => (s === null || s <= 1 ? s : s - 1))
+    }, 1000)
+    orologioScrittura.current = setTimeout(() => {
+      fermaOrologi()
+      setRestanoSec(null)
+      void registra('a_voce', null)
+    }, FINESTRA_ANNULLO_AVVISO_MS)
+  }
+
+  /**
+   * La via di fuga della **Legge 6**. 🔑 Non «annulla» una scrittura: la ferma
+   * prima che avvenga — in banca dati non c'è niente da disfare, ed è esattamente
+   * il motivo per cui la finestra è stata fatta così (v. il riquadro in testa).
+   * ➡️ Si torna alla DOMANDA, non si chiude: chi si è fermato quasi sempre voleva
+   * l'altra strada.
+   */
+  function annullaAVoce() {
+    fermaOrologi()
+    setRestanoSec(null)
+    tornaAllaDomanda()
+  }
+
+  /**
+   * Si torna alla DOMANDA. 🛑 Con l'aggiornatore e non con `setPasso('scelta')`
+   * nudo: questa funzione la chiama anche una scrittura fallita, che può arrivare
+   * **a foglio chiuso** — e un foglio non si apre da solo.
+   */
+  function tornaAllaDomanda() {
+    setPasso((p) => (p === 'chiuso' ? 'chiuso' : 'scelta'))
+  }
+
   /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
    *  difetto misurato sullo schermo vero il 07/08 sul foglio gemello:
    *  `router.refresh()` rirende il Server Component, questo componente si
@@ -291,6 +470,12 @@ export function AvvisoDentista(props: {
     if (mandato === null) {
       setTesto(buildAvvisoMessage({ numeroLavoro, portalToken, nomeLaboratorio }))
     }
+    // 🔴 E GLI OROLOGI DI ⚖️ D351 NON SI FERMANO QUI — terza riga assente
+    //    APPOSTA, accanto alle due di sopra. Chiudere il foglio **non è**
+    //    annullare: l'annullo ha un suo comando, scritto «Annulla», e resta a
+    //    schermo al posto della riga sulla scheda anche a foglio chiuso. Se la
+    //    chiusura fermasse la scrittura, il tocco solo di D351 non chiuderebbe
+    //    niente per chi tocca e va via — cioè il caso normale.
     if (daRinfrescare) {
       setDaRinfrescare(false)
       router.refresh()
@@ -324,6 +509,7 @@ export function AvvisoDentista(props: {
         //    strada di WhatsApp il riquadro dice che il messaggio è già partito;
         //    su quella a voce basta l'avviso, perché niente è uscito.
         if (come === 'dall_app') setNonRegistrato(messaggio)
+        else tornaAllaDomanda()
         errore(messaggio)
         return
       }
@@ -333,12 +519,29 @@ export function AvvisoDentista(props: {
       setNonRegistrato(null)
       setMandato(null)
       setSalvata(esito.avviso ?? null)
-      setDaRinfrescare(true)
-      setPasso('fatto')
+      // 🔴 ⚖️ D351 — UNA SCRITTURA DIFFERITA PUÒ ARRIVARE A FOGLIO CHIUSO, e le
+      //    due righe che seguono NON dicono la stessa cosa in quel caso.
+      //    · IL PASSO: un foglio non si apre da solo. Un overlay che compare
+      //      dieci secondi dopo, senza che nessuno l'abbia toccato, è
+      //      un'imboscata — chi ha chiuso ha finito. Se è chiuso, resta chiuso.
+      //    · IL RINFRESCO: a foglio APERTO si rimanda alla chiusura, perché
+      //      rinfrescare adesso ricostruisce questo componente e la schermata
+      //      finale non comparirebbe mai (difetto misurato sul foglio gemello, v.
+      //      `chiudi`). A foglio CHIUSO non c'è nessuna chiusura che verrà: si
+      //      rinfresca subito, o la riga «Avvisa il dentista» resterebbe a
+      //      schermo su un promemoria già spento.
+      setPasso((p) => (p === 'chiuso' ? 'chiuso' : 'fatto'))
+      if (passoRef.current === 'chiuso') {
+        setDaRinfrescare(false)
+        router.refresh()
+      } else {
+        setDaRinfrescare(true)
+      }
     } catch {
       const messaggio =
         'Non sono riuscita a segnare l’avviso come comunicato: controlla la connessione e riprova.'
       if (come === 'dall_app') setNonRegistrato(messaggio)
+      else tornaAllaDomanda()
       errore(messaggio)
     } finally {
       setLavorando(false)
@@ -369,7 +572,12 @@ export function AvvisoDentista(props: {
       : passo === 'messaggio'
         ? `Avvisa ${nomeStudio}`
         : passo === 'voce'
-          ? 'Resta scritto così'
+          ? // ⚖️ D351 — il titolo dice ciò che sta per succedere, non ciò che è
+            // successo: per questi secondi non è scritto niente. 🛑 E resta lo
+            // stesso mentre la richiesta è in volo (frazioni di secondo): un
+            // titolo di foglio che cambia si fa riannunciare, e il corpo già dice
+            // «Un attimo…».
+            'Lo segno fra un attimo'
           : passo === 'fatto'
             ? 'Fatto'
             : ''
@@ -377,7 +585,21 @@ export function AvvisoDentista(props: {
   return (
     <>
       {/* ① LA RIGA SULLA SCHEDA — dice DOVE si va e qual è il fatto. Compare solo
-          se un avviso `da_comunicare` esiste, e chi lo decide è il Task 6. */}
+          se un avviso `da_comunicare` esiste, e chi lo decide è il Task 6.
+          🔴 ⚖️ D351 — MENTRE UNA SCRITTURA ASPETTA, AL SUO POSTO C'È LA VIA DI
+             FUGA. Non accanto: **al posto**, e per due ragioni.
+             ① La riga porterebbe alla domanda «come avvisi il dentista?» mentre
+                una risposta è già stata data e sta per essere scritta.
+             ② La Legge 6 chiede l'«Annulla» leggibile **senza scorrere**: qui la
+                striscia occupa esattamente il posto che l'occhio stava già
+                guardando, cioè dove ha toccato un momento prima.
+             🔑 Il precedente in casa è la consegna, e la forma è la sua:
+             `AnnullaConsegnaBanner.tsx` mette la via di fuga **sulla pagina**, non
+             dentro un overlay, con il tempo che scende accanto. Così la fuga
+             sopravvive alla chiusura del foglio. */}
+      {restanoSec !== null ? (
+        <StrisciaAttesa restanoSec={restanoSec} soloVia={passo === 'chiuso'} onAnnulla={annullaAVoce} />
+      ) : (
       <button
         type="button"
         // 🔴 SI RIENTRA DAL RICUPERO, NON DALLA SCELTA. Se un messaggio è già
@@ -429,6 +651,7 @@ export function AvvisoDentista(props: {
           ›
         </span>
       </button>
+      )}
 
       {/* IL FOGLIO — UNO SOLO, che cambia passo. */}
       <Sheet aperto={passo !== 'chiuso'} onChiudi={chiudi} titolo={titolo}>
@@ -469,7 +692,7 @@ export function AvvisoDentista(props: {
                 glifo="📞"
                 titolo="L’ho avvisato io, a voce"
                 spiegazione="Resta scritto che l’hai fatto tu, oggi"
-                onApri={() => setPasso('voce')}
+                onApri={programmaAVoce}
               />
             </div>
 
@@ -593,11 +816,13 @@ export function AvvisoDentista(props: {
           </>
         )}
 
-        {/* ③-b PASSO 2, STRADA A VOCE — si rilegge PRIMA di scrivere */}
+        {/* ③-b PASSO 2, STRADA A VOCE — ⚖️ D351: NON una conferma, LA FINESTRA.
+            🔑 Il tocco sulla riga ha già deciso; qui non si chiede niente. Ciò che
+               il Task 5 metteva dietro un secondo tocco — la rilettura di quello
+               che resterà scritto — è rimasto, e ora **non si paga**: si legge
+               mentre la finestra scorre. */}
         {passo === 'voce' && (
           <>
-            <TornaAllaScelta onClick={() => setPasso('scelta')} />
-
             <p
               style={{
                 fontSize: tipografia.size.callout,
@@ -611,10 +836,12 @@ export function AvvisoDentista(props: {
               <b style={{ color: 'var(--ink)' }}>l’hai avvisato tu</b>, e quando.
             </p>
 
-            {/* 🛑 QUI NON C'È UN OROLOGIO, ed è una scelta: il momento lo scrive
-                la rotta, e mostrarne uno prima della scrittura sarebbe una
-                promessa su un valore che non è ancora stato preso. L'ora esatta si
-                rilegge dopo, dal passo «Fatto», sulla riga davvero salvata. */}
+            {/* 🛑 QUI NON C'È UN OROLOGIO SULLA RIGA «QUANDO», ed è la stessa
+                scelta del Task 5: il momento lo scrive la rotta, e mostrarne uno
+                prima della scrittura sarebbe una promessa su un valore che non è
+                ancora stato preso. L'ora esatta si rilegge dal passo «Fatto».
+                🔑 E vale ancora di più adesso: per questi secondi la scrittura
+                **non è avvenuta**, quindi un'ora precisa sarebbe due volte falsa. */}
             <Superficie didascalia="Cosa resta scritto">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <RigaLetta chiave="Lavoro" valore={`n. ${numeroLavoro}`} />
@@ -624,15 +851,31 @@ export function AvvisoDentista(props: {
               </div>
             </Superficie>
 
-            <TastoPrimario
-              onClick={() => {
-                if (!lavorando) void registra('a_voce', null)
-              }}
-              disabled={lavorando}
-              motivoDisabilitato="Sto registrando…"
-            >
-              {lavorando ? 'Un attimo…' : 'Sì, l’ho avvisato io'}
-            </TastoPrimario>
+            {restanoSec !== null ? (
+              <>
+                {/* 🛑 LA FRASE DICE IL LIMITE **A PAROLE**, e il numero è un aiuto
+                    per gli occhi. Chi legge con la voce sintetica sente «fra pochi
+                    secondi» una volta; un contatore dentro una regione viva glielo
+                    ripeterebbe dieci volte, che è il contrario di un aiuto. */}
+                <p
+                  style={{
+                    fontSize: 14.5,
+                    lineHeight: 1.5,
+                    color: 'var(--muted)',
+                    margin: 0,
+                  }}
+                >
+                  Lo segno fra pochi secondi.{' '}
+                  <b style={{ color: 'var(--ink)' }}>Se hai toccato per sbaglio, fermami adesso.</b>
+                </p>
+                <ViaDiFuga restanoSec={restanoSec} onAnnulla={annullaAVoce} />
+              </>
+            ) : (
+              // La finestra è scaduta e la richiesta è in volo: §5.25 — «Un attimo…».
+              // 🛑 Niente «Annulla» qui: da questo istante c'è davvero qualcosa che
+              //    parte, e un annullo che non annulla è peggio di nessun annullo.
+              <p style={{ fontSize: 14.5, color: 'var(--muted)', margin: 0 }}>Un attimo…</p>
+            )}
           </>
         )}
 
@@ -840,6 +1083,139 @@ function Riquadro(props: { tono: keyof typeof TONI; titolo: string; children: Re
     <div style={{ borderRadius: raggio.riga, padding: `15px ${spazio.m}px`, background: TONI[tono] }}>
       <b style={{ display: 'block', fontSize: 16, marginBottom: 4, color: 'var(--ink)' }}>{titolo}</b>
       <span style={{ fontSize: 14.5, color: 'var(--muted)', lineHeight: 1.45 }}>{children}</span>
+    </div>
+  )
+}
+
+/**
+ * LA VIA DI FUGA DELLA LEGGE 6 (⚖️ D351) — «Annulla», e i secondi che restano.
+ *
+ * 🛑 `LinkQuieto` e non un tasto, e la spec lo impone: §5.5 lo dichiara
+ * «*RISERVATO alle vie di fuga (L6) — "Aspetta, annulla la consegna"*», e vieta
+ * ai tasti fisici di fare questo mestiere. 🔑 Il che risolve anche un problema di
+ * ⚖️ D335: se la finestra portasse un tasto primario, la strada «a voce»
+ * finirebbe per avere l'unico tasto fisico delle due — cioè tornerebbe a essere
+ * la strada suggerita, che è il difetto per cui la variante A1 fu scartata.
+ * Il bersaglio da 44 px lo porta il componente (`LinkQuieto.tsx:41-45`).
+ *
+ * 🛑 IL NUMERO È `aria-hidden`, e non è pigrizia: la frase accanto dice il limite
+ * a parole, una volta. Un contatore leggibile dalla voce sintetica, dentro una
+ * regione viva, si farebbe riannunciare a ogni secondo.
+ * 🔑 E il colore non è mai l'unica fonte di stato (L3): il fatto — «sta per essere
+ * scritto, puoi fermarlo» — sta nelle parole; il numero è solo il quanto.
+ */
+function ViaDiFuga(props: { restanoSec: number; onAnnulla: () => void }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spazio.m,
+        flexWrap: 'wrap',
+      }}
+    >
+      <LinkQuieto onClick={props.onAnnulla}>Annulla</LinkQuieto>
+      <span
+        aria-hidden
+        style={{
+          fontSize: 14.5,
+          fontWeight: tipografia.weight.bold,
+          color: 'var(--muted)',
+          // Le cifre non ballano mentre il numero scende.
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {props.restanoSec}″
+      </span>
+    </div>
+  )
+}
+
+/**
+ * LA STRISCIA SULLA SCHEDA mentre una scrittura aspetta (⚖️ D351) — prende il
+ * posto della riga, così la via di fuga **sopravvive alla chiusura del foglio**.
+ * È la forma di `AnnullaConsegnaBanner`, che è il precedente di casa: la fuga sta
+ * sulla pagina, non dentro un overlay, col tempo che scende accanto.
+ *
+ * 🛑 `--card` e `--line` come la riga che sostituisce, NON i token di superficie:
+ * la scheda non deve saltare, e ⚖️ D330 ❌1 (deferito) lascia
+ * `--fondo-superficie` a 1,23:1 dal pannello — un confine che qui non si vedrebbe.
+ *
+ * 🔑 `role="status"` SOLO quando il foglio è chiuso (`soloVia`), e la ragione è
+ * precisa: a foglio aperto ciò che la persona sta leggendo è il pannello, e due
+ * regioni vive che dicono la stessa cosa nello stesso istante sono rumore. La
+ * striscia diventa l'unica portatrice della fuga nel momento in cui il foglio si
+ * chiude — ed è quello il momento in cui va annunciata.
+ *
+ * ⚠️ SÌ, A FOGLIO APERTO CI SONO DUE «ANNULLA» NEL DOCUMENTO — dichiarato, non
+ * scoperto. Non è una doppia via di fuga per chi usa l'app: lo `Sheet` monta
+ * `aria-modal="true"` su entrambi i suoi rami (`Sheet.tsx:406,465`), cioè «dietro
+ * non esiste niente», e la trappola del fuoco impedisce alla tastiera di
+ * raggiungere ciò che sta fuori. Le prove usano `within(foglio)`, come già fanno
+ * per i due «Chiudi» del foglio e dell'avviso.
+ * 📌 `misurato:` alla chiusura i due coesistono ancora per la durata
+ * dell'**animazione di uscita** del foglio — a 300 ms e a 700 ms il pannello è
+ * ancora nel documento e sta scendendo (`top` 1144 → 1221 su un viewport da 844),
+ * a 1500 ms `[role="dialog"]` è **zero**. Non è una perdita: è l'uscita.
+ *
+ * 🔴 E LA STRISCIA È PIÙ ALTA DELLA RIGA A 390 — misurato, e lo scrivo invece di
+ * dire che la scheda «non salta»: **126 px contro 101**, cioè **25 px** di
+ * scostamento a 390 e **0** a 768 e 1280 (la riga è 81 px là, la striscia 81).
+ * Il motivo sta nell'anatomia: a 390 la via di fuga prende 84 px in larghezza e
+ * comprime la colonna del testo a 177, che va a capo due volte in più.
+ * 🔑 Perché va bene comunque, e sono due fatti misurati, non due opinioni:
+ *   ① lo scambio avviene **nello stesso commit in cui il foglio si apre**, quindi
+ *      lo spostamento accade **sotto lo scrim** — nessuno lo guarda muoversi;
+ *   ② l'alternativa è peggiore di un ordine di grandezza: smontando la striscia il
+ *      contenuto sotto salirebbe di **101 px** (tutta la riga), e alla chiusura del
+ *      foglio la via di fuga non sarebbe **da nessuna parte**.
+ * ⚠️ Il numero è preso su un banco con la MIA spaziatura di pagina: quella vera è
+ * della scheda, e la decide il Task 6. Vale l'ordine di grandezza, non la cifra.
+ */
+function StrisciaAttesa(props: { restanoSec: number; soloVia: boolean; onAnnulla: () => void }) {
+  const { restanoSec, soloVia, onAnnulla } = props
+  return (
+    <div
+      role={soloVia ? 'status' : undefined}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spazio.sm,
+        flexWrap: 'wrap',
+        width: '100%',
+        background: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: raggio.riga,
+        padding: `${spazio.m}px`,
+        minHeight: 52,
+      }}
+    >
+      <span aria-hidden style={{ fontSize: tipografia.size.heading, lineHeight: 1 }}>
+        📞
+      </span>
+      <span style={{ flex: 1, minWidth: 150 }}>
+        <span
+          style={{
+            display: 'block',
+            fontSize: tipografia.size.body,
+            fontWeight: tipografia.weight.bold,
+            color: 'var(--ink)',
+          }}
+        >
+          L’hai avvisato tu, a voce
+        </span>
+        <span
+          style={{
+            display: 'block',
+            fontSize: tipografia.size.label,
+            color: 'var(--muted)',
+            marginTop: 2,
+          }}
+        >
+          Lo segno fra un attimo: puoi ancora fermarmi.
+        </span>
+      </span>
+      <ViaDiFuga restanoSec={restanoSec} onAnnulla={onAnnulla} />
     </div>
   )
 }

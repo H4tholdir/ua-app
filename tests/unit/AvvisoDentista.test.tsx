@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { AvvisiProvider } from '@/components/ds/Avviso'
-import { AvvisoDentista, quandoLeggibile } from '@/components/features/lavori/scheda-v3/AvvisoDentista'
+// 🔑 LA DURATA DELLA FINESTRA SI IMPORTA, NON SI RICOPIA: due copie dello stesso
+//    numero divergono alla prima modifica, e la prova finirebbe a sorvegliare un
+//    numero che il componente non usa più (R-P6).
+import {
+  AvvisoDentista,
+  quandoLeggibile,
+  FINESTRA_ANNULLO_AVVISO_MS,
+} from '@/components/features/lavori/scheda-v3/AvvisoDentista'
 // 🔑 IL TESTO PROPOSTO NON SI RICOPIA QUI: è quello di `buildAvvisoMessage`, e la
 //    firma è quella di `firmaMessaggio` (⚖️ D345). Se un giorno cambia la forma
 //    del messaggio, queste prove la seguono invece di fissarla una seconda volta.
@@ -181,13 +188,39 @@ describe('AvvisoDentista — passo 1: DUE STRADE PARI (⚖️ D335 · D344)', ()
     expect(stradaVoce().textContent).toContain('›')
   })
 
-  it('🛑 e lo stesso NUMERO DI TOCCHI: nessuna delle due scrive al primo tocco', async () => {
+  /**
+   * 🔄 QUESTA PROVA DICEVA IL CONTRARIO, ED È STATA RISCRITTA — non aggiustata.
+   * Fino al 09/08/2026 si chiamava «*e lo stesso NUMERO DI TOCCHI: nessuna delle
+   * due scrive al primo tocco*», e sorvegliava la tesi del Task 5: che la parità
+   * di ⚖️ D335 fosse **anche** parità di tocchi. ⚖️ **D351 l'ha ribaltata**
+   * («*Un tocco solo*»), e questa prova è **arrossita** — cioè ha fatto il suo
+   * mestiere: era davvero la guardia di quella decisione.
+   *
+   * ➡️ Ciò che resta da sorvegliare è **il conto vero**, scritto nei numeri, così
+   * che nessuno possa cambiarlo per distrazione: dalla scheda, WhatsApp costa
+   * **tre** tocchi (apri · scegli · manda) e «a voce» **due** (apri · scegli).
+   */
+  it('⚖️ D351 — «a voce» chiude in DUE tocchi (apri · scegli): nessun passo di conferma', () => {
     const spia = fingiRotta()
     monta()
-    apriFoglio()
-    fireEvent.click(stradaVoce())
-    await waitFor(() => expect(screen.getByRole('heading', { name: /Resta scritto/i })).toBeTruthy())
+    apriFoglio() // 1
+    fireEvent.click(stradaVoce()) // 2 → la scrittura è PROGRAMMATA, non chiesta
+    // 🛑 Il tasto di conferma del Task 5 NON esiste più.
+    expect(screen.queryByRole('button', { name: /^Sì, l’ho avvisato io$/ })).toBeNull()
+    // 🛑 Ma il tocco non ha scritto: al suo posto c'è la via di fuga (L6).
     expect(spia).not.toHaveBeenCalled()
+    const foglio = screen.getByRole('dialog')
+    expect(within(foglio).getByRole('button', { name: 'Annulla' })).toBeTruthy()
+  })
+
+  it('⚖️ D334 — e su WhatsApp restano TRE: il passo del messaggio non si tocca', async () => {
+    const spia = fingiRotta()
+    monta()
+    apriFoglio() // 1
+    fireEvent.click(stradaWhatsApp()) // 2
+    expect(spia).not.toHaveBeenCalled()
+    fireEvent.click(tastoVerde()) // 3
+    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
   })
 
   it('«Perché te lo chiedo» dice che il promemoria non si spegne da solo', () => {
@@ -313,30 +346,101 @@ describe('AvvisoDentista — la strada di WhatsApp (⚖️ D331 · D334)', () =>
   })
 })
 
-describe('AvvisoDentista — la strada «a voce» e il vincolo STRETTO in banca dati', () => {
-  beforeEach(() => vi.clearAllMocks())
-  afterEach(() => vi.unstubAllGlobals())
+/**
+ * ⚖️ D351 — «A VOCE» CON UN TOCCO, E LA VIA DI FUGA CHE VIVE **DOPO**.
+ *
+ * 🔴 QUESTO È IL BLOCCO CHE IL TASK 5-BIS HA RIFATTO. Prima queste prove
+ * sorvegliavano un **passo di conferma**; oggi sorvegliano una **finestra**: il
+ * tocco programma, per dieci secondi non parte niente, e un «Annulla» sta a
+ * schermo. Il vincolo stretto in banca dati (`avviso_testo_solo_se_dall_app`) è
+ * rimasto identico e va sorvegliato uguale — cambia **quando** parte la
+ * richiesta, non **che cosa** porta.
+ *
+ * 🛑 QUI GLI OROLOGI SONO FINTI, e con loro NON si usa `waitFor`: la sua attesa
+ *    gira su `setTimeout`, che è finto — e il rilevamento automatico degli
+ *    orologi finti di Testing Library cerca `jest`, che in questo progetto non
+ *    esiste. Una `waitFor` qui resterebbe appesa. Si avanza a mano, dentro `act`.
+ */
+describe('AvvisoDentista — ⚖️ D351: la finestra di «a voce» (Legge 6)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
 
-  function apriVoce() {
+  /** Un tocco solo: apri, scegli. Da qui la scrittura è **programmata**. */
+  function tocca() {
     apriFoglio()
     fireEvent.click(stradaVoce())
   }
 
-  it('🛑 il corpo per «a_voce» NON porta `testo`: il vincolo lo rifiuterebbe con un 422', async () => {
+  /** Fa scorrere la finestra fino in fondo e lascia risolvere la richiesta. */
+  async function scadeLaFinestra() {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(FINESTRA_ANNULLO_AVVISO_MS + 20)
+    })
+  }
+
+  async function passano(ms: number) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms)
+    })
+  }
+
+  it('🛑 per tutta la finestra NON parte nessuna richiesta: in banca dati non cambia niente', async () => {
     const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
     monta()
-    apriVoce()
-    fireEvent.click(screen.getByRole('button', { name: /l’ho avvisato io/i }))
-    await waitFor(() => expect(spia).toHaveBeenCalledTimes(1))
+    tocca()
+    await passano(FINESTRA_ANNULLO_AVVISO_MS - 100)
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  /**
+   * 🔑 IL NUMERO DELLA FINESTRA È QUELLO DELLA LEGGE 6, e questa prova lo lega al
+   * suo motivo: §1 promette «*"Annulla" leggibile senza scrollare, entro 10s
+   * dall'azione*». Una finestra più corta violerebbe la legge **col suo stesso
+   * numero** — chi reagisce all'ottavo secondo non troverebbe più niente.
+   */
+  it('🔑 la via di fuga c\'è ancora al decimo secondo (è il numero che L6 promette)', async () => {
+    fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    tocca()
+    await passano(9_900)
+    expect(FINESTRA_ANNULLO_AVVISO_MS).toBeGreaterThanOrEqual(10_000)
+    const foglio = screen.getByRole('dialog')
+    expect(within(foglio).getByRole('button', { name: 'Annulla' })).toBeTruthy()
+  })
+
+  it('allo scadere la scrittura parte, e il corpo NON porta `testo` (il vincolo lo rifiuterebbe con un 422)', async () => {
+    const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    tocca()
+    await scadeLaFinestra()
+    expect(spia).toHaveBeenCalledTimes(1)
     const corpo = corpoDi(spia)
     expect(Object.keys(corpo).sort()).toEqual(['avviso_id', 'come'])
     expect('testo' in corpo).toBe(false)
     expect(corpo.come).toBe('a_voce')
   })
 
-  it('prima di registrare, il passo rilegge che cosa resterà scritto', () => {
+  it('🔴 «Annulla» ferma la scrittura: non parte MAI, e si torna alla domanda', async () => {
+    const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
     monta()
-    apriVoce()
+    tocca()
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Annulla' }))
+    expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy()
+    // 🛑 E non parte nemmeno dopo: l'orologio è stato fermato, non rimandato.
+    await passano(FINESTRA_ANNULLO_AVVISO_MS * 3)
+    expect(spia).not.toHaveBeenCalled()
+  })
+
+  it('🔑 la rilettura di ciò che resterà scritto è RIMASTA: D351 ha tolto il tocco, non la lettura', () => {
+    monta()
+    tocca()
     const foglio = testoDelFoglio()
     expect(foglio).toContain('a voce')
     expect(foglio).toContain(NUMERO)
@@ -345,17 +449,133 @@ describe('AvvisoDentista — la strada «a voce» e il vincolo STRETTO in banca 
 
   it('🛑 e non promette un orologio che non ha ancora: nessuna ora prima della scrittura', () => {
     monta()
-    apriVoce()
+    tocca()
     expect(testoDelFoglio()).not.toMatch(/alle \d{2}:\d{2}/)
   })
 
-  it('e si torna alla scelta senza scrivere niente', async () => {
-    const spia = fingiRotta()
+  it('🛑 il titolo non dice «fatto» finché non è fatto: per quei secondi niente è scritto', () => {
     monta()
-    apriVoce()
-    fireEvent.click(screen.getByRole('button', { name: /Torna alla scelta/i }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy())
-    expect(spia).not.toHaveBeenCalled()
+    tocca()
+    expect(screen.getByRole('heading', { name: 'Lo segno fra un attimo' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Fatto' })).toBeNull()
+  })
+
+  it('🛑 un doppio tocco apre UNA finestra sola e scrive UNA volta sola', async () => {
+    const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    apriFoglio()
+    const riga = stradaVoce()
+    fireEvent.click(riga)
+    fireEvent.click(riga)
+    await scadeLaFinestra()
+    expect(spia).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * 🔴 CHIUDERE IL FOGLIO NON È ANNULLARE, e questa è la prova che tiene in piedi
+   * il «tocco solo»: chi tocca e va via ha chiuso l'obbligo. Se la chiusura
+   * fermasse la scrittura, D351 non chiuderebbe niente nel caso normale.
+   * 🔑 E la via di fuga NON scompare con il foglio: prende il posto della riga
+   * sulla scheda, come fa `AnnullaConsegnaBanner` per la consegna.
+   */
+  it('🔴 chiuso il foglio, la scrittura parte comunque E la via di fuga resta sulla scheda', async () => {
+    const spia = fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    tocca()
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Chiudi' }))
+    await passano(100)
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    // La striscia ha preso il posto della riga: la via di fuga è ancora lì…
+    const striscia = screen.getByRole('status')
+    expect(striscia.textContent).toContain('puoi ancora fermarmi')
+    expect(within(striscia).getByRole('button', { name: 'Annulla' })).toBeTruthy()
+    // …e la riga «Avvisa il dentista» non è raggiungibile: la domanda è già stata
+    // risposta, e riaprirla offrirebbe di rispondere due volte.
+    expect(screen.queryByRole('button', { name: /Avvisa il dentista/i })).toBeNull()
+
+    await scadeLaFinestra()
+    expect(spia).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 e a foglio chiuso la riuscita NON riapre il foglio: rinfresca la pagina', async () => {
+    fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    tocca()
+    const foglio = screen.getByRole('dialog')
+    fireEvent.click(within(foglio).getByRole('button', { name: 'Chiudi' }))
+    await scadeLaFinestra()
+    // 🛑 Nessun overlay comparso da solo: un foglio che si apre dieci secondi
+    //    dopo, senza che nessuno l'abbia toccato, è un'imboscata.
+    expect(screen.queryByRole('dialog')).toBeNull()
+    // 🔑 E il rinfresco NON aspetta una chiusura che non verrà più.
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('a foglio APERTO la riuscita porta al passo «Fatto», e il rinfresco resta alla chiusura', async () => {
+    fingiRotta(rispostaOk('comunicato_a_voce'))
+    monta()
+    tocca()
+    await scadeLaFinestra()
+    expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy()
+    expect(testoDelFoglio()).toContain('a voce')
+    expect(refreshMock).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /Ho capito/i }))
+    await passano(50)
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('🛑 se la rotta non manda l’ora, si rilegge senza orologio — mai un «undefined»', async () => {
+    fingiRotta(rispostaOk('comunicato_a_voce', null))
+    monta()
+    tocca()
+    await scadeLaFinestra()
+    expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy()
+    expect(testoDelFoglio()).not.toContain('undefined')
+    expect(testoDelFoglio()).not.toMatch(/alle \d{2}:\d{2}/)
+  })
+
+  /**
+   * 🔴 IL RAMO CHE UNA FINESTRA SCADUTA RENDE RAGGIUNGIBILE: la scrittura parte e
+   * fallisce. Niente è uscito verso il dentista e niente è stato scritto, quindi
+   * si torna alla DOMANDA — non si resta su una finestra scaduta e vuota, che è
+   * il difetto che questa prova esiste per impedire.
+   */
+  it('🔴 se la scrittura fallisce si torna alla domanda, e il foglio non resta vuoto', async () => {
+    fingiRotta({ error: 'Non sono riuscita a segnare l’avviso come comunicato: riprova fra un momento.' }, false)
+    monta()
+    tocca()
+    await scadeLaFinestra()
+    expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy()
+    expect(stradaVoce()).toBeTruthy()
+    expect(refreshMock).not.toHaveBeenCalled()
+  })
+
+  it('la rete assente si racconta allo stesso modo, e il promemoria resta aperto', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('rete assente')))
+    monta()
+    tocca()
+    await scadeLaFinestra()
+    expect(screen.getByRole('heading', { name: 'Come avvisi il dentista?' })).toBeTruthy()
+    expect(refreshMock).not.toHaveBeenCalled()
+  })
+
+  /** L6 chiede la via di fuga **leggibile senza scorrere**, e le regole di casa un
+   *  bersaglio ≥ 44 px. Il numero che scende è un aiuto per gli occhi, quindi è
+   *  `aria-hidden`: il limite lo dicono le PAROLE, una volta sola. */
+  it('la via di fuga è un bersaglio ≥ 44px, e il conto alla rovescia non parla alla voce sintetica', () => {
+    monta()
+    tocca()
+    const foglio = screen.getByRole('dialog')
+    const annulla = within(foglio).getByRole('button', { name: 'Annulla' })
+    expect(parseFloat(annulla.style.minHeight)).toBeGreaterThanOrEqual(44)
+    // Il limite è detto a parole, dentro il pannello.
+    expect(testoDelFoglio()).toMatch(/fra pochi secondi/i)
+    // Il numero c'è, ma non ha voce.
+    const contatore = foglio.querySelector('[aria-hidden="true"]')
+    expect(contatore).toBeTruthy()
+    expect(testoDelFoglio()).toMatch(/\d+″/)
   })
 })
 
@@ -497,27 +717,13 @@ describe('AvvisoDentista — la schermata finale RILEGGE ciò che è stato scrit
     expect(testoDelFoglio()).not.toContain('undefined')
   })
 
-  it('«a voce» si rilegge come «a voce», e la parola viene dallo STATO salvato', async () => {
-    fingiRotta(rispostaOk('comunicato_a_voce'))
-    monta()
-    apriFoglio()
-    fireEvent.click(stradaVoce())
-    fireEvent.click(screen.getByRole('button', { name: /l’ho avvisato io/i }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
-    expect(testoDelFoglio()).toContain('a voce')
-  })
-
-  it('🛑 se la rotta non manda l’ora, si rilegge senza orologio — mai un «undefined»', async () => {
-    fingiRotta(rispostaOk('comunicato_a_voce', null))
-    monta()
-    apriFoglio()
-    fireEvent.click(stradaVoce())
-    fireEvent.click(screen.getByRole('button', { name: /l’ho avvisato io/i }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Fatto' })).toBeTruthy())
-    expect(testoDelFoglio()).not.toContain('undefined')
-    expect(testoDelFoglio()).not.toMatch(/alle \d{2}:\d{2}/)
-  })
-
+  /**
+   * 📌 Le due riletture della strada «a voce» — la parola letta dallo STATO
+   * salvato e la riuscita senza orologio — sono passate al blocco di ⚖️ D351: là
+   * gli orologi sono finti, perché la scrittura arriva **allo scadere della
+   * finestra** e non a un tocco. Sono le stesse due asserzioni, spostate dove il
+   * fatto adesso avviene. Qui resta la strada di WhatsApp, che è invariata.
+   */
   it('🛑 il rinfresco della pagina avviene alla CHIUSURA, mai a foglio aperto', async () => {
     fingiRotta()
     monta()
