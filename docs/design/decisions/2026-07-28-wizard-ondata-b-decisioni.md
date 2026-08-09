@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaquattresima tornata (D330: il fondo torna indietro, il bordo non si usa, e il gate si chiude com'è)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantacinquesima tornata (D331-D335: l’avviso al dentista lo decide l’odontotecnico, arriva da due strade, e il promemoria si chiude anche a voce)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**330 decisioni in centoquarantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**335 decisioni in centoquarantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4017,3 +4017,44 @@ tappa corrente — *il nastro non dice più «sei qui» con l'intensità, solo c
 era passato a inchiostro **ogni** `--faint` su quelle superfici, **galloni `›` compresi**. È stata
 applicata **l'immagine** — si torna indietro cambiando tre righe. Referto:
 `docs/design/screenshots/2026-08-09-devo-intervenire/GATE-L2.md`, sezione «D329 — applicata».
+
+---
+
+### Centoquarantacinquesima tornata — D331 · D332 · D333 · D334: l'avviso al dentista lo decide l'odontotecnico, arriva da due strade, e il dettaglio resta nel portale (09/08/2026, 12:06)
+
+**Come è nata:** apertura del **Task E** (⚖️ **D317**), l'ultima cosa aperta dell'ondata dell'atto unico
+e **l'unica mai iniziata**. Non è un compito da eseguire: il piano stesso lo dichiara aperto — «*File:
+**da decidere** leggendo il codice esistente degli avvisi*»
+(`docs/superpowers/plans/2026-08-08-correzione-e-riemissione-atto-unico.md:461`).
+
+🔑 **Perché è un obbligo e non una cortesia:** **GDPR Art. 19** impone di comunicare la rettifica a
+ciascun destinatario, e **Art. 5(2)** chiede di **poterlo dimostrare**.
+⚠️ **Vincolo già in casa, e non negoziabile:** i messaggi WhatsApp **non portano mai il nome del
+paziente** (`ua-app/CLAUDE.md` §9).
+
+**Il quadro accertato leggendo il codice, prima di chiedere qualsiasi cosa:** alla consegna parte un
+messaggio WhatsApp che contiene **solo un link al portale**, senza dati personali
+(`src/lib/consegna/orchestrate.ts:384-394`, `whatsapp-template.ts`); dal portale il dentista vede i
+lavori aperti e consegnati e **scarica dichiarazione e buono**
+(`src/app/portale/[token]/page.tsx:155-185, 344-385`), e **ogni scaricamento lascia una traccia**
+(`src/lib/portale/audit.ts:10`, azione `download_ddc`) — che è **già metà della prova richiesta
+dall'Art. 5(2)**. 🔴 **Quello che manca è esattamente ciò che serve: nel portale NON esiste nessun
+posto per gli AVVISI.** Ci sono i documenti, non le comunicazioni.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D331** | 🔑 **L'AVVISO AL DENTISTA NON PARTE DA SOLO: LO DECIDE L'ODONTOTECNICO.** L'app lo **propone**, e l'invio è un gesto suo | «*l'avviso al dentista decidiamo noi se inviarlo o no*» | ⚖️ Tre forme messe a confronto (parte da solo · lo decidi tu · parte da solo con una finestra per fermarlo). 🛑 **Il rovescio è stato detto PRIMA della scelta, non dopo: se non lo mandi, l'obbligo di legge resta scoperto** → l'app **deve ricordarlo finché non è fatto**, e tenerne traccia. *Una scelta che l'utente può non fare ha bisogno di un promemoria che non si spegne da solo* |
+| **D332** | 🔑 **L'AVVISO ARRIVA DA DUE STRADE: vive nel PORTALE e il messaggio WhatsApp è la SPINTA che ci porta.** Non l'uno o l'altro | «*tutti e due*» | ⚖️ La legge chiede di **comunicare**, non di rendere disponibile: **un avviso che nessuno apre non è una comunicazione**. Il portale è dove l'avviso **resta** e dove si **dimostra** che c'era (Art. 5(2)); WhatsApp è ciò che lo fa **vedere**. ⚠️ **E la divisione fra i due canali non è organizzativa, è di legge:** su WhatsApp **non può esserci nulla del paziente** |
+| **D333** | 🔑 **LE PROVE CHE PARLANO COL DATABASE SMETTONO DI ESSERE FACOLTATIVE: si accendono nella pubblicazione automatica.** Francesco ha inserito il segreto `SUPABASE_DB_URL` su GitHub. 🛑 **Ma prima si riparano le QUATTRO prove rosse**, poi si accende l'interruttore | «*risolviamo questa cosa, cosa ti serve per farlo?*» → «*poi ho inserito il secret in github*» | ⚖️ **La riga 39 della coda, chiusa dalla decisione.** Oggi `tests/integration/helpers/pg-client.ts:9` fa **saltare** l'intera suite quando la credenziale manca, invece di farla fallire: **16 prove esistono, sono verdi in locale e non sorvegliano niente.** 🔑 **Stessa famiglia della guardia sugli overlay**, che *quattro compiti di fila* non hanno lanciato perché manuale — *una prova che nessuno esegue è peggio di una che non c'è: fa credere che l'area sia coperta.* 🛑 **L'ordine è portante:** accendere con **quattro rosse dentro** bloccherebbe ogni pubblicazione, e **un allarme che suona sempre insegna a ignorare gli allarmi** |
+
+| **D334** | 🔑 **IL FATTO OVUNQUE, IL DETTAGLIO SOLO NEL PORTALE — e il testo si può ritoccare prima di mandarlo.** Su WhatsApp esce **solo** che la dichiarazione di un dato lavoro è stata rifatta; **che cosa** sia stato corretto vive **nel portale**; e l'app **propone** un testo che l'odontotecnico **può cambiare** | «*il terzo, il fatto ovunque e il dettaglio solo nel portale*» | ⚖️ Tre forme a confronto (tutto in dettaglio · solo il fatto · il fatto ovunque + dettaglio nel portale, ritoccabile). 🔑 **La differenza fra la prima e la terza non è il contenuto ma CHI SCRIVE:** nella terza il testo è **modificabile prima dell'invio**. ⚠️ **E il confine fra i due canali è di LEGGE, non organizzativo:** su WhatsApp non può uscire **nulla** del paziente (`CLAUDE.md` §9), mentre il portale è dietro token **e PIN** e tiene già una traccia degli accessi |
+
+| **D335** | 🔑 **IL PROMEMORIA SI PUÒ CHIUDERE DICHIARANDO «L'HO AVVISATO DI PERSONA», e l'app registra QUANDO e CHI l'ha dichiarato** — senza obbligo di scrivere *come* | «*la seconda*» | ⚖️ Tre forme a confronto (si chiude solo mandando dall'app · si dichiara · si dichiara **scrivendo come**). 🔑 **La prima è stata scartata per la ragione che vale in tutto il progetto: un allarme che non si può spegnere diventa rumore, e si paga sugli allarmi veri** — è lo stesso difetto delle prove che nessuno lancia (D333) e del falso conflitto intermittente dell'08/08. ⚖️ **Ed è difendibile sull'Art. 5(2):** ciò che la norma chiede è **poter dimostrare** di aver comunicato, **non il canale** — una dichiarazione con autore e data **è** una registrazione. ⚠️ La terza forma (scrivere come) resta **più difendibile in un contenzioso**: scartata per costo, non perché sbagliata |
+
+📌 **Chiuse dall'esplorazione del codice, non da una domanda a Francesco:** **a chi va** l'avviso —
+`lavori` ha **un solo `cliente_id`** (`provato:` `information_schema`), quindi il destinatario è uno ·
+**come parte il messaggio** — l'app **non manda niente da sola**: `buildWhatsappUrl` prepara un link
+`wa.me` che si apre nell'applicazione di chi lo tocca (`src/lib/consegna/whatsapp-template.ts`), quindi
+**D331 è già il funzionamento naturale del canale**, non una guardia da costruire.
+📌 **Resta aperta solo la FORMA** della sezione «avvisi» nel portale, che oggi **non esiste** → cancello
+§0B (mockup a più varianti, chiaro e scuro, prima del codice).
