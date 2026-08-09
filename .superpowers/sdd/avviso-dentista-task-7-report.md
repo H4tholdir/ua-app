@@ -1,7 +1,7 @@
 # Task 7 — resoconto: «il promemoria parla dalla home»
 
 **Ondata:** «l'avviso al dentista» · **ramo:** `intervento-post-consegna` · **10/08/2026** (`date` → `Mon Aug 10 00:59:16 CEST 2026`)
-**Salvataggi:** `ba831dea` (implementazione + prove) · `a006f940` (questo resoconto) · `1c0e7ec1` (§11 — un commento falso che avevo scritto io, corretto e pinnato)
+**Salvataggi:** `ba831dea` (implementazione + prove) · `a006f940` (questo resoconto) · `5a59ff85` (§11 — un commento falso che avevo scritto io, corretto e pinnato)
 **Stato:** `DONE_WITH_CONCERNS` — il lavoro è finito e verde; restano **una prova a schermo non fatta** (§8) e **un contro-argomento sull'ordine** che non è di un esecutore chiudere (§7).
 
 ---
