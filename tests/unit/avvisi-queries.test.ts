@@ -31,7 +31,7 @@
 //    prove che si allontanano.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { avvisiDaComunicare, archivioCliente } from '@/lib/avvisi/queries'
+import { avvisiDaComunicare, archivioCliente, avvisoPerLaScheda } from '@/lib/avvisi/queries'
 import { STATI_AVVISO, STATI_CHIUSI } from '@/lib/avvisi/stati'
 
 const LAB = '11111111-1111-1111-1111-111111111111'
@@ -216,6 +216,113 @@ describe('avvisiDaComunicare — il promemoria aperto di QUEL lavoro', () => {
     const { svc } = svcFinto([], true)
 
     await expect(avvisiDaComunicare(svc, { lavoroId: LAVORO, laboratorioId: LAB })).resolves.toEqual([])
+    expect(spiaLog).toHaveBeenCalled()
+  })
+})
+
+describe('avvisoPerLaScheda — il cancello di ⚖️ D342 E la lettura, nella stessa funzione', () => {
+  // 🔴 QUESTE PROVE HANNO PRESO IL POSTO DI UN TERNARIO CHE NESSUNA PROVA VEDEVA.
+  //    Prima stava in `lavori/[id]/page.tsx`:
+  //      `puoVedereAvviso(ruolo) ? avvisiDaComunicare(…) : Promise.resolve([])`
+  //    `provato:` capovolgendolo (`!mostraIlPromemoria ? …`) **tutte e 68 le prove
+  //    restavano verdi**, mentre a vedere il promemoria sarebbero rimasti solo
+  //    `admin_rete` e `admin_sistema` — i due che D342 esclude. Quel file è un
+  //    componente server asincrono che nessuna prova unitaria rende: una mutazione
+  //    scritta lì dentro **non può** diventare rossa. Spostata la decisione qui,
+  //    può — ed è l'unica ragione per cui queste righe esistono.
+  //
+  // 🔑 E SI GUARDA LA SPIA, NON SOLO IL VALORE DI RITORNO. «Torna `null`» da solo
+  //    non distingue «non ha letto» da «ha letto e non c'era»: la differenza è
+  //    tutta lì, perché il senso del cancello è che l'identificativo dell'avviso
+  //    NON entri nemmeno nella pagina di chi non potrebbe chiuderlo. Si asserisce
+  //    `spia.consultato`, cioè se il banco è stato interrogato.
+  //
+  // 🛑 I CINQUE NOMI SCRITTI A MANO, mai un ciclo su `RUOLI_CHIUSURA_AVVISO`:
+  //    un ciclo sulla costante è tautologico (lezione di `api-avviso.test.ts:559`).
+
+  const AMMESSI = ['titolare', 'tecnico', 'front_desk'] as const
+  const ESCLUSI = ['admin_rete', 'admin_sistema'] as const
+
+  for (const ruolo of AMMESSI) {
+    it(`«${ruolo}» VEDE il promemoria: il banco è interrogato, e torna l’avviso aperto`, async () => {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: LAB, ruolo })
+
+      expect(spia.consultato, `${ruolo}: il banco doveva essere interrogato`).toBe(1)
+      expect(esito?.id).toBe('avv-1')
+    })
+  }
+
+  for (const ruolo of ESCLUSI) {
+    it(`🛑 «${ruolo}» NON vede niente, e il banco non viene nemmeno interrogato`, async () => {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: LAB, ruolo })
+
+      // Il finto HA una riga aperta da restituire: se il cancello guardasse dal
+      // verso sbagliato, `esito` sarebbe quella riga. È la mutazione che questa
+      // prova esiste per prendere.
+      expect(esito, `${ruolo} non deve vedere nessun avviso`).toBeNull()
+      expect(spia.consultato, `${ruolo}: il banco non doveva essere interrogato`).toBe(0)
+    })
+  }
+
+  it('🛑 FAIL-CLOSED: ruolo assente, nullo o sconosciuto → niente, e nessuna lettura', async () => {
+    // `SchedaLavoroV3` riceve `ruolo?: string | null`, quindi i due casi sono
+    // veri. La chiave `ruolo` è OBBLIGATORIA nel tipo: chi la dimentica non
+    // compila — la chiusura è per costruzione, non per disciplina.
+    for (const ruolo of [null, undefined, '', 'admin', 'front-desk']) {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: LAB, ruolo })
+
+      expect(esito, `«${String(ruolo)}» non deve vedere nessun avviso`).toBeNull()
+      expect(spia.consultato, `«${String(ruolo)}»: nessuna lettura`).toBe(0)
+    }
+  })
+
+  it('i filtri della lettura arrivano interi anche passando di qui', async () => {
+    // L'involucro non deve perdere per strada l'isolamento fra laboratori: il
+    // client di servizio scavalca la RLS, quindi la `.eq()` è tutto ciò che c'è.
+    const { svc, spia } = svcFinto([rigaAperta()])
+    await avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: ALTRO_LAB, ruolo: 'titolare' })
+
+    expect(spia.filtri).toEqual([
+      ['eq:lavoro_id', LAVORO],
+      ['eq:laboratorio_id', ALTRO_LAB],
+      ['in:stato', ['da_comunicare']],
+    ])
+  })
+
+  it('nessun avviso aperto → `null`, e non è un guasto', async () => {
+    const { svc, spia } = svcFinto([])
+    const esito = await avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(esito).toBeNull()
+    // 🔑 E la differenza col ruolo escluso è QUI: il banco è stato interrogato.
+    expect(spia.consultato).toBe(1)
+  })
+
+  it('DUE avvisi aperti → si mostra il PIÙ VECCHIO, uno solo', async () => {
+    // ⚖️ I due avvisi portano `campi_corretti` diversi e sono due rettifiche
+    // distinte ex Art. 19 GDPR: si consuma prima l'obbligo nato prima. Chiudendo
+    // il primo la riga ricompare per il secondo — è la verità, non un difetto.
+    // 🔑 Questa scelta stava in `page.tsx` (`avvisiAperti[0] ?? null`) e nessuna
+    //    prova la guardava, per lo stesso motivo del ternario. Ora è qui.
+    const { svc } = svcFinto([
+      rigaAperta({ id: 'avv-vecchio', created_at: '2026-08-09T10:00:00.000Z' }),
+      rigaAperta({ id: 'avv-nuovo', created_at: '2026-08-09T18:00:00.000Z' }),
+    ])
+    const esito = await avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: LAB, ruolo: 'titolare' })
+
+    expect(esito?.id).toBe('avv-vecchio')
+  })
+
+  it('se il banco non risponde: `null` per la scheda, e il guasto scritto nei log', async () => {
+    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = svcFinto([], true)
+
+    await expect(
+      avvisoPerLaScheda({ svc, lavoroId: LAVORO, laboratorioId: LAB, ruolo: 'titolare' })
+    ).resolves.toBeNull()
     expect(spiaLog).toHaveBeenCalled()
   })
 })

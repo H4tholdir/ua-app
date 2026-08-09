@@ -28,6 +28,7 @@ import {
   chiudeIlPromemoria,
   type StatoAvviso,
 } from '@/lib/avvisi/stati'
+import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
 import type { getServiceClient } from '@/lib/supabase/server-service'
 
 type Svc = ReturnType<typeof getServiceClient>
@@ -134,6 +135,60 @@ export async function avvisiDaComunicare(
 
   if (error || !data) return vuotoConNota('avvisiDaComunicare', error)
   return data as unknown as AvvisoRiga[]
+}
+
+/**
+ * IL PROMEMORIA DA METTERE SULLA SCHEDA — il cancello di ⚖️ D342 e la lettura
+ * **dentro la stessa funzione**, così non esistono a due passi diversi.
+ *
+ * 🔴 PERCHÉ ESISTE, ED È UN DIFETTO DI PROVA CHIUSO, NON UN ABBELLIMENTO.
+ *    Prima (revisione del Task 6) `lavori/[id]/page.tsx` teneva un ternario —
+ *    `puoVedereAvviso(ruolo) ? avvisiDaComunicare(…) : Promise.resolve([])`.
+ *    Il cancello era giusto e il predicato provato, ma **il ternario no**:
+ *    `provato:` capovolgendolo (`!mostraIlPromemoria ? …`) **tutte e 68 le prove
+ *    restavano verdi** mentre a vedere il promemoria sarebbero rimasti **solo**
+ *    `admin_rete` e `admin_sistema`, cioè esattamente i due che D342 esclude.
+ *    Il motivo è strutturale: quel file è un componente server asincrono che
+ *    nessuna prova unitaria rende, quindi nessuna mutazione al suo interno può
+ *    diventare rossa. ➡️ La riga si è **spostata qui**, dove una prova la
+ *    esercita davvero (`tests/unit/avvisi-queries.test.ts`).
+ *
+ * 🛑 **`ruolo` È OBBLIGATORIO, E LA CHIUSURA È PER COSTRUZIONE, NON PER
+ *    DISCIPLINA.** La chiave non è opzionale: chi dimentica di dichiarare *chi
+ *    guarda* non compila. Il tipo ammette `null`/`undefined` perché i chiamanti
+ *    veri li hanno davvero (`SchedaLavoroV3` riceve `ruolo?: string | null`), e
+ *    quei valori **non passano il cancello**: fail-closed senza un secondo ramo.
+ *
+ * 🔑 **UNO SOLO, ANCHE QUANDO SONO DUE**, e il fatto è vero, non teorico:
+ *    `correggi_e_riemetti_atomica` fa un `INSERT` **incondizionato**
+ *    (`20260809133546:488`), quindi due riemissioni non comunicate lasciano DUE
+ *    righe aperte sullo stesso lavoro. Si torna la **più vecchia** (la lettura
+ *    ordina crescente): due righe identiche sulla stessa carta non direbbero
+ *    niente a nessuno, e chiudendo la prima il promemoria **ricompare** per la
+ *    seconda — che è la verità, non un difetto. I due avvisi portano
+ *    `campi_corretti` diversi e sono **due rettifiche distinte** ex Art. 19 GDPR:
+ *    si consuma prima l'obbligo nato prima.
+ *
+ * ⚠️ **`avvisiDaComunicare` NON cambia firma** e resta esportata: è la lettura
+ *    grezza, e le sue dodici prove restano quelle. Questa la chiama.
+ *    🛑 Chi rende una schermata usa **questa**, non quella: chiamare la grezza
+ *    vuol dire rifare il cancello a mano, cioè ricreare il ternario che questa
+ *    funzione esiste per togliere. Una sentinella lo controlla su `page.tsx`
+ *    (`tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx`).
+ */
+export async function avvisoPerLaScheda(arg: {
+  svc: Svc
+  lavoroId: string
+  laboratorioId: string
+  ruolo: string | null | undefined
+}): Promise<AvvisoRiga | null> {
+  if (!puoVedereAvviso(arg.ruolo)) return null
+
+  const aperti = await avvisiDaComunicare(arg.svc, {
+    lavoroId: arg.lavoroId,
+    laboratorioId: arg.laboratorioId,
+  })
+  return aperti[0] ?? null
 }
 
 /**

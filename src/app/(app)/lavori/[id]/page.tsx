@@ -5,21 +5,21 @@ import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLav
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import { caricaTinteScheda } from '@/lib/lavori/tinta-scheda'
-import { avvisiDaComunicare } from '@/lib/avvisi/queries'
-// 🛑 IL CANCELLO PER RUOLO SI LEGGE DA DOVE VIVE, e non se ne tiene una copia:
-//    `@/lib/avvisi/ruoli` è un modulo FOGLIA — nessun import, quindi lo possono
-//    leggere il server, il browser e una prova. Due elenchi di permessi divergono:
-//    in questa casa è già successo con `admin_sistema`, dimenticato per giorni pur
-//    essendo usato 15 volte.
-// 🔄 FINO ALLA REVISIONE DEL TASK 6 QUESTA RIGA IMPORTAVA DALLA ROTTA, e non era
+// 🛑 UNA CHIAMATA SOLA, E IL RUOLO CI ENTRA DENTRO: `avvisoPerLaScheda` tiene il
+//    cancello di ⚖️ D342 e la lettura nella stessa funzione, e pretende `ruolo`
+//    come argomento obbligatorio. Questa pagina non decide più niente, quindi non
+//    c'è più niente da sbagliare qui — e la decisione sta dove una prova la
+//    esercita. NON si chiama `avvisiDaComunicare` da qui: sarebbe rifare il
+//    cancello a mano (sentinella in `tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx`).
+// 🔄 FINO ALLA REVISIONE DEL TASK 6 QUI SI IMPORTAVA DALLA ROTTA, e non era
 //    innocuo: era l'unico import **di valore** verso un `route.ts` in tutto
 //    `src/` (gli altri undici sono `import type` e spariscono in compilazione), e
 //    tirava nel grafo di questa pagina l'intero gestore della rotta —
 //    `next/server`, csrf, `lab-guard`, `getServiceClient`. `route.ts` è un file
 //    speciale di Next: qualunque effetto a livello di modulo ci finisse verrebbe
-//    eseguito al render della pagina. Ora l'elenco vive in un modulo FOGLIA
-//    (`src/lib/avvisi/ruoli.ts`, nessun import), che la rotta ri-esporta.
-import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
+//    eseguito al render della pagina. L'elenco dei ruoli vive ora in un modulo
+//    FOGLIA (`src/lib/avvisi/ruoli.ts`, nessun import), che la rotta ri-esporta.
+import { avvisoPerLaScheda } from '@/lib/avvisi/queries'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
@@ -122,30 +122,27 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   // 🔑 «*La visibilità è un SOTTOINSIEME del permesso: nessuno vede un promemoria
   //    che non può chiudere*» (verbale, centoquarantottesima tornata). Un
   //    `admin_rete` che vedesse la riga toccherebbe un tasto che risponde 403.
-  // 🛑 FAIL-CLOSED SENZA UN SECONDO RAMO: un ruolo assente, nuovo o scritto male
-  //    non è un caso a parte — `includes()` risponde `false` e non si legge
-  //    niente. Un ramo in più per «ruolo sconosciuto» sarebbe un posto in più
-  //    dove sbagliare il verso del confronto.
-  // 🔑 E IL CANCELLO STA QUI, NON NELLA SCHEDA: deciderlo dal server è
-  //    STRETTAMENTE MEGLIO, perché l'identificativo dell'avviso non entra nemmeno
-  //    nella pagina di chi non potrebbe chiuderlo. (Prima della revisione del Task
-  //    6 era anche l'unica strada possibile — la costante viveva nella rotta, e un
-  //    componente client non poteva importarla; ora `@/lib/avvisi/ruoli` è una
-  //    foglia leggibile da entrambe le parti, quindi la scelta è di merito.)
-  // ⚠️ **LIMITE DICHIARATO, e nessuna prova lo copre oggi:** questo ternario è la
-  //    sola riga del cancello che nessuna prova esercita a runtime — capovolgerlo
-  //    lascerebbe verdi tutte le prove unitarie, perché questo file è un
-  //    componente server asincrono che nessuna di esse rende. Il predicato **è**
-  //    provato contro i cinque ruoli veri (`tests/unit/avvisi-ruoli.test.ts`); il
-  //    suo *uso* qui lo prova solo il giro sul banco del **Task 10**.
-  const mostraIlPromemoria = puoVedereAvviso(context.ruolo)
-
+  // 🛑 QUI NON C'È NESSUN CANCELLO DA LEGGERE, ED È IL PUNTO: il ruolo entra come
+  //    argomento OBBLIGATORIO di `avvisoPerLaScheda`, che decide e legge dentro di
+  //    sé. Non si può chiedere il promemoria senza dichiarare chi guarda — la
+  //    chiusura è per COSTRUZIONE, e un ruolo assente non passa.
+  // 🔄 FINO ALLA SECONDA REVISIONE DEL TASK 6 QUI C'ERA UN TERNARIO, e non era
+  //    innocuo: `provato:` capovolgendolo, **tutte e 68 le prove restavano verdi**
+  //    mentre a vedere la riga sarebbero rimasti solo i due ruoli che D342
+  //    esclude. Questo file è un componente server asincrono che nessuna prova
+  //    unitaria rende, quindi nessuna mutazione scritta QUI può diventare rossa.
+  //    ➡️ La decisione è stata spostata dove una prova la esercita davvero
+  //    (`tests/unit/avvisi-queries.test.ts`), e questa pagina si è fatta più
+  //    stupida apposta.
+  // 🔑 E la scelta «uno solo anche quando sono due» sta con lei, per la stessa
+  //    ragione: era una riga di questa pagina, e nessuna prova la guardava.
+  //
   // 🔑 La lettura entra NEL `Promise.all` che c'era già: è indipendente dalla
   //    firma degli allegati, quindi non costa un millisecondo in più di attesa.
   //    ⚠️ `caricaTinteScheda` qui sopra resta invece un `await` in fila per conto
   //    suo — inefficienza preesistente, fuori da questo mandato: riferita, non
   //    spostata (R-E2).
-  const [signedDdcUrl, , avvisiAperti] = await Promise.all([
+  const [signedDdcUrl, , avvisoDaMostrare] = await Promise.all([
     lavoroDettaglio.ddc?.storage_path_pdf
       ? getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
       : Promise.resolve(null),
@@ -155,20 +152,16 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
         if (signedImgUrl) img.url = signedImgUrl
       })
     ),
-    mostraIlPromemoria
-      ? avvisiDaComunicare(svc, { lavoroId: id, laboratorioId: context.laboratorioId })
-      : Promise.resolve([]),
+    avvisoPerLaScheda({
+      svc,
+      lavoroId: id,
+      laboratorioId: context.laboratorioId,
+      ruolo: context.ruolo,
+    }),
   ])
   if (signedDdcUrl && lavoroDettaglio.ddc) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
 
-  // ⚠️ UNO SOLO, ANCHE QUANDO SONO DUE — e il fatto è vero, non teorico:
-  //    `correggi_e_riemetti_atomica` fa un `INSERT` incondizionato, quindi due
-  //    riemissioni non comunicate lasciano DUE righe aperte sullo stesso lavoro.
-  //    Si mostra la **più vecchia** (la lettura ordina crescente): due righe
-  //    identiche sulla stessa carta non direbbero niente a nessuno, e chiudendo
-  //    la prima la riga ricompare per la seconda — che è la verità, non un
-  //    difetto: il promemoria non si spegne da solo finché un obbligo resta.
-  lavoroDettaglio.avvisoDaComunicare = avvisiAperti[0] ?? null
+  lavoroDettaglio.avvisoDaComunicare = avvisoDaMostrare
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>

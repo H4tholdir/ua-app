@@ -1,6 +1,20 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+
+// 🛑 `server-service.ts` apre con `import 'server-only'`, che in Node è un `throw`
+//    nudo (`node_modules/server-only/index.js`). Senza questa riga il secondo
+//    gruppo di prove non riesce nemmeno a importare il modulo. Non è un finto del
+//    client: è togliere il cartello «solo lato server», che qui è **vero** — una
+//    prova gira lato server per definizione.
+vi.mock('server-only', () => ({}))
+
 import { withRollback, skipIntegrationTests } from './helpers/pg-client'
-import { COLONNE } from '@/lib/avvisi/queries'
+import { getServiceClient } from '@/lib/supabase/server-service'
+import {
+  COLONNE,
+  avvisiDaComunicare,
+  archivioCliente,
+  avvisoPerLaScheda,
+} from '@/lib/avvisi/queries'
 
 // LE COLONNE CHE `src/lib/avvisi/queries.ts` CHIEDE ESISTONO DAVVERO.
 // Nato dalla revisione del Task 6 dell'ondata «l'avviso al dentista».
@@ -94,5 +108,130 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — le colonne che il cod
       expect([...chieste].sort()).toEqual(nelBanco.filter((c) => c !== 'laboratorio_id').sort())
       expect(chieste).not.toContain('laboratorio_id')
     })
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// LA STRADA VERA: le stesse letture, ma attraverso il CLIENT DI SERVIZIO.
+//
+// 🔑 PERCHÉ SERVE ANCHE QUESTO, e la sua mancanza era un buco dichiarato. Le
+//    prove qui sopra girano su `pg`, cioè SQL diretto: provano che i nomi delle
+//    colonne esistano, non che PostgREST — la strada che il codice usa davvero —
+//    li accetti nella forma in cui gliela passiamo. Il client di servizio è
+//    l'unico ambiente autorevole, e senza queste righe restava provato solo
+//    contro un finto.
+//
+// 🛑 IL CANCELLO È DIVERSO DA QUELLO DI SOPRA, E LA RAGIONE VA LETTA.
+//    `provato:` `.github/workflows/ci.yml` — il passo «Unit tests» riceve
+//    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e
+//    `SUPABASE_DB_URL`, e **NON** `SUPABASE_SERVICE_ROLE_KEY`. ➡️ Questo gruppo
+//    **in CI si salta**, e in locale gira (la chiave è in `.env.local`). NON è
+//    un salto silenzioso: è scritto qui, ed è il motivo per cui il gruppo di
+//    sopra esiste separato e gira **sempre**, anche in CI.
+//    ⚠️ Il giorno in cui `SUPABASE_SERVICE_ROLE_KEY` venisse aggiunta ai segreti
+//    del passo «Unit tests», questo gruppo comincerebbe a girare in CI da solo,
+//    senza toccare una riga.
+//
+// 🔑 E SI GUARDA `console.error`, NON IL VALORE DI RITORNO. È il punto di tutta
+//    la faccenda: `vuotoConNota` INGHIOTTE l'errore e torna una lista vuota, che
+//    è indistinguibile da «non c'è nessun avviso». Una prova che guardasse solo
+//    il ritorno sarebbe verde anche con lo schema rotto — cioè riprodurrebbe
+//    esattamente il silenzio che stiamo chiudendo. L'unica traccia è il log.
+
+const saltaViaServizio =
+  !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL
+
+/** Un laboratorio che non esiste: basta e avanza — si prova la FORMA della
+ *  domanda, non il contenuto della risposta. Zero righe è l'esito atteso. */
+const LAB_INESISTENTE = '00000000-0000-0000-0000-0000000000ff'
+const LAVORO_INESISTENTE = '00000000-0000-0000-0000-0000000000fe'
+const CLIENTE_INESISTENTE = '00000000-0000-0000-0000-0000000000fd'
+
+describe.skipIf(saltaViaServizio)('le due letture passano davvero da PostgREST col client di servizio', () => {
+  /** Ciò che `vuotoConNota` ha scritto nei log durante la prova in corso. */
+  const raccolti: string[] = []
+
+  /**
+   * Mette in ascolto sui guasti invece di guardarli dopo.
+   * 🔑 Si raccoglie il TESTO, non la spia: la spia di `vi` porta con sé un tipo
+   * che `tsc` non riesce a stringere qui (`error TS7006` sul parametro di
+   * `calls.map`), e una prova che non compila non è una prova. Il testo basta:
+   * è tutto ciò che resta di un guasto che il ripiego ha inghiottito.
+   */
+  function ascoltaIGuasti() {
+    raccolti.length = 0
+    vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      raccolti.push(args.map(String).join(' '))
+    })
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  /** Il guasto non torna al chiamante: si legge nei log, o non si legge affatto. */
+  function guasti(): string {
+    return raccolti.join('\n')
+  }
+
+  it('`avvisiDaComunicare` — nessun errore dal banco, quindi colonne, filtri e ordini sono veri', async () => {
+    ascoltaIGuasti()
+    const svc = getServiceClient()
+
+    const righe = await avvisiDaComunicare(svc, {
+      lavoroId: LAVORO_INESISTENTE,
+      laboratorioId: LAB_INESISTENTE,
+    })
+
+    expect(guasti(), 'PostgREST ha rifiutato la lettura').toBe('')
+    expect(righe).toEqual([])
+  })
+
+  it('`archivioCliente` — stessa cosa per la lettura del Task 9', async () => {
+    ascoltaIGuasti()
+    const svc = getServiceClient()
+
+    const righe = await archivioCliente(svc, {
+      clienteId: CLIENTE_INESISTENTE,
+      laboratorioId: LAB_INESISTENTE,
+    })
+
+    expect(guasti(), 'PostgREST ha rifiutato la lettura').toBe('')
+    expect(righe).toEqual([])
+  })
+
+  it('`avvisoPerLaScheda` con un ruolo ammesso arriva fino al banco, e non inciampa', async () => {
+    // 🔑 Il giro intero come lo fa la scheda: cancello aperto, lettura vera.
+    ascoltaIGuasti()
+    const svc = getServiceClient()
+
+    const avviso = await avvisoPerLaScheda({
+      svc,
+      lavoroId: LAVORO_INESISTENTE,
+      laboratorioId: LAB_INESISTENTE,
+      ruolo: 'titolare',
+    })
+
+    expect(guasti(), 'PostgREST ha rifiutato la lettura').toBe('')
+    expect(avviso).toBeNull()
+  })
+
+  it('🛑 e con un ruolo escluso NON tocca il banco: nemmeno una domanda parte', async () => {
+    // ⚖️ D342 provato sulla strada vera, non su un finto: se il cancello guardasse
+    // dal verso sbagliato la domanda partirebbe lo stesso, e questa prova non la
+    // vedrebbe dal valore di ritorno (`null` in entrambi i casi). Si conta la
+    // chiamata a `from()` sul client vero.
+    const svc = getServiceClient()
+    const spiaFrom = vi.spyOn(svc, 'from')
+
+    const avviso = await avvisoPerLaScheda({
+      svc,
+      lavoroId: LAVORO_INESISTENTE,
+      laboratorioId: LAB_INESISTENTE,
+      ruolo: 'admin_rete',
+    })
+
+    expect(avviso).toBeNull()
+    expect(spiaFrom, 'un ruolo escluso non deve nemmeno interrogare il banco').not.toHaveBeenCalled()
   })
 })
