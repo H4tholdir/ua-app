@@ -192,8 +192,22 @@ $ node scripts/psql.mjs -c "SELECT proacl FROM pg_proc WHERE proname='correggi_e
 anon=false | authenticated=false | service_role=true
 ```
 Il `REVOKE` non è saltato. E il **`COMMENT` è sopravvissuto al `DROP`**, che se lo sarebbe portato via:
-catturato prima (5294 byte), riemesso e allungato (6067 byte nel catalogo), con il testo vecchio
-**prefisso intatto** del nuovo — verificato con un confronto di stringhe, non a occhio.
+catturato **prima** del `DROP` (5294 byte / 5187 caratteri), riemesso e allungato (**6196 byte / 6067
+caratteri**), con il testo vecchio **prefisso intatto** del nuovo — verificato con un confronto di
+stringhe, non a occhio.
+⚠️ **Le due unità si dichiarano perché sembrano un'incongruenza e non lo sono:** `wc -c` e
+`octet_length()` contano **byte**, `length()` di Postgres conta **caratteri**, e questo testo è pieno di
+UTF-8 multibyte. `provato:` `length()=6067` e `octet_length()=6196` sulla **stessa** riga di catalogo.
+
+E il file di migration su disco **dice la stessa cosa del catalogo**, cioè un `db reset` da zero
+riprodurrebbe esattamente ciò che è vivo — controllato perché fra il `push` riuscito e adesso il corpo è
+stato sovrascritto due volte da `scripts/psql.mjs` (l'abbozzo inerte e il ripristino):
+
+```
+corpo estratto dal file 20260809133546  → 396 righe
+corpo estratto da pg_get_functiondef     → 396 righe
+IDENTICI
+```
 
 ### Le prove
 
@@ -235,18 +249,26 @@ quindi con le prove d'integrazione **accese**: zero saltate.
 **superata** invece della nuova) e `campi_corretti = '{}'::text[]`. Applicato con `scripts/psql.mjs`,
 che **non registra** la migration (R-P1: le sonde non passano dal ledger), e **rimosso subito dopo**.
 
-**8 asserzioni su 49 si accendono.** Sono queste, e ognuna dice una cosa diversa:
+**8 asserzioni su 49 si accendono** — 🛑 **e metà del numero è osservata, metà dedotta: si dice quale.**
+`vitest` ferma una prova alla **prima** asserzione che cade, quindi un solo giro può mostrarne una per
+prova. Le altre le ho ricavate dal **contenuto noto della riga inerte** (`dichiarazione_id` = la vecchia,
+`campi_corretti` = `{}`, tutto il resto giusto), che è deterministico. La revisione del Task 1 ha
+rifiutato di riportare come proprio un `R-P4` non verificabile: questa colonna è lì per non chiederle la
+stessa cosa.
 
-| prova | riga | che cosa distingue |
-|---|---|---|
-| ① | 162 | `dichiarazione_id` è la **nuova** |
-| ① | 163 | e non è la **vecchia** |
-| ① | 164 | `campi_corretti` = le due chiavi mandate |
-| ①-bis | 199 | e nell'ordine **scelto**, non in quello di `jsonb` |
-| ③ | 277 | il **secondo** avviso porta la **seconda** dichiarazione |
-| ③ | 287 | ogni avviso porta i campi della **propria** riemissione |
-| ③ | 288 | idem, per la seconda |
-| ④ | 327 | vale anche quando chiama `service_role` |
+| prova | riga | come | che cosa distingue |
+|---|---|---|---|
+| ① | 162 | **osservata** | `dichiarazione_id` è la **nuova** |
+| ① | 163 | dedotta | e non è la **vecchia** |
+| ① | 164 | dedotta | `campi_corretti` = le due chiavi mandate |
+| ①-bis | 199 | **osservata** | e nell'ordine **scelto**, non in quello di `jsonb` |
+| ③ | 277 | **osservata** | il **secondo** avviso porta la **seconda** dichiarazione |
+| ③ | 287 | dedotta | ogni avviso porta i campi della **propria** riemissione |
+| ③ | 288 | dedotta | idem, per la seconda |
+| ④ | 327 | **osservata** | vale anche quando chiama `service_role` |
+
+Le quattro osservate sono le righe che `vitest` ha stampato come punto di caduta (`4 failed | 4 passed`,
+righe `162:34`, `199:40`, `277:29`, `327:42`).
 
 🛑 **Il numero è basso, e il motivo va detto invece che nascosto.** Tre prove su otto (②, ⑤, ⑦)
 asseriscono un'**assenza** — «non resta nessun avviso» — e contro l'abbozzo passano **a vuoto**, perché
@@ -347,18 +369,21 @@ catalogo che non passa per una terza trascrizione.
    d'ingresso: serve una fixture di prescrizione, e il comportamento è quello dell'altra voce di
    `c_su_penne`, già coperto.
 4. **Che i lettori futuri (Task 5, 7, 8, 9) leggano ciò che questa riga scrive.** Non esistono ancora.
-5. **Il `R-P4: 8 su 49`** è ripetibile — l'abbozzo, il comando e le righe sono qui sopra — ma
-   l'abbozzo **non è committato** (R-P1: gli spike sono usa e getta).
+5. **Quattro delle otto asserzioni del `R-P4: 8 su 49` sono DEDOTTE, non osservate** — `vitest` ferma
+   una prova alla prima caduta. Quali, e perché la deduzione è deterministica, sta nella tabella del
+   §③. Il conteggio è ripetibile (abbozzo e comandi sono scritti), ma l'abbozzo **non è committato**
+   (R-P1: gli spike sono usa e getta).
 
 ---
 
 ## ⑥ I ritrovamenti fuori mandato (R-E2: riferiti, non corretti)
 
 1. 🟠 **`cliente_id` e `dichiarazione_id` sono `ON DELETE CASCADE` nel vivo, dove il piano scriveva
-   `RESTRICT`.** Il piano (Task 1, blocco della tabella) dice
-   `cliente_id … ON DELETE RESTRICT` e `dichiarazione_id … ON DELETE RESTRICT`; il catalogo dice
-   `CASCADE` per entrambe. **La revisione del Task 1 non l'ha visto** (contava le CASCADE, senza
-   confrontarle col piano). **La conseguenza:** cancellare una dichiarazione **porta via in silenzio la
+   `RESTRICT`.** `provato:` il piano, **righe 104-105**, dice
+   `cliente_id … ON DELETE RESTRICT` e `dichiarazione_id … ON DELETE RESTRICT` (le due righe sopra, 102
+   e 103, dicono `CASCADE`: la distinzione era **voluta**); `pg_constraint` dice **`CASCADE` per tutte e
+   quattro**. **La revisione del Task 1 non l'ha visto** (contava le CASCADE, senza confrontarle col
+   piano). **La conseguenza:** cancellare una dichiarazione **porta via in silenzio la
    prova che il dentista fu avvisato** — cioè il dato che la tabella esiste per conservare
    (GDPR Art. 5(2)). Va deciso da chi tocca la tabella, non da qui.
 2. 🟠 **Il commento di `correzioni.ts` afferma una protezione che non c'è.** «*si guardano in faccia in
