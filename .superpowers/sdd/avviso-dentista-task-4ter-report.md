@@ -377,5 +377,8 @@ con FASE 3 piena e FASE 7 intera.
 `git status` guardato prima (⚖️ D318), `git add <percorsi>` nominati uno per uno, **mai `-A`**.
 Niente `push`, niente `main`, niente worktree.
 
-**Hash:** v. la riga finale della risposta all'orchestratore (il commit è stato fatto dopo la stesura
-di questo resoconto, così il resoconto è dentro lo stesso salvataggio).
+**Hash del lavoro: `8ae9bc05`** — `fix(messaggi): la firma dei messaggi è il nome del laboratorio, non
+«UÀ Lab» (D345)`, 13 file, +1015 / −60. Contiene il codice, le prove e questo resoconto.
+
+📌 Questa riga dell'hash è arrivata con un secondo salvataggio minimo (un resoconto non può contenere
+l'hash del salvataggio che lo contiene). Il salvataggio del **lavoro** è `8ae9bc05`.
