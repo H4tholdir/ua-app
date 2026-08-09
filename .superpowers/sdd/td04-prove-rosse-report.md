@@ -230,5 +230,23 @@ Poi **otto giri verdi di fila**: ~**1 fallimento su 9**, in un file che **non è
 - **Non ho scritto migration** e non ho toccato il codice di produzione: il difetto non era lì. Nessuna FASE 6b dovuta.
 - **Non ho toccato** `memory/MEMORY.md`, la roadmap, il verbale.
 - **Non ho verificato** se altri file di prova descrivano comportamenti superati come questo: ho controllato **solo** questo asse (`grep -rni "eliminat" tests/ | grep -i storno` → nessuna occorrenza fuori da questo file, ora tutte corrette). Un censimento generale «prove che descrivono un disegno superato» non è stato fatto.
-- **Non ho salvato** (`git commit`): l'albero resta con la sola modifica alla prova, pronta da rivedere.
-- Le sonde stanno in `scripts/tmp/` (`sonda-td04.mjs`, `sonda-td04-doppio.mjs`, `dump-fn.mjs`) — cartella **ignorata da git**, usa e getta, mai committata.
+- Le sonde stanno in `scripts/tmp/` (`sonda-td04.mjs`, `sonda-td04-doppio.mjs`, `dump-fn.mjs`) — cartella **ignorata da git**, usa e getta, mai committate.
+
+### 🔴 Un errore mio, da raccontare per intero
+
+**Il mio salvataggio è finito dentro il commit di un'altra sessione, e la colpa è di come l'ho fatto.**
+
+Lavoravo nello stesso albero di una sessione viva che stava scrivendo il verbale delle decisioni (D331-D335). Ho eseguito `git add` sui miei due percorsi e poi `git commit`: il commit **è fallito** con `error: impossibile scrivere l'indice` (contesa sull'indice, lint-staged si è fermato). Nel frattempo l'altra sessione ha salvato — e ha trovato **i miei file già nell'indice**, quindi se li è portati dentro:
+
+```
+commit a06870e2  docs(decisioni): D331-D335 — l'avviso al dentista, deciso in cinque risposte
+ .superpowers/sdd/td04-prove-rosse-report.md        | 234 +++++++++++++++++++++
+ .../2026-07-28-wizard-ondata-b-decisioni.md        |  45 +++-
+ .../annulla-effetti-storno-td04.rpc.test.ts        | 216 +++++++++++++------
+```
+
+**Nessun contenuto è andato perso** — la prova salvata è la versione corretta e l'albero è pulito. **Ciò che si è perso è il messaggio:** la storia non dice da nessuna parte perché quelle prove sono cambiate, e il messaggio che l'avrebbe spiegato è finito nel cestino insieme al commit fallito. Questo referto è l'unico posto dove quella spiegazione esiste.
+
+🛑 **Non ho riscritto la storia per rimediare** (`reset`, `amend`): il ramo è **in uso da una sessione viva**, e riscrivere sotto i piedi di chi ci sta lavorando è un danno peggiore di un messaggio di commit sbagliato.
+
+🔑 **La lezione, che vale oltre questo caso:** in un albero condiviso con una sessione attiva, `git add` **non è un gesto locale** — mette i file in una zona comune da cui chiunque può salvarli. O si salva in un colpo solo (`git commit <percorsi>`, che non passa dall'indice condiviso), o si aspetta che l'albero sia fermo.
