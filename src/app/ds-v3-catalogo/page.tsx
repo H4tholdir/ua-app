@@ -1118,6 +1118,12 @@ export default function CatalogoPage() {
             <ChipScelta selezionata={chipTipo === 'ponte'} onClick={() => setChipTipo('ponte')}>
               Ponte
             </ChipScelta>
+            {/* 🔴 IL TERZO STATO, aggiunto dal Task 9 (09/08/2026) e messo QUI
+                subito: §5.31 ne descrive due, e uno stato che vive solo dentro
+                una schermata è uno stato che il prossimo ridisegnerà da capo. */}
+            <ChipScelta selezionata={false} disabilitata onClick={() => {}}>
+              Faccetta
+            </ChipScelta>
           </div>
           <p
             style={{
@@ -1131,6 +1137,23 @@ export default function CatalogoPage() {
             colore — L3), SENZA ombra. CampoData (§5.27, sezione «Campo» qui sopra) la
             usa già per Oggi/Domani/Lun/Scegli…: questa è l&apos;unica anatomia, non una
             copia.
+          </p>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            <b style={{ color: 'var(--ink)' }}>Spenta</b> (la terza pillola qui sopra): la
+            voce esiste ma su quel percorso non si può scegliere — si vede, non si preme, e la
+            ragione la scrive il chiamante accanto al gruppo (D262: un rifiuto indica la
+            strada). Faccia <code>var(--fondo-superficie)</code> e nessuna ombra: una
+            pillola spenta resta una superficie, e per giunta <b style={{ color: 'var(--ink)' }}>incassata</b> —
+            viva = sollevata, spenta = affondata. 🛑 Toglierle solo l&apos;ombra la faceva
+            SPARIRE in tema chiaro, perché il pannello di un foglio è anch&apos;esso
+            <code> var(--card)</code>: misurato al gate L2 del 09/08. Non vibra e non
+            entra nell&apos;ordine di tabulazione (resa nativa di <code>disabled</code>).
           </p>
         </div>
       </SezioneCatalogo>

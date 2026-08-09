@@ -28,11 +28,15 @@
 passo**, mai due overlay in fila — il riquadro in testa al file racconta il difetto misurato il 07/08
 che ha imposto questa struttura.
 
-**Chi chiama `ricomincia()`** — cinque punti, e ognuno vuol dire una cosa diversa:
-`Sheet onChiudi` (`:865`, la chiusura del foglio) · «No, ho premuto per sbaglio» (`:878`) · «Ho capito»
-sulla schermata finale · e non lo chiama `ricaricaERiprendi`, che è la sua gemella *conservativa*
-(tiene le correzioni). `ricomincia` azzera tutto **tranne** `eventoDaRiusare`, ed è una riga assente
-apposta.
+**Chi chiama `ricomincia()`** — **TRE** punti, contati sul file (`grep -n`), non ricordati:
+`Sheet onChiudi` (`:900`, la chiusura del foglio) · «No, ho premuto per sbaglio» (`:913`) · «Ho
+capito» sulla schermata finale (`:1366`). 🛑 **NON** lo chiama `ricaricaERiprendi`, che è la sua
+gemella *conservativa* — tiene le correzioni — e la differenza è scritta a `:1226` perché una volta
+il tasto prometteva una ripresa e faceva un azzeramento. `ricomincia` azzera tutto **tranne**
+`eventoDaRiusare`, ed è una riga assente apposta.
+🔄 **CORREZIONE A ME STESSO:** questa riga diceva «**cinque** punti» e poi ne elencava tre. In un
+progetto la cui rovina ricorrente è «*un elenco che sembra completo e non lo è*», un censimento il cui
+numero non torna col proprio elenco è esattamente la forma del difetto. Sono tre.
 
 **Come agisce il tasto «indietro» del telefono.** `Sheet`/`DialogConferma` registrano una voce in
 `storia-overlay.ts`; alla pressione, `popstate` → `alPop` (`:101-118`) prende **solo il più alto**
@@ -192,6 +196,20 @@ npx tsx scripts/giro-guardia-overlay.ts
 ⚠️ **Misura i TRE punti che esistevano già, non il mio**: la via «Apri il lavoro nuovo» non è fra le
 sue superfici. Quello che prova è che il **meccanismo** su cui mi sono appoggiato regge ancora.
 
+🔴 **E allora la mia l'ho misurata a parte, con le stesse tre domande** — perché la prova unitaria che
+la sorveglia **finge l'hook**, e una finzione non vede un difetto che vive nella traversal del
+browser (è la lezione del 07/08 che il Passo 6 del piano mette per iscritto):
+
+| domanda | misura | esito |
+|---|---|---|
+| ① si arriva a destinazione? (D-2) | `/lavori/cdfee91f-…` → **`/lavori/ebf0f2a5-…`** | ✅ |
+| ② entry sepolta? (D-1) | `history.length` **3 → 3**: ha preso il posto dell'entry, non le si è impilata sopra | ✅ no |
+| ③ pressione morta? | primo «indietro» torna a `cdfee91f`, secondo esce: cambiano tutt'e due | ✅ no |
+
+🔑 **Non mi sono accontentato di «è strutturalmente identica agli altri due usi»** — lo era davvero
+(`:1001`, `:1006`), ed è esattamente il ragionamento che questo progetto ha già pagato due volte. Il
+lavoro nato da questo quarto giro è stato cancellato e il banco rimesso com'era.
+
 ### FASE 9 e il GATE L2
 
 72 scatti in `docs/design/screenshots/2026-08-09-devo-intervenire/`, prefisso `task9-`: **12 stati ×
@@ -232,6 +250,20 @@ trattengono con una FK composita).
 🛑 **Ciò che NON si rimette indietro:** il progressivo bruciato fra 2026/0011 e 2026/0017. §8 di
 `CLAUDE.md` dichiara questo banco pieno di soli dati di prova: rincorrere una sequenza sarebbe
 spendere su un rischio che non c'è.
+
+### 🔄 Una correzione a me stesso, nell'ultimo giro
+
+Aggiungendo la pastiglia spenta al catalogo ho scritto nella didascalia **«(terza pillola, Task 9)»**,
+e `verify:full` è uscito **1** con **13 file rossi**. Non è un difetto del componente: il catalogo ha
+un **dizionario** che rifiuta le parole inglesi nel testo che si legge a schermo, e «task» è una di
+quelle. Tredici prove diverse rendono la stessa pagina, quindi una parola sbagliata le accende tutte.
+
+🔑 **Lo scrivo invece di lasciarlo correre perché la lezione non è «ho sbagliato una parola»:** avevo
+appena finito di scrivere che i testi visibili sono decisioni di Francesco e vivono in file
+sorvegliati — e nella riga dopo ho messo in una schermata il numero di un compito interno, che per chi
+la legge non vuol dire niente. Ora dice «*la terza pillola qui sopra*». Il numero del compito resta
+nel commento del codice, che nessuno legge a schermo.
+`provato:` `npm run verify:full` → **`VERIFY_EXIT=0`**, 5706 passate | 68 saltate su 456 file.
 
 ---
 
@@ -336,6 +368,14 @@ sarebbe l'alternativa, e cambia il contratto di un componente di sistema: **non 
   far fallire apposta una RPC.
 - **Non ho misurato `:focus-visible` col Tab** sulle superfici nuove, né rifatto il giro
   `prefers-reduced-motion` (il ramo `SheetRidotto`).
+- **Non ho scritto lo stato «spenta» nella spec del design system.** (E scriverlo nel catalogo mi è
+  costato un rosso: v. la correzione qui sotto.) §5.31 di
+  `docs/superpowers/specs/2026-07-07-design-system-v3-*.md` descrive **due** stati, e io ne ho aggiunto
+  un terzo a un componente di `src/components/ds/`. ➡️ L'ho messo nel **catalogo**
+  (`/ds-v3-catalogo`, sezione ChipScelta), che è dove uno stato si guarda e si prova; **la riga di
+  spec no**, perché toccare la spec del design system è un atto che vuole la ratifica di Francesco,
+  non un effetto collaterale di un task. 🛑 Finché non c'è, chi legge la sola §5.31 non sa che quello
+  stato esiste — e nessuna guardia lo prende (`check-ds-compliance.sh` è verde).
 - **Non ho rimesso indietro il progressivo dei lavori** consumato dai giri — v. §④.
 - **Non ho aperto una decisione numerata** per le tre stringhe nuove (`SCELTA_UI`, `TASTO_SCELTA`,
   «Manca la scelta qui sopra.»): le prime due sono i testi **già ratificati** nel Passo 3 del piano,

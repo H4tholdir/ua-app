@@ -975,6 +975,29 @@ pieno di **soli dati di prova**: rincorrere una sequenza sarebbe spendere su un 
 
 ---
 
+## 5-bis. 🔴 «Apri il lavoro nuovo» misurato nella `history` VERA — la prova che jsdom non può fare
+
+È **la sola cosa aggiunta dal Task 9 che tocca la `history`**, e la prova unitaria che la sorveglia
+**finge l'hook**: una finzione non può vedere un difetto che vive nella traversal del browser — è la
+lezione del 07/08, scritta nel Passo 6 del piano. Quindi si misura, con le stesse tre domande di
+`scripts/guardia-navigazione-overlay.mjs`.
+
+`provato:` giro vero, `si_rifa` → schermata finale → tocco su «Apri il lavoro …»:
+
+| domanda | misura | esito |
+|---|---|---|
+| ① si arriva a destinazione? (D-2) | `/lavori/cdfee91f-…` → **`/lavori/ebf0f2a5-…`**, la scheda del lavoro nato | ✅ |
+| ② l'entry resta sepolta? (D-1) | `history.length` **3 col foglio aperto → 3 dopo**: la destinazione ha preso **il posto** dell'entry, non le si è impilata sopra | ✅ **no** |
+| ③ una pressione morta? | primo «indietro» → torna a `cdfee91f` · secondo «indietro» → esce dalla pagina. **Tutti e due cambiano qualcosa** | ✅ **no** |
+
+🔑 **Perché non bastava che «fosse uguale agli altri due usi»:** lo era, strutturalmente
+(`DevoIntervenire.tsx:1001` e `:1006`, stessa profondità di pila) — ed è proprio il ragionamento che
+questo progetto ha già pagato due volte. Anche il lavoro nato da questo giro è stato cancellato e il
+banco rimesso a `consegnato · 9 · 0 eventi · 1 DdC viva`, con lo stesso SQL del §5 e l'altro
+identificativo.
+
+---
+
 ## 6. Che cosa NON è stato guardato
 
 - **`:focus-visible` percorso col Tab** sulle due pastiglie nuove e sulla pastiglia spenta. ⚠️ Una
