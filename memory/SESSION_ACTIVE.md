@@ -1,22 +1,23 @@
 # Sessione attiva — 09/08/2026
 
-🚪 **PUNTO DI RIPRESA: portare a Francesco i DODICI testi a 4,01.** Sezione «D329 — applicata» in
-fondo a `docs/design/screenshots/2026-08-09-devo-intervenire/GATE-L2.md`.
+🚪 **PUNTO DI RIPRESA: si procede con lo sviluppo della PWA** (⚖️ D330). Il gate estetico del foglio
+«Devo intervenire» non ha più cancelli formali aperti sulle sue superfici.
 
-🎨 **⚖️ D326 + D329 APPLICATE.** Tre token, tutti con la stessa forma (chiaro/scuro in `ds-v3.css`,
-perché uno stile inline batte sempre una regola CSS): `--filo-superficie` (`:37`/`:96`),
-`--fondo-superficie` (`:38`/`:97`), `--didascalia-superficie` (`:39`/`:98`). Consumati da cinque
-superfici e sei scritte in `DevoIntervenire.tsx`.
+🎨 **D326 · D329 · D330 applicate.** Tre token in `src/app/ds-v3.css`, tutti con la stessa forma
+chiaro/scuro (uno stile inline batte sempre una regola CSS): `--filo-superficie`,
+`--fondo-superficie`, `--didascalia-superficie`. Stato finale: **scuro** = filo `--line` (D326 b) ·
+**chiaro** = fondo `--bg-deep` di sempre, **nessun bordo**, scritte piccole a inchiostro pieno.
 
-✅ **Il ❌3 è chiuso**, rimisurato dal vivo: **4,17 → 12,11**. Riga #DDD6C9, separazione **1,43:1**.
-🌗 **In scuro non è cambiato un pixel** rispetto a D326 (b).
+✅ **❌3 CHIUSO senza effetti collaterali:** le quattro scritte a **14,06**, i dodici `--muted` a
+**4,66**. Sulle cinque superfici dell'ondata i testi sotto soglia sono **ZERO**, chiaro e scuro.
+🔢 **Scuro: 0 pixel di differenza** fra D326, D329 e D330 — contato, non dichiarato.
 
-🔴 **MA il difetto si è spostato e cresciuto: i testi sotto soglia in chiaro passano da 4 a 13**
-(`--muted` 4,66 → **4,01**: sei etichette di riga, due paragrafi, **due collegamenti**, due righe del
-selettore) — **più un tredicesimo che non passava già e ora passa peggio**, la didascalia «COLORE» (`--faint` 4,17 → **3,59**), che vive in `src/components/ds/Campo.tsx:28`, componente **condiviso**. **Riferito, non aggiustato** (R-E2). Su questo asse non si vince: ogni scurimento utile
-porta `--muted` sotto 4,5. ⚠️ E il nastro non dice più «sei qui» con l'intensità
-(`d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png`).
+⏸️ **❌1 in chiaro resta APERTO per decisione di Francesco** (riga↔pannello **1,23:1**), non per
+mancanza di rimedio: C3 provata e riportata indietro, C1 scartata.
+⚠️ **Riferito e non aggiustato:** il nastro del percorso non dice più «sei qui» con l'intensità
+(`d330-nastro-tre-stadi--390-light.png`) — nasce dalla promozione, non dal fondo.
 
 📌 `verify:full` → **`VERIFY_EXIT=0`** · **5685 | 68 su 456** · `tsc` 0 · build ok. Banco invariato.
+🛑 `memory/MEMORY.md` **non toccato in questo giro**, su richiesta.
 
 🌿 Ramo `intervento-post-consegna`, `main` intatto a `7427a680`.

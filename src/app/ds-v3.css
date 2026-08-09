@@ -35,19 +35,27 @@
      pastiglie spente del nastro, il riquadro «Elementi»). Il filo qui delimita,
      non promette un tocco. */
   --filo-superficie: transparent;
-  /* ⚖️ D329 (09/08/2026) — LA VARIANTE **C3** DEL TEMA CHIARO, scelta da
-     Francesco su tre immagini vere: «*c3*».
-     🔑 SONO DUE COSE E FANNO UNA VARIANTE SOLA — la riga si scurisce **e** le
-     scritte piccole passano a inchiostro pieno. La seconda non è un ornamento:
-     senza, su questo fondo `--faint` scenderebbe a **3,59:1** (misurato), cioè
-     **peggio dei 4,17 di partenza**. È anche la ragione per cui questa variante
-     è stata scelta: **chiude il ❌3** del gate L2.
-     📐 Le misure, in chiaro: la riga passa da **1,23:1** a **1,43:1** contro il
-     pannello `--card`, e le didascalie da 12px da **4,17** a **12,11**.
-     🛑 IN SCURO LE DUE RIGHE SOTTO NON DEVONO CAMBIARE NIENTE: là vale ⚖️ D326
-     variante (b) — tinta invariata e un filo — e infatti in scuro questi due
-     token risolvono ai valori di prima (`--bg-deep` e `--faint`). */
-  --fondo-superficie: color-mix(in srgb, var(--muted) 12%, var(--bg-deep));
+  /* ⚖️ D330 (09/08/2026) — SI TORNA INDIETRO SUL FONDO, E SOLO SUL FONDO:
+     «*torniamo indietro sul fondo ma non usiamo il bordo, lasciamo per adesso
+     così come sta e procediamo nello sviluppo della pwa*».
+     🔑 PERCHÉ SI TORNA INDIETRO, ed è un numero non un gusto: D329 aveva scurito
+     la riga a #DDD6C9 e con essa i testi rimasti `--muted` erano scesi da 4,66 a
+     **4,01**, sotto la soglia AA — **dodici testi, due dei quali collegamenti**.
+     Su questo asse non si vince: col pannello quasi bianco, scurire la riga la
+     allontana dal pannello **e** avvicina il testo alla riga; `--muted` parte da
+     4,66, quindi qualunque scurimento utile lo sfonda.
+     🛑 E IL BORDO NON SI AGGIUNGE — la variante C1 è scartata da Francesco. Il
+     ❌1 in tema chiaro (riga↔pannello **1,23:1**) resta **aperto e deferito per
+     decisione esplicita**, NON per mancanza di un rimedio.
+     📌 IL TOKEN RESTA ANCHE SE OGGI I DUE TEMI DANNO LO STESSO VALORE, e non è
+     indirezione morta: è il punto nominato dove quella decisione si chiuderà
+     quando verrà riaperta — una riga sola invece di cinque siti. */
+  --fondo-superficie: var(--bg-deep);
+  /* ⚖️ D329 — QUESTA METÀ RESTA, ed è quella che ha chiuso il ❌3: le scritte
+     piccole sulle cinque superfici passano a inchiostro pieno (erano `--faint`
+     a **4,17:1**, sotto la soglia 4,5). Col fondo riportato indietro da D330 la
+     promozione **non ha più il suo effetto collaterale**, perché quell'effetto
+     veniva dal fondo scurito, non da qui. */
   --didascalia-superficie: var(--ink);
   /* azione e stati */
   --red: #D90012; --red-dark: #A5000E;
@@ -94,11 +102,18 @@
      contiene (1,15:1), cioè il contrario della regola di §3.2. Era l'esito
      dichiarato della variante (b) al momento della scelta. */
   --filo-superficie: var(--line);
-  /* ⚖️ D329 vale SOLO per il tema chiaro. Qui i due token tornano ai valori di
-     prima, così in scuro non cambia un pixel rispetto a D326 (b).
-     🛑 NON SI OMETTONO: senza queste due righe il tema scuro erediterebbe la resa
-     del chiaro — riga schiarita da `--muted` (che in scuro è CHIARO, #A69B8C) e
-     didascalie a `--ink` #F2EEE7. Sarebbe una decisione mai presa. */
+  /* ⚖️ D329 + D330 — il tema scuro NON è mai cambiato: qui vale ⚖️ D326 (b),
+     tinta invariata e un filo. Le due righe che seguono non sono equivalenti, e
+     va detto quale delle due regge davvero il peso:
+     🛑 `--didascalia-superficie` È LOAD-BEARING: in chiaro vale `--ink`, e senza
+        questa riga il tema scuro erediterebbe quel valore — didascalie #F2EEE7
+        su riga #100E0B, cioè una decisione mai presa entrata per omissione.
+     📌 `--fondo-superficie` oggi ripete il valore del chiaro, perché D330 ha
+        riportato indietro il fondo: **togliendola non cambierebbe niente ADESSO**.
+        Resta scritta perché il chiaro è una decisione riaperta (❌1 deferito) e
+        quel giorno questa riga tornerà a essere l'unica cosa che protegge lo
+        scuro. Una riga che si toglie e si rimette è una riga che prima o poi non
+        si rimette. */
   --fondo-superficie: var(--bg-deep);
   --didascalia-superficie: var(--faint);
   --red: #FF3B44; --red-dark: #8F0910;

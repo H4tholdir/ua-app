@@ -77,8 +77,20 @@ approvato scrive `--elv` su tutte e quattro*». Applicato **senza condizione di 
 | **(b)** | tinta invariata, un **filo** `--line` in tutti e due i temi | ⚠️ elevazione ancora invertita, ma il bordo si legge (`variante-b-filo--390-dark.png`) | filo appena percettibile | invariato (6,07 · **4,17**) |
 | ~~(x)~~ | `--elv` senza condizione, come dice il brief | ✅ | 🔴 **righe invisibili** | 5,14 |
 
-**ESITO: deferito, col motivo scritto.** Due rimedi plausibili → il brief §5 vieta di scegliere; e il
+~~**ESITO: deferito, col motivo scritto.**~~ Due rimedi plausibili → il brief §5 vieta di scegliere; e il
 rimedio prescritto è **confutato** da una misura. La scelta è di Francesco.
+
+> ✅ **ESITO AGGIORNATO IL 09/08/2026, e sono DUE esiti diversi per i due temi:**
+> - **TEMA SCURO → CHIUSO da ⚖️ D326**, variante (b): filo `--line` sulle cinque superfici.
+>   `provato:` `borderTopColor` = `rgb(52, 46, 38)` su tutte e cinque. ⚠️ Chiude il rilievo
+>   «la riga non si distingue», **non** l'elevazione invertita: riga↔pannello resta **1,15:1**.
+> - **TEMA CHIARO → RESTA APERTO, e per DECISIONE ESPLICITA di Francesco (⚖️ D330), non per
+>   mancanza di un rimedio.** Le tre varianti erano misurate e disponibili: C1 (filo a **3,08:1**,
+>   sopra la soglia WCAG 1.4.11), C2 (ombra), C3 (tinta). C3 è stata **provata sul serio** con D329
+>   e **riportata indietro** con D330, perché costava dodici testi sotto soglia; **C1 è stata
+>   scartata** («*non usiamo il bordo*»). ➡️ In chiaro riga↔pannello resta **1,23:1**, misurato.
+>   🔑 **Deferito con una ragione, non per stanchezza:** *«lasciamo per adesso così come sta e
+>   procediamo nello sviluppo della pwa»*.
 
 ### ❌2 — Le superfici nuove sono **CINQUE**, non quattro
 
@@ -113,11 +125,14 @@ chiaro lascia `--bg-deep`: i due difetti vanno chiusi insieme o si chiude solo m
 > ✅ **ESITO AGGIORNATO IL 09/08/2026 — CHIUSO da ⚖️ D329** (variante C3: riga più scura **e**
 > didascalie a inchiostro pieno). `provato:` **rimisurato sulla pagina viva**, non ricalcolato — i
 > quattro testi sono `rgb(29, 25, 19)` su `rgb(221, 214, 201)` = **12,11:1** (erano 4,17).
-> 🔴 **MA IL DIFETTO NON SPARISCE DALLA SUPERFICIE: SI SPOSTA, E CRESCE.** Sulle stesse cinque
-> superfici i testi `--muted` scendono da **4,66** a **4,01**, cioè sotto la soglia. Contati sulla
-> pagina viva: **prima 4 testi sotto 4,5, adesso 12.** Dettaglio e scatti nella sezione «D329 —
-> applicata», in fondo.
-> ~~ESITO: deferito~~ (era: l'esito dipende da quale variante del ❌1 viene scelta).
+> 🔴 **MA CON D329 IL DIFETTO NON SPARIVA: SI SPOSTAVA, E CRESCEVA.** Sulle stesse cinque superfici i
+> testi `--muted` scendevano da **4,66** a **4,01**: **da 4 testi sotto soglia a 12.**
+> ✅ **E ⚖️ D330 HA TOLTO PROPRIO QUELLO, tenendo la parte che serviva.** Il fondo torna a
+> `--bg-deep`, la promozione a inchiostro **resta**. `provato:` rimisurato dal vivo dopo D330 —
+> i quattro testi a **14,06** (non 12,11: quel numero valeva sul fondo scurito), i dodici `--muted`
+> di nuovo a **4,66**, e **sulle cinque superfici che questa ondata possiede restano ZERO testi
+> sotto soglia**, in chiaro e in scuro.
+> ~~ESITO: deferito~~ (era: l'esito dipende da quale variante del ❌1 viene scelta) → **CHIUSO**.
 
 ### ❌4 — Il foglio **non torna in cima** quando cambia passo
 
@@ -692,3 +707,114 @@ schermo.
 - **Gli altri rilievi del gate** — ❌4, ❌5, ❌6, ⚠️7 — restano aperti.
 - **Il ramo `prefers-reduced-motion` non è stato rifotografato** (D329 non tocca il movimento).
 - **Il banco è stato lasciato com'era:** fixture intatta, `eventi_qualita` 0 prima e dopo.
+
+---
+
+# D330 — applicata (9 agosto 2026)
+
+> ⚖️ **D330, Francesco, 09/08/2026:** «*torniamo indietro sul fondo ma non usiamo il bordo, lasciamo
+> per adesso così come sta e procediamo nello sviluppo della pwa*».
+
+## ① Una riga sola
+
+| dove | prima (D329) | adesso (D330) |
+|---|---|---|
+| `src/app/ds-v3.css` — `--fondo-superficie`, tema **chiaro** | `color-mix(in srgb, var(--muted) 12%, var(--bg-deep))` | **`var(--bg-deep)`** |
+| `--didascalia-superficie`, chiaro | `var(--ink)` | `var(--ink)` — **invariato, resta** |
+| `--filo-superficie`, chiaro | `transparent` | `transparent` — **nessun bordo aggiunto** |
+| tutto il blocco **scuro** | — | **non toccato** |
+
+Nessun file di componente è cambiato: i cinque fondi e le sei scritte continuano a leggere gli stessi
+token. **È esattamente ciò che il token serviva a rendere possibile** — una riga invece di cinque siti.
+
+📌 **Il token resta anche se oggi i due temi gli danno lo stesso valore.** Non è indirezione morta: è
+il punto nominato dove la decisione sul chiaro si chiuderà quando verrà riaperta. Nel blocco scuro,
+però, le due righe **non hanno lo stesso peso**, e adesso il commento lo dice: `--didascalia-superficie`
+è **load-bearing** (senza, lo scuro erediterebbe `--ink` e le didascalie diventerebbero #F2EEE7),
+mentre `--fondo-superficie` **oggi ripete il valore del chiaro** e toglierla non cambierebbe niente —
+resta scritta perché il chiaro è una decisione riaperta.
+
+## ② I numeri, RIMISURATI — e non i tredici dell'elenco: **tutti**
+
+`provato:` sonda sul DOM del banco, su **tutte** le scritte delle cinque superfici, nei tre
+sotto-schermi (passo di correzione · selettore di persone · sotto-passo caratteristiche).
+
+| | prima di tutto | D329 | **D330** |
+|---|---|---|---|
+| fondo della riga | #ECE6D9 | #DDD6C9 | **#ECE6D9** |
+| riga ↔ pannello | 1,23:1 | 1,43:1 | **1,23:1** |
+| le quattro scritte del ❌3 | 4,17 ❌ | 12,11 ✅ | **14,06** ✅ |
+| i dodici `--muted` | 4,66 ✅ | 4,01 ❌ | **4,66** ✅ |
+| «COLORE» (`Campo.tsx:28`, condiviso) | 4,17 ❌ | 3,59 ❌ | **4,17** ❌ *(com'era prima di tutto)* |
+
+**IL TOTALE, che è la domanda vera:**
+
+| tema | sotto soglia | su quanti misurati | di cui **sulle superfici di questa ondata** |
+|---|---|---|---|
+| **chiaro** | **6** | 84 | **1** — solo «COLORE», **4,17**, cioè il valore di sempre |
+| **scuro** | **45** | 84 | **0** |
+
+🔑 **Gli altri 5 in chiaro e tutti e 45 in scuro non sono su una superficie di questa ondata: sono
+l'ODONTOGRAMMA**, che dipinge il proprio fondo con token **v2.3** (`OdontogrammaFDI.tsx:537` —
+`rgb(228,223,217)` in chiaro, `rgb(35,32,24)` in scuro). È il **❌5** già agli atti, e i numeri
+coincidono con quelli misurati prima di D329 (1,31 in chiaro · 3,44 in scuro). **Uno dei 45 non è
+nemmeno un difetto:** «altra persona» a 1,00 è un **artefatto della sonda** (gettone con fondo
+semitrasparente `--purple-tint`, letto come opaco).
+➡️ **Sulle cinque superfici che questa ondata possiede, in chiaro e in scuro, i testi sotto soglia
+sono ZERO** — l'unica eccezione è la didascalia di un componente **condiviso**, tornata al valore che
+aveva prima che cominciassimo. **Preesistente, non nostra.**
+
+### La prova più corta: il conto dei pixel
+
+```
+SCURO   D326 → D330 :      0 pixel diversi su 302.640
+SCURO   D329 → D330 :      0 pixel diversi su 302.640
+CHIARO  D329 → D330 : 153.956 pixel diversi   (il fondo delle righe torna indietro)
+CHIARO  prima-di-tutto → D330 : 1.206 pixel diversi   (solo le scritte piccole promosse)
+```
+
+**Il tema scuro non è cambiato: non lo dico, lo conto.** E in chiaro la differenza rispetto al punto
+di partenza è **1.206 pixel**, cioè le sole scritte piccole — niente altro.
+Scatti: `d330-dopo-correzione--{390,768,1280}-{light,dark}.png` · `d330-dopo-persone--390-*.png` ·
+`d330-dopo-caratteristiche--390-*.png`.
+
+---
+
+## ⚠️ ③ IL NASTRO: il difetto RESTA, e di un soffio è persino più marcato
+
+🖼️ **`d330-nastro-tre-stadi--390-light.png`** — tre stadi, uno sotto l'altro: prima di tutto · D329 ·
+D330.
+
+Le tre tappe **spente** erano **grigie** e si leggevano come «non sei qui». Adesso sono **nero pieno**,
+lo stesso inchiostro della tappa corrente: a distinguerle resta solo il riempimento della pastiglia.
+🔑 **Nasce dalla promozione, non dal fondo** — e infatti D330 non la tocca. **Anzi:** sul fondo
+riportato indietro quelle tre scritte stanno a **14,06:1** invece di 12,11, cioè **sono un po' più
+marcate di quanto Francesco le ha viste in D329**.
+**Riferito, NON aggiustato.** Se si vuole tornare indietro anche su questa metà, è una riga
+(`--didascalia-superficie` in chiaro da `--ink` a `--faint`) — **ma riaprirebbe il ❌3**, che quella
+promozione ha chiuso.
+
+## ④ FASE 7
+
+```
+npm run verify:full ; ESITO=$? ; echo "VERIFY_EXIT=$ESITO"
+```
+
+```
+Test Files  450 passed | 6 skipped (456)
+     Tests  5685 passed | 68 skipped (5753)
+✓ Compiled successfully in 6.6s
+VERIFY_EXIT=0
+```
+
+**Identica alla base.** Nessun errore di sintassi questa volta, e nessuna sonda da correggere.
+
+## ⑤ Che cosa resta fuori
+
+- **Il nastro non è stato aggiustato**, come chiesto.
+- **Il ❌1 in chiaro resta aperto**, per decisione — non si è aggiunto nessun rimedio alternativo.
+- **«COLORE»** (`src/components/ds/Campo.tsx:28`) resta a **4,17**: preesistente, componente condiviso.
+- **Il tasto primario spento** (`TastoPrimario.tsx:90`), sesta superficie `--bg-deep`, resta com'era.
+- **❌4 · ❌5 · ❌6 · ⚠️7** restano aperti.
+- **`memory/MEMORY.md` NON è stato toccato**, su richiesta esplicita.
+- **Niente pubblicato.**
