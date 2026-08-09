@@ -259,6 +259,33 @@ VERIFY_EXIT=0
 - **Non ho corretto `trg_refresh_dashboard`** né la sua funzione: fuori mandato, riferito in §⑤ (R-E2).
 - **Non ho scritto migration** e non ho toccato codice di produzione: nessuna FASE 6b dovuta.
 - **Non ho toccato** `memory/MEMORY.md`, la roadmap né il verbale.
-- **Non ho misurato la forma della CI**, cioè i 7 file d'integrazione mescolati ai 451 unitari nella **stessa piscina di lavoratori** (`vitest run` senza argomenti li raccoglie già — `vitest.config.ts:25-30`). Le mie venti misure sono su `vitest run tests/integration`. Il cerchio chiuso qui è chiuso in ogni caso — non dipende da **quante** transazioni ci sono, ma dall'**ordine** in cui una sola di esse prendeva i lucchetti — ma la concorrenza cambia, e chi accende l'interruttore dovrebbe rimisurare nella forma vera.
+- **Non ho toccato la CI — ma la sua forma l'ho MISURATA**, perché era l'unica riga di questo referto che sarebbe rimasta un ragionamento in mezzo a misure, e proprio quella che serve al compito successivo. Vedi §⑨.
 - **Non ho controllato le altre prove d'integrazione per difetti diversi da questo**: ho seguito un asse solo, l'ordine dei lucchetti, e il censimento del DDL dentro `tests/` (§④) copre quell'asse e nessun altro.
 - Le sonde stanno in `scripts/tmp/` (`monitor-lock.mjs`, `dieci-giri.sh`, `giri/`, `monitor-prima.log`, `monitor-dopo.log`) — cartella **ignorata da git**, usa e getta, mai committate.
+
+---
+
+## ⑨ La forma vera della CI, misurata (non è il mio mandato — è il regalo al successivo)
+
+`vitest run` **senza argomenti** raccoglie già `tests/integration/**` (`vitest.config.ts:25-30`): oggi quei file si saltano da soli per mancanza della credenziale. Appena `SUPABASE_DB_URL` entra nell'ambiente, i 7 file d'integrazione finiscono **nella stessa piscina di lavoratori** dei 451 unitari — cioè in una concorrenza diversa da quella in cui ho misurato tutto il resto.
+
+Le mie venti misure erano su `tests/integration` da solo. Il cerchio chiuso qui è chiuso comunque, perché **non dipende da quante transazioni ci sono ma dall'ordine in cui una sola di esse prendeva i lucchetti** — ma quello è un ragionamento, e in questo referto è l'unica riga che non sarebbe stata una misura. Quindi l'ho misurata:
+
+```
+provato:  cd "…/ua-app" && set -a && . ./.env.local; set +a && npx vitest run     (tre giri)
+
+ Test Files  458 passed (458)          Duration 51,59s
+      Tests  5809 passed (5809)
+
+ Test Files  458 passed (458)          Duration 59,84s
+      Tests  5809 passed (5809)
+
+ Test Files  458 passed (458)          Duration 47,56s
+      Tests  5809 passed (5809)
+
+giri con deadlock: 0 su 3
+```
+
+🔑 **`5809 = 5725 + 84`, e i saltati sono ZERO.** È la prima volta che l'intera suite gira con le prove d'integrazione **accese**: 458 file su 458, tre giri su tre, nessun deadlock, e nessun passo separato né serializzazione. Per confronto, la FASE 7 con l'integrazione spenta dura 64,41 s: **accenderle non allunga niente** (la durata è tempo di parete e oscilla, ma non c'è nessun costo visibile).
+
+⚠️ **Tre giri non sono dieci**, e lo scrivo perché è la stessa cifra che ha ingannato il referto precedente: tre giri verdi non provano che un difetto raro non esista. Provano che **non c'è un difetto frequente** in questa forma, ed è ciò che serviva sapere prima di partire. Chi accende l'interruttore ripeta con dieci.
