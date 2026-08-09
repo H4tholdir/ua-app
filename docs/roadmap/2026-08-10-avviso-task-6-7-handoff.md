@@ -3,7 +3,9 @@
 **Per:** Francesco, e per la sessione che riprende.
 **Quando:** 10 agosto 2026, **01:55** (`provato:` `date`, in un comando **separato**).
 **Stato:** ramo **`intervento-post-consegna`**, albero **pulito**. 🔑 **`main` NON è stato toccato** ed è `7427a680`.
-⚠️ Il conteggio dei salvataggi **non si ricopia da qui**: `git rev-list --count main..HEAD` (alla scrittura: **278**).
+⚠️ Il conteggio dei salvataggi **non si ricopia da qui**: `git rev-list --count main..HEAD` (alla chiusura: **275**).
+🔄 *Questa riga diceva «278», scritto a stima invece che a misura — corretto col comando, ed è la riprova
+del perché il numero non si ricopia mai da un documento.*
 📬 **PR #1 resta IN BOZZA**: serve a far girare la CI, non al merge.
 
 📌 **MISURATO IN CHIUSURA** (`npm run verify:full`, uscita **da variabile e SENZA pipe**): **`VERIFY_EXIT=0`** ·
