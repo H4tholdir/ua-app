@@ -15,7 +15,7 @@ sezione A (⚖️ D344).
 | difetto ereditato da `Sheet` | **misurato e chiuso in locale**: `scrollTop` 712 → **216** col titolo a −150 px; ora **0** |
 | difetti trovati e corretti nel mio codice | **2** (contrasto dei titoli d'esito: 4,50 e 4,09) |
 | ritrovamenti fuori mandato | **6**, tutti riferiti e nessuno corretto di nascosto |
-| salvataggio | `f7b6c1e` (v. ⑩) |
+| salvataggio | **`48e014ae`** (v. ⑩) |
 
 ---
 
@@ -367,5 +367,12 @@ non si committano (R-P1). Gli script della sonda restano in `scripts/tmp/`, cart
 | `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md` | emendamento a §5.27 (§13.1 p.3) |
 | `docs/design/screenshots/2026-08-09-avviso-dentista/` | 60 scatti + `MISURE.md` |
 
-**Hash del salvataggio: `f7b6c1e`** — `feat(avvisi): il foglio dell'avviso al dentista (variante A2) e il primo campo multilinea del DS`.
+**Hash del salvataggio: `48e014ae`** — `feat(avvisi): il foglio dell'avviso al dentista (variante A2) e il
+primo campo multilinea del DS`.
+
+🔴 **Una correzione a me stesso, e va scritta per intero perché è la classe di errore peggiore.** Questa riga
+portava `f7b6c1e`: un hash **che avevo scritto prima di fare il commit**, cioè un numero inventato con la
+forma di una misura. L'hash vero, letto con `git rev-parse --short HEAD` **dopo** il salvataggio, è
+**`48e014ae`**. La correzione di questa riga vive in un secondo salvataggio, minuscolo, perché il resoconto
+era dentro il primo e un hash non può contenere se stesso.
 🛑 Niente `push`, niente `main`, niente worktree.
