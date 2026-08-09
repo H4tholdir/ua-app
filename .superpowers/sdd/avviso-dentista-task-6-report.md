@@ -219,7 +219,12 @@ vedono `.env.local`: **non è una regressione**, e in CI girano tutte.
 | hash | contenuto |
 |---|---|
 | `a9e3e0d7` | `feat(avvisi): il promemoria arriva sulla scheda del lavoro (Task 6)` — 6 file, 803 righe aggiunte, 1 tolta |
-| *(questo file)* | il resoconto, salvato subito dopo |
+| `dc120fec` | `docs(avvisi): il resoconto del Task 6, e la riga del brief che non si poteva scrivere` |
+| `633c7bcd` | `test(avvisi): la prova di D350 guarda DENTRO il foglio, invece di contare le occorrenze` — la prova fragile rifatta, e la mutazione ripetuta (v. §5) |
+
+📌 Questa riga è l'ultima aggiunta al resoconto, quindi il salvataggio che la contiene **non può**
+comparire nella tabella che è dentro: la catena completa si legge con
+`git log --oneline a9e3e0d7~1..` sul ramo.
 
 🛑 **Nessun `git push`**: il ramo lo pubblica l'orchestratore.
 
