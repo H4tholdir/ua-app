@@ -774,3 +774,49 @@ ancora una volta: era il tripwire di perimetro.
 |---|---|
 | `4d8bddd9` | `fix(avvisi): il cancello e la lettura in una funzione sola, e il ternario non ha più dove vivere` — ① e ② · 5 file, 370 righe aggiunte, 84 tolte |
 | — | il salvataggio che porta questa sezione non può nominare sé stesso: `git log --oneline 4d8bddd9~1..` |
+
+---
+
+# 11. La passata sui puntatori rimasti indietro (10/08/2026)
+
+**Stato:** `DONE`. Quattro commenti riscritti, **nessuna riga di codice toccata** — quindi niente
+`verify:full`, come da mandato. `tsc --noEmit` → `TSC_EXIT=0` ·
+`npx vitest run tests/unit/avvisi-queries.test.ts` → **22 passate (22)**.
+
+| dove | diceva | dice |
+|---|---|---|
+| `src/types/domain.ts` | «lo attacca … `avvisiDaComunicare` in `lavori/[id]/page.tsx`» | `avvisoPerLaScheda`, **chiamata da** quella pagina — e ci ho aggiunto che la lettura grezza da lì è **vietata da una sentinella**, perché è quella la cosa che chi legge deve sapere |
+| `src/types/domain.ts` | «l'unico scrittore (`page.tsx`) assegna `avvisiAperti[0] ?? null`» | chi sceglie il valore è `avvisoPerLaScheda` in `queries.ts`: `null` per un ruolo escluso, `aperti[0] ?? null` per uno ammesso — `null` in entrambi i casi |
+| `tests/unit/avvisi-queries.test.ts` | «è quello che l'indice sa dare senza ordinare a parte» | la versione vera, la stessa già scritta in `queries.ts` |
+| `tests/unit/avvisi-queries.test.ts` | «perché NON una prova d'integrazione … duplicarlo qui vorrebbe dire due prove che si allontanano» | **che cosa fa ciascuna delle due**: qui la logica (filtri, ordine, ruoli, banco muto), là ciò che un finto non può sapere (le colonne esistono, PostgREST le accetta) — e perché non si allontanano |
+
+🔑 **Il terzo è quello da cui imparo.** La frase del Minore 5 l'avevo corretta in `queries.ts` e
+lasciata viva, **alla lettera**, nella sua prova: una correzione messa in un posto e non nell'altro
+non sostituisce l'affermazione sbagliata, ne lascia in piedi una copia. È la stessa classe di difetto
+che `CLAUDE.md` §9 nomina («vince ciò che si legge per primo»), vista da un'altra angolazione: non
+*sopra o sotto*, ma **in un file o nell'altro**.
+
+⚠️ **Una riga non-commento è cambiata, e la dichiaro:** il **titolo** della prova
+dell'archivio, che portava la stessa affermazione falsa («*ed è l'ordine che l'indice serve*») → ora
+«*con `id` come pareggio deterministico*». È prosa, non comportamento: nessuna asserzione toccata,
+22 su 22 verdi.
+
+## 11.1 Il quinto puntatore è del Task 5 — RIFERITO, non corretto (R-E2)
+
+`src/components/features/lavori/scheda-v3/AvvisoDentista.tsx:247` dice «*Lo trova il Task 6
+(`avvisiDaComunicare`)*». Oggi lo trova `avvisoPerLaScheda`, e la lettura grezza da una pagina è
+vietata da una sentinella.
+
+🔑 **E va letto insieme al §7.2**, perché insieme fanno **una riga sola di roadmap invece di due:**
+quel file ha ora **due** commenti che contraddicono il proprio unico chiamante —
+- riga 247: indica una funzione che il chiamante **non può** più usare;
+- righe 268-269: documentano `telefonoStudio` come «`clienti.telefono`», mentre il chiamante passa
+  `cellulare_whatsapp` perché `domain.ts:174-176` dice che chi manda WhatsApp legge **SEMPRE**
+  quello, «*altrimenti il messaggio riparte su un fisso*».
+
+➡️ Chi ha mandato in `AvvisoDentista.tsx` li sistema in una passata sola.
+
+## 11.2 Non toccati, per mandato
+
+`avvisiDaComunicare` esportata senza cancello (decisione di progetto, va a Francesco prima del Task 7)
+· `STATI_APERTI` derivato in due file · il ledger `progress.md`.

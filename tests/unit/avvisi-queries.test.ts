@@ -22,13 +22,26 @@
 //    diventa rossa?». Misurato togliendo una riga per volta dal sorgente — v.
 //    il conteggio nel resoconto del Task 6.
 //
-// 📌 Perché NON una prova d'integrazione: `avvisi_dentista` ha l'`INSERT`
-//    REVOCATO a `service_role` (migration 20260809123206), quindi per il
-//    percorso PostgREST — cioè quello che questo modulo usa davvero — non si può
-//    creare una riga senza passare dalla RPC della riemissione, col suo corredo
-//    di lavoro, evento e dichiarazione. Quel giro è il mandato del **Task 10**
-//    («il giro completo sul banco vero»), e duplicarlo qui vorrebbe dire due
-//    prove che si allontanano.
+// 📌 E LA PROVA D'INTEGRAZIONE ORA C'È: `tests/integration/avvisi-colonne-schema.test.ts`.
+//    🔄 Qui c'era scritto «*perché NON una prova d'integrazione … duplicarlo qui
+//    vorrebbe dire due prove che si allontanano*»: spiegava un'assenza che non
+//    esiste più. Sono **due**, e si dividono il lavoro così:
+//    - **questo file** prova la LOGICA — quali filtri partono, in che ordine, che
+//      cosa succede a un ruolo escluso, che cosa succede se il banco tace. Sono
+//      domande sul codice, e un finto le risponde meglio del banco: si possono
+//      chiedere gli stati che non esistono e i guasti che non si sanno provocare.
+//    - **quella d'integrazione** prova ciò che un finto NON può sapere: che le
+//      colonne, i filtri e gli ordinamenti esistano davvero sullo schema, e che
+//      PostgREST li accetti nella forma in cui gliela passiamo. Serve perché
+//      `vuotoConNota` **inghiotte** l'errore e torna una lista vuota — un nome
+//      sbagliato spegnerebbe il promemoria ex Art. 19 GDPR **in silenzio**, e le
+//      prove qui sotto resterebbero verdi.
+//    🛑 Non si allontanano perché non rispondono alla stessa domanda: qui non si
+//    aggiunge una prova di schema, e là non si aggiunge una prova di logica.
+//    ⚠️ Resta invece del **Task 10** il giro completo dell'utente sul banco vero:
+//    `avvisi_dentista` ha l'`INSERT` REVOCATO a `service_role` (migration
+//    20260809123206), quindi una riga non si crea senza passare dalla RPC della
+//    riemissione, col suo corredo di lavoro, evento e dichiarazione.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { avvisiDaComunicare, archivioCliente, avvisoPerLaScheda } from '@/lib/avvisi/queries'
@@ -343,10 +356,19 @@ describe('archivioCliente — tutte le comunicazioni di QUEL cliente (consumator
     expect(spia.filtri.some(([c]) => c === 'in:stato' || c === 'eq:stato')).toBe(false)
   })
 
-  it('l’archivio si legge dal più recente, ed è l’ordine che l’indice serve', async () => {
-    // `idx_avvisi_per_cliente (cliente_id, created_at DESC)` — migration
-    // 20260809123206. L'ordine non è solo una preferenza di lettura: è quello
-    // che l'indice sa dare senza ordinare a parte.
+  it('l’archivio si legge dal più recente, con `id` come pareggio deterministico', async () => {
+    // 🔄 QUI C'ERA SCRITTO «*è quello che l'indice sa dare senza ordinare a
+    //    parte*», ED ERA FALSO: i criteri sono DUE e `id` in
+    //    `idx_avvisi_per_cliente (cliente_id, created_at DESC)` non c'è. La frase
+    //    era stata corretta in `queries.ts` dalla revisione del Task 6 e lasciata
+    //    viva QUI — cioè in una seconda copia, che è il modo in cui
+    //    un'affermazione sbagliata sopravvive alla propria correzione.
+    // Come stanno le cose: l'indice (migration 20260809123206) serve
+    // `created_at DESC`; `id DESC` è il pareggio, e per averlo il pianificatore
+    // può dover ordinare comunque. Si accetta — su un archivio di poche righe per
+    // cliente un sort non si sente, mentre due righe nate nello stesso istante
+    // che escono ora in un ordine ora nell'altro si vedono benissimo, e su un
+    // registro che è la prova ex Art. 5(2) GDPR un ordine ballerino è un difetto.
     const { svc, spia } = svcFinto([])
     await archivioCliente(svc, { clienteId: CLIENTE, laboratorioId: LAB })
 

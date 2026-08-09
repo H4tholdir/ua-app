@@ -576,9 +576,15 @@ export interface LavoroDettaglio extends Lavoro {
   tinteDisponibili?: TintaManufatto[];
   // Ondata «l'avviso al dentista» Task 6 — il promemoria ex Art. 19 GDPR ancora
   // APERTO su questo lavoro, o `null` se non ce n'è. Opzionale sullo stesso
-  // modello di `tinta?`: lo attacca chi rende la schermata (`avvisiDaComunicare`
-  // in `lavori/[id]/page.tsx`), e dove nessuno l'ha chiesto è `undefined` — la
-  // riga non compare, mai una riga vuota per una lettura dimenticata.
+  // modello di `tinta?`: lo attacca chi rende la schermata (`avvisoPerLaScheda`,
+  // chiamata da `lavori/[id]/page.tsx`), e dove nessuno l'ha chiesto è
+  // `undefined` — la riga non compare, mai una riga vuota per una lettura
+  // dimenticata.
+  // 🛑 **E si passa DA LÌ, non dalla lettura grezza:** `avvisoPerLaScheda`
+  //    pretende `ruolo` come argomento obbligatorio e tiene dentro di sé il
+  //    cancello di ⚖️ D342. Chiamare `avvisiDaComunicare` da una pagina vorrebbe
+  //    dire rifare il cancello a mano, ed è **vietato da una sentinella**
+  //    (`tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx`).
   //
   // 🛑 `undefined` e `null` NON dicono la stessa cosa: `undefined` = **nessun
   //    chiamante ha attaccato il campo** (una pagina che quella lettura non la fa
@@ -586,10 +592,11 @@ export interface LavoroDettaglio extends Lavoro {
   //    mostrare**. Per la schermata sono lo stesso silenzio; per chi legge questo
   //    tipo non lo sono.
   // 🔄 QUI C'ERA SCRITTO ANCHE «*…o un ruolo che non può chiudere l'avviso*»,
-  //    ED ERA FALSO — corretto dalla revisione del Task 6. L'unico scrittore
-  //    (`lavori/[id]/page.tsx`) assegna sempre `avvisiAperti[0] ?? null`, quindi
-  //    per un ruolo escluso il valore è `null`, mai `undefined`: il tipo
-  //    istituiva una distinzione che il suo unico chiamante violava.
+  //    ED ERA FALSO — corretto dalla revisione del Task 6. Chi sceglie il valore
+  //    è `avvisoPerLaScheda` (`src/lib/avvisi/queries.ts`), che per un ruolo
+  //    escluso torna `null` e per un ruolo ammesso `aperti[0] ?? null`: `null` in
+  //    entrambi i casi, mai `undefined`. Il tipo istituiva una distinzione che il
+  //    suo unico scrittore violava.
   // 🔑 **E il codice ha ragione, non il commento:** un ruolo escluso deve
   //    ricevere **esattamente lo stesso silenzio** di «non ce n'è». Distinguere i
   //    due casi vorrebbe dire far sapere a chi guarda che da qualche parte esiste
