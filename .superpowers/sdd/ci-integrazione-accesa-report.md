@@ -86,6 +86,10 @@ provato:  gh workflow run ci.yml --ref intervento-post-consegna
 
 ➡️ **Questo è esattamente il caso ③ del mandato** («fermati e riferisci»), traslato: l'ostacolo non è che i server di GitHub non raggiungano il database — è che **da questo ramo i server di GitHub non partono affatto**. Non è un ostacolo da aggirare a tentativi: è una cosa che deve sapere Francesco, e la decisione è sua.
 
+🛑 **E c'è una scadenza dentro questa scelta, che è la ragione per cui non è una decisione da rimandare.** Se non si prende **nessuna** delle tre strade, la prima volta in assoluto che questa CI girerà con l'integrazione accesa sarà **al merge su `main`, a fine ondata**. Cioè: se il segreto è nella forma sbagliata (§②-ter), il rosso arriva **su `main`** — il ramo dove un rosso costa di più — e `deploy.yml`, che parte su `workflow_run` con `if: conclusion == 'success'`, **non pubblicherà**. Il rischio non è spalmato su qualche tentativo: è **concentrato tutto nell'istante del merge**.
+
+🔑 **Il rovescio utile: tutte e tre le strade della tabella provano il segreto PRIMA di `main`** — la richiesta di unione lo prova via `pull_request`, `develop` via `push`, l'allargamento dei filtri direttamente su questo ramo. Qualunque delle tre trasforma un «lo scopriremo al merge» in un «lo abbiamo scoperto adesso».
+
 ### ②-ter — E resta un secondo pezzo che solo la CI vera può retirare
 
 Il segreto **esiste** su GitHub, e la data dice che l'ha messo Francesco stamattina:
