@@ -4211,9 +4211,14 @@ interrogabile **per PAZIENTE** — riserva normativa aperta dall'handoff del 09/
 frase impone al titolare di poter dire all'interessato **quali** destinatari ha informato). Quella resta a
 panel, insieme al fondamento (Art. 19 su richiesta *contro* Art. 5(1)(d) + 5(2) di propria iniziativa).
 
-🟠 **E UNA DOMANDA DI FRANCESCO È RIMASTA APERTA, non risposta:** «*se il primo promemoria è ancora attivo,
-quando nasce il secondo non dovrebbe spegnere il primo che ormai è superato? chiedo non ne sono sicuro*».
-🛑 **Non ratificata di getto:** tocca il vocabolario della tabella (i tre stati **non** prevedono
-«superato»), la prova ex **Art. 5(2)** di un obbligo nato e mai adempiuto, e ciò che il portale mostra al
-dentista come «voci cambiate». ➡️ **Va a panel** (regola advisor: normativa + dominio), e fino ad allora
-vale ciò che il Task 6 ha costruito: **fra due avvisi aperti si mostra il più vecchio.**
+🟠 **E UNA DOMANDA DI FRANCESCO È ANDATA A PANEL, non ratificata di getto:** «*se il primo promemoria è
+ancora attivo, quando nasce il secondo non dovrebbe spegnere il primo che ormai è superato? chiedo non ne
+sono sicuro*». ✅ **PANEL FATTO nella notte (10/08), tre advisor indipendenti, UNANIMI NEL RISULTATO** —
+referto: `docs/roadmap/2026-08-10-panel-due-avvisi-referto.md`. **La proposta:** il secondo **non** spegne
+il primo (uno stato «superato» è perfino **inscrivibile**: `provato:` `23514` sul vincolo
+`avviso_comunicato_ha_autore_e_data` — un superamento è un atto che nessuno ha compiuto, non ha un autore)
+— ma la sensazione dietro la domanda era **giusta**, e si chiude dall'altra parte: **UN solo atto di
+comunicazione chiude TUTTI i promemoria aperti di quel lavoro**, e il dentista vede **l'unione** delle voci
+corrette. Un messaggio, un promemoria a schermo, due righe a registro (la prova). Zero migration.
+➡️ **In attesa di ratifica di Francesco (numero riservato: D353).** Fino ad allora vale ciò che il Task 6
+ha costruito: fra due avvisi aperti si mostra il più vecchio, e la chiusura è per riga singola.
