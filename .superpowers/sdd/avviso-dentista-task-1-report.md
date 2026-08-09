@@ -480,4 +480,10 @@ src/types/database.types.ts
 Aggiunti a percorso, mai `git add -A` (⚖️ D318). Nessun `git push`, `main` non toccata, nessun
 worktree.
 
-**Commit:** vedi la coda di questo file dopo il salvataggio.
+**Commit:** `c68910ef` — *«feat(avvisi): la tabella degli avvisi al dentista, e i tre stati»*
+(6 file, 1441 inserzioni, 0 rimozioni). Tutte le guardie del pre-commit verdi: CSRF,
+reduced-motion, coerenza documenti, salvataggio automatico.
+
+Il messaggio di commit porta per intero i quattro scostamenti dalla SQL del piano, il difetto ⑦
+fuori elenco, i numeri misurati e ciò che resta `non provato` — così chi legge il registro dei
+salvataggi non ha bisogno di questo file per sapere cosa è cambiato e perché.
