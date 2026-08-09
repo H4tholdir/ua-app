@@ -1240,11 +1240,16 @@ export function DevoIntervenire(props: {
           motivoDisabilitato={
             lavorando ? 'Sto registrando…'
               : conflitto ?? (alBivio && scelta === null
-                // 🔑 LA STESSA FRASE, non una seconda: la riga sotto il tasto
-                //    spento dice ciò che manca, e ciò che manca è esattamente
-                //    la domanda del bivio. Scriverne qui una variante sarebbe
-                //    la terza copia di una frase sola (v. `DOMANDA_SCELTA`).
-                ? DOMANDA_SCELTA
+                // 🔴 QUI C'ERA `DOMANDA_SCELTA`, e allo scatto si vedeva che
+                //    cosa costa: la stessa frase compariva DUE VOLTE a 150 px
+                //    di distanza — come etichetta del gruppo e come riga sotto
+                //    il tasto spento. Ripetere la domanda non dice che cosa
+                //    manca, la ri-pone.
+                // 🛑 E non si scrive nemmeno una variante corta: sarebbe la
+                //    terza formulazione di una frase sola, che è esattamente ciò
+                //    che `DOMANDA_SCELTA` esiste per impedire. La riga INDICA la
+                //    domanda, non la rifà.
+                ? 'Manca la scelta qui sopra.'
                 : 'Scrivi in due parole di cosa si tratta')
           }
         >

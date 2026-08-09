@@ -76,9 +76,21 @@ export function ChipScelta(props: {
           padding: '0 20px',
           borderRadius: raggio.pill,
           border: 'none',
-          background: selezionata ? 'var(--green-tint)' : 'var(--card)',
-          // Spenta: nessun rilievo. La pressione è ciò che dice «questa si
-          // preme», e qui non si preme (stessa riga di `TastoPrimario`).
+          // 🔴 SPENTA NON VUOL DIRE ASSENTE, e togliere l'ombra non basta —
+          //    misurato allo scatto del gate L2 del Task 9, 390 chiaro. La
+          //    pillola viva è `--card` + `--sh-press`, ma il pannello del foglio
+          //    È anch'esso `--card`: senza ombra restava **solo il testo**,
+          //    sospeso. È la QUARTA replica dello stesso difetto in questo
+          //    progetto (v. `ds-v3.css`, la regola su `.ds-medico-riga` /
+          //    `.ds-via-d212`), e stavolta arriva dal lato chiaro.
+          // ➡️ Una pillola spenta resta una SUPERFICIE, e per giunta INCASSATA:
+          //    `--fondo-superficie` è più scuro del pannello in tutti e due i
+          //    temi, quindi il racconto fisico è coerente — viva = sollevata,
+          //    spenta = affondata. E il fondo non si scrive qui: è il token che
+          //    D329 ha già introdotto per le superfici dentro un foglio.
+          background: disabilitata
+            ? 'var(--fondo-superficie)'
+            : selezionata ? 'var(--green-tint)' : 'var(--card)',
           boxShadow: disabilitata ? 'none' : selezionata ? 'none' : 'var(--sh-press)',
           color: disabilitata ? 'var(--faint)' : selezionata ? 'var(--green)' : 'var(--ink)',
           fontFamily: tipografia.famiglia,

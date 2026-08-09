@@ -818,3 +818,171 @@ VERIFY_EXIT=0
 - **❌4 · ❌5 · ❌6 · ⚠️7** restano aperti.
 - **`memory/MEMORY.md` NON è stato toccato**, su richiesta esplicita.
 - **Niente pubblicato.**
+
+---
+
+# Task 9 — il bivio, la pastiglia spenta e la schermata finale (9 agosto 2026, 10:43 · `provato:` `date` → `Sun Aug 9 10:43:09 CEST 2026`)
+
+**Perché il gate è dovuto:** il Task 9 aggiunge due pastiglie nuove, uno **stato spento** che il
+design system non aveva, una riga di conseguenza, e **cambia l'ordine** della schermata finale. È
+codice toccato su token, classi, testi visibili e struttura del markup → **aspetto** (⚖️ D245), non
+contenuto.
+
+**Banco:** build di produzione su `localhost:3020` · lavoro **2026/0005** (`cdfee91f-…`) · utenza
+**`e2e-titolare@ua-test.local`**.
+**Perimetro:** 390 · 768 · 1280 × chiaro · scuro — **sei combinazioni** su **dodici stati**, 72 scatti
+col prefisso `task9-`.
+
+> 🔑 **IL TEMA SI RIBALTA IN PAGINA, NON RICARICANDO**, ed è ciò che ha reso fotografabile la
+> schermata finale in sei combinazioni con **un solo** giro distruttivo: `scripts/tmp/task9-scatti.mjs`
+> scrive `data-theme` come fa `ThemeInitializer`, quindi lo stato del foglio sopravvive.
+> Ricaricando per cambiare tema si sarebbe perso il passo, e ogni combinazione sarebbe costata un
+> altro lavoro nuovo con il suo progressivo bruciato.
+
+---
+
+## 1. 🔴 La ricetta del §7 porta a un 404, e la scorciatoia di D103 è la causa
+
+`provato:` con il link d'accesso preso **senza email** — cioè col ripiego su `TEST_EMAIL` che D103
+dichiara ammesso — la scheda risponde **404**.
+
+| | valore |
+|---|---|
+| `TEST_EMAIL` in `.env.local` | `h4t@live.it` → laboratorio `971061a1-…` |
+| l'utenza del banco (§7 di questo referto) | `e2e-titolare@ua-test.local` → laboratorio `00000000-…-0001` |
+| il lavoro 2026/0005 | laboratorio `00000000-…-0001` |
+
+➡️ **L'email va passata per esteso**, sempre, quando si lavora sul banco E2E:
+```bash
+npx tsx scripts/link-accesso.ts "e2e-titolare@ua-test.local" "/lavori/cdfee91f-5952-4eb9-8114-f36e4344645d"
+```
+🔑 **Perché lo scrivo qui e non nel mio resoconto:** è la prima cosa che fa chiunque riapra questa
+cartella, e un 404 su una scheda sembra un difetto dell'app invece che un'utenza sbagliata. Costo
+misurato oggi: un giro perso.
+
+---
+
+## 2. I ❌ trovati DAGLI SCATTI, e tutti e due erano invisibili al codice
+
+### ❌T9-1 — La pastiglia **spenta** spariva in tema chiaro. **CHIUSO.**
+
+`provato:` `task9-mai-uscito-spenta--390-light.png`, primo giro. La prima stesura di
+`ChipScelta disabilitata` toglieva l'ombra e basta. Ma la pillola viva è `--card` **e il pannello del
+foglio È anch'esso `--card`**: senza `--sh-press` non restava nessuna superficie, solo il testo,
+sospeso in mezzo alle altre.
+
+🛑 **È la QUARTA replica dello stesso difetto in questo progetto**, e le prime tre stanno già scritte
+in `ds-v3.css` (gate L2 del 22/07 su `ChipScelta`/`TastoTondo` dentro gli sheet, poi
+`.ds-medico-riga`, poi `.ds-via-d212`). Le tre precedenti erano tutte **in scuro**; questa arriva dal
+lato **chiaro**, che nessuna di quelle regole copre — `[data-theme="dark"]` le scopa via tutte.
+
+**Rimedio, e non introduce un valore nuovo:** una pastiglia spenta resta una **superficie**, e per
+giunta **incassata** — `--fondo-superficie`, il token che D329 ha già portato in casa.
+
+| tema | pillola viva | pillola spenta | pannello |
+|---|---|---|---|
+| chiaro | `--card` #FFFEFA + `--sh-press` | `--fondo-superficie` #ECE6D9, nessuna ombra | #FFFEFA |
+| scuro | `--elv` #2B2620 (rimappata dentro `.ds-sheet`) | `--fondo-superficie` #100E0B | #211D18 |
+
+🔑 **Il racconto fisico torna in tutti e due i temi: viva = sollevata, spenta = affondata.** Non è la
+scelta comoda, è quella coerente — un comando che non si può premere non deve *affiorare*.
+Scatti: `task9-mai-uscito-spenta--390-light.png` · `--390-dark.png` (e le altre quattro combinazioni).
+
+### ❌T9-2 — La stessa frase due volte a 150 px di distanza. **CHIUSO.**
+
+`provato:` `task9-bivio-senza-scelta--390-light.png`, primo giro. Col tasto spento, la domanda del
+bivio compariva **due volte**: come etichetta del gruppo di pastiglie e come riga sotto il tasto.
+
+🔑 **La causa è una scelta che sembrava la più rigorosa:** il mandato dice «*riusa la formulazione
+che c'è, non scriverne una terza*», e io avevo riusato `DOMANDA_SCELTA` **anche** come motivo del
+tasto spento. Ma quella riga non deve **ri-porre** la domanda: deve dire **che cosa manca**.
+**Rimedio:** «*Manca la scelta qui sopra.*» — indica, non riformula. `DOMANDA_SCELTA` resta una sola.
+
+---
+
+## 3. Che cosa è stato guardato, stato per stato
+
+| stato | scatti | che cosa dice |
+|---|---|---|
+| `task9-bivio-senza-scelta` | 6 | le due pastiglie, nessuna accesa, tasto **CONTINUA** spento + «Manca la scelta qui sopra.» |
+| `task9-bivio-si-sistema` | 6 | pastiglia verde col ✓, la conseguenza sotto, tasto **REGISTRA E RIPORTALO FRA I PRONTI** |
+| `task9-bivio-si-rifa` | 6 | l'altra pastiglia, l'altra conseguenza, tasto **REGISTRA E FAI IL LAVORO NUOVO** |
+| `task9-mai-uscito-spenta` (+ `-fondo`) | 12 | «Mai uscito» incassata e la ragione a schermo |
+| `task9-proposta-rifacimento` · `-sistema` | 12 | la proposta **senza** ripetere la riuscita (parla già «E sul lavoro») |
+| `task9-esito-rifacimento` (+ `-fondo`) | 12 | «È nato il lavoro 2026/0017» **in cima**, «Apri il lavoro 2026/0017», «Registrato e valutato» **sotto** |
+| `task9-esito-sistema` (+ `-fondo`) | 12 | «Il lavoro è tornato fra i pronti / La dichiarazione resta valida» in cima |
+| `task9-esito-destinatario` | 6 | il terzo motivo della spec §0, che non passa dal bivio (⚖️ D312) |
+
+**Il tasto a due righe** (`REGISTRA E FAI IL LAVORO NUOVO`) sta dentro i 70 px di `TastoPrimario` a
+390 e non sfora: `task9-bivio-si-rifa--390-dark.png`. La seconda pastiglia va a capo dentro la
+pillola, con l'altezza che cresce: è leggibile e il bersaglio resta ben sopra i 44 px.
+
+---
+
+## 4. Le misure di contrasto della pastiglia spenta
+
+| tema | testo | fondo | rapporto |
+|---|---|---|---|
+| chiaro | `--faint` #7B6A59 | `--fondo-superficie` #ECE6D9 | **4,17:1** |
+| scuro | `--faint` #9A8F80 | `--fondo-superficie` #100E0B | **8,6:1** |
+
+⚠️ **Il 4,17 in chiaro è lo stesso numero del ❌3 di stamattina, e qui NON è una violazione:** WCAG
+1.4.3 esenta esplicitamente il testo che fa parte di un **componente disattivato** («*Incidental… have
+no contrast requirement*»). 🛑 Lo scrivo lo stesso, invece di tacerlo dietro l'esenzione, perché il
+giorno in cui il tema chiaro si chiuderà (⚖️ D330, deferito) questa riga è una delle superfici da
+rimisurare — e un'esenzione dimenticata è indistinguibile da un difetto non visto.
+
+---
+
+## 5. Il giro completo sul banco vero — e come si è rimesso tutto com'era
+
+🛑 **Non è una simulazione:** per arrivare alla schermata finale si scrive davvero. Tre giri, tre
+motivi (⚖️ spec §0).
+
+| | prima | dopo i tre giri | dopo il ripristino |
+|---|---|---|---|
+| 2026/0005 — stato | `consegnato` | `pronto` | **`consegnato`** ✅ |
+| 2026/0005 — `post_consegna_correzioni` | 9 | 12 | **9** ✅ |
+| eventi di qualità sul lavoro | 0 | 3 | **0** ✅ |
+| dichiarazioni vive | 1 (`DDC-2026-0003`) | **1, ancora `generata`** | 1 ✅ |
+| lavoro nato dal rifacimento | — | **2026/0017** (`is_rifacimento`) | cancellato ✅ |
+
+🔑 **La riga che vale l'intera ondata:** dopo un `si_sistema` e un `destinatario_errato` — due
+ritorni fra i pronti — **`DDC-2026-0003` è rimasta `generata`, mai `annullata`**. È D293 e l'Art. 21(2)
+MDR misurati sul database, non dedotti dal codice.
+🔑 **E `scelta_intervento` è arrivata in banca dati**, `si_rifa` sul primo evento e `si_sistema` sul
+secondo: è la colonna che questo foglio non aveva mai scritto.
+
+**Il ripristino, per intero — QUI, non altrove.** Girava da `scripts/tmp/task9-ripristino.sql`, ma
+`scripts/tmp/` è **ignorato da git**: rimandare lì sarebbe rifare l'errore già pagato con lo script
+del link d'accesso (⚖️ D103, 05/08). Il testo che conta è questo, in una transazione sola:
+```sql
+DELETE FROM public.lavori_rifacimenti WHERE lavoro_originale_id = 'cdfee91f-…';
+DELETE FROM public.lavori_denti        WHERE lavoro_id = 'cd1e001c-…';
+DELETE FROM public.lavori_prescrizioni WHERE lavoro_id = 'cd1e001c-…';
+DELETE FROM public.lavori              WHERE id = 'cd1e001c-…';
+DELETE FROM public.valutazioni_evento  WHERE evento_id IN (SELECT id FROM public.eventi_qualita WHERE lavoro_id = 'cdfee91f-…');
+DELETE FROM public.eventi_qualita      WHERE lavoro_id = 'cdfee91f-…';
+UPDATE public.lavori SET stato = 'consegnato', post_consegna_correzioni = 9 WHERE id = 'cdfee91f-…';
+```
+⚠️ **Due trappole pagate scrivendolo**, perché non si ripaghino: la colonna è
+`lavori_rifacimenti.lavoro_originale_id` (**non** `lavoro_origine_id`) · e `lavori` **non cade da
+sola**, `lavori_denti` e `lavori_prescrizioni` la trattengono con una FK composita
+(`lavori_denti_lavoro_fk`) — vanno cancellate prima.
+🛑 **Ciò che NON si rimette indietro, e non si è nemmeno provato:** il progressivo bruciato. Fra
+2026/0011 e 2026/0017 ci sono i numeri consumati dai giri. §8 di `CLAUDE.md` dichiara questo banco
+pieno di **soli dati di prova**: rincorrere una sequenza sarebbe spendere su un rischio che non c'è.
+
+---
+
+## 6. Che cosa NON è stato guardato
+
+- **`:focus-visible` percorso col Tab** sulle due pastiglie nuove e sulla pastiglia spenta. ⚠️ Una
+  pillola `disabled` **esce dall'ordine di tabulazione** (è la resa nativa del `disabled` HTML): chi
+  naviga da tastiera non ci arriva **e quindi non legge il motivo dal focus**. La ragione è scritta
+  sotto il gruppo, quindi si legge comunque leggendo — ma non è la stessa cosa, e non l'ho misurato.
+- **`prefers-reduced-motion`** sui passi nuovi: `ChipScelta` spenta non anima (`whileTap` tolto), ma
+  il giro col ramo `SheetRidotto` non è stato rifatto.
+- **Device vero**: solo emulazione di viewport.
+- **Il ramo `fallito`/`non_applicabile` a schermo**: provato solo dalle prove unitarie. Per vederlo
+  sul banco servirebbe far fallire apposta una RPC, e non l'ho fatto.
