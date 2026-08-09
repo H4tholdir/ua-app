@@ -11,9 +11,9 @@ superfici e sei scritte in `DevoIntervenire.tsx`.
 ✅ **Il ❌3 è chiuso**, rimisurato dal vivo: **4,17 → 12,11**. Riga #DDD6C9, separazione **1,43:1**.
 🌗 **In scuro non è cambiato un pixel** rispetto a D326 (b).
 
-🔴 **MA il difetto si è spostato e cresciuto: i testi sotto soglia in chiaro passano da 4 a 12**
+🔴 **MA il difetto si è spostato e cresciuto: i testi sotto soglia in chiaro passano da 4 a 13**
 (`--muted` 4,66 → **4,01**: sei etichette di riga, due paragrafi, **due collegamenti**, due righe del
-selettore). **Riferito, non aggiustato** (R-E2). Su questo asse non si vince: ogni scurimento utile
+selettore) — **più un tredicesimo che non passava già e ora passa peggio**, la didascalia «COLORE» (`--faint` 4,17 → **3,59**), che vive in `src/components/ds/Campo.tsx:28`, componente **condiviso**. **Riferito, non aggiustato** (R-E2). Su questo asse non si vince: ogni scurimento utile
 porta `--muted` sotto 4,5. ⚠️ E il nastro non dice più «sei qui» con l'intensità
 (`d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png`).
 

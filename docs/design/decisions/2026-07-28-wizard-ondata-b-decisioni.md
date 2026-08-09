@@ -3960,7 +3960,7 @@ resa del chiaro e la riga si **schiarirebbe**, perché in scuro `--muted` è chi
 chiaro passa da 4 a 12.** Le scritte promosse a `--ink` guadagnano (4,17 → 12,11); **quelle rimaste
 `--muted` perdono** (4,66 → **4,01**): le sei etichette delle righe, i due paragrafi di «Da qui non si
 corregge», i **due collegamenti** «Impostazioni» e «Anagrafica», le due righe di sotto del selettore di
-persone. **Riferito e NON aggiustato** (R-E2).
+persone. **Riferito e NON aggiustato** (R-E2). 🔄 **CORREZIONE, e il tredicesimo non è dello stesso tipo:** contando anche il sotto-passo caratteristiche ce n'è **un altro** — la didascalia **«COLORE»** del campo di testo, `--faint`, che passa da **4,17** a **3,59**. I dodici **passavano** e ora non passano; questo **non passava già** e ora passa peggio. 🔑 **E dice dov'è il confine del rimedio:** vive in `src/components/ds/Campo.tsx:28`, cioè in un **componente condiviso**, non fra le sei scritte di `DevoIntervenire.tsx` — chi chiuderà i dodici deve decidere anche quella.
 🔑 **La lezione, e non è sul colore: su questo asse non si vince.** Con un pannello quasi bianco,
 scurire la riga la allontana dal pannello **e** avvicina il testo alla riga — è la stessa mossa. **Ogni**
 scurimento utile porta `--muted` sotto 4,5, perché parte da 4,66. ➡️ Il seguito non è cambiare variante:

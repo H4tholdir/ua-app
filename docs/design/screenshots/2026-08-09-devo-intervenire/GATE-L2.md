@@ -606,9 +606,30 @@ Le scritte promosse a `--ink` guadagnano; **quelle rimaste `--muted` perdono.**
 | le due righe di sotto del selettore di persone — 13px | 4,66 ✅ | **4,01** ❌ |
 
 `provato:` sonda su **tutti** i testi delle cinque superfici — **10 su 30 sotto soglia** al passo di
-correzione, **2 su 4** al selettore di persone. Prima erano 4 in tutto.
+correzione, **2 su 4** al selettore di persone, **più «COLORE»** nel sotto-passo caratteristiche (v. la correzione qui sotto). Prima erano 4 in tutto.
 🛑 **Due dei dodici sono collegamenti** — l'unica via per andare in Impostazioni e in Anagrafica da
 quel blocco.
+
+🔄 **CORREZIONE: i testi sono TREDICI, non dodici — e il tredicesimo non è dello stesso tipo.**
+Avevo contato solo il passo di correzione e il selettore di persone. Nel **sotto-passo
+caratteristiche** c'è un'altra scritta sulla superficie nuova: la didascalia **«COLORE»** del campo di
+testo, che è `--faint` 13px/800 e **NON è una delle mie sei**, perché vive in un componente condiviso
+(`src/components/ds/Campo.tsx:28`). Sul fondo nuovo passa da **4,17** a **3,59**.
+🔑 **La differenza conta:** i dodici **passavano** e adesso non passano; questo **non passava già** e
+adesso passa peggio. ➡️ **E dice dov'è il confine del rimedio:** i sei punti che ho spostato a
+inchiostro stanno tutti in `DevoIntervenire.tsx`; **una didascalia della stessa famiglia, ma disegnata
+da un componente del design system, resta indietro.** Chi chiuderà i dodici deve decidere anche questa
+— e quella è una superficie condivisa (R-E2 + migrazione per route), non una riga di questo foglio.
+
+📌 **E due ❌ che compaiono nella mia stessa sonda NON sono di D329, per non farli cercare a nessuno:**
+- Nel sotto-passo caratteristiche, **cinque** ❌ (i pallini della legenda a **1,31**, i numeri dei denti
+  rossi a **4,00**) stanno su `rgb(228, 223, 217)` — **il fondo che l'odontogramma dipinge da sé**
+  (`OdontogrammaFDI.tsx:537`, token **v2.3**), non sulla superficie che D329 tocca. Sono il **❌5** già
+  agli atti, e **il numero 1,31 è identico a quello misurato prima di D329**.
+- In tema scuro, l'unico ❌ del passo di correzione — la pastiglia «altra persona» a **1,00** — è un
+  **artefatto della mia sonda**: quel gettone ha un fondo semitrasparente (`--purple-tint`,
+  `rgba(185,139,232,.14)`) e il camminatore che risale la catena dei fondi lo ha preso per opaco,
+  confrontando il colore con sé stesso. **Non è un difetto: è un numero che non vuol dire niente.**
 🔑 **E non è la scelta di C3 a essere sbagliata: è che su questo asse non si vince.** Con `--card`
 quasi bianco, **qualunque** scurimento della riga porta `--muted` sotto 4,5 — parte da 4,66, e il
 primo passo utile lo sfonda. **Il rimedio non è cambiare variante, è spostare quei dodici testi**
