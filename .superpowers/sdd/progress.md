@@ -929,36 +929,69 @@ Task 4-ter (⚖️ D345, la firma = `laboratori.nome`): complete (8ae9bc05..e07d
 🎨 CANCELLO §0B: PASSATO il 09/08 19:17 (29438783 · a500d4b9) → ⚖️ D344 (foglio = A2) · D346 (portale = B1)
 Task 5 (il foglio, variante A2) + 5-bis (⚖️ D351, «a voce» con un tocco): complete (48e014ae..8bfd63e8 · revisione 957f73eb)
 
-Task 6 (il montaggio: `queries.ts` + la scheda) — 🔄 **IN CORSO**, esecutore fresco dispacciato il 09/08 22:5x.
-  BASE per il pacchetto di revisione: **b38beab1**.
-  🔴 Il testo del piano (righe 396-399) è **due righe e non è il compito**: il montaggio vero vive nella
-  §0① dell'handoff del 09/08 sera, e con lui ⚖️ D350 (`pazienteMostrato`) e ⚖️ D345 (`nomeLaboratorio`).
-  Il mandato completo sta in `avviso-dentista-task-6-brief.md`.
+Task 6 (il montaggio: `queries.ts` + la scheda): **complete** (a9e3e0d7..47c9e3e2 — impl a9e3e0d7 ·
+  tre giri di correzione 798f5655 · 9f8c72c5 · 4d8bddd9 · rifinitura 47c9e3e2 · **revisione APPROVATA**,
+  zero Critici e zero Importanti). BASE del pacchetto: **d3cc8c1a**.
+  🔴 Il testo del piano (righe 396-399) era **due righe e non era il compito**: il montaggio vero viveva
+  nella §0① dell'handoff del 09/08 sera, e con lui ⚖️ D350 (`pazienteMostrato`) e ⚖️ D345
+  (`nomeLaboratorio`). Il mandato completo sta in `avviso-dentista-task-6-brief.md`.
+  🔴 **UN DIFETTO DEL MANDATO, misurato dall'esecutore invece che dedotto:** il §4.1 chiedeva il cancello
+  per ruolo **dentro `SchedaLavoroV3`**, che è un componente client — non si può, perché
+  `RUOLI_CHIUSURA_AVVISO` viveva in un file che importa `getServiceClient` → `import 'server-only'`.
+  Lui ha innestato l'import vero e lanciato la build: **`SONDA_BUILD_EXIT=1`**, con la traccia
+  d'importazione incollata. 🔑 **`tsc` non lo vede: solo `next build`** — è il terzo caso in questo
+  progetto in cui i tre comandi della FASE 7 non si sostituiscono a vicenda.
 
 Task 7 · 8 · 9 · 10: **non iniziati** (censiti col codice nella §0② dell'handoff).
 
 ### Task 6 — i rilievi che viaggiano fino alla REVISIONE FINALE DI RAMO
 
-**Chiusi nel giro di correzione** (798f5655 · 9f8c72c5): ① il cancello di ⚖️ D342 provato per **inversione**
-e non solo per cancellazione (fonte spostata in `src/lib/avvisi/ruoli.ts`) · ② l'import **di valore** di un
-`route.ts` dentro una pagina, tolto — `provato:` dei dodici import da `@/app/api/.../route` in `src/`,
-**undici sono `import type`** · ③ `COLONNE` legate allo schema vero da una prova d'integrazione · ④+⑤ due
-commenti che contraddicevano il proprio codice.
+**CHIUSI, e il revisore ha verificato le mutazioni invece di crederle:**
+① il cancello di ⚖️ D342 provato per **inversione** e non solo per cancellazione — la fonte è in
+`src/lib/avvisi/ruoli.ts` e il **ternario non esiste più**: cancello e lettura stanno dentro
+`avvisoPerLaScheda`, con `ruolo` **chiave obbligatoria** del tipo (chi non dichiara chi guarda **non
+compila**). Capovolgendolo si accendono **10 prove su 22**, e il motivo è strutturale: la spia guarda **se
+il banco è stato interrogato**, non il valore di ritorno — che per «escluso» e per «non c'è niente»
+sarebbe **identico** · ② l'import **di valore** di un `route.ts` dentro una pagina, tolto (`provato:` dei
+dodici import da `@/app/api/.../route` in `src/`, **undici sono `import type`**) · ③ `COLONNE` legata allo
+schema vero, e **nell'ambiente che conta**: `provato:` la CI passa `SUPABASE_DB_URL`, quindi il gruppo `pg`
+**gira**; un nome storpiato muore sulla `select` (`column avvisi_dentista.creato_at does not exist`), un
+nome **tolto** — che nessuna `select` rifiuterebbe — lo prende il confronto con `pg_attribute` ·
+④⑤ due commenti che contraddicevano il proprio codice · ⑥ **cinque puntatori rimasti indietro**, di cui
+uno riferito perché sta nel file del Task 5.
 
-**APERTI, e vanno alla revisione finale:**
+**M-T6-2 e M-T6-3 (il ternario · la prova solo contro un finto) SONO CHIUSE — righe cancellate invece che
+annotate**, perché una voce falsa in un ledger fa riaprire al revisore finale una discussione già chiusa.
+
+**APERTI, e vanno alla revisione finale di ramo:**
 - 🟡 **M-T6-1** — `pazienteTesto` vale `'—'` senza `paziente_nome_snapshot`, e il foglio stampa «*Hai
   rifatto la dichiarazione di —*» (`SchedaLavoroV3.tsx:626` → `AvvisoDentista.tsx:691`). **Prescritto dal
   mandato** (§4.5: passare lo stesso valore che la scheda mostra): **lo decide Francesco al gate L2**.
-- 🟡 **M-T6-2** — il ternario di `page.tsx` non è reso da nessuna prova unitaria (componente server
-  asincrono). Il correttore l'ha **misurato e riferito** invece di prenderlo da solo. ➡️ Chiuso
-  dall'involucro del terzo giro; **se non lo fosse, resta qui.**
-- 🟠 **M-T6-3** — la prova d'integrazione delle colonne passa da `pg`, **non** dal client di servizio,
-  perché la CI **non riceve `SUPABASE_SERVICE_ROLE_KEY`** (`.github/workflows/ci.yml`). Le letture di
-  `queries.ts` restano quindi provate **solo contro un finto** sull'unico ambiente autorevole.
+- 🟡 **M-T6-4** — `avvisiDaComunicare` resta **esportata e senza cancello** (`queries.ts:190`). Zero
+  consumatori applicativi oggi, e la pagina è tenuta lontana dalla lettura grezza da una sentinella: **non
+  è una porta aperta adesso**, è una porta che i **Task 7 e 9** devono chiudere ciascuno sulla propria
+  superficie. ➡️ **La decisione va presa PRIMA del Task 7**, non dopo.
+- 🟡 **M-T6-5** — `STATI_APERTI` è la stessa derivazione in due file (`queries.ts:87` · `route.ts:136`).
+  Non possono divergere sui valori (derivano entrambi da `stati.ts`), ma il posto naturale è `stati.ts`.
+- 🟡 **M-T6-6** — la ri-esportazione `RUOLI_CHIUSURA_AVVISO` da `route.ts:166` era il **tripwire di
+  perimetro** di quel passaggio: lo stato finale pulito è puntare `tests/unit/api-avviso.test.ts:87` su
+  `@/lib/avvisi/ruoli` e toglierla. **Dopo il Task 7.**
+- ⚠️ **Da controllare, non un rilievo:** la prima esecuzione **vera in CI** del gruppo `pg` non è ancora
+  stata osservata (in locale i sette casi d'integrazione si saltano). **Guardare la CI del ramo.**
+- ⚠️ **Rumore già noto, escluso per censimento:** un `verify:full` intermedio è arrossito con
+  `Test timed out in 5000ms` su `DevoIntervenire.test.tsx` — `provato:` nessuno dei due file importa
+  `SchedaLavoroV3`, quindi è il flake da carico, non una conseguenza. ⚠️ Ma questo cambiamento aggiunge un
+  file che rende la scheda **intera** sette volte, su una CI a due core: se quei due arrossiscono, è quello.
 
-🛑 **E UN DIFETTO DELLO STRUMENTO, non di un esecutore, colto in flagrante il 09/08 sera:**
-`.superpowers/sdd/.gitignore` è stato **riscritto a `*`** durante quest'ondata — cioè lo strumento SDD ha
-rimesso fuori da git la mappa di recupero e tutti i resoconti. **Il file lo prevedeva** («*se questo file
-torna a contenere `*`, l'ha riscritto lo strumento SDD: va rimesso così*», ⚖️ D313) e per questo la
-modifica si vede in `git status` invece di passare in silenzio. **Ripristinato dall'orchestratore.**
-➡️ **Chi usa `review-package` o `task-brief` in questo repo ricontrolli quel file dopo.**
+🛑 **E UN DIFETTO DELLO STRUMENTO, non di un esecutore — e il COLPEVOLE HA UN NOME, misurato due volte:**
+🔴 **è `scripts/review-package` a riscrivere `.superpowers/sdd/.gitignore` con `*`.** Non dedotto:
+`provato:` il file era intatto **prima** del comando e conteneva `*` **subito dopo**, due volte di fila
+(pacchetti `..bf840939` e `..ade75618`). Cioè lo strumento SDD rimette fuori da git **la mappa di recupero
+e tutti i resoconti** — i numeri misurati e le prove.
+✅ **Il file si è difeso da solo**, ed è il motivo per cui va lasciato al suo posto invece di cancellato:
+porta scritto dentro «*se questo file torna a contenere `*`, l'ha riscritto lo strumento SDD: va rimesso
+così*» (⚖️ D313, 07/08), quindi la modifica **si vede in `git status`** invece di passare in silenzio.
+**Ripristinato dall'orchestratore tutte e due le volte.**
+➡️ **Regola operativa: dopo OGNI `review-package` (e dopo `task-brief`), `git status` su quel file.**
+🔑 Se il primo esecutore non avesse riferito «*un residuo non mio nell'albero condiviso*» invece di
+ignorarlo, il brief del Task 7 sarebbe nato **invisibile a git**.
