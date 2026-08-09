@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaseiesima tornata (D336-D339: il valore vecchio non si mostra mai, le comunicazioni hanno il loro archivio, e la bozza non si conserva)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantottesima tornata (D342-D343: chi chiude l'avviso al dentista sta IN laboratorio, e la data è quella della registrazione)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**341 decisioni in centoquarantasette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**343 decisioni in centoquarantotto tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4099,3 +4099,49 @@ In locale le **84** prove d'integrazione **si saltano** (`5725 | 84 saltate su 4
 (`5809/5809`). ➡️ **Da oggi la pubblicazione automatica è PIÙ SEVERA della verifica locale: un verde
 locale non garantisce un verde in CI.** Se `verify:full` debba caricare `.env.local` quando c'è **non è
 stato deciso** — riga **39** della coda.
+
+---
+
+### Centoquarantottesima tornata — D342 · D343: chi chiude l'avviso al dentista sta IN laboratorio, e la data è quella della registrazione (09/08/2026, 17:39)
+
+**Come è nata.** Il Task 4 dell'avviso al dentista ha costruito la rotta che chiude il promemoria, e
+l'esecutore ha riferito che **il piano non dice quali ruoli possano farlo**: oggi chiunque autenticato in
+quel laboratorio può chiudere un adempimento di legge dichiarando «l'ho avvisato di persona». Ha
+applicato il perimetro della rotta modello (nessun cancello), **l'ha fissato con una prova** perché una
+decisione futura dovesse farla arrossire, e ha portato **una domanda sola** — la stessa che il piano
+dichiarava aperta al Task 7.
+
+🔑 **Panel a tre, e NON ha approvato la proposta: l'ha ribaltata.** La proposta sul tavolo era
+«escludere il tecnico, che non parla col dentista». Due advisor su tre, indipendenti e da direzioni
+opposte (**normativo** e **prodotto**), hanno portato **lo stesso argomento contro**: se il tecnico ha
+telefonato e non può registrarlo, **registra un altro**, e nella riga resta scritto un nome che non
+corrisponde al fatto — *la modifica peggiora la prova che voleva proteggere*, cioè produce
+un'**attribuzione falsa**. L'advisor di prodotto ha aggiunto il caso che decide: in un laboratorio di
+due persone il titolare **è** il tecnico, e un cancello può lasciare **zero** persone in grado di agire.
+📌 **E il panel ha spostato la domanda su un ruolo che nessuno aveva messo a fuoco:** tutti e tre hanno
+segnalato **`admin_rete`** — una persona che sta sopra più laboratori e chiuderebbe l'obbligo di un
+laboratorio in cui non lavora — notando che **la casa è già incoerente su quel ruolo** (alcune rotte lo
+escludono, `striscia.ts:270-274` gli dà gli stessi poteri del titolare).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D342** | 🔑 **CHI CHIUDE L'AVVISO STA *IN* LABORATORIO: `titolare` · `tecnico` · `front_desk`. Esclusi `admin_rete` E `admin_sistema`, entrambi PER NOME** e non per effetto collaterale | «*Solo chi sta in laboratorio*» | ⚖️ **D335** (i due modi valgono uguale) + panel a tre: il tecnico **resta dentro** perché escluderlo produce attribuzioni false (normativo + prodotto, indipendenti); `admin_rete` **esce** perché non lavora in quel laboratorio (3 advisor su 3 l'hanno segnalato); `admin_sistema` **esce per nome** perché è personale UÀ — responsabile del trattamento che agisce su istruzione documentata (GDPR **Art. 28(3)(a)**) e **non era presente alla telefonata**. 🛑 **Escluderlo per nome e non per il 403 su `laboratorio_id` nullo:** `lab-context.ts:16` dice che *lab nullo ⟹ `admin_sistema`*, **non** il converso — un cancello che si regge su un invariante mai misurato è la classe di difetto che `CLAUDE.md` §9 nomina per prima. |
+| **D343** | 🔑 **LA DATA È QUELLA DELLA REGISTRAZIONE, e non se ne aggiunge una seconda** | «*Basta il momento in cui registri*» | Nessuna norma impone due date: l'advisor normativo lo indica come **punto debole della prova** (chi telefona lunedì e registra mercoledì fa scrivere mercoledì) ma **dichiara di non aver trovato** né linea guida EDPB né provvedimento del Garante sulla **forma** della prova ex Art. 19 → **non verificato**, e senza obbligo si sceglie il gesto più corto. ➡️ **Niente migration, niente campo in più, niente tap in più.** |
+
+🔑 **Un principio che nasce qui e vale oltre l'avviso, formulato dall'advisor di sicurezza:**
+**la visibilità è un SOTTOINSIEME del permesso — nessuno vede un promemoria che non può chiudere.**
+Non è un bicondizionale: un lavoro futuro può *ridurre* ciò che un ruolo vede pur lasciandogli il
+permesso, e niente si rompe. ➡️ **Conseguenza immediata sul Task 7:** la striscia della schermata
+iniziale mostra il promemoria a `titolare`, `tecnico`, `front_desk` — **e la proposta del piano, che
+escludeva il tecnico, cade con D342.**
+
+🔴 **Due cose che il panel ha portato e che NON sono decise, entrambe da mettere in coda.**
+① **Il fondamento normativo potrebbe non essere l'Art. 19:** l'Art. 19 si aggancia alle rettifiche
+«*effettuate a norma dell'articolo 16*», cioè **su richiesta dell'interessato**; se il laboratorio
+corregge **di propria iniziativa** il fondamento è **Art. 5(1)(d)** (esattezza) **+ 5(2)**. L'esito
+pratico è identico, **l'etichetta no** — e oggi quell'etichetta è scritta nel commento della tabella.
+② **«Chi» potrebbe non bastare per l'Art. 5(2):** l'advisor normativo chiede anche che il registro sia
+**interrogabile per PAZIENTE** e non solo per promemoria, perché l'Art. 19 seconda frase impone al
+titolare di poter dire all'interessato **quali** destinatari ha informato. 🛑 **Nessuna delle due è
+stata verificata contro una fonte primaria in questa tornata:** vanno a **panel normativo**, insieme
+alla riga **35** (il moncone).

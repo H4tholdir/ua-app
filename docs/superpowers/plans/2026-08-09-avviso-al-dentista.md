@@ -375,7 +375,14 @@ const sAvvisoDentista: Candidato = (i) => i.avvisoDaComunicare
   : null
 ```
 - [ ] 🛑 **L'ORDINE DELL'ARRAY È PORTANTE** (dichiarato a `striscia.ts:180-186`): decide **quale** allarme parla quando più d'uno è acceso. Metti `sAvvisoDentista` **dopo** i ritardi operativi e **prima** dei pagamenti, e **scrivi perché** nel commento.
-- [ ] **Perimetro per ruolo:** `titolare`, `admin_rete`, `front_desk`. **Non** `tecnico` — non è lui a comunicare col dentista. **Se non sei d'accordo, riferisci invece di cambiare.**
+- [ ] ~~**Perimetro per ruolo:** `titolare`, `admin_rete`, `front_desk`. **Non** `tecnico` — non è lui a comunicare col dentista.~~
+      🔄 **DECISO IL 09/08/2026 — ⚖️ D342, e questa proposta È CADUTA: il perimetro è `titolare` · `tecnico` · `front_desk`.**
+      **Esclusi `admin_rete` e `admin_sistema`, entrambi PER NOME.** Il tecnico **resta dentro**: un panel a tre ha
+      portato da due direzioni indipendenti lo stesso argomento — se il tecnico ha telefonato e non può registrarlo,
+      **registra un altro**, e la riga porta un nome che non corrisponde al fatto (*attribuzione falsa*: la modifica
+      peggiora la prova che voleva proteggere). `admin_rete` **esce** perché non lavora in quel laboratorio.
+      🔑 **E il principio che regge il legame fra questo task e il Task 4: la visibilità è un SOTTOINSIEME del
+      permesso — nessuno vede un promemoria che non può chiudere.** Verbale: **centoquarantottesima tornata**.
 
 ---
 
