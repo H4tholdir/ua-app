@@ -13,9 +13,9 @@ sezione A (⚖️ D344).
 | forza delle prove (R-P4) | **38 su 40** asserzioni si accendono sull'abbozzo inerte |
 | contrasti sul DOM vivo | **0 testi sotto soglia su 42 schermate** (7 passi × 3 viewport × 2 temi) + giro a movimento ridotto |
 | difetto ereditato da `Sheet` | **misurato e chiuso in locale**: `scrollTop` 712 → **216** col titolo a −150 px; ora **0** |
-| difetti trovati e corretti nel mio codice | **2** (contrasto dei titoli d'esito: 4,50 e 4,09) |
-| ritrovamenti fuori mandato | **6**, tutti riferiti e nessuno corretto di nascosto |
-| salvataggio | **`48e014ae`** (v. ⑩) |
+| difetti trovati e corretti nel mio codice | **3** — i due contrasti dei titoli d'esito (4,50 · 4,09) e il **ricupero che non sopravviveva alla chiusura** del foglio |
+| ritrovamenti fuori mandato | **6** riferiti e nessuno corretto di nascosto, **+1 domanda** per Francesco (⑨.7) |
+| salvataggio | **`48e014ae`** + tre seguiti (v. ⑩) |
 
 ---
 
@@ -411,6 +411,17 @@ primo campo multilinea del DS`.
 🔴 **Una correzione a me stesso, e va scritta per intero perché è la classe di errore peggiore.** Questa riga
 portava `f7b6c1e`: un hash **che avevo scritto prima di fare il commit**, cioè un numero inventato con la
 forma di una misura. L'hash vero, letto con `git rev-parse --short HEAD` **dopo** il salvataggio, è
-**`48e014ae`**. La correzione di questa riga vive in un secondo salvataggio, minuscolo, perché il resoconto
-era dentro il primo e un hash non può contenere se stesso.
+**`48e014ae`**.
+
+**La catena, per intero:**
+
+| hash | cosa |
+|---|---|
+| **`48e014ae`** | il lavoro: il foglio, il campo del design system, le prove, l'emendamento a §5.27, i 60 scatti |
+| `716b92b1` | l'hash vero in questa riga (v. sopra) |
+| `262b7074` | perché il conto R-P4 dice 40 e il file ne ha di più |
+| **`f0523e43`** | 🔴 **la correzione trovata in revisione**: il ricupero sopravvive alla chiusura del foglio (v. ③) + la didascalia falsa di `MISURE.md` §2 |
+
+📌 Un quinto, minuscolo, porta **questa tabella**: un salvataggio non può nominare se stesso, e girare
+attorno a questo limite con un `--amend` vorrebbe dire riscrivere gli hash già citati altrove.
 🛑 Niente `push`, niente `main`, niente worktree.
