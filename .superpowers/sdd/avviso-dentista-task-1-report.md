@@ -34,16 +34,23 @@ Lanciata con l'ambiente caricato, come chiede il brief:
 $ set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-dentista-schema.rpc.test.ts
 
  Test Files  1 passed (1)
-      Tests  23 passed (23)
-   Duration  14.49s
+      Tests  27 passed (27)
 ```
 
-**23 passate su 23, zero `skipped`.**
+**27 passate su 27, zero `skipped`.** (Erano 23 al primo verde; le quattro in più sono `(p7)`, `(p8)`
+e le due dello specchio col `CHECK`, arrivate con la correzione di ⑨.)
 
 📌 **E in CI girano davvero**, verificato: `.github/workflows/ci.yml:42` passa
-`SUPABASE_DB_URL` allo step «Unit tests» (⚖️ D333, 09/08/2026). Quindi **non serve un gemello
-statico** in `tests/unit/` come per `eventi-qualita`: là il gemello esisteva perché in CI
-l'integrazione si saltava. Oggi non si salta più.
+`SUPABASE_DB_URL` allo step «Unit tests» (⚖️ D333, 09/08/2026) — quindi il file non si salta più,
+come faceva prima di ieri.
+
+🔄 **Qui avevo scritto «quindi non serve un gemello statico», e mi correggo:** il gemello
+`tests/unit/avvisi-stati.test.ts` **l'ho aggiunto**, e per un motivo diverso da quello che avevo in
+mente. Non serve perché la CI salti l'integrazione — non la salta. Serve perché ⚖️ **D335** e ⚖️
+**D339** vivono in `src/lib/avvisi/stati.ts`, che è **logica TypeScript** e non ha bisogno di un
+database per essere sbagliata: 23 prove che girano sempre, anche il giorno in cui quella variabile
+sparisse dalla CI o il banco fosse irraggiungibile. **Una regola di legge non si fa dipendere dalla
+reperibilità di un server.** Dettaglio nel censimento in § 3.
 
 ---
 
@@ -625,7 +632,7 @@ worktree, nessun `rm -rf`.
 |---|---|
 | `c68910ef` | *feat(avvisi): la tabella degli avvisi al dentista, e i tre stati* — 6 file, 1441 inserzioni |
 | `8ce8038e` | *docs(avvisi): l'hash del salvataggio nel resoconto del Task 1* |
-| **(questo)** | *fix(avvisi): l'UPDATE si stringe alle quattro colonne della chiusura* — la correzione di ⑨ + il gemello statico + lo specchio col CHECK |
+| `f3ecd85b` | *fix(avvisi): l'UPDATE si stringe alle quattro colonne della chiusura* — la correzione di ⑨ + il gemello statico + lo specchio col CHECK |
 
 Tutte le guardie del pre-commit verdi a ogni salvataggio: CSRF, reduced-motion, coerenza documenti,
 salvataggio automatico.
