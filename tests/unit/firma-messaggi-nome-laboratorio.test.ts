@@ -266,9 +266,12 @@ describe('⚖️ D345 — la sentinella: la firma vecchia non rientra da nessuna
   const FILE = fileSorgente('src')
 
   it('la scansione vede davvero il sorgente (contro il verde per vuoto)', () => {
-    // Misurato il 09/08/2026: `find src -name '*.ts*' | wc -l` → 700.
-    // La soglia è larga di proposito: serve a distinguere «zero occorrenze
-    // perché è pulito» da «zero occorrenze perché non ho letto niente».
+    // `provato:` misurato il 09/08/2026 — `find src -name '*.ts*' | wc -l` → **653**,
+    // e la scansione qui sopra ne vede **653**: lo stesso numero, cioè non sta
+    // saltando rami.
+    // La soglia resta larga di proposito: serve a distinguere «zero occorrenze
+    // perché è pulito» da «zero occorrenze perché non ho letto niente», non a
+    // inseguire il conto dei file settimana per settimana.
     expect(FILE.length).toBeGreaterThan(300)
   })
 
@@ -282,4 +285,34 @@ describe('⚖️ D345 — la sentinella: la firma vecchia non rientra da nessuna
     const colpevoli = FILE.filter((f) => /—\s*UÀ\s*Lab/.test(readFileSync(f, 'utf-8')))
     expect(colpevoli).toEqual([])
   })
+
+  /**
+   * 🔴 IL CAMPO GIUSTO, NON SOLO IL TIPO GIUSTO — e questa è l'unica guardia che
+   *    lo vede. Le due pagine dello scadenzario sono **componenti server**:
+   *    nessuna prova in casa le monta. E `context.lab?.nome` (il laboratorio) e
+   *    `context.nome` (il nome di **battesimo dell'utente**) hanno lo **stesso
+   *    tipo** `string | null` — `tsc` non distingue, il difetto compila, e il
+   *    dentista riceve un sollecito firmato «— Francesco».
+   *    ➡️ Verifica statica, come sopra: non è elegante, ma è la differenza fra
+   *    «l'ho letto» e «è sorvegliato».
+   * ⚠️ Se una pagina nuova comincia a passare `nomeLaboratorio`, va aggiunta a
+   *    questo elenco. La guardia non la trova da sé: dice solo la verità sulle
+   *    due che conosce.
+   */
+  const PAGINE_CHE_PASSANO_LA_FIRMA = [
+    'src/app/(app)/scadenzario/page.tsx',
+    'src/app/(app)/scadenzario/[cliente_id]/page.tsx',
+  ]
+
+  for (const pagina of PAGINE_CHE_PASSANO_LA_FIRMA) {
+    it(`${pagina} passa il nome del LABORATORIO, non quello dell'utente`, () => {
+      const src = readFileSync(pagina, 'utf-8')
+      // La prop c'è…
+      expect(src).toMatch(/nomeLaboratorio=\{/)
+      // …e il valore viene dal laboratorio del contesto, non dall'utente.
+      expect(src).toMatch(/nomeLaboratorio=\{context\??\.?lab\?\.nome/)
+      // Il caso che DEVE essere rifiutato (R-P1): il nome dell'utente.
+      expect(src).not.toMatch(/nomeLaboratorio=\{context\??\.nome/)
+    })
+  }
 })

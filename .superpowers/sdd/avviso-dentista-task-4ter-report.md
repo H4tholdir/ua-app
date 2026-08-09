@@ -36,7 +36,7 @@ nessuno dei tre inneschi aveva nominato**: `tests/unit/scadenzario-chiede-il-cel
 
 | percorso | che cosa |
 |---|---|
-| `tests/unit/firma-messaggi-nome-laboratorio.test.ts` | 🆕 **36 prove** — le tre gambe di D345 + la sentinella sul sorgente |
+| `tests/unit/firma-messaggi-nome-laboratorio.test.ts` | 🆕 **38 prove** — le tre gambe di D345 + la sentinella sul sorgente + la guardia sul campo delle due pagine server |
 | `tests/unit/avviso-messaggio.test.ts` | fixture della firma + **le tre sonde `@ts-expect-error` salvate dal degrado** (v. ④) |
 | `tests/unit/consegna-whatsapp.test.ts` | l'unica asserzione esistente sulla firma, ora sulla firma giusta |
 | `tests/unit/scadenzario-chiede-il-cellulare.test.tsx` | 6 punti di montaggio aggiornati + **2 prove nuove**: il nome arriva fino al collegamento `wa.me` |
@@ -173,6 +173,11 @@ sorveglia**, altrimenti misura la propria incompletezza invece del divieto.
 ➡️ **`N = 11` su `M = 36`.** M sono i casi di prova del file nuovo (vitest conta `it`, non asserzioni:
 le asserzioni sono più numerose, il numero riportato è quello misurabile).
 
+📌 **Il file oggi ha 38 prove, non 36**, e il conto sopra resta quello misurato: le **due** in più sono
+la guardia sul campo delle due pagine server (v. ⑦-1), aggiunte in un **secondo giro dopo la
+revisione**, quindi fuori dalla misura dell'abbozzo inerte. Non le ho conteggiate dentro `N su M`
+perché sarebbe stato ricalcolare un numero a cose fatte.
+
 🔑 **Che cosa dice il numero, e non è un bel numero per caso.** Le **25** che sopravvivono a un
 `return ''` sono quasi tutte **negative** (`not.toContain('UÀ Lab')`, `not.toContain('undefined')`,
 nessun gallone nudo): un messaggio vuoto le passa tutte. La forza sta nelle **11** — i confronti per
@@ -205,15 +210,18 @@ di **domani**.
 | | prima | dopo |
 |---|---|---|
 | **File di prova** | `454 passati \| 9 saltati (463)` | `455 passati \| 9 saltati (464)` |
-| **Prove** | **`5793 passate \| 119 saltate (5912)`** | **`5831 passate \| 119 saltate (5950)`** |
+| **Prove** | **`5793 passate \| 119 saltate (5912)`** | **`5833 passate \| 119 saltate (5952)`** |
 
 `provato:` prima — `npx vitest run` su albero pulito (09/08/2026, 19:28).
 `provato:` dopo — `npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"` → **`VERIFY_EXIT=0`**
 (senza pipe, da variabile).
 
-➡️ **+38 passate, saltate INVARIATE (119).** Il conto torna esatto: 36 del file nuovo + 2 di
-`scadenzario-chiede-il-cellulare.test.tsx`. Le mie prove sono unitarie, quindi le saltate non si
-muovono — e non si sono mosse.
+➡️ **+40 passate, saltate INVARIATE (119).** Il conto torna esatto: **38** del file nuovo (36 del
+primo giro + 2 della guardia sulle pagine) + **2** di `scadenzario-chiede-il-cellulare.test.tsx`. Le mie
+prove sono unitarie, quindi le saltate non si muovono — e non si sono mosse.
+
+📌 Due passate di `verify:full`, entrambe `VERIFY_EXIT=0`: la prima a `5831` (19:47), la seconda a
+`5833` (19:55) dopo le due prove aggiunte in revisione. Il numero di riferimento è **5833**.
 
 Dentro il `verify:full`: `tsc --noEmit` verde · `eslint src --max-warnings 0` verde ·
 `next build` «Compiled successfully» · **6 guardie su 6 verdi** (compresa `check-ds-compliance`:
@@ -229,29 +237,45 @@ nuove. Ripristinato → `8 passati`. ➡️ Provano il **passaggio di mano**, no
 
 ## ⑦ Che cosa resta `non provato`, col motivo
 
-1. 🔴 **Che le due pagine server passino il campo GIUSTO.** `context?.lab?.nome` e `context?.nome` (il
-   nome di **battesimo dell'utente**) hanno lo **stesso tipo** `string | null`: `tsc` non distingue, e
-   una prova di componente server non c'è in casa. ➡️ Verificato **leggendo** le due pagine e il tipo
-   `LabContext` (`lab-context.ts:12-20`), non da una prova automatica. **È il punto più fragile del
-   lavoro** e il modo di chiuderlo esiste (una guardia statica sulle due pagine, o una prova della
-   pagina) — non l'ho aggiunta perché sarebbe una decisione di processo, non una riga di questo task.
+1. ✅ **CHIUSO in revisione — era il punto più fragile e non è più `non provato`.** Il rischio:
+   `context?.lab?.nome` (il laboratorio) e `context?.nome` (il nome di **battesimo dell'utente**) hanno
+   lo **stesso tipo** `string | null`, quindi `tsc` non distingue, il difetto compila, e un dentista
+   riceve un sollecito firmato «— Francesco». Le due pagine sono **componenti server** e in casa nessuna
+   prova le monta. ➡️ Aggiunta una **guardia statica** sulle due pagine (stesso idioma della sentinella:
+   `tests/unit/firma-messaggi-nome-laboratorio.test.ts`), che pretende `nomeLaboratorio={context…lab?.nome`
+   e **rifiuta** `nomeLaboratorio={context?.nome`.
+   `provato:` sostituito a mano `context?.lab?.nome` con `context?.nome` in `(app)/scadenzario/page.tsx`
+   → `1 fallito | 37 passati (38)`; ripristinato → `38 passati` (09/08/2026).
+   ⚠️ Resta il limite dichiarato nella prova: la guardia conosce **due** pagine e non trova da sé una
+   terza. Chi ne aggiunge una la aggiunge all'elenco.
 2. **Il comportamento a schermo del ramo `admin_sistema`.** Che `LabContext.lab` sia `null` per un
    `laboratorio_id` NULL è letto sul tipo e sull'embed LEFT (`lab-context.ts:23`), **non** provato con
    una sessione `admin_sistema` vera. L'esito, comunque, è quello provato in unità: sollecito senza firma.
-3. **L'incastro `laboratori(nome)` non è stato provato contro il banco vero.** La FK
+3. ✅ **VERIFICATO in revisione: l'incastro nuovo non finisce in nessuna SCRITTURA.** Era il rischio
+   vero e invisibile: `lavoro` porta ora una chiave in più (`laboratorio`) e **scorre per righe che non
+   avevo aperto** (230-375, il cuore del flusso fiscale). Se una scrittura facesse `.update({...lavoro})`
+   o passasse l'oggetto intero a una RPC, Postgres rifiuterebbe la colonna sconosciuta e **la consegna
+   darebbe 400 in produzione** — e né `tsc` né le 5833 prove lo vedrebbero, perché le prove di
+   `orchestrate` girano su un banco finto.
+   `provato:` `grep -n "\.update(\|\.insert(\|\.upsert(\|\.\.\.lavoro\|Object.keys(lavoro)\|Object.entries(lavoro)\|JSON.stringify(lavoro)\|p_lavoro" src/lib/consegna/orchestrate.ts`
+   → **tre `.update()` (216, 301, 357), tutte con le colonne NOMINATE una per una, zero spread**; e le
+   RPC ricevono `lavoro_id`, non l'oggetto. Controllati anche i quattro consumatori a valle
+   (`precheck.ts`, `traccia-materiali.ts`, `generate-ddc.ts`, `generate-buono.ts`): **nessuno** fa spread,
+   `Object.keys`/`entries` o `JSON.stringify` del lavoro. ➡️ La chiave in più è **in sola lettura**.
+4. **L'incastro `laboratori(nome)` non è stato provato contro il banco vero.** La FK
    `lavori_laboratorio_id_fkey` è letta su `database.types.ts` (colonna singola verso la chiave
    primaria → oggetto), e `nomeLaboratorioDa()` regge comunque **anche la forma array**. Ma la sintassi
    dell'incastro non è stata eseguita su Postgres in questa sessione: le prove di `orchestrate` girano
    su un banco finto. ⚠️ **È l'unico punto che un collaudo dal vivo (D103) chiuderebbe e che una prova
    unitaria non chiude.**
-4. **Nessuna FASE 9 / 9b.** Non ho cambiato **l'aspetto** di nessuna superficie: zero token, zero
+5. **Nessuna FASE 9 / 9b.** Non ho cambiato **l'aspetto** di nessuna superficie: zero token, zero
    classi, zero stili, zero struttura di markup, nessun testo **visibile nell'interfaccia** — solo il
    contenuto di un `href` `wa.me` e due prop. Per ⚖️ **D245** è **CONTENUTO**, quindi il gate estetico
    L2 non è dovuto. 🛑 **Ma la FASE 9 «non dovuta» non è la stessa cosa di «fatta»:** la prova a schermo
    sui 390/768/1280 chiaro+scuro **non l'ho eseguita**, e il motivo è che nessun pixel di quelle
    pagine cambia — l'unica cosa osservabile è il testo che si apre **dentro WhatsApp**, che sta fuori
    dall'app. Se chi rivede la vuole comunque, è una passata sullo scadenzario.
-5. **Il messaggio vero visto in WhatsApp** (impaginazione della firma su un telefono vero): fuori
+6. **Il messaggio vero visto in WhatsApp** (impaginazione della firma su un telefono vero): fuori
    dall'app, non simulabile qui.
 
 ---
@@ -315,7 +339,25 @@ fornitore del software**, e il mittente è identificato dal proprio numero di te
 comunicazione del laboratorio verso un suo interlocutore, ed è l'unico dei casi di confine che **non**
 sta nel perimetro di D345 per ragione di merito, non di comodità.
 
-### 5. Pre-esistenti, invariati
+### 6. I documenti portano ancora la firma vecchia — e uno di loro è l'ingresso del Task 5
+
+`provato:` `grep -rn "UÀ Lab" --include="*.ts" --include="*.tsx" --include="*.html" --include="*.md" .`
+(senza `node_modules`) → fuori da `src/` e `tests/` restano **solo documenti**, nessuna prova Playwright,
+nessun sorgente:
+
+- **`docs/design/mockups/2026-08-09-avviso-al-dentista.html:202,297`** — il mockup **approvato** mostra
+  ancora la firma vecchia nei due riquadri del messaggio proposto. 🔑 **È l'ingresso di disegno del Task
+  5**, cioè chi lo apre domani legge la firma sbagliata come se fosse quella approvata. Non l'ho
+  toccato: è l'artefatto che ha **generato** D345 e correggerlo a posteriori cambierebbe la prova di che
+  cosa Francesco ha visto quando ha deciso.
+- **`docs/superpowers/plans/2026-08-09-avviso-al-dentista.md:292`** — lo stesso, dentro il blocco di
+  testo atteso del Task 3.
+- **`memory/MEMORY.md:2` e `docs/roadmap/ROADMAP-UFFICIALE.md:2`** — ripetono la frase «*ogni sollecito
+  mandato finora si firma col nome dello strumento*», cioè **il fatto smentito al punto 1**. ➡️ Sono i
+  due file che la BP-1 di chiusura tocca comunque: **è là che la correzione va scritta**, non da me a
+  metà di un task.
+
+### 7. Pre-esistenti, invariati
 
 - **`indirizzoApp()` è l'ottava copia** del ripiego su `NEXT_PUBLIC_APP_URL` (8 punti). Già riferito dal
   Task 3, non toccato.
