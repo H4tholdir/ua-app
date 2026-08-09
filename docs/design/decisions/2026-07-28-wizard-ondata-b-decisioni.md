@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centoquarantacinquesima tornata (D331-D335: l’avviso al dentista lo decide l’odontotecnico, arriva da due strade, e il promemoria si chiude anche a voce)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centoquarantaseiesima tornata (D336-D338: il valore vecchio non si mostra mai, e le comunicazioni al dentista hanno il loro archivio)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**335 decisioni in centoquarantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**338 decisioni in centoquarantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4058,3 +4058,24 @@ posto per gli AVVISI.** Ci sono i documenti, non le comunicazioni.
 **D331 è già il funzionamento naturale del canale**, non una guardia da costruire.
 📌 **Resta aperta solo la FORMA** della sezione «avvisi» nel portale, che oggi **non esiste** → cancello
 §0B (mockup a più varianti, chiaro e scuro, prima del codice).
+
+---
+
+### Centoquarantaseiesima tornata — D336 · D337 · D338: il valore vecchio non si mostra, e la risposta di Francesco è più grande della domanda (09/08/2026, 12:52)
+
+**Come è nata:** la spec del Task E
+(`docs/superpowers/specs/2026-08-09-avviso-al-dentista-design.md`) è stata scritta lasciando **quattro
+questioni aperte e dichiarate**, invece di deciderle da soli. Francesco ne ha chiuse **tre**; la quarta
+non era chiara e **gli è stata rispiegata** invece di essere data per decisa.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D336** | 🔑 **NELL'AVVISO SI DICE SOLO IL FATTO: IL VALORE VECCHIO NON SI MOSTRA MAI** — né su WhatsApp né nel portale | «*solo il fatto senza il valore vecchio*» | ⚖️ **La ragione vale come regola oltre questo caso:** il valore vecchio di un campo corretto è spesso **il dato di UN'ALTRA PERSONA** — un nome digitato per sbaglio è il nome di qualcun altro. Mostrarlo significherebbe **risolvere un problema di protezione dei dati creandone un secondo**, verso un destinatario che quel dato non deve avere. 📌 **E non serve:** al dentista basta sapere **che** il documento è superato e **dove** trovare quello nuovo; il confronto lo fa **col documento** |
+| **D337** | 🔑 **NASCE UNA SEZIONE «COMUNICAZIONI» NELLA SCHEDA DEL DENTISTA** — l'archivio di tutto ciò che è stato comunicato a quel destinatario: **quando · come · chi · se e quando l'ha aperta**. 🛑 **È un ARCHIVIO, NON un allarme** | «*magari possiamo creare una sezione nella scheda del dentista, che tenga conto delle comunicazioni dirette a lui. Poi tanto abbiamo il registro che segna quando l'ha aperto*» | ⚖️ **La domanda posta era un'altra, e la risposta l'ha migliorata.** Era: «*ti dico che il dentista non ha ancora aperto l'avviso?*». 🔑 Un «non l'ha ancora aperto» attaccato al promemoria sarebbe stato **un secondo allarme su una cosa che non dipende dall'odontotecnico** — proprio il difetto che la domanda voleva evitare. Una **sezione nella scheda** è invece **la forma che l'Art. 5(2) chiede**: *tutto ciò che è stato comunicato a quel destinatario, in un posto solo*, da guardare quando serve. ➡️ `src/app/(app)/clienti/[id]/page.tsx` |
+| **D338** | 🔑 **SI PARTE DA ZERO: nessun avviso retroattivo** per le dichiarazioni già rifatte | «*si parte da zero*» | ⚖️ Il database contiene **solo dati di prova** (`CLAUDE.md` §8), quindi non si perde nulla di reale. 🛑 **La riga esiste perché la scelta sia SCRITTA invece che CAPITATA** — e perché **alla prima onboarding di un laboratorio vero vada riletta**: da quel momento «partire da zero» vorrebbe dire lasciare scoperto un obbligo su documenti veri |
+
+📌 **La quarta questione resta APERTA, e non è stata chiusa per finta:** se conservare **anche il testo
+proposto dall'app**, oltre a quello davvero mandato. Francesco: «*questa non l'ho capita, spiegamela
+meglio*» → rispiegata nello stesso turno. **Due usi diversi:** ① in un contenzioso, poter mostrare che
+l'app proponeva un testo corretto; ② capire, se **tutti** lo cambiano allo stesso modo, che **il testo
+proposto è scritto male**. Per la legge basta quello mandato.

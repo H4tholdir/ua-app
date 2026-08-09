@@ -80,10 +80,15 @@ allarme che si spegne da solo non è un allarme.*
 
 > *La dichiarazione del lavoro #2026/0042 è stata rifatta. Trovi quella nuova qui: <link>*
 
-**Nel portale** — il fatto **e** il dettaglio: quali voci sono cambiate, in parole comuni («il nome
-del paziente», «i denti indicati»), **senza** mostrare il valore vecchio accanto al nuovo se il
-vecchio è un dato personale sbagliato di **un'altra** persona.
-⚠️ **Questa è una domanda aperta, §7 ①.**
+**Nel portale** — il fatto **e** quali voci sono cambiate, in parole comuni («il nome del paziente»,
+«i denti indicati»). ⚖️ **D336: SOLO IL FATTO, MAI IL VALORE VECCHIO.**
+
+🔑 **La ragione, e vale come regola oltre questo caso:** il valore vecchio di un campo corretto è
+spesso **il dato di un'altra persona** — un nome digitato per sbaglio è il nome di **qualcun altro**.
+Mostrarlo significherebbe **risolvere un problema di protezione dei dati creandone un secondo**, e
+per giunta verso un destinatario che quel dato non deve avere.
+📌 **E non serve:** il dentista deve sapere **che** quel documento è superato e **dove** trovare
+quello nuovo. Il confronto fra vecchio e nuovo lo fa **con il documento**, non con l'avviso.
 
 ---
 
@@ -121,6 +126,7 @@ perché il documento nuovo c'è.
 | **Il foglio dell'avviso** | 🆕 il testo modificabile + i due tasti. **Componenti solo da `src/components/ds/`**, token da `src/design-system/v3/` |
 | **Striscia della home** | un candidato nuovo in `striscia.ts`, nella forma già in uso: `{ attenzione: true, forte: 'n.2026/0042', testo: 'aspetta l'avviso al dentista', azione: { etichetta: 'Apri ›', href: … } }` |
 | **Portale, sezione «Avvisi»** | 🆕 non esiste: **cancello §0B** — mockup a più varianti, chiaro e scuro, 390/768/1280, **prima** del codice |
+| **Scheda del dentista, «Comunicazioni»** | 🆕 ⚖️ **D337** — `src/app/(app)/clienti/[id]/page.tsx`: **l'archivio** di tutto ciò che è stato comunicato a quel destinatario (quando · come · chi · se e quando l'ha aperto). 🛑 **È un archivio, NON un allarme:** niente pastiglie rosse, niente conteggi che chiamano — chi ci entra ci entra apposta |
 | **`AzionePortale`** | una voce nuova (`view_avviso`) in `src/lib/portale/audit.ts:10` |
 
 ---
@@ -138,21 +144,31 @@ perché il documento nuovo c'è.
 
 ---
 
-## 7. Questioni aperte — dichiarate, non nascoste
+## 7. Le questioni aperte — TRE SU QUATTRO CHIUSE il 09/08
 
-1. 🔴 **Quanto dettaglio nel portale.** Dire «è stato corretto il nome del paziente» è utile; mostrare
-   il valore **vecchio** può significare mostrare **il dato di un'altra persona**, cioè risolvere un
-   problema di protezione dei dati creandone un altro. **Da decidere prima del mockup.**
-2. 🟠 **Che cosa succede se il dentista non apre mai l'avviso.** L'obbligo è **comunicare**, non
-   ottenere una conferma di lettura: l'invio dichiarato basta. Ma va deciso **se mostrarlo**
-   all'odontotecnico («non l'ha ancora aperto»), e quel dato **non deve** trasformarsi in un secondo
-   promemoria che non si spegne mai.
-3. 🟠 **Gli avvisi già dovuti oggi.** Sul banco esistono dichiarazioni già rifatte: alla prima
-   accensione **nascono avvisi retroattivi**, oppure la funzione parte «da oggi in avanti»?
-   ⚠️ Il database contiene **solo dati di prova** (§8 di `CLAUDE.md`), quindi la risposta è
-   probabilmente «da oggi», ma **va detta**, non lasciata capitare.
-4. 🟡 **Il testo proposto è modificabile: si registra quello mandato** (`testo_inviato`). Resta da
-   decidere se conservare **anche** quello proposto, per poter dire che cosa è stato cambiato.
+1. ✅ **CHIUSA — ⚖️ D336: solo il fatto, mai il valore vecchio.** Francesco: «*solo il fatto senza il
+   valore vecchio*». Motivo per intero al §3.3.
+2. ✅ **CHIUSA — ⚖️ D337, e la risposta è più grande della domanda.** Avevo chiesto *se dirti che il
+   dentista non ha ancora aperto l'avviso*; Francesco ha risposto spostando il problema: «*possiamo
+   creare una sezione nella scheda del dentista, che tenga conto delle comunicazioni dirette a lui.
+   Poi tanto abbiamo il registro che segna quando l'ha aperto*».
+   🔑 **Perché è meglio della domanda che avevo fatto:** un «non l'ha ancora aperto» attaccato al
+   promemoria sarebbe stato **un secondo allarme su una cosa che non dipende dall'odontotecnico** —
+   il difetto che volevo evitare. Una **sezione nella scheda del dentista** invece è un **archivio**,
+   non un allarme: si guarda quando serve, ed è **esattamente la forma che l'Art. 5(2) chiede** —
+   *tutto ciò che è stato comunicato a quel destinatario, in un posto solo.*
+   ➡️ **Va nella scheda cliente** (`src/app/(app)/clienti/[id]/page.tsx`), e mostra per ogni
+   comunicazione: **quando**, **come** (dall'app / a voce), **chi** l'ha fatta, e **se e quando** il
+   dentista l'ha aperta.
+3. ✅ **CHIUSA — ⚖️ D338: si parte da zero.** Nessun avviso retroattivo per le dichiarazioni già
+   rifatte. Francesco: «*si parte da zero*». Il database contiene **solo dati di prova**
+   (`CLAUDE.md` §8), quindi non si perde nulla di reale — **ma la riga sta qui perché la scelta sia
+   scritta invece che capitata**, e perché **alla prima onboarding vera vada riletta**: da quel
+   momento «partire da zero» vorrebbe dire lasciare scoperto un obbligo su documenti veri.
+4. 🟡 **APERTA — se conservare anche il testo PROPOSTO dall'app**, oltre a quello davvero mandato.
+   Spiegata a Francesco il 09/08, in attesa di risposta. Due usi diversi: ① in un contenzioso, poter
+   mostrare che l'app proponeva un testo corretto; ② capire, se **tutti** lo cambiano allo stesso
+   modo, che **il testo proposto è scritto male**. Per la legge basta quello mandato.
 
 ---
 
