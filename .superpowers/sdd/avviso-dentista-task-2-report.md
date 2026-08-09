@@ -400,4 +400,4 @@ File salvati:
 `src/types/database.types.ts` **non** compare: `gen types` ha prodotto un diff vuoto, perché la firma
 non è cambiata. Niente `push`, niente `main`, niente worktree.
 
-**Hash:** `HASH_DA_RIEMPIRE`
+**Hash:** `fc551f021cab03f202f68c4d49eb9bda3843554d` (`fc551f02`)
