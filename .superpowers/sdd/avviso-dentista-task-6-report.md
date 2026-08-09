@@ -316,3 +316,265 @@ compiti che vengono dopo lo leggeranno.
 3. **Due avvisi aperti: si mostra il più vecchio, uno solo.** Il piano non lo dice, il brief lo
    segnalava come domanda. La scelta e la sua ragione normativa stanno al §3③. **Va ratificata** —
    e se la risposta fosse «il più recente», si cambia un `ascending` e una prova.
+
+---
+
+# 9. Correzioni della revisione (09/08/2026 — `date` → `Sun Aug  9 23:50:59 CEST 2026`)
+
+**Esecutore:** passaggio di correzione, mandato dell'orchestratore.
+**Stato:** `DONE_WITH_CONCERNS` — le cinque voci sono chiuse e misurate; **una riga del
+mandato di correzione era sbagliata e l'ho cambiata** (§9.6①), e **un buco resta aperto per
+scelta motivata** (§9.6②).
+
+| voce | esito |
+|---|---|
+| 🔴 1+2 — cancello per ruolo provabile · niente import di rotta nella pagina | ✅ chiuse dallo stesso cambiamento |
+| 🔴 3 — `COLONNE` legate allo schema vero | ✅ prova d'integrazione, lanciata a mano, mutazione provata |
+| 🟡 4 — il commento di `domain.ts` che il codice smentiva | ✅ corretto il commento (il codice ha ragione) |
+| 🟡 5 — la frase sull'indice che la riga sotto smentiva | ✅ corretta la frase (il secondo criterio resta) |
+| 🚫 6 — `pazienteTesto` = `'—'` | non toccato, come da mandato |
+| `verify:full` | **`VERIFY_EXIT=0`** — 5939 passate \| 122 saltate su 469 file |
+
+---
+
+## 9.1 🔴 IMPORTANTE 1+2 — un solo cambiamento, e il file nuovo è una FOGLIA
+
+**Che cosa ho fatto.** Creato `src/lib/avvisi/ruoli.ts`: l'elenco `RUOLI_CHIUSURA_AVVISO` è stato
+**spostato** lì dalla rotta, insieme a **tutta la sua motivazione** — le tre ragioni per nome di
+⚖️ D342 e le due misure `provato:` sul catalogo vivo. `avviso/route.ts` ora **ri-esporta**
+(`export { RUOLI_CHIUSURA_AVVISO } from '@/lib/avvisi/ruoli'`) e importa il predicato; il suo
+riquadro rimanda al posto nuovo, e il riferimento «*il Task 7 deve leggere lo stesso*» è stato
+riscritto in «*il Task 7 legge da `@/lib/avvisi/ruoli`*». `lavori/[id]/page.tsx` importa da lì, e
+l'import della rotta **non c'è più**.
+
+🔑 **`ruoli.ts` non importa NIENTE, ed è il punto.** Un modulo foglia lo possono leggere il server,
+il browser e una prova, senza condizioni — che è esattamente ciò che sbatteva contro il muro
+`server-only` e che sbloccherà il Task 7.
+
+**Perché la motivazione è stata spostata e non lasciata nella rotta.** Se l'elenco va in un posto e
+il *perché di ogni nome* resta in un altro, si è costruita la divergenza che la correzione voleva
+chiudere. `CLAUDE.md` §9 lo dice per esteso: in un documento lungo vince ciò che si legge per primo.
+Per la stessa ragione ho **riscritto in cima** (non annotato in fondo) il cappello dell'import in
+`page.tsx`, che apriva ancora con «*è esportata dalla rotta … v. il riquadro a `avviso/route.ts:185-190`*».
+
+### DUE NOMI, e perché non uno
+
+`puoChiudereAvviso` (il permesso) e `puoVedereAvviso` (la visibilità), **il secondo derivato dal
+primo**. La ragione è nel testo stesso di D342: «*la visibilità è un SOTTOINSIEME del permesso …
+**non è un bicondizionale** — si può mostrare meno di ciò che si permette, mai il contrario*».
+Un nome solo scriverebbe nel codice un bicondizionale che la decisione **nega**, e il giorno in cui
+la visibilità dovesse restringersi qualcuno la restringerebbe sul permesso — cioè chiudendo fuori
+dall'adempimento chi invece deve adempiere. La derivazione garantisce il verso *per forma*: la
+visibilità non può diventare più larga del permesso per sbaglio.
+
+Firma allargata a `string | null | undefined`: i chiamanti veri hanno davvero il ruolo assente
+(`SchedaLavoroV3` riceve `ruolo?: string | null`). **Nessun ramo in più**: `includes()` risponde
+`false` da sé, così non esiste un secondo posto in cui sbagliare il verso.
+
+### La prova nuova — `tests/unit/avvisi-ruoli.test.ts`, 15 asserzioni
+
+I **cinque ruoli veri** con la loro risposta attesa, **scritti a mano**, più `null`, `undefined`,
+`''`, `'admin'` nudo, `'front-desk'` col trattino e `'Titolare'` maiuscolo.
+🛑 **Nessun ciclo su `RUOLI_CHIUSURA_AVVISO`**: è la trappola già pagata in questa casa e scritta in
+`api-avviso.test.ts:559` — un ciclo sulla costante è **tautologico**, chi togliesse `front_desk`
+farebbe girare il ciclo su due nomi e la prova si adatterebbe al difetto invece di trovarlo.
+
+### LE MUTAZIONI, PROVATE UNA PER UNA
+
+**① `puoChiudereAvviso` capovolto** (`return !(…).includes(…)`):
+```
+$ npx vitest run tests/unit/avvisi-ruoli.test.ts tests/unit/api-avviso.test.ts
+ Test Files  2 failed (2)
+      Tests  39 failed | 7 passed (46)
+AssertionError: expected true to be false // Object.is equality
+ ❯ tests/unit/avvisi-ruoli.test.ts:107:35
+```
+Ripristinato → verde.
+
+**② solo `puoVedereAvviso` capovolto** (`return !puoChiudereAvviso(ruolo)`) — la mutazione che
+smaschera un involucro non provato:
+```
+ Test Files  1 failed | 1 passed (2)
+      Tests  7 failed | 39 passed (46)
+AssertionError: expected false to be true
+ ❯ tests/unit/avvisi-ruoli.test.ts:120:96
+   expect(puoChiudereAvviso(ruolo), `«${ruolo}» vedrebbe un avviso che non può chiudere`)
+```
+🔑 `api-avviso.test.ts` resta **verde**, ed è giusto: la rotta usa solo il permesso. L'involucro ha
+la sua prova, non l'ombra di quella dell'altro. Ripristinato → verde.
+
+---
+
+## 9.2 🔴 IMPORTANTE 3 — `COLONNE` legate allo schema, e **una riga del mandato era sbagliata**
+
+**Che cosa ho fatto.** `COLONNE` è ora **esportata** da `queries.ts` (senza l'export la prova
+ricopierebbe i nomi e proverebbe la propria copia), e c'è
+`tests/integration/avvisi-colonne-schema.test.ts` — **sola lettura, zero righe**, tre prove:
+la `select` di `queries.ts` contro il banco vero; gli stessi nomi in posizione di **filtro** e di
+**ordinamento**, più `laboratorio_id` che in `COLONNE` non c'è ed è ciò che regge l'isolamento fra
+laboratori; e il verso opposto — `COLONNE` è **tutta la tabella meno `laboratorio_id`**, così un
+nome *tolto* (che non farebbe fallire nessuna `select`: la riga arriva con un campo `undefined`) si
+vede lo stesso.
+
+### 🛑 IL MANDATO PRESCRIVEVA UNA STRADA CHE IN CI SI SAREBBE SALTATA — e l'ho cambiata
+
+Il mandato scriveva `svc.from('avvisi_dentista').select(COLONNE).limit(0)`, cioè il client di
+servizio via PostgREST. `provato:` letto `.github/workflows/ci.yml` — il passo «Unit tests» riceve
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_DB_URL`, e **NON**
+`SUPABASE_SERVICE_ROLE_KEY`. Una prova gattata su quella chiave si sarebbe **saltata in CI**: cioè
+esattamente il silenzio che il rilievo esiste per rompere. (Per giunta `getServiceClient` non è
+nemmeno importabile da una prova: `server-only/index.js` è un `throw` nudo.)
+➡️ Scritta con `pg` + `withRollback` + `skipIntegrationTests`, che è il cancello che **CI onora**
+(D333) ed è quello di tutte le sorelle in quella cartella. `COLONNE` è un semplice elenco di
+colonne: SQL e PostgREST rifiutano gli stessi nomi.
+⚠️ Il prezzo, dichiarato nel file: se un giorno `COLONNE` guadagnasse sintassi PostgREST (un alias,
+un embed), la prova diventerebbe rossa — **con ragione**, perché quel giorno la lettura non è più un
+elenco di colonne.
+
+### Lanciata a mano, e l'esito incollato
+
+```
+$ set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-colonne-schema.test.ts
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+```
+
+### LA MUTAZIONE ③ — un nome storpiato dentro `COLONNE` (`created_at` → `creato_at`)
+
+```
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+
+- Expected  + Received
+-   "created_at",
++   "creato_at",
+ ❯ tests/integration/avvisi-colonne-schema.test.ts:94:35
+```
+Tutte e tre arrossiscono. Ripristinato → 3 passate.
+
+---
+
+## 9.3 🟡 MINORE 4 — ha ragione il CODICE, e il commento è stato riscritto
+
+`domain.ts` dichiarava `undefined` = «nessuno ha guardato (…**o un ruolo che non può chiudere
+l'avviso**)», ma l'unico scrittore assegna sempre `avvisiAperti[0] ?? null`: per un ruolo escluso il
+valore è `null`.
+
+**Scelta: si corregge il commento, non il codice.** 🔑 E non per pigrizia: un ruolo escluso **deve**
+ricevere esattamente lo stesso silenzio di «non ce n'è». Distinguere i due casi vorrebbe dire far
+sapere a chi guarda che da qualche parte esiste un promemoria che lui non può chiudere — il
+contrario di ⚖️ D342, che quel promemoria lo nasconde apposta. **L'indistinguibilità è la funzione,
+non un ripiego**, e ora il tipo lo dice. Resta la distinzione che il codice garantisce davvero:
+`undefined` = nessun chiamante ha attaccato il campo · `null` = il chiamante l'ha attaccato e non
+c'è niente da mostrare.
+
+## 9.4 🟡 MINORE 5 — il secondo criterio resta, la frase cambia
+
+La frase diceva che l'ordine decrescente è quello che `idx_avvisi_per_cliente (cliente_id,
+created_at DESC)` «sa dare senza ordinare a parte», ma i criteri sono **due** e `id` in
+quell'indice non c'è. Ora la frase dice come stanno le cose: l'indice serve `created_at DESC`;
+`id DESC` è il **pareggio deterministico** e per averlo il pianificatore può dover ordinare
+comunque. Si accetta — su un archivio di poche righe per cliente un sort non si sente, mentre due
+righe nate nello stesso istante che escono ora in un ordine ora nell'altro si vedono benissimo, e su
+un registro che è la prova ex Art. 5(2) GDPR un ordine ballerino è un difetto vero.
+📌 Nessuna prova cambia: `avvisi-queries.test.ts` asseriva già i due criteri.
+
+## 9.5 Le sentinelle vecchie: **declassate**, non cancellate
+
+Le tre di `scheda-avviso-dentista.test.tsx` ora aprono con un riquadro che dice che cosa **non**
+provano, e ne è stata aggiunta una: `page.tsx` **non deve contenere nessun import da `@/app/api/`**.
+Le altre due seguono il posto nuovo (`@/lib/avvisi/ruoli`, `puoVedereAvviso(context.ruolo)`).
+
+---
+
+## 9.6 Ciò che ho trovato FUORI MANDATO, e ciò che resta aperto (R-E2)
+
+**① Il mandato di correzione sbagliava sul trasporto della prova d'integrazione** — §9.2. Non è
+un dettaglio: la forma prescritta si sarebbe **saltata proprio in CI**. Riferito, e cambiato con la
+misura in mano.
+
+**② 🔴 IL BUCO CHE IL REVISORE HA TROVATO NON È CHIUSO DEL TUTTO, e lo scrivo per intero.**
+Il rilievo 1 nasceva da una mutazione precisa: **capovolgere il ternario in `page.tsx`**. La
+correzione prescritta chiede di provare il **predicato** («*capovolgi il predicato, lancia la prova,
+incolla il rosso*»), e quello ora è provato. Ma il ternario **no**. Misurato, non supposto:
+
+```
+--- MUTAZIONE ④ (di controllo): `mostraIlPromemoria` → `!mostraIlPromemoria` in page.tsx ---
+$ npx vitest run tests/unit/avvisi-ruoli.test.ts tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx \
+                 tests/unit/avvisi-queries.test.ts tests/unit/api-avviso.test.ts
+ Test Files  4 passed (4)
+      Tests  68 passed (68)
+```
+**Verdi.** Il motivo è strutturale: `page.tsx` è un componente server asincrono che apre una
+sessione e un client di servizio, e nessuna prova unitaria lo rende.
+
+🛑 **Ho valutato due modi di chiuderlo e li ho SCARTATI, con la ragione:**
+- un involucro `avvisiVisibiliPer(svc, {ruolo, …})` che tenga dentro sé il cancello — resta
+  aggirabile chiamando la funzione grezza, e aggiunge un terzo nome esportato su cui i Task 9 e 10
+  dovranno scegliere;
+- infilare `ruolo` dentro `avvisiDaComunicare` (fail-closed per costruzione: non si può leggere
+  senza dichiarare chi guarda) — è **più forte**, ma cambia una firma che i Task 9 e 10 leggeranno e
+  fa riscrivere dodici prove verdi.
+
+Sono **decisioni di progetto che toccano i compiti a valle**, non correzioni: la regola di casa
+(§0C, regola advisor) le manda a un panel, non a un esecutore su un passaggio di correzione.
+➡️ **Riferite qui.** Nel frattempo il limite è **scritto sulla riga stessa** in `page.tsx` e nel
+riquadro delle sentinelle, così chi ci arriva lo legge prima di fidarsi. La copertura vera resta il
+giro sul banco del **Task 10**.
+
+**③ Restano aperti** i rilievi già elencati al §7.5 (nessuno di essi è stato preso da questo
+passaggio), e il §7.2 — il commento di `AvvisoDentista.tsx:268-269` che documenta `telefonoStudio`
+come `clienti.telefono`: **ancora fuori mandato, ancora non corretto**.
+
+---
+
+## 9.7 Le prove rilanciate
+
+```
+$ npx tsc --noEmit ; echo TSC_EXIT=$?
+TSC_EXIT=0
+
+$ npx vitest run tests/unit/avvisi-ruoli.test.ts tests/unit/avvisi-queries.test.ts \
+                 tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx tests/unit/api-avviso.test.ts
+ Test Files  4 passed (4)
+      Tests  68 passed (68)
+
+$ set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-colonne-schema.test.ts
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+```
+🔑 **Le prove della rotta dell'avviso NON hanno cambiato esito** — `api-avviso.test.ts` importa
+ancora `RUOLI_CHIUSURA_AVVISO` **dalla rotta** e la trova, perché la rotta la ri-esporta. Era il
+tripwire di perimetro: se fosse arrossita, mi sarei allargato.
+📌 `next build` (dentro `verify:full`) è ciò che vede la firma degli export di un `route.ts`, non
+`tsc`: la ri-esportazione è passata di lì.
+
+### FASE 7 — l'esito, letto da variabile
+
+```
+$ npm run verify:full > …/verify2.log 2>&1; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
+VERIFY_EXIT=0
+
+ Test Files  459 passed | 10 skipped (469)
+      Tests  5939 passed | 122 skipped (6061)
+✓ Compiled successfully in 4.8s
+✅ DS compliance OK (v2.3 legacy + v3)
+✅ Guardia CSRF verde — ogni route mutante verifica l'origine, o è esclusa con una ragione scritta
+✅ reduced-motion: …
+✅ Coerenza verde — conteggi giusti, nessun riferimento pendente, nessuna voce fantasma
+✅ copia allineata al progetto, e la rete di sicurezza è recente
+✅ 2 progetti dichiarati, 2 con prove, 5 file raccolti
+```
+
+📌 **I conti tornano esattamente**, e vale scriverlo perché un numero che non torna è un file che
+non gira: era **5924 \| 119 su 467**, ora **5939 \| 122 su 469**. +15 passate = le quindici di
+`avvisi-ruoli.test.ts`; +3 saltate = le tre della prova d'integrazione, che in locale non vede
+`.env.local` (in CI gira, v. §9.2); +2 file.
+
+⚠️ **IL PRIMO GIRO ERA ROSSO, E LO SCRIVO INVECE DI NASCONDERLO.** `VERIFY_EXIT=1`, due prove
+cadute: `DevoIntervenire.test.tsx` e `devo-intervenire-contratto.test.tsx`, **entrambe per
+`Test timed out in 5000ms`**. Non c'entrano con questo lavoro — non toccano nessun file che ho
+cambiato — ed è il **flake da carico** già noto in questo repo: nel giro rosso quel file solo ha
+impiegato **135 secondi**, lanciato da solo ne impiega **11**.
+`provato:` `npx vitest run tests/unit/DevoIntervenire.test.tsx tests/unit/devo-intervenire-contratto.test.tsx`
+→ `Test Files 2 passed (2) · Tests 99 passed (99)`. Secondo giro pieno: `VERIFY_EXIT=0`.
