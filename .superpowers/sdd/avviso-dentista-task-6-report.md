@@ -578,3 +578,21 @@ cambiato — ed è il **flake da carico** già noto in questo repo: nel giro ros
 impiegato **135 secondi**, lanciato da solo ne impiega **11**.
 `provato:` `npx vitest run tests/unit/DevoIntervenire.test.tsx tests/unit/devo-intervenire-contratto.test.tsx`
 → `Test Files 2 passed (2) · Tests 99 passed (99)`. Secondo giro pieno: `VERIFY_EXIT=0`.
+
+### 9.8 I salvataggi di questo passaggio
+
+| hash | contenuto |
+|---|---|
+| `798f5655` | `fix(avvisi): il cancello per ruolo diventa una funzione pura, e la pagina non importa più una rotta` — rilievi 1+2 · 5 file, 310 righe aggiunte, 89 tolte |
+| `9f8c72c5` | `test(avvisi): le colonne che il codice chiede sono legate allo schema vero` — rilievo 3 + minori 4 e 5 · 3 file, 137 aggiunte, 8 tolte |
+| — | il salvataggio che porta questo resoconto **non può nominare sé stesso**: si legge con `git log --oneline 798f5655~1..` |
+
+📌 **Un controllo che mancava e che ho fatto dopo, perché né `tsc` né le prove lo vedono:**
+`avviso/route.ts` è un file speciale di Next e prima esportava un valore **definito nel file**, ora
+**inoltra** un legame da un altro modulo — sono due cose diverse per l'analisi delle rotte.
+`provato:` nel registro di `verify:full` la rotta compare fra quelle costruite
+(`ƒ /api/lavori/[id]/avviso`) e **non c'è nessun avviso di build** sugli export: l'unico `⚠` del
+registro è quello preesistente sulla deprecazione di `middleware`, che con questo lavoro non
+c'entra.
+
+🛑 **Nessun `git push`**: il ramo lo pubblica l'orchestratore.
