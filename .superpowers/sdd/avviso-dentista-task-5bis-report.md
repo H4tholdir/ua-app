@@ -378,6 +378,20 @@ vero** — una correzione messa dopo l'affermazione che smentisce non la sostitu
 **Hash del salvataggio: `d94afe13`** — `feat(avvisi): «a voce» chiude con un tocco, e la via di fuga vive
 dopo la scrittura (D351)`. `provato:` `git rev-parse --short HEAD` **dopo** il commit → `d94afe13`.
 
+**La catena, per intero:**
+
+| hash | cosa |
+|---|---|
+| **`d94afe13`** | il lavoro: il tocco solo, la finestra da 10 s, la striscia, le prove nuove, la FASE 9 |
+| `9254b547` | l'hash vero in questa riga (v. sotto) |
+| **`8bfd63e8`** | 🔴 **la correzione trovata in revisione**: il passo si legge da **un posto solo**, sincrono — due letture della stessa domanda potevano rispondere diverso e lasciare la riga a schermo su un promemoria spento (v. ⑦.2) |
+
+🔴 **Il ramo NON è stato pubblicato, e va detto.** `git push -u origin intervento-post-consegna` è stato
+**rifiutato dal classificatore** in questa sessione, benché `"Bash(git push*)"` sia presente in
+`ua-app/.claude/settings.json` (`permissions.allow`, riletto: c'è). **Non l'ho aggirato** — la regola di casa
+è «si chiede, non si aggira». ⚠️ Ma la conseguenza è quella che ⚖️ **D296** nomina per prima: **questi tre
+salvataggi vivono in un posto solo**, e la copia fuori dal computer non c'è. **Il push va lanciato a mano.**
+
 🔴 **Questa riga NON porta un numero inventato, e la ragione è un errore del Task 5** che vale la pena non
 ripetere: là l'hash era stato **scritto prima di fare il commit**, cioè un numero con la forma di una misura.
 Un salvataggio **non può nominare se stesso**: l'hash vero arriva con un secondo salvataggio, minuscolo, che
