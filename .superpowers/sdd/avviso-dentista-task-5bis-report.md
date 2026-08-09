@@ -349,8 +349,8 @@ aggiungere una nota in fondo.** Erano «*la parità delle due strade è il numer
 due volte sul push: **in un documento lungo vince ciò che si legge per primo e in grassetto, non ciò che è
 vero** — una correzione messa dopo l'affermazione che smentisce non la sostituisce, la lascia in piedi.
 
-**Hash del salvataggio:** `<da leggere con git rev-parse --short HEAD DOPO il commit>` —
-`feat(avvisi): «a voce» chiude con un tocco, e la via di fuga vive dopo la scrittura (D351)`.
+**Hash del salvataggio: `d94afe13`** — `feat(avvisi): «a voce» chiude con un tocco, e la via di fuga vive
+dopo la scrittura (D351)`. `provato:` `git rev-parse --short HEAD` **dopo** il commit → `d94afe13`.
 
 🔴 **Questa riga NON porta un numero inventato, e la ragione è un errore del Task 5** che vale la pena non
 ripetere: là l'hash era stato **scritto prima di fare il commit**, cioè un numero con la forma di una misura.
