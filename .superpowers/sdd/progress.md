@@ -969,8 +969,11 @@ annotate**, perché una voce falsa in un ledger fa riaprire al revisore finale u
   mandato** (§4.5: passare lo stesso valore che la scheda mostra): **lo decide Francesco al gate L2**.
 - 🟡 **M-T6-4** — `avvisiDaComunicare` resta **esportata e senza cancello** (`queries.ts:190`). Zero
   consumatori applicativi oggi, e la pagina è tenuta lontana dalla lettura grezza da una sentinella: **non
-  è una porta aperta adesso**, è una porta che i **Task 7 e 9** devono chiudere ciascuno sulla propria
-  superficie. ➡️ **La decisione va presa PRIMA del Task 7**, non dopo.
+  è una porta aperta adesso**, è una porta che i **Task 7 e 9** chiudono ciascuno sulla propria superficie.
+  🔄 **La revisione scriveva «la decisione va presa PRIMA del Task 7»: `provato:` NON è così.** Il perimetro
+  per ruolo del Task 7 è **già deciso** da ⚖️ D342 (`titolare` · `tecnico` · `front_desk`) e sta nel piano
+  alla **riga 416** — il settimo non è bloccato da niente. ➡️ **Il buco vero è il Task 9**, che un D342 suo
+  **non ce l'ha**: chi vede l'archivio delle comunicazioni di un dentista non è deciso da nessuna parte.
 - 🟡 **M-T6-5** — `STATI_APERTI` è la stessa derivazione in due file (`queries.ts:87` · `route.ts:136`).
   Non possono divergere sui valori (derivano entrambi da `stati.ts`), ma il posto naturale è `stati.ts`.
 - 🟡 **M-T6-6** — la ri-esportazione `RUOLI_CHIUSURA_AVVISO` da `route.ts:166` era il **tripwire di
