@@ -936,3 +936,29 @@ Task 6 (il montaggio: `queries.ts` + la scheda) — 🔄 **IN CORSO**, esecutore
   Il mandato completo sta in `avviso-dentista-task-6-brief.md`.
 
 Task 7 · 8 · 9 · 10: **non iniziati** (censiti col codice nella §0② dell'handoff).
+
+### Task 6 — i rilievi che viaggiano fino alla REVISIONE FINALE DI RAMO
+
+**Chiusi nel giro di correzione** (798f5655 · 9f8c72c5): ① il cancello di ⚖️ D342 provato per **inversione**
+e non solo per cancellazione (fonte spostata in `src/lib/avvisi/ruoli.ts`) · ② l'import **di valore** di un
+`route.ts` dentro una pagina, tolto — `provato:` dei dodici import da `@/app/api/.../route` in `src/`,
+**undici sono `import type`** · ③ `COLONNE` legate allo schema vero da una prova d'integrazione · ④+⑤ due
+commenti che contraddicevano il proprio codice.
+
+**APERTI, e vanno alla revisione finale:**
+- 🟡 **M-T6-1** — `pazienteTesto` vale `'—'` senza `paziente_nome_snapshot`, e il foglio stampa «*Hai
+  rifatto la dichiarazione di —*» (`SchedaLavoroV3.tsx:626` → `AvvisoDentista.tsx:691`). **Prescritto dal
+  mandato** (§4.5: passare lo stesso valore che la scheda mostra): **lo decide Francesco al gate L2**.
+- 🟡 **M-T6-2** — il ternario di `page.tsx` non è reso da nessuna prova unitaria (componente server
+  asincrono). Il correttore l'ha **misurato e riferito** invece di prenderlo da solo. ➡️ Chiuso
+  dall'involucro del terzo giro; **se non lo fosse, resta qui.**
+- 🟠 **M-T6-3** — la prova d'integrazione delle colonne passa da `pg`, **non** dal client di servizio,
+  perché la CI **non riceve `SUPABASE_SERVICE_ROLE_KEY`** (`.github/workflows/ci.yml`). Le letture di
+  `queries.ts` restano quindi provate **solo contro un finto** sull'unico ambiente autorevole.
+
+🛑 **E UN DIFETTO DELLO STRUMENTO, non di un esecutore, colto in flagrante il 09/08 sera:**
+`.superpowers/sdd/.gitignore` è stato **riscritto a `*`** durante quest'ondata — cioè lo strumento SDD ha
+rimesso fuori da git la mappa di recupero e tutti i resoconti. **Il file lo prevedeva** («*se questo file
+torna a contenere `*`, l'ha riscritto lo strumento SDD: va rimesso così*», ⚖️ D313) e per questo la
+modifica si vede in `git status` invece di passare in silenzio. **Ripristinato dall'orchestratore.**
+➡️ **Chi usa `review-package` o `task-brief` in questo repo ricontrolli quel file dopo.**
