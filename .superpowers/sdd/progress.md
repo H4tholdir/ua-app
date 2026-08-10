@@ -1125,3 +1125,20 @@ Task 10-A (prova a contratto foglio→rotta, riga 38): **complete** (BASE 6912d2
   sul corpo intercettato (asserzioni ①②③, `avviso-foglio-contratto.test.tsx:279-283, 357-358,
   381-383`). Chi rilegge il resoconto del 10-A legga la misura con questa etichetta.
   Confini dichiarati e ANCORA APERTI (riga 38): il verso risposta→schermata e la chiusura a livello di tipo.
+
+Task 10-B (il giro sul banco vero + FASI 9 dei Task 6·7·8·9): **complete** (scatti+resoconto
+  47f69245). ✅ **D354 CONFERMATA DAL VIVO:** due riemissioni vere → due righe aperte → il portale
+  mostra UNA card con l'UNIONE e la dichiarazione ULTIMA (misurata via curl) → `visto_dal_dentista_at`
+  scritto su ENTRAMBE e idempotente → la chiusura «a voce» chiude ENTRAMBE con stesso
+  `comunicato_at`/`comunicato_da` → terza riemissione chiusa «dall'app» con `testo_inviato` = mostrato,
+  SENZA nome paziente (verificato sul COGNOME: cliente e paziente condividevano «Mario»).
+  **33 scatti** in docs/design/screenshots/2026-08-10-avviso-task10/ (390/768/1280 × chiaro/scuro,
+  portale solo chiaro). M-T9-1 CHIUSO: l'archivio è stato reso CON righe (aperte e chiuse).
+  ⚠️ **Nota di metodo, per il gate:** i click "fisici" del tool andavano in timeout → giro guidato con
+  `.click()` DOM: le transizioni di stato sono provate, LA TAPPABILITÀ FISICA NO (touch target ≥44px
+  da verificare al gate L2 sugli scatti). ⚠️ La striscia in R1 era mascherata da un segnale a priorità
+  più alta (ordinamento, non difetto). 🔴 Due difetti PRE-ESISTENTI riferiti → **righe 56 · 57 della
+  coda** (il doppio <html> del portale · lo stato «annullata» sovraccarico).
+  📌 Ripristino: registri MAI cancellati; i tre campi corretti su `lavori` lasciati ai valori nuovi
+  perché la dichiarazione viva DDC-2026-0013 nasce da quelli (riportarli indietro disallineerebbe
+  documento e record) — dettaglio nel resoconto.
