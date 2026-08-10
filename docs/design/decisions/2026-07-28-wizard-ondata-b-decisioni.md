@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centocinquantatreesima tornata (D354: un solo atto chiude tutti i promemoria aperti, il dentista vede l'unione · D355: l'ordine della ripresa è delegato)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantaquattresima tornata (D356 · D357 · D358: le tre risposte di contenuto — numero del lavoro nell'archivio, «non ancora comunicata», il foglio senza nome usa il numero)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**355 decisioni in centocinquantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**358 decisioni in centocinquantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4256,3 +4256,19 @@ arriva **nello stesso turno** (§0A-bis rispettata, stavolta senza censimento di
 |---|---|---|---|
 | **D354** | 🔑 **IL SECONDO PROMEMORIA NON SPEGNE IL PRIMO — MA UN SOLO ATTO DI COMUNICAZIONE CHIUDE TUTTE LE RIGHE APERTE DEL LAVORO, e il dentista vede l'UNIONE delle voci corrette con l'ULTIMA dichiarazione da scaricare** | «Sì, ratifico» (scelta esplicita fra ratifica / resta D346 com'era / prima ne parliamo) | Panel a tre **unanime**, tre no indipendenti a «spegnere»: **normativo** — due rettifiche sono due obblighi quanto al contenuto, ma un solo atto può estinguerli entrambi (Art. 5(1)(d)+5(2) GDPR; un registro che sa cancellare le proprie righe non è più una prova) · **dati** — lo stato «superato» è **inscrivibile** (`provato:` `23514` sul vincolo `avviso_comunicato_ha_autore_e_data`: un superamento è un atto che nessuno ha compiuto, non ha autore né data) · **banco** — i due WhatsApp sarebbero **la stessa stringa** (`buildAvvisoMessage`): due invii = una comunicazione consegnata due volte. **Conseguenze:** ① la rotta di chiusura passa da `.eq('id', avvisoId)` a «tutte le aperte del lavoro» (`src/app/api/lavori/[id]/avviso/route.ts:330`) — **compito NUOVO dell'ondata**, con la prova diretta (due aperte → un atto → entrambe chiuse, stessi tre valori) e quella inversa (le già chiuse non si toccano) · ② il Task 8 eredita «unione delle voci, ultima dichiarazione» · ③ scheda e striscia non cambiano (mostrano già UN promemoria) · ④ la prova del Task 2 («due riemissioni → due avvisi») resta verde e resta giusta. 📌 Il caso di confine (portale aperto **fra** le due correzioni: la ricevuta di lettura vale solo per la prima rettifica) resta **deciso-di-non-deciderlo qui**: va coi Task 8/9, insieme alla riserva §0⑧② dell'handoff del 09/08 |
 | **D355** | **L'ORDINE DEI TASK DELLA RIPRESA LO SCEGLIE L'ASSISTENTE** | «Decidi tu l'ordine» (scelta esplicita fra Task 9 prima / Task 8 prima / delega) | §0A-bis: anche un «lascia libero» è una decisione e porta il suo numero. L'ordine scelto, con la ragione: **① rotta di chiusura** (il compito nato con D354 — piccolo, a monte del portale: il Task 8 deve nascere sopra la semantica giusta, non adattarcisi dopo) → **② Task 8** (portale) → **③ Task 9** (archivio cliente, indipendente) → **④ Task 10** (giro sul banco vero + gate L2 + FASI 9 accorpate + M-T6-1). Reversibile da Francesco in ogni momento |
+
+---
+
+### Centocinquantaquattresima tornata — D356 · D357 · D358: le tre risposte di contenuto, prima del collaudo (10/08/2026, 11:09)
+
+**Come è nata.** Le revisioni della mattina hanno lasciato tre domande di **contenuto** (parole e
+informazioni a schermo): M-T6-1 dal Task 6 (il foglio con «di —»), M-T9-2 e M-T9-3 dal Task 9
+(l'archivio senza riferimento al lavoro; il testo della riga aperta). Portate a Francesco **prima** di
+dispacciare il Task 10, per fotografare al collaudo la versione giusta e fare il gate una volta sola.
+Tre scelte esplicite fra tre opzioni ciascuna; i numeri dati nello stesso turno.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D356** | **L'ARCHIVIO «COMUNICAZIONI» PORTA IL NUMERO DEL LAVORO SU OGNI RIGA** | «Sì, col numero del lavoro» | L'archivio è una prova, e una prova che non dice l'oggetto è mezza prova. L'aggancio (`RigaArchivioCliente.lavoroId`, M-T9-2) è già popolato; si autorizza la **lettura di supporto** per `numero_lavoro` (stessa famiglia della lettura per i nomi di chi ha comunicato — il vincolo «nessuna query nuova sulla tabella avvisi» resta intatto). Chiude M-T9-2 |
+| **D357** | **LA RIGA ANCORA APERTA DICE «Non ancora comunicata», NON «Non ancora vista dal dentista»** | «Non ancora comunicata» | I due casi sono diversi e il registro deve dirlo: la ricevuta di lettura può comparire solo DOPO la comunicazione; su una riga aperta parlare di «vista» promette una ricevuta che non può ancora esistere. Chiude M-T9-3. Coerente con ⚖️ D337: nessun allarme, solo la verità della riga |
+| **D358** | **IL FOGLIO SENZA NOME PAZIENTE USA LA FRASE COL NUMERO DEL LAVORO** (es. «Hai rifatto la dichiarazione del lavoro #2026/0042») | «Frase col numero del lavoro» | Sempre vera, niente lineetta vuota, e il numero c'è sempre (`provato:` `database.types.ts:2688` — sulla tabella `lavori` il tipo è `numero_lavoro: string`, non nullabile; la riga nullabile a 6219 è una vista). Chiude **M-T6-1**, che il mandato del Task 6 aveva prescritto di portare a Francesco. Il caso col nome presente NON cambia |
