@@ -16,7 +16,13 @@
 //    in questo modulo, dove una prova la esercita davvero.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { nomiComunicatori, costruisciRigheArchivio, formattaQuando } from '@/lib/avvisi/archivio'
+import {
+  nomiComunicatori,
+  numeriLavoro,
+  costruisciRigheArchivio,
+  formattaQuando,
+  etichettaVisto,
+} from '@/lib/avvisi/archivio'
 import type { AvvisoRiga } from '@/lib/avvisi/queries'
 
 const LAB = '11111111-1111-1111-1111-111111111111'
@@ -24,6 +30,9 @@ const CLIENTE = '44444444-4444-4444-4444-444444444444'
 const UTENTE_1 = '55555555-5555-5555-5555-555555555555'
 const UTENTE_2 = '66666666-6666-6666-6666-666666666666'
 const UTENTE_FANTASMA = '77777777-7777-7777-7777-777777777777'
+const LAVORO_1 = '88888888-8888-8888-8888-888888888888'
+const LAVORO_2 = '99999999-9999-9999-9999-999999999999'
+const LAVORO_ORFANO = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 
 // ── Lo stesso idioma di spia di `avvisi-queries.test.ts`: il finto REGISTRA i
 //    filtri invece di ignorarli — un finto che li ignora non può provare che
@@ -176,6 +185,63 @@ describe('nomiComunicatori — la lettura di supporto per «chi» (ammessa dal b
   })
 })
 
+// ⚖️ D356 (tornata 154, chiude M-T9-2) — la lettura di supporto per il NUMERO
+// del lavoro, «sul modello di `nomiComunicatori`» (brief §1): stessa forma —
+// batch per id, dedup, filtro laboratorio, log + ripiego mai un crash. Legge
+// `lavori`, non `avvisi_dentista` (il vincolo «nessuna query nuova sulla
+// tabella avvisi» resta intatto).
+describe('numeriLavoro — la lettura di supporto per il NUMERO del lavoro (⚖️ D356, ammessa dal brief)', () => {
+  it('chiede `id, numero_lavoro` su `lavori`, filtrando per gli id E per il laboratorio', async () => {
+    const { svc, spia } = svcFinto([{ id: LAVORO_1, numero_lavoro: 'STOR/2021/016' }])
+    await numeriLavoro(svc, [LAVORO_1], LAB)
+
+    expect(spia.tabella).toBe('lavori')
+    expect(spia.colonne).toContain('id')
+    expect(spia.colonne).toContain('numero_lavoro')
+    expect(spia.filtri).toEqual([
+      ['in:id', [LAVORO_1]],
+      ['eq:laboratorio_id', LAB],
+    ])
+  })
+
+  it('id duplicati si chiedono una volta sola', async () => {
+    const { svc, spia } = svcFinto([{ id: LAVORO_1, numero_lavoro: 'STOR/2021/016' }])
+    await numeriLavoro(svc, [LAVORO_1, LAVORO_1, LAVORO_2, LAVORO_1], LAB)
+
+    const [, idsChiesti] = spia.filtri.find(([c]) => c === 'in:id') as [string, string[]]
+    expect(idsChiesti).toHaveLength(2)
+    expect(new Set(idsChiesti)).toEqual(new Set([LAVORO_1, LAVORO_2]))
+  })
+
+  it('nessun id → nessuna lettura, e una mappa vuota (non un errore)', async () => {
+    const { svc, spia } = svcFinto([])
+    const mappa = await numeriLavoro(svc, [], LAB)
+
+    expect(spia.consultato, 'un elenco di id vuoto non deve interrogare il banco').toBe(0)
+    expect(mappa.size).toBe(0)
+  })
+
+  it('costruisce la mappa lavoro_id → numero_lavoro', async () => {
+    const { svc } = svcFinto([
+      { id: LAVORO_1, numero_lavoro: 'STOR/2021/016' },
+      { id: LAVORO_2, numero_lavoro: '2026/0042' },
+    ])
+    const mappa = await numeriLavoro(svc, [LAVORO_1, LAVORO_2], LAB)
+
+    expect(mappa.get(LAVORO_1)).toBe('STOR/2021/016')
+    expect(mappa.get(LAVORO_2)).toBe('2026/0042')
+  })
+
+  it('se il banco non risponde: mappa vuota, e il guasto scritto nei log (mai un crash)', async () => {
+    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = svcFinto([], true)
+
+    const mappa = await numeriLavoro(svc, [LAVORO_1], LAB)
+    expect(mappa.size).toBe(0)
+    expect(spiaLog).toHaveBeenCalled()
+  })
+})
+
 describe('costruisciRigheArchivio — quando · come · chi · vista/non vista (⚖️ D336 · D337)', () => {
   it('⑤ due comunicazioni CHIUSE (una dall’app con testo, una a voce): quando · come · chi · vista/non vista', () => {
     const righe: AvvisoRiga[] = [
@@ -274,5 +340,87 @@ describe('costruisciRigheArchivio — quando · come · chi · vista/non vista (
     expect(esito).toBeDefined()
     expect(esito.chiuso).toBe(false)
     expect(spiaLog).toHaveBeenCalled()
+  })
+
+  // ⚖️ D356 (chiude M-T9-2) — il terzo parametro, `numeri`, opzionale (le
+  // chiamate di sopra restano valide senza toccarle): la mappa lavoro_id →
+  // numero_lavoro costruita da `numeriLavoro`.
+  it('⚖️ D356 — con la mappa dei numeri, ogni riga porta il NUMERO del proprio lavoro', () => {
+    const righe: AvvisoRiga[] = [
+      riga({ id: 'avv-1', lavoro_id: LAVORO_1 }),
+      riga({ id: 'avv-2', lavoro_id: LAVORO_2 }),
+    ]
+    const numeri = new Map([
+      [LAVORO_1, 'STOR/2021/016'],
+      [LAVORO_2, '2026/0042'],
+    ])
+
+    const [prima, seconda] = costruisciRigheArchivio(righe, new Map(), numeri)
+
+    expect(prima.numeroLavoro).toBe('STOR/2021/016')
+    expect(seconda.numeroLavoro).toBe('2026/0042')
+  })
+
+  it('⚖️ D356 — lavoro non risolto dalla mappa (id orfano/lettura fallita): la riga porta `numeroLavoro: null`, mai un crash', () => {
+    const [esito] = costruisciRigheArchivio(
+      [riga({ lavoro_id: LAVORO_ORFANO })],
+      new Map(),
+      new Map() // LAVORO_ORFANO non c'è
+    )
+    expect(() => esito.numeroLavoro).not.toThrow()
+    expect(esito.numeroLavoro).toBeNull()
+  })
+
+  it('⚖️ D356 — senza terzo argomento (chiamate esistenti, non toccate): `numeroLavoro` è `null`, non `undefined`', () => {
+    const [esito] = costruisciRigheArchivio([riga()], new Map())
+    expect(esito.numeroLavoro).toBeNull()
+  })
+})
+
+// ⚖️ D357 (tornata 154, chiude M-T9-3) — la parola per la riga «vista/non
+// vista», nelle TRE forme che può assumere. Estratta in una funzione pura
+// perché `clienti/[id]/page.tsx` è un componente SERVER asincrono e nessuna
+// prova unitaria lo rende (nota in testa a questo file, già vera per
+// `costruisciRigheArchivio`): la logica con posta in gioco normativa vive
+// dove una prova la esercita davvero, non nel JSX del render.
+describe('etichettaVisto — la riga «vista/non vista», nelle sue TRE forme (⚖️ D357 · D337 regge)', () => {
+  it('riga ANCORA APERTA (chiuso: false) → «Non ancora comunicata»', () => {
+    expect(etichettaVisto({ chiuso: false, vistoLabel: null })).toBe('Non ancora comunicata')
+  })
+
+  it('riga CHIUSA ma non vista (chiuso: true, vistoLabel: null) → «Non ancora vista dal dentista»', () => {
+    expect(etichettaVisto({ chiuso: true, vistoLabel: null })).toBe('Non ancora vista dal dentista')
+  })
+
+  it('riga VISTA → la data di visione, come oggi', () => {
+    expect(etichettaVisto({ chiuso: true, vistoLabel: '9 agosto 2026, 14:00' })).toBe(
+      'Vista dal dentista il 9 agosto 2026, 14:00'
+    )
+  })
+
+  // 🔴 LA COMBINAZIONE NON È TEORICA: il portale marca `visto_dal_dentista_at`
+  //    su TUTTI gli id del gruppo di un lavoro (`portale/[token]/page.tsx:495-496`),
+  //    e quel gruppo unisce avvisi aperti E chiusi dello stesso lavoro
+  //    (⚖️ D354, `raggruppaPerLavoro`; `archivioCliente` non filtra per
+  //    `stato`, `queries.ts:346-358`) — quindi una riga ancora `da_comunicare`
+  //    PUÒ arrivare con `vistoLabel` valorizzato. `chiuso` vince SEMPRE:
+  //    dire «vista» di una correzione mai comunicata sarebbe peggio del
+  //    difetto che D357 chiude.
+  it('🔴 riga ANCORA APERTA MA con `vistoLabel` valorizzato (raggiungibile via il portale, D354) → resta «Non ancora comunicata»', () => {
+    expect(etichettaVisto({ chiuso: false, vistoLabel: '9 agosto 2026, 14:00' })).toBe(
+      'Non ancora comunicata'
+    )
+  })
+
+  // 🛑 D337 — nessuna delle tre parole porta un segnale d'allarme: qui si
+  //    prova il DATO, non lo stile (quello resta nel JSX, senza cambi).
+  it('⚖️ D337 regge — nessuna forma porta una parola d’urgenza', () => {
+    const forme = [
+      etichettaVisto({ chiuso: false, vistoLabel: null }),
+      etichettaVisto({ chiuso: true, vistoLabel: null }),
+      etichettaVisto({ chiuso: true, vistoLabel: '9 agosto 2026, 14:00' }),
+      etichettaVisto({ chiuso: false, vistoLabel: '9 agosto 2026, 14:00' }),
+    ]
+    for (const f of forme) expect(f).not.toMatch(/urgent|attenzione|!|⚠/i)
   })
 })

@@ -15,7 +15,13 @@ import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
 // a mano — lo propaga passando `context.ruolo`, stesso modello di `puoEmettere` qui
 // sopra ma con la chiusura fail-closed dentro la lettura stessa, non nel JSX.
 import { archivioPerSchedaCliente } from '@/lib/avvisi/queries'
-import { nomiComunicatori, costruisciRigheArchivio, type RigaArchivioCliente } from '@/lib/avvisi/archivio'
+import {
+  nomiComunicatori,
+  numeriLavoro,
+  costruisciRigheArchivio,
+  etichettaVisto,
+  type RigaArchivioCliente,
+} from '@/lib/avvisi/archivio'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -169,6 +175,17 @@ function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
         )}
       </div>
 
+      {/* ⚖️ D356 — il numero del lavoro, sullo stesso formato di
+          `pazienti/[id]/page.tsx:63` (`#{numero_lavoro}`, senza etichetta
+          aggiuntiva): la pagina gemella per anagrafica mostra i lavori
+          esattamente così. `null` (lavoro non risolto: id orfano, lettura
+          fallita) → niente riga, mai un crash. */}
+      {riga.numeroLavoro && (
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t3, #6B5C51)' }}>
+          #{riga.numeroLavoro}
+        </span>
+      )}
+
       {riga.chi && (
         <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--t1, #1C1916)' }}>
           {riga.chi}
@@ -181,8 +198,13 @@ function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
         </span>
       )}
 
+      {/* ⚖️ D357 — le TRE forme (aperta/chiusa-non-vista/vista) le sceglie
+          `etichettaVisto`, provata in `avvisi-archivio.test.ts`: questo
+          componente non può portare una prova unitaria (componente SERVER
+          asincrono), quindi la parola si decide dove una prova la esercita
+          davvero. Lo STILE resta identico nelle tre forme (⚖️ D337). */}
       <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3, #6B5C51)' }}>
-        {riga.vistoLabel ? `Vista dal dentista il ${riga.vistoLabel}` : 'Non ancora vista dal dentista'}
+        {etichettaVisto(riga)}
       </span>
     </div>
   )
@@ -292,16 +314,19 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
     console.error('ClienteDettaglioPage — dati fiscali del laboratorio non leggibili:', context.laboratorioId, erroreLabFiscale.message)
   }
 
-  // Task 9 — «chi» ha comunicato: una lettura di supporto SU `utenti`, non su
-  // `avvisi_dentista` (brief §1: «nessuna query nuova [sulla tabella]»).
-  // 🛑 Sequenziale e non nel `Promise.all` di sopra: dipende dagli id appena
-  //    letti (`comunicato_da` di ogni riga), quindi non può partire prima.
-  const nomiComunicanti = await nomiComunicatori(
-    svc,
-    righeArchivioAvviso.map((r) => r.comunicato_da),
-    context.laboratorioId
-  )
-  const righeComunicazioni = costruisciRigheArchivio(righeArchivioAvviso, nomiComunicanti)
+  // Task 9 — «chi» ha comunicato — e Task 9-ter (⚖️ D356) — «quale lavoro»:
+  // due letture di supporto SU `utenti`/`lavori`, non su `avvisi_dentista`
+  // (brief §1: «nessuna query nuova [sulla tabella]»).
+  // 🛑 Sequenziali rispetto al `Promise.all` di sopra (dipendono dagli id
+  //    appena letti: `comunicato_da`/`lavoro_id` di ogni riga, quindi non
+  //    possono partire prima) ma IN PARALLELO fra loro — stessa regola «mai
+  //    in fila» del `Promise.all` qui sopra: nessuna delle due dipende
+  //    dall'altra.
+  const [nomiComunicanti, numeriDeiLavori] = await Promise.all([
+    nomiComunicatori(svc, righeArchivioAvviso.map((r) => r.comunicato_da), context.laboratorioId),
+    numeriLavoro(svc, righeArchivioAvviso.map((r) => r.lavoro_id), context.laboratorioId),
+  ])
+  const righeComunicazioni = costruisciRigheArchivio(righeArchivioAvviso, nomiComunicanti, numeriDeiLavori)
 
   const ultimaEmissione = emissioneRaw as UltimaEmissioneDpa | null
 

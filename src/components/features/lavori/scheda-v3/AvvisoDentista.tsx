@@ -688,9 +688,30 @@ export function AvvisoDentista(props: {
                 lineHeight: 1.45,
               }}
             >
-              Hai rifatto la dichiarazione di{' '}
-              <b style={{ color: 'var(--ink)' }}>{pazienteMostrato}</b>. Scegli come far sapere a{' '}
-              {nomeStudio} che quella in mano non vale più.
+              {/* ⚖️ D358 (tornata 154, chiude M-T6-1) — SENZA nome del
+                  paziente la frase usa il NUMERO DEL LAVORO invece del
+                  segnaposto «—». `pazienteMostrato === '—'` è lo stesso
+                  sentinel che `SchedaLavoroV3.tsx:413` produce
+                  (`lavoro.paziente_nome_snapshot ?? '—'`): un accoppiamento
+                  dichiarato, non silenzioso — nessun secondo prop, perché
+                  «il numero arriva dal dato già presente nel componente»
+                  (brief §3). 🛑 Questo è il FOGLIO A SCHERMO: il messaggio
+                  WhatsApp (`buildAvvisoMessage`) non ha e non deve avere
+                  questo ramo — il GDPR vuole il nome fuori dal messaggio
+                  SEMPRE, non solo quando c'è. */}
+              {pazienteMostrato === '—' ? (
+                <>
+                  Hai rifatto la dichiarazione del lavoro{' '}
+                  <b style={{ color: 'var(--ink)' }}>#{numeroLavoro}</b>. Scegli come far sapere a{' '}
+                  {nomeStudio} che quella in mano non vale più.
+                </>
+              ) : (
+                <>
+                  Hai rifatto la dichiarazione di{' '}
+                  <b style={{ color: 'var(--ink)' }}>{pazienteMostrato}</b>. Scegli come far sapere a{' '}
+                  {nomeStudio} che quella in mano non vale più.
+                </>
+              )}
             </p>
 
             {/* 🛑 LE DUE RIGHE SONO LO STESSO COMPONENTE, con gli stessi token e

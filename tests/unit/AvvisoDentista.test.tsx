@@ -238,6 +238,43 @@ describe('AvvisoDentista — passo 1: DUE STRADE PARI (⚖️ D335 · D344)', ()
   })
 })
 
+// ⚖️ D358 (tornata 154, chiude M-T6-1) — IL FOGLIO A SCHERMO (passo 1, la
+// domanda), NON il messaggio WhatsApp: `buildAvvisoMessage` ha una sua prova
+// dedicata più sotto e non è toccata qui.
+describe('AvvisoDentista — ⚖️ D358: il foglio senza nome paziente usa il numero del lavoro', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('col nome del paziente presente, la frase NON cambia (invariato)', () => {
+    monta() // PROPS di default: pazienteMostrato: 'ROSSI MARIO'
+    apriFoglio()
+    const testo = testoDelFoglio()
+    expect(testo).toContain('Hai rifatto la dichiarazione di')
+    expect(testo).toContain('ROSSI MARIO')
+    expect(testo).not.toContain(NUMERO)
+  })
+
+  // 🔴 QUESTA PROVA DEVE FALLIRE CONTRO IL CODICE DI OGGI (RED vero, dichiarato
+  //    dal brief): oggi, senza `paziente_nome_snapshot`, `pazienteMostrato`
+  //    arriva come `'—'` (`SchedaLavoroV3.tsx:413` —
+  //    `lavoro.paziente_nome_snapshot ?? '—'`) e il foglio stampa sempre «Hai
+  //    rifatto la dichiarazione di —», mai il numero del lavoro.
+  it('senza nome del paziente (pazienteMostrato "—"), la frase usa il NUMERO del lavoro', () => {
+    monta({ pazienteMostrato: '—' })
+    apriFoglio()
+    const testo = testoDelFoglio()
+    expect(testo).toContain(`Hai rifatto la dichiarazione del lavoro #${NUMERO}`)
+    expect(testo).not.toContain('dichiarazione di —')
+  })
+
+  it('senza nome del paziente, il resto della frase resta invariato', () => {
+    monta({ pazienteMostrato: '—' })
+    apriFoglio()
+    const testo = testoDelFoglio()
+    expect(testo).toContain(`Scegli come far sapere a ${STUDIO} che quella in mano non vale più`)
+  })
+})
+
 describe('AvvisoDentista — la strada di WhatsApp (⚖️ D331 · D334)', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => vi.unstubAllGlobals())
@@ -807,6 +844,17 @@ describe('AvvisoDentista — le regole di casa', () => {
     expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
     fireEvent.click(screen.getByRole('button', { name: /Torna alla scelta/i }))
     fireEvent.click(stradaVoce())
+    expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
+  })
+
+  // ⚖️ D356/D358 — la prova sopra monta coi PROPS di default
+  // (`pazienteMostrato: 'ROSSI MARIO'`): la frase senza nome che D358 ha
+  // aggiunto (`Hai rifatto la dichiarazione del lavoro #…`) non passa MAI da
+  // lì. Senza questa prova il dizionario non guarderebbe mai l'unica stringa
+  // nuova visibile su questa superficie v3.
+  it('⚖️ D358 — anche la frase SENZA nome del paziente passa dal dizionario', () => {
+    monta({ pazienteMostrato: '—' })
+    apriFoglio()
     expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
   })
 
