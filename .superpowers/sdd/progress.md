@@ -1142,3 +1142,10 @@ Task 10-B (il giro sul banco vero + FASI 9 dei Task 6·7·8·9): **complete** (s
   📌 Ripristino: registri MAI cancellati; i tre campi corretti su `lavori` lasciati ai valori nuovi
   perché la dichiarazione viva DDC-2026-0013 nasce da quelli (riportarli indietro disallineerebbe
   documento e record) — dettaglio nel resoconto.
+
+Task 10-C (irrobustimento dei due flake CI): **complete** (2123ab99). p7: timeout 5000→15000 per-prova
+  (due morti a 5007/5006 ms citate nel commento; girata VERA in locale con env: 27/27, p7 a 2374 ms) ·
+  DevoIntervenire «secondo intervento»: waitFor 1000→5000, prova 5000→15000 — PRIMA verificato che non
+  fosse un difetto vero (setDaRinfrescare scatta prima della fetch osservata, senza await in mezzo:
+  è tempo di render sotto carico). ZERO asserzioni toccate. ⚠️ La prova vera del fix è IL PROSSIMO RUN
+  CI: guardarlo alla ripresa.
