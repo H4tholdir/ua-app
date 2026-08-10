@@ -42,6 +42,8 @@
 | `src/app/(app)/clienti/[id]/page.tsx` | **NON letto** — 🛑 **il Task 9 lo apre come primo passo e ne scrive le righe nel resoconto** |
 | `src/app/api/lavori/[id]/avviso/route.ts` | `letto: righe 180-383 (10/08 mattina, per il Task 4-quater)` — le guardie (183-225), il corpo (227-294), la scrittura (296-334), il ramo zero-righe (343-374), la risposta (376-383) |
 | `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` | `letto: righe 513-531 (10/08 mattina)` — **unico chiamante vivo** della POST (`provato:` grep su `src/` → 1 file fuori dai test); legge `esito.avviso` |
+| `supabase/migrations/20260809124517_avvisi_dentista_update_per_colonne.sql` | `letto: righe 25-67 (10/08 mattina, per il Task 8)` — l'UPDATE di `visto_dal_dentista_at` non è concesso a NESSUN ruolo dell'app, **deliberato**, e la strada prescritta è la SECURITY DEFINER (modello `valutazione_supera`). `provato:` catalogo vivo, `information_schema.column_privileges` → la colonna compare solo per `postgres` |
+| `docs/design/mockups/2026-08-09-avviso-al-dentista.html` | `letto: righe 320-412 (10/08 mattina)` — la card B1 approvata (D346): numero lavoro · badge «Aggiornata» · paziente · frase delle voci · data · chip «Dichiarazione aggiornata» |
 
 ## Censimento degli identificatori (R-P6)
 
@@ -57,6 +59,7 @@
 | `LIVELLO1_PER_RUOLO` | 4 ruoli, candidati `s1…s7` | i tre ruoli che vedono i lavori guadagnano `sAvvisoDentista` (Task 7) |
 | `CAMPI_CORREGGIBILI_DOCUMENTO` | 6 voci | **invariato** — è la fonte di `campi_corretti`, non cambia |
 | filtro dell'UPDATE in `POST /api/lavori/[id]/avviso` | `.eq('id', avvisoId)` — chiude la sola riga indicata | chiude **tutte le righe aperte del lavoro** (⚖️ D354, Task 4-quater); il contratto verso il client resta `{ ok, avviso }` con la riga indicata |
+| `avvisi_segna_visti` 🆕 (Task 8) | non esiste — `provato:` 10/08: grep su `src/`+`supabase/`+`tests/` → 0 hit; `pg_proc` su `%visto%`/`%segna%` → 6 righe, tutte `consegna`/`assegna`, nessuna collisione | funzione `SECURITY DEFINER`: `now()` su `visto_dal_dentista_at` **solo dove è NULL**, EXECUTE al solo `service_role` |
 
 🛑 **Nessun nome viene tolto da un'allowlist in questo piano.**
 
@@ -485,10 +488,34 @@ e questa è l'unica che chiede di fare qualcosa.
 📌 **Una parte nuova non eredita un difetto noto:** la didascalia della data va a `#6B7280` (**4,83:1**),
 non al `#9CA3AF` che il portale usa altrove (**2,54:1**, misurato).
 
-- [ ] La sezione mostra: **quale lavoro**, **quali voci** sono cambiate (`descriviCampiCorretti`), la **dichiarazione nuova** da scaricare.
+⚖️ **D354 (10/08, ratificata) — EREDITÀ VINCOLANTE, sostituisce «una card per avviso»:** la sezione mostra
+**UNA card PER LAVORO** che abbia almeno un avviso; le voci sono l'**UNIONE** dei `campi_corretti` degli
+avvisi di quel lavoro (`descriviCampiCorretti` sull'insieme unito) · la data mostrata è quella dell'avviso
+**più recente** · la dichiarazione da scaricare è **l'ULTIMA** (il filtro `.neq('ddc.stato','annullata')`
+esiste già nella pagina, riga ~357: si riusa quel pattern, non se ne inventa un altro).
+📌 **Nessun filtro di stato sull'avviso:** il portale mostra l'avviso anche se il promemoria del laboratorio
+è ancora aperto — la pagina offre GIÀ la dichiarazione nuova a prescindere, e nasconderlo mostrerebbe un
+documento nuovo senza spiegazione. Il `COMMENT` sulla colonna lo anticipa: «*Non chiude il promemoria:
+chiuderlo è un atto del laboratorio, non del destinatario*».
+
+- [ ] La card mostra: **quale lavoro**, **quali voci** (unione, v. sopra), la **dichiarazione ultima** da scaricare.
 - [ ] 🛑 ⚖️ **D336 — il valore vecchio non compare MAI.** Prova esplicita.
 - [ ] `AzionePortale` guadagna `view_avviso`, e l'apertura scrive `visto_dal_dentista_at`.
-- [ ] ⚠️ Il portale è **una superficie usata da un'altra persona su un altro telefono**: FASE 9 anche lì.
+- [ ] 🔴 **`visto_dal_dentista_at` NON si scrive con un UPDATE: serve una FUNZIONE `SECURITY DEFINER`** —
+  `provato:` catalogo vivo (10/08): `information_schema.column_privileges` → l'UPDATE di quella colonna
+  non è concesso a NESSUN ruolo dell'app (solo `postgres`); la migration `20260809124517` lo dichiara
+  **deliberato** («il laboratorio non deve poter fabbricare la prova di essere stato letto») e **prescrive
+  la strada**: funzione sul modello `valutazione_supera`, `DROP → CREATE → REVOKE EXECUTE FROM PUBLIC,
+  anon, authenticated → GRANT a service_role → COMMENT`. Semantica: scrive `now()` **solo dove è NULL**
+  (la ricevuta registra la PRIMA visione, non si riscrive) — su **tutte le righe mostrate** al momento
+  dell'apertura. ➡️ **QUESTO TASK PORTA UNA MIGRATION**: nome con `date -u` in comando separato (⚖️ D311,
+  pavimento `20260809133546`), applicazione in autonomia (⚖️ D284), poi **FASE 6b** (gen types → tsc).
+- [ ] La lettura riusa `archivioCliente` (`src/lib/avvisi/queries.ts:346`) se il suo contratto basta —
+  una query nuova si scrive solo se il riuso non regge, e la ragione va nel resoconto.
+- [ ] ⚠️ Il caso di confine della ricevuta parziale (referto D354 §4: portale aperto FRA due correzioni)
+  resta **deciso-di-non-deciderlo**: nessuna superficie lo distingue in questo task.
+- [ ] ⚠️ Il portale è **una superficie usata da un'altra persona su un altro telefono**: FASE 9 anche lì —
+  🔄 **accorpata al Task 10** (handoff 10/08 §0③: la fixture nasce solo dalla riemissione vera).
 
 ---
 
