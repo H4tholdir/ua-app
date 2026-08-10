@@ -55,7 +55,7 @@
 | nome | oggi | dopo |
 |---|---|---|
 | `correggi_e_riemetti_atomica` | 6 parametri | **invariata la firma**; il corpo guadagna un `INSERT` (Task 2) |
-| `AzionePortale` | 16 valori | **17**, con `view_avviso` (Task 8) |
+| `AzionePortale` | ~~16~~ **17 valori** (🔄 contati male in fase di piano: il grep del revisore del Task 8 ne trova 17 prima della modifica) | **18**, con `view_avviso` (Task 8, fatto) |
 | `LIVELLO1_PER_RUOLO` | 4 ruoli, candidati `s1…s7` | i tre ruoli che vedono i lavori guadagnano `sAvvisoDentista` (Task 7) |
 | `CAMPI_CORREGGIBILI_DOCUMENTO` | 6 voci | **invariato** — è la fonte di `campi_corretti`, non cambia |
 | filtro dell'UPDATE in `POST /api/lavori/[id]/avviso` | `.eq('id', avvisoId)` — chiude la sola riga indicata | chiude **tutte le righe aperte del lavoro** (⚖️ D354, Task 4-quater); il contratto verso il client resta `{ ok, avviso }` con la riga indicata |

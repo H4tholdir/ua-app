@@ -1055,3 +1055,21 @@ Task 4-quater (D354, la chiusura chiude tutto): **complete** (BASE 9021e78d · i
   asserzioni perimetro UPDATE 97ea8082 — revisione: 1 Important corretto e verificato PER INVERSIONE
   (filtro commentato → 1 rosso su 34, esattamente il test giusto), ri-revisione APPROVATA. Rotta
   invariata nel fix. 34/34 sul file · suite 5983 verde · tsc 0 · build ok. Tre Minor a ledger sopra).
+
+Task 8 (portale, D346+D354): **complete** (BASE b8fba0f3 · impl 8625854a · prova esplicita D336
+  9cea1339 — revisione APPROVATA AL PRIMO GIRO, zero Critical e zero Importanti; i tre rischi nominati
+  — firma con p_laboratorio_id, contratto archivioCliente, gating visto/sezione — verificati dal
+  revisore sul codice fuori diff). 🗄️ MIGRATION NUOVA `20260810072748_avvisi_segna_visti.sql`,
+  applicata in autonomia (D284), FASE 6b eseguita, sonde sul catalogo vivo nel resoconto.
+  RED 23/27 su abbozzo inerte → 28/28 unit + 9/9 integrazione sul banco vero · suite 6143/6148
+  (5 skip pre-esistenti) · tsc 0 · build ok. FASE 9 + gate L2: accorpati al Task 10.
+
+### Task 8 — i rilievi MINORI (per la revisione finale di ramo)
+
+- 🟡 **M-T8-1** — il conteggio di `AzionePortale` nel BRIEF diceva «da 16 a 17»; il vero è «da 17 a 18»
+  (`provato:` dal revisore, grep sulle stringhe letterali). Errore dell'ORCHESTRATORE nel brief, non
+  dell'esecutore (ha aggiunto esattamente `view_avviso`). Censimento del piano corretto il 10/08.
+- 🟡 **M-T8-2** — `page.tsx` scrive l'audit `view_avviso` con insert diretto, bypassando
+  `logPortaleAudit` che `audit.ts:2` dichiara «writer unico» — pattern EREDITATO (`view_lavori` fa
+  così da prima, `page.tsx:453-462`, fuori diff). Da pesare alla revisione finale: o si corregge la
+  dichiarazione di audit.ts o si allineano i due caller. Giusto non averlo «sistemato di nascosto» (R-E2).
