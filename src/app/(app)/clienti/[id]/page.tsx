@@ -9,6 +9,13 @@ import { ClienteModificaButton } from '@/components/features/clienti/ClienteModi
 import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
 import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica'
 import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
+// Task 9 dell'ondata «l'avviso al dentista» — l'archivio delle comunicazioni
+// (⚖️ D337 · D352). Il cancello di ruolo vive DENTRO `archivioPerSchedaCliente`
+// (`src/lib/avvisi/queries.ts`): questa pagina non ripete `puoVedereArchivioCliente`
+// a mano — lo propaga passando `context.ruolo`, stesso modello di `puoEmettere` qui
+// sopra ma con la chiusura fail-closed dentro la lettura stessa, non nel JSX.
+import { archivioPerSchedaCliente } from '@/lib/avvisi/queries'
+import { nomiComunicatori, costruisciRigheArchivio, type RigaArchivioCliente } from '@/lib/avvisi/archivio'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -116,6 +123,71 @@ function SectionCard({ title, children }: { title: string; children: React.React
   )
 }
 
+/**
+ * Una riga dell'archivio «Comunicazioni» — Task 9, ⚖️ D337 · D336.
+ *
+ * 🛑 STESSA FORMA NEUTRA PER OGNI STATO, ED È IL PUNTO: la pastiglia di
+ *    `comeLabel` usa SEMPRE `--elv`/`--t2` — mai `--amber` (l'unico colore di
+ *    richiamo che questa pagina già conosce, sulla riga «Non soggetto a
+ *    fattura elettronica» qui sopra), mai un rosso. ⚖️ D337 vieta un segnale
+ *    d'allarme anche per una riga ancora `da_comunicare`: qui non c'è NESSUNA
+ *    differenza di stile fra una riga aperta e una chiusa — solo il TESTO
+ *    cambia (`riga.comeLabel`, `riga.quando`, `riga.chi`), mai il colore.
+ *    Motivato nel resoconto del Task 9.
+ */
+function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
+  return (
+    <div
+      style={{
+        padding: '12px 0',
+        borderBottom: '1px solid var(--elv, #EDEDEA)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+        <span
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '11px',
+            fontWeight: 600,
+            color: 'var(--t2, #4A3D33)',
+            background: 'var(--elv, #EDEDEA)',
+            borderRadius: '6px',
+            padding: '3px 10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {riga.comeLabel}
+        </span>
+        {riga.quando && (
+          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t3, #6B5C51)' }}>
+            {riga.quando}
+          </span>
+        )}
+      </div>
+
+      {riga.chi && (
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--t1, #1C1916)' }}>
+          {riga.chi}
+        </span>
+      )}
+
+      {riga.campiDescritti.length > 0 && (
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', lineHeight: 1.4 }}>
+          Corretto: {riga.campiDescritti.join(', ')}
+        </span>
+      )}
+
+      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3, #6B5C51)' }}>
+        {riga.vistoLabel ? `Vista dal dentista il ${riga.vistoLabel}` : 'Non ancora vista dal dentista'}
+      </span>
+    </div>
+  )
+}
+
 export default async function ClienteDettaglioPage({ params }: PageProps) {
   const { id } = await params
 
@@ -169,6 +241,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   const [
     { data: emissioneRaw, error: erroreRegistro },
     { data: labFiscale, error: erroreLabFiscale },
+    righeArchivioAvviso,
   ] = await Promise.all([
     svc
       .from('data_processing_agreements')
@@ -193,6 +266,11 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
       .select('partita_iva, codice_fiscale')
       .eq('id', context.laboratorioId)
       .maybeSingle(),
+    // Task 9 — l'archivio «Comunicazioni» (⚖️ D337 · D352). Il cancello di
+    // ruolo vive DENTRO `archivioPerSchedaCliente`: per `admin_rete`/
+    // `admin_sistema` questa promessa risolve a `[]` SENZA interrogare
+    // `avvisi_dentista` (fail-closed, provato in `avvisi-queries.test.ts`).
+    archivioPerSchedaCliente({ svc, clienteId: c.id, laboratorioId: context.laboratorioId, ruolo: context.ruolo }),
   ])
 
   // 🛑 Un guasto di LETTURA non è «non è mai stato emesso»: sono due fatti
@@ -213,6 +291,17 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   if (erroreLabFiscale) {
     console.error('ClienteDettaglioPage — dati fiscali del laboratorio non leggibili:', context.laboratorioId, erroreLabFiscale.message)
   }
+
+  // Task 9 — «chi» ha comunicato: una lettura di supporto SU `utenti`, non su
+  // `avvisi_dentista` (brief §1: «nessuna query nuova [sulla tabella]»).
+  // 🛑 Sequenziale e non nel `Promise.all` di sopra: dipende dagli id appena
+  //    letti (`comunicato_da` di ogni riga), quindi non può partire prima.
+  const nomiComunicanti = await nomiComunicatori(
+    svc,
+    righeArchivioAvviso.map((r) => r.comunicato_da),
+    context.laboratorioId
+  )
+  const righeComunicazioni = costruisciRigheArchivio(righeArchivioAvviso, nomiComunicanti)
 
   const ultimaEmissione = emissioneRaw as UltimaEmissioneDpa | null
 
@@ -365,6 +454,36 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
           attiva={c.portale_fatturazione_attiva}
           pinImpostato={c.portale_pin_hash != null}
         />
+
+        {/* Comunicazioni — l'archivio di ⚖️ D337 (Task 9): quando · come · chi ·
+            se e quando l'ha aperta. Sola lettura, cancello di ruolo ⚖️ D352
+            (`titolare` · `tecnico` · `front_desk`) dentro `archivioPerSchedaCliente`.
+            🛑 La card resta SEMPRE a schermo, anche vuota — stesso modello della
+            card DPA qui sotto (D160: «chi non vede il tasto vede comunque tutto
+            il resto»): un archivio si CONSULTA, e una sezione che sparisce a
+            seconda del ruolo rivelerebbe implicitamente che qualcosa esiste ma
+            è nascosto. Un ruolo escluso e un archivio genuinamente vuoto
+            mostrano perciò la STESSA schermata — di proposito, nessuna fuga di
+            informazione su «c'è qualcosa che non puoi vedere». */}
+        <SectionCard title="Comunicazioni">
+          {righeComunicazioni.length === 0 ? (
+            <div style={{ padding: '10px 0' }}>
+              <p
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px',
+                  color: 'var(--t2, #4A3D33)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                Nessuna comunicazione registrata per questo studio.
+              </p>
+            </div>
+          ) : (
+            righeComunicazioni.map((riga) => <RigaComunicazione key={riga.id} riga={riga} />)
+          )}
+        </SectionCard>
 
         {/* DPA GDPR Art. 28 */}
         <SectionCard title="Privacy — GDPR">

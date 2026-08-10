@@ -106,3 +106,37 @@ export function puoChiudereAvviso(ruolo: string | null | undefined): boolean {
 export function puoVedereAvviso(ruolo: string | null | undefined): boolean {
   return puoChiudereAvviso(ruolo)
 }
+
+/**
+ * 🛑 **CHI VEDE L'ARCHIVIO DELLE COMUNICAZIONI NELLA SCHEDA DEL CLIENTE —
+ * ⚖️ D352, e NON è un alias di `RUOLI_CHIUSURA_AVVISO`.**
+ *
+ * L'elenco coincide con quello di D342 (`titolare` · `tecnico` · `front_desk`,
+ * esclusi `admin_rete` e `admin_sistema` PER NOME) ma per una strada diversa:
+ * D342 discende dal permesso di **agire** (chiudere un obbligo), D352 da chi è
+ * nel **perimetro del titolare del trattamento** — qui non c'è niente da
+ * chiudere, si CONSULTA soltanto (⚖️ D337). Due decisioni che oggi coincidono
+ * possono divergere domani, e un `export const RUOLI_ARCHIVIO_CLIENTE =
+ * RUOLI_CHIUSURA_AVVISO` le salderebbe in silenzio — per questo è una
+ * costante NUOVA, anche se il contenuto di oggi è identico
+ * (`tests/unit/avvisi-ruoli.test.ts`, blocco D352, prova «non è un alias»).
+ *
+ * `admin_rete` e `admin_sistema` escono per le STESSE due ragioni di D342 (v.
+ * sopra `RUOLI_CHIUSURA_AVVISO`): il primo sta sopra più laboratori, il
+ * secondo è personale UÀ che agisce su istruzione documentata (GDPR
+ * Art. 28(3)(a)) e non è nel perimetro del titolare del trattamento di
+ * QUESTO laboratorio.
+ *
+ * 📮 Consumatore: `archivioPerSchedaCliente` in `queries.ts` (Task 9).
+ */
+export const RUOLI_ARCHIVIO_CLIENTE = ['titolare', 'tecnico', 'front_desk'] as const
+
+/**
+ * Può **vedere l'archivio**? Stesso idioma fail-closed di `puoChiudereAvviso`:
+ * nessun `if` dedicato a `null`/`undefined`/un nome sconosciuto — `includes()`
+ * risponde `false` da sé, e non esiste un secondo ramo in cui sbagliare il
+ * verso del confronto.
+ */
+export function puoVedereArchivioCliente(ruolo: string | null | undefined): boolean {
+  return (RUOLI_ARCHIVIO_CLIENTE as readonly string[]).includes(ruolo ?? '')
+}

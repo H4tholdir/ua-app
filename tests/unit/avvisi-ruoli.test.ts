@@ -24,6 +24,8 @@ import {
   RUOLI_CHIUSURA_AVVISO,
   puoChiudereAvviso,
   puoVedereAvviso,
+  RUOLI_ARCHIVIO_CLIENTE,
+  puoVedereArchivioCliente,
 } from '@/lib/avvisi/ruoli'
 
 /**
@@ -120,5 +122,49 @@ describe('puoVedereAvviso — la VISIBILITÀ, che è un sottoinsieme del permess
         expect(puoChiudereAvviso(ruolo), `«${ruolo}» vedrebbe un avviso che non può chiudere`).toBe(true)
       }
     }
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// ⚖️ D352 — Task 9: chi vede l'ARCHIVIO nella scheda del cliente.
+//
+// 🛑 STESSA TAVOLA DI D342 OGGI, MA È UNA COSTANTE DIVERSA: il brief (§2) vieta
+//    esplicitamente di riusare `RUOLI_CHIUSURA_AVVISO` come alias — le due
+//    decisioni nascono da strade diverse (D342 = permesso di AGIRE, D352 = chi
+//    è nel perimetro del titolare del trattamento) e possono divergere domani.
+//    La prova qui sotto («non è lo stesso array») esiste apposta per prendere
+//    un eventuale alias silenzioso.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('puoVedereArchivioCliente — ⚖️ D352, chi consulta l’archivio delle comunicazioni', () => {
+  for (const ruolo of CINQUE_RUOLI) {
+    const atteso = ATTESO_CHIUSURA[ruolo] // stessa tavola di verità di D342, oggi
+    it(`«${ruolo}» ${atteso ? 'VEDE' : 'NON vede'} l'archivio`, () => {
+      expect(puoVedereArchivioCliente(ruolo)).toBe(atteso)
+    })
+  }
+
+  it('i tre ammessi e i due esclusi sono esattamente quelli, e nessun altro', () => {
+    expect(CINQUE_RUOLI.filter(puoVedereArchivioCliente)).toEqual(['titolare', 'tecnico', 'front_desk'])
+    expect(CINQUE_RUOLI.filter((r) => !puoVedereArchivioCliente(r))).toEqual(['admin_rete', 'admin_sistema'])
+    expect([...RUOLI_ARCHIVIO_CLIENTE].sort()).toEqual(['front_desk', 'tecnico', 'titolare'])
+  })
+
+  it('🛑 FAIL-CLOSED: ruolo assente, vuoto, o un nome che non esiste → NO', () => {
+    expect(puoVedereArchivioCliente(null)).toBe(false)
+    expect(puoVedereArchivioCliente(undefined)).toBe(false)
+    expect(puoVedereArchivioCliente('')).toBe(false)
+    expect(puoVedereArchivioCliente('admin')).toBe(false)
+    expect(puoVedereArchivioCliente('front-desk')).toBe(false)
+    expect(puoVedereArchivioCliente('Titolare')).toBe(false)
+  })
+
+  it('🛑 NON È UN ALIAS DI `RUOLI_CHIUSURA_AVVISO`: è una costante NUOVA (brief Task 9 §2)', () => {
+    // Coincidono OGGI nel contenuto (stessa tavola), ma non nell'identità: un
+    // `export const RUOLI_ARCHIVIO_CLIENTE = RUOLI_CHIUSURA_AVVISO` passerebbe
+    // ogni prova sul CONTENUTO qui sopra e violerebbe comunque il mandato.
+    expect(RUOLI_ARCHIVIO_CLIENTE).not.toBe(RUOLI_CHIUSURA_AVVISO)
+    // E il contenuto, oggi, è lo stesso — altrimenti la tavola sopra sarebbe già rossa.
+    expect([...RUOLI_ARCHIVIO_CLIENTE].sort()).toEqual([...RUOLI_CHIUSURA_AVVISO].sort())
   })
 })

@@ -28,7 +28,7 @@ import {
   chiudeIlPromemoria,
   type StatoAvviso,
 } from '@/lib/avvisi/stati'
-import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
+import { puoVedereAvviso, puoVedereArchivioCliente } from '@/lib/avvisi/ruoli'
 import type { getServiceClient } from '@/lib/supabase/server-service'
 
 type Svc = ReturnType<typeof getServiceClient>
@@ -357,4 +357,55 @@ export async function archivioCliente(
 
   if (error || !data) return vuotoConNota('archivioCliente', error)
   return data as unknown as AvvisoRiga[]
+}
+
+/**
+ * L'ARCHIVIO, VISTO DALLA SCHEDA DEL CLIENTE — il cancello di ⚖️ D352 e la
+ * lettura **nella stessa funzione**, esattamente come `avvisoPerLaScheda`
+ * (⚖️ D342) fa per il promemoria aperto. Task 9.
+ *
+ * 🔴 PERCHÉ ESISTE, E NON È UN BLOCCO NUDO DENTRO `archivioCliente`. Da
+ *    stamattina (Task 8) `archivioCliente` ha DUE chiamanti con DUE autorità
+ *    diverse: il portale (`src/app/portale/[token]/page.tsx`), la cui
+ *    autorità è il TOKEN — nessun ruolo utente, e la funzione grezza deve
+ *    restare **utilizzabile senza un ruolo** — e la scheda cliente (qui),
+ *    la cui autorità è il RUOLO (D352). Mettere il cancello dentro
+ *    `archivioCliente` stesso avrebbe rotto il primo chiamante (gli
+ *    servirebbe un `ruolo` che non ha) o l'avrebbe costretto a passare un
+ *    ruolo finto — un bicondizionale che D352 non chiede. Il modello di casa
+ *    è invece un SECONDO entry point che avvolge il primo, come `striscia.ts`
+ *    fa con `usaFiscali` e come `avvisoPerLaScheda`/`avvisoPerLaStriscia`
+ *    fanno già in questo stesso file: la lettura/il ruolo si PROPAGA dal
+ *    chiamante, con una sentinella, e il ripiego è fail-closed.
+ *
+ * 🛑 `ruolo` È OBBLIGATORIO, E LA CHIUSURA È PER COSTRUZIONE, NON PER
+ *    DISCIPLINA — stessa forma di `avvisoPerLaScheda`: la chiave non è
+ *    opzionale (chi dimentica di dichiarare *chi guarda* non compila), ma il
+ *    TIPO ammette `null`/`undefined` perché il chiamante vero
+ *    (`clienti/[id]/page.tsx`, componente server) li ha davvero, e quei
+ *    valori non passano il cancello — nessun secondo ramo, `includes()`
+ *    risponde `false` da sé (`puoVedereArchivioCliente`).
+ *
+ * 🔑 **`RUOLI_ARCHIVIO_CLIENTE`, MAI `RUOLI_CHIUSURA_AVVISO`.** L'elenco di
+ *    oggi coincide (v. `ruoli.ts`), ma la costante è un'altra: due decisioni
+ *    che oggi rispondono uguale possono divergere domani.
+ *
+ * ⚠️ **`archivioCliente` NON CAMBIA FIRMA, e resta esportata**: è la lettura
+ *    grezza che il portale continua a chiamare esattamente com'è
+ *    (`portale/[token]/page.tsx:467`) — le sue prove del Task 8
+ *    (`avvisi-portale.test.ts`) non hanno bisogno di sapere che questa
+ *    funzione esiste. 🛑 Chi rende la scheda del cliente usa **questa**, non
+ *    quella: chiamare la grezza da lì vorrebbe dire rifare il cancello a
+ *    mano — lo stesso ternario invisibile che il Task 6 ha già pagato una
+ *    volta (v. il riquadro su `avvisoPerLaScheda`, sopra).
+ */
+export async function archivioPerSchedaCliente(arg: {
+  svc: Svc
+  clienteId: string
+  laboratorioId: string
+  ruolo: string | null | undefined
+}): Promise<AvvisoRiga[]> {
+  if (!puoVedereArchivioCliente(arg.ruolo)) return []
+
+  return archivioCliente(arg.svc, { clienteId: arg.clienteId, laboratorioId: arg.laboratorioId })
 }

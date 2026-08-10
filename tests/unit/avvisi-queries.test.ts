@@ -44,9 +44,16 @@
 //    riemissione, col suo corredo di lavoro, evento e dichiarazione.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { avvisiDaComunicare, archivioCliente, avvisoPerLaScheda, avvisoPerLaStriscia } from '@/lib/avvisi/queries'
+import {
+  avvisiDaComunicare,
+  archivioCliente,
+  avvisoPerLaScheda,
+  avvisoPerLaStriscia,
+  archivioPerSchedaCliente,
+} from '@/lib/avvisi/queries'
 // Task 7 — ⚖️ D342: il perimetro si INTERROGA, non si ribatte.
-import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
+// Task 9 — ⚖️ D352: stessa idea, costante NUOVA (v. `ruoli.ts`).
+import { puoVedereAvviso, puoVedereArchivioCliente } from '@/lib/avvisi/ruoli'
 import { STATI_AVVISO, STATI_CHIUSI } from '@/lib/avvisi/stati'
 
 const LAB = '11111111-1111-1111-1111-111111111111'
@@ -422,6 +429,107 @@ describe('archivioCliente — tutte le comunicazioni di QUEL cliente (consumator
     const { svc } = svcFinto([], true)
 
     await expect(archivioCliente(svc, { clienteId: CLIENTE, laboratorioId: LAB })).resolves.toEqual([])
+    expect(spiaLog).toHaveBeenCalled()
+  })
+})
+
+describe('archivioPerSchedaCliente — il cancello di ⚖️ D352 SOPRA `archivioCliente` (Task 9)', () => {
+  // 🔴 STESSA FORMA DI `avvisoPerLaScheda` (⚖️ D342), E NON È UN CASO: è il
+  //    modello di casa per «la lettura/il ruolo si PROPAGA dal chiamante, con
+  //    sentinelle, e il ripiego è fail-closed» (brief Task 9 §2). ⚠️ Ma la
+  //    COSTANTE è un'altra: D352 NON è un alias di D342, benché l'elenco di
+  //    oggi coincida — v. `RUOLI_ARCHIVIO_CLIENTE` in `ruoli.ts`. Se domani le
+  //    due liste divergessero, una prova che confondesse le costanti non se ne
+  //    accorgerebbe: qui si intercetta SEMPRE `puoVedereArchivioCliente`, mai
+  //    `puoVedereAvviso`.
+  //
+  // 🔑 E SI GUARDA LA SPIA, NON SOLO IL VALORE DI RITORNO — lezione del Task 6:
+  //    per un ruolo escluso e per un archivio genuinamente vuoto il ritorno è
+  //    IDENTICO (`[]`). Si asserisce `spia.consultato`, cioè se il banco è
+  //    stato interrogato: è l'unica cosa che distingue «non può vedere» da
+  //    «può vedere e non c'è niente».
+
+  const AMMESSI = ['titolare', 'tecnico', 'front_desk'] as const
+  const ESCLUSI = ['admin_rete', 'admin_sistema'] as const
+
+  for (const ruolo of AMMESSI) {
+    it(`«${ruolo}» VEDE l'archivio: il banco è interrogato`, async () => {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
+
+      expect(spia.consultato, `${ruolo}: il banco doveva essere interrogato`).toBe(1)
+      expect(esito).toHaveLength(1)
+    })
+  }
+
+  for (const ruolo of ESCLUSI) {
+    it(`🛑 «${ruolo}» NON vede l'archivio, e il banco non viene nemmeno interrogato`, async () => {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
+
+      // Il finto HA una riga da restituire: se il cancello guardasse dal verso
+      // sbagliato, `esito` la conterrebbe. È la mutazione che questa prova
+      // esiste per prendere (lezione Task 6, prova «per inversione»).
+      expect(esito, `${ruolo} non deve vedere l'archivio`).toEqual([])
+      expect(spia.consultato, `${ruolo}: il banco non doveva essere interrogato`).toBe(0)
+    })
+  }
+
+  it('🛑 FAIL-CLOSED: ruolo assente, nullo o sconosciuto → archivio vuoto, nessuna lettura', async () => {
+    for (const ruolo of [null, undefined, '', 'admin', 'front-desk']) {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
+
+      expect(esito, `«${String(ruolo)}» non deve vedere l'archivio`).toEqual([])
+      expect(spia.consultato, `«${String(ruolo)}»: nessuna lettura`).toBe(0)
+    }
+  })
+
+  it('🛑 i CINQUE ruoli veri: interroga il banco ESATTAMENTE per chi `puoVedereArchivioCliente` ammette', async () => {
+    // L'elenco NON si ribatte qui: si interroga `ruoli.ts`. Capovolgere il
+    // cancello renderebbe questa rossa su tutte e cinque (prova «per inversione»).
+    for (const ruolo of CINQUE_RUOLI) {
+      const { svc, spia } = svcFinto([rigaAperta()])
+      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
+
+      expect(spia.consultato > 0, `ruolo ${ruolo}: ha interrogato il banco?`).toBe(puoVedereArchivioCliente(ruolo))
+      expect(esito.length > 0, `ruolo ${ruolo}: ha ricevuto l'archivio?`).toBe(puoVedereArchivioCliente(ruolo))
+    }
+  })
+
+  it('un cliente escluso e un archivio genuinamente vuoto tornano LO STESSO valore — la spia è ciò che li distingue', async () => {
+    const { svc: svcVuoto, spia: spiaVuoto } = svcFinto([])
+    const vuoto = await archivioPerSchedaCliente({ svc: svcVuoto, clienteId: CLIENTE, laboratorioId: LAB, ruolo: 'titolare' })
+
+    const { svc: svcEscluso, spia: spiaEscluso } = svcFinto([rigaAperta()])
+    const escluso = await archivioPerSchedaCliente({ svc: svcEscluso, clienteId: CLIENTE, laboratorioId: LAB, ruolo: 'admin_rete' })
+
+    expect(vuoto).toEqual(escluso)
+    expect(spiaVuoto.consultato, 'un titolare con archivio vuoto HA interrogato il banco').toBe(1)
+    expect(spiaEscluso.consultato, 'admin_rete NON deve aver interrogato il banco').toBe(0)
+  })
+
+  it('i filtri (cliente + laboratorio) e l’ordine (dal più recente) restano quelli di `archivioCliente`', async () => {
+    const { svc, spia } = svcFinto([rigaAperta()])
+    await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: ALTRO_LAB, ruolo: 'titolare' })
+
+    expect(spia.filtri).toEqual([
+      ['eq:cliente_id', CLIENTE],
+      ['eq:laboratorio_id', ALTRO_LAB],
+    ])
+    expect(spia.ordini).toEqual([
+      ['created_at', false],
+      ['id', false],
+    ])
+  })
+
+  it('se il banco non risponde: archivio vuoto per un ruolo ammesso, e il guasto scritto nei log', async () => {
+    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = svcFinto([], true)
+
+    await expect(
+      archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo: 'titolare' })
+    ).resolves.toEqual([])
     expect(spiaLog).toHaveBeenCalled()
   })
 })

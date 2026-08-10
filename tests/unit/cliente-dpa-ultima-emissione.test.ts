@@ -137,6 +137,16 @@ function preparaClient(
       catenaLab = createChain(risultatoLab)
       return catenaLab
     }
+    // Task 9 (ondata «l'avviso al dentista») — la pagina ora legge anche
+    // l'archivio «Comunicazioni» (⚖️ D337/D352, `archivioPerSchedaCliente`).
+    // Questo file prova il DPA, non l'archivio: si torna una lista vuota, che
+    // per un ruolo escluso (admin_rete/admin_sistema) non viene nemmeno
+    // interrogata (fail-closed dentro `archivioPerSchedaCliente` stesso) e per
+    // un ruolo ammesso lascia `nomiComunicatori` senza id da risolvere — quindi
+    // nessun `utenti` in più da simulare qui.
+    if (tabella === 'avvisi_dentista') {
+      return createChain({ data: [], error: null })
+    }
     throw new Error(`Mock scheda cliente: tabella inattesa «${tabella}»`)
   })
 }
