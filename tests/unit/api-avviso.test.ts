@@ -444,7 +444,7 @@ describe('POST /api/lavori/[id]/avviso — a quale avviso si può arrivare', () 
     expect(b.catenaUpdate.chiamate).toHaveLength(0)
   })
 
-  it('🛑 l\'aggiornamento è CONDIZIONATO allo stato ancora aperto, l\'elenco è DERIVATO da stati.ts, e NON porta più `id` (⚖️ D354)', async () => {
+  it('🛑 l\'aggiornamento è CONDIZIONATO allo stato ancora aperto, l\'elenco è DERIVATO da stati.ts, NON porta più `id`, e porta `laboratorio_id`+`lavoro_id` (⚖️ D354)', async () => {
     const b = banco()
     await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
     const f = filtri(b.catenaUpdate)
@@ -460,6 +460,18 @@ describe('POST /api/lavori/[id]/avviso — a quale avviso si può arrivare', () 
     // suo perimetro. Senza questa riga, un ritorno a `.eq('id', avvisoId)`
     // lascerebbe questo file verde.
     expect(Object.hasOwn(f, 'id')).toBe(false)
+    // 🛑 RILIEVO DI REVISIONE (Important, 10/08/2026): con `id` fuori
+    // dall'update, `laboratorio_id`+`lavoro_id` sono diventati l'INTERO
+    // perimetro di un aggiornamento multi-riga — non più una difesa
+    // accanto a `id`, ma l'unica cosa che tiene l'atto dentro QUESTO lavoro
+    // DI QUESTO laboratorio. Nessuna delle 34 prove originarie asseriva la
+    // loro PRESENZA sulla catena UPDATE (solo `in:stato` e l'assenza di
+    // `id`): una modifica futura che cancellasse `.eq('lavoro_id', …)`
+    // avrebbe chiuso gli avvisi aperti di QUALSIASI lavoro del laboratorio, e
+    // senza `laboratorio_id` la fuga sarebbe cross-tenant — in entrambi i
+    // casi questo file sarebbe rimasto verde. Le due righe sotto lo impediscono.
+    expect(f.laboratorio_id).toBe(LAB_ID)
+    expect(f.lavoro_id).toBe(LAVORO_ID)
   })
 
   it('⑱Ⓓ un avviso GIÀ chiuso risponde 409, e NESSUN update parte', async () => {
