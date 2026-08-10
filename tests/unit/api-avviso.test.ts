@@ -71,6 +71,34 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 //  ㉙ un ruolo FUORI dai cinque (`admin` nudo, …)      → 403 (allowlist, non
 //     blocklist: è la sola prova che distingue le due forme)
 // ═══════════════════════════════════════════════════════════════════════════
+//
+// 🔄 ⚖️ D354 (Task 4-quater, 10/08/2026) — UN ATTO CHIUDE TUTTE LE RIGHE
+//    APERTE DEL LAVORO. La rotta ora LEGGE prima di scrivere (verifica
+//    nel perimetro `id`+`laboratorio_id`+`lavoro_id`), e SOLO se trova la
+//    riga aperta procede all'UPDATE, che ha perso `.eq('id', …)`: il suo
+//    perimetro è `laboratorio_id`+`lavoro_id`+`stato IN STATI_APERTI`.
+//    🛑 QUESTA RIGA SOSTITUISCE, NON AGGIUNGE: ⑯⑰·⑱·⑲ sopra sono state
+//    RISCRITTE per il nuovo ordine (leggi-poi-scrivi) — non hanno più un
+//    doppione qui sotto (`CLAUDE.md` §9, D296: la correzione sta dove
+//    stava il fatto vecchio, non in coda).
+//
+//  Ⓐ due righe APERTE dello stesso lavoro → un atto → risposta = la riga
+//     INDICATA (non `righe[0]`), l'update non porta più `id`
+//  Ⓑ una riga aperta + una GIÀ chiusa → l'update chiede SOLO `stato IN
+//     STATI_APERTI` (nessuno stato chiuso in quell'elenco) — che la riga
+//     chiusa non venga davvero riscritta lo garantisce quel filtro sul
+//     database vero, non il finto client (che non sa filtrare, idioma
+//     già in ⑯⑰)
+//  Ⓒ `avviso_id` fuori dal perimetro, ANCHE con altre righe aperte nel
+//     lavoro → 404 PRIMA di ogni scrittura (coperta da ⑯⑰ riscritta)
+//  Ⓓ riga indicata già chiusa → 409 e NESSUN update (coperta da ⑱ riscritta)
+//  Ⓔ una sola riga aperta → 200, `avviso` = quella riga: comportamento
+//     INVARIATO, dimostrato dalle prove di successo già in file (㉑ ㉑-bis
+//     ㉒ ㉒-bis ㉕), che restano guardie di regressione sotto la nuova rotta
+//  Ⓕ la lettura di verifica fallisce (errore del database) → 500, non un
+//     404 bugiardo — ramo nuovo, che prima non poteva esistere perché non
+//     c'era una lettura PRIMA della scrittura
+// ═══════════════════════════════════════════════════════════════════════════
 
 const { mockFrom, mockGetFreshLabContext } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
@@ -118,6 +146,10 @@ const USER_ID = '99999999-9999-9999-9999-999999999999'
 const LAVORO_ID = '33333333-3333-3333-3333-333333333333'
 const AVVISO_ID = '44444444-4444-4444-4444-444444444444'
 const CLIENTE_ID = '55555555-5555-5555-5555-555555555555'
+// La SECONDA riga aperta dello stesso lavoro (⚖️ D354, Task 4-quater): serve
+// a distinguere «la rotta risponde con `righe[0]`» da «la rotta CERCA
+// `avviso_id`» — le due si comportano uguale finché c'è una sola riga.
+const ALTRO_AVVISO_ID = '66666666-6666-6666-6666-666666666666'
 
 const CONTESTO = {
   userId: USER_ID,
@@ -132,27 +164,39 @@ const CONTESTO = {
 const TESTO = '📄 La dichiarazione del lavoro #STOR/2021/016 è stata rifatta.'
 
 /**
- * Il banco: la prima chiamata a `from('avvisi_dentista')` serve
- * l'aggiornamento condizionato, la seconda l'eventuale lettura di
- * disambiguazione (che esiste SOLO quando l'aggiornamento non tocca righe).
+ * Il banco: dal Task 4-quater (⚖️ D354) la PRIMA chiamata a
+ * `from('avvisi_dentista')` serve la VERIFICA (legge PRIMA di scrivere, nel
+ * perimetro `id`+`laboratorio_id`+`lavoro_id`), la SECONDA l'UPDATE — che ora
+ * corre SOLO se la verifica ha trovato una riga aperta nel perimetro.
+ * 🔄 Fino al Task 4-quater l'ordine era invertito (update, poi un'eventuale
+ * lettura di disambiguazione SOLO a zero righe): l'inversione qui è la
+ * conseguenza diretta di spostare 404/409 PRIMA della scrittura.
+ *
+ * `verificata` di default è una riga APERTA (`da_comunicare`) con l'id
+ * richiesto: è il caso di successo, il più comune nel file. `undefined` →
+ * default; `null` esplicito → «non trovata» (per il 404).
  */
 function banco(opts: {
+  verificata?: Record<string, unknown> | null
+  erroreVerifica?: { code?: string; message?: string } | null
   aggiornate?: Record<string, unknown>[]
   erroreUpdate?: { code?: string; message?: string } | null
-  riga?: Record<string, unknown> | null
 } = {}) {
+  const catenaVerifica = catena({
+    data: opts.erroreVerifica ? null : opts.verificata !== undefined ? opts.verificata : { id: AVVISO_ID, stato: 'da_comunicare' },
+    error: opts.erroreVerifica ?? null,
+  })
   const catenaUpdate = catena({
     data: opts.erroreUpdate ? null : (opts.aggiornate ?? [rigaChiusa()]),
     error: opts.erroreUpdate ?? null,
   })
-  const catenaLettura = catena({ data: opts.riga ?? null, error: null })
   const tabelle: string[] = []
-  const code = [catenaUpdate, catenaLettura]
+  const code = [catenaVerifica, catenaUpdate]
   mockFrom.mockImplementation((tabella: string) => {
     tabelle.push(tabella)
     return code.shift() ?? catena({ data: null, error: null })
   })
-  return { catenaUpdate, catenaLettura, tabelle }
+  return { catenaVerifica, catenaUpdate, tabelle }
 }
 
 function rigaChiusa(extra: Record<string, unknown> = {}) {
@@ -383,50 +427,114 @@ describe('POST /api/lavori/[id]/avviso — il testo, e il 422 che arriva PRIMA d
 })
 
 describe('POST /api/lavori/[id]/avviso — a quale avviso si può arrivare', () => {
-  it('⑯⑰ un avviso di un altro laboratorio o di un altro lavoro risponde 404', async () => {
-    // Il finto client non sa filtrare: chi filtra è la rotta. La prova sta nel
-    // fatto che l'aggiornamento PORTA i due filtri, e che a zero righe la
-    // lettura di controllo (con gli stessi filtri) non trova niente → 404.
-    const b = banco({ aggiornate: [], riga: null })
+  it('⑯⑰Ⓒ un avviso di un altro laboratorio o di un altro lavoro risponde 404, PRIMA di ogni scrittura', async () => {
+    // ⚖️ D354 (Task 4-quater): dal 10/08 la VERIFICA corre PRIMA dell'update,
+    // quindi qui l'update non parte MAI — è la coppia «codice giusto +
+    // NESSUN update», idioma già in ⑪ e ㉖-㉙. 🔄 Fino a ieri era l'update a
+    // girare per primo (a zero righe) e la lettura di disambiguazione a
+    // seguirlo: qui la prova è RISCRITTA per il nuovo ordine, non duplicata.
+    const b = banco({ verificata: null })
     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
     expect(r.status).toBe(404)
-    const f = filtri(b.catenaUpdate)
+    const f = filtri(b.catenaVerifica)
     expect(f.laboratorio_id).toBe(LAB_ID)
     expect(f.lavoro_id).toBe(LAVORO_ID)
     expect(f.id).toBe(AVVISO_ID)
-    // e la lettura di disambiguazione è ristretta allo stesso perimetro
-    const g = filtri(b.catenaLettura)
-    expect(g.laboratorio_id).toBe(LAB_ID)
-    expect(g.lavoro_id).toBe(LAVORO_ID)
+    expect(mockFrom).toHaveBeenCalledTimes(1)
+    expect(b.catenaUpdate.chiamate).toHaveLength(0)
   })
 
-  it('🛑 l\'aggiornamento è CONDIZIONATO allo stato ancora aperto, e l\'elenco è DERIVATO da stati.ts', async () => {
+  it('🛑 l\'aggiornamento è CONDIZIONATO allo stato ancora aperto, l\'elenco è DERIVATO da stati.ts, e NON porta più `id` (⚖️ D354)', async () => {
     const b = banco()
     await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
-    const aperti = filtri(b.catenaUpdate)['in:stato'] as string[]
+    const f = filtri(b.catenaUpdate)
+    const aperti = f['in:stato'] as string[]
     // Non si ricopia «da_comunicare»: si controlla che l'elenco sia ESATTAMENTE
     // il complemento di STATI_CHIUSI dentro STATI_AVVISO. Il giorno in cui
     // nascesse un quarto stato, questa prova dice da sola cosa deve accadere.
     expect([...aperti].sort()).toEqual(
       STATI_AVVISO.filter((s) => !(STATI_CHIUSI as readonly string[]).includes(s)).sort()
     )
+    // ⚖️ D354 — L'UNICA prova che distingue «chiude solo la riga indicata» da
+    // «chiude tutte le righe aperte del lavoro»: l'update NON porta `id` nel
+    // suo perimetro. Senza questa riga, un ritorno a `.eq('id', avvisoId)`
+    // lascerebbe questo file verde.
+    expect(Object.hasOwn(f, 'id')).toBe(false)
   })
 
-  it('⑱ un avviso GIÀ chiuso risponde 409, non un secondo aggiornamento silenzioso', async () => {
+  it('⑱Ⓓ un avviso GIÀ chiuso risponde 409, e NESSUN update parte', async () => {
     for (const stato of STATI_CHIUSI) {
-      banco({ aggiornate: [], riga: rigaChiusa({ stato }) })
+      const b = banco({ verificata: rigaChiusa({ stato }) })
       const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
       expect(r.status, `stato ${stato}`).toBe(409)
+      expect(b.catenaUpdate.chiamate, `stato ${stato}`).toHaveLength(0)
       vi.clearAllMocks()
       mockGetFreshLabContext.mockResolvedValue(CONTESTO)
     }
   })
 
-  it('⑲ uno stato fuori vocabolario non si legge come «apribile»: 409 fail-closed', async () => {
-    banco({ aggiornate: [], riga: rigaChiusa({ stato: 'pippo' }) })
+  it('⑲ uno stato fuori vocabolario non si legge come «apribile»: 409 fail-closed, PRIMA della scrittura', async () => {
+    const b = banco({ verificata: rigaChiusa({ stato: 'pippo' }) })
     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
     expect(r.status).toBe(409)
     expect(erroreSpy).toHaveBeenCalled()
+    expect(b.catenaUpdate.chiamate).toHaveLength(0)
+  })
+
+  it('Ⓕ un errore nella lettura di verifica risponde 500, non un 404 bugiardo', async () => {
+    // Ramo nuovo (⚖️ D354): prima non c'era una lettura PRIMA della
+    // scrittura di cui un errore di rete potesse essere confuso con un 404.
+    const b = banco({ erroreVerifica: { code: '57014', message: 'canceling statement due to timeout' } })
+    const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+    expect(r.status).toBe(500)
+    const body = await r.json()
+    expect(body.error).not.toContain('canceling statement')
+    expect(erroreSpy).toHaveBeenCalled()
+    expect(mockFrom).toHaveBeenCalledTimes(1)
+    expect(b.catenaUpdate.chiamate).toHaveLength(0)
+  })
+
+  it('Ⓐ due righe APERTE dello stesso lavoro → un atto chiude ENTRAMBE: la risposta è la riga INDICATA, non `righe[0]`', async () => {
+    // 🔑 L'ALTRA riga PRIMA di quella indicata nell'elenco simulato: se la
+    // rotta rispondesse con `righe[0]` invece di CERCARE `avviso_id`, questa
+    // prova la prenderebbe — risponderebbe con la riga sbagliata.
+    const b = banco({
+      aggiornate: [
+        rigaChiusa({ id: ALTRO_AVVISO_ID, stato: 'comunicato_a_voce', testo_inviato: null }),
+        rigaChiusa({ id: AVVISO_ID, stato: 'comunicato_a_voce', testo_inviato: null }),
+      ],
+    })
+    const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+    expect(r.status).toBe(200)
+    const body = await r.json()
+    expect(body.avviso.id).toBe(AVVISO_ID)
+    // 🛑 Il finto client non sa filtrare (idioma di ⑯⑰): la prova che l'atto
+    // CHIUDE DAVVERO tutte le righe aperte del lavoro, e non solo quella
+    // indicata, sta nell'assenza del filtro `id` sull'update — provata sopra
+    // (test «🛑 l'aggiornamento è CONDIZIONATO…») — unita a `daScrivere`
+    // essere UN oggetto solo (stessi tre valori per costruzione, v. payload
+    // qui sotto).
+    const payload = payloadDiUpdate(b.catenaUpdate)
+    expect(payload.stato).toBe('comunicato_a_voce')
+    expect(Object.hasOwn(payload, 'id')).toBe(false)
+  })
+
+  it('Ⓑ una riga aperta + una GIÀ chiusa nello stesso lavoro: l\'update chiede SOLO le APERTE', async () => {
+    // 🛑 Il finto client non sa filtrare: chi filtra è il database vero,
+    // tramite `.in('stato', STATI_APERTI)`. Qui si prova che la rotta CHIEDE
+    // solo le aperte (nessuno stato di STATI_CHIUSI compare in quell'elenco)
+    // — che la riga GIÀ chiusa non venga davvero riscritta lo garantisce
+    // quel filtro sul database vero, non questa prova unitaria (stesso
+    // limite dichiarato di ⑯⑰).
+    const b = banco({ aggiornate: [rigaChiusa({ stato: 'comunicato_a_voce', testo_inviato: null })] })
+    const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+    expect(r.status).toBe(200)
+    const aperti = filtri(b.catenaUpdate)['in:stato'] as string[]
+    for (const chiuso of STATI_CHIUSI) {
+      expect(aperti, `in:stato non deve contenere ${chiuso}`).not.toContain(chiuso)
+    }
+    const body = await r.json()
+    expect(body.avviso.id).toBe(AVVISO_ID)
   })
 
   it('⑳ un errore del database risponde 500, e il messaggio non porta il testo di Postgres', async () => {
@@ -440,6 +548,11 @@ describe('POST /api/lavori/[id]/avviso — a quale avviso si può arrivare', () 
 })
 
 describe('POST /api/lavori/[id]/avviso — che cosa si scrive davvero', () => {
+  // Ⓔ (⚖️ D354, Task 4-quater): «una sola riga aperta → 200, `avviso` = quella
+  // riga» resta IDENTICO sotto la rotta nuova — le prove ㉑ ㉑-bis ㉒ ㉒-bis ㉕
+  // sotto (e ⑬-bis, ⑮ sopra) sono guardie di REGRESSIONE per questo caso, non
+  // prove nuove: erano verdi prima del Task 4-quater e restano verdi dopo,
+  // grazie al default `verificata` (riga aperta) di `banco()`.
   it('㉑ `dall_app`: scrive le QUATTRO colonne concesse e NESSUNA altra', async () => {
     const b = banco()
     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'dall_app', testo: TESTO }), params())
