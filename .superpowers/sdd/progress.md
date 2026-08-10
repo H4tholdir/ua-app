@@ -1113,3 +1113,15 @@ Task 9-ter (D356·D357·D358, le tre risposte di contenuto): **complete** (BASE 
 - 🟡 **M-T9t-1** — `numeriLavoro` usa il pattern a due letture (imposto dal brief, modello
   `nomiComunicatori`) dove `avvisoPerLaStriscia` usa l'embed (`queries.ts:319`): nota per un'eventuale
   ondata di semplificazione, non da correggere ora.
+
+Task 10-A (prova a contratto foglio→rotta, riga 38): **complete** (BASE 6912d2f1 · impl f8a18d52 —
+  revisione APPROVATA; nessun disaccordo reale foglio↔rotta, verificato anche dal revisore sul
+  sorgente). 4 prove sulla POST VERA (validazione reale: isSameOrigin, allowlist, vincolo testo/come),
+  ambiente fintato al minimo. tsc 0 · vitest 6066 · build ok.
+  ⚖️ **ADJUDICAZIONE dell'Important del revisore (sull'etichetta, non sul codice), registrata QUI come
+  interpretazione autoritativa:** la «misura per mutazione nel ponte» (2/4 e 3/4) prova che IL
+  CONTRATTO DELLA ROTTA È VIVO E SELETTIVO contro corpi malformati — NON è la misura riga-38 «le prove
+  sorvegliano un bug futuro dentro AvvisoDentista»: quel legame lo garantiscono le UGUAGLIANZE DIRETTE
+  sul corpo intercettato (asserzioni ①②③, `avviso-foglio-contratto.test.tsx:279-283, 357-358,
+  381-383`). Chi rilegge il resoconto del 10-A legga la misura con questa etichetta.
+  Confini dichiarati e ANCORA APERTI (riga 38): il verso risposta→schermata e la chiusura a livello di tipo.
