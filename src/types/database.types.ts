@@ -6359,6 +6359,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      avvisi_segna_visti: {
+        Args: { p_ids: string[]; p_laboratorio_id: string }
+        Returns: Json
+      }
       calcola_imponibile_lavoro: {
         Args: { p_lavoro_id: string }
         Returns: number
