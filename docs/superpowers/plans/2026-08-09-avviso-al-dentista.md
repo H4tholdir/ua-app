@@ -40,6 +40,8 @@
 | `src/lib/consegna/whatsapp-template.ts` | `letto: righe 1-40` |
 | `src/lib/dichiarazione/correzioni.ts` | `letto: righe 50-75` — `CAMPI_CORREGGIBILI_DOCUMENTO`, **sei voci** |
 | `src/app/(app)/clienti/[id]/page.tsx` | **NON letto** — 🛑 **il Task 9 lo apre come primo passo e ne scrive le righe nel resoconto** |
+| `src/app/api/lavori/[id]/avviso/route.ts` | `letto: righe 180-383 (10/08 mattina, per il Task 4-quater)` — le guardie (183-225), il corpo (227-294), la scrittura (296-334), il ramo zero-righe (343-374), la risposta (376-383) |
+| `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` | `letto: righe 513-531 (10/08 mattina)` — **unico chiamante vivo** della POST (`provato:` grep su `src/` → 1 file fuori dai test); legge `esito.avviso` |
 
 ## Censimento degli identificatori (R-P6)
 
@@ -54,6 +56,7 @@
 | `AzionePortale` | 16 valori | **17**, con `view_avviso` (Task 8) |
 | `LIVELLO1_PER_RUOLO` | 4 ruoli, candidati `s1…s7` | i tre ruoli che vedono i lavori guadagnano `sAvvisoDentista` (Task 7) |
 | `CAMPI_CORREGGIBILI_DOCUMENTO` | 6 voci | **invariato** — è la fonte di `campi_corretti`, non cambia |
+| filtro dell'UPDATE in `POST /api/lavori/[id]/avviso` | `.eq('id', avvisoId)` — chiude la sola riga indicata | chiude **tutte le righe aperte del lavoro** (⚖️ D354, Task 4-quater); il contratto verso il client resta `{ ok, avviso }` con la riga indicata |
 
 🛑 **Nessun nome viene tolto da un'allowlist in questo piano.**
 
@@ -362,6 +365,50 @@ condivisi). **Due cambiano questo piano**, e sono qui sotto.
 - [ ] 🛑 **Perimetro pieno, non solo l'avviso:** D345 dice «*ogni messaggio che inviamo*».
 - [ ] ⚠️ **Tocca superfici in PRODUZIONE** (scadenzario, accettazione, consegna) → **FASE 3 obbligatoria**,
       percorso **Medio**: il censimento dei chiamanti **decide** l'elenco dei file, non l'autore del piano.
+
+---
+
+## Task 4-quater — ⚖️ D354: un atto chiude TUTTE le righe aperte del lavoro — **ripresa del 10/08, prima del Task 8**
+
+**Nasce da:** ⚖️ **D354** (verbale, centocinquantatreesima tornata) — ratifica della proposta unanime del
+panel a tre (referto: `docs/roadmap/2026-08-10-panel-due-avvisi-referto.md` §3 e §6). **Zero migration.**
+**File:** `src/app/api/lavori/[id]/avviso/route.ts` (la scrittura e il ramo zero-righe, righe 296-383) ·
+Prova `tests/unit/api-avviso.test.ts` (esistente, si estende).
+**Apri PRIMA:** la rotta INTERA (383 righe) · `tests/unit/api-avviso.test.ts` — **censisci quali prove
+presuppongono il filtro per id**: si aggiornano DICHIARANDOLO nel resoconto, non in silenzio ·
+`src/lib/avvisi/stati.ts` (`STATI_APERTI`, `chiudeIlPromemoria`, `ammetteTestoInviato`).
+
+**Il contratto verso il client NON cambia** — corpo `{ avviso_id, come, testo? }` → `200 { ok: true,
+avviso }`, dove `avviso` resta **la riga indicata dal corpo** (unico chiamante vivo:
+`AvvisoDentista.tsx:513-531`, legge `esito.avviso` — censimento del 10/08, v. registro R-P2).
+
+**Che cosa cambia** (`non eseguito` — il quadro; il codice lo scrive l'esecutore sotto prova):
+1. L'avviso indicato dal corpo si verifica **PRIMA** dell'aggiornamento, nel perimetro
+   `laboratorio_id + lavoro_id`: assente → **404** · già chiuso → **409**. I due rami esistono già nel
+   ramo zero-righe (righe 345-374): si **spostano davanti** alla scrittura. 🛑 **Senza questa verifica,
+   un `avviso_id` di un ALTRO lavoro chiuderebbe comunque le righe di questo** — il corpo dichiarerebbe
+   una cosa e l'atto ne farebbe un'altra.
+2. L'UPDATE perde `.eq('id', avvisoId)`: il perimetro diventa `lavoro_id + laboratorio_id + stato IN
+   STATI_APERTI` — **stessi tre valori su ogni riga** (`stato` · `comunicato_at` · `comunicato_da`
+   [+ `testo_inviato`]). L'oggetto `daScrivere` è **uno**, quindi l'identità dei valori è per costruzione.
+3. La risposta seleziona dalla lista aggiornata **la riga con `id === avviso_id`** — fail-closed se manca
+   (appena verificata aperta: se non c'è più è la corsa con un collega, e il ramo zero-righe la copre).
+4. Il ramo «zero righe aggiornate» resta **fail-closed** com'è oggi (righe 364-374).
+
+- [ ] **Passo 1 — enumera le FORME della scrittura (R-P4)**, una prova per ciascuna:
+  ① due righe aperte → un atto → **entrambe** chiuse, stessi tre valori · ② una aperta + una **già
+  chiusa** → l'aperta si chiude, la chiusa **non si tocca** (né `comunicato_at` né `testo_inviato`
+  riscritti) · ③ `avviso_id` fuori dal perimetro, con righe aperte nel lavoro → **404 e NESSUN update**
+  (coppia: codice giusto **+** il finto client non riceve l'update) · ④ riga indicata già chiusa →
+  **409 e NESSUN update** · ⑤ il giro di oggi a UNA riga aperta resta identico: 200, `avviso` = la riga.
+- [ ] **Passo 2 — prove rosse**, poi abbozzo inerte e conteggio delle asserzioni che si accendono (`N su M`).
+- [ ] **Passo 3 — la rotta.** I quattro punti del quadro; le guardie (origine · contesto · ruolo ·
+  operativo, righe 183-225) **NON si toccano**.
+- [ ] **Passo 4 — verde** · **Passo 5 — FASE 7** (`tsc` · `vitest` · `next build`) · **Passo 6 — salva**.
+
+⚠️ **La prova del Task 2 («due riemissioni → due avvisi») deve restare verde e INTOCCATA**: le righe
+continuano a nascere due (referto §6). ⚠️ Il caso di confine «portale aperto fra le due correzioni» è
+**deciso-di-non-deciderlo** (referto §4): questo task **non** lo affronta e non lo anticipa.
 
 ---
 
