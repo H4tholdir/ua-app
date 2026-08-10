@@ -199,6 +199,29 @@ describe('costruisciCardAvviso', () => {
     expect(cards[0].frase).toBe('La dichiarazione è stata rifatta: la descrizione.')
     expect(cards[0].dataPiuRecente).toBe('2026-08-09T10:00:00.000Z')
   })
+
+  it('⚖️ D336 — PROVA ESPLICITA: la frase non porta MAI il valore, nemmeno quando il gruppo e il lavoro condividono la stessa card', () => {
+    // Il caso peggiore possibile per una fuga: un gruppo che dichiara
+    // corretto PROPRIO il paziente, unito a un lavoro il cui nome/descrizione
+    // sono valori VERI e riconoscibili. Se la frase mescolasse le due fonti
+    // (campi corretti + dati del lavoro), qui uscirebbe "ROSSI MARIO" o
+    // "Corona" — invece esce solo il FATTO, mai il dato.
+    const gruppoPazienteCorretto: CardAvviso = {
+      lavoroId: LAVORO_A,
+      avvisoIds: ['a1'],
+      campiCorretti: ['paziente_id', 'descrizione', 'denti_coinvolti', 'prescrizione_caratteristiche'],
+      dataPiuRecente: '2026-08-09T10:00:00.000Z',
+    }
+    const cards = costruisciCardAvviso([gruppoPazienteCorretto], [LAVORO_INFO_A], { token: 'tok' })
+    expect(cards[0].frase).not.toContain('ROSSI MARIO')
+    expect(cards[0].frase).not.toContain('Corona')
+    expect(cards[0].frase).toBe(
+      'La dichiarazione è stata rifatta: il paziente, la descrizione, i denti indicati e le caratteristiche prescritte.'
+    )
+    // E il PAZIENTE MOSTRATO (dato del lavoro OGGI, non un diff) resta un
+    // campo separato — le due cose non si scambiano di posto.
+    expect(cards[0].pazienteMostrato).toBe('R. MARIO')
+  })
 })
 
 // ═══ lavoriPerLeCard — i lavori con avviso: due campi per la card + la DdC viva ═══
