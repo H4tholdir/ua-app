@@ -1073,3 +1073,24 @@ Task 8 (portale, D346+D354): **complete** (BASE b8fba0f3 · impl 8625854a · pro
   `logPortaleAudit` che `audit.ts:2` dichiara «writer unico» — pattern EREDITATO (`view_lavori` fa
   così da prima, `page.tsx:453-462`, fuori diff). Da pesare alla revisione finale: o si corregge la
   dichiarazione di audit.ts o si allineano i due caller. Giusto non averlo «sistemato di nascosto» (R-E2).
+
+Task 9 (archivio cliente, D337+D352): **complete** (BASE cb200cee · impl 97e1ab7b — revisione APPROVATA
+  AL PRIMO GIRO, zero Critical e zero Importanti; DONE_WITH_CONCERNS dell'esecutore, tutte e tre le
+  riserve giudicate SCELTE GIUSTE dal revisore, non difetti). Cancello D352: secondo entry point
+  `archivioPerSchedaCliente` + costante NUOVA `RUOLI_ARCHIVIO_CLIENTE` (non alias di D342, con la prova
+  `not.toBe`); portale (Task 8) provatamente intatto (28/28). Prova per inversione E per lato, spia sul
+  banco interrogato. tsc 0 · vitest 6045/6045 (461 file) · build ok. FASE 9 + gate L2: al Task 10.
+
+### Task 9 — i rilievi MINORI e le decisioni rimandate (per Task 10 / Francesco)
+
+- 🟡 **M-T9-1** — il render della sezione con RIGHE non è esercitato da nessuna prova (l'unica prova di
+  pagina monta l'archivio vuoto): `RigaComunicazione` mai costruito nei test. 🛑 **Il collaudo del Task
+  10 DEVE rendere un archivio popolato**, non solo vuoto.
+- 🟡 **M-T9-2** — `RigaArchivioCliente.lavoroId` è popolato ma mai letto: è l'aggancio pronto per la
+  decisione «si mostra il lavoro?» (v. domanda a Francesco).
+- 🟡 **M-T9-3** — `vistoLabel` su una riga ANCORA APERTA dice «Non ancora vista dal dentista», ma lì la
+  verità è «non ancora comunicata»: domanda di testo (v. domanda a Francesco).
+- 📌 **Deviazione dichiarata e verificata dal revisore su fonte primaria:** `nomiComunicatori` non
+  filtra `deleted_at` — l'FK è NO ACTION apposta (l'autore di una comunicazione sopravvive nel
+  registro, Art. 5(2)); distinta da N11 (qui nessun accesso concesso). Se Francesco vorrà, si ratifica
+  con numero; per ora vive qui e nel commento nel codice.
