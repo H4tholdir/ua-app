@@ -1240,14 +1240,28 @@ describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => 
     await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
 
     fireEvent.keyDown(window, { key: 'Escape' })
-    await waitFor(() => expect(refreshMock).toHaveBeenCalled())
+    // ⏱️ Timeout esplicito (default testing-library 1000ms altrimenti;
+    // convenzione già in uso altrove nella suite, es.
+    // tests/unit/linguetta-cassette.test.tsx:76): l'Escape passa dal
+    // focus-trap/cleanup di Radix prima di arrivare a `ricomincia()` →
+    // `router.refresh()`, e su una macchina CI satura quel giro può superare
+    // il secondo. `provato:` fallita in CI il 10/08 (run 31380661345) con
+    // «expected "vi.fn()" to be called at least once» a 1600ms — il tempo è
+    // della macchina sotto carico, non della logica del componente.
+    await waitFor(() => expect(refreshMock).toHaveBeenCalled(), { timeout: 5000 })
     apriPassoCorrezione()
     correggiDescrizione('Corona in zirconia su 46')
     arrivaAlToccoFinale()
 
     await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
     expect(chiamateA(spia, '/eventi-qualita').length).toBe(2)
-  })
+    // ⏱️ Timeout della PROVA alzato a 15000ms (default 5000ms) SOLO come
+    // conseguenza del margine dato sopra: non è lui ad aver fallito il
+    // 10/08 (il rosso era a 1600ms, ben dentro i 5000ms originari), ma senza
+    // alzarlo il tetto esterno diventerebbe il nuovo collo di bottiglia —
+    // la somma dei quattro `waitFor` di questa prova può superare 5000ms
+    // ora che il secondo ne può usare fino a 5000 da solo.
+  }, 15000)
 })
 
 // ══════════════════════════════════════════════════════════════════════════

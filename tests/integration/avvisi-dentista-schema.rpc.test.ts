@@ -395,6 +395,17 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
       // il client sia delle rotte sia del portale. Il permesso di colonna è
       // quindi l'UNICA cosa che impedisce a una rotta di riscrivere l'autore,
       // retrodatare la comunicazione o riscrivere il testo già mandato.
+      //
+      // ⏱️ Timeout esplicito (default 5000ms altrimenti): questa prova fa ~36
+      // chiamate `has_column_privilege` in sequenza, ognuna un viaggio di rete
+      // verso il catalogo remoto — il tempo è del viaggio, non della logica.
+      // `provato:` morta per timeout DUE volte in CI, entrambe appena sopra i
+      // 5000ms del default: 5007ms il 09/08 (run concorrente) e 5006ms il
+      // 10/08 (run 31378884717, SENZA concorrenza — quindi non è contesa di
+      // CPU, è margine di rete insufficiente). `provato:` in locale, run vero
+      // contro il banco, questa prova impiega 2374ms (file completo 19,1s):
+      // 15000ms dà oltre 6× quel tempo e oltre 3× i due quasi-rossi di CI,
+      // senza toccare nessuna asserzione.
       await withRollback(async (client) => {
         const scrivibili = ['stato', 'comunicato_at', 'comunicato_da', 'testo_inviato']
         const vietate = [
@@ -427,7 +438,7 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
           expect(rows[0].ok, `anon NON deve poter scrivere ${col}`).toBe(false)
         }
       })
-    })
+    }, 15000)
 
     it('(p8) e il divieto MORDE: `service_role` non può fabbricare la lettura del dentista', async () => {
       // 🛑 `visto_dal_dentista_at` è l'unico campo che NON è un atto del
