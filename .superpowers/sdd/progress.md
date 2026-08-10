@@ -1094,3 +1094,22 @@ Task 9 (archivio cliente, D337+D352): **complete** (BASE cb200cee · impl 97e1ab
   filtra `deleted_at` — l'FK è NO ACTION apposta (l'autore di una comunicazione sopravvive nel
   registro, Art. 5(2)); distinta da N11 (qui nessun accesso concesso). Se Francesco vorrà, si ratifica
   con numero; per ora vive qui e nel commento nel codice.
+
+Task 9-ter (D356·D357·D358, le tre risposte di contenuto): **complete** (BASE 1a1bf42b · impl f0636b64
+  — revisione APPROVATA AL PRIMO GIRO, zero Critical/Important). Numero del lavoro nell'archivio
+  (lettura su `lavori`, MAI la vista nullabile) · «Non ancora comunicata» sulla riga aperta (il caso
+  limite aperta-ma-vista è RAGGIUNGIBILE, catena verificata dal revisore) · foglio senza nome → frase
+  col numero. `buildAvvisoMessage` provatamente intatto. tsc 0 · vitest 6062 passed · build ok.
+  📌 **Il mistero della provenienza è RISOLTO ed è di processo, non di codice:** il primo dispaccio del
+  task è stato interrotto PER SBAGLIO (Francesco, in chat) quando l'esecutore aveva già scritto i tre
+  file senza committare; il secondo esecutore ha trovato l'albero sporco, l'ha dichiarato, e ha
+  ri-derivato tutto da zero (RED contro la base via stash selettivo + ricitazione di ogni riferimento).
+  Il revisore ha confermato l'equivalenza con `git show 1a1bf42b:<path>`. 🔑 Lezione: un albero
+  condiviso dopo un'interruzione va SEMPRE guardato con `git status` prima di ridispacciare — stavolta
+  la rete è stata l'onestà dell'esecutore.
+
+### Task 9-ter — rilievi MINORI
+
+- 🟡 **M-T9t-1** — `numeriLavoro` usa il pattern a due letture (imposto dal brief, modello
+  `nomiComunicatori`) dove `avvisoPerLaStriscia` usa l'embed (`queries.ts:319`): nota per un'eventuale
+  ondata di semplificazione, non da correggere ora.
