@@ -1038,3 +1038,20 @@ Task 7 (la striscia della home): **complete** (ba831dea..2fb7a4e1 — impl ba831
 ritardi hanno una pila sotto la striscia, il promemoria **non ha nulla** — se non nomina lui, tace. Stessa
 forma con cui il trial ≤3gg fu portato in testa il 26/07. **Da pesare al gate o da Francesco**; se accolto,
 è una riga in ognuno dei quattro array.
+
+### Task 4-quater (D354) — i rilievi MINORI (per la revisione finale di ramo)
+
+- 🟡 **M-T4q-1** — `api-avviso.test.ts:522-538` (prova Ⓑ): `not.toContain(chiuso)` è un sottoinsieme
+  di quanto già provato dal test «CONDIZIONATO» (uguaglianza esatta col complemento di `STATI_CHIUSI`).
+  Non sbagliata, aggiunge poco.
+- 🟡 **M-T4q-2** — nota di processo: l'evidenza TDD è stata ricostruita via `git stash` contro la rotta
+  vecchia (l'esecutore aveva scritto la rotta prima delle prove, e l'ha dichiarato), non con l'abbozzo
+  inerte di R-P4. Dimostra comunque che le prove discriminano vecchio/nuovo; deviazione dichiarata e
+  mitigata dalla review. Da tenere d'occhio come pattern, non da correggere.
+- 🟡 **M-T4q-3** — i riferimenti di riga alle guardie divergono fra brief (183-225) e resoconto
+  (217-254) per la crescita del file: cosmetico.
+
+Task 4-quater (D354, la chiusura chiude tutto): **complete** (BASE 9021e78d · impl b88c98b9 · fix
+  asserzioni perimetro UPDATE 97ea8082 — revisione: 1 Important corretto e verificato PER INVERSIONE
+  (filtro commentato → 1 rosso su 34, esattamente il test giusto), ri-revisione APPROVATA. Rotta
+  invariata nel fix. 34/34 sul file · suite 5983 verde · tsc 0 · build ok. Tre Minor a ledger sopra).
