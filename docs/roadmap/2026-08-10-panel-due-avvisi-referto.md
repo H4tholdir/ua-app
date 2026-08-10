@@ -8,7 +8,8 @@
 
 **Panel:** tre advisor indipendenti — normativo (GDPR/MDR, fonti primarie) · architettura dei dati
 (schema vivo, sonde in transazione annullata) · uso al banco (i file veri delle superfici).
-**Stato:** ⚖️ **PROPOSTA UNANIME NEL RISULTATO, in attesa di ratifica** (il numero lo prende alla ratifica: **D354**).
+**Stato:** ✅ ⚖️ **RATIFICATA — è D354** (10/08/2026 mattina, centocinquantatreesima tornata del verbale;
+alla stessa tornata ⚖️ D355 delega a me l'ordine della ripresa).
 
 ---
 

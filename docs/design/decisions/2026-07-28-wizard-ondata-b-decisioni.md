@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centocinquantaduesima tornata (D353: la disparità dei tocchi resta, D334 non si tocca)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantatreesima tornata (D354: un solo atto chiude tutti i promemoria aperti, il dentista vede l'unione · D355: l'ordine della ripresa è delegato)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**353 decisioni in centocinquantadue tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**355 decisioni in centocinquantatré tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4220,8 +4220,12 @@ il primo (uno stato «superato» è perfino **inscrivibile**: `provato:` `23514`
 — ma la sensazione dietro la domanda era **giusta**, e si chiude dall'altra parte: **UN solo atto di
 comunicazione chiude TUTTI i promemoria aperti di quel lavoro**, e il dentista vede **l'unione** delle voci
 corrette. Un messaggio, un promemoria a schermo, due righe a registro (la prova). Zero migration.
-➡️ **In attesa di ratifica di Francesco: il numero lo prende ALLA ratifica (D354).** 🔄 Qui c'era scritto «riservato: D353», ma D353 è andata a una decisione ratificata PRIMA che il panel rientrasse (v. tornata sotto) — un numero riservato a una ratifica che potrebbe non arrivare sarebbe un buco nella numerazione, e la guardia li conta. Fino ad allora vale ciò che il Task 6
-ha costruito: fra due avvisi aperti si mostra il più vecchio, e la chiusura è per riga singola.
+➡️ ✅ **RATIFICATA la mattina del 10/08/2026: è ⚖️ D354 (centocinquantatreesima tornata, in fondo).** 🔄 Qui
+c'era scritto «riservato: D353», ma D353 è andata a una decisione ratificata PRIMA che il panel rientrasse
+(v. tornata sotto) — un numero riservato a una ratifica che potrebbe non arrivare sarebbe un buco nella
+numerazione, e la guardia li conta. Ciò che il Task 6 ha costruito (fra due avvisi aperti si mostra il più
+vecchio, chiusura per riga singola) resta vero **fino al compito nuovo sulla rotta di chiusura**, che nasce
+con la ratifica.
 
 ---
 
@@ -4238,3 +4242,17 @@ censimento di chiusura, che è la rete prevista, ma la rete non è la regola.
 | # | Decisione | Testo di Francesco | Fondamento |
 |---|---|---|---|
 | **D353** | 🔑 **LA DISPARITÀ DEI TOCCHI RESTA COM'È: WhatsApp 3, «a voce» 2 — e ⚖️ D334 NON si tocca** | «*va bene così*» | La parità di ⚖️ D335 era di **peso visivo e di dignità delle due strade**, non di aritmetica dei tocchi: le due righe restano lo stesso componente con gli stessi token e lo stesso gallone. Il tocco in più di WhatsApp **è** D334 — la finestra in cui si rilegge e si corregge il testo prima che parta — e toglierlo per pareggiare un conteggio sarebbe scambiare una tutela per una simmetria. Chiude la domanda ⑤ dell'handoff del 09/08; il foglio non cambia di una riga |
+
+---
+
+### Centocinquantatreesima tornata — D354: un atto chiude tutto, il dentista vede l'unione · D355: l'ordine della ripresa è delegato (10/08/2026, 08:15)
+
+**Come è nata.** L'handoff della notte (§0①) prescriveva: la proposta del panel a Francesco **prima** di
+dispacciare il Task 8. Presentata alla ripresa del mattino col referto
+(`docs/roadmap/2026-08-10-panel-due-avvisi-referto.md`), ratificata al primo passaggio — e il numero
+arriva **nello stesso turno** (§0A-bis rispettata, stavolta senza censimento di recupero).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D354** | 🔑 **IL SECONDO PROMEMORIA NON SPEGNE IL PRIMO — MA UN SOLO ATTO DI COMUNICAZIONE CHIUDE TUTTE LE RIGHE APERTE DEL LAVORO, e il dentista vede l'UNIONE delle voci corrette con l'ULTIMA dichiarazione da scaricare** | «Sì, ratifico» (scelta esplicita fra ratifica / resta D346 com'era / prima ne parliamo) | Panel a tre **unanime**, tre no indipendenti a «spegnere»: **normativo** — due rettifiche sono due obblighi quanto al contenuto, ma un solo atto può estinguerli entrambi (Art. 5(1)(d)+5(2) GDPR; un registro che sa cancellare le proprie righe non è più una prova) · **dati** — lo stato «superato» è **inscrivibile** (`provato:` `23514` sul vincolo `avviso_comunicato_ha_autore_e_data`: un superamento è un atto che nessuno ha compiuto, non ha autore né data) · **banco** — i due WhatsApp sarebbero **la stessa stringa** (`buildAvvisoMessage`): due invii = una comunicazione consegnata due volte. **Conseguenze:** ① la rotta di chiusura passa da `.eq('id', avvisoId)` a «tutte le aperte del lavoro» (`src/app/api/lavori/[id]/avviso/route.ts:330`) — **compito NUOVO dell'ondata**, con la prova diretta (due aperte → un atto → entrambe chiuse, stessi tre valori) e quella inversa (le già chiuse non si toccano) · ② il Task 8 eredita «unione delle voci, ultima dichiarazione» · ③ scheda e striscia non cambiano (mostrano già UN promemoria) · ④ la prova del Task 2 («due riemissioni → due avvisi») resta verde e resta giusta. 📌 Il caso di confine (portale aperto **fra** le due correzioni: la ricevuta di lettura vale solo per la prima rettifica) resta **deciso-di-non-deciderlo qui**: va coi Task 8/9, insieme alla riserva §0⑧② dell'handoff del 09/08 |
+| **D355** | **L'ORDINE DEI TASK DELLA RIPRESA LO SCEGLIE L'ASSISTENTE** | «Decidi tu l'ordine» (scelta esplicita fra Task 9 prima / Task 8 prima / delega) | §0A-bis: anche un «lascia libero» è una decisione e porta il suo numero. L'ordine scelto, con la ragione: **① rotta di chiusura** (il compito nato con D354 — piccolo, a monte del portale: il Task 8 deve nascere sopra la semantica giusta, non adattarcisi dopo) → **② Task 8** (portale) → **③ Task 9** (archivio cliente, indipendente) → **④ Task 10** (giro sul banco vero + gate L2 + FASI 9 accorpate + M-T6-1). Reversibile da Francesco in ogni momento |
