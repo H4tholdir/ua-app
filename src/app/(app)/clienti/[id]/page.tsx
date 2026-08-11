@@ -158,7 +158,14 @@ function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '11px',
             fontWeight: 600,
-            color: 'var(--t2, #4A3D33)',
+            // 🔄 Gate L2 (11/08/2026, referto 2026-08-10, rilievo ❌2) — era
+            // `var(--t2, #4A3D33)`: su fondo `--elv` scuro dà 3,92:1, sotto
+            // l'AA 4,5. `--t2` NON è un fix generale (dà 4,45:1 anche su
+            // `--surface` scuro, riga 565 qui sotto) — `--t1` è l'unico token
+            // già in uso in QUESTA pagina (righe 85/190/459/565) che supera
+            // 4,5:1 in scuro. Applicato UGUALE su ogni stato (⚖️ D337, righe
+            // 135-142): nessuna differenza di colore fra aperta/chiusa/vista.
+            color: 'var(--t1, #1C1916)',
             background: 'var(--elv, #EDEDEA)',
             borderRadius: '6px',
             padding: '3px 10px',
@@ -169,7 +176,11 @@ function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
           {riga.comeLabel}
         </span>
         {riga.quando && (
-          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t3, #6B5C51)' }}>
+          // 🔄 Gate L2 (11/08/2026, rilievo ❌1 — stesso token della riga
+          // `etichettaVisto` più sotto, stesso fondo `--surface` scuro):
+          // era `var(--t3, #6B5C51)`, 2,0-2,24:1 in scuro. V. nota su `--t1`
+          // qui sopra.
+          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t1, #1C1916)' }}>
             {riga.quando}
           </span>
         )}
@@ -181,7 +192,9 @@ function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
           esattamente così. `null` (lavoro non risolto: id orfano, lettura
           fallita) → niente riga, mai un crash. */}
       {riga.numeroLavoro && (
-        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t3, #6B5C51)' }}>
+        // 🔄 Gate L2 (11/08/2026, rilievo ❌1) — stesso cambio di `quando` qui
+        // sopra: era `var(--t3, #6B5C51)`.
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t1, #1C1916)' }}>
           #{riga.numeroLavoro}
         </span>
       )}
@@ -202,8 +215,12 @@ function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
           `etichettaVisto`, provata in `avvisi-archivio.test.ts`: questo
           componente non può portare una prova unitaria (componente SERVER
           asincrono), quindi la parola si decide dove una prova la esercita
-          davvero. Lo STILE resta identico nelle tre forme (⚖️ D337). */}
-      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3, #6B5C51)' }}>
+          davvero. Lo STILE resta identico nelle tre forme (⚖️ D337).
+          🔄 Gate L2 (11/08/2026, referto 2026-08-10, rilievo ❌1) — era
+          `var(--t3, #6B5C51)`: `rgb(90,86,82)` su fondo card scuro
+          `rgb(35,32,24)` → 2,0-2,24:1, sotto l'AA 4,5. V. nota sul token
+          `--t1` sopra il pill `comeLabel` in questo stesso componente. */}
+      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t1, #1C1916)' }}>
         {etichettaVisto(riga)}
       </span>
     </div>
