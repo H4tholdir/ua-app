@@ -1149,3 +1149,17 @@ Task 10-C (irrobustimento dei due flake CI): **complete** (2123ab99). p7: timeou
   fosse un difetto vero (setDaRinfrescare scatta prima della fetch osservata, senza await in mezzo:
   è tempo di render sotto carico). ZERO asserzioni toccate. ⚠️ La prova vera del fix è IL PROSSIMO RUN
   CI: guardarlo alla ripresa.
+
+REVISIONE FINALE DI RAMO (11/08 notte): **PRONTO AL MERGE CON RISERVE A CODA** — tre revisori
+  paralleli (A banca · B server · C superfici) su fette del diff di codice 7427a680..HEAD.
+  ZERO Critical su 298 commit. Referto: docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md.
+  · C: PRONTA (regole trasversali tengono tutte; D336/GDPR/overlay/motion verificati uno a uno)
+  · B: l'Important (rotta riemetti senza allowlist di chiavi → scivolo muto su riemissione senza
+    correzioni) è CHIUSO IN SESSIONE: `04974871`, 3 prove nuove, chiamante vivo censito; docstring
+    pre-D354 riscritto
+  · A: due Important STRUTTURALI → righe 58 · 59 della coda (avviso chiuso riscrivibile senza
+    vincolo di transizione; FK comunicato_da non composita — serve prima UNIQUE(id, laboratorio_id)
+    su utenti). Non bloccanti per i revisori, da chiudere PRIMA della prima onboarding reale.
+  · Triage M-T*: chiusi nel ramo M-T6-1, M-T9-1 (dal vivo), M-T9-2, M-T9-3; tutti gli altri
+    PORTANO la destinazione «ondata di pulizia» e possono viaggiare.
+  ➡️ Resta a Francesco: il MERGE (D296 — permesso c'è, giudizio suo).
