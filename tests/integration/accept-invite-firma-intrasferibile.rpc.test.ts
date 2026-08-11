@@ -135,4 +135,21 @@ describe.skipIf(skipIntegrationTests)('accept_invite_atomic — la firma non si 
       expect(ris.r.laboratorio_id).toBe(LAB_A)
     })
   })
+
+  it('④ il catalogo: search_path resta agganciato alla funzione (CREATE OR REPLACE lo aveva perso in silenzio)', async () => {
+    // `CREATE OR REPLACE` scarta i SET applicati con ALTER: la 20260811162235
+    // aveva perso il pin dell'hardening 20260704190000 (provato: proconfig
+    // null sul catalogo, ri-revisione finale 11/08). Ripristinato dalla
+    // 20260811164953 — e questa prova impedisce che si riperda in silenzio.
+    await withRollback(async (client) => {
+      const { rows } = await client.query(
+        `SELECT p.proconfig
+           FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname = 'public' AND p.proname = 'accept_invite_atomic'`)
+      expect(rows).toHaveLength(1)
+      expect(rows[0].proconfig).toEqual(
+        expect.arrayContaining([expect.stringMatching(/^search_path=/)])
+      )
+    })
+  })
 })
