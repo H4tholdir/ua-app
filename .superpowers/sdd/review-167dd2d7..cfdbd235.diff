@@ -1,0 +1,434 @@
+# Review package: 167dd2d7..cfdbd235
+
+## Commits
+cfdbd235 feat(qualita): eventi_qualita e valutazioni_evento, con la sola-aggiunta imposta dal database
+
+## Files changed
+ src/types/database.types.ts                        | 158 +++++++++++++++++++++
+ .../migrations/20260806140823_eventi_qualita.sql   |  89 ++++++++++++
+ 2 files changed, 247 insertions(+)
+
+## Diff
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index e3c8800e..33d78688 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -1103,20 +1103,97 @@ export type Database = {
+           },
+           {
+             foreignKeyName: "dichiarazioni_conformita_tecnico_responsabile_id_fkey"
+             columns: ["tecnico_responsabile_id"]
+             isOneToOne: false
+             referencedRelation: "tecnici"
+             referencedColumns: ["id"]
+           },
+         ]
+       }
++      eventi_qualita: {
++        Row: {
++          conosciuto_il: string
++          created_at: string
++          created_by: string | null
++          id: string
++          laboratorio_id: string
++          lavoro_id: string
++          motivo: string
++          motivo_libero: string | null
++          natura: string
++          note: string | null
++          origine_informazione: string
++          potenziale_di_danno: string
++          stato_dispositivo: string
++        }
++        Insert: {
++          conosciuto_il: string
++          created_at?: string
++          created_by?: string | null
++          id?: string
++          laboratorio_id: string
++          lavoro_id: string
++          motivo: string
++          motivo_libero?: string | null
++          natura: string
++          note?: string | null
++          origine_informazione: string
++          potenziale_di_danno?: string
++          stato_dispositivo: string
++        }
++        Update: {
++          conosciuto_il?: string
++          created_at?: string
++          created_by?: string | null
++          id?: string
++          laboratorio_id?: string
++          lavoro_id?: string
++          motivo?: string
++          motivo_libero?: string | null
++          natura?: string
++          note?: string | null
++          origine_informazione?: string
++          potenziale_di_danno?: string
++          stato_dispositivo?: string
++        }
++        Relationships: [
++          {
++            foreignKeyName: "eventi_qualita_created_by_fkey"
++            columns: ["created_by"]
++            isOneToOne: false
++            referencedRelation: "utenti"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "eventi_qualita_laboratorio_id_fkey"
++            columns: ["laboratorio_id"]
++            isOneToOne: false
++            referencedRelation: "laboratori"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "eventi_qualita_lavoro_id_fkey"
++            columns: ["lavoro_id"]
++            isOneToOne: false
++            referencedRelation: "lavori"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "eventi_qualita_lavoro_id_fkey"
++            columns: ["lavoro_id"]
++            isOneToOne: false
++            referencedRelation: "lavori_dashboard"
++            referencedColumns: ["id"]
++          },
++        ]
++      }
+       fascicoli_tecnici: {
+         Row: {
+           analisi_rischi_id: string | null
+           approvato_at: string | null
+           approvato_da: string | null
+           created_at: string
+           dati_pmcf_json: Json | null
+           deleted_at: string | null
+           descrizione_dispositivo: string | null
+           etichetta_json: Json | null
+@@ -2215,20 +2292,21 @@ export type Database = {
+             referencedRelation: "laboratori"
+             referencedColumns: ["id"]
+           },
+         ]
+       }
+       laboratori: {
+         Row: {
+           anno_prima_marcatura: string | null
+           bollo_default_attivo: boolean
+           cap: string | null
++          certificazione_iso13485: string
+           citta: string | null
+           codice_fiscale: string | null
+           codice_itca: string | null
+           codice_iva_default: string
+           created_at: string
+           deleted_at: string | null
+           deletion_scheduled_at: string | null
+           email: string | null
+           expired_at: string | null
+           export_until: string | null
+@@ -2280,20 +2358,21 @@ export type Database = {
+           telefono: string | null
+           testo_rischi_default: string | null
+           timbro_url: string | null
+           trial_ends_at: string | null
+           updated_at: string
+         }
+         Insert: {
+           anno_prima_marcatura?: string | null
+           bollo_default_attivo?: boolean
+           cap?: string | null
++          certificazione_iso13485?: string
+           citta?: string | null
+           codice_fiscale?: string | null
+           codice_itca?: string | null
+           codice_iva_default?: string
+           created_at?: string
+           deleted_at?: string | null
+           deletion_scheduled_at?: string | null
+           email?: string | null
+           expired_at?: string | null
+           export_until?: string | null
+@@ -2345,20 +2424,21 @@ export type Database = {
+           telefono?: string | null
+           testo_rischi_default?: string | null
+           timbro_url?: string | null
+           trial_ends_at?: string | null
+           updated_at?: string
+         }
+         Update: {
+           anno_prima_marcatura?: string | null
+           bollo_default_attivo?: boolean
+           cap?: string | null
++          certificazione_iso13485?: string
+           citta?: string | null
+           codice_fiscale?: string | null
+           codice_itca?: string | null
+           codice_iva_default?: string
+           created_at?: string
+           deleted_at?: string | null
+           deletion_scheduled_at?: string | null
+           email?: string | null
+           expired_at?: string | null
+           export_until?: string | null
+@@ -3434,60 +3514,70 @@ export type Database = {
+             referencedRelation: "lavori"
+             referencedColumns: ["id", "laboratorio_id"]
+           },
+         ]
+       }
+       lavori_rifacimenti: {
+         Row: {
+           costo_interno: number | null
+           created_at: string
+           created_by: string | null
++          evento_id: string | null
+           id: string
+           laboratorio_id: string
+           lavoro_nuovo_id: string
+           lavoro_originale_id: string
+           motivo: string
+           note: string | null
+           rilevato_in: string | null
+         }
+         Insert: {
+           costo_interno?: number | null
+           created_at?: string
+           created_by?: string | null
++          evento_id?: string | null
+           id?: string
+           laboratorio_id: string
+           lavoro_nuovo_id: string
+           lavoro_originale_id: string
+           motivo: string
+           note?: string | null
+           rilevato_in?: string | null
+         }
+         Update: {
+           costo_interno?: number | null
+           created_at?: string
+           created_by?: string | null
++          evento_id?: string | null
+           id?: string
+           laboratorio_id?: string
+           lavoro_nuovo_id?: string
+           lavoro_originale_id?: string
+           motivo?: string
+           note?: string | null
+           rilevato_in?: string | null
+         }
+         Relationships: [
+           {
+             foreignKeyName: "lavori_rifacimenti_created_by_fkey"
+             columns: ["created_by"]
+             isOneToOne: false
+             referencedRelation: "utenti"
+             referencedColumns: ["id"]
+           },
++          {
++            foreignKeyName: "lavori_rifacimenti_evento_id_fkey"
++            columns: ["evento_id"]
++            isOneToOne: false
++            referencedRelation: "eventi_qualita"
++            referencedColumns: ["id"]
++          },
+           {
+             foreignKeyName: "lavori_rifacimenti_laboratorio_id_fkey"
+             columns: ["laboratorio_id"]
+             isOneToOne: false
+             referencedRelation: "laboratori"
+             referencedColumns: ["id"]
+           },
+           {
+             foreignKeyName: "lavori_rifacimenti_lavoro_nuovo_id_fkey"
+             columns: ["lavoro_nuovo_id"]
+@@ -5798,20 +5888,88 @@ export type Database = {
+         Relationships: [
+           {
+             foreignKeyName: "utenti_laboratorio_id_fkey"
+             columns: ["laboratorio_id"]
+             isOneToOne: false
+             referencedRelation: "laboratori"
+             referencedColumns: ["id"]
+           },
+         ]
+       }
++      valutazioni_evento: {
++        Row: {
++          classificato_da: string | null
++          classificato_il: string
++          esito: string
++          evento_id: string
++          giustificazione: string | null
++          id: string
++          laboratorio_id: string
++          motivo_riclassificazione: string | null
++          sostituisce_id: string | null
++          superata: boolean
++        }
++        Insert: {
++          classificato_da?: string | null
++          classificato_il?: string
++          esito: string
++          evento_id: string
++          giustificazione?: string | null
++          id?: string
++          laboratorio_id: string
++          motivo_riclassificazione?: string | null
++          sostituisce_id?: string | null
++          superata?: boolean
++        }
++        Update: {
++          classificato_da?: string | null
++          classificato_il?: string
++          esito?: string
++          evento_id?: string
++          giustificazione?: string | null
++          id?: string
++          laboratorio_id?: string
++          motivo_riclassificazione?: string | null
++          sostituisce_id?: string | null
++          superata?: boolean
++        }
++        Relationships: [
++          {
++            foreignKeyName: "valutazioni_evento_classificato_da_fkey"
++            columns: ["classificato_da"]
++            isOneToOne: false
++            referencedRelation: "utenti"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "valutazioni_evento_evento_id_fkey"
++            columns: ["evento_id"]
++            isOneToOne: false
++            referencedRelation: "eventi_qualita"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "valutazioni_evento_laboratorio_id_fkey"
++            columns: ["laboratorio_id"]
++            isOneToOne: false
++            referencedRelation: "laboratori"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "valutazioni_evento_sostituisce_id_fkey"
++            columns: ["sostituisce_id"]
++            isOneToOne: false
++            referencedRelation: "valutazioni_evento"
++            referencedColumns: ["id"]
++          },
++        ]
++      }
+       webauthn_challenges: {
+         Row: {
+           challenge: string
+           expires_at: string | null
+           id: string
+           used_at: string | null
+           user_id: string | null
+         }
+         Insert: {
+           challenge: string
+diff --git a/supabase/migrations/20260806140823_eventi_qualita.sql b/supabase/migrations/20260806140823_eventi_qualita.sql
+new file mode 100644
+index 00000000..6e183a0b
+--- /dev/null
++++ b/supabase/migrations/20260806140823_eventi_qualita.sql
+@@ -0,0 +1,89 @@
++-- supabase/migrations/20260806140823_eventi_qualita.sql
++-- Ondata «si deve sempre poter intervenire», Task 1.
++-- Spec: docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md §4, §5, §9, §17.1
++
++-- eventi_qualita — il FATTO. Non cambia lo stato del lavoro (D266).
++CREATE TABLE IF NOT EXISTS public.eventi_qualita (
++  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
++  laboratorio_id       UUID NOT NULL REFERENCES public.laboratori(id) ON DELETE CASCADE,
++  lavoro_id            UUID NOT NULL REFERENCES public.lavori(id),
++  motivo               TEXT NOT NULL CHECK (motivo IN (
++                         'errore_dato_dichiarazione','difetto_lavorazione','difetto_materiale',
++                         'destinatario_errato','modifica_clinica_richiesta','errore_prezzo_quantita',
++                         'reso_senza_difetto','errore_registrazione','altro')),
++  motivo_libero        TEXT,
++  natura               TEXT NOT NULL CHECK (natura IN (
++                         'dato_documentale','difetto_fisico','identificazione_destinatario',
++                         'nuova_esigenza_clinica','nessun_difetto','commerciale','errore_registrazione')),
++  origine_informazione TEXT NOT NULL CHECK (origine_informazione IN (
++                         'laboratorio_interno','odontoiatra','paziente_tramite_medico',
++                         'autorita_competente','altro_operatore')),
++  conosciuto_il        TIMESTAMPTZ NOT NULL,
++  stato_dispositivo    TEXT NOT NULL CHECK (stato_dispositivo IN (
++                         'mai_uscito_dal_lab','consegnato_non_applicato','applicato','non_noto')),
++  potenziale_di_danno  TEXT NOT NULL DEFAULT 'da_valutare' CHECK (potenziale_di_danno IN (
++                         'nessuno','da_valutare','possibile','accertato')),
++  note                 TEXT,
++  created_by           UUID REFERENCES public.utenti(id) ON DELETE SET NULL,
++  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
++  -- «altro» senza testo è un buco che si scopre in audit, non al banco
++  CONSTRAINT evento_altro_ha_testo CHECK (motivo <> 'altro' OR (motivo_libero IS NOT NULL AND length(btrim(motivo_libero)) > 0))
++);
++
++-- valutazioni_evento — il GIUDIZIO. Append-only: l'ultima supera le precedenti (D270).
++CREATE TABLE IF NOT EXISTS public.valutazioni_evento (
++  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
++  laboratorio_id          UUID NOT NULL REFERENCES public.laboratori(id) ON DELETE CASCADE,
++  evento_id               UUID NOT NULL REFERENCES public.eventi_qualita(id),
++  esito                   TEXT NOT NULL CHECK (esito IN (
++                            'nessuna_azione','non_conformita_interna','reclamo',
++                            'incidente','incidente_grave')),
++  giustificazione         TEXT,
++  sostituisce_id          UUID REFERENCES public.valutazioni_evento(id),
++  motivo_riclassificazione TEXT,
++  superata                BOOLEAN NOT NULL DEFAULT false,
++  classificato_da         UUID REFERENCES public.utenti(id) ON DELETE SET NULL,
++  classificato_il         TIMESTAMPTZ NOT NULL DEFAULT now(),
++  -- «nessuna azione» senza il perché è esattamente ciò che §8.2.2 vieta
++  CONSTRAINT valutazione_nessuna_azione_giustificata
++    CHECK (esito <> 'nessuna_azione' OR (giustificazione IS NOT NULL AND length(btrim(giustificazione)) > 0)),
++  -- riclassificare senza dire perché è il movimento che un ispettore guarda per primo
++  CONSTRAINT valutazione_riclassifica_motivata
++    CHECK (sostituisce_id IS NULL OR (motivo_riclassificazione IS NOT NULL AND length(btrim(motivo_riclassificazione)) > 0)),
++  CONSTRAINT valutazione_no_self_ref CHECK (id <> sostituisce_id)
++);
++
++-- Una sola valutazione VIVA per evento — stessa forma di ddc_lavoro_attiva_unique (provato A2)
++CREATE UNIQUE INDEX IF NOT EXISTS valutazione_viva_unique
++  ON public.valutazioni_evento (laboratorio_id, evento_id) WHERE (superata = false);
++
++CREATE INDEX IF NOT EXISTS eventi_qualita_lavoro_idx ON public.eventi_qualita (laboratorio_id, lavoro_id);
++
++-- Il giunto: il rifacimento diventa un ESITO, nullable (D266)
++ALTER TABLE public.lavori_rifacimenti
++  ADD COLUMN IF NOT EXISTS evento_id UUID REFERENCES public.eventi_qualita(id);
++
++-- D271 — tre stati, e il default si comporta come «certificato» (spec §17.1)
++ALTER TABLE public.laboratori
++  ADD COLUMN IF NOT EXISTS certificazione_iso13485 TEXT NOT NULL DEFAULT 'non_dichiarato'
++  CHECK (certificazione_iso13485 IN ('certificato','non_certificato','non_dichiarato'));
++
++ALTER TABLE public.eventi_qualita     ENABLE ROW LEVEL SECURITY;
++ALTER TABLE public.valutazioni_evento ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY "eventi_qualita_lab" ON public.eventi_qualita
++  FOR ALL USING (laboratorio_id = public.current_lab_id())
++  WITH CHECK (laboratorio_id = public.current_lab_id());
++
++-- 🛑 SOLA LETTURA + SOLA AGGIUNTA: nessun UPDATE, nessun DELETE. La garanzia la dà il DATABASE.
++CREATE POLICY "valutazioni_evento_lab_select" ON public.valutazioni_evento
++  FOR SELECT USING (laboratorio_id = public.current_lab_id());
++CREATE POLICY "valutazioni_evento_lab_insert" ON public.valutazioni_evento
++  FOR INSERT WITH CHECK (laboratorio_id = public.current_lab_id());
++
++REVOKE UPDATE, DELETE ON public.valutazioni_evento FROM anon, authenticated;
++
++COMMENT ON TABLE public.valutazioni_evento IS
++  'Append-only (D270). Una classificazione sbagliata si supera con una riga nuova che punta alla '
++  'precedente e ne dichiara il motivo; la vecchia si marca superata=true. MAI un UPDATE del giudizio: '
++  'ISO 13485 §4.2.5 richiede che le modifiche a una registrazione restino identificabili.';

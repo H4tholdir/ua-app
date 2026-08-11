@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PEC Setup Flow — Design Completo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: #1a1a2e; color: #f0ede8; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 800; color: #F0EDE8; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #8A8580; margin-bottom: 28px; }
+
+  /* Phone frame */
+  .phones { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 12px; flex-wrap: nowrap; }
+  .phone-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .step-label { font-size: 10px; font-weight: 700; color: #8A8580; text-transform: uppercase; letter-spacing: .08em; text-align: center; }
+  .phone { width: 240px; background: #DDD8D3; border-radius: 32px; padding: 20px 16px; box-shadow: 0 20px 60px rgba(0,0,0,.5); position: relative; min-height: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .phone.dark { background: #1A1916; }
+
+  /* Design system tokens */
+  --bg: #DDD8D3; --sfc: #E4DFD9; --elv: #EDEDEA; --prs: #D4CFC9;
+  --t1: #1C1916; --t2: #96918D; --red: #D90012; --green: #16A34A; --amber: #B45309;
+
+  .phone-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .phone-back { width: 28px; height: 28px; background: #EDEDEA; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .phone-title { font-size: 14px; font-weight: 800; color: #1C1916; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 9px; font-weight: 700; color: #96918D; text-transform: uppercase; letter-spacing: .08em; }
+  .field-input { background: #D4CFC9; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #1C1916; box-shadow: inset 3px 3px 7px rgba(0,0,0,.12), inset -2px -2px 5px rgba(255,255,255,.68); position: relative; }
+  .field-input.with-badge { display: flex; justify-content: space-between; align-items: center; }
+  .provider-badge { font-size: 9px; font-weight: 700; color: #fff; background: #16A34A; padding: 2px 7px; border-radius: 5px; }
+  .provider-badge.detecting { background: #B45309; }
+  .provider-badge.unknown { background: #96918D; }
+
+  .btn-primary { background: #D90012; color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 700; width: 100%; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 5px 16px -2px rgba(180,0,0,.40); }
+  .btn-skip { background: none; border: none; color: #96918D; font-size: 11px; text-align: center; width: 100%; cursor: pointer; padding: 4px; }
+
+  /* Verification states */
+  .verify-panel { background: #EDEDEA; border-radius: 12px; padding: 12px; }
+  .verify-step { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 4px 0; }
+  .verify-step .icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; }
+  .icon.done { background: rgba(22,163,74,.15); color: #16A34A; }
+  .icon.active { background: rgba(180,83,9,.15); color: #B45309; animation: pulse 1s infinite; }
+  .icon.pending { background: rgba(150,145,141,.12); color: #96918D; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+  /* Success state */
+  .success-circle { width: 56px; height: 56px; border-radius: 50%; background: rgba(22,163,74,.12); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px; border: 2px solid rgba(22,163,74,.3); }
+  .success-title { font-size: 16px; font-weight: 900; color: #16A34A; text-align: center; margin-bottom: 4px; }
+  .success-sub { font-size: 11px; color: #96918D; text-align: center; line-height: 1.5; }
+  .auto-advance { font-size: 10px; color: #96918D; text-align: center; margin-top: 8px; }
+  .progress-bar { height: 3px; background: #D4CFC9; border-radius: 99px; margin-top: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #16A34A; border-radius: 99px; width: 60%; animation: fill 2s linear forwards; }
+  @keyframes fill { from { width: 0%; } to { width: 100%; } }
+
+  /* Error state */
+  .error-panel { background: rgba(217,0,18,.07); border-radius: 12px; padding: 12px; }
+  .error-title { font-size: 12px; font-weight: 700; color: #D90012; margin-bottom: 4px; }
+  .error-msg { font-size: 11px; color: #4A4845; line-height: 1.5; margin-bottom: 10px; }
+  .btn-whatsapp { background: #25D366; color: #fff; border: none; border-radius: 10px; padding: 10px 14px; font-size: 12px; font-weight: 700; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  /* Advanced accordion */
+  .accordion { background: #EDEDEA; border-radius: 12px; padding: 12px; }
+  .accordion-header { font-size: 11px; font-weight: 700; color: #96918D; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .accordion-field { margin-bottom: 8px; }
+  .accordion-label { font-size: 9px; font-weight: 700; color: #96918D; text-transform: uppercase; margin-bottom: 3px; }
+  .accordion-input { background: #D4CFC9; border-radius: 8px; padding: 7px 10px; font-size: 11px; color: #1C1916; box-shadow: inset 2px 2px 5px rgba(0,0,0,.1); font-family: monospace; }
+
+  /* State indicator dots */
+  .states-row { display: flex; align-items: center; gap: 4px; justify-content: center; margin-bottom: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #D4CFC9; }
+  .dot.active { background: #D90012; }
+  .dot.done { background: #16A34A; }
+
+  /* Arrow between phones */
+  .arrow { display: flex; align-items: center; padding-top: 180px; color: #8A8580; font-size: 18px; }
+</style>
+</head>
+<body>
+
+<h1>PEC Setup — Flow Completo</h1>
+<p class="subtitle">6 stati dello stesso componente <code>PecSetupWidget</code> · Design System v2.2 warm panna</p>
+
+<div class="phones">
+
+  <!-- STATE 1: IDLE -->
+  <div class="phone-wrap">
+    <div class="step-label">① Idle — solo 2 campi</div>
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-back">←</div>
+        <div class="phone-title">Configurazione PEC</div>
+      </div>
+      <div style="font-size:11px;color:#96918D;line-height:1.6;">UÀ invierà le fatture via PEC.<br>Inserisci solo email e password.</div>
+      <div class="field">
+        <div class="field-label">Indirizzo PEC</div>
+        <div class="field-input" style="color:#96918D;font-size:12px;">lab@pec.it</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Password PEC</div>
+        <div class="field-input" style="color:#96918D;font-size:12px;">••••••••</div>
+      </div>
+      <div style="background:#EDEDEA;border-radius:10px;padding:10px 12px;font-size:10px;color:#96918D;line-height:1.6;">
+        <strong style="color:#1C1916;">Provider supportati:</strong><br>
+        Aruba PEC · Legalmail · Namirial<br>Tim PEC · Poste · e altri
+      </div>
+      <button class="btn-primary" style="opacity:.5;" disabled>Connetti e verifica →</button>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- STATE 2: PROVIDER DETECTED -->
+  <div class="phone-wrap">
+    <div class="step-label">② Provider rilevato</div>
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-back">←</div>
+        <div class="phone-title">Configurazione PEC</div>
+      </div>
+      <div style="font-size:11px;color:#96918D;line-height:1.6;">UÀ invierà le fatture via PEC.<br>Inserisci solo email e password.</div>
+      <div class="field">
+        <div class="field-label">Indirizzo PEC</div>
+        <div class="field-input with-badge">
+          <span style="font-size:12px;">lab@pec.aruba.it</span>
+          <span class="provider-badge">✓ Aruba PEC</span>
+        </div>
+      </div>
+      <div style="background:rgba(22,163,74,.08);border-radius:10px;padding:8px 12px;font-size:10px;color:#16A34A;display:flex;align-items:center;gap:6px;">
+        <span>✅</span><span>Impostazioni SMTP precompilate in automatico</span>
+      </div>
+      <div class="field">
+        <div class="field-label">Password PEC</div>
+        <div class="field-input" style="color:#1C1916;font-size:12px;">••••••••••</div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn-primary">Connetti e verifica →</button>
+      <button class="btn-skip">Configura dopo</button>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- STATE 3: VERIFYING -->
+  <div class="phone-wrap">
+    <div class="step-label">③ Verifica in corso</div>
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-back" style="opacity:.4;">←</div>
+        <div class="phone-title">Configurazione PEC</div>
+      </div>
+      <div style="font-size:11px;color:#96918D;">Stiamo verificando la connessione…</div>
+      <div class="verify-panel">
+        <div style="font-size:10px;font-weight:700;color:#96918D;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Verifica in corso</div>
+        <div class="verify-step">
+          <div class="icon done">✓</div>
+          <span style="color:#16A34A;">Connessione al server</span>
+        </div>
+        <div class="verify-step">
+          <div class="icon done">✓</div>
+          <span style="color:#16A34A;">Autenticazione</span>
+        </div>
+        <div class="verify-step">
+          <div class="icon active">⟳</div>
+          <span style="color:#B45309;">Invio email di test…</span>
+        </div>
+        <div class="verify-step">
+          <div class="icon pending">○</div>
+          <span style="color:#96918D;">Conferma ricezione</span>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#96918D;text-align:center;line-height:1.5;">
+        Invio email a <strong>lab@pec.aruba.it</strong><br>per conferma end-to-end
+      </div>
+      <button class="btn-primary" style="opacity:.5;" disabled>Verifica in corso…</button>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- STATE 4: SUCCESS -->
+  <div class="phone-wrap">
+    <div class="step-label">④ Successo ✅</div>
+    <div class="phone" style="justify-content:center;">
+      <div class="success-circle">✅</div>
+      <div class="success-title">PEC configurata!</div>
+      <div class="success-sub">
+        Aruba PEC · lab@pec.aruba.it<br>
+        Email di test inviata e verificata.
+      </div>
+      <div style="background:rgba(22,163,74,.08);border-radius:10px;padding:10px 12px;margin-top:8px;">
+        <div style="font-size:10px;font-weight:700;color:#16A34A;margin-bottom:6px;">VERIFICATO ✓</div>
+        <div style="font-size:10px;color:#4A4845;display:flex;flex-direction:column;gap:3px;">
+          <span>✓ Connessione SMTP</span>
+          <span>✓ Autenticazione</span>
+          <span>✓ Invio email di test</span>
+          <span>✓ Ricezione confermata</span>
+        </div>
+      </div>
+      <div class="auto-advance">Avanzamento automatico in 2 secondi…</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;padding-top:80px;color:#8A8580;font-size:13px;writing-mode:vertical-rl;letter-spacing:.1em;text-transform:uppercase;font-size:9px;">stati alternativi</div>
+
+  <!-- STATE 5: UNKNOWN PROVIDER -->
+  <div class="phone-wrap">
+    <div class="step-label">⑤ Provider sconosciuto</div>
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-back">←</div>
+        <div class="phone-title">Configurazione PEC</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Indirizzo PEC</div>
+        <div class="field-input with-badge">
+          <span style="font-size:12px;">lab@peclocale.it</span>
+          <span class="provider-badge unknown">? Sconosciuto</span>
+        </div>
+      </div>
+      <div style="background:rgba(180,83,9,.07);border-radius:10px;padding:8px 12px;font-size:10px;color:#B45309;">
+        ⚠️ Provider non riconosciuto. Inserisci le impostazioni manualmente.
+      </div>
+      <!-- Advanced accordion expanded -->
+      <div class="accordion">
+        <div class="accordion-header">⚙️ Impostazioni SMTP manuali</div>
+        <div class="accordion-field">
+          <div class="accordion-label">Host SMTP</div>
+          <div class="accordion-input">smtp.peclocale.it</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;">
+          <div class="accordion-field">
+            <div class="accordion-label">Porta</div>
+            <div class="accordion-input">465</div>
+          </div>
+          <div class="accordion-field">
+            <div class="accordion-label">Utente</div>
+            <div class="accordion-input" style="font-size:10px;">lab@peclocale.it</div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Password PEC</div>
+        <div class="field-input" style="color:#1C1916;font-size:12px;">••••••••••</div>
+      </div>
+      <button class="btn-primary">Connetti e verifica →</button>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- STATE 6: ERROR + SUPPORT -->
+  <div class="phone-wrap">
+    <div class="step-label">⑥ Fallback — supporto admin</div>
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-back">←</div>
+        <div class="phone-title">Configurazione PEC</div>
+      </div>
+      <div class="error-panel">
+        <div class="error-title">❌ Connessione fallita</div>
+        <div class="error-msg">
+          Non siamo riusciti a connetterci alla tua PEC.<br><br>
+          <strong>Motivo:</strong> Autenticazione rifiutata. Controlla che la password sia quella della casella PEC, non del sito del provider.
+        </div>
+        <div style="font-size:10px;color:#96918D;margin-bottom:10px;">Se il problema persiste, contattaci — risolviamo insieme.</div>
+        <button class="btn-whatsapp">
+          <span>💬</span> Chiedi aiuto su WhatsApp
+        </button>
+      </div>
+      <div style="text-align:center;margin-top:4px;">
+        <button style="background:none;border:none;color:#96918D;font-size:11px;cursor:pointer;">← Riprova</button>
+      </div>
+      <div style="background:#EDEDEA;border-radius:10px;padding:10px 12px;font-size:10px;color:#96918D;line-height:1.6;margin-top:auto;">
+        <strong style="color:#1C1916;">Errori comuni:</strong><br>
+        · Password sbagliata → usa quella della casella PEC<br>
+        · Account non attivo → verifica sul sito del provider<br>
+        · Firewall aziendale → chiedi al tuo IT
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:28px;padding:16px 20px;background:rgba(255,255,255,.05);border-radius:12px;font-size:12px;color:#8A8580;line-height:1.8;">
+  <strong style="color:#F0EDE8;">Componente: <code>PecSetupWidget</code></strong> — riusabile in wizard onboarding (step 4) e in /impostazioni/pec<br>
+  <strong style="color:#F0EDE8;">Provider lookup:</strong> 8 provider italiani hardcoded · fallback accordion automatico<br>
+  <strong style="color:#F0EDE8;">Verifica:</strong> nodemailer.verify() + email test end-to-end → 4 check in sequenza<br>
+  <strong style="color:#F0EDE8;">Fallback:</strong> accordion avanzato → se fallisce → WhatsApp admin
+</div>
+
+</body>
+</html>

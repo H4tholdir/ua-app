@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Dashboard V2 Design Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ─── DS v2.2 Warm Panna ─────────────────────────────────── */
+:root {
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#96918D; --t3:#B8B3AE;
+  --primary:#D90012; --gold:#D4A843; --success:#3DCB5C;
+  --info:#5A5FCC; --warning:#B45309;
+  --sh-c: inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b: inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i: inset 4px 4px 9px rgba(148,128,118,.32), inset -3px -3px 7px rgba(255,255,255,.66);
+  --sh-p: inset 3px 4px 8px rgba(148,128,118,.40), inset -2px -2px 5px rgba(255,255,255,.52);
+  --dm-sans: 'DM Sans', system-ui, sans-serif;
+  --playfair: 'Playfair Display', Georgia, serif;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:var(--dm-sans); background:#C8C3BE; padding:32px 20px 120px; min-height:100vh; }
+
+/* ─── Page ───────────────────────────────────────────────── */
+.page-title { text-align:center; font-family:var(--playfair); font-size:24px; font-weight:400; color:var(--t1); letter-spacing:-0.02em; margin-bottom:6px; }
+.page-sub { text-align:center; font-size:13px; color:var(--t2); margin-bottom:40px; font-family:var(--dm-sans); }
+
+.designs-row { display:flex; gap:32px; justify-content:center; flex-wrap:wrap; align-items:flex-start; }
+
+/* ─── Phone shell ────────────────────────────────────────── */
+.phone-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; width:320px; }
+.phone-label { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--t2); }
+.phone-name { font-family:var(--playfair); font-size:18px; color:var(--t1); text-align:center; }
+.phone-tag { font-size:11px; font-weight:600; padding:3px 12px; border-radius:100px; display:inline-block; margin-top:2px; }
+.tag-a { background:rgba(217,0,18,.12); color:var(--primary); }
+.tag-b { background:rgba(90,95,204,.12); color:var(--info); }
+
+.phone { width:320px; background:var(--bg); border-radius:40px; overflow:hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.30), 0 6px 20px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.4);
+  border:5px solid #242424; }
+.notch { height:26px; background:#242424; display:flex; align-items:center; justify-content:center; gap:8px; }
+.notch-sensor { width:48px; height:6px; background:#1a1a1a; border-radius:3px; }
+.notch-cam { width:10px; height:10px; background:#1a1a1a; border-radius:50%; }
+.screen { background:var(--bg); }
+.home-pill { height:24px; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+.home-bar { width:88px; height:4px; background:rgba(0,0,0,.15); border-radius:2px; }
+
+/* ─── Screen atoms ───────────────────────────────────────── */
+.hdr { padding:12px 18px 6px; display:flex; align-items:center; justify-content:space-between; }
+.hdr-left { display:flex; align-items:center; gap:8px; }
+.lab-name { font-size:10px; font-weight:600; color:var(--t2); letter-spacing:.02em; }
+.sync-badge { display:flex; align-items:center; gap:4px; font-size:9px; font-weight:500; color:var(--t2); background:var(--sfc); padding:3px 7px; border-radius:100px; box-shadow:var(--sh-b); }
+.sync-dot { width:5px; height:5px; border-radius:50%; background:var(--success); flex-shrink:0; }
+.avatar { width:32px; height:32px; border-radius:50%; background:var(--primary); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:var(--sh-b); flex-shrink:0; }
+
+.greeting { padding:4px 18px 12px; }
+.greeting-time { font-size:11px; color:var(--t2); margin-bottom:2px; }
+.greeting-name { font-family:var(--playfair); font-size:22px; font-weight:400; color:var(--t1); letter-spacing:-0.02em; line-height:1.1; }
+
+/* ROLE TABS */
+.role-tabs { margin:0 14px 12px; background:var(--prs); border-radius:14px; padding:3px; display:flex; box-shadow:var(--sh-i); }
+.role-tab { flex:1; padding:7px 6px; border-radius:11px; font-size:11px; font-weight:600; text-align:center; color:var(--t2); transition:all .18s cubic-bezier(.2,0,0,1); }
+.role-tab.active { background:var(--elv); color:var(--t1); box-shadow:var(--sh-b); }
+.role-tab small { display:block; font-size:8px; font-weight:500; opacity:.65; margin-top:1px; }
+
+/* HERO BLOCKS */
+.hero-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 14px 8px; }
+.hero-full { grid-column:1/-1; }
+.hero { border-radius:16px; padding:12px 14px; position:relative; overflow:hidden; }
+.hero::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; border-radius:16px; }
+.hero.danger { background:rgba(217,0,18,.09); }
+.hero.today  { background:rgba(90,95,204,.09); }
+.hero.good   { background:rgba(61,203,92,.09); }
+.hero.warn   { background:rgba(212,168,67,.11); }
+.hero-lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+.hero.danger .hero-lbl { color:var(--primary); }
+.hero.today  .hero-lbl { color:var(--info); }
+.hero.good   .hero-lbl { color:var(--success); }
+.hero.warn   .hero-lbl { color:var(--warning); }
+.hero-num { font-family:var(--playfair); font-size:32px; font-weight:300; line-height:1; }
+.hero.danger .hero-num { color:var(--primary); }
+.hero.today  .hero-num { color:var(--info); }
+.hero.good   .hero-num { color:var(--success); }
+.hero.warn   .hero-num { color:var(--warning); }
+.hero-desc { font-size:10px; color:var(--t2); margin-top:3px; line-height:1.3; }
+.hero-cta { font-size:10px; font-weight:700; margin-top:6px; display:flex; align-items:center; gap:2px; }
+.hero.danger .hero-cta { color:var(--primary); }
+.hero.today  .hero-cta { color:var(--info); }
+.hero.warn   .hero-cta { color:var(--warning); }
+
+/* KPI ROW (business view) */
+.kpi-row { display:flex; gap:6px; padding:0 14px 8px; }
+.kpi { background:var(--sfc); border-radius:12px; padding:10px 10px; box-shadow:var(--sh-b); flex:1; }
+.kpi-num { font-family:var(--playfair); font-size:22px; font-weight:300; line-height:1; }
+.kpi-num.red { color:var(--primary); }
+.kpi-num.blue { color:var(--info); }
+.kpi-num.gold { color:var(--gold); }
+.kpi-num.green { color:var(--success); }
+.kpi-lbl { font-size:8.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--t3); margin-top:3px; line-height:1.2; }
+
+/* SECTION LABEL */
+.sec { padding:6px 18px 3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--t3); }
+
+/* TASK ITEMS */
+.tasks { padding:0 14px 6px; display:flex; flex-direction:column; gap:5px; }
+.task { background:var(--sfc); border-radius:13px; padding:10px 12px; display:flex; gap:10px; box-shadow:var(--sh-b); align-items:center; }
+.task-rank { font-family:var(--playfair); font-size:13px; font-weight:300; color:var(--t3); width:16px; text-align:center; flex-shrink:0; }
+.task-body { flex:1; min-width:0; }
+.task-name { font-size:12px; font-weight:700; color:var(--t1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.task-detail { font-size:10px; color:var(--t2); margin-top:2px; display:flex; align-items:center; gap:5px; }
+.task-phase { display:inline-flex; align-items:center; gap:3px; }
+.task-right { text-align:right; flex-shrink:0; }
+.task-time { font-size:11px; font-weight:700; color:var(--t1); }
+.task-date { font-size:9px; color:var(--t3); }
+
+/* PROGRESS */
+.prog { height:3px; background:var(--prs); border-radius:2px; margin-top:5px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:2px; }
+
+/* BLOCK ALERT */
+.block-alert { margin:0 14px 8px; background:rgba(217,0,18,.08); border:1px solid rgba(217,0,18,.18); border-radius:14px; padding:10px 12px; }
+.block-top { display:flex; align-items:center; gap:8px; }
+.block-dot { width:8px; height:8px; border-radius:50%; background:var(--primary); flex-shrink:0; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.block-title { font-size:12px; font-weight:700; color:var(--primary); }
+.block-desc { font-size:10px; color:var(--t2); margin-top:3px; }
+.block-cta { font-size:10px; font-weight:700; color:var(--primary); margin-top:6px; display:inline-flex; align-items:center; gap:3px; }
+
+/* NAV PILL */
+.nav-pill { margin:8px 14px 0; background:var(--elv); border-radius:100px; display:flex; align-items:center; padding:5px 6px; box-shadow:var(--sh-b); gap:2px; }
+.nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 8px; border-radius:100px; min-width:48px; }
+.nav-item.active { background:var(--prs); box-shadow:var(--sh-i); }
+.nav-icon { font-size:15px; line-height:1; }
+.nav-lbl { font-size:8px; font-weight:600; color:var(--t2); }
+.nav-item.active .nav-lbl { color:var(--primary); font-weight:700; }
+.nav-cta { width:46px; height:46px; border-radius:50%; background:var(--elv); display:flex; align-items:center; justify-content:center; box-shadow:var(--sh-b); color:var(--primary); font-size:22px; font-weight:700; flex-shrink:0; position:relative; }
+.nav-cta-tooltip { position:absolute; top:-28px; left:50%; transform:translateX(-50%); background:var(--t1); color:#fff; font-size:9px; font-weight:600; padding:3px 8px; border-radius:6px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .2s; }
+.nav-cta:hover .nav-cta-tooltip { opacity:1; }
+.nav-customize { width:28px; height:28px; border-radius:50%; background:var(--sfc); display:flex; align-items:center; justify-content:center; box-shadow:var(--sh-c); color:var(--t3); font-size:11px; flex-shrink:0; }
+
+/* DIVIDER */
+.divider { height:1px; background:rgba(0,0,0,.06); margin:4px 14px; }
+
+/* BUSINESS CHART MINI */
+.chart-mini { margin:0 14px 8px; background:var(--sfc); border-radius:14px; padding:12px 14px; box-shadow:var(--sh-b); }
+.chart-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+.chart-title { font-size:10px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.05em; }
+.chart-val { font-family:var(--playfair); font-size:18px; font-weight:300; color:var(--t1); }
+.chart-val span { font-size:10px; color:var(--success); margin-left:4px; font-family:var(--dm-sans); font-weight:600; }
+.bars { display:flex; gap:5px; align-items:flex-end; height:40px; }
+.bar { flex:1; border-radius:4px 4px 0 0; background:rgba(217,0,18,.20); min-height:4px; }
+.bar.current { background:var(--primary); }
+
+/* ANNOTATIONS */
+.annotation { margin-top:12px; background:rgba(255,255,255,.65); border-radius:12px; padding:12px 14px; backdrop-filter:blur(8px); }
+.ann-title { font-size:12px; font-weight:700; color:var(--t1); margin-bottom:8px; }
+.ann-item { display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; font-size:11px; color:var(--t2); line-height:1.4; }
+.ann-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+.ann-dot.red { background:var(--primary); }
+.ann-dot.blue { background:var(--info); }
+.ann-dot.green { background:var(--success); }
+.ann-dot.gold { background:var(--gold); }
+.ann-dot.gray { background:var(--t3); }
+
+/* THEME INDICATOR */
+.theme-row { margin:0 14px 6px; display:flex; gap:6px; align-items:center; }
+.theme-chip { background:var(--sfc); border-radius:100px; padding:4px 10px; font-size:9px; font-weight:600; color:var(--t2); box-shadow:var(--sh-b); display:flex; align-items:center; gap:4px; }
+.theme-chip.active { background:var(--t1); color:var(--bg); }
+
+/* BOTTOM CTA strip */
+.bottom-cta { position:fixed; bottom:0; left:0; right:0; background:rgba(28,25,22,.93); backdrop-filter:blur(16px); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; z-index:100; }
+.bc-text { color:#F0EDE8; font-size:14px; font-weight:600; font-family:var(--dm-sans); }
+.bc-sub { color:rgba(240,237,232,.5); font-size:11px; margin-top:2px; }
+.bc-btn { background:var(--primary); color:#fff; border:none; border-radius:100px; padding:10px 22px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--dm-sans); }
+
+/* ─── Dark preview strip ──────────────────────────────────── */
+.dark-strip { width:320px; background:#1A1916; border-radius:20px; padding:14px; box-shadow:0 12px 40px rgba(0,0,0,.45); }
+.dark-strip .greeting-name { color:#F0EDE8; }
+.dark-strip .greeting-time { color:#555250; }
+.dark-strip .hero.danger { background:rgba(232,0,26,.12); }
+.dark-strip .hero.today  { background:rgba(90,95,204,.14); }
+.dark-strip .hero-desc { color:#8A8580; }
+.dark-strip .kpi { background:#222019; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),9px 13px 28px -4px rgba(0,0,0,.52); }
+.dark-strip .kpi-lbl { color:#4A4845; }
+.dark-strip .task { background:#222019; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),9px 13px 28px -4px rgba(0,0,0,.52); }
+.dark-strip .task-name { color:#F0EDE8; }
+.dark-strip .task-detail { color:#6D6762; }
+.dark-strip .nav-pill { background:#2C2A27; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),9px 13px 28px -4px rgba(0,0,0,.52); }
+.dark-strip .nav-item.active { background:#121110; }
+.dark-strip .nav-lbl { color:#6D6762; }
+.dark-strip .nav-cta { background:#2C2A27; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),9px 13px 28px -4px rgba(0,0,0,.52); }
+.dark-strip .sync-badge { background:#222019; }
+.dark-strip .sec { color:#4A4845; }
+.dark-strip .task-right .task-time { color:#8A8580; }
+.dark-strip .prog { background:#2C2A27; }
+
+</style>
+</head>
+<body>
+
+<div class="page-title">Dashboard V2 — Design Direction</div>
+<div class="page-sub">Separation Business / Operativa · Ruolo ibrido Titolare+Tecnico · DS v2.2 Warm Panna</div>
+
+<div class="designs-row">
+
+<!-- ════════════════════════════════════════════
+     SCHERMO A — TITOLARE + TECNICO (IBRIDO)
+     Vista OPERATIVA aperta
+═══════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone-label">Vista Ibrida</div>
+  <div class="phone-name">Titolare + Tecnico</div>
+  <div class="phone-tag tag-a">★ Vista operativa</div>
+
+  <div class="phone">
+    <div class="notch"><div class="notch-sensor"></div><div class="notch-cam"></div></div>
+    <div class="screen">
+
+      <!-- Header: lab name, sync indicator, avatar in header (non fisso) -->
+      <div class="hdr">
+        <div class="hdr-left">
+          <div class="lab-name">LAB OPROMOLLA</div>
+          <div class="sync-badge"><div class="sync-dot"></div>Aggiornato ora</div>
+        </div>
+        <!-- Avatar NELL'HEADER, non fisso sopra tutto -->
+        <div class="avatar">FO</div>
+      </div>
+
+      <div class="greeting">
+        <div class="greeting-time">venerdì 22 maggio · buon pomeriggio</div>
+        <div class="greeting-name">Filippo</div>
+      </div>
+
+      <!-- ROLE TABS: Gestione | I miei lavori -->
+      <div class="role-tabs">
+        <div class="role-tab">📊 Gestione<small>business KPI</small></div>
+        <div class="role-tab active">🔧 Produzione<small>i miei lavori</small></div>
+      </div>
+
+      <!-- BLOCCO ATTIVO (segnalazione urgente) -->
+      <div class="block-alert">
+        <div class="block-top">
+          <div class="block-dot"></div>
+          <div class="block-title">Blocco — Impronta non idonea</div>
+        </div>
+        <div class="block-desc">ESPOSITO MASSIMO · #2026/0002 · consegna oggi 17:00</div>
+        <div class="block-cta">Risolvi prima di consegnare →</div>
+      </div>
+
+      <div class="sec">I miei lavori — per scadenza</div>
+      <div class="tasks">
+
+        <div class="task">
+          <div class="task-rank">1</div>
+          <div class="task-body">
+            <div class="task-name">STUDIO DENTISTICO ROSSI</div>
+            <div class="task-detail">
+              <div class="task-phase">🟡 Finitura · lucidatura</div>
+            </div>
+            <div class="prog"><div class="prog-fill" style="width:78%;background:var(--gold)"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time">oggi</div>
+            <div class="task-date">ore 18:30</div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="task-rank">2</div>
+          <div class="task-body">
+            <div class="task-name">DI SANTI CATERINA</div>
+            <div class="task-detail">
+              <div class="task-phase">🟢 Pronta · imballare</div>
+            </div>
+            <div class="prog"><div class="prog-fill" style="width:96%;background:var(--success)"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time">domani</div>
+            <div class="task-date">ore 09:00</div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="task-rank">3</div>
+          <div class="task-body">
+            <div class="task-name">STUDI MEDICI DI SANTI</div>
+            <div class="task-detail">
+              <div class="task-phase">🔵 Modellazione</div>
+            </div>
+            <div class="prog"><div class="prog-fill" style="width:42%;background:var(--info)"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time">ven 25</div>
+            <div class="task-date">ore 14:00</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- NAV: con tooltip sul + e indicatore customizzazione -->
+      <div style="padding:0 0 4px">
+        <div class="nav-pill">
+          <div class="nav-item"><div class="nav-icon">⊞</div><div class="nav-lbl">Oggi</div></div>
+          <div class="nav-item"><div class="nav-icon">≡</div><div class="nav-lbl">Lavori</div></div>
+          <div class="nav-cta">
+            +
+            <div class="nav-cta-tooltip">Nuovo lavoro</div>
+          </div>
+          <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-lbl">Clienti</div></div>
+          <div class="nav-item"><div class="nav-icon">⊙</div><div class="nav-lbl">Altro</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="home-pill"><div class="home-bar"></div></div>
+  </div>
+
+  <div class="annotation">
+    <div class="ann-title">Vista Produzione (tab "🔧 Produzione")</div>
+    <div class="ann-item"><div class="ann-dot red"></div>Blocco attivo sempre in cima, prima di tutto</div>
+    <div class="ann-item"><div class="ann-dot blue"></div>Task ordinati: scadenza ASC + completamento DESC</div>
+    <div class="ann-item"><div class="ann-dot green"></div>Progress bar da lavori_fasi reali</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Avatar nell'header — NON fisso, non copre nulla</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Sync badge: "Aggiornato ora" / "2 min fa" — no "LIVE" tecnico</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Tab "📊 Gestione" porta alla vista business</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCHERMO B — TITOLARE SOLO
+     Vista GESTIONE (business KPI)
+═══════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone-label">Vista Business</div>
+  <div class="phone-name">Titolare — Gestione</div>
+  <div class="phone-tag tag-b">Tab Gestione</div>
+
+  <div class="phone">
+    <div class="notch"><div class="notch-sensor"></div><div class="notch-cam"></div></div>
+    <div class="screen">
+
+      <div class="hdr">
+        <div class="hdr-left">
+          <div class="lab-name">LAB OPROMOLLA</div>
+          <div class="sync-badge"><div class="sync-dot"></div>Aggiornato 3 min fa</div>
+        </div>
+        <div class="avatar">FO</div>
+      </div>
+
+      <div class="greeting">
+        <div class="greeting-time">venerdì 22 maggio</div>
+        <div class="greeting-name">Gestione</div>
+      </div>
+
+      <!-- ROLE TABS: Gestione active -->
+      <div class="role-tabs">
+        <div class="role-tab active">📊 Gestione<small>business KPI</small></div>
+        <div class="role-tab">🔧 Produzione<small>i miei lavori</small></div>
+      </div>
+
+      <!-- 4 KPI con Playfair Display numbers -->
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-num red">1</div><div class="kpi-lbl">Blocchi</div></div>
+        <div class="kpi"><div class="kpi-num blue">3</div><div class="kpi-lbl">Oggi</div></div>
+        <div class="kpi"><div class="kpi-num gold">5</div><div class="kpi-lbl">Da fatturare</div></div>
+        <div class="kpi"><div class="kpi-num green">4</div><div class="kpi-lbl">Materiali</div></div>
+      </div>
+
+      <!-- Mini fatturato chart -->
+      <div class="chart-mini">
+        <div class="chart-header">
+          <div class="chart-title">Fatturato mensile</div>
+          <div class="chart-val">€0 <span>+0%</span></div>
+        </div>
+        <div class="bars">
+          <div class="bar" style="height:60%"></div>
+          <div class="bar" style="height:75%"></div>
+          <div class="bar" style="height:45%"></div>
+          <div class="bar" style="height:90%"></div>
+          <div class="bar" style="height:55%"></div>
+          <div class="bar current" style="height:20%"></div>
+        </div>
+      </div>
+
+      <!-- Pagamenti + segnalazioni -->
+      <div class="sec">Urgenze lab</div>
+      <div class="tasks">
+        <div class="task">
+          <div class="task-rank">!</div>
+          <div class="task-body">
+            <div class="task-name">ESPOSITO MASSIMO</div>
+            <div class="task-detail"><div class="task-phase" style="color:var(--primary)">Impronta non idonea · oggi 17:00</div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time" style="color:var(--primary)">BLOCCO</div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="task-rank">€</div>
+          <div class="task-body">
+            <div class="task-name">GDA STP S.R.L.</div>
+            <div class="task-detail"><div class="task-phase">Scaduto 17.111 € · 35 gg</div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time" style="color:var(--warning)">SCADUTO</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme auto mode indicator -->
+      <div class="theme-row">
+        <div class="theme-chip">🌙 Notte (auto sistema)</div>
+        <div class="theme-chip active">☀️ Ora: chiaro</div>
+      </div>
+
+      <div class="nav-pill" style="margin:2px 14px 0">
+        <div class="nav-item active"><div class="nav-icon">⊞</div><div class="nav-lbl">Oggi</div></div>
+        <div class="nav-item"><div class="nav-icon">≡</div><div class="nav-lbl">Lavori</div></div>
+        <div class="nav-cta">+</div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-lbl">Clienti</div></div>
+        <div class="nav-item"><div class="nav-icon">⊙</div><div class="nav-lbl">Altro</div></div>
+      </div>
+
+    </div>
+    <div class="home-pill"><div class="home-bar"></div></div>
+  </div>
+
+  <div class="annotation">
+    <div class="ann-title">Vista Gestione (tab "📊 Gestione")</div>
+    <div class="ann-item"><div class="ann-dot red"></div>KPI con numeri in Playfair Display (italic, leggero)</div>
+    <div class="ann-item"><div class="ann-dot blue"></div>Mini chart fatturato: barre semplici, nessun gradiente</div>
+    <div class="ann-item"><div class="ann-dot gold"></div>Urgenze lab (blocchi + pagamenti scaduti) unificate</div>
+    <div class="ann-item"><div class="ann-dot green"></div>Theme chip: mostra modalità corrente + auto sistema</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Titolare puro (non tecnico): solo questo tab visibile</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCHERMO C — DARK MODE
+     Vista operativa · tema scuro
+═══════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone-label">Dark Mode</div>
+  <div class="phone-name">Sera / Tema Scuro</div>
+  <div class="phone-tag tag-b">Auto sistema</div>
+
+  <div class="phone">
+    <div class="notch"><div class="notch-sensor"></div><div class="notch-cam"></div></div>
+    <div class="dark-strip" style="border-radius:0;min-height:580px">
+
+      <div class="hdr" style="padding:12px 4px 6px">
+        <div class="hdr-left">
+          <div class="lab-name" style="color:#4A4845">LAB OPROMOLLA</div>
+          <div class="sync-badge" style="background:#222019;color:#8A8580"><div class="sync-dot"></div>Aggiornato ora</div>
+        </div>
+        <div class="avatar" style="background:#E8001A">FO</div>
+      </div>
+
+      <div class="greeting" style="padding:4px 4px 10px">
+        <div class="greeting-time" style="color:#4A4845">venerdì 22 maggio · sera</div>
+        <div class="greeting-name" style="color:#F0EDE8;font-family:var(--playfair)">Filippo</div>
+      </div>
+
+      <!-- Role tabs dark -->
+      <div class="role-tabs" style="margin:0 0 10px;background:#121110">
+        <div class="role-tab" style="color:#555250">📊 Gestione</div>
+        <div class="role-tab active" style="background:#2C2A27;color:#F0EDE8;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),9px 13px 28px -4px rgba(0,0,0,.52)">🔧 Produzione</div>
+      </div>
+
+      <!-- Block alert dark -->
+      <div style="margin:0 0 8px;background:rgba(232,0,26,.12);border:1px solid rgba(232,0,26,.22);border-radius:14px;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:8px"><div class="block-dot"></div><div style="font-size:12px;font-weight:700;color:#E8001A">Blocco · Impronta non idonea</div></div>
+        <div style="font-size:10px;color:#6D6762;margin-top:3px">ESPOSITO MASSIMO · oggi 17:00</div>
+      </div>
+
+      <div class="sec" style="color:#4A4845;padding:4px 0 3px">I miei lavori</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
+
+        <div class="task" style="background:#222019;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),9px 13px 28px -4px rgba(0,0,0,.52)">
+          <div class="task-rank" style="color:#4A4845">1</div>
+          <div class="task-body">
+            <div class="task-name" style="color:#F0EDE8">STUDIO DENTISTICO ROSSI</div>
+            <div class="task-detail" style="color:#555250">🟡 Finitura</div>
+            <div class="prog" style="background:#2C2A27"><div class="prog-fill" style="width:78%;background:var(--gold)"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time" style="color:#8A8580">oggi 18:30</div>
+          </div>
+        </div>
+
+        <div class="task" style="background:#222019;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),9px 13px 28px -4px rgba(0,0,0,.52)">
+          <div class="task-rank" style="color:#4A4845">2</div>
+          <div class="task-body">
+            <div class="task-name" style="color:#F0EDE8">DI SANTI CATERINA</div>
+            <div class="task-detail" style="color:#555250">🟢 Pronta</div>
+            <div class="prog" style="background:#2C2A27"><div class="prog-fill" style="width:96%;background:#3DCB5C"></div></div>
+          </div>
+          <div class="task-right">
+            <div class="task-time" style="color:#8A8580">dom 09:00</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="nav-pill" style="background:#2C2A27;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),9px 13px 28px -4px rgba(0,0,0,.52)">
+        <div class="nav-item active" style="background:#121110"><div class="nav-icon">⊞</div><div class="nav-lbl" style="color:#E8001A;font-weight:700">Oggi</div></div>
+        <div class="nav-item"><div class="nav-icon">≡</div><div class="nav-lbl" style="color:#555250">Lavori</div></div>
+        <div class="nav-cta" style="background:#2C2A27;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),9px 13px 28px -4px rgba(0,0,0,.52)">+</div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-lbl" style="color:#555250">Clienti</div></div>
+        <div class="nav-item"><div class="nav-icon">⊙</div><div class="nav-lbl" style="color:#555250">Altro</div></div>
+      </div>
+
+    </div>
+    <div class="home-pill" style="background:#1A1916"><div class="home-bar"></div></div>
+  </div>
+
+  <div class="annotation">
+    <div class="ann-title">Dark Mode — stesso sistema, carbonio caldo</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Auto: attiva con sistema (prefers-color-scheme)</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Override manuale sempre disponibile nel chip</div>
+    <div class="ann-item"><div class="ann-dot red"></div>Rosso primario → #E8001A in dark (più luminoso)</div>
+    <div class="ann-item"><div class="ann-dot gray"></div>Ombre dark: rgba(0,0,0,...) — pietra diventa carbonio</div>
+    <div class="ann-item"><div class="ann-dot green"></div>Progress bar = stesso dato reale, colori semantici identici</div>
+  </div>
+</div>
+
+</div>
+
+<div style="max-width:980px;margin:40px auto 0;background:rgba(255,255,255,.6);border-radius:16px;padding:20px 24px;backdrop-filter:blur(8px)">
+  <div style="font-family:var(--playfair);font-size:16px;font-weight:400;color:var(--t1);margin-bottom:12px">Decisioni di design — risponde ai tuoi punti</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;color:var(--t1);line-height:1.5">
+    <div><strong>LIVE badge redesign:</strong> Sostituito con "Aggiornato X min fa" come chip nell'header. Mostra sia il timestamp dell'ultimo sync che il punto verde (connesso). Più informativo, meno tecnico.</div>
+    <div><strong>Avatar che copre:</strong> Integrato nell'header come elemento normale (non fixed). Il padding-right dell'header è calcolato per non sovrapporsi mai al titolo.</div>
+    <div><strong>Business vs Operativa:</strong> Due tab nello stesso schermo: "📊 Gestione" e "🔧 Produzione". Titolare puro vede solo Gestione. Titolare+Tecnico vede entrambe le tab con navigazione rapida.</div>
+    <div><strong>Dark/light mode:</strong> Auto con sistema come default, override manuale via chip nel footer della vista Gestione. Persiste in localStorage, applicato senza flash (ThemeInitializer).</div>
+    <div><strong>Nav customizzazione:</strong> Il "⊙ Altro" raccoglie le pagine secondarie (Tecnici, Qualità, Impostazioni, Agenda). Future iterazioni: drag&drop per riordinare, hover tooltip su "+", pin di shortcut preferiti.</div>
+    <div><strong>DS v2.2 full compliance:</strong> Playfair Display per i numeri KPI, DM Sans per tutto il resto. Ombre warm-tinted. Nessun border-left accent. Rosso ≤20%. Gold solo per consegna.</div>
+  </div>
+</div>
+
+<div class="bottom-cta">
+  <div>
+    <div class="bc-text">Ti piace questa direzione?</div>
+    <div class="bc-sub">Rispondi nel terminale — possiamo affinare qualsiasi dettaglio</div>
+  </div>
+  <button class="bc-btn" onclick="window.__recordSelection && window.__recordSelection('approved', 'Approved dashboard direction')">Approvo →</button>
+</div>
+
+</body>
+</html>

@@ -15,6 +15,9 @@ export type AzionePortale =
   | 'pin_impostato' | 'pin_reimpostato'
   | 'interruttore_on' | 'interruttore_off'
   | 'link_rigenerato'
+  // Task 8 dell'ondata «l'avviso al dentista» (⚖️ D346): l'apertura del
+  // portale con almeno una card «Avvisi dal laboratorio» visibile.
+  | 'view_avviso'
 
 export function ipDaRequest(req: Request): string | null {
   const fwd = req.headers.get('x-forwarded-for')

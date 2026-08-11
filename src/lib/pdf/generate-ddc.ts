@@ -6,30 +6,41 @@ import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
-import { isPublicStorageUrl } from '@/lib/utils/storage-url'
 import { annoRoma } from '@/lib/utils/data-roma'
 import { nomePrescrittore } from '@/lib/consegna/prescrittore'
+import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-prescritte'
+import { classificaErroreAttoUnico } from '@/lib/dichiarazione/atto-unico-errori'
 
-// A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
-// decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
-// test). Fail-open: se il download fallisce l'hash resta null e la DdC si
-// genera comunque (metadato d'integrità, non condizione di emissione).
-async function hashFirmaDdc(url: string | null): Promise<string | null> {
-  if (!url) return null
-  // Difesa in profondità (review Bundle T): il valore è già validato a
-  // scrittura in PATCH /api/impostazioni, ma un dato storico o scritto per
-  // altre vie non deve comunque far fetchare al server un URL arbitrario.
-  if (!isPublicStorageUrl(url)) return null
-  try {
-    const res = await fetch(url)
-    if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    return crypto.createHash('sha256').update(buf).digest('hex')
-  } catch (err) {
-    console.error('[DdC] hash firma non calcolato:', err instanceof Error ? err.message : err)
-    return null
-  }
-}
+// ═══ `hashFirmaDdc` VIVEVA QUI, E NON C'È PIÙ (07/08/2026, giro di correzione
+//     di D294) ══════════════════════════════════════════════════════════════
+//
+// 🔴 CHE COSA FACEVA, e perché non doveva più farlo: a OGNI emissione scaricava
+//    da Storage il file della firma del laboratorio (`fetch`) e ne calcolava
+//    l'impronta SHA-256, per scriverla in `firma_ddc_sha256`. Nato con A18 come
+//    metadato d'integrità della firma **stampata sulla dichiarazione**.
+//    D294 ha tolto il blocco firma dal foglio: da quel momento era una chiamata
+//    di rete, dentro il percorso di consegna, per certificare l'integrità di
+//    un'immagine che **nessun modello rende più** e per riempire una colonna che
+//    **non ha nessun lettore** in tutto il progetto.
+//
+// 🔑 Perché toglierla è più che risparmiare: era l'unico punto in cui l'emissione
+//    di un documento a valore legale dipendeva dalla raggiungibilità di Storage.
+//    Era `fail-open` — e il fail-open era la cura giusta per un rischio che ora
+//    semplicemente non c'è.
+//
+// 🛑 QUEL CHE NON È USCITO, perché non è di questo mandato:
+//    · le colonne `firma_ddc_url` (laboratori) e `firma_ddc_storage_path`
+//      (dichiarazioni_conformita) restano, e la seconda continua a essere
+//      scritta a ogni emissione: è la fotografia di com'era configurato il
+//      laboratorio quel giorno, e non costa niente;
+//    · la **schermata di caricamento** della firma in `/impostazioni` e
+//      l'allowlist di `PATCH /api/impostazioni` **non sono toccate**: è una
+//      superficie che l'utente vede, e la decisione è di Francesco. Riferita.
+//    · con la `fetch` è uscita anche la difesa anti-SSRF `isPublicStorageUrl`,
+//      che serviva a non far scaricare al server un URL arbitrario: **non è un
+//      indebolimento**, è la scomparsa della superficie che difendeva. La
+//      validazione a scrittura in `PATCH /api/impostazioni` resta al suo posto.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /** La versione della FORMA del documento. Cambia quando cambia **ciò che il
  *  documento dice** — non a ogni ritocco di codice, e non per un glifo.
@@ -51,8 +62,112 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
  *     §5 (referral ①②③④): la clausola «e ai disposti dell'Allegato XIII», il
  *     luogo di fabbricazione mancante, il «Sostanze/tessuti: No» affermato senza
  *     dato, l'identificazione del paziente che può ridursi a un trattino.
+ *
+ *  `ddc-v2` — dal 07/08/2026 (**D295**). ⚠️ È il primo salto, ed è dovuto:
+ *     **DUE contenuti dell'Allegato XIII ENTRANO**, e uno dei due era già
+ *     nominato fra i candidati qui sopra.
+ *       ① **Voce 6** — «le caratteristiche specifiche del prodotto indicate
+ *          nella prescrizione». Era cablata a `null` e la riga del modello è
+ *          condizionale: **non è mai comparsa su nessuna dichiarazione**. Ora
+ *          nasce da `lavori_prescrizioni.contenuto`, resa in italiano da
+ *          `caratteristichePrescritte`.
+ *       ② **Voce 1** — «il nome e l'indirizzo del fabbricante e di TUTTI I
+ *          LUOGHI DI FABBRICAZIONE». `luogo_fabbricazione` esisteva come
+ *          colonna `NOT NULL DEFAULT 'Italia'`, non la scriveva nessuno e il
+ *          modello non la stampava.
+ *     🔑 Perché il salto NON era rimandabile: senza, due documenti che dicono
+ *        cose diverse porterebbero la stessa etichetta di versione — e fra
+ *        dieci anni questa colonna è l'unica cosa che permette di rileggere una
+ *        dichiarazione sapendo come andava letta.
+ *
+ *  `ddc-v3` — dal 07/08/2026 (**D294**), poche ore dopo `ddc-v2`. ⚠️ È la regola
+ *     di sopra letta nell'altra direzione: il salto spetta a un contenuto che
+ *     entra, **esce** o cambia significato. Qui **ESCONO DODICI BLOCCHI**, e uno
+ *     di essi — il «Sostanze/tessuti: No» affermato senza dato — era già nominato
+ *     fra i candidati elencati per `ddc-v1`.
+ *     Escono, tutti per la stessa ragione (non sono fra gli otto contenuti
+ *     dell'Allegato XIII punto 1): ① materiali e lotti · ② il codice ITCA, che
+ *     era stampato **due volte** · ③ l'«SRN EUDAMED», la cui etichetta era
+ *     sbagliata due volte · ④ il luogo di **emissione**, anch'esso due volte ·
+ *     ⑤ la classe di rischio · ⑥ la norma di riferimento e le norme armonizzate ·
+ *     ⑦ i rischi residui · ⑧ il «**Sostanze / tessuti: No**» affermato senza il
+ *     dato — ⚠️ **e solo quello**: v. la riga qui sotto · ⑨ la firma con
+ *     l'etichetta PRRC, il nome e la qualifica del responsabile · ⑩ il logo ·
+ *     ⑪ il piè di pagina · ⑫ i metadati del file.
+ *     🔑 **PRECISATO NEL GIRO DI CORREZIONE DELLO STESSO GIORNO, perché la voce
+ *        ⑧ non è uscita per intero e la riga di prima lasciava credere di sì.**
+ *        Il taglio aveva portato via l'intero blocco condizionale, ramo
+ *        affermativo compreso: la voce ⑧ dell'Allegato XIII non aveva più
+ *        nessuna strada per comparire, nemmeno con un dato affermativo. Il ramo
+ *        affermativo è stato **ripristinato**; a uscire è, e resta, il solo «No»
+ *        affermato senza il dato.
+ *     📌 **`ddc-v3` NON si spacca in due per questo, ed è una decisione presa
+ *        e non subìta.** Il registro salta quando cambia ciò che il documento
+ *        **dice**, e `contiene_sostanze_o_tessuti` è ancora cablato a `false`
+ *        (v. il commento accanto al valore): **nessuna dichiarazione emessa
+ *        cambia di una riga**, né quelle di prima né quelle di oggi. Il giorno
+ *        in cui la raccolta del dato arriverà, un documento potrà dire una cosa
+ *        che oggi nessun documento dice — e **quello** sarà il salto a `ddc-v4`.
+ *     📌 Con le due sezioni svuotate è cambiata anche la **numerazione**: la
+ *        dichiarazione di conformità era il §7 ed è il §6.
+ *     🛑 Nessuna colonna è stata toccata: escono dal FOGLIO, non dalla banca
+ *        dati. `template_version` è ciò che permetterà, fra dieci anni, di
+ *        sapere che una dichiarazione `ddc-v2` portava righe che una `ddc-v3`
+ *        non porta più — pur nascendo dagli stessi dati.
+ *     ⚠️ Le voci precedenti NON si riscrivono e non si riusano: un'etichetta
+ *        già emessa che cambiasse significato svuoterebbe il registro intero.
+ *
+ *  🔄 `ddc-v3` HA PERSO UN TREDICESIMO BLOCCO L'08/08/2026 (**D319**) E NON È
+ *     SALTATA A `ddc-v4`. Non è una scorciatoia, è la regola scritta qui sopra
+ *     applicata alla lettera: **il registro salta quando cambia ciò che il
+ *     documento DICE**, e qui nessuna dichiarazione emessa cambia di una riga.
+ *     Esce il **numero di prescrizione** (la riga «N. prescrizione» del §3), e
+ *     con lui la chiave `prescrizione_id` da questo costruttore — perché
+ *     l'Allegato XIII punto 1, sulla prescrizione, chiede il **nome** di chi ha
+ *     prescritto e le **caratteristiche** indicate nella prescrizione: un numero
+ *     non compare fra gli otto trattini. **Il nome del prescrittore resta**, ed è
+ *     dovuto.
+ *     `provato:` la riga del modello era **condizionale** e la condizione non si
+ *     è **mai** avverata —
+ *       SELECT template_version, count(*), count(prescrizione_id)
+ *         FROM dichiarazioni_conformita GROUP BY 1;
+ *       → ddc-v1 | 3 | 0   ·   (null) | 3 | 0
+ *     cioè **zero** dichiarazioni su sei portano quel numero, e **nessuna
+ *     dichiarazione `ddc-v3` è mai stata emessa**. È lo stesso ragionamento, con
+ *     gli stessi termini, già applicato a `contiene_sostanze_o_tessuti`.
  *  ═════════════════════════════════════════════════════════════════════════ */
-const VERSIONE_TEMPLATE_DDC = 'ddc-v1'
+const VERSIONE_TEMPLATE_DDC = 'ddc-v3'
+
+/** Il luogo di fabbricazione della VOCE 1, ricavato dal laboratorio.
+ *
+ *  🔴 DA DOVE ARRIVAVA PRIMA: **da nessuna parte.** La colonna è
+ *     `NOT NULL DEFAULT 'Italia'` (`supabase/schema.sql:1251`) e nessuna riga
+ *     di codice l'ha mai scritta — quindi ogni dichiarazione in archivio porta
+ *     il letterale **«Italia»**, che è un PAESE e non un indirizzo, mentre la
+ *     voce 1 chiede «il nome e **l'indirizzo**… di tutti i luoghi di
+ *     fabbricazione». E comunque non usciva sul foglio: il modello non la
+ *     stampava affatto.
+ *
+ *  🔑 DECISIONE (D295, presa qui e dichiarata nel referto): per un laboratorio
+ *     a **sede unica** — che è il caso di ogni laboratorio odontotecnico che
+ *     questa PWA serve oggi — il luogo di fabbricazione **coincide con
+ *     l'indirizzo del fabbricante**. Il §1 mostrerà quindi la stessa stringa
+ *     sotto due etichette: è corretto, e si dice invece di lasciarlo scoprire.
+ *     ⚠️ Un laboratorio con PIÙ luoghi di fabbricazione (una seconda sede, una
+ *     fresatura esternalizzata sotto il proprio nome) qui NON è rappresentabile:
+ *     servirebbe un campo dedicato e ripetibile. È una decisione di Francesco,
+ *     non di questa funzione — riferita, non presa.
+ *
+ *  🛑 Il ripiego su «Italia» resta, e non è pigrizia: la colonna è `NOT NULL`,
+ *     una stringa vuota la supererebbe (vuoto per il database non è vuoto per
+ *     una persona) e stamperebbe un'etichetta senza valore. «Italia» è il
+ *     valore che quella colonna ha sempre avuto: peggiora nulla, e non finge. */
+function luogoFabbricazione(lab: Laboratorio): string {
+  const pezzi = [lab.indirizzo, lab.citta]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter((v) => v.length > 0)
+  return pezzi.length > 0 ? pezzi.join(', ') : 'Italia'
+}
 
 /** Serializzazione CANONICA: le chiavi degli oggetti in ordine alfabetico, gli
  *  array nel loro ordine (che è un dato, non una casualità).
@@ -88,25 +203,27 @@ export function improntaPayload(payload: unknown): string {
   return crypto.createHash('sha256').update(canonico(payload)).digest('hex')
 }
 
-export async function generateDdC(lavoro: LavoroDettaglio) {
-  const supabase = getTypedServiceClient()
-
-  // Idempotenza su retry di orchestraConsegna (B13 1/2): se la DdC per questo
-  // lavoro esiste già (generata in un tentativo precedente), non rigenerare —
-  // evita un secondo file su Storage e un secondo progressivo sprecato. Il
-  // recupero su errore 23505 più sotto resta come rete di sicurezza per la
-  // race condition residua (due richieste che superano entrambe questo guard).
-  const { data: ddcEsistente } = await supabase
-    .from('dichiarazioni_conformita')
-    .select('numero_ddc, pdf_url')
-    .eq('lavoro_id', lavoro.id)
-    .neq('stato', 'annullata')
-    .maybeSingle()
-
-  if (ddcEsistente) {
-    return { numero: ddcEsistente.numero_ddc, url: ddcEsistente.pdf_url ?? '' }
-  }
-
+/** Costruisce la dichiarazione: il numero, i dati, il PDF reso e caricato, le
+ *  due impronte. **NON scrive una riga in banca dati** — a scriverla è chi la
+ *  chiama, e sono due atti diversi (la prima emissione e la riemissione).
+ *
+ *  🔑 PERCHÉ È ESTRATTA, e non è un riordino estetico. Con due costruttori — uno
+ *  per emettere e uno per riemettere — il documento riemesso divergerebbe da
+ *  quello emesso al primo cambiamento che qualcuno propaga in un posto solo, e
+ *  **nessuna prova guarderebbe la differenza**: è la lezione delle «due metà
+ *  giuste» pagata il 07/08. Il costruttore è UNO, e le due strade si separano
+ *  solo su COME la riga finisce in banca dati.
+ *
+ *  ⚠️ Il numero progressivo si prende QUI, cioè prima della scrittura: se la
+ *  scrittura poi fallisce, quel numero è bruciato e nella serie resta un buco.
+ *  È accettabile e va detto: il numero della dichiarazione **non è un contenuto
+ *  dovuto** (l'Allegato XIII punto 1 non lo nomina — censimento D294), a
+ *  differenza della numerazione delle fatture. Non si può nemmeno prendere più
+ *  tardi: il numero è **stampato sul PDF**. */
+async function costruisciDichiarazione(
+  supabase: ReturnType<typeof getTypedServiceClient>,
+  lavoro: LavoroDettaglio
+) {
   const anno = annoRoma()
 
   // Carica dati laboratorio + rischi residui per tipo dispositivo
@@ -132,8 +249,6 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
   const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
 
-  const firmaSha256 = await hashFirmaDdc((lab.firma_ddc_url ?? null) as string | null)
-
   // Prepara dati snapshot
   const ddc = {
     numero_ddc: numero,
@@ -144,6 +259,9 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     fabbricante_piva: (lab.partita_iva ?? '') as string,
     fabbricante_itca: (lab.codice_itca ?? null) as string | null,
     luogo_emissione: (lab.citta ?? 'Italia') as string,
+    // VOCE 1 (D295) — ⚠️ NON è `luogo_emissione`: quello è dove il documento è
+    // stato firmato, questo è dove il dispositivo è stato fabbricato.
+    luogo_fabbricazione: luogoFabbricazione(lab),
     // D242 — il ripiego sul cliente vale con la STESSA regola del precheck.
     // 🛑 Qui c'era `lavoro.richiedente_nome ?? …`: un `??` ripiega solo su
     // `null`, quindi una stringa vuota (o di soli spazi) lo superava intatta e
@@ -155,7 +273,33 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
         lavoro.richiedente_nome,
         `${lavoro.cliente.cognome} ${lavoro.cliente.nome}`,
       ) ?? '',
-    prescrizione_id: lavoro.numero_prescrizione ?? null,
+    // 🛑 QUI C'ERA `prescrizione_id: lavoro.numero_prescrizione ?? null`, ed è
+    //    uscita l'08/08/2026 con **D319**: il numero della prescrizione non è un
+    //    contenuto dovuto dall'Allegato XIII punto 1 (che sulla prescrizione
+    //    chiede il NOME di chi ha prescritto — la riga qui sopra, che resta — e
+    //    le CARATTERISTICHE indicate nella prescrizione, la voce 6 più sotto).
+    //    Era anche l'ULTIMO lettore di `lavori.numero_prescrizione`, che da oggi
+    //    è una colonna dichiarata morta: v. `types/domain.ts` accanto alla
+    //    colonna, e `api/lavori/[id]/route.ts` accanto all'esclusione dalla PATCH.
+    //
+    // ⚠️ CONSEGUENZA MISURATA, e va detta perché non si scopra dopo:
+    //    `payload_sha256` si calcola su QUESTO oggetto (`improntaPayload(ddcConNorma)`,
+    //    più sotto) e `canonico` serializza le chiavi presenti — quindi una chiave
+    //    in meno **cambia l'impronta di tutte le emissioni future**. È accettabile
+    //    e non rompe niente: per la dichiarazione quell'impronta è un dato
+    //    d'archivio che nessuno riconfronta, mentre nel DPA — dove la stessa
+    //    funzione produce una CHIAVE DI RICERCA con tanto di indice unico
+    //    (`generate-dpa.ts:146,347`) — una modifica del genere sarebbe un'altra
+    //    cosa. Le impronte già scritte restano valide: certificano il payload di
+    //    allora, che è ciò che devono fare.
+    //
+    // 📌 E DIVERGE DA `firma_ddc_sha256` PIÙ SOTTO, che è l'altra chiave morta di
+    //    questo stesso oggetto e invece è stata TENUTA a `null` «perché il payload
+    //    mantenga la stessa FORMA». Le due scelte sono opposte e la differenza NON
+    //    è nei dati (`provato:` entrambe le colonne sono valorizzate in 0 righe su
+    //    6): lì moriva il VALORE, qui muore la voce — D319 toglie il dato dal
+    //    documento, non gli toglie il contenuto. Quale delle due forme sia la
+    //    regola di casa non è deciso da nessuna decisione numerata: riferito.
     // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
     paziente_nome: lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '',
     paziente_cognome: null as string | null,
@@ -163,7 +307,45 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     descrizione_dispositivo: lavoro.descrizione,
     denti_coinvolti: lavoro.denti_coinvolti ?? null,
     uso_esclusivo_paziente: 'Dispositivo fabbricato su misura esclusivamente per il paziente indicato',
-    prescrizione_caratteristiche: null as string | null,
+    // VOCE 6 (D295) — «le caratteristiche specifiche del prodotto indicate
+    // nella prescrizione».
+    // 🔴 Qui c'era `null as string | null`, cablato. Il dato esisteva già in
+    //    `lavori_prescrizioni.contenuto` (ondata B) e non lo leggeva nessuno:
+    //    mancava il filo, non il dato. Con la riga del modello condizionale,
+    //    l'effetto era che uno degli OTTO contenuti obbligatori non è MAI
+    //    comparso su una dichiarazione emessa.
+    // 🔑 `undefined` (embed non chiesto) e «prescrizione senza caratteristiche»
+    //    danno lo stesso vuoto QUI, e va bene: sul documento un vuoto è un
+    //    vuoto. A distinguerli è `precheckMDR`, che vede se la riga esiste e lo
+    //    dice PRIMA di emettere, quando si può ancora rimediare.
+    prescrizione_caratteristiche: caratteristichePrescritte(lavoro.prescrizione?.contenuto),
+    // VOCE 8 (D294 + giro di correzione, 07/08/2026) — «se del caso,
+    // l'indicazione che il dispositivo contiene o incorpora una sostanza
+    // medicinale, compreso un derivato dal sangue o dal plasma umani, o tessuti
+    // o cellule di origine umana o di origine animale».
+    //
+    // 🔴 QUESTO `false` È CABLATO: nessuna riga di codice lo scrive a partire da
+    //    una risposta dell'odontotecnico, perché **nessuna schermata gli fa la
+    //    domanda**. Non è un valore misurato, è un posto vuoto che ha la forma
+    //    di una risposta.
+    //
+    // 🛑 E RESTA CABLATO APPOSTA, perché raccogliere il dato è un'altra ondata:
+    //    serve un campo nel lavoro (o nel wizard), la sua via di correzione fino
+    //    alla consegna (direttiva permanente di Francesco, 27/07/2026) e una
+    //    decisione su chi risponde. Inventare qui un valore sarebbe rimettere
+    //    l'affermazione non sostenuta che il taglio ha tolto dal foglio.
+    //
+    // ✅ MA LA STRADA DI STAMPA C'È ED È PRONTA, e questa riga è l'unica cosa
+    //    che manca. `DdcTemplate` porta di nuovo il blocco condizionale della
+    //    voce 8: con `true` il documento DICHIARA la sostanza (col dettaglio, o
+    //    rimandando alla documentazione allegata se il dettaglio manca), con
+    //    `false` o col campo assente TACE. Provato in tutt'e due i versi in
+    //    `tests/unit/ddc-pdf-content.test.ts` («la voce ⑧ è CONDIZIONALE»).
+    //    ⚠️ Fino al giro di correzione questa frase sarebbe stata FALSA: il
+    //    taglio aveva portato via anche il ramo affermativo, e una prova verde
+    //    intitolata «non stampa nulla nemmeno sul ramo affermativo» blindava il
+    //    vicolo cieco da entrambi i lati. Chi arriva qui a collegare la raccolta
+    //    deve trovare scritto lo stato vero, non quello di ieri.
     contiene_sostanze_o_tessuti: false,
     sostanze_tessuti_dettaglio: null as string | null,
     classe_rischio: lavoro.classe_rischio,
@@ -172,7 +354,14 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     prrc_nome: (lab.prrc_nome ?? '') as string,
     prrc_qualifica: (lab.prrc_qualifica ?? null) as string | null,
     firma_ddc_storage_path: (lab.firma_ddc_url ?? null) as string | null,
-    firma_ddc_sha256: firmaSha256,
+    // 🛑 SEMPRE `null` dal 07/08/2026, e la chiave resta scritta a posta: era
+    //    l'impronta del file della firma, calcolata scaricandolo a ogni
+    //    emissione. Nessun modello stampa più quella firma e nessuno legge
+    //    questa colonna — v. il blocco in testa al file, dove `hashFirmaDdc`
+    //    viveva. La chiave si tiene esplicita perché il payload dell'impronta
+    //    (`payload_sha256`) mantenga la stessa FORMA, e perché un `null` scritto
+    //    con la sua ragione accanto si legge meglio di una chiave sparita.
+    firma_ddc_sha256: null as string | null,
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
     rischi_residui_snapshot: (rischiRow?.rischi_residui ?? lab.testo_rischi_default ?? null) as string | null,
     norme_json: (rischiRow?.norme_json ?? []) as Array<{ codice: string; titolo: string; anno?: number }>,
@@ -205,21 +394,58 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     .getPublicUrl(storagePath)
   const pdfUrl = urlData?.publicUrl ?? ''
 
+  // 🛑 `laboratorio_id` e `lavoro_id` NON stanno qui: li mette chi scrive. Per la
+  // riemissione è la RPC a fissarli dai propri parametri, e una copia in più nel
+  // corpo sarebbe una seconda verità sullo stesso fatto.
+  const riga = {
+    ...ddc,
+    pdf_url: pdfUrl,
+    storage_path_pdf: storagePath,
+    pdf_sha256: sha256,
+    // D102 ① — le due colonne dichiarate come prova e mai scritte da nessuno.
+    payload_sha256: payloadSha256,
+    template_version: VERSIONE_TEMPLATE_DDC,
+    pdf_generato_at: new Date().toISOString(),
+    inviata_al_dentista: false,
+  }
+
+  return { riga, numero, pdfUrl }
+}
+
+export async function generateDdC(lavoro: LavoroDettaglio) {
+  const supabase = getTypedServiceClient()
+
+  // Idempotenza su retry di orchestraConsegna (B13 1/2): se la DdC per questo
+  // lavoro esiste già (generata in un tentativo precedente), non rigenerare —
+  // evita un secondo file su Storage e un secondo progressivo sprecato. Il
+  // recupero su errore 23505 più sotto resta come rete di sicurezza per la
+  // race condition residua (due richieste che superano entrambe questo guard).
+  //
+  // 🛑 ED È QUESTA LA PORTA DA CUI LA RIEMISSIONE NON DEVE PASSARE (spec §8.1):
+  // qui si torna `{numero, url}` della dichiarazione ESISTENTE, senza nessun
+  // segno di non averla generata. Una riemissione che entrasse di qui direbbe
+  // «riemessa» con in mano il documento VECCHIO. Per questo `riemettiDdC` è una
+  // funzione a sé e non un parametro di questa.
+  const { data: ddcEsistente } = await supabase
+    .from('dichiarazioni_conformita')
+    .select('numero_ddc, pdf_url')
+    .eq('lavoro_id', lavoro.id)
+    .neq('stato', 'annullata')
+    .maybeSingle()
+
+  if (ddcEsistente) {
+    return { numero: ddcEsistente.numero_ddc, url: ddcEsistente.pdf_url ?? '' }
+  }
+
+  const { riga, numero, pdfUrl } = await costruisciDichiarazione(supabase, lavoro)
+
   // INSERT record DdC
   const { error: insertErr } = await supabase
     .from('dichiarazioni_conformita')
     .insert({
       laboratorio_id: lavoro.laboratorio_id,
       lavoro_id: lavoro.id,
-      ...ddc,
-      pdf_url: pdfUrl,
-      storage_path_pdf: storagePath,
-      pdf_sha256: sha256,
-      // D102 ① — le due colonne dichiarate come prova e mai scritte da nessuno.
-      payload_sha256: payloadSha256,
-      template_version: VERSIONE_TEMPLATE_DDC,
-      pdf_generato_at: new Date().toISOString(),
-      inviata_al_dentista: false,
+      ...riga,
     })
 
   if (insertErr) {
@@ -237,4 +463,239 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   }
 
   return { numero, url: pdfUrl }
+}
+
+/** L'esito di una riemissione. I due casi «non si può» **non sono guasti** e non
+ *  lanciano: sono risposte, e chi chiama deve poterle distinguere da un successo
+ *  senza leggere un messaggio d'errore. Tutto il resto **lancia**, perché su
+ *  questo documento un successo dichiarato per sbaglio è il difetto peggiore
+ *  possibile (spec §8.1). */
+export type EsitoRiemissione =
+  | { stato: 'ok'; numero: string; url: string; nuovaId: string; vecchiaId: string; numeroSuperato: string }
+  /** Non c'era niente da superare: una prima emissione è un altro atto. */
+  | { stato: 'nessuna_dichiarazione_viva' }
+  /** L'evento non esiste, o non è di questo lavoro: mai una riemissione senza motivo (D263). */
+  | { stato: 'evento_non_valido' }
+
+/** Riemette la dichiarazione di un lavoro: **prima si annulla, poi si riemette**
+ *  (spec §8.1), e le due scritture stanno in **una transazione sola**.
+ *
+ *  ⚖️ D299 — questa funzione **NON tocca `lavori.stato`**. Il manufatto è a posto
+ *  e resta dal dentista: si rifà solo la carta. Parole di Francesco, «*il lavoro
+ *  resta consegnato, si rifà solo la carta*». Chi cerca il rientro in produzione
+ *  sta cercando un'altra strada: `riapri_lavoro_atomica`, che è di un altro motivo.
+ *
+ *  🛑 PERCHÉ L'ORDINE È PORTANTE, ed è invisibile leggendo il TypeScript.
+ *  `ddc_lavoro_attiva_unique` ammette **una sola** dichiarazione viva per lavoro:
+ *  inserire prima di annullare sbatte contro un `23505`. E annullare senza
+ *  inserire, o non annullare affatto, lascia il lavoro **senza nessuna
+ *  dichiarazione viva** — uno stato che nessun vincolo può segnalare, perché
+ *  «zero» è legittimo per un lavoro mai consegnato. ➡️ La transazione è la sola
+ *  cosa che tiene, e per questo l'ordine vive nella RPC, non qui.
+ *
+ *  🔑 `sostituisce_id` NON si calcola qui: lo fissa il database, che sa qual era
+ *  la dichiarazione viva **nello stesso istante in cui la annulla**. Calcolarlo
+ *  in TypeScript vorrebbe dire leggerlo prima, e fra la lettura e la scrittura la
+ *  viva potrebbe essere un'altra. */
+export async function riemettiDdC(lavoro: LavoroDettaglio, eventoId: string): Promise<EsitoRiemissione> {
+  const supabase = getTypedServiceClient()
+
+  // Il PDF si rende e si carica PRIMA: non sono scritture in banca dati, e
+  // tenerle fuori dalla transazione è ciò che permette alla transazione di
+  // esistere. Se la RPC poi fallisce restano un file orfano e un numero bruciato:
+  // nessuno dei due rompe niente (v. `costruisciDichiarazione`).
+  const { riga, numero, pdfUrl } = await costruisciDichiarazione(supabase, lavoro)
+
+  const { data, error } = await supabase.rpc('riemetti_ddc_atomica', {
+    p_lavoro_id: lavoro.id,
+    p_laboratorio_id: lavoro.laboratorio_id,
+    p_evento_id: eventoId,
+    p_nuova: riga as unknown as Record<string, never>,
+  })
+
+  if (error) {
+    console.error('[DdC] riemetti_ddc_atomica fallita:', error)
+    throw new Error('Non è stato possibile rifare la dichiarazione', { cause: error })
+  }
+
+  const risposta = (data ?? {}) as { esito?: unknown; nuova_id?: unknown; vecchia_id?: unknown; numero?: unknown; numero_superato?: unknown }
+
+  if (risposta.esito === 'nessuna_dichiarazione_viva') return { stato: 'nessuna_dichiarazione_viva' }
+  if (risposta.esito === 'evento_non_valido') return { stato: 'evento_non_valido' }
+
+  // 🛑 FAIL-CLOSED su tutto il resto, e non è pignoleria: un esito che questa
+  // funzione non riconosce — una risposta vuota, un valore nuovo aggiunto alla
+  // RPC domani — letto come successo restituirebbe un numero senza sapere se
+  // la riemissione è avvenuta. Su questo documento è il difetto peggiore.
+  if (risposta.esito !== 'ok' || typeof risposta.nuova_id !== 'string') {
+    console.error('[DdC] riemetti_ddc_atomica: esito inatteso', data)
+    throw new Error('Non è stato possibile rifare la dichiarazione')
+  }
+
+  return {
+    stato: 'ok',
+    // Il numero e l'indirizzo li restituisce il database sulla riga davvero
+    // scritta; quelli calcolati qui sono il ripiego, mai la fonte.
+    numero: typeof risposta.numero === 'string' ? risposta.numero : numero,
+    url: pdfUrl,
+    nuovaId: risposta.nuova_id,
+    vecchiaId: typeof risposta.vecchia_id === 'string' ? risposta.vecchia_id : '',
+    numeroSuperato: typeof risposta.numero_superato === 'string' ? risposta.numero_superato : '',
+  }
+}
+
+/** L'esito dell'ATTO UNICO. È più lungo di `EsitoRiemissione` perché il
+ *  contratto nuovo sa dire più cose — e ognuna di esse **arriva come JSON, non
+ *  come errore**.
+ *
+ *  🛑 SEI DI QUESTI SONO IL DIFETTO PEGGIORE POSSIBILE SE LETTI MALE:
+ *  `non_trovato`, `conflitto`, `evento_non_valido`, `paziente_non_valido`,
+ *  `senza_prescrizione`, `nessuna_dichiarazione_viva` **non alzano**. Una
+ *  funzione che guardasse solo `error` li leggerebbe come **successo**, cioè
+ *  direbbe «rifatta» a una dichiarazione che non è stata rifatta. L'unione
+ *  discriminata è essa stessa la guardia: senza restringere su `'ok'` il
+ *  compilatore non concede `numero`. */
+export type EsitoAttoUnico =
+  | {
+      stato: 'ok'
+      numero: string
+      url: string
+      nuovaId: string
+      vecchiaId: string
+      numeroSuperato: string
+      /** Il gettone AGGIORNATO: serve a chi corregge due volte di fila. */
+      updatedAt: string | null
+    }
+  | { stato: 'non_trovato' }
+  | { stato: 'conflitto'; updatedAt: string | null }
+  | { stato: 'evento_non_valido' }
+  | { stato: 'paziente_non_valido' }
+  | { stato: 'senza_prescrizione' }
+  | { stato: 'nessuna_dichiarazione_viva' }
+  /** Un `P0001` dei nove: il contratto ha rifiutato la richiesta, e niente è
+   *  stato scritto. Il testo è quello che ha scritto il contratto. */
+  | { stato: 'richiesta_rifiutata'; messaggio: string }
+  | { stato: 'evento_gia_consumato' }
+  | { stato: 'gia_superata' }
+  | { stato: 'numero_gia_usato' }
+
+/** I sei esiti gentili, scritti UNA VOLTA: l'elenco è la stessa cosa che il
+ *  contratto può rispondere, e tenerlo qui evita sei `if` che si dimenticano. */
+const ESITI_GENTILI = [
+  'non_trovato',
+  'evento_non_valido',
+  'paziente_non_valido',
+  'senza_prescrizione',
+  'nessuna_dichiarazione_viva',
+] as const
+
+/**
+ * L'ATTO UNICO: **applica le correzioni e rifà il documento in una transazione
+ * sola**. È la funzione che il Task C aggiunge accanto a `riemettiDdC`, e le
+ * due convivono per una ragione dichiarata: chi vuole solo rifare la carta
+ * passa ancora di là (contratto vecchio, chiamante pubblicato), chi corregge
+ * passa di qua.
+ *
+ * 🛑 `lavoro` DEVE ESSERE GIÀ CORRETTO. Il PDF si rende e si carica **prima**
+ * della transazione — è ciò che permette alla transazione di esistere — quindi
+ * le correzioni devono essere già dentro l'oggetto che arriva qui, o la carta
+ * nuova ristamperebbe l'errore che si sta correggendo. La fusione la fa
+ * `fondiCorrezioni`, e la rotta le chiama in quest'ordine.
+ *
+ * 🛑 P16-bis — `riga` NON SI PUÒ PASSARE COSÌ COM'È. `costruisciDichiarazione`
+ * ci mette `numero_ddc` (`:234`) e `stato` (`:323`), che da C-bis in poi il
+ * contratto **rifiuta**: `numero_ddc` perché si DERIVA dalla coppia
+ * `anno_ddc`+`progressivo_ddc` (non ha un unico proprio: un numero incoerente
+ * non collide con niente e produrrebbe due carte con lo stesso numero
+ * stampato), `stato` perché la nuova nasce **sempre** `generata`.
+ * ⚠️ E `anno_ddc`/`progressivo_ddc` **restano tutte e due**: la coppia è
+ * INDIVISIBILE, una sola dà `P0001` e nessuna delle due dà `23505`.
+ *
+ * 📌 Il **numero** si prende da quello che torna il contratto, non si ricalcola:
+ * il formato vive in due posti (`:226` e la RPC) e si muovono insieme.
+ */
+export async function correggiERiemettiDdC(
+  lavoro: LavoroDettaglio,
+  eventoId: string,
+  correzioni: Record<string, unknown>,
+  attesoUpdatedAt: string
+): Promise<EsitoAttoUnico> {
+  const supabase = getTypedServiceClient()
+
+  const { riga, numero, pdfUrl } = await costruisciDichiarazione(supabase, lavoro)
+
+  // 🛑 Le due chiavi che il contratto non accetta dal chiamante (P16-bis). Si
+  //    tolgono per NOME e non con una allowlist di ciò che resta: l'allowlist
+  //    vera è in SQL, e una seconda qui divergerebbe alla prima colonna nuova.
+  const { stato: _stato, numero_ddc: _numeroDdc, ...nuova } = riga
+  void _stato
+  void _numeroDdc
+
+  const { data, error } = await supabase.rpc('correggi_e_riemetti_atomica', {
+    p_lavoro_id: lavoro.id,
+    p_laboratorio_id: lavoro.laboratorio_id,
+    p_evento_id: eventoId,
+    p_correzioni: correzioni as unknown as Record<string, never>,
+    p_nuova: nuova as unknown as Record<string, never>,
+    // 🔑 COSÌ COM'È, mai un `new Date(...)`: `timestamptz` ha precisione al
+    //    microsecondo e `Date` al millisecondo. Un solo riparsing tronca
+    //    `.123456` a `.123` e il confronto non torna MAI uguale: 409
+    //    permanente, che nemmeno ricaricando si sana.
+    p_atteso_updated_at: attesoUpdatedAt,
+  })
+
+  if (error) {
+    const classe = classificaErroreAttoUnico(error)
+    if (classe.tipo === 'richiesta') {
+      // Niente è stato scritto: è una richiesta da correggere, non un guasto.
+      return { stato: 'richiesta_rifiutata', messaggio: classe.messaggio }
+    }
+    if (classe.tipo === 'vincolo') return { stato: classe.vincolo }
+    // 🛑 Tutto il resto LANCIA — compresi i quattro `P0001` post-annullo, che
+    //    sono guasti interni. Tradurli in un 400 direbbe all'odontotecnico che
+    //    ha sbagliato lui mentre l'app si è rotta.
+    console.error('[ATTO UNICO] correggi_e_riemetti_atomica fallita:', error)
+    throw new Error('Non è stato possibile correggere e rifare la dichiarazione', { cause: error })
+  }
+
+  const risposta = (data ?? {}) as {
+    esito?: unknown
+    nuova_id?: unknown
+    vecchia_id?: unknown
+    numero?: unknown
+    numero_superato?: unknown
+    updated_at?: unknown
+  }
+
+  const esito = risposta.esito
+  if (esito === 'conflitto') {
+    return {
+      stato: 'conflitto',
+      updatedAt: typeof risposta.updated_at === 'string' ? risposta.updated_at : null,
+    }
+  }
+  for (const gentile of ESITI_GENTILI) {
+    if (esito === gentile) return { stato: gentile }
+  }
+
+  // 🛑 FAIL-CLOSED su tutto il resto (stessa regola di `riemettiDdC:480-487`):
+  //    un esito che questa funzione non riconosce — una risposta vuota, un
+  //    valore nuovo aggiunto al contratto domani — letto come successo
+  //    restituirebbe un numero senza sapere se la correzione è avvenuta.
+  if (esito !== 'ok' || typeof risposta.nuova_id !== 'string') {
+    console.error('[ATTO UNICO] esito inatteso', data)
+    throw new Error('Non è stato possibile correggere e rifare la dichiarazione')
+  }
+
+  return {
+    stato: 'ok',
+    // Il numero lo dice il contratto, sulla riga davvero scritta; quello
+    // calcolato qui è il ripiego, mai la fonte.
+    numero: typeof risposta.numero === 'string' ? risposta.numero : numero,
+    url: pdfUrl,
+    nuovaId: risposta.nuova_id,
+    vecchiaId: typeof risposta.vecchia_id === 'string' ? risposta.vecchia_id : '',
+    numeroSuperato: typeof risposta.numero_superato === 'string' ? risposta.numero_superato : '',
+    updatedAt: typeof risposta.updated_at === 'string' ? risposta.updated_at : null,
+  }
 }

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 import LabActions from './lab-actions'
 import ReteSection from './rete-section'
 
@@ -52,10 +53,12 @@ export default async function AdminLabDetailPage({ params }: Props) {
     ? `€${price.toLocaleString('it-IT')}/anno (€${Math.round(price / 12)}/mese)`
     : `€${price}/mese`
 
-  function fmtDate(d: string | null) {
-    if (!d) return '—'
-    return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+  // D286 — pagina SERVER: `toLocaleDateString` senza `timeZone` rendeva nel fuso
+  // della macchina (UTC in produzione). Ora che `trial_ends_at` è mezzanotte di
+  // Roma — le 22:00 UTC del giorno prima — quella lettura mostrerebbe il giorno
+  // PRECEDENTE. `dataItalianaBreve` dichiara `Europe/Rome`, ha lo stesso formato
+  // e lo stesso «—» per il valore assente: è un alias, non un comportamento nuovo.
+  const fmtDate = dataItalianaBreve
 
   return (
     <div className="adm-detail">

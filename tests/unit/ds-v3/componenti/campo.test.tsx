@@ -20,7 +20,7 @@ vi.mock('@/design-system/v3/sound', () => ({
   initSuoni: () => {},
 }))
 
-import { CampoTesto, CampoNumero, CampoData, prossimoLunedi } from '@/components/ds/Campo'
+import { CampoTesto, CampoNumero, CampoData, CampoTestoLungo, prossimoLunedi } from '@/components/ds/Campo'
 
 describe('CampoTesto — input testo libero (§5.27)', () => {
   beforeEach(() => {
@@ -336,6 +336,107 @@ describe('CampoData — scelte rapide, mai calendario a griglia (§5.27)', () =>
   it('il testo (label + pill statiche) passa trovaParoleVietate', () => {
     const { container } = render(
       <CampoData label="Data di consegna" valore={null} onCambia={() => {}} oggi={OGGI_MARTEDI} />
+    )
+    expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
+  })
+})
+
+/**
+ * CampoTestoLungo — il PRIMO campo multilinea dell'app (§5.27, variante
+ * multilinea, emendamento del 09/08/2026).
+ *
+ * 🔑 Le prove stanno QUI, accanto a quelle dei fratelli, e non nel foglio che lo
+ *    usa per primo: se domani un secondo foglio ne avesse bisogno, è questo file
+ *    che dice che cosa può dare per buono.
+ */
+describe('CampoTestoLungo — il testo che si legge, non la riga (§5.27)', () => {
+  it('è una `<textarea>`, non un input a riga singola: un messaggio va a capo', () => {
+    render(<CampoTestoLungo label="Il messaggio" valore="una riga" onCambia={() => {}} />)
+    const campo = screen.getByLabelText('Il messaggio')
+    expect(campo.tagName).toBe('TEXTAREA')
+  })
+
+  it('la label è la STESSA dei fratelli: MAIUSCOLA, e legata al campo con htmlFor/id', () => {
+    render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    const label = screen.getByText('Il messaggio')
+    expect(label.style.textTransform).toBe('uppercase')
+    expect(label.tagName).toBe('LABEL')
+    expect(label.getAttribute('for')).toBe(screen.getByLabelText('Il messaggio').id)
+  })
+
+  it('onCambia porta il nuovo valore, righe vuote comprese', () => {
+    const onCambia = vi.fn()
+    render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={onCambia} />)
+    fireEvent.change(screen.getByLabelText('Il messaggio'), { target: { value: 'prima\n\nseconda' } })
+    expect(onCambia).toHaveBeenCalledWith('prima\n\nseconda')
+  })
+
+  it('anello di focus 2px --blue su :focus (come i fratelli, non solo :focus-visible)', () => {
+    const { container } = render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    const regola = container.querySelector('style')?.textContent ?? ''
+    expect(regola).toContain('.ds-campo-testo-lungo:focus')
+    expect(regola).toContain('outline: 2px solid var(--blue)')
+    expect(regola).toContain('outline-offset: 2px')
+  })
+
+  it('🛑 fondo e filo sono quelli delle SUPERFICI DENTRO UN FOGLIO (⚖️ D326 · D329 · D330)', () => {
+    render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    const campo = screen.getByLabelText('Il messaggio')
+    expect(campo.style.background).toBe('var(--fondo-superficie)')
+    expect(campo.style.border).toBe('1px solid var(--filo-superficie)')
+    expect(campo.style.borderRadius).toBe('18px')
+  })
+
+  it('🛑 il testo di lettura non scende sotto 17px (§4.1), e respira a 1.45', () => {
+    render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    const campo = screen.getByLabelText('Il messaggio')
+    expect(parseFloat(campo.style.fontSize)).toBeGreaterThanOrEqual(17)
+    expect(campo.style.lineHeight).toBe('1.45')
+  })
+
+  it('l’altezza minima è una MISURA, e chi chiama può portarne una sua', () => {
+    const { rerender } = render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    expect(parseFloat(screen.getByLabelText('Il messaggio').style.minHeight)).toBeGreaterThan(0)
+    rerender(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} altezzaMinima={120} />)
+    expect(screen.getByLabelText('Il messaggio').style.minHeight).toBe('120px')
+  })
+
+  it('si allarga solo in verticale: mai oltre il pannello del foglio', () => {
+    render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    expect(screen.getByLabelText('Il messaggio').style.resize).toBe('vertical')
+  })
+
+  it('🛑 il tetto lo decide CHI CHIAMA (è il tetto della sua rotta), e senza non c’è tetto', () => {
+    const { rerender } = render(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} />)
+    expect(screen.getByLabelText('Il messaggio')).not.toHaveAttribute('maxlength')
+    rerender(<CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} massimo={1000} />)
+    expect(screen.getByLabelText('Il messaggio')).toHaveAttribute('maxlength', '1000')
+  })
+
+  it('l’aiuto è legato al campo con aria-describedby, come nei fratelli (P31 · D184)', () => {
+    render(
+      <CampoTestoLungo label="Il messaggio" valore="" onCambia={() => {}} aiuto="Puoi cambiarlo" />
+    )
+    const campo = screen.getByLabelText('Il messaggio')
+    const aiuto = screen.getByText('Puoi cambiarlo')
+    expect(campo.getAttribute('aria-describedby')).toBe(aiuto.id)
+  })
+
+  it('🛑 di sola lettura: si legge e non si tocca — serve a un testo GIÀ USCITO', () => {
+    const onCambia = vi.fn()
+    render(<CampoTestoLungo label="Il messaggio" valore="partito" onCambia={onCambia} soloLettura />)
+    const campo = screen.getByLabelText('Il messaggio') as HTMLTextAreaElement
+    expect(campo.readOnly).toBe(true)
+  })
+
+  it('nessuna parola del software nella label né nell’aiuto (L2, §2.3)', () => {
+    const { container } = render(
+      <CampoTestoLungo
+        label="Il messaggio che manderai"
+        valore=""
+        onCambia={() => {}}
+        aiuto="Puoi cambiarlo prima di mandarlo"
+      />
     )
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })

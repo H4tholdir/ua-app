@@ -5,6 +5,20 @@ import type { LavoroPortale, StatoLavoro, TipoDispositivo } from '@/types/domain
 import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
 import { FatturazioneSection } from '@/components/features/portale/FatturazioneSection'
 import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
+// Task 8 dell'ondata «l'avviso al dentista» — la sezione «Avvisi dal
+// laboratorio» (⚖️ D346, eredità ⚖️ D354). La lettura grezza degli avvisi
+// resta `archivioCliente` (Task 6/9); la logica di raggruppamento/unione e la
+// scrittura della ricevuta vivono in `avvisi/portale.ts`, testabili — questo
+// file è un componente server asincrono che nessuna prova unitaria rende.
+import { archivioCliente } from '@/lib/avvisi/queries'
+import {
+  raggruppaPerLavoro,
+  lavoriPerLeCard,
+  costruisciCardAvviso,
+  segnaAvvisiVisti,
+  type CardAvvisoPortale,
+} from '@/lib/avvisi/portale'
+import type { AzionePortale } from '@/lib/portale/audit'
 
 type PageProps = { params: Promise<{ token: string }> }
 
@@ -38,6 +52,24 @@ const tipoLabels: Record<TipoDispositivo, string> = LABEL_MACRO
 function formatDataIT(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/**
+ * Come `formatDataIT`, ma per un `timestamptz` vero (`created_at` di un
+ * avviso) e non per una colonna DATE: qui NON si aggiunge `'T00:00:00'` — il
+ * valore porta già un'ora, e sommarne un'altra produrrebbe una stringa non
+ * valida.
+ * 🛑 `timeZone: 'Europe/Rome'` è ESPLICITO: questo è un componente server, e
+ * senza fuso `toLocaleDateString` formatta nel fuso del PROCESSO (UTC su
+ * Vercel) — un avviso creato alle 00:30 di Roma mostrerebbe il giorno prima.
+ */
+function formatDataAvviso(iso: string): string {
+  return new Date(iso).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Europe/Rome',
+  })
 }
 
 function LavoroCard({ lavoro }: { lavoro: LavoroPortale }) {
@@ -200,6 +232,116 @@ function LavoroCard({ lavoro }: { lavoro: LavoroPortale }) {
   )
 }
 
+// ─── Avvisi dal laboratorio (⚖️ D346, mockup B1 — «una sezione come le
+//     altre», stessa card che il dentista già conosce) ───────────────────
+function AvvisoCard({ avviso }: { avviso: CardAvvisoPortale }) {
+  return (
+    <div
+      style={{
+        background: '#FFFFFF',
+        borderRadius: '12px',
+        padding: '16px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)',
+        marginBottom: '8px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+        }}
+      >
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
+          #{avviso.numeroLavoro}
+        </span>
+        <span
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: '#92400E',
+            background: '#FEF3C7',
+            border: '1px solid #FDE68A',
+            borderRadius: '6px',
+            padding: '3px 10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Aggiornata
+        </span>
+      </div>
+
+      <p
+        style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '15px',
+          fontWeight: 600,
+          color: '#111827',
+          margin: '6px 0 0',
+        }}
+      >
+        {avviso.pazienteMostrato}
+      </p>
+
+      <p
+        style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '13px',
+          color: '#6B7280',
+          margin: '3px 0 0',
+        }}
+      >
+        {avviso.frase}
+      </p>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          marginTop: '10px',
+        }}
+      >
+        {/* #6B7280 e non #9CA3AF: una parte NUOVA non eredita il difetto di
+            contrasto misurato altrove nel portale (2,54:1 su bianco). */}
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#6B7280' }}>
+          {formatDataAvviso(avviso.dataPiuRecente)}
+        </span>
+        {avviso.ddcUrl && (
+          <a
+            href={avviso.ddcUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              minHeight: '44px',
+              padding: '0 14px',
+              background: '#F3F4F6',
+              borderRadius: '8px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#374151',
+              textDecoration: 'none',
+              border: '1px solid #E5E7EB',
+            }}
+            aria-label="Scarica la dichiarazione aggiornata"
+          >
+            📄 Dichiarazione aggiornata
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Link scaduto ──────────────────────────────────────────────
 function LinkScaduto() {
   return (
@@ -317,6 +459,41 @@ export default async function PortalePage({ params }: PageProps) {
     if (logErr) console.error('[Portale] Audit log failed:', logErr.message)
   } catch {
     // Tabella non ancora nel DB — ignora
+  }
+
+  // ─── Task 8 — «Avvisi dal laboratorio»: UNA card per lavoro (⚖️ D354) ───
+  // Lettura grezza riusata com'è (checklist §1): `archivioCliente` non ha un
+  // cancello di ruolo — per il portale va bene così, il cancello è il token.
+  const righeAvviso = await archivioCliente(svc, { clienteId: cliente.id, laboratorioId: cliente.laboratorio_id })
+  const gruppiAvviso = raggruppaPerLavoro(righeAvviso)
+  const lavoriConAvviso = await lavoriPerLeCard(svc, {
+    lavoroIds: gruppiAvviso.map((g) => g.lavoroId),
+    clienteId: cliente.id,
+    laboratorioId: cliente.laboratorio_id,
+  })
+  const avvisiCards = costruisciCardAvviso(gruppiAvviso, lavoriConAvviso, { token })
+
+  // Il visto (e il suo audit) si scrivono SOLO se c'è almeno una card
+  // MOSTRATA — mai per una sezione vuota (trappola nota, §3 del brief). Gli
+  // id vengono da `avvisiCards`, cioè DOPO il filtro sui lavori risolti: un
+  // avviso il cui lavoro non si è risolto (difensivo) non riceve un visto per
+  // qualcosa che il dentista non ha visto.
+  if (avvisiCards.length > 0) {
+    const azioneAvviso: AzionePortale = 'view_avviso'
+    try {
+      const { error: logAvvisoErr } = await svc.from('portale_accessi').insert({
+        cliente_id: cliente.id,
+        laboratorio_id: cliente.laboratorio_id,
+        ip_address: ip,
+        azione: azioneAvviso,
+      })
+      if (logAvvisoErr) console.error('[Portale] Audit log (view_avviso) failed:', logAvvisoErr.message)
+    } catch {
+      // Tabella non ancora nel DB — ignora, stesso ripiego del log sopra.
+    }
+
+    const idsDaSegnareVisti = avvisiCards.flatMap((c) => c.avvisoIds)
+    await segnaAvvisiVisti(svc, idsDaSegnareVisti, cliente.laboratorio_id)
   }
 
   // Dati laboratorio
@@ -487,6 +664,30 @@ export default async function PortalePage({ params }: PageProps) {
             ➕ Richiedi nuovo lavoro
           </a>
         </div>
+
+        {/* Avvisi dal laboratorio — ⚖️ D346 (Variante B1), eredità ⚖️ D354.
+            In cima, SOPRA i lavori in corso; niente sezione se non c'è nulla
+            da mostrare (checklist §3: zero avvisi → niente scrittura visto). */}
+        {avvisiCards.length > 0 && (
+          <section style={{ marginBottom: '32px' }}>
+            <h3
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#374151',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                margin: '0 0 12px',
+              }}
+            >
+              Avvisi dal laboratorio ({avvisiCards.length})
+            </h3>
+            {avvisiCards.map((avviso) => (
+              <AvvisoCard key={avviso.lavoroId} avviso={avviso} />
+            ))}
+          </section>
+        )}
 
         {/* Lavori aperti */}
         <section style={{ marginBottom: '32px' }}>

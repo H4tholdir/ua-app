@@ -34,6 +34,8 @@ interface BottomSheetProps {
    *  salvarlo. */
   clienteId: string
   studioNome: string
+  /** ⚖️ D345 — la firma del sollecito che parte da questo foglio. */
+  nomeLaboratorio: string | null
   onClose: () => void
   onRegistraPagamento: (target: TargetPagamento) => void
   /** D185 — dopo il salvataggio il cliente ha di nuovo un cellulare: si
@@ -42,14 +44,14 @@ interface BottomSheetProps {
   onCellulareSalvato: () => void
 }
 
-function DovutoBottomSheet({ dovuto, cellulare, clienteId, studioNome, onClose, onRegistraPagamento, onCellulareSalvato }: BottomSheetProps) {
+function DovutoBottomSheet({ dovuto, cellulare, clienteId, studioNome, nomeLaboratorio, onClose, onRegistraPagamento, onCellulareSalvato }: BottomSheetProps) {
   const reducedMotion = useReducedMotion()
   const color = dovuto ? urgencyColor(dovuto) : DS.t2
   // D183/D185: il cellulare può mancare — il tasto non sparisce più (il gate
   // era `cellulare && !dovuto.pagata`, compito 4), chiede il numero e lo salva.
   const [chiediAperto, setChiediAperto] = useState(false)
 
-  const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo }) : ''
+  const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo, nomeLaboratorio }) : ''
   const whatsappUrl = (dovuto && cellulare && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, cellulare) : ''
 
   return (
@@ -240,9 +242,14 @@ function SezioneHeader({ label }: { label: string }) {
 
 interface Props {
   dati: EstrattoContoResponse
+  /** ⚖️ D345 — la firma dei solleciti: `laboratori.nome`, dal `getLabContext()`
+   *  che la pagina ha già (`(app)/scadenzario/[cliente_id]/page.tsx`). Non entra
+   *  in `dati`: quel contratto (`EstrattoContoResponse`) descrive il **cliente** e
+   *  i suoi dovuti, e il mittente non è un dato del cliente. */
+  nomeLaboratorio: string | null
 }
 
-export function EstrattoContoView({ dati }: Props) {
+export function EstrattoContoView({ dati, nomeLaboratorio }: Props) {
   const router = useRouter()
   const reducedMotion = useReducedMotion()
   const [selectedDovuto, setSelectedDovuto] = useState<DovutoEstratto | null>(null)
@@ -264,6 +271,7 @@ export function EstrattoContoView({ dati }: Props) {
   const whatsappMsgGlobale = buildWhatsappSollecito({
     studioNome: dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`,
     totaleInsoluto: dati.creditoCliente.confermato,
+    nomeLaboratorio,
   })
   // P31: il sollecito va sul cellulare, mai sul fisso dello studio.
   const whatsappUrlGlobale = dati.cliente.cellulare_whatsapp
@@ -401,6 +409,7 @@ export function EstrattoContoView({ dati }: Props) {
         cellulare={dati.cliente.cellulare_whatsapp}
         clienteId={dati.cliente.id}
         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
+        nomeLaboratorio={nomeLaboratorio}
         onClose={closeSheet}
         onRegistraPagamento={setTargetPagamento}
         onCellulareSalvato={() => router.refresh()}

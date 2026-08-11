@@ -1,0 +1,615 @@
+# Review package: 9021e78d..97ea8082
+
+## Commits
+97ea8082 fix(avvisi): prova il perimetro laboratorio_id+lavoro_id sull'UPDATE (D354, rilievo Important)
+b88c98b9 fix(avvisi): un atto chiude tutte le righe aperte del lavoro (D354, Task 4-quater)
+
+## Files changed
+ src/app/api/lavori/[id]/avviso/route.ts | 170 +++++++++++++++++++++++--------
+ tests/unit/api-avviso.test.ts           | 171 +++++++++++++++++++++++++++-----
+ 2 files changed, 277 insertions(+), 64 deletions(-)
+
+## Diff
+diff --git a/src/app/api/lavori/[id]/avviso/route.ts b/src/app/api/lavori/[id]/avviso/route.ts
+index 79ec26a4..b6b44d8f 100644
+--- a/src/app/api/lavori/[id]/avviso/route.ts
++++ b/src/app/api/lavori/[id]/avviso/route.ts
+@@ -10,69 +10,103 @@ import {
+   ammetteTestoInviato,
+ } from '@/lib/avvisi/stati'
+ import type { StatoAvviso, StatoAvvisoChiuso } from '@/lib/avvisi/stati'
+ import { puoChiudereAvviso } from '@/lib/avvisi/ruoli'
+ 
+ /**
+  * POST /api/lavori/[id]/avviso — segna un avviso al dentista come COMUNICATO,
+  * dall'app o a voce. Task 4 dell'ondata «l'avviso al dentista».
+  *
+  * Corpo: `{ avviso_id: string, come: 'dall_app' | 'a_voce', testo?: string }`
+- * → `200 { ok: true, avviso: { … } }`
++ * → `200 { ok: true, avviso: { … } }` — il contratto verso il client NON è
++ * cambiato dal Task 4-quater: `avviso` resta la riga indicata dal corpo
++ * (unico chiamante vivo: `AvvisoDentista.tsx:513-531`, legge `esito.avviso`).
+  *
+  * ⚖️ **D335 — i due modi valgono uguale**, e in entrambi si registra **chi** e
+  * **quando**. Non c'è una via «di serie» e una «di ripiego»: un avviso dato di
+  * persona chiude l'obbligo esattamente come uno mandato dall'app.
+  *
+  * ⚖️ **D339 — si scrive il testo MANDATO, e nessuna bozza.** Il testo arriva dal
+  * client perché è modificabile (⚖️ D334) e perché **a mandarlo è una persona,
+  * non l'app** (⚖️ D331): da qui non parte niente, si registra soltanto. 🛑 Per la
+  * stessa ragione **questa rotta non può sapere se il messaggio è partito
+  * davvero** — registra che l'odontotecnico dichiara di averlo mandato. Nessun
+  * commento e nessuna prova deve far credere il contrario.
+  *
++ * ⚖️ **D354 — UN ATTO CHIUDE TUTTE LE RIGHE APERTE DEL LAVORO (10/08/2026,
++ * Task 4-quater).** Se un lavoro ha più promemoria aperti (due correzioni
++ * prima di un solo avviso), un solo atto di comunicazione li chiude TUTTI —
++ * stesso `stato`, stesso `comunicato_at`, stesso `comunicato_da` (e stesso
++ * `testo_inviato` se dall'app) su ogni riga: l'oggetto `daScrivere` è UNO
++ * solo, quindi l'identità dei valori è per costruzione, non da mantenere
++ * allineata a mano. In banca dati le righe restano tante quante sono nate
++ * (il registro è la prova); ciò che diventa uno è **l'atto di chiusura**.
++ * 🔑 **La risposta resta la riga indicata**, non l'elenco: il client di oggi
++ * non sa cosa farsene delle altre, e inventare qui una forma nuova sarebbe un
++ * contratto preso di striscio. Referto del panel che l'ha fondata:
++ * `docs/roadmap/2026-08-10-panel-due-avvisi-referto.md` §3, §4, §6.
++ *
+  * ═══ IL PERIMETRO PER RUOLO — ⚖️ D342, DECISO IL 09/08/2026 ══════════════════
+  * 🔄 **QUI C'ERA SCRITTO «DOMANDA APERTA, NON UNA DECISIONE», e non lo è più.**
+  * La riga è **riscritta al suo posto** e non corretta in fondo: in un file lungo
+  * vince ciò che si legge per primo, e una correzione messa *dopo* l'affermazione
+  * che smentisce non la sostituisce — la lascia in piedi (`CLAUDE.md` §9, D296).
+  *
+  * ⚖️ **D342 — chi chiude un avviso sta *IN* laboratorio: `titolare` ·`tecnico` ·
+  * `front_desk`. Esclusi `admin_rete` E `admin_sistema`, entrambi PER NOME.**
+  * 🛑 **L'elenco e la motivazione di ogni nome vivono in `src/lib/avvisi/ruoli.ts`**
+  * — un modulo foglia, senza import, che server, browser e prove possono leggere
+  * tutti. Questa rotta lo **ri-esporta** (v. il riquadro più sotto) e usa
+  * `puoChiudereAvviso`: qui non c'è nessuna seconda copia da tenere allineata.
+  * 🔑 **La visibilità è un SOTTOINSIEME del permesso:** nessuno vede un promemoria
+  * che non può chiudere. Non è un bicondizionale — si può mostrare *meno* di ciò
+  * che si permette, mai il contrario. È il motivo per cui `ruoli.ts` esporta
+  * **due** predicati e non uno.
+  * 📌 Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`,
+  * **centoquarantottesima tornata**.
+  *
+- * ═══ PERCHÉ I FILTRI DELL'AGGIORNAMENTO SONO TRE, E NESSUNO È DECORATIVO ════
++ * ═══ DUE LETTURE/SCRITTURE, DUE PERIMETRI — NESSUN FILTRO È DECORATIVO ══════
+  * Questa rotta scrive con `getServiceClient`, cioè `service_role`, che ha
+  * `rolbypassrls = true`: **la RLS non la tocca affatto**, e lo dice la migration
+  * che stringe i permessi (`20260809124517`, «il permesso per colonna è l'unica
+  * cosa che limita davvero cosa una rotta può scrivere»).
+- * - `laboratorio_id` — è la riga che tiene la scrittura dentro il laboratorio di
+- *   chi ha chiesto. Senza, l'`avviso_id` di un altro laboratorio si chiudeva.
+- * - `lavoro_id` — 🔴 **il piano non lo chiede, ed è un suo difetto**: il lavoro
+- *   sta nel percorso e l'avviso nel corpo, e niente imponeva che i due
+- *   parlassero dello stesso lavoro. È la stessa famiglia già scritta nella rotta
+- *   modello (`eventi-qualita/route.ts:429-437`): «la FK composita difende dal
+- *   caso *evento di un altro laboratorio*, non dal caso *evento dello stesso
+- *   laboratorio ma di un ALTRO lavoro*, che passerebbe in silenzio». Qui non
+- *   c'è nessuna FK a difendere: senza questo filtro l'indirizzo mentirebbe.
+- * - `stato IN <aperti>` — è l'aggiornamento CONDIZIONATO, cioè il 409 senza
+- *   corsa: due richieste concorrenti non possono vincere entrambe, e la seconda
+- *   trova zero righe invece di riscrivere autore e data della prima.
++ *
++ * 🔑 **Dal Task 4-quater (⚖️ D354) i perimetri sono DUE, uno per ciascuna
++ * interrogazione, e non si somigliano per caso:**
++ *
++ * 1. **La VERIFICA, prima di scrivere:** `id` + `laboratorio_id` + `lavoro_id`
++ *    — trova ESATTAMENTE la riga indicata dal corpo, nel perimetro giusto.
++ *    - `id` — è la riga indicata dal corpo: senza, la verifica non verifica
++ *      nulla di preciso.
++ *    - `laboratorio_id` — tiene la lettura dentro il laboratorio di chi ha
++ *      chiesto. Senza, l'`avviso_id` di un altro laboratorio riceverebbe un
++ *      409 — cioè la conferma che esiste.
++ *    - `lavoro_id` — 🔴 **il piano non lo chiedeva al Task 4, ed era un suo
++ *      difetto**: il lavoro sta nel percorso e l'avviso nel corpo, e niente
++ *      imponeva che i due parlassero dello stesso lavoro. Stessa famiglia
++ *      della rotta modello (`eventi-qualita/route.ts:429-437`): «la FK
++ *      composita difende dal caso *evento di un altro laboratorio*, non dal
++ *      caso *evento dello stesso laboratorio ma di un ALTRO lavoro*, che
++ *      passerebbe in silenzio». Qui non c'è nessuna FK a difendere: senza
++ *      questo filtro l'indirizzo mentirebbe.
++ * 2. **La SCRITTURA, condizionata:** `laboratorio_id` + `lavoro_id` +
++ *    `stato IN <aperti>` — **senza `id`**: è il punto di ⚖️ D354, chiude TUTTE
++ *    le righe aperte di QUESTO lavoro con lo stesso atto, non solo quella
++ *    indicata.
++ *    - `laboratorio_id` + `lavoro_id` — ora è il PERIMETRO PRIMARIO di cosa si
++ *      chiude, non più una difesa secondaria accanto a `id`: definiscono
++ *      «tutte le righe aperte» esattamente come «tutte le righe aperte DI
++ *      QUESTO lavoro, DI QUESTO laboratorio».
++ *    - `stato IN <aperti>` — è l'aggiornamento CONDIZIONATO, cioè il 409 senza
++ *      corsa: due richieste concorrenti non possono vincere entrambe, e la
++ *      seconda trova zero righe invece di riscrivere autore e data della
++ *      prima (o, dal Task 4-quater, di tutte).
+  */
+ 
+ type RouteContext = { params: Promise<{ id: string }> }
+ 
+ // Forma UUID canonica — idioma di casa (`eventi-qualita/route.ts:61`): scarta
+ // PRIMA della query un id che farebbe fallire il cast `uuid` di Postgres con un
+ // `22P02` grezzo, cioè un 500 al posto di una frase.
+ const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+ 
+ /**
+@@ -286,20 +320,70 @@ export async function POST(req: Request, { params }: RouteContext) {
+     testo = testoGrezzo
+   } else if (testoGrezzo !== undefined && testoGrezzo !== null) {
+     // 🛑 NON SI SCARTA IN SILENZIO. Il `CHECK` vieta un testo su ogni stato
+     // diverso da `comunicato_dall_app` — compresa una bozza su `da_comunicare` —
+     // perché ⚖️ D339 dice che la bozza proposta non si conserva. Chi manda un
+     // testo con «l'ho avvisato a voce» sta chiedendo una cosa che la tabella
+     // rifiuta: ignorarlo gli farebbe credere di aver salvato la telefonata.
+     return err('Con «l\'ho avvisato di persona» non si registra nessun testo: il messaggio si conserva solo quando parte dall\'app.', 422)
+   }
+ 
++  const svc = getServiceClient()
++
++  // ── la verifica, PRIMA della scrittura (⚖️ D354, Task 4-quater) ─────────
++  // 🛑 L'avviso indicato dal corpo si verifica QUI, nello STESSO perimetro
++  // (`laboratorio_id` + `lavoro_id`) che userà la scrittura — PRIMA di
++  // toccare niente: senza questa verifica, un `avviso_id` di un ALTRO lavoro
++  // chiuderebbe comunque le righe di QUESTO lavoro (l'update sotto non porta
++  // più `id` nel suo perimetro) — il corpo dichiarerebbe una cosa e l'atto ne
++  // farebbe un'altra. Le tre distinzioni che il ramo zero-righe faceva fino a
++  // ieri (assente · già chiuso · fuori vocabolario) restano tutte, solo
++  // spostate davanti alla scrittura.
++  const { data: verificata, error: erroreVerifica } = await svc
++    .from('avvisi_dentista')
++    .select('id, stato')
++    .eq('id', avvisoId)
++    .eq('laboratorio_id', context.laboratorioId)
++    .eq('lavoro_id', lavoroId)
++    .maybeSingle()
++
++  if (erroreVerifica) {
++    // 🛑 Un errore di LETTURA non si legge come «non trovato»: sarebbe un 404
++    // falso su un guasto transitorio del database, più bugiardo del 500 che
++    // lo sostituisce. Nessuna prova di questo file forzava questo ramo prima
++    // del Task 4-quater perché prima non c'era una lettura PRIMA della
++    // scrittura di cui l'errore potesse essere confuso con un 404.
++    console.error('[AVVISO] lettura di verifica fallita:', erroreVerifica)
++    return err('Non sono riuscita a segnare l\'avviso come comunicato: riprova fra un momento.', 500)
++  }
++
++  if (!verificata) return err('Avviso non trovato', 404)
++
++  const statoVerificato = (verificata as { stato?: unknown }).stato
++  if (isStatoAvviso(statoVerificato) && chiudeIlPromemoria(statoVerificato)) {
++    return err('Questo avviso è già stato segnato come comunicato: ricarica la scheda del lavoro.', 409)
++  }
++  if (!isStatoAvviso(statoVerificato)) {
++    // Fail-closed. Ci si arriva solo con uno stato fuori dal vocabolario, cosa
++    // che il `CHECK` non ammette e che quindi non dovrebbe esistere — e non si
++    // legge come «apribile».
++    console.error('[AVVISO] stato fuori vocabolario sull\'avviso da verificare:', {
++      avvisoId,
++      lavoroId,
++      stato: statoVerificato,
++    })
++    return err('Non sono riuscita a segnare questo avviso: ricarica la scheda del lavoro e riprova.', 409)
++  }
++  // Altrimenti `statoVerificato` è uno stato valido e APERTO (l'unico caso
++  // rimasto: `isStatoAvviso` vero e `chiudeIlPromemoria` falso — cioè
++  // `STATI_APERTI`, per costruzione di `stati.ts`). Si procede alla scrittura.
++
+   // ── la scrittura: le QUATTRO colonne concesse, e nessuna di più ──────────
+   // 🛑 `comunicato_da` viene dalla SESSIONE, mai dal corpo — e la colonna punta
+   // a `public.utenti(id)`, che è la stessa chiave dell'utente autenticato
+   // (`utenti_id_fkey → auth.users(id)`), quindi l'identificativo di sessione è
+   // scrivibile lì **per disegno**.
+   // 📌 `comunicato_at` la mette l'orologio del **processo Node**, e la scelta è
+   // dichiarata: da PostgREST non si può mandare un'espressione SQL, quindi il
+   // `now()` del database vorrebbe dire un trigger o una funzione — cioè una
+   // migration, fuori dal mandato di questo compito. I server dell'app girano a
+   // UTC sincronizzato, e `toISOString()` porta il fuso dentro il valore, quindi
+@@ -313,71 +397,75 @@ export async function POST(req: Request, { params }: RouteContext) {
+     stato,
+     comunicato_at: new Date().toISOString(),
+     comunicato_da: context.userId,
+   }
+   // `testo` è non-nullo **esattamente** quando `ammetteTestoInviato(stato)` è
+   // vero (v. sopra). 🔑 E la chiave si OMETTE invece di mandare `null`: idioma
+   // di casa (`eventi-qualita/route.ts:373-376`), e qui in più il `CHECK`
+   // garantisce già `NULL` su una riga ancora `da_comunicare`.
+   if (testo !== null) daScrivere.testo_inviato = testo
+ 
+-  const svc = getServiceClient()
+-
+   const COLONNE = 'id, lavoro_id, cliente_id, stato, comunicato_at, comunicato_da, testo_inviato'
+ 
++  // ⚖️ D354 — L'UPDATE PERDE `.eq('id', avvisoId)`: chiude TUTTE le righe
++  // aperte di QUESTO lavoro con l'atto, non solo quella indicata dal corpo.
++  // Il perimetro diventa `laboratorio_id` + `lavoro_id` + `stato IN
++  // STATI_APERTI` — stessi tre valori su ogni riga toccata, perché
++  // `daScrivere` è UN oggetto solo.
+   const { data: aggiornate, error: erroreUpdate } = await svc
+     .from('avvisi_dentista')
+     .update(daScrivere)
+-    .eq('id', avvisoId)
+     .eq('laboratorio_id', context.laboratorioId)
+     .eq('lavoro_id', lavoroId)
+     .in('stato', STATI_APERTI)
+     .select(COLONNE)
+ 
+   if (erroreUpdate) {
+     // Il testo di Postgres resta nei log del server: chi legge la risposta è
+     // un'operatrice al banco, e «violates check constraint» non le dice cosa fare.
+     console.error('[AVVISO] aggiornamento fallito:', erroreUpdate)
+     return err('Non sono riuscita a segnare l\'avviso come comunicato: riprova fra un momento.', 500)
+   }
+ 
+   const righe = (aggiornate ?? []) as Array<Record<string, unknown>>
+ 
+   if (righe.length === 0) {
+-    // Zero righe vuol dire tre cose diverse, e vanno distinte con una lettura
+-    // ristretta allo STESSO perimetro: senza i due filtri, un avviso di un altro
+-    // laboratorio riceverebbe un 409 — cioè la conferma che esiste.
+-    const { data: esistente } = await svc
+-      .from('avvisi_dentista')
+-      .select('id, stato')
+-      .eq('id', avvisoId)
+-      .eq('laboratorio_id', context.laboratorioId)
+-      .eq('lavoro_id', lavoroId)
+-      .maybeSingle()
+-
+-    if (!esistente) return err('Avviso non trovato', 404)
+-
+-    const statoTrovato = (esistente as { stato?: unknown }).stato
+-    if (isStatoAvviso(statoTrovato) && chiudeIlPromemoria(statoTrovato)) {
+-      return err('Questo avviso è già stato segnato come comunicato: ricarica la scheda del lavoro.', 409)
+-    }
++    // 🔑 Le tre distinzioni (assente · già chiuso · fuori vocabolario) sono
++    // state fatte SOPRA, prima della scrittura: qui può arrivarci SOLO la
++    // corsa con un collega — ha chiuso tutte le righe aperte di questo lavoro
++    // (questa stessa rotta chiude in blocco) fra la nostra lettura di verifica
++    // e il nostro UPDATE. Resta fail-closed e onesto, non un 200 vuoto.
++    console.error('[AVVISO] zero righe aggiornate su un avviso appena verificato aperto (corsa con un collega):', {
++      avvisoId,
++      lavoroId,
++    })
++    return err('Non sono riuscita a segnare questo avviso: ricarica la scheda del lavoro e riprova.', 409)
++  }
+ 
+-    // Fail-closed. Ci si arriva solo con uno stato fuori dal vocabolario (che il
+-    // `CHECK` non ammette) o con una riga ancora aperta che l'aggiornamento non
+-    // ha toccato: entrambe le cose non dovrebbero esistere, e nessuna delle due
+-    // si legge come «riuscito».
+-    console.error('[AVVISO] zero righe aggiornate su un avviso raggiungibile:', {
++  // 🛑 FAIL-CLOSED: la riga indicata dal corpo era aperta un istante fa (l'abbiamo
++  // appena verificata), ma se non compare fra quelle scritte ORA non si inventa
++  // — è di nuovo la corsa con un collega, che ha chiuso tutto (questa stessa
++  // riga compresa) prima del nostro UPDATE, il quale ha quindi trovato solo
++  // ALTRE righe ancora aperte del lavoro (o nessuna, ramo sopra). Si risponde
++  // con la stessa onestà del ramo zero-righe, non con `righe[0]`: un'altra
++  // riga del lavoro non è la riga che il corpo ha chiesto di chiudere.
++  const mia = righe.find((r) => (r as { id?: unknown }).id === avvisoId)
++  if (!mia) {
++    console.error('[AVVISO] la riga indicata non è fra quelle appena aggiornate:', {
+       avvisoId,
+       lavoroId,
+-      stato: statoTrovato,
++      aggiornate: righe.map((r) => (r as { id?: unknown }).id),
+     })
+     return err('Non sono riuscita a segnare questo avviso: ricarica la scheda del lavoro e riprova.', 409)
+   }
+ 
+   // 🔑 La risposta è un SOVRAINSIEME di quella dichiarata dal piano
+   // (`200 { ok: true }`), e la differenza è dichiarata: porta **la riga davvero
+   // salvata**, così chi ha chiesto non deve rileggerla per sapere com'è finita.
++  // ⚖️ D354 — porta la riga INDICATA dal corpo, scelta dall'elenco aggiornato
++  // (`mia`), non l'elenco intero: il contratto verso il client non cambia,
++  // anche se l'UPDATE che l'ha prodotta può aver toccato più righe.
+   // 🛑 Nessun campo calcolato e nessuna etichetta da mostrare: il foglio non
+   // esiste ancora (dopo questo compito c'è il cancello §0B), e inventare qui una
+   // parola da stampare sarebbe un contratto d'interfaccia preso di striscio.
+-  return NextResponse.json({ ok: true, avviso: righe[0] }, { status: 200 })
++  return NextResponse.json({ ok: true, avviso: mia }, { status: 200 })
+ }
+diff --git a/tests/unit/api-avviso.test.ts b/tests/unit/api-avviso.test.ts
+index eb6971ea..4cb98553 100644
+--- a/tests/unit/api-avviso.test.ts
++++ b/tests/unit/api-avviso.test.ts
+@@ -64,20 +64,48 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+ //    sostituisce — la lascia in piedi (`CLAUDE.md` §9, D296).
+ //
+ //  ㉔ la allowlist contiene solo ruoli veri, ed è esattamente quella di D342
+ //  ㉕ i TRE ammessi                                    → 200 + riga scritta
+ //  ㉖ `admin_rete`                                     → 403, DB non toccato
+ //  ㉗ `admin_sistema` CON laboratorio valorizzato      → 403, DB non toccato
+ //  ㉘ i due esclusi prendono la STESSA frase           → il cancello è uno
+ //  ㉙ un ruolo FUORI dai cinque (`admin` nudo, …)      → 403 (allowlist, non
+ //     blocklist: è la sola prova che distingue le due forme)
+ // ═══════════════════════════════════════════════════════════════════════════
++//
++// 🔄 ⚖️ D354 (Task 4-quater, 10/08/2026) — UN ATTO CHIUDE TUTTE LE RIGHE
++//    APERTE DEL LAVORO. La rotta ora LEGGE prima di scrivere (verifica
++//    nel perimetro `id`+`laboratorio_id`+`lavoro_id`), e SOLO se trova la
++//    riga aperta procede all'UPDATE, che ha perso `.eq('id', …)`: il suo
++//    perimetro è `laboratorio_id`+`lavoro_id`+`stato IN STATI_APERTI`.
++//    🛑 QUESTA RIGA SOSTITUISCE, NON AGGIUNGE: ⑯⑰·⑱·⑲ sopra sono state
++//    RISCRITTE per il nuovo ordine (leggi-poi-scrivi) — non hanno più un
++//    doppione qui sotto (`CLAUDE.md` §9, D296: la correzione sta dove
++//    stava il fatto vecchio, non in coda).
++//
++//  Ⓐ due righe APERTE dello stesso lavoro → un atto → risposta = la riga
++//     INDICATA (non `righe[0]`), l'update non porta più `id`
++//  Ⓑ una riga aperta + una GIÀ chiusa → l'update chiede SOLO `stato IN
++//     STATI_APERTI` (nessuno stato chiuso in quell'elenco) — che la riga
++//     chiusa non venga davvero riscritta lo garantisce quel filtro sul
++//     database vero, non il finto client (che non sa filtrare, idioma
++//     già in ⑯⑰)
++//  Ⓒ `avviso_id` fuori dal perimetro, ANCHE con altre righe aperte nel
++//     lavoro → 404 PRIMA di ogni scrittura (coperta da ⑯⑰ riscritta)
++//  Ⓓ riga indicata già chiusa → 409 e NESSUN update (coperta da ⑱ riscritta)
++//  Ⓔ una sola riga aperta → 200, `avviso` = quella riga: comportamento
++//     INVARIATO, dimostrato dalle prove di successo già in file (㉑ ㉑-bis
++//     ㉒ ㉒-bis ㉕), che restano guardie di regressione sotto la nuova rotta
++//  Ⓕ la lettura di verifica fallisce (errore del database) → 500, non un
++//     404 bugiardo — ramo nuovo, che prima non poteva esistere perché non
++//     c'era una lettura PRIMA della scrittura
++// ═══════════════════════════════════════════════════════════════════════════
+ 
+ const { mockFrom, mockGetFreshLabContext } = vi.hoisted(() => ({
+   mockFrom: vi.fn(),
+   mockGetFreshLabContext: vi.fn(),
+ }))
+ 
+ vi.mock('@/lib/supabase/server-service', () => ({
+   getServiceClient: () => ({ from: mockFrom }),
+ }))
+ vi.mock('@/lib/supabase/lab-context', () => ({
+@@ -111,55 +139,71 @@ function catena(risultato: Risultato): Catena {
+   // si risolve senza `single()`, com'è per un aggiornamento a più righe.
+   c.then = (resolve: (v: unknown) => void) => resolve(risultato)
+   return c
+ }
+ 
+ const LAB_ID = '11111111-1111-1111-1111-111111111111'
+ const USER_ID = '99999999-9999-9999-9999-999999999999'
+ const LAVORO_ID = '33333333-3333-3333-3333-333333333333'
+ const AVVISO_ID = '44444444-4444-4444-4444-444444444444'
+ const CLIENTE_ID = '55555555-5555-5555-5555-555555555555'
++// La SECONDA riga aperta dello stesso lavoro (⚖️ D354, Task 4-quater): serve
++// a distinguere «la rotta risponde con `righe[0]`» da «la rotta CERCA
++// `avviso_id`» — le due si comportano uguale finché c'è una sola riga.
++const ALTRO_AVVISO_ID = '66666666-6666-6666-6666-666666666666'
+ 
+ const CONTESTO = {
+   userId: USER_ID,
+   email: 'anna@lab.it',
+   ruolo: 'titolare',
+   laboratorioId: LAB_ID,
+   nome: 'Anna',
+   cognome: 'Bianchi',
+   lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab di prova' },
+ }
+ 
+ const TESTO = '📄 La dichiarazione del lavoro #STOR/2021/016 è stata rifatta.'
+ 
+ /**
+- * Il banco: la prima chiamata a `from('avvisi_dentista')` serve
+- * l'aggiornamento condizionato, la seconda l'eventuale lettura di
+- * disambiguazione (che esiste SOLO quando l'aggiornamento non tocca righe).
++ * Il banco: dal Task 4-quater (⚖️ D354) la PRIMA chiamata a
++ * `from('avvisi_dentista')` serve la VERIFICA (legge PRIMA di scrivere, nel
++ * perimetro `id`+`laboratorio_id`+`lavoro_id`), la SECONDA l'UPDATE — che ora
++ * corre SOLO se la verifica ha trovato una riga aperta nel perimetro.
++ * 🔄 Fino al Task 4-quater l'ordine era invertito (update, poi un'eventuale
++ * lettura di disambiguazione SOLO a zero righe): l'inversione qui è la
++ * conseguenza diretta di spostare 404/409 PRIMA della scrittura.
++ *
++ * `verificata` di default è una riga APERTA (`da_comunicare`) con l'id
++ * richiesto: è il caso di successo, il più comune nel file. `undefined` →
++ * default; `null` esplicito → «non trovata» (per il 404).
+  */
+ function banco(opts: {
++  verificata?: Record<string, unknown> | null
++  erroreVerifica?: { code?: string; message?: string } | null
+   aggiornate?: Record<string, unknown>[]
+   erroreUpdate?: { code?: string; message?: string } | null
+-  riga?: Record<string, unknown> | null
+ } = {}) {
++  const catenaVerifica = catena({
++    data: opts.erroreVerifica ? null : opts.verificata !== undefined ? opts.verificata : { id: AVVISO_ID, stato: 'da_comunicare' },
++    error: opts.erroreVerifica ?? null,
++  })
+   const catenaUpdate = catena({
+     data: opts.erroreUpdate ? null : (opts.aggiornate ?? [rigaChiusa()]),
+     error: opts.erroreUpdate ?? null,
+   })
+-  const catenaLettura = catena({ data: opts.riga ?? null, error: null })
+   const tabelle: string[] = []
+-  const code = [catenaUpdate, catenaLettura]
++  const code = [catenaVerifica, catenaUpdate]
+   mockFrom.mockImplementation((tabella: string) => {
+     tabelle.push(tabella)
+     return code.shift() ?? catena({ data: null, error: null })
+   })
+-  return { catenaUpdate, catenaLettura, tabelle }
++  return { catenaVerifica, catenaUpdate, tabelle }
+ }
+ 
+ function rigaChiusa(extra: Record<string, unknown> = {}) {
+   return {
+     id: AVVISO_ID,
+     lavoro_id: LAVORO_ID,
+     cliente_id: CLIENTE_ID,
+     stato: 'comunicato_dall_app',
+     comunicato_at: new Date().toISOString(),
+     comunicato_da: USER_ID,
+@@ -376,77 +420,158 @@ describe('POST /api/lavori/[id]/avviso — il testo, e il 422 che arriva PRIMA d
+ 
+   it('⑮ `a_voce` con `testo: null` passa: `null` vale come assente', async () => {
+     const b = banco({ aggiornate: [rigaChiusa({ stato: 'comunicato_a_voce', testo_inviato: null })] })
+     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce', testo: null }), params())
+     expect(r.status).toBe(200)
+     expect(Object.hasOwn(payloadDiUpdate(b.catenaUpdate), 'testo_inviato')).toBe(false)
+   })
+ })
+ 
+ describe('POST /api/lavori/[id]/avviso — a quale avviso si può arrivare', () => {
+-  it('⑯⑰ un avviso di un altro laboratorio o di un altro lavoro risponde 404', async () => {
+-    // Il finto client non sa filtrare: chi filtra è la rotta. La prova sta nel
+-    // fatto che l'aggiornamento PORTA i due filtri, e che a zero righe la
+-    // lettura di controllo (con gli stessi filtri) non trova niente → 404.
+-    const b = banco({ aggiornate: [], riga: null })
++  it('⑯⑰Ⓒ un avviso di un altro laboratorio o di un altro lavoro risponde 404, PRIMA di ogni scrittura', async () => {
++    // ⚖️ D354 (Task 4-quater): dal 10/08 la VERIFICA corre PRIMA dell'update,
++    // quindi qui l'update non parte MAI — è la coppia «codice giusto +
++    // NESSUN update», idioma già in ⑪ e ㉖-㉙. 🔄 Fino a ieri era l'update a
++    // girare per primo (a zero righe) e la lettura di disambiguazione a
++    // seguirlo: qui la prova è RISCRITTA per il nuovo ordine, non duplicata.
++    const b = banco({ verificata: null })
+     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+     expect(r.status).toBe(404)
+-    const f = filtri(b.catenaUpdate)
++    const f = filtri(b.catenaVerifica)
+     expect(f.laboratorio_id).toBe(LAB_ID)
+     expect(f.lavoro_id).toBe(LAVORO_ID)
+     expect(f.id).toBe(AVVISO_ID)
+-    // e la lettura di disambiguazione è ristretta allo stesso perimetro
+-    const g = filtri(b.catenaLettura)
+-    expect(g.laboratorio_id).toBe(LAB_ID)
+-    expect(g.lavoro_id).toBe(LAVORO_ID)
++    expect(mockFrom).toHaveBeenCalledTimes(1)
++    expect(b.catenaUpdate.chiamate).toHaveLength(0)
+   })
+ 
+-  it('🛑 l\'aggiornamento è CONDIZIONATO allo stato ancora aperto, e l\'elenco è DERIVATO da stati.ts', async () => {
++  it('🛑 l\'aggiornamento è CONDIZIONATO allo stato ancora aperto, l\'elenco è DERIVATO da stati.ts, NON porta più `id`, e porta `laboratorio_id`+`lavoro_id` (⚖️ D354)', async () => {
+     const b = banco()
+     await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+-    const aperti = filtri(b.catenaUpdate)['in:stato'] as string[]
++    const f = filtri(b.catenaUpdate)
++    const aperti = f['in:stato'] as string[]
+     // Non si ricopia «da_comunicare»: si controlla che l'elenco sia ESATTAMENTE
+     // il complemento di STATI_CHIUSI dentro STATI_AVVISO. Il giorno in cui
+     // nascesse un quarto stato, questa prova dice da sola cosa deve accadere.
+     expect([...aperti].sort()).toEqual(
+       STATI_AVVISO.filter((s) => !(STATI_CHIUSI as readonly string[]).includes(s)).sort()
+     )
++    // ⚖️ D354 — L'UNICA prova che distingue «chiude solo la riga indicata» da
++    // «chiude tutte le righe aperte del lavoro»: l'update NON porta `id` nel
++    // suo perimetro. Senza questa riga, un ritorno a `.eq('id', avvisoId)`
++    // lascerebbe questo file verde.
++    expect(Object.hasOwn(f, 'id')).toBe(false)
++    // 🛑 RILIEVO DI REVISIONE (Important, 10/08/2026): con `id` fuori
++    // dall'update, `laboratorio_id`+`lavoro_id` sono diventati l'INTERO
++    // perimetro di un aggiornamento multi-riga — non più una difesa
++    // accanto a `id`, ma l'unica cosa che tiene l'atto dentro QUESTO lavoro
++    // DI QUESTO laboratorio. Nessuna delle 34 prove originarie asseriva la
++    // loro PRESENZA sulla catena UPDATE (solo `in:stato` e l'assenza di
++    // `id`): una modifica futura che cancellasse `.eq('lavoro_id', …)`
++    // avrebbe chiuso gli avvisi aperti di QUALSIASI lavoro del laboratorio, e
++    // senza `laboratorio_id` la fuga sarebbe cross-tenant — in entrambi i
++    // casi questo file sarebbe rimasto verde. Le due righe sotto lo impediscono.
++    expect(f.laboratorio_id).toBe(LAB_ID)
++    expect(f.lavoro_id).toBe(LAVORO_ID)
+   })
+ 
+-  it('⑱ un avviso GIÀ chiuso risponde 409, non un secondo aggiornamento silenzioso', async () => {
++  it('⑱Ⓓ un avviso GIÀ chiuso risponde 409, e NESSUN update parte', async () => {
+     for (const stato of STATI_CHIUSI) {
+-      banco({ aggiornate: [], riga: rigaChiusa({ stato }) })
++      const b = banco({ verificata: rigaChiusa({ stato }) })
+       const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+       expect(r.status, `stato ${stato}`).toBe(409)
++      expect(b.catenaUpdate.chiamate, `stato ${stato}`).toHaveLength(0)
+       vi.clearAllMocks()
+       mockGetFreshLabContext.mockResolvedValue(CONTESTO)
+     }
+   })
+ 
+-  it('⑲ uno stato fuori vocabolario non si legge come «apribile»: 409 fail-closed', async () => {
+-    banco({ aggiornate: [], riga: rigaChiusa({ stato: 'pippo' }) })
++  it('⑲ uno stato fuori vocabolario non si legge come «apribile»: 409 fail-closed, PRIMA della scrittura', async () => {
++    const b = banco({ verificata: rigaChiusa({ stato: 'pippo' }) })
+     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+     expect(r.status).toBe(409)
+     expect(erroreSpy).toHaveBeenCalled()
++    expect(b.catenaUpdate.chiamate).toHaveLength(0)
++  })
++
++  it('Ⓕ un errore nella lettura di verifica risponde 500, non un 404 bugiardo', async () => {
++    // Ramo nuovo (⚖️ D354): prima non c'era una lettura PRIMA della
++    // scrittura di cui un errore di rete potesse essere confuso con un 404.
++    const b = banco({ erroreVerifica: { code: '57014', message: 'canceling statement due to timeout' } })
++    const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
++    expect(r.status).toBe(500)
++    const body = await r.json()
++    expect(body.error).not.toContain('canceling statement')
++    expect(erroreSpy).toHaveBeenCalled()
++    expect(mockFrom).toHaveBeenCalledTimes(1)
++    expect(b.catenaUpdate.chiamate).toHaveLength(0)
++  })
++
++  it('Ⓐ due righe APERTE dello stesso lavoro → un atto chiude ENTRAMBE: la risposta è la riga INDICATA, non `righe[0]`', async () => {
++    // 🔑 L'ALTRA riga PRIMA di quella indicata nell'elenco simulato: se la
++    // rotta rispondesse con `righe[0]` invece di CERCARE `avviso_id`, questa
++    // prova la prenderebbe — risponderebbe con la riga sbagliata.
++    const b = banco({
++      aggiornate: [
++        rigaChiusa({ id: ALTRO_AVVISO_ID, stato: 'comunicato_a_voce', testo_inviato: null }),
++        rigaChiusa({ id: AVVISO_ID, stato: 'comunicato_a_voce', testo_inviato: null }),
++      ],
++    })
++    const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
++    expect(r.status).toBe(200)
++    const body = await r.json()
++    expect(body.avviso.id).toBe(AVVISO_ID)
++    // 🛑 Il finto client non sa filtrare (idioma di ⑯⑰): la prova che l'atto
++    // CHIUDE DAVVERO tutte le righe aperte del lavoro, e non solo quella
++    // indicata, sta nell'assenza del filtro `id` sull'update — provata sopra
++    // (test «🛑 l'aggiornamento è CONDIZIONATO…») — unita a `daScrivere`
++    // essere UN oggetto solo (stessi tre valori per costruzione, v. payload
++    // qui sotto).
++    const payload = payloadDiUpdate(b.catenaUpdate)
++    expect(payload.stato).toBe('comunicato_a_voce')
++    expect(Object.hasOwn(payload, 'id')).toBe(false)
++  })
++
++  it('Ⓑ una riga aperta + una GIÀ chiusa nello stesso lavoro: l\'update chiede SOLO le APERTE', async () => {
++    // 🛑 Il finto client non sa filtrare: chi filtra è il database vero,
++    // tramite `.in('stato', STATI_APERTI)`. Qui si prova che la rotta CHIEDE
++    // solo le aperte (nessuno stato di STATI_CHIUSI compare in quell'elenco)
++    // — che la riga GIÀ chiusa non venga davvero riscritta lo garantisce
++    // quel filtro sul database vero, non questa prova unitaria (stesso
++    // limite dichiarato di ⑯⑰).
++    const b = banco({ aggiornate: [rigaChiusa({ stato: 'comunicato_a_voce', testo_inviato: null })] })
++    const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
++    expect(r.status).toBe(200)
++    const aperti = filtri(b.catenaUpdate)['in:stato'] as string[]
++    for (const chiuso of STATI_CHIUSI) {
++      expect(aperti, `in:stato non deve contenere ${chiuso}`).not.toContain(chiuso)
++    }
++    const body = await r.json()
++    expect(body.avviso.id).toBe(AVVISO_ID)
+   })
+ 
+   it('⑳ un errore del database risponde 500, e il messaggio non porta il testo di Postgres', async () => {
+     banco({ erroreUpdate: { code: '23514', message: 'violates check constraint "avviso_testo_solo_se_dall_app"' } })
+     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'a_voce' }), params())
+     expect(r.status).toBe(500)
+     const body = await r.json()
+     expect(body.error).not.toContain('check constraint')
+     expect(erroreSpy).toHaveBeenCalled()
+   })
+ })
+ 
+ describe('POST /api/lavori/[id]/avviso — che cosa si scrive davvero', () => {
++  // Ⓔ (⚖️ D354, Task 4-quater): «una sola riga aperta → 200, `avviso` = quella
++  // riga» resta IDENTICO sotto la rotta nuova — le prove ㉑ ㉑-bis ㉒ ㉒-bis ㉕
++  // sotto (e ⑬-bis, ⑮ sopra) sono guardie di REGRESSIONE per questo caso, non
++  // prove nuove: erano verdi prima del Task 4-quater e restano verdi dopo,
++  // grazie al default `verificata` (riga aperta) di `banco()`.
+   it('㉑ `dall_app`: scrive le QUATTRO colonne concesse e NESSUNA altra', async () => {
+     const b = banco()
+     const r = await POST(req({ avviso_id: AVVISO_ID, come: 'dall_app', testo: TESTO }), params())
+     expect(r.status).toBe(200)
+ 
+     // 🔑 IL CONTROLLO POSITIVO del finto client: se `from` non fosse collegato,
+     // tutti gli `not.toHaveBeenCalled()` di questo file passerebbero a vuoto.
+     expect(mockFrom).toHaveBeenCalledWith('avvisi_dentista')
+ 
+     const payload = payloadDiUpdate(b.catenaUpdate)

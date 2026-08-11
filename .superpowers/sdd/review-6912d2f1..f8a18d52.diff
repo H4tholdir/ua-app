@@ -1,0 +1,687 @@
+# Review package: 6912d2f1..f8a18d52
+
+## Commits
+f8a18d52 test(avvisi): il corpo di AvvisoDentista giudicato dalla rotta VERA (Task 10-A)
+
+## Files changed
+ .superpowers/sdd/avviso-dentista-task-10a-brief.md |  61 ++++
+ .../sdd/avviso-dentista-task-10a-report.md         | 203 +++++++++++
+ tests/unit/avviso-foglio-contratto.test.tsx        | 393 +++++++++++++++++++++
+ 3 files changed, 657 insertions(+)
+
+## Diff
+diff --git a/.superpowers/sdd/avviso-dentista-task-10a-brief.md b/.superpowers/sdd/avviso-dentista-task-10a-brief.md
+new file mode 100644
+index 00000000..b005c039
+--- /dev/null
++++ b/.superpowers/sdd/avviso-dentista-task-10a-brief.md
+@@ -0,0 +1,61 @@
++# Task 10-A — LA PROVA A CONTRATTO: il corpo del foglio si giudica con LA ROTTA VERA (riga 38 della coda)
++
++**Ondata:** «l'avviso al dentista» · **ramo:** `intervento-post-consegna` (attivo — MAI worktree)
++**Nasce da:** il Task 10 del piano (`docs/superpowers/plans/2026-08-09-avviso-al-dentista.md`, riga
++~534) + la **riga 38 della coda** (`docs/roadmap/ROADMAP-UFFICIALE.md:355`). **Zero migration.**
++**BASE:** `6912d2f1`.
++
++---
++
++## 0. Il difetto di categoria che questa prova chiude
++
++La riga 38: cinque prove unitarie erano verdi su un corpo che la rotta rifiutava — niente legava il
++corpo COMPOSTO dal foglio al CONTRATTO della rotta, perché le prove fingevano `fetch`. Il rimedio,
++già usato e misurato nell'ondata precedente: **smettere di fingere `fetch` e instradare il corpo
++composto sulla rotta vera** — a giudicare è il contratto stesso, senza terze copie del vocabolario.
++
++**Il modello di casa è `tests/unit/devo-intervenire-contratto.test.tsx`: APRILO PER PRIMO e copia
++l'approccio** (come monta il componente, come intercetta il corpo, come lo passa all'handler POST
++importato, come finge il minimo indispensabile attorno alla rotta senza fingere la sua validazione).
++
++## 1. Il mandato
++
++**File nuovo:** `tests/unit/avviso-foglio-contratto.test.tsx` (o nome coerente col modello).
++**Nessun file di produzione si tocca.** Se instradando il corpo vero scopri che la rotta LO RIFIUTA
++(cioè un disaccordo reale foglio↔rotta): 🛑 **FERMATI e riporta BLOCKED con il caso esatto** — è un
++difetto vero, e la decisione su come chiuderlo non è tua (R-E2).
++
++Il soggetto: il foglio `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` compone il corpo
++`{ avviso_id, come, testo? }` e lo manda a `POST /api/lavori/[id]/avviso` (fetch a riga ~513).
++La rotta è `src/app/api/lavori/[id]/avviso/route.ts` (aggiornata stamattina da D354: verifica
++l'avviso indicato PRIMA, poi chiude TUTTE le righe aperte del lavoro).
++
++**Le forme da coprire (una prova per riga, tutte instradate sulla rotta VERA):**
++① il corpo del percorso «WhatsApp» (comunicato dall'app, col testo modificato dall'utente) → la rotta
++  lo ACCETTA (200);
++② il corpo del percorso «l'ho avvisato di persona» (a voce, senza testo) → la rotta lo ACCETTA (200);
++③ il corpo «a voce» quando il componente avesse un testo in mano → la rotta rifiuta un testo su
++  «a voce» (422): la prova documenta che il foglio NON lo manda (il corpo composto vero non porta la
++  chiave) — è la coppia «il foglio compone giusto» + «la rotta rifiuterebbe il contrario»;
++④ una mutazione PLAUSIBILE del corpo (es. rinominare una chiave, o mandare una chiave in più) → la
++  rotta la RIFIUTA: è la dimostrazione che il giudice è il contratto, non una copia.
++Conta e dichiara: con le prove nuove in piedi e il foglio INTATTO, quante si accendono se il corpo
++composto cambia in modo plausibile (la misura della riga 38: «7 su 9» nell'ondata precedente).
++
++**Confini dichiarati (NON tuo mandato):** il verso opposto (risposta del server → schermata) e la
++chiusura a livello di tipo restano APERTI come da riga 38 aggiornata — non li affrontare, dichiarali.
++
++## 2. Regole di casa (vincolanti)
++
++- Directory `/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app`, ramo attivo.
++- La rotta usa `getFreshLabContext`/`getServiceClient`/`isSameOrigin`: guarda come il MODELLO li
++  gestisce (finge l'ambiente attorno alla rotta, MAI la sua validazione).
++- FASE 7 prima del commit: `npx tsc --noEmit` · `npx vitest run` · `npx next build`.
++- 🛑 `git status` PRIMA · `git add <percorsi>`, MAI `-A` · NIENTE push · R-E2.
++- Commit: `test(avvisi): …`.
++
++## 3. Il resoconto
++
++Completo in `.superpowers/sdd/avviso-dentista-task-10a-report.md` (approccio copiato dal modello ·
++le forme coperte · la misura «N si accendono su M» · confini dichiarati). Poi rispondi con SOLO
++(max 12 righe): **Status** · commit · una riga sui test · la misura · riserve · percorso del resoconto.
+diff --git a/.superpowers/sdd/avviso-dentista-task-10a-report.md b/.superpowers/sdd/avviso-dentista-task-10a-report.md
+new file mode 100644
+index 00000000..a1760e3a
+--- /dev/null
++++ b/.superpowers/sdd/avviso-dentista-task-10a-report.md
+@@ -0,0 +1,203 @@
++# Task 10-A — La prova a contratto: il corpo del foglio giudicato dalla rotta VERA
++
++**Ramo:** `intervento-post-consegna` · **10 agosto 2026** (`provato:` `date` → verificata prima di scrivere questo file)
++**Mandato:** `.superpowers/sdd/avviso-dentista-task-10a-brief.md`
++**Modello copiato:** `tests/unit/devo-intervenire-contratto.test.tsx`
++
++| cosa | esito |
++|---|---|
++| File nuovo | `tests/unit/avviso-foglio-contratto.test.tsx` — **4 prove**, tutte verdi al primo giro |
++| File di produzione toccati | **zero** — `git status` prima e dopo, invariato |
++| Le quattro forme (§1 del brief) | **tutte coperte**, una per riga (①②③④) |
++| La misura (censimento) | **`sempre_testo`: 2 su 4** · **`rinomina_avviso_id`: 3 su 4** — misurate, non stimate |
++| FASE 7 | `tsc` **0** · `vitest run` **6066 passate / 137 saltate / 0 rosse** · `next build` **riuscito** |
++| Riserve | interpretazione della «misura» diverge dal precedente (dichiarata sotto) |
++
++---
++
++## ① L'approccio, copiato dal modello
++
++`devo-intervenire-contratto.test.tsx` smette di fingere `fetch`: lo trasforma in un adattatore che
++costruisce una `Request` vera e la consegna alla `POST` autentica della rotta, restituendo al
++componente la `Response` che il server produrrebbe davvero. Questo file fa lo stesso, per la coppia
++`AvvisoDentista.tsx` ↔ `src/app/api/lavori/[id]/avviso/route.ts`:
++
++- **Le due finzioni della rotta**, identiche a `api-avviso.test.ts`: `@/lib/supabase/server-service`
++  (`getServiceClient` → `{ from: mockFrom }`) e `@/lib/supabase/lab-context` (`getFreshLabContext`).
++  Nessuna finzione di `isSameOrigin`: la `Request` non porta `origin`, e `csrf.ts:9` la considera
++  sicura per costruzione (caso server-to-server) — stessa nota del modello.
++- **Le due finzioni del componente**: `next/navigation` (`useRouter` → `refresh`/`push`/`replace`
++  finti, il foglio non naviga mai) — non serve fingere `useNavigaDaOverlay`, perché
++  `AvvisoDentista.tsx` non lo importa (a differenza del foglio gemello).
++- **Il banco finto** distingue la VERIFICA (`select().eq().eq().eq().maybeSingle()`, risolta da un
++  metodo esplicito) dall'AGGIORNAMENTO (`update().eq().eq().in().select()`, risolto dall'`await`
++  sull'intera catena via `then`) — due percorsi di risoluzione che non si scontrano mai, quindi un
++  solo oggetto catena basta per entrambi.
++- **Il ponte** (`instradaVersoLaRottaVera`) legge il `lavoroId` per `params` **dall'URL catturato**,
++  non da una costante: un foglio che componesse l'indirizzo sbagliato lo vedrebbe passare, se qui si
++  fosse ripiegato su `LAVORO_ID` (correzione fatta prima di scrivere, su indicazione ricevuta in
++  revisione preventiva — v. §④).
++
++**Differenza dal modello, dichiarata:** questa rotta risponde **200**, non 201 (`route.ts:470`). Il
++modello copre `POST /eventi-qualita`, che crea una riga nuova; `/avviso` ne aggiorna una esistente.
++Un `toBe(201)` copiato alla lettera sarebbe stato un difetto silenzioso nella prova stessa.
++
++---
++
++## ② Le quattro forme, una per riga
++
++| # | forma | esito atteso | test |
++|---|---|---|---|
++| ① | WhatsApp, testo modificato dall'utente | 200 | `① WhatsApp, testo modificato dall'utente → la rotta VERA accetta (200)` |
++| ② | «l'ho avvisato io, a voce», senza testo | 200 | `② «l'ho avvisato io, a voce», senza testo → la rotta VERA accetta (200)` |
++| ③ | «a voce» con un testo già in mano | il foglio NON lo manda (200, chiave assente) **+** se lo mandasse, 422 | `③ «a voce» con un testo già in mano: …` |
++| ④ | mutazione plausibile del corpo (chiave rinominata, chiave in più) | 422 | `④ una mutazione PLAUSIBILE del corpo …` |
++
++**Su ①:** gesti veri — apri il foglio, scegli WhatsApp, cambia il testo nel campo, tocca il collegamento
++verde. Il corpo catturato dal ponte è `{ avviso_id, come: 'dall_app', testo }` con il testo **modificato
++a mano**, non quello proposto di default: prova che ⚖️ D334 («il testo modificato è quello che parte»)
++non solo compone giusto in isolamento, ma **supera anche il contratto vero**.
++
++**Su ②:** `programmaAVoce()` differisce la scrittura di `FINESTRA_ANNULLO_AVVISO_MS` (⚖️ D351): serve un
++orologio finto, avanzato dentro `act` (mai `waitFor` in quel blocco — gira su `setTimeout` finto, e
++`AvvisoDentista.test.tsx:398` porta già l'avvertimento scritto). Il corpo catturato è esattamente
++`{ avviso_id, come: 'a_voce' }`: nessuna chiave `testo`, nemmeno `null`.
++
++**Su ③:** lo stato `testo` del componente è **uno solo**, condiviso dalle due strade
++(`AvvisoDentista.tsx:288-290`), e nasce già valorizzato da `buildAvvisoMessage` al montaggio — «in
++mano» prima ancora che qualcuno apra il passo del messaggio. La prova passa dal passo WhatsApp solo
++per **confermare** che quel testo non è vuoto, poi torna alla scelta e prende la strada «a voce»: il
++corpo composto dal foglio non porta `testo` (verificato con `'testo' in corpo === false`, non con
++un controllo di lunghezza — la chiave dev'essere **assente**, non vuota). La seconda metà della prova
++— «se lo mandasse, la rotta lo rifiuterebbe» — manda un corpo scritto a mano con `testo` su `a_voce`
++e legge **422** dalla rotta vera: è la coppia che il brief chiede, e nessuna delle due metà da sola
++la dimostrerebbe.
++
++**Su ④:** due mutazioni, entrambe plausibili invece che rotte apposta:
++- **chiave rinominata** — `avviso_id` → `avvisoId` (la convenzione camelCase che il resto del
++  componente usa altrove): 422, e `mockFrom` mai chiamato — il rifiuto arriva dall'allowlist, prima
++  di ogni lettura.
++- **chiave in più** — `comunicato_da` aggiunta al corpo (un tentativo, anche innocente, di far
++  scrivere l'autore dal client): 422, stessa allowlist, stesso `mockFrom` mai chiamato.
++
++Nessuna delle due forme ha mai fatto arrivare la richiesta al database finto: il giudizio è tutto nel
++contratto (`CHIAVI_AMMESSE`, `route.ts:179`), non in una copia di quel contratto scritta da questa
++prova.
++
++**Nessuna rotta ha rifiutato un corpo vero del foglio.** Le quattro prove sono passate al primo giro —
++niente da riportare come BLOCKED.
++
++---
++
++## ③ La misura — «quante prove si accendono se il corpo composto cambia»
++
++### La scelta di metodo, e perché diverge dal precedente
++
++Il brief chiede la misura «con le prove nuove in piedi e il foglio INTATTO». Il precedente (Task 10,
++`devo-intervenire`) l'ha ottenuta mutando **temporaneamente il componente di produzione**
++(`DevoIntervenire.tsx`), contando le prove rosse, e poi **annullando** la mutazione (`git checkout`)
++prima di chiudere. Qui non l'ho fatto: **nessun file di produzione è stato toccato, nemmeno in modo
++transitorio**, per rispettare alla lettera sia la regola d'ingaggio di questo compito («Nessun file di
++produzione si tocca») sia la lettera del brief («il foglio INTATTO»).
++
++La leva sta invece nel **ponte** (codice di prova, non di produzione): `mutaSeRichiesto` applica una
++mutazione plausibile al corpo **in transito**, sempre inerte a meno che la variabile d'ambiente
++`AVVISO_MUTAZIONE` non sia valorizzata. Durante una corsa normale (`npx vitest run …`, anche dentro
++`verify:full` o CI) quella variabile non è mai impostata: la suite eseguita è **sempre** quella scritta,
++mai una copia mutata. La misura si ottiene rilanciando il file da fuori con la variabile accesa e
++leggendo l'uscita reale.
++
++⚠️ **Divergenza dichiarata, non nascosta:** le due ondate misurano la stessa domanda («quante prove
++noterebbero un rifacimento plausibile del corpo?») con un meccanismo diverso (componente mutato e
++ripristinato vs. ponte che muta il transito), quindi **i numeri delle due ondate non sono la stessa
++unità di misura** — non sono comparabili riga per riga. Chi confronta «7 su 9» del Task 10 con i numeri
++sotto deve saperlo.
++
++### Le due mutazioni, e perché sono plausibili
++
++- **`sempre_testo`** — «mandiamo sempre il testo, anche a voce»: è esattamente il rifacimento contro
++  cui mette in guardia il commento in produzione (`AvvisoDentista.tsx:504`, «*il corpo cambia con la
++  strada, e non per eleganza*»). Tocca **solo** il percorso «a voce».
++- **`rinomina_avviso_id`** — `avviso_id` → `avvisoId`: un refuso di refactor verso la convenzione
++  camelCase. Tocca **ogni** corpo, indipendentemente dalla strada.
++
++### I numeri, misurati
++
++```
++provato: npx vitest run tests/unit/avviso-foglio-contratto.test.tsx
++→ Test Files  1 passed (1) | Tests  4 passed (4)                              [baseline, M=4]
++
++provato: AVVISO_MUTAZIONE=sempre_testo npx vitest run tests/unit/avviso-foglio-contratto.test.tsx
++→ Test Files  1 failed (1) | Tests  2 failed | 2 passed (4)
++   × ② «l'ho avvisato io, a voce», senza testo → la rotta VERA accetta (200)
++     AssertionError: expected 422 to be 200
++   × ③ «a voce» con un testo già in mano: …
++     AssertionError: expected 422 to be 200
++
++provato: AVVISO_MUTAZIONE=rinomina_avviso_id npx vitest run tests/unit/avviso-foglio-contratto.test.tsx
++→ Test Files  1 failed (1) | Tests  3 failed | 1 passed (4)
++   × ① WhatsApp, testo modificato dall'utente → la rotta VERA accetta (200)
++   × ② «l'ho avvisato io, a voce», senza testo → la rotta VERA accetta (200)
++   × ③ «a voce» con un testo già in mano: …
++```
++
++**`sempre_testo`: 2 su 4** si accendono (②③ — le due prove che passano dalla strada «a voce»).
++**`rinomina_avviso_id`: 3 su 4** si accendono (①②③ — ogni prova che passa dal ponte componendo un
++corpo vero; solo ④ resta verde, e per un motivo dichiarato sotto, non per un buco).
++
++🔑 **Perché ④ non si accende mai, sotto nessuna delle due mutazioni — e non è un buco.** ④ manda corpi
++**già** scorretti di suo (chiave rinominata a mano, chiave in più a mano): applicarci sopra una
++mutazione del censimento non cambia l'esito (422 resta 422, o perché la mutazione è un no-op su un
++corpo che non ha `avviso_id` da rinominare una seconda volta, o perché `sempre_testo` non tocca `come:
++'dall_app'`). ④ misura una cosa diversa da ①②③ — non «il ponte arriva al contratto», ma «il contratto
++rifiuta un corpo già rotto» — ed è corretto che sia invariante al censimento.
++
++---
++
++## ④ Confini dichiarati (NON affrontati, per mandato)
++
++- **Il verso opposto — risposta del server → schermata.** Nessuna prova di questo file rende il passo
++  «Fatto» a partire da una risposta che la rotta ha davvero costruito. `leggiRiuscita` resta scritta a
++  mano contro un tipo (`RigaSalvata`) mai confrontato col tipo di ritorno della rotta.
++- **La chiusura a livello di tipo.** Perché sparisse anche la classe di difetto «campo rinominato
++  compila lo stesso», la rotta dovrebbe esportare il tipo del corpo e della risposta, e il componente
++  comporre `satisfies` contro quel tipo. Non l'ho fatto: è un cambiamento alla rotta, fuori da questo
++  mandato (R-E2).
++- **Il client Supabase resta finto.** Questo file misura il contratto HTTP, non la banca dati — quella
++  resta a `api-avviso.test.ts` (che finge la rotta per isolare 29 forme d'input) e a
++  `tests/integration/` (database vero).
++- **`TETTO_TESTO`/`LIMITE_TESTO`, i due numeri paralleli.** Il commento in `AvvisoDentista.tsx:154-162`
++  dichiara già la divergenza possibile fra `TETTO_TESTO` (componente) e `LIMITE_TESTO` (rotta): non
++  l'ho toccata, non è il soggetto di questo compito.
++
++---
++
++## ⑤ FASE 7 — output reale
++
++```
++npx tsc --noEmit
++→ TSC_EXIT=0
++
++npx vitest run
++→ Test Files  462 passed | 11 skipped (473)
++   Tests  6066 passed | 137 skipped (6203)
++
++npx next build
++→ BUILD_EXIT=0 (tutte le rotte generate, incluso /api/lavori/[id]/avviso)
++```
++
++`git status` prima e dopo: solo due file nuovi, entrambi sotto `.superpowers/sdd/` e `tests/unit/` —
++nessun file sotto `src/` toccato.
++
++---
++
++## ⑥ Che cosa NON ho fatto
++
++- Non ho toccato `memory/MEMORY.md` né `docs/roadmap/ROADMAP-UFFICIALE.md`: il mandato del Task 10-A
++  non lo chiede (è lavoro di test, non un cambiamento di stato del prodotto), e la chiusura a ledger
++  segue lo stesso schema delle ondate precedenti (`docs(sdd): Task N chiuso a ledger`, un passo
++  separato).
++- Non ho pubblicato il ramo (`git push`): resta locale, nessuna istruzione a farlo in questo mandato.
++- Non ho esteso il censimento a una terza mutazione: due bastano a mostrare che il ponte è sensibile
++  su assi diversi (un solo percorso vs. entrambi), ed è la stessa cardinalità che l'advisor consultato
++  in fase di progettazione ha indicato come sufficiente.
+diff --git a/tests/unit/avviso-foglio-contratto.test.tsx b/tests/unit/avviso-foglio-contratto.test.tsx
+new file mode 100644
+index 00000000..2e08107d
+--- /dev/null
++++ b/tests/unit/avviso-foglio-contratto.test.tsx
+@@ -0,0 +1,393 @@
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
++import { AvvisiProvider } from '@/components/ds/Avviso'
++import { AvvisoDentista, FINESTRA_ANNULLO_AVVISO_MS } from '@/components/features/lavori/scheda-v3/AvvisoDentista'
++
++/**
++ * ═══════════════════════════════════════════════════════════════════════════
++ *  IL FOGLIO PARLA CON LA ROTTA VERA — Task 10-A dell'ondata «l'avviso al
++ *  dentista», e chiude la STESSA categoria di difetto della riga 38, per il
++ *  foglio gemello.
++ * ═══════════════════════════════════════════════════════════════════════════
++ *
++ * 🔑 IL MODELLO È `tests/unit/devo-intervenire-contratto.test.tsx`, e questo
++ * file ne copia l'approccio: il `fetch` non si finge, si INSTRADA. La spia
++ * costruisce una `Request` vera e chiama la `POST` autentica della rotta —
++ * `import { POST } from '@/app/api/lavori/[id]/avviso/route'` — restituendo al
++ * componente la `Response` che il server produrrebbe davvero. Il corpo lo
++ * compone il foglio; a giudicarlo è il contratto, non una copia del contratto.
++ *
++ * 🛑 CHE COSA RESTA FINTO: il client Supabase (`getServiceClient`) e
++ * `getFreshLabContext`. Questa prova sorveglia il confine **corpo → contratto**
++ * (forma, vocabolario, il vincolo stretto `avviso_testo_solo_se_dall_app`), non
++ * ciò che accade davvero in banca dati — quello vive in `api-avviso.test.ts`
++ * (che finge la rotta e prova il suo comportamento in isolamento) e in
++ * `tests/integration/` (che parla col database vero).
++ *
++ * ═══ I CONFINI, DICHIARATI E NON AFFRONTATI (mandato del Task 10-A) ═══════
++ * · Il verso OPPOSTO (risposta del server → schermata «Fatto») resta APERTO,
++ *   com'era per il foglio gemello dopo il Task 10: questo file non prova che
++ *   `leggiRiuscita` renda davvero il corpo che la rotta ha costruito.
++ * · La chiusura a LIVELLO DI TIPO (la rotta esporta il tipo del corpo e della
++ *   risposta, il foglio compone `satisfies`) resta APERTA — è un cambiamento
++ *   alla rotta, fuori da questo mandato (R-E2).
++ *
++ * ═══ LA MISURA (§2 del brief) — «quante prove si accendono» ══════════════
++ * 🔑 Il censimento NON tocca `AvvisoDentista.tsx` (il brief lo chiede
++ * «INTATTO»): la leva sta nel PONTE, non nel foglio. `mutaSeRichiesto` sotto
++ * applica una mutazione plausibile al corpo IN TRANSITO, sempre inerte
++ * (`process.env.AVVISO_MUTAZIONE` non è mai valorizzato durante una corsa
++ * normale — la suite qui sotto è quindi sempre quella scritta, mai una
++ * copia mutata). La misura si ottiene da FUORI, rilanciando l'intero file con
++ * la variabile valorizzata e leggendo quante `it` diventano rosse — il
++ * risultato reale, coi comandi e l'uscita incollata, sta nel resoconto
++ * (`avviso-dentista-task-10a-report.md`), non qui: qui vive solo il
++ * meccanismo, perché deve restare disponibile a chi rilancerà la misura in
++ * futuro.
++ * ⚠️ Divergenza dichiarata dal precedente (Task 10, `devo-intervenire`): là la
++ * mutazione veniva scritta nel COMPONENTE e poi annullata (`git checkout`);
++ * qui vive nel PONTE e non tocca mai un file di produzione. Le due strade
++ * rispondono alla stessa domanda («quante prove noterebbero un rifacimento
++ * plausibile del corpo?»), ma i numeri delle due ondate non sono la stessa
++ * unità di misura — chi confronta le due cifre deve saperlo.
++ */
++
++// ── le due finzioni della ROTTA (le stesse di `api-avviso.test.ts`) ─────────
++const { mockFrom, mockGetFreshLabContext } = vi.hoisted(() => ({
++  mockFrom: vi.fn(),
++  mockGetFreshLabContext: vi.fn(),
++}))
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ from: mockFrom }),
++}))
++vi.mock('@/lib/supabase/lab-context', () => ({ getFreshLabContext: mockGetFreshLabContext }))
++
++// ── le finzioni del COMPONENTE (le stesse di `AvvisoDentista.test.tsx`) ────
++const refreshMock = vi.fn()
++const pushMock = vi.fn()
++const replaceMock = vi.fn()
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({ push: pushMock, replace: replaceMock, refresh: refreshMock }),
++}))
++
++import { POST as POST_AVVISO } from '@/app/api/lavori/[id]/avviso/route'
++
++const LAVORO_ID = '11111111-1111-1111-1111-111111111111'
++const LAB_ID = '22222222-2222-2222-2222-222222222222'
++const UTENTE_ID = '99999999-9999-9999-9999-999999999999'
++const AVVISO_ID = '55555555-5555-5555-5555-555555555555'
++
++/** Il formato maggioritario in banca dati, non `2026/0042` (v. modello). */
++const NUMERO = 'STOR/2021/016'
++const STUDIO = 'Studio Bianchi'
++const LAB_NOME = 'Laboratorio Odontotecnico Formicola'
++const TOKEN = 'a1b2c3d4-0000-4000-8000-000000000001'
++const TELEFONO = '333 1234567'
++
++const PROPS = {
++  lavoroId: LAVORO_ID,
++  avvisoId: AVVISO_ID,
++  numeroLavoro: NUMERO,
++  nomeStudio: STUDIO,
++  pazienteMostrato: 'ROSSI MARIO',
++  portalToken: TOKEN,
++  nomeLaboratorio: LAB_NOME as string | null,
++  telefonoStudio: TELEFONO as string | null,
++}
++
++const CONTESTO = {
++  userId: UTENTE_ID,
++  email: null,
++  ruolo: 'titolare',
++  laboratorioId: LAB_ID,
++  nome: null,
++  cognome: null,
++  lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
++}
++
++// ── il banco finto della rotta ──────────────────────────────────────────────
++type Risultato = { data: unknown; error: unknown }
++
++/** Lo stato che la VERIFICA (Ⓐ, prima della scrittura) trova per l'avviso
++ *  indicato. `da_comunicare` = aperto: è il caso di successo, il più comune
++ *  in questo file. */
++let statoDaVerificare: Record<string, unknown> | null
++/** L'ultimo oggetto passato a `.update(...)`: ciò che la rotta scriverebbe. */
++let ultimoAggiornamento: Record<string, unknown> | null
++
++/** Catena postgrest minima per una tabella che questa prova non deve toccare:
++ *  ogni metodo torna sé stesso, i terminali risolvono a vuoto. */
++function catenaInerte(): Record<string, unknown> {
++  const c: Record<string, unknown> = {}
++  for (const m of ['select', 'eq', 'in', 'is', 'order', 'limit'] as const) c[m] = () => c
++  c.maybeSingle = async () => ({ data: null, error: null }) as Risultato
++  c.single = async () => ({ data: null, error: null }) as Risultato
++  c.then = (ok: (v: Risultato) => void) => ok({ data: [], error: null })
++  return c
++}
++
++function preparaBanco() {
++  statoDaVerificare = { id: AVVISO_ID, stato: 'da_comunicare' }
++  ultimoAggiornamento = null
++  mockGetFreshLabContext.mockResolvedValue(CONTESTO)
++  mockFrom.mockImplementation((tabella: string) => {
++    if (tabella !== 'avvisi_dentista') return catenaInerte()
++    const c: Record<string, unknown> = {}
++    for (const m of ['select', 'eq', 'in', 'is', 'order', 'limit'] as const) c[m] = () => c
++    // La VERIFICA (`select(...).eq(...).eq(...).eq(...).maybeSingle()`) risolve
++    // qui — un metodo esplicito, non tramite `then`.
++    c.maybeSingle = async () => ({ data: statoDaVerificare, error: null }) as Risultato
++    c.single = async () => ({ data: statoDaVerificare, error: null }) as Risultato
++    // L'AGGIORNAMENTO (`update(...).eq(...).eq(...).in(...).select(...)`) non
++    // chiama nessun terminale esplicito: la rotta fa `await` sull'intera
++    // catena, e quell'`await` chiama `then`.
++    c.update = (riga: Record<string, unknown>) => {
++      ultimoAggiornamento = riga
++      return c
++    }
++    c.then = (ok: (v: Risultato) => void) =>
++      ok({
++        data: [{ id: AVVISO_ID, lavoro_id: LAVORO_ID, cliente_id: null, ...(ultimoAggiornamento ?? {}) }],
++        error: null,
++      })
++    return c
++  })
++}
++
++// ── IL CENSIMENTO — inerte finché nessuno accende `AVVISO_MUTAZIONE` ────────
++//
++// 🔑 Due mutazioni, scelte per essere PLAUSIBILI (un rifacimento vero che
++// qualcuno scriverebbe), non per rompere apposta:
++//  · `sempre_testo` — «mandiamo sempre il testo, anche a voce»: è esattamente
++//    il rifacimento contro cui mette in guardia il commento di
++//    `AvvisoDentista.tsx:504` («*il corpo cambia con la strada, e non per
++//    eleganza*»). Tocca SOLO il percorso «a voce» — un mutante interessante,
++//    non un tappeto rosso su tutto.
++//  · `rinomina_avviso_id` — un refuso di refactor (`avviso_id` → `avvisoId`,
++//    la convenzione camelCase che il resto del componente usa altrove) che
++//    tocca OGNI corpo, indipendentemente dalla strada.
++const MUTAZIONI: Record<string, (corpo: Record<string, unknown>) => Record<string, unknown>> = {
++  sempre_testo: (corpo) =>
++    corpo.come === 'a_voce' ? { ...corpo, testo: 'Gliel’ho detto stamattina, di persona.' } : corpo,
++  rinomina_avviso_id: (corpo) => {
++    const { avviso_id, ...resto } = corpo
++    return { ...resto, avvisoId: avviso_id }
++  },
++}
++
++function mutaSeRichiesto(corpo: Record<string, unknown>): Record<string, unknown> {
++  const nome = process.env.AVVISO_MUTAZIONE
++  if (!nome) return corpo
++  const f = MUTAZIONI[nome]
++  if (!f) {
++    throw new Error(`AVVISO_MUTAZIONE sconosciuta: «${nome}». Note: ${Object.keys(MUTAZIONI).join(', ')}`)
++  }
++  return f(corpo)
++}
++
++/** Ogni giro registrato: il corpo composto dal foglio (dopo un'eventuale
++ *  mutazione del censimento) e la risposta VERA della rotta. */
++type Giro = { corpo: Record<string, unknown>; status: number; risposta: unknown }
++
++/**
++ * 🔑 IL PONTE. `fetch` diventa un adattatore: prende ciò che il foglio ha
++ * composto, ne fa una `Request` e la consegna alla `POST` vera. Al componente
++ * torna la `Response` autentica, con il suo `ok` e il suo `status`.
++ *
++ * ⚠️ Nessuna intestazione `origin`: `isSameOrigin` (`src/lib/utils/csrf.ts:9`)
++ * considera sicura una richiesta che non ne porta — il caso server-to-server.
++ *
++ * 🔑 Il `lavoroId` per `params` si legge dall'URL CATTURATO, non da una
++ * costante: un foglio che componesse l'indirizzo sbagliato lo vedrebbe
++ * comunque passare, se qui si ripiegasse su `LAVORO_ID`.
++ */
++function instradaVersoLaRottaVera(): Giro[] {
++  const giri: Giro[] = []
++  vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
++    const match = /^\/api\/lavori\/([^/]+)\/avviso$/.exec(url)
++    if (!match) {
++      // Questo foglio ha una sola rotta: qui per difesa, non perché serva oggi.
++      return new Response(JSON.stringify({}), { status: 200 })
++    }
++    const [, lavoroIdDallUrl] = match
++    let corpo = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
++    corpo = mutaSeRichiesto(corpo)
++    const testo = JSON.stringify(corpo)
++    const req = new Request(`http://localhost${url}`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: testo,
++    })
++    const res = await POST_AVVISO(req, { params: Promise.resolve({ id: lavoroIdDallUrl }) })
++    const copia = res.clone()
++    giri.push({ corpo, status: res.status, risposta: await copia.json() })
++    return res
++  })
++  return giri
++}
++
++function monta(extra: Partial<typeof PROPS> = {}) {
++  return render(
++    <AvvisiProvider>
++      <AvvisoDentista {...PROPS} {...extra} />
++    </AvvisiProvider>
++  )
++}
++
++function apriFoglio() {
++  fireEvent.click(screen.getByRole('button', { name: /Avvisa il dentista/i }))
++}
++function stradaWhatsApp() {
++  return screen.getByRole('button', { name: /Glielo mando su WhatsApp/i })
++}
++function stradaVoce() {
++  return screen.getByRole('button', { name: /a voce/i })
++}
++function tastoVerde() {
++  return screen.getByRole('link', { name: /Mandalo su WhatsApp/i })
++}
++function campoMessaggio() {
++  return screen.getByLabelText(/Il messaggio che manderai/i) as HTMLTextAreaElement
++}
++
++describe('AvvisoDentista → la rotta VERA: il corpo composto dal foglio non può divergere dal contratto', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    // Esplicito e non lasciato all'ambiente (`api-avviso.test.ts:256`):
++    // `assertLabOperativo` gira per davvero qui, e non deve dipendere da una
++    // variabile che un'altra corsa potrebbe aver lasciato impostata.
++    process.env.UA_LAB_GUARD_MODE = 'enforce'
++    preparaBanco()
++  })
++  afterEach(() => vi.unstubAllGlobals())
++
++  // ═══ ① IL PERCORSO WHATSAPP ═════════════════════════════════════════════
++  it('① WhatsApp, testo modificato dall’utente → la rotta VERA accetta (200)', async () => {
++    const giri = instradaVersoLaRottaVera()
++    monta()
++    apriFoglio()
++    fireEvent.click(stradaWhatsApp())
++    fireEvent.change(campoMessaggio(), {
++      target: { value: 'Dottore, la dichiarazione è cambiata: la trova sul portale.' },
++    })
++    fireEvent.click(tastoVerde())
++
++    await waitFor(() => expect(giri.length).toBe(1))
++    // 🔴 È la riga che una prova a `fetch` finto non può scrivere: qui c'è
++    // davvero uno status da leggere, prodotto dalla rotta vera.
++    expect(giri[0].status).toBe(200)
++    expect(giri[0].corpo).toEqual({
++      avviso_id: AVVISO_ID,
++      come: 'dall_app',
++      testo: 'Dottore, la dichiarazione è cambiata: la trova sul portale.',
++    })
++  })
++
++  // ═══ ④ LA MUTAZIONE PLAUSIBILE — IL GIUDICE È IL CONTRATTO, NON UNA COPIA ═
++  it('④ una mutazione PLAUSIBILE del corpo (chiave rinominata, o chiave in più) → la rotta VERA la rifiuta', async () => {
++    instradaVersoLaRottaVera()
++
++    // Chiave rinominata: il rifacimento camelCase più ovvio da scrivere.
++    const conChiaveRinominata = await fetch(`/api/lavori/${LAVORO_ID}/avviso`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ avvisoId: AVVISO_ID, come: 'dall_app', testo: 'Un testo plausibile.' }),
++    })
++    expect(conChiaveRinominata.status).toBe(422)
++    expect(mockFrom).not.toHaveBeenCalled()
++
++    // Chiave in più: un tentativo (anche innocente) di far scrivere l'autore
++    // dal client invece che dalla sessione — l'allowlist la rifiuta a prescindere
++    // dal valore.
++    vi.clearAllMocks()
++    process.env.UA_LAB_GUARD_MODE = 'enforce'
++    preparaBanco()
++    const conChiaveInPiu = await fetch(`/api/lavori/${LAVORO_ID}/avviso`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({
++        avviso_id: AVVISO_ID,
++        come: 'dall_app',
++        testo: 'Un testo plausibile.',
++        comunicato_da: UTENTE_ID,
++      }),
++    })
++    expect(conChiaveInPiu.status).toBe(422)
++    expect(mockFrom).not.toHaveBeenCalled()
++  })
++})
++
++/**
++ * ⚖️ D351 — «A VOCE» SCRIVE DOPO UNA FINESTRA DI `FINESTRA_ANNULLO_AVVISO_MS`:
++ * qui servono orologi finti, avanzati a mano dentro `act` — MAI `waitFor`
++ * dentro questo blocco (gira su `setTimeout`, che è finto: resterebbe appesa,
++ * lezione già scritta in `AvvisoDentista.test.tsx:398`).
++ */
++describe('AvvisoDentista → la rotta VERA: la strada «a voce» (finestra ⚖️ D351, orologi finti)', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    process.env.UA_LAB_GUARD_MODE = 'enforce'
++    preparaBanco()
++    vi.useFakeTimers()
++  })
++  afterEach(() => {
++    vi.useRealTimers()
++    vi.unstubAllGlobals()
++  })
++
++  /** Fa scorrere la finestra fino in fondo e lascia risolvere la richiesta,
++   *  poi un giro a vuoto in più per i microtask che restano indietro. */
++  async function scadeLaFinestra() {
++    await act(async () => {
++      await vi.advanceTimersByTimeAsync(FINESTRA_ANNULLO_AVVISO_MS + 20)
++    })
++    await act(async () => {})
++  }
++
++  // ═══ ② IL PERCORSO «A VOCE» ═══════════════════════════════════════════════
++  it('② «l’ho avvisato io, a voce», senza testo → la rotta VERA accetta (200)', async () => {
++    const giri = instradaVersoLaRottaVera()
++    monta()
++    apriFoglio()
++    fireEvent.click(stradaVoce())
++    await scadeLaFinestra()
++
++    expect(giri.length).toBe(1)
++    expect(giri[0].status).toBe(200)
++    expect(giri[0].corpo).toEqual({ avviso_id: AVVISO_ID, come: 'a_voce' })
++  })
++
++  // ═══ ③ «A VOCE» CON UN TESTO GIÀ IN MANO ══════════════════════════════════
++  //
++  // 🔑 Lo stato `testo` è UNO SOLO, condiviso dalle due strade
++  // (`AvvisoDentista.tsx:288-290`): nasce già valorizzato da `buildAvvisoMessage`
++  // al montaggio, prima ancora che qualcuno apra il passo del messaggio. Qui si
++  // passa dal passo WhatsApp solo per CONFERMARE che quel testo è davvero «in
++  // mano» (non vuoto), poi si torna alla scelta e si prende la strada «a voce»:
++  // la coppia dimostra che il foglio compone giusto (non lo manda) **e** che la
++  // rotta rifiuterebbe il contrario (lo manderebbe → 422).
++  it('③ «a voce» con un testo già in mano: il foglio non lo manda, e se lo mandasse la rotta lo rifiuterebbe (422)', async () => {
++    const giri = instradaVersoLaRottaVera()
++    monta()
++    apriFoglio()
++    fireEvent.click(stradaWhatsApp())
++    expect(campoMessaggio().value.trim().length).toBeGreaterThan(0)
++    fireEvent.click(screen.getByRole('button', { name: /Torna alla scelta/i }))
++
++    fireEvent.click(stradaVoce())
++    await scadeLaFinestra()
++
++    expect(giri.length).toBe(1)
++    expect(giri[0].status).toBe(200)
++    expect('testo' in giri[0].corpo).toBe(false)
++
++    // E se lo mandasse — la metà che il foglio non può dimostrare da solo:
++    const res = await fetch(`/api/lavori/${LAVORO_ID}/avviso`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ avviso_id: AVVISO_ID, come: 'a_voce', testo: 'Gliel’ho detto io, a voce.' }),
++    })
++    expect(res.status).toBe(422)
++  })
++})

@@ -1,0 +1,232 @@
+# Review package: 185e55fd..HEAD
+
+## Commits
+0e7d1b6f feat(db): P7 registro DPA — cancello, traccia, e chi ha emesso
+
+## Files changed
+ src/types/database.types.ts                        | 10 ++++
+ ...804120000_p7_dpa_cancello_traccia_emesso_da.sql | 62 ++++++++++++++++++++++
+ supabase/schema.sql                                |  8 ++-
+ 3 files changed, 79 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index a8dff329..8578305a 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -786,20 +786,21 @@ export type Database = {
+       }
+       data_processing_agreements: {
+         Row: {
+           anno_dpa: number | null
+           created_at: string
+           data_scadenza: string | null
+           deleted_at: string | null
+           dentista_id: string | null
+           documento_url: string | null
+           emesso_at: string | null
++          emesso_da: string | null
+           firmato_at: string | null
+           firmato_da: string | null
+           id: string
+           laboratorio_id: string
+           note: string | null
+           numero_dpa: string | null
+           payload_sha256: string | null
+           pdf_sha256: string | null
+           progressivo_dpa: number | null
+           stato: string
+@@ -810,20 +811,21 @@ export type Database = {
+           updated_at: string
+         }
+         Insert: {
+           anno_dpa?: number | null
+           created_at?: string
+           data_scadenza?: string | null
+           deleted_at?: string | null
+           dentista_id?: string | null
+           documento_url?: string | null
+           emesso_at?: string | null
++          emesso_da?: string | null
+           firmato_at?: string | null
+           firmato_da?: string | null
+           id?: string
+           laboratorio_id: string
+           note?: string | null
+           numero_dpa?: string | null
+           payload_sha256?: string | null
+           pdf_sha256?: string | null
+           progressivo_dpa?: number | null
+           stato?: string
+@@ -834,20 +836,21 @@ export type Database = {
+           updated_at?: string
+         }
+         Update: {
+           anno_dpa?: number | null
+           created_at?: string
+           data_scadenza?: string | null
+           deleted_at?: string | null
+           dentista_id?: string | null
+           documento_url?: string | null
+           emesso_at?: string | null
++          emesso_da?: string | null
+           firmato_at?: string | null
+           firmato_da?: string | null
+           id?: string
+           laboratorio_id?: string
+           note?: string | null
+           numero_dpa?: string | null
+           payload_sha256?: string | null
+           pdf_sha256?: string | null
+           progressivo_dpa?: number | null
+           stato?: string
+@@ -865,20 +868,27 @@ export type Database = {
+             referencedRelation: "clienti"
+             referencedColumns: ["id"]
+           },
+           {
+             foreignKeyName: "data_processing_agreements_dentista_id_fkey"
+             columns: ["dentista_id"]
+             isOneToOne: false
+             referencedRelation: "partitario_clienti"
+             referencedColumns: ["cliente_id"]
+           },
++          {
++            foreignKeyName: "data_processing_agreements_emesso_da_fkey"
++            columns: ["emesso_da"]
++            isOneToOne: false
++            referencedRelation: "utenti"
++            referencedColumns: ["id"]
++          },
+           {
+             foreignKeyName: "data_processing_agreements_laboratorio_id_fkey"
+             columns: ["laboratorio_id"]
+             isOneToOne: false
+             referencedRelation: "laboratori"
+             referencedColumns: ["id"]
+           },
+         ]
+       }
+       dichiarazioni_conformita: {
+diff --git a/supabase/migrations/20260804120000_p7_dpa_cancello_traccia_emesso_da.sql b/supabase/migrations/20260804120000_p7_dpa_cancello_traccia_emesso_da.sql
+new file mode 100644
+index 00000000..cbfc8d72
+--- /dev/null
++++ b/supabase/migrations/20260804120000_p7_dpa_cancello_traccia_emesso_da.sql
+@@ -0,0 +1,62 @@
++-- supabase/migrations/20260804120000_p7_dpa_cancello_traccia_emesso_da.sql
++-- P7 — il registro DPA smette di essere scrivibile dal client dell'utente,
++-- comincia a lasciare traccia, e la traccia sa dire CHI ha emesso.
++-- Spec: docs/superpowers/specs/2026-08-04-p7-registro-dpa-cancello-traccia-design.md
++-- Decisioni: D146 (si parte da P7) · D147 (cancello + traccia) · D148 (il «chi»).
++--
++-- NON aggiungere BEGIN;/COMMIT; — il runner Supabase avvolge gia' la migration.
++-- L'idempotenza e' per SINGOLA istruzione: il file sopravvive a una seconda
++-- esecuzione anche se la prima si e' fermata a meta'.
++--
++-- Stato del catalogo VIVO letto il 04/08/2026 PRIMA di scrivere questo file
++-- (Management API, read_only:true) — le query in forma copiabile stanno nel
++-- piano, Task 1 Step 1, che e' in git e sopravvive a questo file:
++--   docs/superpowers/plans/2026-08-04-p7-registro-dpa-cancello-traccia.md
++--   · dpa_laboratorio: polcmd = '*' (ALL), polwithcheck = NULL
++--     → PostgreSQL riusa USING come WITH CHECK: un utente del laboratorio,
++--       anche un `tecnico`, potrebbe riscrivere le righe del proprio lab.
++--   · nessun automatismo di audit sulla tabella (10 tabelle agganciate, non questa);
++--   · emesso_da NON esiste (22 colonne censite una per una);
++--   · 2 righe, 0 firmate → nessun ADD COLUMN puo' abortire su dati veri.
++
++-- ── ① IL CANCELLO ────────────────────────────────────────────────────────────
++-- Il modello e' `sdi_receipts_laboratorio` (schema.sql:2963-2966), FOR SELECT,
++-- col commento «mai UPDATE/DELETE su documenti fiscali». Qui la ragione e' la
++-- stessa: una prova che la parte interessata puo' riscrivere non e' una prova.
++-- Il filtro `deleted_at IS NULL` RESTA: ora che la regola e' di sola lettura,
++-- fa il mestiere per cui era stato scritto — nascondere le righe archiviate.
++-- Nessun WITH CHECK: senza comando di scrittura ammesso non c'e' scrittura da
++-- controllare, e aggiungerlo darebbe l'idea di una porta dove non c'e' piu' porta.
++DROP POLICY IF EXISTS "dpa_laboratorio" ON public.data_processing_agreements;
++CREATE POLICY "dpa_laboratorio" ON public.data_processing_agreements
++  FOR SELECT USING (
++    laboratorio_id = public.current_lab_id() AND deleted_at IS NULL
++  );
++
++-- ── ② LA TRACCIA ─────────────────────────────────────────────────────────────
++-- Da DIECI tabelle sorvegliate a UNDICI. `_audit_trigger_fn` e' generica: legge
++-- `id` e `laboratorio_id` da to_jsonb(NEW/OLD), entrambe presenti qui.
++-- ⚠️ La traccia dira' COSA e QUANDO, non CHI: auth.uid() e' vuoto quando scrive
++-- il client di servizio (1.587 righe su 1.588 in audit_log — voce P25). Il «chi»
++-- di QUESTA tabella arriva dal blocco ③, dentro la fotografia della riga.
++DROP TRIGGER IF EXISTS _audit_data_processing_agreements ON public.data_processing_agreements;
++CREATE TRIGGER _audit_data_processing_agreements
++  AFTER INSERT OR DELETE OR UPDATE ON public.data_processing_agreements
++  FOR EACH ROW EXECUTE FUNCTION public._audit_trigger_fn();
++
++-- ── ③ IL «CHI» ───────────────────────────────────────────────────────────────
++-- Sta accanto a `emesso_at`: c'era il quando, mancava il chi.
++-- 🛑 NON e' `firmato_da`, che e' TEXT ed e' il nome della CONTROPARTE allo studio.
++-- Annullabile per scelta: le 2 righe esistenti sono nate prima e non si sa chi le
++-- abbia emesse — riempirle sarebbe inventare una prova. Il vincolo vive nel
++-- compilatore (terzo parametro OBBLIGATORIO di generateDpa), non in un valore finto.
++-- Chiave esterna NUDA come tutte le altre 18 verso `utenti`: nessun percorso
++-- cancella un utente singolo, e dentro admin_delete_laboratorio le righe DPA se ne
++-- vanno alla 155, `utenti` alla 163. ⚠️ Quell'ORDINE e' ora PORTANTE.
++-- Scartato ON DELETE SET NULL: cancellerebbe il «chi» quando un tecnico lascia il
++-- laboratorio, cioe' proprio quando serve — contraddirebbe D148 in silenzio.
++ALTER TABLE public.data_processing_agreements
++  ADD COLUMN IF NOT EXISTS emesso_da UUID REFERENCES public.utenti(id);
++
++COMMENT ON COLUMN public.data_processing_agreements.emesso_da IS
++  'Utente di UA che ha EMESSO il documento (chi ha premuto). Distinto da firmato_da, che e'' il nome della controparte allo studio. Vuoto sulle righe nate prima del 04/08/2026: non si inventa. Sul RIUSO di un''emissione esistente NON si riscrive (spec P7, T3b).';
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index 6b74d037..4c7cbbe5 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -2872,20 +2872,21 @@ CREATE TABLE data_processing_agreements (
+ 
+   -- Registro delle emissioni (ondata 1 — migration 20260803150000_dpa_registro_emissioni.sql).
+   -- I sette campi viaggiano tutti insieme o nessuno: v. CHECK dpa_emissione_coerente.
+   numero_dpa        TEXT,                              -- Es. "DPA-2026-0007"
+   anno_dpa          SMALLINT,
+   progressivo_dpa   INTEGER,                           -- da genera_progressivo(tipo='dpa')
+   storage_path_pdf  TEXT,                              -- percorso nel bucket PRIVATO documenti, mai un URL
+   pdf_sha256        TEXT,                              -- impronta del PDF emesso
+   payload_sha256    TEXT,                              -- impronta dei soli dati SOSTANZIALI (chiave del riuso)
+   emesso_at         TIMESTAMPTZ,
++  emesso_da         UUID REFERENCES utenti(id),        -- chi ha PREMUTO (≠ firmato_da, che e' la controparte)
+ 
+   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+   deleted_at        TIMESTAMPTZ,
+ 
+   -- Una riga a meta' e' una riga che mente; e un'emissione senza controparte
+   -- non documenta nulla (dentista_id e' annullabile per i sub-responsabili).
+   CONSTRAINT dpa_emissione_coerente CHECK (
+     (numero_dpa IS NULL AND anno_dpa IS NULL AND progressivo_dpa IS NULL
+       AND storage_path_pdf IS NULL AND pdf_sha256 IS NULL
+@@ -2926,21 +2927,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_numero_unico
+ -- «VIVA» comprende lo STATO, non solo deleted_at (D132): un DPA revocato o
+ -- scaduto farebbe da TAPPO alla riemissione a quel dentista, per sempre.
+ -- Stessa forma del precedente DdC, che esclude 'annullata'.
+ CREATE UNIQUE INDEX IF NOT EXISTS dpa_emissione_viva_unica
+   ON data_processing_agreements (laboratorio_id, dentista_id, payload_sha256, template_versione)
+   WHERE deleted_at IS NULL AND payload_sha256 IS NOT NULL
+     AND stato NOT IN ('revocato','scaduto');
+ 
+ ALTER TABLE data_processing_agreements ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY "dpa_laboratorio" ON data_processing_agreements
+-  USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
++  FOR SELECT USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
++-- Solo SELECT (P7, 04/08/2026) — una prova che la parte interessata puo'
++-- riscrivere non e' una prova. Stesso principio di sdi_receipts.
++CREATE TRIGGER _audit_data_processing_agreements
++  AFTER INSERT OR DELETE OR UPDATE ON data_processing_agreements
++  FOR EACH ROW EXECUTE FUNCTION _audit_trigger_fn();
+ SELECT apply_updated_at_trigger('data_processing_agreements');
+ 
+ 
+ -- FIX adversarial review #30: ricevute SDI non modellate per conservazione decennale.
+ -- L'XML + le notifiche SDI sono il documento fiscale legale, non il PDF.
+ CREATE TABLE sdi_receipts (
+   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   laboratorio_id    UUID NOT NULL REFERENCES laboratori(id),
+   fattura_id        UUID NOT NULL REFERENCES fatture(id),
+ 

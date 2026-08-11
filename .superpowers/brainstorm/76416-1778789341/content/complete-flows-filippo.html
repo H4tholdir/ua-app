@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Flow Completi per Conferma Filippo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background: #0a0c12; color: #e2e8f0; padding: 24px; }
+
+  .page-header { margin-bottom: 32px; }
+  h1 { font-size: 26px; font-weight: 900; color: #fff; letter-spacing: -0.5px; }
+  .tagline { font-size: 13px; color: #475569; margin-top: 4px; }
+  .note-box { background: #1a2035; border-left: 4px solid #D90012; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 12px; color: #94a3b8; }
+
+  /* FLOW CONTAINER */
+  .flow { background: #111827; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #1f2937; }
+  .flow.hero { border-color: rgba(217,0,18,0.4); background: linear-gradient(135deg, #1a0505 0%, #111827 40%); }
+  .flow.new { border-color: rgba(34,197,94,0.3); }
+
+  .flow-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+  .flow-num { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; flex-shrink: 0; }
+  .flow-meta { flex: 1; }
+  .flow-name { font-size: 18px; font-weight: 800; color: #fff; }
+  .flow-desc { font-size: 12px; color: #64748b; margin-top: 3px; }
+  .flow-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-block; margin-top: 5px; }
+  .tag-hero { background: #7f1d1d; color: #fca5a5; }
+  .tag-new { background: #14532d; color: #86efac; }
+  .tag-update { background: #1e3a5f; color: #93c5fd; }
+  .tag-exists { background: #1f2937; color: #6b7280; }
+
+  /* STEPS */
+  .steps-container { display: flex; flex-direction: column; gap: 3px; }
+  .step { display: flex; gap: 12px; padding: 10px 12px; border-radius: 8px; align-items: flex-start; }
+  .step:hover { background: rgba(255,255,255,0.03); }
+  .step.auto { background: rgba(22,163,74,0.06); border-left: 2px solid rgba(22,163,74,0.3); }
+  .step.decision { background: rgba(180,83,9,0.06); border-left: 2px solid rgba(180,83,9,0.3); }
+  .step.hero-step { background: rgba(217,0,18,0.08); border-left: 2px solid rgba(217,0,18,0.4); }
+  .step.new-step { background: rgba(34,197,94,0.05); border-left: 2px solid rgba(34,197,94,0.25); }
+  .step-n { font-size: 10px; font-weight: 700; color: #475569; width: 20px; flex-shrink: 0; margin-top: 2px; text-align: right; }
+  .step-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; width: 18px; }
+  .step-body { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: #e2e8f0; line-height: 1.3; }
+  .step-detail { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.5; }
+  .step-fields { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .field { font-size: 10px; padding: 2px 7px; border-radius: 3px; }
+  .field-req { background: #1e3a5f; color: #93c5fd; border: 1px solid #1e40af; }
+  .field-opt { background: #1f2937; color: #6b7280; }
+  .field-auto { background: #064e3b; color: #6ee7b7; }
+  .field-voice { background: #3b1f6e; color: #c4b5fd; }
+  .step-system { font-size: 10px; color: #16a34a; margin-top: 4px; font-style: italic; }
+  .step-warn { font-size: 10px; color: #f59e0b; margin-top: 4px; }
+  .step-who { font-size: 10px; color: #475569; margin-top: 2px; }
+
+  /* OUTPUTS */
+  .outputs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid #1f2937; }
+  .out { font-size: 10px; padding: 4px 10px; border-radius: 4px; }
+  .out-doc { background: #1e3a5f; color: #93c5fd; }
+  .out-notif { background: #3b1f6e; color: #c4b5fd; }
+  .out-ok { background: #14532d; color: #86efac; }
+  .out-warn { background: #422006; color: #fdba74; }
+
+  /* STATES */
+  .states { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .state { font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+  .state-arrow { color: #334155; font-size: 12px; }
+
+  /* SECTION LABEL */
+  .section-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #1f2937; }
+
+  /* CONFIRM CHECKBOX */
+  .confirm-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed #1f2937; }
+  .confirm-label { font-size: 11px; color: #475569; flex: 1; }
+  .checkbox { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #374151; background: transparent; cursor: pointer; flex-shrink: 0; }
+
+  /* FIELD LEGEND */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #6b7280; }
+
+  /* STATES LEGEND */
+  .states-section { background: #0f1520; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .states-title { font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; }
+
+  /* Colors */
+  .s-ricevuto { background: #374151; color: #9ca3af; }
+  .s-lavorazione { background: #1e3a5f; color: #93c5fd; }
+  .s-prova { background: #3b1f6e; color: #c4b5fd; }
+  .s-pronto { background: #14532d; color: #86efac; }
+  .s-consegnato { background: #064e3b; color: #34d399; }
+  .s-sospeso { background: #422006; color: #fdba74; }
+  .s-rifacimento { background: #7f1d1d; color: #fca5a5; }
+  .s-annullato { background: #1f2937; color: #6b7280; }
+
+  /* DATA BOX */
+  .data-box { background: #0f1520; border-radius: 10px; padding: 12px; margin-top: 10px; }
+  .data-title { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px; }
+  .data-field { font-size: 10px; padding: 3px 8px; border-radius: 4px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>UÀ — Flow Operativi Completi</h1>
+  <div class="tagline">Documento per conferma con Filippo — ogni step, ogni campo, ogni automatismo</div>
+  <div class="note-box">
+    📋 <strong>Come usare questo documento con Filippo:</strong> mostra uno flow alla volta. Per ogni step chiedi "questo lo fai? così? diversamente?". Annota le differenze. La sessione dura ~60-90 minuti.
+    <br><br>
+    <span style="color:#fbbf24">⚠️ Da verificare con Filippo: prove/try-in %, ordini fornitori, migrazione DentalMaster, dettatura vocale, PEC credenziali.</span>
+  </div>
+</div>
+
+<!-- STATI DEL LAVORO -->
+<div class="states-section">
+  <div class="states-title">🔄 STATI DEL LAVORO — Macchina a stati completa (da confermare)</div>
+  <div class="states">
+    <span class="state s-ricevuto">ricevuto</span>
+    <span class="state-arrow">→</span>
+    <span class="state s-lavorazione">in_lavorazione</span>
+    <span class="state-arrow">→</span>
+    <span class="state s-prova">in_prova_esterna</span>
+    <span class="state-arrow">⇄</span>
+    <span class="state s-lavorazione">in_lavorazione</span>
+    <span class="state-arrow">→</span>
+    <span class="state s-pronto">pronto</span>
+    <span class="state-arrow">→</span>
+    <span class="state s-consegnato">consegnato</span>
+  </div>
+  <div class="states" style="margin-top:8px;">
+    <span class="state s-sospeso">sospeso</span>
+    <span style="font-size:10px;color:#475569;">← da qualsiasi stato · in attesa istruzioni dentista</span>
+  </div>
+  <div class="states" style="margin-top:4px;">
+    <span class="state s-rifacimento">rifacimento</span>
+    <span style="font-size:10px;color:#475569;">← lavoro non conforme → crea nuovo lavoro collegato</span>
+  </div>
+  <div class="states" style="margin-top:4px;">
+    <span class="state s-annullato">annullato</span>
+    <span style="font-size:10px;color:#475569;">← con motivo obbligatorio</span>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="field field-req">campo obbligatorio</span></div>
+  <div class="leg"><span class="field field-opt">campo opzionale</span></div>
+  <div class="leg"><span class="field field-auto">generato auto</span></div>
+  <div class="leg"><span class="field field-voice">input vocale disponibile</span></div>
+  <div class="leg">
+    <div style="width:12px;height:12px;background:rgba(22,163,74,0.2);border-left:2px solid rgba(22,163,74,0.5);border-radius:2px;"></div>
+    step automatico del sistema
+  </div>
+  <div class="leg">
+    <div style="width:12px;height:12px;background:rgba(217,0,18,0.1);border-left:2px solid rgba(217,0,18,0.4);border-radius:2px;"></div>
+    operazione CORE
+  </div>
+  <div class="leg">
+    <div style="width:12px;height:12px;background:rgba(34,197,94,0.05);border-left:2px solid rgba(34,197,94,0.3);border-radius:2px;"></div>
+    flow nuovo (non ancora implementato)
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="section-label">FLOWS OPERATIVI QUOTIDIANI</div>
+
+<!-- FLOW 1: NUOVO LAVORO -->
+<div class="flow">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#D90012;color:#fff;">1</div>
+    <div class="flow-meta">
+      <div class="flow-name">Nuovo Lavoro</div>
+      <div class="flow-desc">Dal momento in cui arriva la prescrizione dal dentista — obiettivo: meno di 60 secondi</div>
+      <span class="flow-tag tag-exists">Implementato · bug cliente_id da fixare</span>
+      <span class="flow-tag tag-update" style="margin-left:4px;">+ dettatura vocale da aggiungere</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-icon">📥</div>
+      <div class="step-body">
+        <div class="step-title">Arriva la prescrizione dal dentista</div>
+        <div class="step-detail">Fisicamente (dentista o corriere) OPPURE digitalmente via portale/WhatsApp (Fase 3)</div>
+        <div class="step-who">Chi: chiunque sia in lab (titolare, front_desk, tecnico)</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <div class="step-icon">➕</div>
+      <div class="step-body">
+        <div class="step-title">Tap FAB rosso "+ Nuovo" dalla dashboard</div>
+        <div class="step-detail">Apre form wizard · primo campo attivo immediatamente (zero tap extra)</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">03</div>
+      <div class="step-icon">👨‍⚕️</div>
+      <div class="step-body">
+        <div class="step-title">Seleziona il dentista (cliente)</div>
+        <div class="step-detail">Autocomplete per nome · mostra studio + storico lavori · può creare nuovo cliente al volo</div>
+        <div class="step-fields">
+          <span class="field field-req">cliente_id</span>
+          <span class="field field-req">nome dentista</span>
+          <span class="field field-opt">studio / ragione sociale</span>
+          <span class="field field-auto">tier prezzo applicato</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">04</div>
+      <div class="step-icon">🧑</div>
+      <div class="step-body">
+        <div class="step-title">Inserisce il paziente</div>
+        <div class="step-detail">Testo libero oppure voce (microfono) · pseudonimizzato nel DB (GDPR) · cerca pazienti esistenti</div>
+        <div class="step-fields">
+          <span class="field field-req">nome paziente</span>
+          <span class="field field-voice">🎤 input vocale</span>
+          <span class="field field-auto">codice GDPR generato</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: il paziente lo inserisce sempre manualmente o cerca spesso nomi già presenti?</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">05</div>
+      <div class="step-icon">🦷</div>
+      <div class="step-body">
+        <div class="step-title">Tipo dispositivo — 6 tile grandi con icona</div>
+        <div class="step-detail">Tap singolo su tile. Un lavoro può avere più tipi (es. fissa + scheletrato combinata)</div>
+        <div class="step-fields">
+          <span class="field field-req">tipo dispositivo</span>
+        </div>
+        <div class="data-box">
+          <div class="data-title">Tipi disponibili</div>
+          <div class="data-grid">
+            <span class="data-field field-req">🪥 Protesi fissa</span>
+            <span class="data-field field-req">🦷 Protesi mobile</span>
+            <span class="data-field field-req">🔩 Implantoprotesi</span>
+            <span class="data-field field-req">💻 CAD/CAM</span>
+            <span class="data-field field-req">⚙️ Scheletrato</span>
+            <span class="data-field field-req">📐 Ortodonzia</span>
+            <span class="data-field field-opt">🔧 Riparazione</span>
+            <span class="data-field field-opt">🎯 Provvisori</span>
+          </div>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: questi 8 tipi coprono tutto? Manca qualcosa di frequente nel suo lab?</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">06</div>
+      <div class="step-icon">📋</div>
+      <div class="step-body">
+        <div class="step-title">Seleziona lavorazioni dal listino</div>
+        <div class="step-detail">Lista filtrata per tipo dispositivo · quantità · colore (guida Vita) · note per lavorazione</div>
+        <div class="step-fields">
+          <span class="field field-req">lavorazione_id (dal listino)</span>
+          <span class="field field-req">quantità</span>
+          <span class="field field-opt">colore (es. A2, B1)</span>
+          <span class="field field-opt">calo in grammi (metalli)</span>
+          <span class="field field-opt">note lavorazione</span>
+          <span class="field field-auto">prezzo calcolato da tier cliente</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: inserisce le lavorazioni subito al ricevimento o spesso le completa dopo?</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">07</div>
+      <div class="step-icon">📅</div>
+      <div class="step-body">
+        <div class="step-title">Data consegna richiesta</div>
+        <div class="step-detail">Quick-tap: Oggi · Domani · +3gg · +7gg · oppure calendario touch</div>
+        <div class="step-fields">
+          <span class="field field-req">data_consegna_prevista</span>
+          <span class="field field-opt">ora consegna (se importante)</span>
+          <span class="field field-opt">appuntamento prova (data prevista prova)</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">08</div>
+      <div class="step-icon">👷</div>
+      <div class="step-body">
+        <div class="step-title">Assegna tecnico (opzionale)</div>
+        <div class="step-detail">Dropdown tecnici del lab · se non assegnato rimane "non assegnato" fino a dopo</div>
+        <div class="step-fields">
+          <span class="field field-opt">tecnico_id</span>
+          <span class="field field-opt">reparto</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">09</div>
+      <div class="step-icon">📎</div>
+      <div class="step-body">
+        <div class="step-title">Allega file (opzionale)</div>
+        <div class="step-detail">Foto prescrizione · foto colore · STL · foto impronte · vocale del dentista</div>
+        <div class="step-fields">
+          <span class="field field-opt">foto (jpg/png)</span>
+          <span class="field field-opt">STL (upload)</span>
+          <span class="field field-opt">nota vocale</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: usa già foto per tracciare i lavori? O è tutto cartaceo?</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">10</div>
+      <div class="step-icon">💬</div>
+      <div class="step-body">
+        <div class="step-title">Note generali lavoro</div>
+        <div class="step-detail">Campo testo libero · input vocale disponibile · "il dentista vuole il colore A2 scuro" etc.</div>
+        <div class="step-fields">
+          <span class="field field-opt">note</span>
+          <span class="field field-voice">🎤 input vocale</span>
+        </div>
+      </div>
+    </div>
+    <div class="step hero-step">
+      <div class="step-n">11</div>
+      <div class="step-icon">✅</div>
+      <div class="step-body">
+        <div class="step-title">CREA LAVORO</div>
+        <div class="step-detail">Tap bottone rosso · stato: ricevuto</div>
+        <div class="step-system">→ numero progressivo generato (es. 2026/0089) · timestamp · notifica al tecnico assegnato · appare in dashboard</div>
+      </div>
+    </div>
+  </div>
+  <div class="outputs">
+    <span class="out out-ok">Lavoro creato · stato: ricevuto</span>
+    <span class="out out-auto" style="background:#064e3b;color:#34d399;">Numero progressivo 2026/XXXX</span>
+    <span class="out out-notif">Push al tecnico assegnato</span>
+    <span class="out out-ok">Appare in dashboard OGGI</span>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: questo flow corrisponde a come ricevi e registri un nuovo lavoro ogni giorno?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 2: TRACKING PRODUZIONE -->
+<div class="flow">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#2563EB;color:#fff;">2</div>
+    <div class="flow-meta">
+      <div class="flow-name">Tracking Produzione (Fasi)</div>
+      <div class="flow-desc">Il tecnico aggiorna lo stato del lavoro mentre lavora · 20-30 secondi per fase</div>
+      <span class="flow-tag tag-exists">Implementato</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-icon">📱</div>
+      <div class="step-body">
+        <div class="step-title">Mattina: tecnico apre UÀ dal telefono</div>
+        <div class="step-detail">Vede lista lavori assegnati a lui · ordinati per urgenza / data consegna</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <div class="step-icon">🦷</div>
+      <div class="step-body">
+        <div class="step-title">Apre il lavoro · Tab "Fasi"</div>
+        <div class="step-detail">Lista fasi del ciclo di produzione per questo tipo di dispositivo</div>
+        <div class="step-fields">
+          <span class="field field-auto">fasi dal ciclo di produzione</span>
+          <span class="field field-auto">% completamento corrente</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">03</div>
+      <div class="step-icon">✅</div>
+      <div class="step-body">
+        <div class="step-title">Segna fase completata</div>
+        <div class="step-detail">Tap su fase → slider o checkbox · può aggiungere note · può allegare foto</div>
+        <div class="step-fields">
+          <span class="field field-req">fase_id</span>
+          <span class="field field-auto">tecnico_id + timestamp</span>
+          <span class="field field-opt">nota fase</span>
+          <span class="field field-opt">foto fase</span>
+          <span class="field field-opt">durata in minuti</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">04</div>
+      <div class="step-icon">📍</div>
+      <div class="step-body">
+        <div class="step-title">Aggiorna stato fisico (NUOVO)</div>
+        <div class="step-detail">Dove è il lavoro adesso fisicamente nel laboratorio?</div>
+        <div class="step-fields">
+          <span class="field field-opt">in_lab</span>
+          <span class="field field-opt">al_forno</span>
+          <span class="field field-opt">al_cad_cam</span>
+          <span class="field field-opt">alla_ceramica</span>
+          <span class="field field-opt">in_finitura</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: ha senso avere questo livello di dettaglio fisico nel suo lab?</div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">05</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-title">100% fasi → stato diventa "pronto" automaticamente</div>
+        <div class="step-system">→ badge verde in dashboard · push al titolare/front_desk · appare in "da consegnare"</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">06</div>
+      <div class="step-icon">🚨</div>
+      <div class="step-body">
+        <div class="step-title">Segnala urgenza o problema</div>
+        <div class="step-detail">Tap su "!" → motivo (materiale mancante / colore da rivedere / attende istruzioni) → notifica immediata al titolare</div>
+        <div class="step-fields">
+          <span class="field field-req">tipo problema</span>
+          <span class="field field-voice">🎤 nota vocale problema</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="outputs">
+    <span class="out out-ok">Fasi tracciate con tecnico + timestamp</span>
+    <span class="out out-notif">Push "pronto" al titolare</span>
+    <span class="out out-ok">% completamento visibile in lista lavori</span>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: i tecnici farebbero questo durante la giornata? Tengono già traccia delle fasi in qualche modo?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 3: PROVE (NUOVO) -->
+<div class="flow new">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#7C3AED;color:#fff;">3</div>
+    <div class="flow-meta">
+      <div class="flow-name">PROVE / Try-in</div>
+      <div class="flow-desc">Il lavoro va dal dentista per una prova intermedia prima della consegna definitiva — stima: 20-40% dei lavori</div>
+      <span class="flow-tag tag-new">NUOVO — da implementare</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step new-step">
+      <div class="step-n">01</div>
+      <div class="step-icon">🔄</div>
+      <div class="step-body">
+        <div class="step-title">Tecnico decide di mandare in prova</div>
+        <div class="step-detail">Il lavoro ha raggiunto uno stato intermedio (es. struttura in metallo, struttura in zirconia) che il dentista deve vedere</div>
+        <div class="step-fields">
+          <span class="field field-req">numero prova (1a, 2a, 3a…)</span>
+          <span class="field field-req">data prevista rientro</span>
+          <span class="field field-opt">istruzioni per il dentista</span>
+        </div>
+      </div>
+    </div>
+    <div class="step new-step auto">
+      <div class="step-n">02</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-title">Stato → "in_prova_esterna"</div>
+        <div class="step-system">→ appare in dashboard OGGI sezione "In prova · atteso rientro [data]"</div>
+        <div class="step-system">→ WhatsApp al dentista: "Lavoro [paziente] pronto per prova, lo troverà con il corriere/consegna"</div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">03</div>
+      <div class="step-icon">🦷</div>
+      <div class="step-body">
+        <div class="step-title">Dentista fa la prova sul paziente</div>
+        <div class="step-detail">Il lavoro è fisicamente nello studio del dentista</div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">04</div>
+      <div class="step-icon">📲</div>
+      <div class="step-body">
+        <div class="step-title">Rientro con esito prova</div>
+        <div class="step-detail">Il laboratorio registra il rientro e l'esito quando arriva il lavoro fisicamente</div>
+        <div class="step-fields">
+          <span class="field field-req">esito: OK / Modifiche / Rifare / Sospeso</span>
+          <span class="field field-opt">note del dentista</span>
+          <span class="field field-opt">foto post-prova</span>
+          <span class="field field-opt">nuova data consegna</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: il dentista porta back il lavoro di persona o lo manda con il corriere?</div>
+      </div>
+    </div>
+    <div class="step new-step decision">
+      <div class="step-n">05</div>
+      <div class="step-icon">❓</div>
+      <div class="step-body">
+        <div class="step-title">Decisione in base all'esito</div>
+        <div class="step-detail">
+          <strong style="color:#86efac;">OK:</strong> → stato torna "in_lavorazione" · tecnico completa le fasi rimanenti<br>
+          <strong style="color:#fde68a;">Modifiche:</strong> → note visibili al tecnico · stato "in_lavorazione"<br>
+          <strong style="color:#fca5a5;">Rifare:</strong> → attiva Flow 5 (Rifacimento)<br>
+          <strong style="color:#f9a8d4;">Sospeso:</strong> → in attesa istruzioni · appare in dashboard come "sospeso"
+        </div>
+      </div>
+    </div>
+    <div class="step new-step auto">
+      <div class="step-n">06</div>
+      <div class="step-icon">📊</div>
+      <div class="step-body">
+        <div class="step-title">Storico prove visibile nel dettaglio lavoro</div>
+        <div class="step-system">→ Timeline: 1a prova [data] · esito: modifiche · 2a prova [data] · esito: OK</div>
+        <div class="step-system">→ Conta nel report qualità (quante prove in media per tipo dispositivo)</div>
+      </div>
+    </div>
+  </div>
+  <div class="outputs">
+    <span class="out out-notif">WhatsApp dentista</span>
+    <span class="out out-ok">Storico prove nel fascicolo</span>
+    <span class="out out-ok">Visibile in dashboard OGGI</span>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: quante prove fa in media a settimana? Su che tipo di lavori? Questo flow corrisponde a come funziona?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 4: CONSEGNA DEFINITIVA HERO -->
+<div class="flow hero">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#D90012;color:#fff;font-size:20px;">★</div>
+    <div class="flow-meta">
+      <div class="flow-name">TAP CONSEGNA — Operazione CORE (Hero)</div>
+      <div class="flow-desc">Genera DdC + Buono + Fattura + PEC + WhatsApp in 1-3 secondi · disponibile quando lavoro in stato "pronto"</div>
+      <span class="flow-tag tag-exists">Implementato · verificare end-to-end con PEC reale</span>
+      <span class="flow-tag tag-hero" style="margin-left:4px;">HERO</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-icon">🟢</div>
+      <div class="step-body">
+        <div class="step-title">Lavoro in stato "pronto" · badge verde visibile</div>
+        <div class="step-detail">In dashboard OGGI sezione "Da consegnare" · oppure in lista lavori</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <div class="step-icon">📱</div>
+      <div class="step-body">
+        <div class="step-title">Apre schermata CONSEGNA</div>
+        <div class="step-detail">Tap sul lavoro → pulsante rosso grande "CONSEGNA"</div>
+        <div class="step-detail">Mostra riepilogo: dentista · paziente · lavorazioni · importo fattura · data</div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">03</div>
+      <div class="step-icon">🔍</div>
+      <div class="step-body">
+        <div class="step-title">Precheck MDR automatico (8 campi)</div>
+        <div class="step-system">→ Verifica: ITCA presente · materiali con lotto · paziente identificabile · tipo dispositivo · lavorazioni · dentista con P.IVA · data consegna · numero DdC disponibile</div>
+        <div class="step-warn">Se manca un campo: mostra lista esatta dei problemi da correggere prima di procedere</div>
+      </div>
+    </div>
+    <div class="step hero-step">
+      <div class="step-n">04</div>
+      <div class="step-icon">🚀</div>
+      <div class="step-body">
+        <div class="step-title">1 TAP — CONSEGNA</div>
+        <div class="step-detail">Pulsante rosso full-width · touch ID conferma opzionale</div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">05</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-title">Generazione parallela in &lt;3 secondi</div>
+        <div class="step-system">→ PDF 1: Dichiarazione di Conformità MDR (Allegato XIII · numero progressivo · firma lab · lotto materiali · paziente · ITCA)</div>
+        <div class="step-system">→ PDF 2: Buono di Consegna (cliente · richiedente · lavorazioni · quantità · calo · prezzo o senza prezzo)</div>
+        <div class="step-system">→ XML: FatturaPA v1.2 (N4 · Art.10 n.18 · bollo €2 se >€77,47 · numero progressivo SDI)</div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">06</div>
+      <div class="step-icon">📤</div>
+      <div class="step-body">
+        <div class="step-title">Upload + Invio</div>
+        <div class="step-system">→ Tutti i PDF su Supabase Storage (archiviati 10 anni per MDR)</div>
+        <div class="step-system">→ FatturaPA XML inviata via PEC a sdi01@pec.fatturapa.it</div>
+        <div class="step-system">→ Link WhatsApp generato con DdC PDF allegata</div>
+        <div class="step-system">→ Stato lavoro: "consegnato" · lock idempotenza (non ri-generabile)</div>
+        <div class="step-warn">⚠️ BLOCCANTE: credenziali PEC SMTP non ancora configurate da Filippo — senza questa il Flow non funziona in produzione</div>
+      </div>
+    </div>
+    <div class="step hero-step">
+      <div class="step-n">07</div>
+      <div class="step-icon">🎉</div>
+      <div class="step-body">
+        <div class="step-title">Animazione successo · suono · bottom sheet</div>
+        <div class="step-detail">Confetti + suono success.mp3 · bottom sheet con azioni:</div>
+        <div class="step-fields">
+          <span class="field field-req">💬 Apri WhatsApp</span>
+          <span class="field field-opt">📄 Scarica DdC</span>
+          <span class="field field-opt">🧾 Scarica Buono</span>
+          <span class="field field-opt">❌ Chiudi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="outputs">
+    <span class="out out-doc">DdC PDF · 10 anni storage</span>
+    <span class="out out-doc">Buono consegna PDF</span>
+    <span class="out out-doc">FatturaPA XML → SDI</span>
+    <span class="out out-notif">WhatsApp link al dentista</span>
+    <span class="out out-ok">Stato: consegnato</span>
+    <span class="out out-warn">PEC SMTP da configurare!</span>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: questo flow in 1 tap ti risolverebbe la consegna? Manca qualcosa nel riepilogo pre-tap?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 5: RIFACIMENTO (NUOVO) -->
+<div class="flow new">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#991B1B;color:#fff;">5</div>
+    <div class="flow-meta">
+      <div class="flow-name">Rifacimento / Non Conformità</div>
+      <div class="flow-desc">Quando un lavoro non è conforme e deve essere rifatto · obbligatorio per MDR · stima 2-5% dei lavori</div>
+      <span class="flow-tag tag-new">NUOVO — da implementare</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step new-step">
+      <div class="step-n">01</div>
+      <div class="step-icon">❌</div>
+      <div class="step-body">
+        <div class="step-title">Lavoro non conforme · deve essere rifatto</div>
+        <div class="step-detail">Rilevato dal tecnico · dal dentista durante prova · dal paziente dopo consegna</div>
+        <div class="step-fields">
+          <span class="field field-req">motivo non conformità</span>
+          <span class="field field-req">quando rilevato</span>
+          <span class="field field-opt">foto del difetto</span>
+          <span class="field field-opt">costo interno stimato</span>
+        </div>
+        <div class="data-box">
+          <div class="data-title">Motivi non conformità (da MDR)</div>
+          <div class="data-grid">
+            <span class="data-field field-req">Colore sbagliato</span>
+            <span class="data-field field-req">Misura errata</span>
+            <span class="data-field field-req">Fusione difettosa</span>
+            <span class="data-field field-req">Rottura durante produzione</span>
+            <span class="data-field field-req">Non confortevole (paziente)</span>
+            <span class="data-field field-opt">Errore prescrizione dentista</span>
+            <span class="data-field field-opt">Altro (testo libero)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step new-step auto">
+      <div class="step-n">02</div>
+      <div class="step-icon">🔗</div>
+      <div class="step-body">
+        <div class="step-title">Crea nuovo lavoro di rifacimento</div>
+        <div class="step-system">→ Nuovo lavoro con flag is_rifacimento = true</div>
+        <div class="step-system">→ Collegato al lavoro originale_id</div>
+        <div class="step-system">→ Pre-compilato con tutti i dati (cliente, paziente, lavorazioni)</div>
+        <div class="step-system">→ Entra direttamente nella coda produzione</div>
+      </div>
+    </div>
+    <div class="step new-step auto">
+      <div class="step-n">03</div>
+      <div class="step-icon">📊</div>
+      <div class="step-body">
+        <div class="step-title">Registrazione per MDR e qualità</div>
+        <div class="step-system">→ Incidente/non conformità registrato nel registro MDR</div>
+        <div class="step-system">→ Conta nel PSUR annuale (sezione non conformità)</div>
+        <div class="step-system">→ Alert al PRRC se non conformità grave</div>
+      </div>
+    </div>
+  </div>
+  <div class="outputs">
+    <span class="out out-ok">Nuovo lavoro rifacimento creato</span>
+    <span class="out out-doc">Non conformità registrata MDR</span>
+    <span class="out out-ok">Costo interno tracciato</span>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: quante volte al mese deve rifare un lavoro? Come lo gestisce ora?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 6: FATTURAZIONE -->
+<div class="flow">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#B45309;color:#fff;">6</div>
+    <div class="flow-meta">
+      <div class="flow-name">Fatturazione + SDI</div>
+      <div class="flow-desc">Automatica con CONSEGNA oppure manuale · FatturaPA XML → SDI · 8 stati</div>
+      <span class="flow-tag tag-exists">Implementato · manca colonna stato_sdi</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step auto">
+      <div class="step-n">01</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-title">Generazione automatica al tap CONSEGNA</div>
+        <div class="step-detail">OPPURE manuale da /fatture per fatturazione differita o raggruppata</div>
+        <div class="step-fields">
+          <span class="field field-auto">numero fattura (anno/progressivo)</span>
+          <span class="field field-auto">data emissione</span>
+          <span class="field field-auto">importo da listino × tier cliente</span>
+          <span class="field field-auto">bollo €2 se imponibile >€77,47</span>
+          <span class="field field-auto">natura N4 (Art.10 n.18 DPR 633/72)</span>
+          <span class="field field-opt">tipo_documento (TD01 default, TD02 anticipo, TD04 nota credito)</span>
+        </div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">02</div>
+      <div class="step-icon">📄</div>
+      <div class="step-body">
+        <div class="step-title">Genera XML FatturaPA v1.2</div>
+        <div class="step-system">→ Nome file: IT+CF_destinatario+progressivo_file.xml</div>
+        <div class="step-system">→ Include: CedentePrestatore (lab) · CessionarioCommittente (dentista) · DatiBollo · DatiPagamento</div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">03</div>
+      <div class="step-icon">📤</div>
+      <div class="step-body">
+        <div class="step-title">Invio a SDI via PEC</div>
+        <div class="step-system">→ PEC del laboratorio → sdi01@pec.fatturapa.it</div>
+        <div class="step-system">→ stato_sdi: "inviata"</div>
+      </div>
+    </div>
+    <div class="step decision">
+      <div class="step-n">04</div>
+      <div class="step-icon">📬</div>
+      <div class="step-body">
+        <div class="step-title">Ricevuta SDI — 8 stati possibili</div>
+        <div class="data-box">
+          <div class="data-grid">
+            <span class="data-field" style="background:#14532d;color:#86efac;">accettata</span>
+            <span class="data-field" style="background:#1e3a5f;color:#93c5fd;">consegnata</span>
+            <span class="data-field" style="background:#422006;color:#fdba74;">scartata</span>
+            <span class="data-field" style="background:#422006;color:#fdba74;">mancata consegna</span>
+            <span class="data-field" style="background:#422006;color:#fdba74;">impossibile recapitare</span>
+            <span class="data-field" style="background:#1f2937;color:#6b7280;">in attesa</span>
+            <span class="data-field" style="background:#1f2937;color:#6b7280;">inviata</span>
+            <span class="data-field" style="background:#7f1d1d;color:#fca5a5;">errore</span>
+          </div>
+        </div>
+        <div class="step-warn">Push notification se "scartata" o "errore" → mostra motivo e azione da fare</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">05</div>
+      <div class="step-icon">💰</div>
+      <div class="step-body">
+        <div class="step-title">Registrazione pagamento ricevuto</div>
+        <div class="step-detail">Quando il dentista paga · modalità (bonifico, contante, assegno) · data pagamento</div>
+        <div class="step-fields">
+          <span class="field field-req">data pagamento</span>
+          <span class="field field-req">modalità</span>
+          <span class="field field-opt">importo parziale (acconto)</span>
+          <span class="field field-opt">riferimento (n° bonifico)</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: quando e come registra i pagamenti? Li tiene già su un registro?</div>
+      </div>
+    </div>
+  </div>
+  <div class="outputs">
+    <span class="out out-doc">FatturaPA XML archiviata</span>
+    <span class="out out-ok">Stato SDI tracciato in tempo reale</span>
+    <span class="out out-warn">Alert se scartata</span>
+    <span class="out out-ok">Pagamento registrato nel partitario</span>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: usa già la FatturaPA elettronica? Come la invia ora? Le 8 condizioni SDI corrispondono alla sua esperienza?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 7: SCADENZARIO (NUOVO) -->
+<div class="flow new">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#0891B2;color:#fff;">7</div>
+    <div class="flow-meta">
+      <div class="flow-name">Scadenzario / Partitario Clienti</div>
+      <div class="flow-desc">Chi deve quanto · da quanto · insoluti · estratto conto · il titolare lo apre ogni giorno</div>
+      <span class="flow-tag tag-new">NUOVO UI — tabella DB esiste già</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step new-step auto">
+      <div class="step-n">01</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-title">Auto-aggiornamento ad ogni fattura emessa</div>
+        <div class="step-system">→ Ogni fattura emessa entra nello scadenzario con: cliente · importo · data scadenza · stato (da pagare)</div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">02</div>
+      <div class="step-icon">👁️</div>
+      <div class="step-body">
+        <div class="step-title">Vista "Cosa mi devono" in dashboard OGGI</div>
+        <div class="step-detail">Sezione in basso: clienti con fatture scadute e non pagate</div>
+        <div class="step-fields">
+          <span class="field field-auto">totale insoluto</span>
+          <span class="field field-auto">scaduto da giorni</span>
+          <span class="field field-auto">nome cliente</span>
+        </div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">03</div>
+      <div class="step-icon">📊</div>
+      <div class="step-body">
+        <div class="step-title">Estratto conto per cliente</div>
+        <div class="step-detail">Tap sul cliente → storico fatture · pagamenti · saldo attuale</div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">04</div>
+      <div class="step-icon">📲</div>
+      <div class="step-body">
+        <div class="step-title">Sollecito pagamento via WhatsApp</div>
+        <div class="step-detail">Tap → WhatsApp pre-compilato: "Caro dott. [nome], le ricordo la fattura [n] di €[importo] scaduta [data]"</div>
+        <div class="step-warn">⚠️ Conferma Filippo: usa già WhatsApp per sollecitare pagamenti?</div>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: come tiene traccia di chi gli deve soldi ora? Excel? Agenda? DentalMaster? Quanto è urgente questo per lui?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 8: MAGAZZINO + ORDINI -->
+<div class="flow">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#475569;color:#fff;">8</div>
+    <div class="flow-meta">
+      <div class="flow-name">Magazzino + Tracciabilità MDR + Ordini Fornitori</div>
+      <div class="flow-desc">Inventario · lotti · consumo automatico · alert scorta · ordine fornitore</div>
+      <span class="flow-tag tag-exists">Parzialmente implementato</span>
+      <span class="flow-tag tag-new" style="margin-left:4px;">+ Ordini fornitori: nuovo</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-icon">📦</div>
+      <div class="step-body">
+        <div class="step-title">Ricevimento materiale dal fornitore</div>
+        <div class="step-fields">
+          <span class="field field-req">articolo (dal catalogo magazzino)</span>
+          <span class="field field-req">n° lotto fornitore</span>
+          <span class="field field-req">data scadenza</span>
+          <span class="field field-req">quantità ricevuta</span>
+          <span class="field field-opt">fornitore</span>
+          <span class="field field-opt">prezzo d'acquisto</span>
+          <span class="field field-opt">foto scheda tecnica</span>
+        </div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">02</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-title">Consumo automatico al tap CONSEGNA (Fase 2)</div>
+        <div class="step-system">→ Da listino_materiali_auto: ogni lavorazione consuma automaticamente il/i materiali configurati</div>
+        <div class="step-system">→ Traccia quale lotto è finito in quale DdC (per recall MDR)</div>
+        <div class="step-warn">⚠️ Non ancora implementato · consumo è manuale ora</div>
+      </div>
+    </div>
+    <div class="step decision">
+      <div class="step-n">03</div>
+      <div class="step-icon">🔔</div>
+      <div class="step-body">
+        <div class="step-title">Alert scorta minima</div>
+        <div class="step-detail">Push notification quando giacenza scende sotto soglia configurata</div>
+        <div class="step-system">→ Appare in dashboard OGGI sezione "Materiali mancanti"</div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">04</div>
+      <div class="step-icon">📋</div>
+      <div class="step-body">
+        <div class="step-title">Genera ordine fornitore (NUOVO)</div>
+        <div class="step-detail">Tap sull'alert → pre-compila ordine con quantità da riordinare</div>
+        <div class="step-fields">
+          <span class="field field-req">fornitore</span>
+          <span class="field field-req">articoli + quantità</span>
+          <span class="field field-opt">modalità invio (WhatsApp / email)</span>
+        </div>
+        <div class="step-warn">⚠️ Conferma Filippo: ordina i materiali come? Telefono, email, WhatsApp direttamente al rappresentante?</div>
+      </div>
+    </div>
+    <div class="step new-step auto">
+      <div class="step-n">05</div>
+      <div class="step-icon">✅</div>
+      <div class="step-body">
+        <div class="step-title">Conferma ricezione → giacenza aggiornata</div>
+        <div class="step-system">→ Nuovo lotto creato automaticamente</div>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: tiene già traccia dei lotti dei materiali? Usa DentalMaster per questo? Come ordina i materiali ora?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 9: PORTALE DENTISTA -->
+<div class="flow">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#16A34A;color:#fff;">9</div>
+    <div class="flow-meta">
+      <div class="flow-name">Portale Dentista (no login)</div>
+      <div class="flow-desc">Il dentista vede i suoi lavori in corso senza registrarsi · link temporaneo con token</div>
+      <span class="flow-tag tag-exists">Implementato</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-icon">🔗</div>
+      <div class="step-body">
+        <div class="step-title">Lab genera link per il dentista</div>
+        <div class="step-detail">Tap "Genera link portale" dalla scheda cliente · scade in 30 giorni · rinnovabile</div>
+        <div class="step-fields">
+          <span class="field field-auto">token univoco</span>
+          <span class="field field-auto">URL: uachelab.com/portale/[token]</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <div class="step-icon">💬</div>
+      <div class="step-body">
+        <div class="step-title">Condivide via WhatsApp</div>
+        <div class="step-detail">Pre-compilato: "Caro Dott. [nome], qui può seguire lo stato dei suoi lavori: [link]"</div>
+      </div>
+    </div>
+    <div class="step auto">
+      <div class="step-n">03</div>
+      <div class="step-icon">👁️</div>
+      <div class="step-body">
+        <div class="step-title">Dentista vede i suoi lavori in corso</div>
+        <div class="step-system">→ No login · no registrazione · apre link e vede tutto</div>
+        <div class="step-system">→ Stato, data consegna prevista, tipo dispositivo, paziente (codificato GDPR)</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">04</div>
+      <div class="step-icon">📄</div>
+      <div class="step-body">
+        <div class="step-title">Scarica DdC PDF</div>
+        <div class="step-detail">Per ogni lavoro consegnato · accesso loggato per MDR (chi ha scaricato quando)</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">05</div>
+      <div class="step-icon">💬</div>
+      <div class="step-body">
+        <div class="step-title">Lascia feedback PMCF (post-market)</div>
+        <div class="step-detail">Form semplice: funziona bene / problema / nota · obbligatorio per PSUR MDR</div>
+        <div class="step-system">→ Feedback alimenta PSUR automaticamente</div>
+        <div class="step-warn">⚠️ Conferma Filippo: pensa che i suoi dentisti userebbero questo link? Sono abituati a cercare info su WhatsApp direttamente?</div>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: i suoi dentisti userebbero questo link? O preferirebbero ricevere tutto su WhatsApp direttamente?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- FLOW 10: DASHBOARD OGGI (3 VERSIONI) -->
+<div class="flow new">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#D90012;color:#fff;">10</div>
+    <div class="flow-meta">
+      <div class="flow-name">Dashboard "OGGI" — Schermata centrale</div>
+      <div class="flow-desc">La prima cosa che si vede ogni mattina · diversa per ogni ruolo · questa è la killer feature</div>
+      <span class="flow-tag tag-new">Da riprogettare completamente</span>
+    </div>
+  </div>
+  <div class="two-col">
+    <div>
+      <div class="step new-step">
+        <div class="step-n"></div>
+        <div class="step-icon">👑</div>
+        <div class="step-body">
+          <div class="step-title">Vista TITOLARE</div>
+          <div class="step-detail">
+            🔴 Lavori in ritardo (N)<br>
+            📦 Da consegnare oggi (N)<br>
+            🔄 In prova esterna · atteso rientro (N)<br>
+            ⚠️ Materiali in esaurimento (N)<br>
+            💰 Pagamenti scaduti (€tot)<br>
+            📊 Fatturato mese (€tot vs mese prec.)
+          </div>
+        </div>
+      </div>
+      <div class="step new-step">
+        <div class="step-n"></div>
+        <div class="step-icon">👷</div>
+        <div class="step-body">
+          <div class="step-title">Vista TECNICO</div>
+          <div class="step-detail">
+            🔴 Miei lavori urgenti/in ritardo (N)<br>
+            📋 Lavori assegnati a me oggi (lista)<br>
+            ✅ Fasi da completare<br>
+            🔄 Lavori miei in prova · rientrano oggi
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="step new-step">
+        <div class="step-n"></div>
+        <div class="step-icon">🖥️</div>
+        <div class="step-body">
+          <div class="step-title">Vista FRONT DESK</div>
+          <div class="step-detail">
+            📦 Da consegnare oggi (con dentista + orario)<br>
+            📥 Ritiri attesi oggi (corriere / di persona)<br>
+            🔄 In prova · atteso rientro oggi<br>
+            📞 Da contattare (pagamenti scaduti)<br>
+            ✅ Nuovi lavori da registrare
+          </div>
+        </div>
+      </div>
+      <div class="confirm-row" style="margin-top:8px;">
+        <div class="confirm-label">✋ <strong>Filippo</strong>: queste 3 versioni della dashboard corrispondono a cosa ognuno guarda per primo la mattina?</div>
+        <input type="checkbox" class="checkbox">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW 11: MIGRAZIONE DENTALMASTER -->
+<div class="flow new">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#374151;color:#fff;">11</div>
+    <div class="flow-meta">
+      <div class="flow-name">Migrazione da DentalMaster</div>
+      <div class="flow-desc">30 anni di storico in Lavori.US8 · senza migrazione Filippo deve scegliere tra la sua storia e UÀ</div>
+      <span class="flow-tag tag-new">CRITICO per adozione · non ancora pianificato</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step new-step">
+      <div class="step-n">01</div>
+      <div class="step-icon">📤</div>
+      <div class="step-body">
+        <div class="step-title">Export da DentalMaster</div>
+        <div class="step-detail">I dati sono in FileMaker .US8 (fp7) · serve tool di estrazione · clienti + lavori storici + listino + magazzino</div>
+        <div class="step-warn">⚠️ Conferma Filippo: quanto importante è per lui avere lo storico clienti/lavori? Partirebbe da zero o vuole tutto il passato?</div>
+      </div>
+    </div>
+    <div class="step new-step">
+      <div class="step-n">02</div>
+      <div class="step-icon">🔄</div>
+      <div class="step-body">
+        <div class="step-title">Import in UÀ (Fase 3)</div>
+        <div class="step-detail">Wizard di importazione: clienti · 34 dentisti attivi · listino 72 lavorazioni · 187 articoli magazzino · storico lavori</div>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: è disposto a iniziare con UÀ da zero e tenere DentalMaster solo per consultare lo storico? O la migrazione è un prerequisito?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+<!-- DETTATURA VOCALE -->
+<div class="section-label">FEATURE TRASVERSALI</div>
+
+<div class="flow new">
+  <div class="flow-header">
+    <div class="flow-num" style="background:#7C3AED;color:#fff;">🎤</div>
+    <div class="flow-meta">
+      <div class="flow-name">Dettatura Vocale</div>
+      <div class="flow-desc">Mani sporche di gesso → detta invece di digitare · disponibile su tutti i campi testo</div>
+      <span class="flow-tag tag-new">Da aggiungere</span>
+    </div>
+  </div>
+  <div class="steps-container">
+    <div class="step new-step">
+      <div class="step-n">🎤</div>
+      <div class="step-icon"></div>
+      <div class="step-body">
+        <div class="step-title">Icona microfono su tutti i campi testo</div>
+        <div class="step-detail">Paziente · note lavoro · note fase · motivo problema · note prova · qualsiasi campo testo</div>
+        <div class="step-system">→ Usa Web Speech API (nativa nel browser su iOS/Android) · trascrizione in tempo reale · conferma con tap</div>
+        <div class="step-warn">⚠️ Conferma Filippo: userebbe la dettatura? Il laboratorio è rumoroso?</div>
+      </div>
+    </div>
+  </div>
+  <div class="confirm-row">
+    <div class="confirm-label">✋ <strong>Filippo</strong>: ha mai usato la dettatura sul telefono (Siri, Google)? La userebbe nel lab?</div>
+    <input type="checkbox" class="checkbox">
+  </div>
+</div>
+
+</body>
+</html>

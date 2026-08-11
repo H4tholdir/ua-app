@@ -1,0 +1,700 @@
+# Review package: 10c2da7b..953874f8
+
+## Commits
+953874f8 fix(qualita): D277-D279 — la gravità si chiede, il banco non è il mercato
+64191c21 docs(qualita): D277-D279 — la gravità si chiede, il banco non è il mercato
+
+## Files changed
+ .../2026-07-28-wizard-ondata-b-decisioni.md        |  62 ++++++++-
+ .../2026-08-06-intervento-post-consegna-design.md  |  22 +++
+ src/lib/domain/qualita-costanti.ts                 |  41 +++++-
+ src/lib/qualita/classifica.ts                      | 124 +++++++++++++++--
+ tests/unit/qualita-classifica.test.ts              | 150 ++++++++++++++++++++-
+ tests/unit/qualita-costanti.test.ts                |  97 +++++++++++++
+ 6 files changed, 474 insertions(+), 22 deletions(-)
+
+## Diff
+diff --git a/docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md b/docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md
+index 439779dd..af4b18ba 100644
+--- a/docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md
++++ b/docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md
+@@ -1,15 +1,15 @@
+ # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
+ 
+-**Data:** 28 luglio 2026 · **aggiornato alla centoundicesima tornata (D276: l'esenzione non salta la fila — il controllo pre-volo ha trovato il piano che contraddiceva la spec)** ·
++**Data:** 28 luglio 2026 · **aggiornato alla centododicesima tornata (D277-D279: la gravità si chiede, il banco non è il mercato, e il «perché» non può contraddire chi l'ha scritto)** ·
+ **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
+-**276 decisioni in centoundici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
++**279 decisioni in centododici tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+ spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
+ (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
+ **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
+ `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` §5 e §12
+ **Precede:** i mockup (§0B) → la spec dell'ondata (b) → il piano.
+ 
+ > Questo verbale esiste perché **tre decisioni di oggi contraddicono documenti già scritti**
+ > (D3 contro l'handoff §3 e la testa della ROADMAP; D6 contro DS v3 §2.1). Lezione della voce 57:
+ > quando due documenti dicono il contrario, **vince quello letto per primo** — quindi le fonti
+ > contraddette vanno corrette, non solo superate. Le correzioni sono elencate in §4.
+@@ -2339,10 +2339,68 @@ finiscono nel rapporto periodico dovuto per legge. ➡️ Si tiene l'**ordine**
+ piano, e nessuno dei due documenti aveva ragione da solo.
+ 
+ **🔑 LA LEZIONE — DUE DOCUMENTI ENTRAMBI RATIFICATI POSSONO CONTRADDIRSI, E LA CONTRADDIZIONE VIVE NEL
+ CODICE, NON NELLA PROSA.** La spec era giusta sull'ordine e sbagliata sull'esito; il piano il contrario.
+ Nessuna rilettura dell'uno o dell'altro l'avrebbe mostrato: **si vede solo mettendoli accanto sulla
+ stessa riga di codice**. È la stessa forma della lezione di stamattina («due decisioni giuste possono
+ collidere in una chiamata»), applicata stavolta fra una spec e il piano che la esegue.
+ ➡️ **Il controllo pre-volo non è burocrazia: qui ha pagato da solo il suo costo.**
+ 
+ **Emendati nello stesso turno:** spec §6 (nasce il passo ①-bis) · piano Task 2 (codice e prove).
++
++---
++
++### Centododicesima tornata — D277-D279: la gravità si CHIEDE, il banco non è il mercato, e il «perché» non può contraddire chi l'ha scritto (06/08/2026, 18:55)
++
++**Nasce da:** la revisione del Task 2. Conformità al mandato **approvata** (eseguito alla lettera,
++niente di meno e niente di più, ritrovamenti riferiti e non corretti di nascosto), **qualità da
++correggere** — e **tutti e tre i rilievi discendono dal mandato**, cioè dal piano e dalla spec.
++Verificati uno per uno contro il testo della spec ratificata prima di portarli a Francesco.
++
++| # | Decisione | Conseguenza |
++|---|---|---|
++| **D277** | 🔴 **LA GRAVITÀ DI UN INCIDENTE SI CHIEDE, NON SI DEDUCE — e la scadenza nasce dalla risposta.** Francesco: «*sì a tutti e tre*» | L'app propone «incidente — **da valutare se grave**» e pone la domanda dell'Art. 2(65) a una persona; `termineOre` resta **vuoto** finché non c'è risposta. I tre termini della spec §3 diventano tutti raggiungibili: **2 giorni** (minaccia grave alla salute pubblica, 87(4)) · **10 giorni** (morte o deterioramento grave non previsto, 87(5)) · **15 giorni** (regola generale, 87(3)) |
++| **D278** | 🛑 **MAI USCITO DAL LABORATORIO = MAI UN INCIDENTE. Fra spec §3 e spec §6 vince la §3** | Se `stato_dispositivo = mai_uscito_dal_lab`, l'esito è **non conformità interna (§8.3.2)** qualunque sia il potenziale di danno. Base: un incidente riguarda un dispositivo «messo a disposizione» (Art. 2(64)) e quello **non lo è mai stato** |
++| **D279** | 🟠 **IL «PERCHÉ» SI COSTRUISCE DAI FATTI REGISTRATI, mai da frasi fisse** | Il testo che l'app propone non può affermare il contrario di ciò che l'utente ha appena dichiarato |
++
++**🔴 D277 — L'UNICO PUNTO IN CUI IL SISTEMA CHIEDEVA MENO DEL DOVUTO, e va detto per intero.**
++Il codice decideva la gravità con **una sola uguaglianza** (`potenziale_di_danno === 'accertato'`),
++mentre l'Art. 2(65) — citato nella **spec stessa**, §3 — dice che è grave anche l'incidente che
++«**avrebbe potuto portare**» a morte o a danno serio. Caso concreto, eseguito: una lega sbagliata su
++un paziente allergico, manufatto non ancora applicato → l'app proponeva «incidente **non grave**,
++nessuna scadenza». E quando diceva «grave» proponeva **sempre 15 giorni**, cioè il **più lungo** dei
++tre: per una morte la spec ne prevede **10**.
++🔑 **La radice non era un refuso: era il modello.** `potenziale_di_danno` ha quattro valori su **un
++asse solo**, e gli si facevano rispondere **due domande diverse** — «è un incidente?» (Art. 2(64)) e
++«è grave?» (Art. 2(65)). Quattro caselle non reggono due domande. ➡️ La risposta non è aggiungere
++valori, è **smettere di indovinare**: D267 dice che l'app propone e **una persona conferma**.
++⚠️ **E `accertato` NON implica grave:** un danno può essere avvenuto ed essere lieve. Anche lì si chiede.
++📌 **Direzione dell'errore, ed è la regola che decide:** Art. 87(7) — «*nel dubbio si segnala*». Ogni
++altro ingresso malformato di questa funzione degradava verso **più** obblighi; solo questo verso meno.
++
++**🛑 D278 — DUE SEZIONI DELLA STESSA SPEC SI CONTRADDICEVANO, e stavolta non fra due documenti.**
++La §3 è netta: «*Prima della consegna… **Nessuna vigilanza, nessun reclamo**. Difetto colto al banco =
++non conformità interna + rilavorazione*». La §6 applicava il test dell'incidente **a tutto**, senza
++guardare se il manufatto fosse mai uscito.
++⚠️ **E non è il caso raro: è quello NORMALE.** In banca dati `potenziale_di_danno` nasce
++**`da_valutare`** (`20260806140823:24`). L'addetta registra un difetto di lavorazione su un lavoro
++**ancora al banco**, lascia il valore com'è, e l'app le propone **«incidente»** con ramo §8.3.3.
++🔑 **Stessa forma di D276, un livello più dentro:** lì si contraddicevano la spec e il piano, qui **due
++sezioni della stessa spec** — e in entrambi i casi la contraddizione era invisibile nella prosa e
++visibile solo sulla riga di codice che le fa incontrare.
++
++**🟠 D279 — non è cosmesi, è la riga che un ispettore legge.** Tre casi provati: se l'utente dichiara
++che il manufatto **era applicato**, l'app scriveva «*anche se non è ancora stato applicato*»; se
++dichiarava «non lo so», scriveva «*a dispositivo già uscito*»; se la segnalazione veniva
++**dall'odontoiatra**, scriveva «*ce ne siamo accorti noi*». Sotto **D267** il «perché» è ciò su cui la
++persona decide se confermare, e finisce in `valutazioni_evento.giustificazione`.
++➡️ **Una motivazione che descrive male il caso è un invito a confermare male.**
++
++**🔑 LA LEZIONE DELLA REVISIONE — «CONFORME AL MANDATO» E «GIUSTO» SONO DUE VERDETTI, ED È GIUSTO CHE
++SIANO DUE.** L'esecutore ha fatto esattamente ciò che gli era stato chiesto, e proprio per questo i
++difetti del mandato sono arrivati intatti fino al codice: **un esecutore fedele è un amplificatore, non
++un filtro**. Il filtro è la revisione con due verdetti separati — e qui il secondo ha trovato tre cose
++che il primo, per costruzione, non poteva vedere.
++
++**Chiuso anche, nello stesso giro:** tre lacune di copertura (un ramo del codice mai raggiunto da
++nessuna prova · `naturaDaMotivo` senza alcuna prova · la prova «ogni proposta porta il perché» che ne
++guardava **una sola** su sei).
+diff --git a/docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md b/docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md
+index 41a50477..f59eeb83 100644
+--- a/docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md
++++ b/docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md
+@@ -306,20 +306,42 @@ D263 chiede.
+ > con un danno accertato su una persona**, e l'obbligo di segnalazione sarebbe sparito. È lo stesso
+ > difetto rifiutato al panel del mattino (D268), in un altro vestito — e con «nessuna azione» è peggio,
+ > perché non lascia nemmeno una registrazione.
+ >
+ > **② I tre motivi danno NESSUNA AZIONE, non non-conformità interna.** Prima di D276 la lettera di
+ > questa spec li faceva ricadere in ③: un tasto premuto per sbaglio sarebbe finito nel registro qualità
+ > **e nei conteggi**, cioè in quelli che alimentano il rapporto periodico dovuto per legge. È
+ > esattamente ciò che **D273** vieta. L'esito giusto era nel piano, l'ordine giusto era qui: nessuno dei
+ > due documenti aveva ragione da solo.
+ 
++> ⚖️ **D277 e D278 (06/08/2026, centododicesima tornata) — due correzioni al passo ①, trovate dalla
++> revisione del Task 2 e verificate contro il testo di questa stessa spec.**
++>
++> **D278 — il passo ① si applica SOLO a un dispositivo che è uscito.** Se
++> `stato_dispositivo = mai_uscito_dal_lab`, l'esito è **non conformità interna (§8.3.2)**, qualunque sia
++> il potenziale di danno. 🛑 **Questa §6 contraddiceva la §3 di questa spec**, che è netta: «*Prima della
++> consegna… Nessuna vigilanza, nessun reclamo*». Vince la **§3**, e la base è di legge: un incidente
++> riguarda un dispositivo «messo a disposizione» (Art. 2(64)), e quello non lo è mai stato.
++> ⚠️ **Non è il caso raro, è quello normale:** `potenziale_di_danno` nasce `da_valutare` in banca dati,
++> quindi un difetto registrato su un lavoro ancora al banco usciva classificato «incidente».
++>
++> **D277 — la GRAVITÀ non si deduce da `potenziale_di_danno`: si CHIEDE.** Il passo ① si ferma a
++> «**incidente**», propone la domanda dell'Art. 2(65) — *ha portato, avrebbe potuto portare o potrebbe
++> portare a morte, a un deterioramento grave della salute, o a una grave minaccia per la salute
++> pubblica?* — e **lascia il termine vuoto** finché una persona non risponde. Dalla risposta discendono
++> i tre termini già elencati in §3: **2 giorni** (87(4), minaccia grave alla salute pubblica) ·
++> **10 giorni** (87(5), morte o deterioramento grave non previsto) · **15 giorni** (87(3), regola
++> generale). ⚠️ **`accertato` NON implica grave**: un danno può essere avvenuto ed essere lieve.
++> 🔑 **Il motivo per cui non bastava aggiungere valori:** `potenziale_di_danno` ha quattro voci su **un
++> asse solo** e gli si facevano rispondere **due domande** (Art. 2(64) «è un incidente?» e Art. 2(65)
++> «è grave?»). La risposta giusta è **smettere di indovinare** — D267: l'app propone, la persona conferma.
++
+ Derivazioni documentali, indipendenti dalle tre precedenti:
+ 
+ - **riemissione della dichiarazione** ⟸ dichiarazione già emessa **e** `natura ∈ {dato_documentale,
+   difetto_materiale}`
+ - **nota di credito** ⟸ fattura già emessa **e** `natura = commerciale` → **fuori perimetro** (caso 6):
+   l'app lo **segnala** e non lo esegue
+ - **avviso al medico** ⟸ §10
+ - **azione correttiva e preventiva (CAPA, §8.5.2): mai derivata da un evento singolo.** La
+   proporzionalità agli effetti non si calcola su una riga sola: nasce dal riesame dell'accumulato
+ 
+diff --git a/src/lib/domain/qualita-costanti.ts b/src/lib/domain/qualita-costanti.ts
+index e751fcea..00d303c4 100644
+--- a/src/lib/domain/qualita-costanti.ts
++++ b/src/lib/domain/qualita-costanti.ts
+@@ -97,17 +97,50 @@ const NATURA_DA_MOTIVO: Record<Exclude<Motivo, 'altro'>, Natura> = {
+   // vocabolario della divergenza prescritto/eseguito — vi RIMANDA.
+   // `richiesta_dentista` è già il caso 5, modellato in
+   // src/lib/domain/prescrizione-costanti.ts:53-58
+   // (`MOTIVI_DIVERGENZA`, prima voce dell'array).
+   modifica_clinica_richiesta: 'nuova_esigenza_clinica',
+   errore_prezzo_quantita: 'commerciale',
+   reso_senza_difetto: 'nessun_difetto',
+   errore_registrazione: 'errore_registrazione',
+ }
+ 
++const INSIEME_MOTIVI = new Set<string>(MOTIVI)
++
+ /** La derivazione fissa motivo → natura (spec §5). `null` SOLO per
+  *  `'altro'`: lì la natura si CHIEDE, non si indovina — l'utente la sceglie
+- *  fra le sette (motivo_libero porta il testo, non basta a dedurre natura). */
+-export function naturaDaMotivo(motivo: Motivo): Natura | null {
+-  if (motivo === 'altro') return null
+-  return NATURA_DA_MOTIVO[motivo]
++ *  fra le sette (motivo_libero porta il testo, non basta a dedurre natura).
++ *
++ *  🛑 Ritrovamento della revisione del Task 2 (06/08/2026): con la firma
++ *  precedente (`motivo: Motivo`) il controllo di TIPO mancava del tutto, e
++ *  `motivo` qui è solo un'etichetta TypeScript — a runtime arriva `unknown`
++ *  (body JSON). `naturaDaMotivo('constructor')` risaliva al prototipo di
++ *  `Object` e restituiva una FUNZIONE (idem `'toString'`, `'valueOf'`;
++ *  `'__proto__'` restituiva un oggetto) invece di `null`. Stesso idioma già
++ *  in casa — `src/lib/domain/prescrizione-costanti.ts:61-74`
++ *  (`new Set<string>` + `typeof v === 'string'`) — invece di indicizzare
++ *  l'oggetto con un valore non verificato. */
++export function naturaDaMotivo(motivo: unknown): Natura | null {
++  if (typeof motivo !== 'string' || !INSIEME_MOTIVI.has(motivo) || motivo === 'altro') return null
++  return NATURA_DA_MOTIVO[motivo as Exclude<Motivo, 'altro'>]
+ }
++
++// ── la risposta alla domanda dell'Art. 2(65) — la gravità (D277, 06/08/2026) ──
++// 🔑 NON è un vincolo di banca dati: nessuna tabella ha ancora questa colonna
++// (Task 2 è puro, senza DB — l'aggancio a `valutazioni_evento` è di una Task
++// successiva, fuori da questo mandato). Vive qui perché è lo stesso dominio
++// dei sei vocabolari sopra: la domanda che `classifica()` pone quando il
++// passo ① trova un potenziale di danno e non può più dedurre la gravità da
++// un solo valore di `potenziale_di_danno` — il difetto che D277 ha chiuso
++// (quell'asse risponde all'Art. 2(64) «è un incidente?», non all'Art. 2(65)
++// «è grave?»: sono due domande, non una).
++//
++// Le prime tre sono «grave», ciascuna col suo termine dell'Art. 87; la quarta
++// ferma la scadenza a `null` (resta un incidente, ma senza MIR — entra solo
++// nel conteggio periodico dell'Art. 88).
++export const RISPOSTE_GRAVITA_INCIDENTE = [
++  'minaccia_grave_salute_pubblica', // Art. 87(4) → 2 giorni
++  'morte_o_deterioramento_non_previsto', // Art. 87(5) → 10 giorni
++  'grave_regola_generale', // Art. 87(3) → 15 giorni
++  'non_grave', // incidente, nessuna scadenza MIR
++] as const
++export type RispostaGravitaIncidente = (typeof RISPOSTE_GRAVITA_INCIDENTE)[number]
+diff --git a/src/lib/qualita/classifica.ts b/src/lib/qualita/classifica.ts
+index 877f0fdd..b84b5555 100644
+--- a/src/lib/qualita/classifica.ts
++++ b/src/lib/qualita/classifica.ts
+@@ -3,61 +3,159 @@
+ // Il motore che, dai fatti di un evento (`eventi_qualita`), PROPONE una
+ // classificazione (spec §6). Funzione pura, senza database: chi conferma
+ // resta un giudizio umano — «l'app propone, una persona conferma» (§6).
+ //
+ // 🛑 D276 (06/08/2026) — NESSUN MOTIVO SALTA LA FILA. Il test dell'incidente
+ // (①) sta SEMPRE prima delle esenzioni (①-bis), qualunque sia `natura`. Un
+ // piano precedente faceva uscire prima i tre motivi «non è un problema del
+ // dispositivo»: un evento marcato «richiesta clinica nuova» sarebbe uscito
+ // con «nessuna azione» ANCHE con un danno accertato su una persona, e
+ // l'obbligo di segnalazione sarebbe sparito. Vedi spec §6, riquadro D276.
++//
++// ⚖️ D277/D278 (06/08/2026, centododicesima tornata) — due correzioni al passo ①, dalla
++// revisione del Task 2 (commit 10c2da7b), verificate contro la spec §3/§6.
++//
++// D278 — IL PASSO ① SI APPLICA SOLO A UN DISPOSITIVO USCITO. Prima di questa correzione,
++// il test dell'incidente ignorava `statoDispositivo`: un difetto registrato su un lavoro
++// ancora al banco (`potenzialeDiDanno` nasce `da_valutare` in banca dati — il caso NORMALE,
++// non il raro) usciva «incidente». Ma un incidente riguarda un dispositivo «messo a
++// disposizione» (Art. 2(64)), e uno che non è mai uscito dal laboratorio non lo è mai
++// stato: vince la spec §3 su §6 («Nessuna vigilanza, nessun reclamo» prima della consegna).
++// Le esenzioni di natura (①-bis, D276) restano più forti di questo confine: la spec, per
++// D278, elenca solo `potenzialeDiDanno` e `origine` fra i «qualunque sia» — mai `natura` —
++// e non c'è contraddizione, perché un motivo che non è mai un problema del dispositivo non
++// nasconde nessun incidente, uscito o no.
++//
++// D277 — LA GRAVITÀ SI CHIEDE, NON SI DEDUCE. `potenzialeDiDanno` risponde solo alla
++// domanda dell'Art. 2(64) («è un incidente?»); l'Art. 2(65) («è grave?») è una domanda
++// diversa, sulla quale decide una persona — non un solo valore con 4 caselle chiamato a
++// risponderne 2. Senza risposta il termine resta `null` e la proposta porta la domanda in
++// chiaro; con la risposta, i tre termini dell'Art. 87(3)/(4)/(5) diventano raggiungibili.
++// ⚠️ `accertato` NON implica più «grave»: un danno può essere avvenuto ed essere lieve.
+ 
+ import type {
+   Natura,
+   OrigineInformazione,
+   StatoDispositivo,
+   PotenzialeDiDanno,
+   Esito,
++  RispostaGravitaIncidente,
+ } from '@/lib/domain/qualita-costanti'
+ 
+ export interface FattiEvento {
+   natura: Natura
+   origine: OrigineInformazione
+   statoDispositivo: StatoDispositivo
+   potenzialeDiDanno: PotenzialeDiDanno
+ }
+ 
+ export interface Proposta {
+   esito: Esito
+   perche: string
+   ramoIso: '8.3.2' | '8.3.3' | null
+   termineOre: number | null
+ }
+ 
+-export function classifica(f: FattiEvento): Proposta {
++// ── testi in parole comuni, composti dai FATTI reali (D279) ────────────────────────────
++// 🟠 D279 — il perché non può affermare il contrario di ciò che l'utente ha appena
++// dichiarato. Tre frasi fisse lo facevano: «anche se non è ancora stato applicato» quando
++// era vero il contrario, «a dispositivo già uscito» quando non si sapeva, «ce ne siamo
++// accorti noi» quando se n'era accorto l'odontoiatra. Ora ogni testo si compone da
++// `origine` e `statoDispositivo` reali con queste due funzioni, non da una frase fissa.
++
++function descriviProvenienza(origine: OrigineInformazione): string {
++  switch (origine) {
++    case 'laboratorio_interno': return 'Ce ne siamo accorti noi, in laboratorio'
++    case 'odontoiatra': return 'Ce l\'ha segnalato l\'odontoiatra'
++    case 'paziente_tramite_medico': return 'Ce l\'ha segnalato il paziente, tramite il medico'
++    case 'autorita_competente': return 'Ce l\'ha segnalato l\'autorità competente'
++    case 'altro_operatore': return 'Ce l\'ha segnalato un altro operatore'
++  }
++}
++
++function descriviStatoDispositivo(stato: StatoDispositivo): string {
++  switch (stato) {
++    case 'mai_uscito_dal_lab': return 'il dispositivo non è mai uscito dal laboratorio'
++    case 'consegnato_non_applicato': return 'il dispositivo era stato consegnato, ma non ancora applicato'
++    case 'applicato': return 'il dispositivo era stato applicato'
++    // ⚠️ D279 — `non_noto` non autorizza ad affermare né che fosse uscito né che non lo
++    // fosse: la classificazione resta prudente (si tratta come se fosse uscito, Art. 87(7)
++    // generalizzato), ma il TESTO non deve dichiarare una certezza che non c'è.
++    case 'non_noto': return 'non sappiamo con certezza se il dispositivo fosse già uscito dal laboratorio, ma nel dubbio lo trattiamo come se lo fosse'
++  }
++}
++
++function primaLettera(s: string): string {
++  return s.charAt(0).toUpperCase() + s.slice(1)
++}
++
++// ── la risposta alla domanda dell'Art. 2(65) (D277) ─────────────────────────────────────
++function esitoDaGravita(gravita: RispostaGravitaIncidente): { esito: 'incidente' | 'incidente_grave'; termineOre: number | null; perche: string } {
++  switch (gravita) {
++    case 'minaccia_grave_salute_pubblica':
++      return { esito: 'incidente_grave', termineOre: 2 * 24, perche: 'È una minaccia grave per la salute pubblica: la segnalazione va fatta entro 2 giorni da quando lo si è saputo (Art. 87(4)).' }
++    case 'morte_o_deterioramento_non_previsto':
++      return { esito: 'incidente_grave', termineOre: 10 * 24, perche: 'Ha portato, o avrebbe potuto portare, a una morte o a un peggioramento serio e non previsto della salute: la segnalazione va fatta entro 10 giorni da quando lo si è saputo (Art. 87(5)).' }
++    case 'grave_regola_generale':
++      return { esito: 'incidente_grave', termineOre: 15 * 24, perche: 'È un incidente grave: la segnalazione va fatta entro 15 giorni da quando lo si è saputo (Art. 87(3)).' }
++    case 'non_grave':
++      return { esito: 'incidente', termineOre: null, perche: 'È un incidente, ma non è grave: nessuna segnalazione immediata da fare, ma entra nel conteggio periodico degli incidenti (Art. 88).' }
++  }
++}
++
++/** Propone una classificazione dai fatti di un evento di qualità (spec §6).
++ *
++ *  `rispostaGravita` è la risposta — FACOLTATIVA — alla domanda dell'Art. 2(65) (D277):
++ *  arriva più tardi dei fatti, da una persona, non dal modulo che registra l'evento.
++ *  Senza risposta, un evento col test dell'incidente positivo resta `incidente` con
++ *  `termineOre: null` e la domanda in chiaro nel `perche` — mai `incidente_grave` per
++ *  default. */
++export function classifica(f: FattiEvento, rispostaGravita?: RispostaGravitaIncidente): Proposta {
++  const uscito = f.statoDispositivo !== 'mai_uscito_dal_lab'
++
+   // 🛑 D276 — NESSUN MOTIVO SALTA LA FILA. Il test dell'incidente sta PRIMA di ogni
+   // esenzione: qui c'era l'uscita anticipata dei tre motivi «non è un problema del
+   // dispositivo», e faceva sparire un danno accertato dietro un «nessuna azione».
++  // 🛑 D278 — ma il passo ① si applica SOLO se il dispositivo è uscito: prima della
++  // consegna nessun incidente è possibile (Art. 2(64), spec §3).
+   // ① IL TEST DELL'INCIDENTE VIENE PRIMA — invertirlo nasconde l'obbligo dell'Art. 88 (D268)
+-  if (f.potenzialeDiDanno !== 'nessuno') {
+-    if (f.potenzialeDiDanno === 'accertato')
+-      return { esito: 'incidente_grave', perche: 'Ci sono state conseguenze accertate sulla salute: va valutata la segnalazione all\'autorità.', ramoIso: '8.3.3', termineOre: 15 * 24 }
+-    return { esito: 'incidente', perche: 'C\'è un potenziale di danno da valutare: prima di parlare di reclamo va escluso l\'incidente.', ramoIso: '8.3.3', termineOre: null }
++  if (uscito && f.potenzialeDiDanno !== 'nessuno') {
++    // ⚖️ D277 — la gravità si CHIEDE, non si deduce da `potenzialeDiDanno`.
++    if (rispostaGravita === undefined)
++      return {
++        esito: 'incidente',
++        perche: 'C\'è un potenziale di danno: per la norma è un incidente (Art. 2(64)). Prima di calcolare la scadenza va risposto — ha causato, avrebbe potuto causare o potrebbe causare la morte, un peggioramento serio della salute, oppure una minaccia grave per la salute pubblica? Finché non si risponde, la scadenza resta da definire.',
++        ramoIso: '8.3.3',
++        termineOre: null,
++      }
++    const { esito, termineOre, perche } = esitoDaGravita(rispostaGravita)
++    return { esito, perche, ramoIso: '8.3.3', termineOre }
+   }
+ 
+   // ①-bis — SOLO ORA le esenzioni (D276): non sono problemi del dispositivo, quindi
+-  // non entrano nei conteggi del rapporto periodico (D273). Ma ci si arriva solo dopo
+-  // che l'incidente è stato escluso, mai prima.
++  // non entrano nei conteggi del rapporto periodico (D273). Valgono qualunque sia lo
++  // stato del dispositivo (D278: non c'era nessun incidente da nascondere qui).
+   if (f.natura === 'nuova_esigenza_clinica')
+     return { esito: 'nessuna_azione', perche: 'Il medico chiede una cosa nuova: il dispositivo era conforme alla prescrizione con cui è stato fatto. Serve una prescrizione nuova, non una correzione.', ramoIso: null, termineOre: null }
+   if (f.natura === 'commerciale' || f.natura === 'errore_registrazione')
+     return { esito: 'nessuna_azione', perche: 'Non tocca il dispositivo né il documento sanitario.', ramoIso: null, termineOre: null }
+ 
+-  // ② e ③ — coinvolgimento, poi conseguenze (che qui sono già escluse)
+-  const uscito = f.statoDispositivo !== 'mai_uscito_dal_lab'
++  // ② — dispositivo uscito, nessun incidente, segnalazione da fuori: reclamo.
+   if (uscito && f.origine !== 'laboratorio_interno')
+-    return { esito: 'reclamo', perche: 'Il dispositivo aveva lasciato il laboratorio e la segnalazione arriva da fuori: per la norma è un reclamo, anche se non è ancora stato applicato.', ramoIso: '8.3.3', termineOre: null }
++    return {
++      esito: 'reclamo',
++      perche: `${descriviProvenienza(f.origine)}. ${primaLettera(descriviStatoDispositivo(f.statoDispositivo))}. Per la norma è un reclamo.`,
++      ramoIso: '8.3.3',
++      termineOre: null,
++    }
+ 
+-  return { esito: 'non_conformita_interna', perche: uscito
+-    ? 'Ce ne siamo accorti noi, a dispositivo già uscito.'
+-    : 'Ce ne siamo accorti noi, prima che uscisse.', ramoIso: uscito ? '8.3.3' : '8.3.2', termineOre: null }
++  // ③ — non conformità interna. §8.3.3 se il dispositivo era uscito, §8.3.2 se non lo è mai
++  // stato (D278: qui il fallback, per ogni `origine`, di un motivo non esente).
++  return {
++    esito: 'non_conformita_interna',
++    perche: uscito
++      ? `${descriviProvenienza(f.origine)}. ${primaLettera(descriviStatoDispositivo(f.statoDispositivo))}. È una non conformità interna, con rilavorazione (ramo ISO 8.3.3).`
++      : `${descriviProvenienza(f.origine)}. ${primaLettera(descriviStatoDispositivo(f.statoDispositivo))}. Non può esserci né un incidente né un reclamo, qualunque sia il potenziale di danno: è una non conformità interna, da correggere prima che il lavoro riparta (ramo ISO 8.3.2).`,
++    ramoIso: uscito ? '8.3.3' : '8.3.2',
++    termineOre: null,
++  }
+ }
+diff --git a/tests/unit/qualita-classifica.test.ts b/tests/unit/qualita-classifica.test.ts
+index 38c47eda..e67d4914 100644
+--- a/tests/unit/qualita-classifica.test.ts
++++ b/tests/unit/qualita-classifica.test.ts
+@@ -1,33 +1,65 @@
+ import { describe, it, expect } from 'vitest'
+ import { classifica } from '@/lib/qualita/classifica'
++import type { Esito } from '@/lib/domain/qualita-costanti'
+ 
+ const base = {
+   natura: 'difetto_fisico', origine: 'odontoiatra',
+   statoDispositivo: 'applicato', potenzialeDiDanno: 'nessuno',
+ } as const
+ 
+ describe('classifica — ordine ministeriale (D268)', () => {
+   it('il difetto segnalato dal dentista PRIMA dell applicazione è un RECLAMO, non lavoro interno', () => {
+     // È il caso 2 ribaltato dal panel: il Ministero lo chiama il caso TIPICO di reclamo
+     const p = classifica({ ...base, statoDispositivo: 'consegnato_non_applicato' })
+     expect(p.esito).toBe('reclamo')
+   })
+ 
+   it('il danno POSSIBILE fa incidente ANCHE se il dispositivo non era applicato', () => {
+     // Il test dell incidente viene PRIMA: invertirlo nasconderebbe l obbligo dell Art. 88
+     const p = classifica({ ...base, statoDispositivo: 'consegnato_non_applicato', potenzialeDiDanno: 'possibile' })
+     expect(p.esito).toBe('incidente')
+   })
+ 
+-  it('il danno ACCERTATO su persona è incidente GRAVE, con il termine dei 15 giorni', () => {
++  // ⚖️ D277 (06/08/2026) — AGGIORNATA. Prima chiedeva per scontato che `accertato` bastasse a
++  // dedurre «grave» e a fissare SEMPRE 15 giorni. L'Art. 2(65), citato nella spec stessa,
++  // separa «è un incidente?» (Art. 2(64), asse di `potenzialeDiDanno`) da «è grave?» (una
++  // domanda diversa, che va posta a una persona): un danno può essere accertato ed essere
++  // lieve. Senza una risposta sulla gravità, l'esito resta «incidente» IN ATTESA, non
++  // «incidente_grave», e il termine resta vuoto finché qualcuno non risponde.
++  it('⚖️ D277 — il danno ACCERTATO è un incidente, ma la gravità si CHIEDE: senza risposta resta in attesa, termine vuoto', () => {
+     const p = classifica({ ...base, potenzialeDiDanno: 'accertato' })
++    expect(p.esito).toBe('incidente')
++    expect(p.termineOre).toBeNull()
++    expect(p.perche).toContain('?') // la domanda dell'Art. 2(65) è in chiaro, non silenziosa
++  })
++
++  it('⚖️ D277 — «accertato» NON implica grave: risposto esplicitamente «non grave» resta incidente, non grave', () => {
++    const p = classifica({ ...base, potenzialeDiDanno: 'accertato' }, 'non_grave')
++    expect(p.esito).toBe('incidente')
++    expect(p.termineOre).toBeNull()
++  })
++
++  it('⚖️ D277 — minaccia grave alla salute pubblica (Art. 87(4)): 2 giorni, non 15', () => {
++    const p = classifica({ ...base, potenzialeDiDanno: 'possibile' }, 'minaccia_grave_salute_pubblica')
++    expect(p.esito).toBe('incidente_grave')
++    expect(p.termineOre).toBe(2 * 24)
++  })
++
++  it('⚖️ D277 — morte o deterioramento grave non previsto (Art. 87(5)): 10 giorni, non 15', () => {
++    const p = classifica({ ...base, potenzialeDiDanno: 'accertato' }, 'morte_o_deterioramento_non_previsto')
++    expect(p.esito).toBe('incidente_grave')
++    expect(p.termineOre).toBe(10 * 24)
++  })
++
++  it('⚖️ D277 — incidente grave, regola generale (Art. 87(3)): 15 giorni', () => {
++    const p = classifica({ ...base, potenzialeDiDanno: 'accertato' }, 'grave_regola_generale')
+     expect(p.esito).toBe('incidente_grave')
+     expect(p.termineOre).toBe(15 * 24)
+   })
+ 
+   it('«da valutare» NON scivola in reclamo: resta candidato incidente', () => {
+     // Art. 87(7): nel dubbio si segnala. Un default prudente non deve essere aggirabile
+     const p = classifica({ ...base, potenzialeDiDanno: 'da_valutare' })
+     expect(p.esito).toBe('incidente')
+   })
+ 
+@@ -52,21 +84,133 @@ describe('classifica — ordine ministeriale (D268)', () => {
+     const p = classifica({ ...base, statoDispositivo: 'non_noto', potenzialeDiDanno: 'possibile' })
+     expect(p.esito).toBe('incidente')
+   })
+ 
+   it('ogni proposta porta il PERCHÉ in chiaro', () => {
+     expect(classifica(base).perche.length).toBeGreaterThan(10)
+   })
+ 
+   // ⚖️ D276 — le due prove che chiudono il difetto trovato dal controllo pre-volo.
+   // Senza queste, l'uscita anticipata dei tre motivi tornerebbe senza far rumore.
+-  it('🛑 «richiesta clinica nuova» NON scavalca il test dell\'incidente: col danno accertato è incidente GRAVE', () => {
+-    const p = classifica({ ...base, natura: 'nuova_esigenza_clinica', potenzialeDiDanno: 'accertato' })
++  //
++  // 🔄 AGGIORNATA (D277): l'assunto «accertato → sempre incidente_grave/15gg» non vale più
++  // per default — ora passa esplicitamente la risposta di gravità, e resta la prova che una
++  // natura esente (D276) non impedisce di arrivare fino a «grave», nemmeno passando dalla
++  // domanda dell'Art. 2(65).
++  it('🛑 «richiesta clinica nuova» NON scavalca il test dell\'incidente: con la gravità confermata è incidente GRAVE', () => {
++    const p = classifica({ ...base, natura: 'nuova_esigenza_clinica', potenzialeDiDanno: 'accertato' }, 'grave_regola_generale')
+     expect(p.esito).toBe('incidente_grave')
+     expect(p.termineOre).toBe(15 * 24)
+   })
+ 
+   it('🛑 «registrato per sbaglio» NON scavalca il test dell\'incidente', () => {
+     const p = classifica({ ...base, natura: 'errore_registrazione', potenzialeDiDanno: 'possibile' })
+     expect(p.esito).toBe('incidente')
+   })
++
++  // 🕳️ Lacuna di copertura (rilievo della revisione del Task 2): l'unico ramo `natura` di
++  // ①-bis che nessuna prova raggiungeva. La prova con `errore_registrazione` (sopra) esce
++  // sempre PRIMA, al passo ①, perché usa un `potenzialeDiDanno` diverso da `nessuno`.
++  it('🕳️ natura COMMERCIALE, senza alcun potenziale di danno, è nessuna azione (ramo mai raggiunto da una prova)', () => {
++    const p = classifica({ ...base, natura: 'commerciale', potenzialeDiDanno: 'nessuno' })
++    expect(p.esito).toBe('nessuna_azione')
++  })
++})
++
++// ⚖️ D278 (06/08/2026) — «mai uscito dal laboratorio» esclude l'incidente, qualunque sia il
++// potenziale di danno E qualunque sia l'origine: un incidente riguarda un dispositivo «messo
++// a disposizione» (Art. 2(64)), e uno che non è mai uscito dal laboratorio non lo è mai stato.
++// Vince la spec §3 su §6 (le due si contraddicevano).
++describe('classifica — D278: mai uscito dal laboratorio = mai un incidente', () => {
++  it('🛑 CASO NORMALE (non il raro): mai uscito + danno ACCERTATO resta non conformità interna, non incidente grave', () => {
++    // `potenziale_di_danno` nasce `da_valutare` in banca dati: un difetto registrato su un
++    // lavoro ancora al banco, lasciato al valore di default, usciva "incidente" con la
++    // versione precedente del motore — qui il caso è portato al limite (accertato, non
++    // da_valutare) per provare che l'esclusione vale ANCHE per il potenziale di danno più
++    // grave possibile, non solo per il default prudente.
++    const p = classifica({ ...base, statoDispositivo: 'mai_uscito_dal_lab', potenzialeDiDanno: 'accertato' })
++    expect(p.esito).toBe('non_conformita_interna')
++    expect(p.ramoIso).toBe('8.3.2')
++    expect(p.termineOre).toBeNull()
++  })
++
++  it('🛑 «qualunque sia l\'origine»: mai uscito + danno accertato + origine INTERNA resta §8.3.2, non incidente', () => {
++    const p = classifica({ ...base, origine: 'laboratorio_interno', statoDispositivo: 'mai_uscito_dal_lab', potenzialeDiDanno: 'accertato' })
++    expect(p.esito).toBe('non_conformita_interna')
++    expect(p.ramoIso).toBe('8.3.2')
++  })
++
++  it('anche con la risposta di gravità già in mano, mai uscito resta non conformità interna: la domanda non si pone nemmeno', () => {
++    const p = classifica({ ...base, statoDispositivo: 'mai_uscito_dal_lab', potenzialeDiDanno: 'accertato' }, 'grave_regola_generale')
++    expect(p.esito).toBe('non_conformita_interna')
++    expect(p.ramoIso).toBe('8.3.2')
++  })
++
++  // La spec elenca solo `potenzialeDiDanno` e `origine` fra i «qualunque sia» di D278 — NON
++  // `natura`. Un motivo che di per sé non è mai un problema del dispositivo (D276, ①-bis)
++  // resta esente anche quando il dispositivo non è mai uscito: non c'era nessun incidente da
++  // nascondere in nessuno dei due casi, quindi le due regole non collidono.
++  it('una natura ESENTE (D276) resta nessuna azione anche se il dispositivo non è mai uscito', () => {
++    const p = classifica({ ...base, natura: 'commerciale', statoDispositivo: 'mai_uscito_dal_lab', potenzialeDiDanno: 'accertato' })
++    expect(p.esito).toBe('nessuna_azione')
++  })
++})
++
++// 🟠 D279 (06/08/2026) — il «perché» si compone dai FATTI registrati (`statoDispositivo`,
++// `origine`), mai da una frase fissa che può affermare il contrario di ciò che l'utente ha
++// appena dichiarato. Tre casi, gli stessi tre della revisione.
++describe('classifica — D279: il PERCHÉ non contraddice i fatti registrati', () => {
++  it('dispositivo APPLICATO, segnalato dall\'odontoiatra: il perché non nega che fosse applicato', () => {
++    const p = classifica({ ...base, statoDispositivo: 'applicato', origine: 'odontoiatra' })
++    expect(p.esito).toBe('reclamo')
++    expect(p.perche).not.toContain('non è ancora stato applicato')
++    expect(p.perche.toLowerCase()).toContain('applicato')
++  })
++
++  it('stato NON NOTO, visto dal laboratorio: il perché non afferma con certezza che fosse già uscito', () => {
++    const p = classifica({ ...base, statoDispositivo: 'non_noto', origine: 'laboratorio_interno', potenzialeDiDanno: 'nessuno' })
++    expect(p.esito).toBe('non_conformita_interna')
++    expect(p.perche).not.toContain('a dispositivo già uscito')
++    expect(p.perche.toLowerCase()).toContain('non sappiamo')
++  })
++
++  it('mai uscito dal laboratorio, segnalato dall\'odontoiatra: il perché non dice "ce ne siamo accorti noi"', () => {
++    const p = classifica({ ...base, statoDispositivo: 'mai_uscito_dal_lab', origine: 'odontoiatra' })
++    expect(p.esito).toBe('non_conformita_interna')
++    expect(p.perche).not.toMatch(/^Ce ne siamo accorti noi/)
++    expect(p.perche.toLowerCase()).toContain('odontoiatra')
++  })
++})
++
++// 🕳️ Lacuna di copertura (rilievo della revisione del Task 2): la prova «ogni proposta porta
++// il perché» guardava UN SOLO esito (`reclamo`, via `base`). Un `perche` vuoto su un esito
++// diverso avrebbe superato tutte le altre prove. Qui si guardano tutti gli esiti raggiungibili
++// (i sei rami distinti del motore, non solo i cinque valori di `Esito`: `nessuna_azione` e
++// `non_conformita_interna` hanno ciascuno due rami diversi con testi diversi).
++describe('classifica — ogni ramo raggiungibile porta un PERCHÉ non vuoto', () => {
++  const casi: Array<{ nome: string; fatti: Parameters<typeof classifica>[0]; gravita?: Parameters<typeof classifica>[1]; esitoAtteso: Esito }> = [
++    { nome: 'nessuna_azione — nuova esigenza clinica', fatti: { ...base, natura: 'nuova_esigenza_clinica', potenzialeDiDanno: 'nessuno' }, esitoAtteso: 'nessuna_azione' },
++    { nome: 'nessuna_azione — commerciale/errore di registrazione', fatti: { ...base, natura: 'commerciale', potenzialeDiDanno: 'nessuno' }, esitoAtteso: 'nessuna_azione' },
++    { nome: 'reclamo', fatti: { ...base, statoDispositivo: 'consegnato_non_applicato', potenzialeDiDanno: 'nessuno' }, esitoAtteso: 'reclamo' },
++    { nome: 'non_conformita_interna — §8.3.3 (uscito, visto in laboratorio)', fatti: { ...base, origine: 'laboratorio_interno', potenzialeDiDanno: 'nessuno' }, esitoAtteso: 'non_conformita_interna' },
++    { nome: 'non_conformita_interna — §8.3.2 (D278, mai uscito)', fatti: { ...base, statoDispositivo: 'mai_uscito_dal_lab', potenzialeDiDanno: 'accertato' }, esitoAtteso: 'non_conformita_interna' },
++    { nome: 'incidente — gravità in attesa di risposta', fatti: { ...base, potenzialeDiDanno: 'possibile' }, esitoAtteso: 'incidente' },
++    { nome: 'incidente — gravità risposta NON grave', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'non_grave', esitoAtteso: 'incidente' },
++    { nome: 'incidente_grave — minaccia salute pubblica', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'minaccia_grave_salute_pubblica', esitoAtteso: 'incidente_grave' },
++    { nome: 'incidente_grave — morte o deterioramento non previsto', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'morte_o_deterioramento_non_previsto', esitoAtteso: 'incidente_grave' },
++    { nome: 'incidente_grave — regola generale', fatti: { ...base, potenzialeDiDanno: 'possibile' }, gravita: 'grave_regola_generale', esitoAtteso: 'incidente_grave' },
++  ]
++
++  it.each(casi)('$nome', ({ fatti, gravita, esitoAtteso }) => {
++    const p = classifica(fatti, gravita)
++    expect(p.esito).toBe(esitoAtteso)
++    expect(p.perche.length).toBeGreaterThan(10)
++  })
++
++  it('i dieci rami sopra non condividono tutti lo stesso testo (nessuna frase fissa copre più di un fatto reale)', () => {
++    const testi = new Set(casi.map(({ fatti, gravita }) => classifica(fatti, gravita).perche))
++    // nessuna_azione ha due rami con testo intenzionalmente diverso; idem le due non
++    // conformità e le quattro varianti di incidente/incidente_grave — dieci casi, testi
++    // sostanzialmente tutti diversi salvo dove il fatto reale è davvero lo stesso.
++    expect(testi.size).toBeGreaterThan(1)
++  })
+ })
+diff --git a/tests/unit/qualita-costanti.test.ts b/tests/unit/qualita-costanti.test.ts
+new file mode 100644
+index 00000000..e78d8131
+--- /dev/null
++++ b/tests/unit/qualita-costanti.test.ts
+@@ -0,0 +1,97 @@
++import { describe, it, expect } from 'vitest'
++import { naturaDaMotivo } from '@/lib/domain/qualita-costanti'
++
++describe('naturaDaMotivo — la derivazione fissa motivo → natura (spec §5)', () => {
++  // Le otto voci non-'altro', copiate dalla tabella di spec §5, una per una:
++  // nessuna lacuna di copertura (rilievo della revisione del Task 2).
++  it('errore_dato_dichiarazione → dato_documentale', () => {
++    expect(naturaDaMotivo('errore_dato_dichiarazione')).toBe('dato_documentale')
++  })
++
++  it('difetto_lavorazione → difetto_fisico', () => {
++    expect(naturaDaMotivo('difetto_lavorazione')).toBe('difetto_fisico')
++  })
++
++  it('difetto_materiale → difetto_fisico', () => {
++    expect(naturaDaMotivo('difetto_materiale')).toBe('difetto_fisico')
++  })
++
++  it('destinatario_errato → identificazione_destinatario', () => {
++    expect(naturaDaMotivo('destinatario_errato')).toBe('identificazione_destinatario')
++  })
++
++  it('modifica_clinica_richiesta → nuova_esigenza_clinica (caso 5, spec §11 — rimanda a MOTIVI_DIVERGENZA, non lo duplica)', () => {
++    expect(naturaDaMotivo('modifica_clinica_richiesta')).toBe('nuova_esigenza_clinica')
++  })
++
++  it('errore_prezzo_quantita → commerciale', () => {
++    expect(naturaDaMotivo('errore_prezzo_quantita')).toBe('commerciale')
++  })
++
++  it('reso_senza_difetto → nessun_difetto', () => {
++    expect(naturaDaMotivo('reso_senza_difetto')).toBe('nessun_difetto')
++  })
++
++  it('errore_registrazione → errore_registrazione (assorbe il vecchio annullo consegna, D269)', () => {
++    expect(naturaDaMotivo('errore_registrazione')).toBe('errore_registrazione')
++  })
++
++  it('«altro» → null: la natura si CHIEDE, non si indovina', () => {
++    expect(naturaDaMotivo('altro')).toBeNull()
++  })
++
++  // 🛑 Ritrovamento della revisione del Task 2 (06/08/2026): con un `Record` indicizzato
++  // senza controllo di TIPO, un valore che risale al prototipo di `Object` restituisce
++  // quel membro del prototipo invece di `null`. Stesso idioma del precedente in casa
++  // (`prescrizione-costanti.ts:61-74`): `new Set<string>` + `typeof v === 'string'`.
++  describe('la guardia sui valori estranei al prototipo (ritrovamento della revisione)', () => {
++    it('«constructor» NON risale al prototipo di Object: null, non una funzione', () => {
++      expect(naturaDaMotivo('constructor')).toBeNull()
++    })
++
++    it('«toString» NON risale al prototipo di Object: null, non una funzione', () => {
++      expect(naturaDaMotivo('toString')).toBeNull()
++    })
++
++    it('«valueOf» NON risale al prototipo di Object: null, non una funzione', () => {
++      expect(naturaDaMotivo('valueOf')).toBeNull()
++    })
++
++    it('«__proto__» NON risale al prototipo di Object: null, non un oggetto', () => {
++      expect(naturaDaMotivo('__proto__')).toBeNull()
++    })
++  })
++
++  // Il body di una richiesta JSON non porta solo stringhe: la guardia va provata
++  // anche sulle forme che non sono nemmeno stringhe (R-P4 — si enumerano le forme
++  // d'ingresso, non solo i valori del vocabolario).
++  describe('valori che non sono nemmeno stringhe, o stringhe fuori vocabolario', () => {
++    it('un numero → null', () => {
++      expect(naturaDaMotivo(42)).toBeNull()
++    })
++
++    it('null → null', () => {
++      expect(naturaDaMotivo(null)).toBeNull()
++    })
++
++    it('undefined → null', () => {
++      expect(naturaDaMotivo(undefined)).toBeNull()
++    })
++
++    it('un array → null', () => {
++      expect(naturaDaMotivo(['difetto_lavorazione'])).toBeNull()
++    })
++
++    it('un oggetto → null', () => {
++      expect(naturaDaMotivo({ motivo: 'difetto_lavorazione' })).toBeNull()
++    })
++
++    it('una stringa fuori vocabolario ("pippo") → null', () => {
++      expect(naturaDaMotivo('pippo')).toBeNull()
++    })
++
++    it('una stringa quasi giusta ma con maiuscola ("ALTRO") → null', () => {
++      expect(naturaDaMotivo('ALTRO')).toBeNull()
++    })
++  })
++})

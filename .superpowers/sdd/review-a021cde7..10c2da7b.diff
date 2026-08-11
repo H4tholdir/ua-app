@@ -1,0 +1,278 @@
+# Review package: a021cde7de724f4764a461754cdff751c6fb9ffe..HEAD
+
+## Commits
+10c2da7b feat(qualita): i tre test nell'ordine ministeriale, come funzione pura
+
+## Files changed
+ src/lib/domain/qualita-costanti.ts    | 113 ++++++++++++++++++++++++++++++++++
+ src/lib/qualita/classifica.ts         |  63 +++++++++++++++++++
+ tests/unit/qualita-classifica.test.ts |  72 ++++++++++++++++++++++
+ 3 files changed, 248 insertions(+)
+
+## Diff
+diff --git a/src/lib/domain/qualita-costanti.ts b/src/lib/domain/qualita-costanti.ts
+new file mode 100644
+index 00000000..e751fcea
+--- /dev/null
++++ b/src/lib/domain/qualita-costanti.ts
+@@ -0,0 +1,113 @@
++// src/lib/domain/qualita-costanti.ts
++//
++// I SEI vocabolari chiusi dell'ondata «si deve sempre poter intervenire»
++// (Task 2). Copiati ALLA LETTERA dai CHECK vivi in banca dati — fonte
++// autoritativa: supabase/migrations/20260806140823_eventi_qualita.sql
++// (Task 1, già applicata). Un valore in più o in meno qui è una riga che il
++// database rifiuterà a runtime con un 23514 illeggibile, invece di un errore
++// leggibile in fase di scrittura.
++//
++// 🔑 `natura` NON è un secondo campo che l'utente compila: è una derivazione
++// FISSA di `motivo` (spec §5, tabella). `naturaDaMotivo` è quella
++// derivazione — vive qui perché il vocabolario e la sua proiezione sono la
++// stessa fonte di verità, non due.
++
++// ── motivo — nove voci, la scelta dell'utente ────────────────────────────
++// CHECK: 20260806140823_eventi_qualita.sql:10-13
++export const MOTIVI = [
++  'errore_dato_dichiarazione',
++  'difetto_lavorazione',
++  'difetto_materiale',
++  'destinatario_errato',
++  'modifica_clinica_richiesta',
++  'errore_prezzo_quantita',
++  'reso_senza_difetto',
++  'errore_registrazione',
++  'altro',
++] as const
++export type Motivo = (typeof MOTIVI)[number]
++
++// ── natura — sette voci, DERIVATA da motivo (spec §5) ────────────────────
++// CHECK: 20260806140823_eventi_qualita.sql:15-17
++export const NATURE = [
++  'dato_documentale',
++  'difetto_fisico',
++  'identificazione_destinatario',
++  'nuova_esigenza_clinica',
++  'nessun_difetto',
++  'commerciale',
++  'errore_registrazione',
++] as const
++export type Natura = (typeof NATURE)[number]
++
++// ── origine_informazione — cinque voci: fa partire l'orologio ───────────
++// (MDCG 2023-3 Q15 — la awareness date) e stabilisce se può esistere un
++// reclamo (serve una comunicazione da fuori).
++// CHECK: 20260806140823_eventi_qualita.sql:18-20
++export const ORIGINI_INFORMAZIONE = [
++  'laboratorio_interno',
++  'odontoiatra',
++  'paziente_tramite_medico',
++  'autorita_competente',
++  'altro_operatore',
++] as const
++export type OrigineInformazione = (typeof ORIGINI_INFORMAZIONE)[number]
++
++// ── stato_dispositivo — quattro voci, non un booleano (D269, spec §5) ───
++// `non_noto` è ammesso e non blocca: decisione di Francesco del 06/08.
++// CHECK: 20260806140823_eventi_qualita.sql:22-23
++export const STATI_DISPOSITIVO = [
++  'mai_uscito_dal_lab',
++  'consegnato_non_applicato',
++  'applicato',
++  'non_noto',
++] as const
++export type StatoDispositivo = (typeof STATI_DISPOSITIVO)[number]
++
++// ── potenziale_di_danno — quattro voci, default prudente `da_valutare` ──
++// Un default `nessuno` sarebbe un generatore silenzioso di
++// sotto-classificazione, contro l'Art. 87(7) (spec §5).
++// CHECK: 20260806140823_eventi_qualita.sql:24-25
++export const POTENZIALI_DI_DANNO = [
++  'nessuno',
++  'da_valutare',
++  'possibile',
++  'accertato',
++] as const
++export type PotenzialeDiDanno = (typeof POTENZIALI_DI_DANNO)[number]
++
++// ── esito — cinque voci, l'ordine ministeriale (D268, spec §3/§6) ───────
++// CHECK: 20260806140823_eventi_qualita.sql:38-40
++export const ESITI = [
++  'nessuna_azione',
++  'non_conformita_interna',
++  'reclamo',
++  'incidente',
++  'incidente_grave',
++] as const
++export type Esito = (typeof ESITI)[number]
++
++// ── motivo → natura, la derivazione fissa (spec §5, tabella) ─────────────
++const NATURA_DA_MOTIVO: Record<Exclude<Motivo, 'altro'>, Natura> = {
++  errore_dato_dichiarazione: 'dato_documentale',
++  difetto_lavorazione: 'difetto_fisico',
++  difetto_materiale: 'difetto_fisico',
++  destinatario_errato: 'identificazione_destinatario',
++  // 🔑 Caso 5 (spec §11): `modifica_clinica_richiesta` NON duplica il
++  // vocabolario della divergenza prescritto/eseguito — vi RIMANDA.
++  // `richiesta_dentista` è già il caso 5, modellato in
++  // src/lib/domain/prescrizione-costanti.ts:53-58
++  // (`MOTIVI_DIVERGENZA`, prima voce dell'array).
++  modifica_clinica_richiesta: 'nuova_esigenza_clinica',
++  errore_prezzo_quantita: 'commerciale',
++  reso_senza_difetto: 'nessun_difetto',
++  errore_registrazione: 'errore_registrazione',
++}
++
++/** La derivazione fissa motivo → natura (spec §5). `null` SOLO per
++ *  `'altro'`: lì la natura si CHIEDE, non si indovina — l'utente la sceglie
++ *  fra le sette (motivo_libero porta il testo, non basta a dedurre natura). */
++export function naturaDaMotivo(motivo: Motivo): Natura | null {
++  if (motivo === 'altro') return null
++  return NATURA_DA_MOTIVO[motivo]
++}
+diff --git a/src/lib/qualita/classifica.ts b/src/lib/qualita/classifica.ts
+new file mode 100644
+index 00000000..877f0fdd
+--- /dev/null
++++ b/src/lib/qualita/classifica.ts
+@@ -0,0 +1,63 @@
++// src/lib/qualita/classifica.ts
++//
++// Il motore che, dai fatti di un evento (`eventi_qualita`), PROPONE una
++// classificazione (spec §6). Funzione pura, senza database: chi conferma
++// resta un giudizio umano — «l'app propone, una persona conferma» (§6).
++//
++// 🛑 D276 (06/08/2026) — NESSUN MOTIVO SALTA LA FILA. Il test dell'incidente
++// (①) sta SEMPRE prima delle esenzioni (①-bis), qualunque sia `natura`. Un
++// piano precedente faceva uscire prima i tre motivi «non è un problema del
++// dispositivo»: un evento marcato «richiesta clinica nuova» sarebbe uscito
++// con «nessuna azione» ANCHE con un danno accertato su una persona, e
++// l'obbligo di segnalazione sarebbe sparito. Vedi spec §6, riquadro D276.
++
++import type {
++  Natura,
++  OrigineInformazione,
++  StatoDispositivo,
++  PotenzialeDiDanno,
++  Esito,
++} from '@/lib/domain/qualita-costanti'
++
++export interface FattiEvento {
++  natura: Natura
++  origine: OrigineInformazione
++  statoDispositivo: StatoDispositivo
++  potenzialeDiDanno: PotenzialeDiDanno
++}
++
++export interface Proposta {
++  esito: Esito
++  perche: string
++  ramoIso: '8.3.2' | '8.3.3' | null
++  termineOre: number | null
++}
++
++export function classifica(f: FattiEvento): Proposta {
++  // 🛑 D276 — NESSUN MOTIVO SALTA LA FILA. Il test dell'incidente sta PRIMA di ogni
++  // esenzione: qui c'era l'uscita anticipata dei tre motivi «non è un problema del
++  // dispositivo», e faceva sparire un danno accertato dietro un «nessuna azione».
++  // ① IL TEST DELL'INCIDENTE VIENE PRIMA — invertirlo nasconde l'obbligo dell'Art. 88 (D268)
++  if (f.potenzialeDiDanno !== 'nessuno') {
++    if (f.potenzialeDiDanno === 'accertato')
++      return { esito: 'incidente_grave', perche: 'Ci sono state conseguenze accertate sulla salute: va valutata la segnalazione all\'autorità.', ramoIso: '8.3.3', termineOre: 15 * 24 }
++    return { esito: 'incidente', perche: 'C\'è un potenziale di danno da valutare: prima di parlare di reclamo va escluso l\'incidente.', ramoIso: '8.3.3', termineOre: null }
++  }
++
++  // ①-bis — SOLO ORA le esenzioni (D276): non sono problemi del dispositivo, quindi
++  // non entrano nei conteggi del rapporto periodico (D273). Ma ci si arriva solo dopo
++  // che l'incidente è stato escluso, mai prima.
++  if (f.natura === 'nuova_esigenza_clinica')
++    return { esito: 'nessuna_azione', perche: 'Il medico chiede una cosa nuova: il dispositivo era conforme alla prescrizione con cui è stato fatto. Serve una prescrizione nuova, non una correzione.', ramoIso: null, termineOre: null }
++  if (f.natura === 'commerciale' || f.natura === 'errore_registrazione')
++    return { esito: 'nessuna_azione', perche: 'Non tocca il dispositivo né il documento sanitario.', ramoIso: null, termineOre: null }
++
++  // ② e ③ — coinvolgimento, poi conseguenze (che qui sono già escluse)
++  const uscito = f.statoDispositivo !== 'mai_uscito_dal_lab'
++  if (uscito && f.origine !== 'laboratorio_interno')
++    return { esito: 'reclamo', perche: 'Il dispositivo aveva lasciato il laboratorio e la segnalazione arriva da fuori: per la norma è un reclamo, anche se non è ancora stato applicato.', ramoIso: '8.3.3', termineOre: null }
++
++  return { esito: 'non_conformita_interna', perche: uscito
++    ? 'Ce ne siamo accorti noi, a dispositivo già uscito.'
++    : 'Ce ne siamo accorti noi, prima che uscisse.', ramoIso: uscito ? '8.3.3' : '8.3.2', termineOre: null }
++}
+diff --git a/tests/unit/qualita-classifica.test.ts b/tests/unit/qualita-classifica.test.ts
+new file mode 100644
+index 00000000..38c47eda
+--- /dev/null
++++ b/tests/unit/qualita-classifica.test.ts
+@@ -0,0 +1,72 @@
++import { describe, it, expect } from 'vitest'
++import { classifica } from '@/lib/qualita/classifica'
++
++const base = {
++  natura: 'difetto_fisico', origine: 'odontoiatra',
++  statoDispositivo: 'applicato', potenzialeDiDanno: 'nessuno',
++} as const
++
++describe('classifica — ordine ministeriale (D268)', () => {
++  it('il difetto segnalato dal dentista PRIMA dell applicazione è un RECLAMO, non lavoro interno', () => {
++    // È il caso 2 ribaltato dal panel: il Ministero lo chiama il caso TIPICO di reclamo
++    const p = classifica({ ...base, statoDispositivo: 'consegnato_non_applicato' })
++    expect(p.esito).toBe('reclamo')
++  })
++
++  it('il danno POSSIBILE fa incidente ANCHE se il dispositivo non era applicato', () => {
++    // Il test dell incidente viene PRIMA: invertirlo nasconderebbe l obbligo dell Art. 88
++    const p = classifica({ ...base, statoDispositivo: 'consegnato_non_applicato', potenzialeDiDanno: 'possibile' })
++    expect(p.esito).toBe('incidente')
++  })
++
++  it('il danno ACCERTATO su persona è incidente GRAVE, con il termine dei 15 giorni', () => {
++    const p = classifica({ ...base, potenzialeDiDanno: 'accertato' })
++    expect(p.esito).toBe('incidente_grave')
++    expect(p.termineOre).toBe(15 * 24)
++  })
++
++  it('«da valutare» NON scivola in reclamo: resta candidato incidente', () => {
++    // Art. 87(7): nel dubbio si segnala. Un default prudente non deve essere aggirabile
++    const p = classifica({ ...base, potenzialeDiDanno: 'da_valutare' })
++    expect(p.esito).toBe('incidente')
++  })
++
++  it('il difetto visto DAL LABORATORIO, senza danno, è non conformità interna — non reclamo', () => {
++    const p = classifica({ ...base, origine: 'laboratorio_interno', statoDispositivo: 'consegnato_non_applicato' })
++    expect(p.esito).toBe('non_conformita_interna')
++    expect(p.ramoIso).toBe('8.3.3')   // era già uscito dal controllo
++  })
++
++  it('il difetto visto in casa PRIMA che esca è §8.3.2, non §8.3.3', () => {
++    const p = classifica({ ...base, origine: 'laboratorio_interno', statoDispositivo: 'mai_uscito_dal_lab' })
++    expect(p.ramoIso).toBe('8.3.2')
++  })
++
++  it('la richiesta clinica nuova NON è una non conformità', () => {
++    const p = classifica({ ...base, natura: 'nuova_esigenza_clinica', origine: 'odontoiatra' })
++    expect(p.esito).toBe('nessuna_azione')
++  })
++
++  it('«non lo so» sullo stato del dispositivo non blocca e non declassa', () => {
++    // Francesco, 06/08: «spesso non lo sappiamo». I tre test non chiedono mai se fosse applicato
++    const p = classifica({ ...base, statoDispositivo: 'non_noto', potenzialeDiDanno: 'possibile' })
++    expect(p.esito).toBe('incidente')
++  })
++
++  it('ogni proposta porta il PERCHÉ in chiaro', () => {
++    expect(classifica(base).perche.length).toBeGreaterThan(10)
++  })
++
++  // ⚖️ D276 — le due prove che chiudono il difetto trovato dal controllo pre-volo.
++  // Senza queste, l'uscita anticipata dei tre motivi tornerebbe senza far rumore.
++  it('🛑 «richiesta clinica nuova» NON scavalca il test dell\'incidente: col danno accertato è incidente GRAVE', () => {
++    const p = classifica({ ...base, natura: 'nuova_esigenza_clinica', potenzialeDiDanno: 'accertato' })
++    expect(p.esito).toBe('incidente_grave')
++    expect(p.termineOre).toBe(15 * 24)
++  })
++
++  it('🛑 «registrato per sbaglio» NON scavalca il test dell\'incidente', () => {
++    const p = classifica({ ...base, natura: 'errore_registrazione', potenzialeDiDanno: 'possibile' })
++    expect(p.esito).toBe('incidente')
++  })
++})

@@ -982,6 +982,21 @@ CREATE TRIGGER trg_lavori_ritardo
   BEFORE INSERT OR UPDATE ON lavori
   FOR EACH ROW EXECUTE FUNCTION check_lavoro_ritardo();
 
+-- 🛑 ⚖️ D323 (08/08/2026) — QUESTA RIGA NON DESCRIVE PIÙ IL DATABASE VIVO, e
+--    rifarla girerebbe INDIETRO una decisione ratificata.
+--    Da `supabase/migrations/20260808195344_lavori_gettone_solo_se_cambia.sql`
+--    il trigger `trg_lavori_updated_at` di `lavori` esegue
+--    `public.lavori_set_updated_at()`, NON la condivisa `trigger_set_updated_at()`:
+--    muove `lavori.updated_at` solo se cambia davvero qualcosa che non sia il
+--    contatore `post_consegna_correzioni`, e altrimenti lo PINZA al valore
+--    vecchio. Serve perché `lavori.updated_at` è il gettone di concorrenza
+--    dell'atto unico «correggi e rifai la dichiarazione».
+--    ➡️ Chi ricostruisse lo schema da questo file rimetterebbe la funzione
+--    condivisa e riaprirebbe il difetto IN SILENZIO: un conflitto falso, un
+--    progressivo bruciato e un PDF orfano a ogni tentativo. La riga resta
+--    perché è la storia di come `lavori` è nata; la verità è il catalogo vivo,
+--    e dopo un `apply_updated_at_trigger('lavori')` va rieseguita quella
+--    migration.
 SELECT apply_updated_at_trigger('lavori');
 
 ALTER TABLE lavori ENABLE ROW LEVEL SECURITY;

@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { isTrialExpiringSoon } from '@/lib/utils/lab-stato'
+import { dataItalianaBreve } from '@/lib/utils/data-roma'
 
 export default async function AbbonamentoPage() {
   const context = await getLabContext()
@@ -19,7 +20,13 @@ export default async function AbbonamentoPage() {
   if (!lab) redirect('/login?error=no_lab')
 
   const l = lab as Record<string, unknown>
-  const trialDate = l.trial_ends_at ? new Date(l.trial_ends_at as string).toLocaleDateString('it-IT') : null
+  // D286 — questa pagina è un componente SERVER: `toLocaleDateString` senza
+  // `timeZone` rendeva nel fuso della macchina, che in produzione è UTC. Da
+  // quando la fine della prova si salva come mezzanotte di Roma (le 22:00 UTC
+  // del giorno prima) quella lettura mostrerebbe il giorno PRECEDENTE.
+  // `dataItalianaBreve` dichiara `Europe/Rome` ed è la stessa già usata dai
+  // documenti (P9) — riuso, non una nuova opzione da ricordarsi.
+  const trialDate = l.trial_ends_at ? dataItalianaBreve(l.trial_ends_at as string) : null
   const trialExpiringSoon = isTrialExpiringSoon(l.stato as string, l.trial_ends_at as string | null)
 
   const card: React.CSSProperties = {

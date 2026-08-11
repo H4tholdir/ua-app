@@ -130,11 +130,34 @@ export function FlussoConsegna(props: {
 
   if (!aperto) return null
 
+  // ═══ GLI AVVISI SI ELENCANO, NON SI CONTANO (corretto il 07/08/2026) ═══════
+  //
+  // 🔴 Qui c'erano due rami: con UN avviso si leggeva il testo per intero, con
+  //    due o più collassava in «N avvisi — si può consegnare, ma dai un occhio
+  //    a magazzino e accettazione». Cioè: un avviso spariva appena non era solo.
+  //    Nello scenario più frequente — prescrizione allegata senza
+  //    caratteristiche (voce 6 dell'Allegato XIII) + tipo impronta non
+  //    registrato — l'addetta leggeva «2 avvisi… magazzino e accettazione»: la
+  //    voce obbligatoria per legge non veniva NOMINATA, e la frase la mandava a
+  //    guardare due posti che non c'entravano.
+  //
+  // 🔑 PERCHÉ ELENCARE E NON SEPARARE IL CANALE. L'altra via era tenere gli
+  //    `avvisi` fuori dal collasso: sono già un canale a sé in
+  //    `ConsegnaPrecheckResult`. Ma la risposta della rotta porta un solo
+  //    `warnings: string[]` (`PrecheckConsegnaResponse`), quindi da qui NON si
+  //    distingue un avviso di legge da uno di magazzino: separarli vorrebbe
+  //    dire allargare il contratto della rotta — e lascerebbe comunque il
+  //    difetto agli ALTRI avvisi, che sparirebbero ancora appena in compagnia.
+  //    Elencare chiude la classe di difetto, non un suo esemplare.
+  //
+  // 📌 UN SOLO RAMO, anche per un avviso solo: due rami sono ciò che ha fatto
+  //    passare il difetto (uno provato, l'altro no). E «si può consegnare lo
+  //    stesso» resta in testa perché l'ambra segnala un problema: senza, una
+  //    lista di guai dentro un foglio col tasto «Consegna» si legge come un
+  //    invito a NON premerlo.
   const notaWarnings =
     stato.fase === 'dialog' && stato.warnings.length > 0
-      ? stato.warnings.length === 1
-        ? stato.warnings[0]
-        : `${stato.warnings.length} avvisi — si può consegnare, ma dai un occhio a magazzino e accettazione`
+      ? ['Si può consegnare lo stesso:', ...stato.warnings].join('\n')
       : undefined
 
   const titoloEsito = stato.fase === 'messaggio' ? 'Non si può consegnare' : 'Non è andata a buon fine'

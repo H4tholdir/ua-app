@@ -1,0 +1,439 @@
+# Review package: c28162cf..3dd7dd1e
+
+## Commits
+3dd7dd1e fix(wizard): aria vera fra i quieti · frasi che orientano su 413/415 · la trascrizione parte anche coi soli elementi
+
+## Files changed
+ .../features/wizard/AllegaPrescrizioneSheet.tsx    | 21 +++++-
+ src/components/features/wizard/FrameFatto.tsx      |  8 ++-
+ src/lib/wizard/crea-lavoro.ts                      | 33 ++++++---
+ tests/unit/AllegaPrescrizioneSheet.test.tsx        | 49 +++++++++++++
+ tests/unit/FrameFatto.test.tsx                     |  7 ++
+ tests/unit/crea-lavoro-prescrizione.test.ts        | 82 +++++++++++++++++++++-
+ 6 files changed, 188 insertions(+), 12 deletions(-)
+
+## Diff
+diff --git a/src/components/features/wizard/AllegaPrescrizioneSheet.tsx b/src/components/features/wizard/AllegaPrescrizioneSheet.tsx
+index 55980821..38e020a8 100644
+--- a/src/components/features/wizard/AllegaPrescrizioneSheet.tsx
++++ b/src/components/features/wizard/AllegaPrescrizioneSheet.tsx
+@@ -108,20 +108,39 @@ async function esitoDichiarato(res: Response): Promise<string | null> {
+     const corpo = (await res.json()) as { esito?: unknown } | null
+     return typeof corpo?.esito === 'string' ? corpo.esito : null
+   } catch {
+     return null
+   }
+ }
+ 
+ const FRASE_CONGELATA =
+   'Questa prescrizione è già bloccata dalla Dichiarazione di Conformità. Per cambiarla, annulla prima la Dichiarazione.'
+ 
++/** Il messaggio per un fallimento della rotta `/immagini` (dialetto `{error}`,
++ *  quella rotta non parla `{errore,esito}` come `fonte/route.ts`).
++ *  🛑 413 e 415 sono raggiungibili dal PICKER STESSO — `accept="image/*"`
++ *  ammette formati che `ALLOWED_MIME` rifiuta (`route.ts:12-19`: solo JPEG,
++ *  PNG, WEBP, GIF, HEIC, PDF — niente TIFF né HEIF), e la soglia dei 20MB
++ *  (`route.ts:81`) non ha alcun controllo lato client. Con la frase generica
++ *  «Riprova», l'utente ripete lo STESSO file e ottiene lo STESSO rifiuto:
++ *  un ciclo chiuso. Queste due frasi dicono cosa cambiare, non solo che è
++ *  fallito. */
++function fraseErroreImmagine(status: number): string {
++  if (status === 413) {
++    return 'Questo file è più grande di 20MB: scegline uno più piccolo.'
++  }
++  if (status === 415) {
++    return 'Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.'
++  }
++  return 'Non sono riuscita a salvare la prescrizione. Riprova.'
++}
++
+ export function AllegaPrescrizioneSheet(props: {
+   aperto: boolean
+   onChiudi: () => void
+   lavoroId: string
+   /** Chiamata SOLO quando il server ha scritto la fonte. */
+   onFonte: (fonte: FonteAllegata) => void
+ }) {
+   const { aperto, onChiudi, lavoroId, onFonte } = props
+   const { errore } = useAvvisi()
+ 
+@@ -199,21 +218,21 @@ export function AllegaPrescrizioneSheet(props: {
+       fd.append('file', file)
+       // D91/D97 — la prescrizione ha la sua categoria da quando è una colonna:
+       // qui non è un ripiego, è letteralmente ciò che la foto ritrae.
+       fd.append('categoria', 'prescrizione')
+       const res = await fetch(`/api/lavori/${lavoroId}/immagini`, {
+         method: 'POST',
+         credentials: 'same-origin',
+         body: fd,
+       })
+       if (!res.ok) {
+-        errore('Non sono riuscita a salvare la prescrizione. Riprova.')
++        errore(fraseErroreImmagine(res.status))
+         return
+       }
+       // 🛑 L'id NON si inventa: senza, la rotta fonte risponderebbe 422 su un
+       //    uuid malformato (`fonte/route.ts:90`) e l'utente leggerebbe un
+       //    errore che non spiega niente. Meglio fermarsi qui e dirlo.
+       let immagineId: string | null = null
+       try {
+         const dati = (await res.json()) as { immagine?: { id?: unknown } } | null
+         if (typeof dati?.immagine?.id === 'string') immagineId = dati.immagine.id
+       } catch {
+diff --git a/src/components/features/wizard/FrameFatto.tsx b/src/components/features/wizard/FrameFatto.tsx
+index c5a6eaf1..a7e560cb 100644
+--- a/src/components/features/wizard/FrameFatto.tsx
++++ b/src/components/features/wizard/FrameFatto.tsx
+@@ -573,17 +573,23 @@ const stilePastigliaAmbraSola: CSSProperties = {
+   background: 'var(--amber-tint)',
+   color: 'var(--amber)',
+   fontSize: tipografia.size.caption,
+   fontWeight: tipografia.weight.extrabold,
+   letterSpacing: '0.06em',
+   textTransform: 'uppercase',
+ }
+ 
+ // Vincolo 0B-3 — impilati, con aria fra i due: mai due bersagli da 44 accostati
+ // in orizzontale a distanza di pollice.
++// gap: spazio.xxl (44), NON spazio.sm — LinkQuieto ha hit-box 44px ottenuto con
++// padding verticale 13px + margin negativo -13px uguale e contrario (vedi
++// LinkQuieto.tsx): fra due hit-box consecutivi la distanza reale è
++// gap - 13 (margin del primo) - 13 (margin del secondo) = gap - 26. Con
++// spazio.sm (12) dava -14px (sovrapposizione, il secondo elemento del DOM
++// vince il tap); con spazio.xxl (44) dà 18px d'aria vera.
+ const stileQuieti: CSSProperties = {
+   marginTop: 18,
+   display: 'flex',
+   flexDirection: 'column',
+   alignItems: 'center',
+-  gap: spazio.sm,
++  gap: spazio.xxl,
+ }
+diff --git a/src/lib/wizard/crea-lavoro.ts b/src/lib/wizard/crea-lavoro.ts
+index 8f6753cc..ba2231f5 100644
+--- a/src/lib/wizard/crea-lavoro.ts
++++ b/src/lib/wizard/crea-lavoro.ts
+@@ -323,31 +323,43 @@ export async function creaLavoroDaWizard(input: {
+   // inventare. La deduce il server dal catalogo `colori_dentali` (i 48 codici
+   // sono distinti fra le tre scale). Il `.trim().toUpperCase()` qui costa nulla,
+   // ma NON è lì che sta la garanzia: `lavori_colore_caso_fk` morde nel database,
+   // quindi normalizzazione e degradazione vivono nel POST /api/lavori.
+   const coloreCodice = colore.trim().toUpperCase()
+ 
+   // La trascrizione della prescrizione (Task 1, gate D216 — server GIÀ pronto,
+   // `route.ts:211-245`). GREZZA (D210): `colore` qui è la variabile COME
+   // DIGITATA, non `coloreCodice` — un colore fuori catalogo si scarta dal
+   // CASO (sopra) ma resta trascritto (fatto del censimento). La chiave
+-  // `prescrizione` parte SOLO se c'è qualcosa da dire: `coloreOrigine`
+-  // assente o `'prescrizione'` (D223: scrivere È trascrivere) E il colore non
+-  // è vuoto DOPO trim (M-T5-4 — "solo spazi" è trattato come vuoto qui,
+-  // gate client-side, indipendente da come il server tratterebbe la stringa
+-  // se la ricevesse). `'lab'` = sganciato: niente da trascrivere, anche a
+-  // colore compilato — ma `colore_codice` (sopra) viaggia comunque, in
+-  // ENTRAMBI gli esiti dello sgancio (task-1-brief.md riga 7).
++  // `prescrizione` parte se c'è ALMENO UNA delle due cose da dire: il colore
++  // trascritto (`coloreOrigine` assente o `'prescrizione'`, D223: scrivere È
++  // trascrivere; `'lab'` = sganciato, niente da trascrivere anche a colore
++  // compilato) E non vuoto DOPO trim (M-T5-4 — "solo spazi" è vuoto qui, gate
++  // client-side); oppure l'elemento — `denti.length > 0` (sopra), cioè la
++  // casella «Elemento» ha prodotto almeno un FDI valido.
++  //
++  // 🔑 Emendamento T1 (review T3+T9, adjudicato dal controllore): PRIMA la
++  // chiave partiva SOLO col colore. Un lavoro con ELEMENTO e senza colore non
++  // mandava `prescrizione` → il gate del server (`route.ts:220-245`) non crea
++  // NESSUNA riga snapshot → `contenuto.elementi` (l'artefatto W20 che la DdC
++  // leggerà, `componi-snapshot.ts:35`) non atterrava mai, anche se i denti
++  // stessi erano nel body (`body.denti`, sopra). `componiSnapshot` compone
++  // `elementi` filtrando `body.denti` per `provenienza==='prescritto'` — NON
++  // dal contenuto di `prescrizione` — quindi quando la chiave parte SOLO per
++  // gli elementi il corpo è `prescrizione: {}`: il gate la accetta (M-T3-3,
++  // `componi-snapshot.ts:39`: `contenuto` non vuoto se `elementi` non vuoto)
++  // e il server prende i denti da dove sono già stati mandati.
+   //
+   // Il wizard oggi non ha una casella per `numero_prescrizione`: la chiave
+   // resta fuori da questo corpo (non si inventa un campo che non esiste).
+-  const trascriviPrescrizione = coloreOrigine !== 'lab' && colore.trim() !== ''
++  const coloreTrascritto = coloreOrigine !== 'lab' && colore.trim() !== ''
++  const trascriviPrescrizione = denti.length > 0 || coloreTrascritto
+ 
+   let lavoro: { id: string; numero_lavoro: string }
+   let coloreScartato = false
+   try {
+     const res = await fetch('/api/lavori', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         cliente_id: cliente.id,
+@@ -371,21 +383,24 @@ export async function creaLavoroDaWizard(input: {
+                 // dichiarano dalla scheda. Le due RPC hanno già gli stessi
+                 // default (`COALESCE(d->>'ruolo','elemento')` e
+                 // `COALESCE(d->>'provenienza','prescritto')`): si mandano
+                 // espliciti perché il corpo dica cosa sta affermando.
+                 ruolo: 'elemento',
+                 provenienza: 'prescritto',
+               })),
+             }
+           : {}),
+         ...(coloreCodice ? { colore_codice: coloreCodice } : {}),
+-        ...(trascriviPrescrizione ? { prescrizione: { colore } } : {}),
++        // `{ colore }` solo se il colore è la ragione (o una delle ragioni)
++        // per cui la chiave parte; quando parte SOLO per gli elementi il
++        // corpo è `{}` — v. commento sopra.
++        ...(trascriviPrescrizione ? { prescrizione: coloreTrascritto ? { colore } : {} } : {}),
+       }),
+     })
+     if (!res.ok) return ESITO_BLOCCANTE
+     const dati = (await res.json()) as {
+       lavoro: { id: string; numero_lavoro: string }
+       colore_scartato?: boolean
+     }
+     lavoro = { id: dati.lavoro.id, numero_lavoro: dati.lavoro.numero_lavoro }
+     // `=== true` e non un troncamento a booleano: chi non riceve la parola non
+     // la inventa. Una risposta che non nomina il campo (server più vecchio, o
+diff --git a/tests/unit/AllegaPrescrizioneSheet.test.tsx b/tests/unit/AllegaPrescrizioneSheet.test.tsx
+index 1ae6706f..baf688b5 100644
+--- a/tests/unit/AllegaPrescrizioneSheet.test.tsx
++++ b/tests/unit/AllegaPrescrizioneSheet.test.tsx
+@@ -321,20 +321,69 @@ describe('T9 — quando qualcosa non riesce', () => {
+         new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
+       )
+ 
+     expect(await screen.findByRole('alert')).toBeInTheDocument()
+     expect(screen.getByText('Non sono riuscita a salvare la prescrizione. Riprova.')).toBeInTheDocument()
+     expect(m).toHaveBeenCalledTimes(1)
+     expect(onFonte).not.toHaveBeenCalled()
+     expect(onChiudi).not.toHaveBeenCalled()
+   })
+ 
++  // 🔑 413/415 sono raggiungibili DAL PICKER STESSO: `accept="image/*"`
++  // (voce ①) ammette formati che `immagini/route.ts` rifiuta (TIFF, HEIF),
++  // e la soglia dei 20MB non ha alcun controllo lato client. La frase
++  // generica «Riprova» produrrebbe un ciclo chiuso — stesso file, stesso
++  // rifiuto — quindi questi due esiti hanno una frase che dice COSA cambiare.
++  it('upload troppo grande (413) → frase che dice il limite, non "Riprova"', async () => {
++    const m = fetch as unknown as ReturnType<typeof vi.fn>
++    m.mockResolvedValueOnce({
++      ok: false,
++      status: 413,
++      json: async () => ({ error: 'File troppo grande (max 20MB)' }),
++    })
++
++    const { onFonte } = monta()
++    await userEvent
++      .setup()
++      .upload(
++        foglio().getByLabelText('Scatta la foto della prescrizione'),
++        new File(['x'], 'presc.jpg', { type: 'image/jpeg' })
++      )
++
++    expect(await screen.findByRole('alert')).toBeInTheDocument()
++    expect(screen.getByText('Questo file è più grande di 20MB: scegline uno più piccolo.')).toBeInTheDocument()
++    expect(onFonte).not.toHaveBeenCalled()
++  })
++
++  it('formato non supportato (415) → frase che dice i formati accettati, non "Riprova"', async () => {
++    const m = fetch as unknown as ReturnType<typeof vi.fn>
++    m.mockResolvedValueOnce({
++      ok: false,
++      status: 415,
++      json: async () => ({ error: 'Tipo file non consentito: image/tiff' }),
++    })
++
++    const { onFonte } = monta()
++    await userEvent
++      .setup()
++      .upload(
++        foglio().getByLabelText('Scatta la foto della prescrizione'),
++        new File(['x'], 'presc.tiff', { type: 'image/tiff' })
++      )
++
++    expect(await screen.findByRole('alert')).toBeInTheDocument()
++    expect(
++      screen.getByText('Formato non supportato: usa JPG, PNG, WEBP, GIF, HEIC o PDF.')
++    ).toBeInTheDocument()
++    expect(onFonte).not.toHaveBeenCalled()
++  })
++
+   it('foto salvata ma fonte rifiutata → si dice ENTRAMBE le cose (la foto c’è, il collegamento no)', async () => {
+     const m = fetch as unknown as ReturnType<typeof vi.fn>
+     m.mockResolvedValueOnce(okImmagine())
+     m.mockResolvedValueOnce({
+       ok: false,
+       status: 422,
+       json: async () => ({ errore: 'fonte_immagine_id non appartiene a questo lavoro' }),
+     })
+ 
+     const { onFonte } = monta()
+diff --git a/tests/unit/FrameFatto.test.tsx b/tests/unit/FrameFatto.test.tsx
+index 5f16f04b..c8d100f3 100644
+--- a/tests/unit/FrameFatto.test.tsx
++++ b/tests/unit/FrameFatto.test.tsx
+@@ -384,20 +384,27 @@ describe('T3 — il CTA senza fonte allegata', () => {
+     expect(foto.className).toContain('ds-link-quieto')
+   })
+ 
+   it('i due link quieti sono IMPILATI (vincolo 0B-3: mai affiancati stretti), azione prima e uscita dopo', () => {
+     renderFatto()
+     const foto = screen.getByRole('button', { name: "Fotografa l'impronta" })
+     const home = screen.getByRole('button', { name: 'Torna alla home' })
+     const contenitore = foto.parentElement as HTMLElement
+     expect(contenitore).toBe(home.parentElement)
+     expect(contenitore).toHaveStyle({ flexDirection: 'column' })
++    // Il gap DEVE essere 44px (spazio.xxl), non un valore qualunque: LinkQuieto
++    // ottiene l'hit-box di 44px con padding verticale 13px + margin -13px
++    // uguale e contrario (si annullano nel layout), quindi fra due hit-box
++    // consecutivi l'aria reale è gap - 26px. Con spazio.sm (12) risultava
++    // -14px — i due bersagli da 44 si SOVRAPPONGONO e il secondo nel DOM
++    // vince il tap; solo spazio.xxl (44) dà i 18px d'aria richiesti.
++    expect(contenitore).toHaveStyle({ gap: '44px' })
+     // Ordine: prima l'azione, poi l'uscita.
+     expect(foto.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+   })
+ 
+   it('il rosso apre il foglio a2 (dialog «La prescrizione del dentista»)', async () => {
+     renderFatto()
+     const user = userEvent.setup()
+     expect(screen.queryByRole('dialog', { name: 'La prescrizione del dentista' })).not.toBeInTheDocument()
+     await user.click(primario())
+     expect(screen.getByRole('dialog', { name: 'La prescrizione del dentista' })).toBeInTheDocument()
+diff --git a/tests/unit/crea-lavoro-prescrizione.test.ts b/tests/unit/crea-lavoro-prescrizione.test.ts
+index b2e660bc..5cd14ebb 100644
+--- a/tests/unit/crea-lavoro-prescrizione.test.ts
++++ b/tests/unit/crea-lavoro-prescrizione.test.ts
+@@ -5,20 +5,29 @@ import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
+ // Task 1 (Ondata B, sessione ③) — il wizard manda la trascrizione
+ // (`prescrizione`, gate D216 già in produzione lato server) e lo stato dello
+ // sgancio. QUESTO FILE è client-only, NIENTE UI (framing = Task 2): copre
+ // SOLO `creaLavoroDaWizard`, cioè il punto che compone il body del POST
+ // /api/lavori.
+ //
+ // Le SEI forme d'input di `coloreOrigine` × `colore` enumerate dal brief
+ // (R-P4): assente · 'prescrizione' · 'lab' · colore vuoto · colore solo
+ // spazi · colore fuori catalogo. Ognuna ha il suo caso qui sotto.
+ //
++// 🔑 EMENDAMENTO T1 (review T3+T9, adjudicato dal controllore): la chiave
++// `prescrizione` parte anche quando c'è SOLO l'elemento, senza colore — un
++// lavoro con denti e senza colore mandava un body senza `prescrizione`, il
++// gate del server (`route.ts:220-245`) non creava NESSUNA riga snapshot, e
++// `contenuto.elementi` (l'artefatto W20) non atterrava mai. Le forme nuove
++// qui sotto (blocco "EMENDAMENTO"): elemento senza colore · elemento +
++// colore sganciato (denti sì, colore no nel body) · niente elemento e
++// niente colore (chiave assente, come prima).
++//
+ // 🔑 Perché il colore nella busta prescrizione è GREZZO (' a3 ', con gli
+ // spazi): fedeltà D210, verificata leggendo `componiSnapshot`
+ // (`src/lib/prescrizione/componi-snapshot.ts:8`) — il server non fa MAI
+ // trim/uppercase sul colore trascritto, lo confronta byte a byte con ciò che
+ // il medico ha scritto. `colore_codice` (il DATO DI CASO, normalizzato) è
+ // un'altra cosa: viaggia SEMPRE quando c'è un colore, in ENTRAMBI gli esiti
+ // dello sgancio (task-1-brief.md riga 7) — ogni caso qui sotto lo controlla
+ // insieme a `prescrizione`, per non confondere le due garanzie.
+ 
+ beforeEach(() => {
+@@ -46,21 +55,25 @@ function percorsoPrimarioOk(m: ReturnType<typeof mockFetch>) {
+   m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-1', numero_lavoro: '2026/0042' } }))
+ }
+ 
+ /** Il corpo del POST /api/lavori (sempre la 3ª chiamata sul percorso primario). */
+ function corpoPostLavori(m: ReturnType<typeof mockFetch>): Record<string, unknown> {
+   const chiamata = m.mock.calls.find((c) => c[0] === '/api/lavori' && c[1]?.method === 'POST')
+   if (!chiamata) throw new Error('POST /api/lavori non è mai stato chiamato')
+   return JSON.parse(chiamata[1].body)
+ }
+ 
+-async function crea(patch: { colore?: string; coloreOrigine?: 'prescrizione' | 'lab' }) {
++async function crea(patch: {
++  colore?: string
++  coloreOrigine?: 'prescrizione' | 'lab'
++  elemento?: string
++}) {
+   return creaLavoroDaWizard({
+     cliente: CLIENTE,
+     tipo: TIPO,
+     pz: 'PZ-0001',
+     alias: '',
+     elemento: '',
+     colore: '',
+     foto: null,
+     dataConsegna: DATA_CONSEGNA,
+     ...patch,
+@@ -145,11 +158,78 @@ describe('creaLavoroDaWizard — prescrizione (Task 1, D216/D223/D210)', () => {
+     percorsoPrimarioOk(m)
+ 
+     await crea({ colore: 'zz9' })
+ 
+     const corpo = corpoPostLavori(m)
+     expect(corpo.prescrizione).toEqual({ colore: 'zz9' })
+     // Normalizzato per il CASO (trim+uppercase) — se il server lo scarta
+     // (fuori catalogo) lo dice con `colore_scartato`, non affare di questo test.
+     expect(corpo.colore_codice).toBe('ZZ9')
+   })
++
++  // ── EMENDAMENTO T1 — la chiave parte anche coi soli elementi ────────────
++  describe('emendamento T1: la chiave parte quando ci sono ELEMENTI, col colore o senza', () => {
++    // 7. Elemento presente, colore ASSENTE — prima di questo emendamento
++    // `prescrizione` non partiva affatto: il server non creava alcuna riga
++    // e `contenuto.elementi` non atterrava mai. Il body ora porta `{}`: il
++    // server compone `elementi` da `body.denti` (già mandato), non da qui.
++    it('elemento presente + colore assente → prescrizione: {} (denti[] già nel body sopra)', async () => {
++      const m = mockFetch()
++      percorsoPrimarioOk(m)
++
++      await crea({ elemento: '2.6', colore: '' })
++
++      const corpo = corpoPostLavori(m)
++      expect(corpo.prescrizione).toEqual({})
++      expect(corpo.denti).toEqual([{ fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' }])
++      expect(corpo).not.toHaveProperty('colore_codice')
++    })
++
++    // 8. Elemento presente + colore SGANCIATO ('lab', compilato) — i denti
++    // fanno partire la chiave, ma il colore non è una trascrizione (è una
++    // scelta di laboratorio): il body resta `{}`, non `{ colore }`.
++    it("elemento presente + colore sganciato ('lab') → prescrizione: {} (i denti fanno partire la chiave, il colore NO)", async () => {
++      const m = mockFetch()
++      percorsoPrimarioOk(m)
++
++      await crea({ elemento: '2.6', colore: 'A2', coloreOrigine: 'lab' })
++
++      const corpo = corpoPostLavori(m)
++      expect(corpo.prescrizione).toEqual({})
++      expect(corpo.denti).toEqual([{ fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' }])
++      // `colore_codice` (il DATO DI CASO) viaggia comunque, in ENTRAMBI gli
++      // esiti dello sgancio — invariato dal caso 3 qui sopra.
++      expect(corpo.colore_codice).toBe('A2')
++    })
++
++    // 9. Niente elemento (solo caratteri scartati, zero FDI validi) e niente
++    // colore → la chiave resta ASSENTE, come nel caso 4: nessuna delle due
++    // ragioni è vera, non c'è nulla da trascrivere.
++    it('niente elemento (zero FDI validi) e niente colore → nessuna prescrizione', async () => {
++      const m = mockFetch()
++      percorsoPrimarioOk(m)
++
++      await crea({ elemento: 'pippo', colore: '' })
++
++      const corpo = corpoPostLavori(m)
++      expect(corpo).not.toHaveProperty('prescrizione')
++      expect(corpo).not.toHaveProperty('denti')
++      expect(corpo).not.toHaveProperty('colore_codice')
++    })
++
++    // 10. Elemento presente + colore trascritto (coloreOrigine 'prescrizione')
++    // — la forma "piena": la chiave parte per entrambe le ragioni, e il
++    // corpo porta il colore grezzo, non `{}`. Non deve regredire scrivendo
++    // sempre `{}` quando ci sono denti.
++    it('elemento presente + colore trascritto → prescrizione: { colore } (non {}), entrambe le ragioni vere', async () => {
++      const m = mockFetch()
++      percorsoPrimarioOk(m)
++
++      await crea({ elemento: '2.6', colore: ' a3 ', coloreOrigine: 'prescrizione' })
++
++      const corpo = corpoPostLavori(m)
++      expect(corpo.prescrizione).toEqual({ colore: ' a3 ' })
++      expect(corpo.denti).toEqual([{ fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' }])
++      expect(corpo.colore_codice).toBe('A3')
++    })
++  })
+ })

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ AI — Pricing Definitivo + Voice</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background: #080c14; color: #e2e8f0; padding: 28px; }
+  h1 { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -0.5px; }
+  .sub { font-size: 13px; color: #475569; margin-top:4px; margin-bottom:28px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .full { grid-column: 1/-1; }
+  .card { background: #111827; border-radius: 14px; padding: 18px; border: 1px solid #1f2937; }
+  .card-title { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+
+  /* VOICE */
+  .voice-card { background: linear-gradient(135deg, #0d001a 0%, #0a1020 100%); border: 1px solid rgba(139,92,246,0.4); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .voice-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+  .voice-sub { font-size: 12px; color: #8b5cf6; margin-bottom: 16px; }
+  .voice-modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .voice-mode { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px; border: 1px solid rgba(255,255,255,0.07); }
+  .vm-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .vm-sub { font-size: 10px; color: #6b7280; line-height: 1.5; }
+  .vm-cost { font-size: 10px; color: #22c55e; font-weight: 700; margin-top: 6px; }
+  .vm-badge { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 700; display: inline-block; margin-bottom: 6px; }
+  .rec-badge { background: #166534; color: #86efac; }
+  .v2-badge { background: #1e3a5f; color: #93c5fd; }
+
+  .flow-demo { background: #0d1117; border-radius: 10px; padding: 14px; margin-top: 14px; }
+  .flow-demo-title { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .flow-step { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 11px; }
+  .fs-icon { font-size: 14px; flex-shrink: 0; width: 20px; }
+  .fs-text { flex: 1; color: #94a3b8; }
+  .fs-time { font-size: 10px; color: #475569; }
+  .fs-arrow { color: #334155; font-size: 14px; }
+
+  /* COST BREAKDOWN */
+  .cost-breakdown { background: #0a0f1a; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; }
+  .cost-title { font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 12px; }
+  .cost-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-label { color: #64748b; }
+  .cost-value { color: #e2e8f0; font-family: monospace; }
+  .cost-value.green { color: #22c55e; font-weight: 700; }
+  .cost-value.red { color: #ef4444; }
+  .cost-total { background: rgba(34,197,94,0.08); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; font-weight: 700; }
+
+  /* PRICING DEFINITIVE */
+  .pricing-hero { background: linear-gradient(135deg, #020f07 0%, #0a0f1a 100%); border: 2px solid #16a34a; border-radius: 16px; padding: 24px; margin-bottom: 18px; }
+  .ph-title { font-size: 20px; font-weight: 900; color: #fff; }
+  .ph-sub { font-size: 12px; color: #6b7280; margin-top: 4px; margin-bottom: 20px; }
+  .ph-prices { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ph-price-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.08); }
+  .ph-price-box.recommended { background: rgba(22,163,74,0.1); border-color: rgba(22,163,74,0.4); }
+  .php-name { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .php-price { font-size: 32px; font-weight: 900; color: #fff; line-height: 1; }
+  .php-per { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .php-equiv { font-size: 11px; color: #22c55e; margin-top: 4px; }
+  .php-save { font-size: 10px; background: #166534; color: #86efac; padding: 2px 8px; border-radius: 3px; font-weight: 700; display: inline-block; margin-top: 6px; }
+  .php-features { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .phpf { font-size: 11px; color: #94a3b8; display: flex; gap: 6px; }
+  .phpf::before { content: "✓"; color: #16a34a; }
+
+  /* FAIR USE + SCAGLIONI */
+  .scaglioni { margin-top: 20px; }
+  .sc-title { font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sc-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .sc-table th { text-align: left; padding: 7px 10px; background: #0f1520; color: #6b7280; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+  .sc-table td { padding: 8px 10px; border-bottom: 1px solid #111827; }
+  .sc-table tr:last-child td { border-bottom: none; }
+  .sc-table tr.highlight { background: rgba(34,197,94,0.04); }
+  .green { color: #22c55e; font-weight: 700; }
+  .orange { color: #f97316; }
+  .blue { color: #60a5fa; }
+  .gray { color: #6b7280; }
+
+  /* MARGINE VISIVO */
+  .margin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  .margin-box { background: #0f1520; border-radius: 10px; padding: 14px; text-align: center; border: 1px solid #1f2937; }
+  .margin-box .labs { font-size: 24px; font-weight: 900; color: #fff; }
+  .margin-box .labs-label { font-size: 10px; color: #475569; margin-bottom: 8px; }
+  .margin-box .rev { font-size: 13px; color: #60a5fa; font-weight: 700; }
+  .margin-box .cost { font-size: 11px; color: #ef4444; }
+  .margin-box .net { font-size: 15px; color: #22c55e; font-weight: 900; margin-top: 4px; }
+  .margin-box .pct { font-size: 10px; color: #16a34a; }
+
+  /* STRIPE */
+  .stripe-flow { display: flex; flex-direction: column; gap: 8px; }
+  .sf-step { display: flex; gap: 10px; padding: 10px 12px; background: #0f1520; border-radius: 8px; align-items: flex-start; }
+  .sf-n { width: 20px; height: 20px; border-radius: 50%; background: #16a34a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .sf-text { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+  .sf-code { font-family: monospace; font-size: 10px; color: #7c3aed; margin-top: 3px; }
+
+  .section-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #1f2937; }
+  .note-box { background: #1a1200; border-left: 3px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 11px; color: #fde68a; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>UÀ AI Assistant — Voice + Pricing Definitivo</h1>
+<p class="sub">Calcoli esatti sui costi reali Anthropic + modello scaglioni auto-upgrade</p>
+
+<!-- VOICE SECTION -->
+<div class="voice-card">
+  <div class="voice-title">🎤 Voce Continua — Come ChatGPT Voice Mode</div>
+  <div class="voice-sub">Microfono sempre attivo · trascrizione in tempo reale · risposta in streaming</div>
+  <div class="voice-modes">
+    <div class="voice-mode">
+      <span class="vm-badge rec-badge">V1 — SUBITO</span>
+      <div class="vm-title">Web Speech API</div>
+      <div class="vm-sub">Browser nativo iOS/Android. <code>recognition.continuous = true</code>. VAD automatico: quando l'utente finisce, si invia. Trascrizione visibile in tempo reale nel campo input.</div>
+      <div class="vm-cost">Costo: €0 — gratuita</div>
+    </div>
+    <div class="voice-mode">
+      <span class="vm-badge v2-badge">V2 — OPZIONALE</span>
+      <div class="vm-title">Whisper API (OpenAI)</div>
+      <div class="vm-sub">Accuracy superiore su termini tecnici italiani (ITCA, DdC, sinterizzazione). Registra audio → Whisper trascrive → Claude risponde.</div>
+      <div class="vm-cost">Costo: ~€0.006/min audio</div>
+    </div>
+    <div class="voice-mode">
+      <span class="vm-badge v2-badge">FUTURO</span>
+      <div class="vm-title">TTS risposta</div>
+      <div class="vm-sub">Web Speech Synthesis (gratuita) legge la risposta di Claude ad alta voce. L'utente sente la risposta senza guardare lo schermo.</div>
+      <div class="vm-cost">Costo: €0 — gratuita</div>
+    </div>
+  </div>
+
+  <div class="flow-demo">
+    <div class="flow-demo-title">UX Dettagliata — Come funziona in pratica</div>
+    <div class="flow-step"><span class="fs-icon">📱</span><span class="fs-text">Filippo tap sul pulsante microfono rosso (o hold se preferisce push-to-talk)</span><span class="fs-time">0s</span></div>
+    <div class="flow-step"><span class="fs-icon" style="color:#7c3aed;">〰️</span><span class="fs-text">Indicatore animato: "in ascolto..." · testo trascritto in tempo reale mentre parla</span><span class="fs-time">continuo</span></div>
+    <div class="flow-step"><span class="fs-icon">🔇</span><span class="fs-text">Pausa di 1.2 secondi → VAD rileva fine frase → invia automaticamente a Claude</span><span class="fs-time">~1.2s</span></div>
+    <div class="flow-step"><span class="fs-icon">⚡</span><span class="fs-text">Claude inizia risposta in streaming (testo compare carattere per carattere)</span><span class="fs-time">~0.8s</span></div>
+    <div class="flow-step"><span class="fs-icon">🔊</span><span class="fs-text">Opzionale: Speech Synthesis legge la risposta · Filippo può rispondere di nuovo</span><span class="fs-time">~2s</span></div>
+    <div class="flow-step"><span class="fs-icon" style="color:#22c55e;">✅</span><span class="fs-text">Se operazione write: mostra card conferma con [Sì] [No] · può rispondere vocalmente "sì"</span><span class="fs-time"></span></div>
+  </div>
+</div>
+
+<!-- COST BREAKDOWN PRECISO -->
+<div class="section-label">CALCOLO COSTI REALI — Anthropic Claude Sonnet 4</div>
+<div class="grid-2">
+  <div class="cost-breakdown">
+    <div class="cost-title">💰 Costo per singolo messaggio (con prompt caching)</div>
+    <div class="cost-row"><span class="cost-label">System prompt (8.000 token · cached read)</span><span class="cost-value">$0.0024</span></div>
+    <div class="cost-row"><span class="cost-label">Conversazione precedente (avg 1.000 token)</span><span class="cost-value">$0.0030</span></div>
+    <div class="cost-row"><span class="cost-label">Messaggio utente (avg 200 token)</span><span class="cost-value">$0.0006</span></div>
+    <div class="cost-row"><span class="cost-label">Tool responses (avg 1.5 tool call × 400 token)</span><span class="cost-value">$0.0018</span></div>
+    <div class="cost-row"><span class="cost-label">Risposta Claude (avg 300 token output)</span><span class="cost-value red">$0.0045</span></div>
+    <div class="cost-total"><span>Totale per messaggio (Sonnet)</span><span style="color:#ef4444;">$0.0123</span></div>
+
+    <div style="margin-top:12px; padding-top:12px; border-top:1px solid #1f2937;">
+    <div class="cost-title">🚀 Ottimizzazione: Smart Routing</div>
+    <div class="cost-row"><span class="cost-label">Query semplici (status, ricerche) → Haiku 4.5</span><span class="cost-value green">$0.003/msg</span></div>
+    <div class="cost-row"><span class="cost-label">Operazioni complesse (crea, multi-step) → Sonnet</span><span class="cost-value red">$0.012/msg</span></div>
+    <div class="cost-row"><span class="cost-label">Split stimato: 40% Haiku / 60% Sonnet</span><span class="cost-value">—</span></div>
+    <div class="cost-total"><span>Costo blended per messaggio</span><span class="green">~$0.0085 ≈ €0.0078</span></div>
+    </div>
+  </div>
+
+  <div class="cost-breakdown">
+    <div class="cost-title">📊 Costo mensile per laboratorio (blended ~€0.008/msg)</div>
+    <div class="cost-row"><span class="cost-label">Light user: 300 msg/mese</span><span class="cost-value green">€2.34/mese</span></div>
+    <div class="cost-row"><span class="cost-label">Utente medio: 600 msg/mese</span><span class="cost-value green">€4.68/mese</span></div>
+    <div class="cost-row" style="background:rgba(34,197,94,0.05);"><span class="cost-label"><strong>Fair use limit: 1.000 msg/mese</strong></span><span class="cost-value green"><strong>€7.80/mese</strong></span></div>
+    <div class="cost-row"><span class="cost-label">Power user: 1.500 msg/mese</span><span class="cost-value orange">€11.70/mese</span></div>
+    <div class="cost-row"><span class="cost-label">Heavy user: 2.000 msg/mese</span><span class="cost-value orange">€15.60/mese</span></div>
+    <div class="cost-row"><span class="cost-label">Super heavy: 3.000 msg/mese</span><span class="cost-value red">€23.40/mese</span></div>
+
+    <div class="note-box" style="margin-top:10px;">
+      <strong>Nota:</strong> la maggior parte dei laboratori italiani rimarrà sotto i 600 msg/mese. Il fair use a 1.000 protegge il ~90% degli utenti reali.
+    </div>
+  </div>
+</div>
+
+<!-- PRICING DEFINITIVO -->
+<div class="section-label">PRICING DEFINITIVO — Un solo modulo, scaglioni automatici</div>
+<div class="pricing-hero">
+  <div class="ph-title">UÀ AI Assistant</div>
+  <div class="ph-sub">Add-on al piano SaaS base · un solo modulo · si auto-adatta al consumo</div>
+  <div class="ph-prices">
+    <div class="ph-price-box">
+      <div class="php-name">Piano Mensile</div>
+      <div class="php-price">€24<span style="font-size:18px;">.90</span></div>
+      <div class="php-per">/mese · 1.000 msg inclusi (fair use)</div>
+      <div class="php-equiv">Rinnovo automatico · disdici quando vuoi</div>
+      <div class="php-features">
+        <div class="phpf">1.000 messaggi/mese inclusi</div>
+        <div class="phpf">Voce continua (ChatGPT style)</div>
+        <div class="phpf">Lettura + scrittura piena</div>
+        <div class="phpf">Multi-step autonomo</div>
+        <div class="phpf">Storico conversazioni 30gg</div>
+        <div class="phpf">Extra: +€11/ogni 1.000 msg</div>
+      </div>
+    </div>
+    <div class="ph-price-box recommended">
+      <div class="php-name">Piano Annuale</div>
+      <div class="php-price">€199<span style="font-size:18px;">/anno</span></div>
+      <div class="php-per">= €16.58/mese · 12.000 msg/anno inclusi</div>
+      <div class="php-equiv" style="font-weight:700;">Risparmio €99 rispetto al mensile</div>
+      <div class="php-save">-33% · paghi 8 mesi, usi 12</div>
+      <div class="php-features">
+        <div class="phpf">Tutto del mensile</div>
+        <div class="phpf">12.000 messaggi/anno (1.000/mese)</div>
+        <div class="phpf">Storico conversazioni 1 anno</div>
+        <div class="phpf">Extra: +€11/ogni 1.000 msg</div>
+        <div class="phpf">Cash flow anticipato (per te)</div>
+        <div class="phpf">Priority support</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scaglioni">
+    <div class="sc-title">Scaglioni extra automatici — si aggiungono automaticamente ogni mese se sforato</div>
+    <table class="sc-table">
+      <thead>
+        <tr><th>Messaggi/mese totali</th><th>Costo mensile (lab)</th><th>Tuo costo reale</th><th>Margine €</th><th>Margine %</th></tr>
+      </thead>
+      <tbody>
+        <tr class="highlight"><td>0 – 1.000 (base)</td><td class="blue">€24.90</td><td class="gray">€7.80 max</td><td class="green">€17.10 min</td><td class="green">69%</td></tr>
+        <tr><td>1.001 – 2.000 (+1 scaglione)</td><td class="blue">€24.90 + €11 = <strong>€35.90</strong></td><td class="gray">€15.60 max</td><td class="green">€20.30 min</td><td class="green">57%</td></tr>
+        <tr><td>2.001 – 3.000 (+2 scaglioni)</td><td class="blue">€24.90 + €22 = <strong>€46.90</strong></td><td class="gray">€23.40 max</td><td class="green">€23.50 min</td><td class="green">50%</td></tr>
+        <tr><td>3.001 – 4.000 (+3 scaglioni)</td><td class="blue">€24.90 + €33 = <strong>€57.90</strong></td><td class="gray">€31.20 max</td><td class="green">€26.70 min</td><td class="green">46%</td></tr>
+        <tr><td>4.000+ (cap revenue)</td><td class="blue">max <strong>€68.90</strong></td><td class="gray">€39.00 max</td><td class="green">€29.90 min</td><td class="green">43%</td></tr>
+      </tbody>
+    </table>
+    <div class="note-box">
+      <strong>Nota sui margini:</strong> I valori mostrano il caso peggiore (tutti usano esattamente il massimo dello scaglione). In realtà, la media si posiziona a metà scaglione → margini reali 10-15pp più alti. Esempio: utente nel 1° scaglione ma usa solo 600 msg → costo reale €4.68 → margine €20.22 = <strong>81%</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- SCALA LABORATORI -->
+<div class="section-label">LA TUA REVENUE NETTA — Scala progressiva</div>
+<div class="card full">
+  <div class="card-title">📈 Revenue netta mensile (ipotesi: laboratori sul piano mensile, uso medio 600 msg)</div>
+  <div class="margin-grid">
+    <div class="margin-box">
+      <div class="labs-label">Labs attivi</div>
+      <div class="labs">10</div>
+      <div class="rev">€249/mese revenue</div>
+      <div class="cost">- €47 costo AI</div>
+      <div class="net">€202/mese</div>
+      <div class="pct">netto · margine 81%</div>
+    </div>
+    <div class="margin-box">
+      <div class="labs-label">Labs attivi</div>
+      <div class="labs">25</div>
+      <div class="rev">€622/mese revenue</div>
+      <div class="cost">- €117 costo AI</div>
+      <div class="net">€505/mese</div>
+      <div class="pct">netto · margine 81%</div>
+    </div>
+    <div class="margin-box" style="border-color:rgba(34,197,94,0.3);">
+      <div class="labs-label">Labs attivi</div>
+      <div class="labs" style="color:#22c55e;">50</div>
+      <div class="rev">€1.245/mese revenue</div>
+      <div class="cost">- €234 costo AI</div>
+      <div class="net" style="font-size:18px;">€1.011/mese</div>
+      <div class="pct">netto · margine 81%</div>
+    </div>
+    <div class="margin-box" style="border-color:rgba(34,197,94,0.4); background:#010f07;">
+      <div class="labs-label">Labs attivi</div>
+      <div class="labs" style="color:#22c55e;">100</div>
+      <div class="rev">€2.490/mese revenue</div>
+      <div class="cost">- €468 costo AI</div>
+      <div class="net" style="font-size:20px; color:#4ade80;">€2.022/mese</div>
+      <div class="pct" style="color:#16a34a; font-weight:700;">+€24.264/anno netto</div>
+    </div>
+  </div>
+  <div class="note-box" style="margin-top:14px;">
+    <strong>Piano annuale (€199/anno):</strong> se 50 lab scelgono il piano annuale → €9.950 incassati in anticipo → ~€2.340 costi AI annui → <strong>€7.610 netto anticipato</strong>. Il cash flow anticipo è un vantaggio enorme per te.
+  </div>
+</div>
+
+<!-- STRIPE IMPLEMENTATION -->
+<div class="section-label">IMPLEMENTAZIONE STRIPE — Scaglioni automatici</div>
+<div class="card full">
+  <div class="card-title">⚙️ Come funziona tecnicamente il billing automatico</div>
+  <div class="stripe-flow">
+    <div class="sf-step"><div class="sf-n">1</div><div><div class="sf-text">Lab attiva "UÀ AI" dall'app → Stripe crea subscription con price_ai_base (€24.90/mese o €199/anno)</div></div></div>
+    <div class="sf-step"><div class="sf-n">2</div><div><div class="sf-text">Ogni messaggio AI tracciato in tabella <code>ai_usage</code>: lab_id · tokens · costo_usd · timestamp</div><div class="sf-code">INSERT INTO ai_usage (lab_id, msg_count, tokens_in, tokens_out, cost_usd) VALUES (...);</div></div></div>
+    <div class="sf-step"><div class="sf-n">3</div><div><div class="sf-text">Cron job a mezzanotte: conta messaggi del mese per ogni lab → se supera 1.000 → aggiunge Stripe metered item</div><div class="sf-code">stripe.subscriptionItems.createUsageRecord(item_id, { quantity: extra_msgs, action: 'set' })</div></div></div>
+    <div class="sf-step"><div class="sf-n">4</div><div><div class="sf-text">A fine mese Stripe fattura automaticamente: base + extra scaglioni. Il lab riceve la fattura via email. Nessuna azione manuale da parte tua.</div></div></div>
+    <div class="sf-step"><div class="sf-n">5</div><div><div class="sf-text">Dashboard Francesco /admin: vede per ogni lab i messaggi usati questo mese, il costo reale Anthropic, la revenue, il margine. In tempo reale.</div></div></div>
+  </div>
+</div>
+
+</body>
+</html>

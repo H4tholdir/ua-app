@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — NM v4: Matte + FColombati + Nav</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════
+   LIGHT TOKENS — matte (no specular highlight)
+   Shadow derivate da hsl(30°): scura #B8B0A8, chiara #F0EDEA
+   REGOLA: rgba(255,255,255,...) MAX opacity 0.32
+   ══════════════════════════════════════════════════════ */
+:root {
+  --bg:  #DDD8D3;
+  --t1:  #1C1916;  --t2: #4A3D33;  --t3: #6B5C51;
+  --primary: #D90012;  --accent: #2D5C3F;
+  --sd: #B8B0A8;  --sl: #F0EDEA;  /* shadow dark / light */
+
+  /* MATTE shadows — niente highlight speculare inset bianco */
+  --sh-sm:
+    -3px -3px  6px rgba(240,237,234,.42),
+     3px  3px  8px rgba(184,176,168,.62);
+  --sh-md:
+    -5px -5px 12px rgba(240,237,234,.45),
+     6px  7px 14px rgba(168,158,148,.68),
+     1px  2px  4px rgba(168,158,148,.22);
+  --sh-lg:
+    -8px -8px 18px rgba(240,237,234,.48),
+    10px 12px 22px rgba(155,144,132,.72),
+     2px  3px  7px rgba(155,144,132,.25);
+  --sh-float:
+   -10px -10px 22px rgba(240,237,234,.50),
+    12px  14px 28px rgba(148,136,124,.75),
+     3px   4px  9px rgba(148,136,124,.28);
+
+  /* Inset — cavità fisica (input, pressed) */
+  --sh-in-sm:
+    inset  3px  3px  7px rgba(168,158,148,.58),
+    inset -3px -3px  7px rgba(240,237,234,.38);
+  --sh-in-md:
+    inset  4px  4px  9px rgba(168,158,148,.62),
+    inset -4px -4px  9px rgba(240,237,234,.40);
+  --sh-in-deep:
+    inset  5px  5px 12px rgba(148,136,124,.68),
+    inset -4px -4px  9px rgba(240,237,234,.35);
+}
+
+/* ══════════════════════════════════════════════════════
+   DARK TOKENS — NO rgba(255,255,255,...) IN DARK
+   ══════════════════════════════════════════════════════ */
+.dark {
+  --bg:  #1A1916;
+  --t1:  #F0EDE8;  --t2: #8A8580;  --t3: #5A5652;
+  --primary: #E8001A;  --accent: #4A9A68;
+
+  --sh-sm:
+    -3px -3px  6px rgba(42,39,36,.55),
+     3px  3px  8px rgba(6,5,4,.90);
+  --sh-md:
+    -5px -5px 12px rgba(42,39,36,.58),
+     6px  7px 14px rgba(5,4,3,.92),
+     1px  2px  4px rgba(5,4,3,.55);
+  --sh-lg:
+    -8px -8px 18px rgba(42,39,36,.60),
+    10px 12px 22px rgba(4,3,2,.95),
+     2px  3px  7px rgba(4,3,2,.60);
+  --sh-float:
+   -10px -10px 22px rgba(42,39,36,.62),
+    12px  14px 28px rgba(3,2,1,.98),
+     3px   4px  9px rgba(3,2,1,.65);
+  --sh-in-sm:
+    inset  3px  3px  7px rgba(4,3,2,.92),
+    inset -3px -3px  7px rgba(42,39,36,.48);
+  --sh-in-md:
+    inset  4px  4px  9px rgba(4,3,2,.95),
+    inset -4px -4px  9px rgba(42,39,36,.50);
+  --sh-in-deep:
+    inset  5px  5px 12px rgba(3,2,1,.98),
+    inset -4px -4px  9px rgba(42,39,36,.45);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #C2BDB8; }
+body { font-family: 'DM Sans', sans-serif; padding: 18px 14px 60px; }
+
+/* Utilities */
+.sec { margin-bottom: 28px; }
+.sec-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .10em; color: rgba(100,88,78,.7);
+  margin: 22px 0 10px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.plane { background: var(--bg); border-radius: 20px; padding: 16px; box-shadow: var(--sh-lg); }
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .55; margin-bottom: 7px; }
+
+/* ══════════════════════════════════════════════════════
+   FCOLOMBATI PILL — adattato warm panna
+   font-size: 16px esplicito → em predictable
+   rgba(255,255,255) max .32 → niente glow
+   ══════════════════════════════════════════════════════ */
+
+/* ─── PRIMARY RED CTA ─── */
+.cta {
+  all: unset;
+  font-size: 16px;       /* FIX: em predictable */
+  cursor: pointer;
+  display: block; width: 100%;
+  border-radius: 100em;
+  background: rgba(128,4,8,.88);  /* dark red, non nero */
+  box-shadow:
+    -0.15em -0.15em 0.15em -0.075em rgba(180,10,12,.28),
+     0.04em   0.04em  0.07em  0    rgba(50,0,4,.22);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.cta::after {
+  content: "";
+  position: absolute; z-index: 0;
+  width: calc(100% + 0.3em); height: calc(100% + 0.3em);
+  top: -0.15em; left: -0.15em;
+  border-radius: inherit;
+  background: linear-gradient(-135deg, rgba(50,0,4,.45), transparent 20%);
+  filter: blur(0.012em); opacity: .28; mix-blend-mode: multiply;
+}
+.cta .outer {
+  position: relative; z-index: 1;
+  border-radius: inherit;
+  transition: box-shadow 300ms ease;
+  box-shadow:
+    0  0.05em  0.05em -0.01em rgba(50,0,4,1),
+    0  0.01em  0.01em -0.01em rgba(50,0,4,.55),
+    0.15em 0.30em 0.10em -0.01em rgba(50,0,4,.35);
+}
+.cta:hover .outer { box-shadow: 0 0 0, 0 0 0, 0 0 0; }
+.cta .inner {
+  position: relative; z-index: 1;
+  border-radius: inherit;
+  padding: 0.875em 1.75em;
+  background: linear-gradient(135deg, #D90012, #A0000E);
+  transition: box-shadow 300ms ease, clip-path 250ms ease, background 250ms ease, transform 120ms ease;
+  overflow: clip; clip-path: inset(0 0 0 0 round 100em);
+  box-shadow:
+    0     0     0     0    inset rgba(50,0,4,.12),
+    -0.05em -0.05em 0.05em 0    inset rgba(50,0,4,.35),
+    0     0     0     0    inset rgba(50,0,4,.12),
+    0     0  0.05em .20em  inset rgba(255,150,130,.16), /* warm tint ≤.16 */
+    0.025em 0.05em 0.1em 0 inset rgba(255,170,150,.30), /* NO 1.0 bianco */
+    0.12em 0.12em 0.12em   inset rgba(255,150,130,.10),
+    -0.075em -0.25em 0.25em 0.1em inset rgba(50,0,4,.40);
+}
+.cta:hover .inner {
+  clip-path: inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em);
+  background: linear-gradient(135deg, #A0000E, #780008);
+  box-shadow:
+    0.1em  0.15em 0.05em 0    inset rgba(50,0,4,.92),
+    -0.025em -0.03em 0.05em .025em inset rgba(50,0,4,.60),
+    0.25em 0.25em 0.20em 0   inset rgba(50,0,4,.60),
+    0     0  0.05em  .5em   inset rgba(255,150,130,.07),
+    0     0     0     0    inset rgba(255,170,150,.30),
+    0.12em 0.12em 0.12em   inset rgba(255,150,130,.08),
+    -0.075em -0.12em 0.20em 0.1em inset rgba(50,0,4,.32);
+}
+.cta:active .inner { transform: scale(0.975); }
+.cta .inner span {
+  position: relative; z-index: 4;
+  display: block; text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9375em; font-weight: 700; letter-spacing: -0.02em;
+  color: transparent;
+  background: linear-gradient(135deg, #fff, rgba(255,228,222,.92));
+  -webkit-background-clip: text; background-clip: text;
+  transition: transform 250ms ease; user-select: none;
+}
+.cta:hover .inner span { transform: scale(0.975); }
+
+/* ─── GHOST LIGHT (secondary, neutro) ─── */
+.ghost {
+  all: unset;
+  font-size: 16px;
+  cursor: pointer;
+  display: block; width: 100%;
+  border-radius: 100em;
+  background: rgba(162,153,145,.82);  /* warm greige scuro */
+  box-shadow:
+    -0.15em -0.15em 0.15em -0.075em rgba(200,190,182,.35),
+     0.04em  0.04em  0.07em  0    rgba(100,86,76,.25);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.ghost::after {
+  content: ""; position: absolute; z-index: 0;
+  width: calc(100% + 0.3em); height: calc(100% + 0.3em);
+  top: -0.15em; left: -0.15em; border-radius: inherit;
+  background: linear-gradient(-135deg, rgba(80,65,55,.40), transparent 20%);
+  filter: blur(0.012em); opacity: .22; mix-blend-mode: multiply;
+}
+.ghost .outer {
+  position: relative; z-index: 1; border-radius: inherit;
+  transition: box-shadow 300ms ease;
+  box-shadow:
+    0  0.05em 0.05em -0.01em rgba(100,86,76,1),
+    0  0.01em 0.01em -0.01em rgba(100,86,76,.55),
+    0.15em 0.30em 0.10em -0.01em rgba(100,86,76,.32);
+}
+.ghost:hover .outer { box-shadow: 0 0 0, 0 0 0, 0 0 0; }
+.ghost .inner {
+  position: relative; z-index: 1; border-radius: inherit;
+  padding: 0.875em 1.75em;
+  background: linear-gradient(135deg, #E4DFD9, #C8C3BD);
+  transition: box-shadow 300ms ease, clip-path 250ms ease, background 250ms ease, transform 120ms ease;
+  overflow: clip; clip-path: inset(0 0 0 0 round 100em);
+  box-shadow:
+    0     0     0     0    inset rgba(100,86,76,.10),
+    -0.05em -0.05em 0.05em 0    inset rgba(100,86,76,.28),
+    0     0     0     0    inset rgba(100,86,76,.10),
+    0     0  0.05em .20em  inset rgba(240,237,234,.28), /* warm light ≤.28 */
+    0.025em 0.05em 0.1em 0 inset rgba(240,237,234,.32), /* NO 1.0 bianco */
+    0.12em 0.12em 0.12em   inset rgba(240,237,234,.18),
+    -0.075em -0.25em 0.25em 0.1em inset rgba(100,86,76,.30);
+}
+.ghost:hover .inner {
+  clip-path: inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em);
+  background: linear-gradient(135deg, #C8C3BD, #B8B3AD);
+  box-shadow:
+    0.1em  0.15em 0.05em 0    inset rgba(100,86,76,.78),
+    -0.025em -0.03em 0.05em .025em inset rgba(100,86,76,.52),
+    0.25em 0.25em 0.20em 0   inset rgba(100,86,76,.52),
+    0     0  0.05em  .5em   inset rgba(240,237,234,.14),
+    0     0     0     0    inset rgba(240,237,234,.32),
+    0.12em 0.12em 0.12em   inset rgba(240,237,234,.15),
+    -0.075em -0.12em 0.20em 0.1em inset rgba(100,86,76,.28);
+}
+.ghost:active .inner { transform: scale(0.975); }
+.ghost .inner span {
+  position: relative; z-index: 4; display: block; text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9375em; font-weight: 600; letter-spacing: -0.02em;
+  color: transparent;
+  background: linear-gradient(135deg, #1C1916, #4A3D33);
+  -webkit-background-clip: text; background-clip: text;
+  transition: transform 250ms ease; user-select: none;
+}
+.ghost:hover .inner span { transform: scale(0.975); }
+
+/* ─── GHOST DARK (same markup, dark context) ─── */
+.dark .ghost {
+  background: rgba(28,25,22,.92);  /* molto scuro, niente glow */
+  box-shadow:
+    -0.15em -0.15em 0.15em -0.075em rgba(48,44,40,.55),
+     0.04em  0.04em  0.07em  0    rgba(4,3,2,.88);
+}
+.dark .ghost .outer {
+  box-shadow:
+    0  0.05em 0.05em -0.01em rgba(3,2,1,1),
+    0  0.01em 0.01em -0.01em rgba(3,2,1,.60),
+    0.15em 0.30em 0.10em -0.01em rgba(3,2,1,.42);
+}
+.dark .ghost .inner {
+  background: linear-gradient(135deg, #2C2925, #222019);
+  box-shadow:
+    0     0     0     0    inset rgba(3,2,1,.25),
+    -0.05em -0.05em 0.05em 0    inset rgba(3,2,1,.55),
+    0     0     0     0    inset rgba(3,2,1,.25),
+    0     0  0.05em .20em  inset rgba(44,41,37,.45), /* NO rgba(255,255,255) */
+    0.025em 0.05em 0.1em 0 inset rgba(48,44,40,.55), /* warm grey light */
+    0.12em 0.12em 0.12em   inset rgba(44,41,37,.28),
+    -0.075em -0.25em 0.25em 0.1em inset rgba(3,2,1,.55);
+}
+.dark .ghost:hover .inner {
+  background: linear-gradient(135deg, #1C1A17, #141210);
+  box-shadow:
+    0.1em  0.15em 0.05em 0    inset rgba(3,2,1,.98),
+    -0.025em -0.03em 0.05em .025em inset rgba(3,2,1,.75),
+    0.25em 0.25em 0.20em 0   inset rgba(3,2,1,.75),
+    0     0  0.05em  .5em   inset rgba(44,41,37,.22),
+    0     0     0     0    inset rgba(48,44,40,.55),
+    0.12em 0.12em 0.12em   inset rgba(44,41,37,.20),
+    -0.075em -0.12em 0.20em 0.1em inset rgba(3,2,1,.48);
+}
+.dark .ghost .inner span {
+  background: linear-gradient(135deg, #F0EDE8, rgba(200,196,190,.90));
+  -webkit-background-clip: text; background-clip: text;
+}
+
+/* ─── ACCENT VERDE (pill, no glow) ─── */
+.cta-accent {
+  all: unset;
+  font-size: 16px;
+  cursor: pointer; display: block; width: 100%;
+  border-radius: 100em;
+  background: rgba(20,48,28,.88);
+  box-shadow:
+    -0.15em -0.15em 0.15em -0.075em rgba(60,100,70,.25),
+     0.04em  0.04em  0.07em  0    rgba(10,28,16,.30);
+  position: relative; -webkit-tap-highlight-color: transparent;
+}
+.cta-accent::after {
+  content: ""; position: absolute; z-index: 0;
+  width: calc(100% + 0.3em); height: calc(100% + 0.3em);
+  top: -0.15em; left: -0.15em; border-radius: inherit;
+  background: linear-gradient(-135deg, rgba(10,28,16,.40), transparent 20%);
+  filter: blur(0.012em); opacity: .22; mix-blend-mode: multiply;
+}
+.cta-accent .outer {
+  position: relative; z-index: 1; border-radius: inherit;
+  transition: box-shadow 300ms ease;
+  box-shadow:
+    0  0.05em 0.05em -0.01em rgba(10,28,16,1),
+    0  0.01em 0.01em -0.01em rgba(10,28,16,.55),
+    0.15em 0.30em 0.10em -0.01em rgba(10,28,16,.32);
+}
+.cta-accent:hover .outer { box-shadow: 0 0 0, 0 0 0, 0 0 0; }
+.cta-accent .inner {
+  position: relative; z-index: 1; border-radius: inherit;
+  padding: 0.875em 1.75em;
+  background: linear-gradient(135deg, #2D5C3F, #1E4028); /* NO glow verde */
+  transition: box-shadow 300ms ease, clip-path 250ms ease, background 250ms ease, transform 120ms ease;
+  overflow: clip; clip-path: inset(0 0 0 0 round 100em);
+  box-shadow:
+    0     0     0     0    inset rgba(10,28,16,.15),
+    -0.05em -0.05em 0.05em 0    inset rgba(10,28,16,.35),
+    0     0     0     0    inset rgba(10,28,16,.15),
+    0     0  0.05em .20em  inset rgba(120,180,140,.14), /* warm green tint, NO bianco */
+    0.025em 0.05em 0.1em 0 inset rgba(140,200,160,.25),
+    0.12em 0.12em 0.12em   inset rgba(120,180,140,.10),
+    -0.075em -0.25em 0.25em 0.1em inset rgba(10,28,16,.42);
+}
+.cta-accent:hover .inner {
+  clip-path: inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em);
+  background: linear-gradient(135deg, #1E4028, #142C1C);
+}
+.cta-accent:active .inner { transform: scale(0.975); }
+.cta-accent .inner span {
+  position: relative; z-index: 4; display: block; text-align: center;
+  font-family: 'DM Sans', sans-serif; font-size: 0.9375em; font-weight: 700;
+  color: transparent;
+  background: linear-gradient(135deg, #fff, rgba(210,240,220,.90));
+  -webkit-background-clip: text; background-clip: text;
+  transition: transform 250ms ease; user-select: none;
+}
+.cta-accent:hover .inner span { transform: scale(0.975); }
+
+/* ══════════════════════════════════════════════════════
+   STANDARD BUTTON — 3 stati
+   ══════════════════════════════════════════════════════ */
+.btn {
+  background: var(--bg); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--t1); border-radius: 12px; padding: 12px 14px; width: 100%;
+  transition: box-shadow 120ms ease, transform 80ms ease;
+}
+.btn-raised { box-shadow: var(--sh-sm); }
+.btn-raised:hover { box-shadow: -2px -2px 4px rgba(240,237,234,.38), 2px 2px 5px rgba(168,158,148,.52); }
+.btn-raised:active { box-shadow: var(--sh-in-sm); transform: scale(0.982); }
+.btn-flat   { color: var(--t2); box-shadow: none; }
+.btn-pressed { box-shadow: var(--sh-in-sm); color: var(--t3); }
+
+/* ══════════════════════════════════════════════════════
+   INPUT, FIELD, CARD, KPI
+   ══════════════════════════════════════════════════════ */
+.field-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--t3); margin-bottom: 5px; display: block; }
+.field {
+  background: var(--bg); border: none; outline: none;
+  width: 100%; padding: 11px 13px; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--t1);
+  box-shadow: var(--sh-in-md); margin-bottom: 10px;
+  transition: box-shadow 150ms ease;
+}
+.field:focus { box-shadow: var(--sh-in-deep), 0 0 0 2px rgba(45,92,63,.32); }
+.field::placeholder { color: var(--t3); }
+
+.card { background: var(--bg); border-radius: 13px; padding: 12px 13px; box-shadow: var(--sh-md); margin-bottom: 7px; }
+.card-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.cn { font-size: 14px; font-weight: 600; color: var(--t1); }
+.cs { font-size: 12px; color: var(--t2); margin-top: 2px; }
+.ch { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+
+/* ─── KPI con animazione stagger (CSS puro) ─── */
+@keyframes kpiIn {
+  from { opacity: 0; transform: translateY(-14px) scale(0.95); }
+  to   { opacity: 1; transform: none; }
+}
+.kpi-row { display: flex; gap: 7px; margin-bottom: 10px; }
+.kpi-box {
+  flex: 1; background: var(--bg); border-radius: 11px; padding: 11px 12px;
+  box-shadow: var(--sh-sm);
+  opacity: 0;  /* hidden until animation */
+}
+.kpi-box.anim { animation: kpiIn 0.42s cubic-bezier(0,0,.2,1) both; }
+.kpi-box.anim:nth-child(1) { animation-delay: .12s; }
+.kpi-box.anim:nth-child(2) { animation-delay: .18s; }
+.kpi-box.anim:nth-child(3) { animation-delay: .24s; }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--t3); margin-top: 3px; }
+
+/* ══════════════════════════════════════════════════════
+   NAV BAR — tutti gli stati
+   ══════════════════════════════════════════════════════ */
+.nav-container { position: relative; }
+.nav-pill {
+  background: var(--bg);
+  border-radius: 100px;
+  padding: 8px 10px;
+  box-shadow: var(--sh-float);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 2px;
+}
+
+/* Tab singolo */
+.nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; padding: 6px 12px; border-radius: 100px; cursor: pointer;
+  border: none; background: transparent;
+  font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 600; color: var(--t2);
+  min-width: 52px; position: relative;
+  transition: color 150ms ease;
+}
+.nav-tab.active { color: var(--primary); }
+.nav-tab svg { transition: transform 150ms ease; }
+.nav-tab:active svg { transform: scale(0.88); }
+
+/* Active indicator — pill che si sposta */
+.nav-indicator {
+  position: absolute; inset: 0;
+  background: rgba(217,0,18,.08);
+  border-radius: 100px;
+  transition: all 250ms cubic-bezier(.3,.7,.4,1.5);
+  pointer-events: none;
+  z-index: 0;
+}
+.nav-tab > * { position: relative; z-index: 1; }
+
+/* CTA tab — grande, rosso */
+.nav-tab-cta {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--primary); border: none; cursor: pointer;
+  box-shadow: 0 4px 12px -2px rgba(180,0,0,.45);
+  transition: transform 80ms ease, filter 150ms ease;
+  flex-shrink: 0;
+}
+.nav-tab-cta:hover { filter: brightness(108%); }
+.nav-tab-cta:active { transform: scale(0.91); filter: brightness(88%); box-shadow: 0 2px 6px -1px rgba(180,0,0,.40); }
+.nav-tab-cta svg { color: #fff; }
+
+/* Tooltip "Nuovo lavoro" (primo avvio) */
+.fab-tooltip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: var(--t1); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+  padding: 6px 12px; border-radius: 100px; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,.22);
+  pointer-events: none;
+  animation: tooltipFade 3s ease forwards;
+}
+@keyframes tooltipFade {
+  0%,80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.fab-tooltip::after {
+  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--t1);
+}
+
+/* EDIT MODE — long press 500ms */
+.nav-pill.edit-mode {
+  outline: 2px dashed rgba(217,0,18,.35);
+  outline-offset: 3px;
+}
+@keyframes wiggle {
+  0%,100% { transform: rotate(0); }
+  25% { transform: rotate(-2.5deg); }
+  75% { transform: rotate(2.5deg); }
+}
+.nav-pill.edit-mode .nav-tab { animation: wiggle 0.4s ease infinite; }
+.nav-pill.edit-mode .nav-tab:nth-child(2) { animation-delay: 0.05s; }
+.nav-pill.edit-mode .nav-tab:nth-child(3) { animation-delay: 0.10s; }
+.nav-pill.edit-mode .nav-tab:nth-child(4) { animation-delay: 0.15s; }
+
+.edit-handle {
+  display: none;
+  position: absolute; top: -6px; right: -4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--t2); color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+  cursor: pointer;
+}
+.nav-pill.edit-mode .edit-handle { display: block; }
+.edit-label {
+  font-size: 10px; color: var(--t3); text-align: center; margin-top: 8px; font-style: italic;
+}
+
+/* CUSTOMIZE PANEL */
+.customize-panel {
+  background: var(--bg); border-radius: 20px 20px 0 0;
+  padding: 16px; box-shadow: var(--sh-float);
+  margin-top: 16px;
+}
+.cp-header { font-size: 14px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.cp-sub { font-size: 12px; color: var(--t3); margin-bottom: 14px; }
+.cp-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,.06);
+}
+.cp-item:last-child { border-bottom: none; }
+.cp-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--bg); box-shadow: var(--sh-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cp-info { flex: 1; }
+.cp-name { font-size: 13px; font-weight: 600; color: var(--t1); }
+.cp-desc { font-size: 11px; color: var(--t3); margin-top: 1px; }
+.cp-toggle {
+  width: 44px; height: 24px; border-radius: 100px;
+  border: none; cursor: pointer; flex-shrink: 0;
+  position: relative; transition: background 200ms;
+}
+.cp-toggle.on { background: var(--accent); box-shadow: 0 2px 6px rgba(45,92,63,.30); }
+.cp-toggle.off { background: var(--bg); box-shadow: var(--sh-in-sm); }
+.cp-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--bg);
+  box-shadow: var(--sh-sm); transition: transform 180ms cubic-bezier(.2,0,0,1);
+}
+.cp-toggle.on .cp-thumb { transform: translateX(20px); }
+
+/* SCROLL HIDE state */
+.nav-hidden { opacity: 0.4; transform: translateY(12px); transition: all 300ms; filter: blur(2px); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 1: FCOLOMBATI ADATTATO — Light
+     ══════════════════════════════════════════════════════ -->
+<div class="sec-title" style="margin-top:0;">FColombati pill — warm panna adaptation (premi hover)</div>
+<div class="plane">
+  <div class="col3" style="margin-bottom:10px;">
+    <div>
+      <div class="lbl" style="color:#6B5C51;">Primary CTA</div>
+      <button class="cta"><div class="outer"><div class="inner"><span>Nuova consegna</span></div></div></button>
+    </div>
+    <div>
+      <div class="lbl" style="color:#6B5C51;">Ghost neutro</div>
+      <button class="ghost"><div class="outer"><div class="inner"><span>Annulla</span></div></div></button>
+    </div>
+    <div>
+      <div class="lbl" style="color:#6B5C51;">Accent verde</div>
+      <button class="cta-accent"><div class="outer"><div class="inner"><span>Conferma</span></div></div></button>
+    </div>
+  </div>
+  <p style="font-size:10px; color:#6B5C51; font-style:italic;">Hover → atterra sul piano · Click → si pressa dentro</p>
+</div>
+
+<!-- DARK -->
+<div class="plane dark" style="margin-top:12px; margin-bottom:0;">
+  <div class="col3">
+    <div>
+      <div class="lbl" style="color:#5A5652;">Primary dark</div>
+      <button class="cta"><div class="outer"><div class="inner"><span>Nuova consegna</span></div></div></button>
+    </div>
+    <div>
+      <div class="lbl" style="color:#5A5652;">Ghost dark — FIX</div>
+      <button class="ghost"><div class="outer"><div class="inner"><span>Annulla</span></div></div></button>
+    </div>
+    <div>
+      <div class="lbl" style="color:#5A5652;">Accent dark</div>
+      <button class="cta-accent"><div class="outer"><div class="inner"><span>Conferma</span></div></div></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 2: STATI STANDARD
+     ══════════════════════════════════════════════════════ -->
+<div class="sec-title">Standard button — 3 stati (premi "Default")</div>
+<div class="col2">
+  <div class="plane">
+    <div class="col3">
+      <div><div class="lbl" style="color:#6B5C51;">Raised</div><button class="btn btn-raised">Default</button></div>
+      <div><div class="lbl" style="color:#6B5C51;">Flat</div><button class="btn btn-flat">Hover</button></div>
+      <div><div class="lbl" style="color:#6B5C51;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+    </div>
+  </div>
+  <div class="plane dark">
+    <div class="col3">
+      <div><div class="lbl" style="color:#5A5652;">Raised</div><button class="btn btn-raised">Default</button></div>
+      <div><div class="lbl" style="color:#5A5652;">Flat</div><button class="btn btn-flat">Hover</button></div>
+      <div><div class="lbl" style="color:#5A5652;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 3: KPI ANIMATI + MOCKUP
+     ══════════════════════════════════════════════════════ -->
+<div class="sec-title">
+  KPI stagger animation
+  <button onclick="document.querySelectorAll('.kpi-box').forEach(el=>{el.classList.remove('anim');void el.offsetWidth;el.classList.add('anim')})"
+    style="margin-left:8px; font-size:9px; font-weight:700; padding:3px 8px; border-radius:100px; background:rgba(45,92,63,.12); color:#2D5C3F; border:none; cursor:pointer; letter-spacing:.04em;">
+    ↺ REPLAY
+  </button>
+</div>
+<div class="col2">
+  <!-- LIGHT mockup -->
+  <div class="plane">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-box anim"><div class="kpi-n" style="color:var(--primary);">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box anim"><div class="kpi-n" style="color:var(--accent);">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box anim"><div class="kpi-n" style="color:var(--t2);">12</div><div class="kpi-l">Lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div>
+        <span class="badge" style="background:rgba(217,0,18,.10); color:var(--primary);">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div><div class="ch">29 mag · 2 fasi</div></div>
+        <span class="badge" style="background:rgba(45,92,63,.12); color:var(--accent);">Pronto</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DARK mockup -->
+  <div class="plane dark">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-box anim"><div class="kpi-n" style="color:var(--primary);">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box anim"><div class="kpi-n" style="color:var(--accent);">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box anim"><div class="kpi-n" style="color:var(--t2);">12</div><div class="kpi-l">Lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div>
+        <span class="badge" style="background:rgba(232,0,26,.18); color:var(--primary);">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div><div class="ch">29 mag · 2 fasi</div></div>
+        <span class="badge" style="background:rgba(74,154,104,.15); color:var(--accent);">Pronto</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 4: NAV BAR — tutti gli stati
+     ══════════════════════════════════════════════════════ -->
+<div class="sec-title">Nav bar — tutti gli stati (interagisci)</div>
+
+<!-- STATO 1: Default -->
+<p style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(80,70,60,.6); margin-bottom:8px;">① Default — tap per cambiare tab attivo</p>
+<div class="plane" style="margin-bottom:10px;">
+  <div class="nav-container" id="nav-default">
+    <div class="nav-pill" id="nav-pill-1">
+
+      <button class="nav-tab active" id="tab-oggi" onclick="setActive('nav-pill-1','tab-oggi')">
+        <div class="nav-indicator" id="ind-oggi"></div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Oggi
+      </button>
+
+      <button class="nav-tab" id="tab-lavori" onclick="setActive('nav-pill-1','tab-lavori')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Lavori
+      </button>
+
+      <!-- CTA tab centrale -->
+      <div style="position:relative;">
+        <button class="nav-tab-cta" id="tab-cta" title="Nuovo lavoro">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="fab-tooltip" id="fab-tooltip">Nuovo lavoro</div>
+      </div>
+
+      <button class="nav-tab" id="tab-clienti" onclick="setActive('nav-pill-1','tab-clienti')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clienti
+      </button>
+
+      <button class="nav-tab" id="tab-fatture" onclick="setActive('nav-pill-1','tab-fatture')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Fatture
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- STATO 2: Edit mode -->
+<p style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(80,70,60,.6); margin-bottom:8px;">② Edit mode — long press 500ms (simulato con il bottone)</p>
+<div class="plane" style="margin-bottom:6px;">
+  <button onclick="document.getElementById('nav-edit').classList.toggle('edit-mode')" style="font-size:10px; font-weight:700; padding:4px 10px; border-radius:100px; background:rgba(217,0,18,.10); color:var(--primary); border:none; cursor:pointer; margin-bottom:10px;">⊙ SIMULA LONG PRESS 500ms</button>
+  <div class="nav-pill" id="nav-edit">
+    <div style="position:relative;">
+      <button class="nav-tab active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Oggi
+      </button>
+      <div class="edit-handle" title="Rimuovi">−</div>
+    </div>
+    <div style="position:relative;">
+      <button class="nav-tab">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Lavori
+      </button>
+      <div class="edit-handle" title="Rimuovi">−</div>
+    </div>
+    <button class="nav-tab-cta" style="cursor:default; opacity:.4;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <div style="position:relative;">
+      <button class="nav-tab">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Clienti
+      </button>
+      <div class="edit-handle">−</div>
+    </div>
+    <div style="position:relative;">
+      <button class="nav-tab">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Fatture
+      </button>
+      <div class="edit-handle">−</div>
+    </div>
+  </div>
+  <div class="edit-label" id="edit-hint">Tieni premuto per attivare · Tap − per rimuovere · Drag per riordinare</div>
+</div>
+
+<!-- STATO 3: Customize panel -->
+<p style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(80,70,60,.6); margin-bottom:8px; margin-top:16px;">③ Customize panel — slide up da bottom</p>
+<div class="customize-panel" style="margin-bottom:10px;">
+  <div class="cp-header">Personalizza navigazione</div>
+  <div class="cp-sub">Attiva o disattiva le voci della barra · Drag per riordinare</div>
+
+  <div class="cp-item">
+    <div class="cp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+    <div class="cp-info"><div class="cp-name">Oggi</div><div class="cp-desc">Dashboard principale</div></div>
+    <button class="cp-toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-item">
+    <div class="cp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+    <div class="cp-info"><div class="cp-name">Lavori</div><div class="cp-desc">Lista lavori clinici</div></div>
+    <button class="cp-toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-item">
+    <div class="cp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+    <div class="cp-info"><div class="cp-name">Clienti</div><div class="cp-desc">Dentisti e studi</div></div>
+    <button class="cp-toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-item">
+    <div class="cp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+    <div class="cp-info"><div class="cp-name">Fatture</div><div class="cp-desc">Gestione fatturazione</div></div>
+    <button class="cp-toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-item">
+    <div class="cp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B5C51" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <div class="cp-info"><div class="cp-name">Sospesi</div><div class="cp-desc">Scadenzario pagamenti</div></div>
+    <button class="cp-toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-item" style="border-bottom:none;">
+    <div class="cp-icon" style="background:rgba(217,0,18,.08);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D90012" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div class="cp-info"><div class="cp-name" style="color:var(--primary);">Nuovo lavoro</div><div class="cp-desc">CTA principale — sempre visibile</div></div>
+    <span style="font-size:10px; font-weight:600; color:var(--t3); padding:3px 8px; background:rgba(0,0,0,.06); border-radius:100px;">Fisso</span>
+  </div>
+</div>
+
+<!-- STATO 4: Scroll hide -->
+<p style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(80,70,60,.6); margin-bottom:8px; margin-top:16px;">④ Scroll hide — scompare su scroll down >60px</p>
+<div class="plane" style="margin-bottom:4px;">
+  <div class="col2">
+    <div>
+      <div class="lbl" style="color:#6B5C51;">Visibile</div>
+      <div style="background:var(--bg); border-radius:100px; padding:6px 10px; box-shadow:var(--sh-float); display:flex; justify-content:space-around; opacity:1; transition:all 300ms;">
+        <span style="font-size:9px; font-weight:700; color:var(--primary);">Oggi</span>
+        <span style="font-size:9px; font-weight:600; color:var(--t2);">Lavori</span>
+        <span style="font-size:9px; font-weight:600; color:var(--t2);">Clienti</span>
+        <span style="font-size:9px; font-weight:600; color:var(--t2);">Fatture</span>
+      </div>
+    </div>
+    <div>
+      <div class="lbl" style="color:#6B5C51;">Scroll down → hidden</div>
+      <div class="nav-hidden" style="background:var(--bg); border-radius:100px; padding:6px 10px; box-shadow:var(--sh-float); display:flex; justify-content:space-around;">
+        <span style="font-size:9px; font-weight:700; color:var(--primary);">Oggi</span>
+        <span style="font-size:9px; font-weight:600; color:var(--t2);">Lavori</span>
+        <span style="font-size:9px; font-weight:600; color:var(--t2);">Clienti</span>
+        <span style="font-size:9px; font-weight:600; color:var(--t2);">Fatture</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     NOTA TECNICA: drag and drop
+     ══════════════════════════════════════════════════════ -->
+<div style="background:var(--bg); border-radius:14px; padding:14px 16px; box-shadow:var(--sh-sm); margin-top:8px;">
+  <div style="font-size:11px; font-weight:700; color:#4A3D33; margin-bottom:6px;">Drag &amp; Drop — spec implementazione</div>
+  <div style="font-size:11px; color:#6B5C51; line-height:1.7;">
+    📦 <strong style="color:#4A3D33;">Libreria:</strong> @dnd-kit/core + @dnd-kit/sortable (già nel progetto React/Next.js, nessuna dep deprecated)<br>
+    🖱️ <strong style="color:#4A3D33;">Trigger:</strong> Long press 500ms → editMode → drag attivo su ogni tab<br>
+    ↕️ <strong style="color:#4A3D33;">Visual drag:</strong> tab draggato ha <code>box-shadow: var(--sh-float)</code> + <code>scale(1.04)</code> + z-index alto<br>
+    🪄 <strong style="color:#4A3D33;">Animazione sort:</strong> <code>useSortable + CSS transition</code> per slide degli altri item<br>
+    💾 <strong style="color:#4A3D33;">Persistenza:</strong> <code>nav_preferences.order: string[]</code> in localStorage (nuova chiave da aggiungere)<br>
+    🔒 <strong style="color:#4A3D33;">CTA + fisso:</strong> il tab "Nuovo lavoro" (⊕) non è draggable — always center<br>
+    📱 <strong style="color:#4A3D33;">Mobile:</strong> DragOverlay di @dnd-kit gestisce touch natively
+  </div>
+</div>
+
+<p style="font-size:10px; color:rgba(0,0,0,.30); text-align:center; margin-top:20px; line-height:1.8; font-style:italic;">
+  Premi i pulsanti FColombati · Tappa i tab nav · Replay KPI · Apri edit mode<br>
+  Matte fix: nessun rgba(255,255,255,>.32) — shadow warm hsl(30°) derivate
+</p>
+
+<script>
+// Active tab logic per nav demo
+function setActive(pillId, tabId) {
+  const pill = document.getElementById(pillId);
+  if (!pill) return;
+  pill.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add('active');
+}
+// Fade out tooltip
+setTimeout(() => {
+  const t = document.getElementById('fab-tooltip');
+  if (t) t.style.display = 'none';
+}, 3000);
+// KPI auto-animate on load
+document.querySelectorAll('.kpi-box').forEach(el => el.classList.add('anim'));
+</script>
+</body>
+</html>

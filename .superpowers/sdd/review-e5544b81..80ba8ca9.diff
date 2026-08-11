@@ -1,0 +1,1951 @@
+diff --git a/.superpowers/sdd/atto-unico-task-d-report.md b/.superpowers/sdd/atto-unico-task-d-report.md
+new file mode 100644
+index 00000000..3b1c9784
+--- /dev/null
++++ b/.superpowers/sdd/atto-unico-task-d-report.md
+@@ -0,0 +1,338 @@
++# RESOCONTO — Task D: il foglio, il passo di correzione (D322, variante A)
++
++**Ramo:** `intervento-post-consegna` · **Salvataggio:** `b88fc37c` · **Data:** 08/08/2026
++**Brief:** `.superpowers/sdd/atto-unico-task-d-brief.md`
++**Mockup approvato:** `docs/design/mockups/2026-08-08-passo-correzione.html`
++
++| cosa | esito |
++|---|---|
++| FASE 7 (`npm run verify:full`) | **VERIFY_EXIT=0** |
++| Prove | **5649 passate · 68 saltate · 454 file** (base: 5628 \| 68 su 454) → **+21** |
++| R-P4 (abbozzo inerte) | **18 su 20** asserzioni si accendono |
++| Mutazioni | **21 prove su 21** viste diventare rosse rompendo apposta il codice |
++| Difetti trovati nel brief | **2** (uno grave: il mockup disegna un controllo che prende 422 sempre) |
++| Ritrovamenti fuori mandato | **3**, riferiti e non corretti |
++| FASE 9 e gate L2 | **NON fatti** — sono il Task D-bis |
++
++---
++
++## 1. Da dove arrivano i valori e il gettone, e perché così
++
++**Scelta: una proprietà nuova e OBBLIGATORIA su `DevoIntervenire`, `documento: VociDocumento`,
++composta da `SchedaLavoroV3` con una funzione pura, `vociDelDocumento(lavoro)`.**
++
++`provato:` prima di questo compito il foglio riceveva **due sole** proprietà
++(`SchedaLavoroV3.tsx:590` — `lavoroId`, `descrizione`): le sei voci e il gettone di concorrenza non
++arrivavano affatto.
++
++**Perché un oggetto solo, costruito da una funzione sola, e non sei proprietà sciolte.** Il contratto
++della rotta è «*i valori che hai visto sono ancora quelli*», non «la riga non è cambiata negli ultimi
++200 ms»: valore mostrato e `updated_at` devono venire dalla **stessa lettura**. Con sei proprietà
++separate, chiunque domani potrebbe rinfrescarne una sola e lasciare indietro il gettone — e la guardia
++di concorrenza diventerebbe una guardia che non può accendersi. Con `vociDelDocumento(lavoro)` la
++firma lo impedisce: si entra con **un** `lavoro` e si esce con tutto, gettone compreso.
++
++**Perché da `SchedaLavoroV3` e non da una lettura nuova nel foglio.** La scheda ha già l'oggetto
++`lavoro` intero, letto dal server in una query sola
++(`src/app/(app)/lavori/[id]/page.tsx` — `select('*, paziente:pazienti(*), denti:lavori_denti(*),
++prescrizione:lavori_prescrizioni(*)…')`). Una lettura nuova dal client sarebbe una seconda verità.
++
++**Verificato che il `lavoro` porti davvero tutte e sei le voci + `updated_at`:** sì, tutte e sette.
++`richiedente_nome`, `tipo_dispositivo`, `descrizione`, `denti_coinvolti`, `paziente_id` e
++`updated_at` arrivano dal `select('*')`; `denti` e `prescrizione` sono embed **che quella pagina
++chiede esplicitamente**. Sono però **facoltativi nel tipo** (`LavoroDettaglio.denti?`,
++`.prescrizione?`), quindi il corredo li porta come `null` quando mancano e le due righe corrispondenti
++diventano **non correggibili con la ragione scritta a schermo** — fail-closed, mai inventati.
++
++✅ **`prescrizione_caratteristiche.elementi` verificato FINO ALLA PENNA, non solo fino al cancello
++davanti** — ed è la verifica che stavo per non fare, cioè esattamente la famiglia del difetto ③ già
++pagato dal Task B («*la forma passa il controllo d'ingresso e muore due funzioni più in là*»).
++`provato:` `20260808154033_atto_unico_snapshot_paziente_fuori.sql:405-414` — l'atto unico **non
++ricopia** l'allowlist delle sotto-chiavi: scorre `jsonb_object_keys` e passa ognuna a
++`lavoro_prescrizione_correggi_typo`. `provato:`
++`20260804152403_ondata_b_prescrizioni_rpc.sql:242` — quella penna ammette
++`('elementi','colore','tipo')`, quindi **`elementi` è in elenco**; `:248-250` scrive il valore
++**verbatim** con `jsonb_set(contenuto, ARRAY[p_campo], p_valore)`, quindi un array jsonb di numeri
++atterra come tale. 🔑 E la guardia `congelata` di quella penna (`:226-232`, «*con una DdC attiva lo
++snapshot è congelato*») **non scatta da qui**, benché «Devo intervenire» viva solo su un lavoro
++consegnato: l'atto unico **annulla la vecchia dichiarazione PRIMA** di chiamare le penne
++(`:340` in poi, sotto il riquadro «DA QUI IN POI SI SCRIVE») e inserisce la nuova **dopo**, quindi
++nell'istante della chiamata nessuna dichiarazione non-annullata esiste.
++
++🛑 **Il gettone viaggia intatto.** `atteso_updated_at: voci.updatedAt`, la stringa così com'è: nessun
++`new Date(...)`, nessun `.toISOString()` di ritorno. La prova lo sorveglia con un valore che porta i
++microsecondi (`2026-08-08T10:20:30.123456+00:00`) e diventa rossa alla mutazione ovvia.
++
++---
++
++## 2. Che cosa ho cambiato, percorso per percorso
++
++**`src/components/features/lavori/scheda-v3/DevoIntervenire.tsx`**
++- Due fasi nuove **dentro lo stesso `Sheet`**: `correzione` (l'elenco delle sei voci) e
++  `correzioneCampo` (il sotto-passo di una voce). 🛑 Nessun secondo overlay.
++- `scegliMotivo` instrada `errore_dato_dichiarazione` → `correzione`. Gli altri otto motivi e il
++  percorso di `errore_registrazione` (Task A) **non sono toccati**.
++- `VociDocumento` + `vociDelDocumento()` — esportati, §1.
++- Le sei righe si generano da **`CAMPI_CORREGGIBILI_DOCUMENTO`**, non da un elenco ricopiato:
++  `ETICHETTE_VOCE`/`TITOLI_VOCE` sono `Record<CampoCorreggibile, string>`, quindi un nome che entra o
++  esce dall'allowlist senza la sua riga **non compila**.
++- `depositaEvento()` **estratta** da `registra()`: una sola composizione del corpo dell'evento, due
++  chiamanti (la strada di sempre e il tocco finale). Comportamento di `registra()` invariato — le 24
++  prove preesistenti lo sorvegliano.
++- `correggiERifai()`: **due chiamate in fila**, con l'evento tenuto nello stato e **riusato** se la
++  seconda fallisce.
++- `messaggioDiErrore()`: il messaggio della rotta si mostra **com'è scritto** (422 col percorso
++  dentro, 409, `23505`); il messaggio di casa resta solo per un corpo illeggibile.
++- `ricomponiDenti()` / `stessiDenti()`: il carico della **penna**, col colore per dente conservato.
++- `NastroPercorso`: i quattro passi con quello corrente in evidenza (`aria-current="step"`, così lo
++  stato non è affidato al solo colore) — è l'elemento con cui il mockup **dice** la variante A.
++- 🛑 **Il 409 chiude il tasto**, col messaggio della rotta come motivo. La rotta rende e **carica** il
++  PDF *prima* della transazione (suo commento: un conflitto «*lascia dietro di sé un file orfano e un
++  numero bruciato*»): col gettone stantìo ogni tocco in più brucia un altro progressivo e **non può
++  riuscire** finché il foglio non si chiude — e chiudendolo la pagina si rinfresca.
++- Sotto-componenti nuovi: `RigaVoce`, `PassoVoce`, `TornaAllElenco`, `RiquadroRiemissione`,
++  `NastroPercorso`.
++
++**`src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx`** — una riga sola: passa
++`documento={vociDelDocumento(lavoro)}`.
++
++**`tests/unit/DevoIntervenire.test.tsx`** — 20 prove nuove, più due ritocchi al corredo di montaggio
++(la proprietà è obbligatoria) e una spia sull'hook di navigazione.
++
++🛑 **Nessuno dei contratti fermi è stato toccato:** `correzioni.ts`, la rotta `…/riemetti`, la RPC,
++`generate-ddc.ts`, `precheck.ts`, `PATCH /api/pazienti/[id]`, `PazienteEditSheet`.
++
++---
++
++## 3. R-P4 — il conteggio e le forme d'input
++
++**Primo rosso:** 19 prove su 20 fallite (la ventesima, «gli altri motivi vanno alle quattro caselle
++come prima», è un guardiano di regressione ed era già verde).
++
++**Abbozzo inerte** = la fase nuova, il suo titolo e l'instradamento del motivo, **e nient'altro**:
++nessuna riga, nessun sotto-passo, nessuna chiamata.
++➡️ **18 asserzioni su 20 si accendono.**
++
++| forma d'input | caso | esito |
++|---|---|---|
++| nessuna correzione fatta | «senza nessuna correzione il tasto è spento, e dice PERCHÉ» | coperta |
++| una sola voce | «il tocco finale sono DUE chiamate in fila» | coperta |
++| più voci insieme | «più voci corrette insieme viaggiano nella STESSA chiamata» | coperta |
++| corretta e **rimessa al valore di prima** | «una riga rimessa al valore di prima NON è una correzione» | coperta — **decisione: NON è una correzione**, la voce esce dall'elenco e il tasto torna spento. Mandarla produrrebbe un documento identico a quello di oggi |
++| valore svuotato | «una caratteristica prescritta non si può svuotare, e lo dice prima» | coperta — bloccato **prima**, col perché |
++| sotto-chiave svuotata | idem (`prescrizione_caratteristiche.colore`) | coperta |
++| denti azzerati | «nemmeno i denti si possono azzerare» | coperta — bloccato prima |
++| smontaggio a metà | «monta, corregge, SMONTA: nessuna scrittura sul server» | coperta |
++| seconda chiamata fallita e ritentata | «il ritentativo RIUSA l'evento» | coperta — l'asserzione è sul **conto** delle registrazioni, non sulla presenza di `evento_id` |
++| 409 | «il 409 si mostra com'è scritto dalla rotta» | coperta |
++| 422 | «il 422 si mostra col PERCORSO dentro» | coperta |
++| corpo illeggibile | «un corpo illeggibile non lascia la persona senza niente» | coperta |
++| paziente scelto = quello di adesso | dentro «la riga del paziente NON ha un campo di testo» (tasto spento) | coperta |
++| **rete assente / `fetch` che lancia** | — | **non coperta**: il ramo `catch` c'è ed è scritto, ma in jsdom stubbare un `fetch` che rifiuta prova il `catch` di JS, non una decisione di prodotto. Dichiarata |
++| **corredo senza `denti`/`prescrizione`** (embed non chiesto) | — | **non coperta da una prova**: il codice ha `perchePrecluso()` e la riga diventa non premibile con la ragione. Nessun chiamante oggi passa `null` (la pagina chiede gli embed), quindi la prova sorveglierebbe uno stato irraggiungibile — sarebbe decorazione. Dichiarata |
++
++---
++
++## 4. Che cosa ho rotto apposta, e che cosa si è acceso
++
++**Quattro giri di mutazione, e il tratto è: nessuna prova nuova è rimasta verde alla sua mutazione
++ovvia.** Le prove su cui vigilavo di più — perché sono quelle che nascono decorazione — sono le prime
++cinque.
++
++| mutazione | prova che si è accesa |
++|---|---|
++| `disabled={quanteCorrezioni === 0}` → `disabled={false}` | tasto spento senza correzioni |
++| `atteso_updated_at` riparsato con `new Date(...).toISOString()` | il gettone NON si riparsa |
++| `navigaDaOverlay(...)` → `router.push(...)` | le due vie navigano con `useNavigaDaOverlay` |
++| tolto il confronto col valore originale nei testi | «rimessa al valore di prima» |
++| l'evento si ricrea a ogni tentativo | il ritentativo RIUSA l'evento |
++| `perche()` → sempre `null` | caratteristica non svuotabile · denti azzerati |
++| `messaggioDiErrore` butta via il testo del server | il 409 · il 422 |
++| i denti viaggiano come `{fdi, ruolo}` senza colore | i denti viaggiano come oggetti (asserzione su `scala`/`codice`) |
++| una riga in meno nell'elenco (`.slice(1)`) | le sei righe · più voci insieme |
++| tutti i motivi instradati a `correzione` | gli altri motivi vanno alle quattro caselle |
++| `errore_dato_dichiarazione` instradato a `dettagli` | apre il passo di correzione |
++| `fetch` alla riemissione dentro `chiudiVoce` | monta, corregge, SMONTA |
++| `RiquadroRiemissione` non rende mai | riuscita, la schermata NOMINA la dichiarazione nuova |
++| pastiglia «Da rifare» → «Corretto» | vecchio → nuovo con la pastiglia |
++| il messaggio di casa diventa `''` | corpo illeggibile |
++| aggiunto un campo «Nome del paziente» | la riga del paziente NON ha un campo di testo (D320) |
++| tolta la via per l'Anagrafica | «Da qui non si corregge» nomina DUE cose |
++| il nastro non si rende | il nastro dice DOVE si è |
++| il 409 non chiude più il tasto | il 409 si mostra com'è scritto dalla rotta |
++
++⚠️ **Una correzione a me stesso.** La prova sul paziente, come l'avevo scritta prima, era
++**decorazione**: `expect(screen.queryByLabelText(/Nome del paziente/i)).toBeNull()` è vero anche in una
++pagina vuota, e nessuna mutazione l'avrebbe accesa. Riscritta contando i campi scrivibili del passo
++(`getAllByRole('textbox').length === 1`, e quell'uno è la ricerca): adesso un campo «nome» aggiunto un
++domani la fa diventare rossa. È esattamente il difetto contro cui il §6 del brief mi metteva in
++guardia, e l'ho commesso lo stesso.
++
++⚠️ **Un giro di mutazione è stato rifatto.** Il terzo conteneva anche l'instradamento a `dettagli`,
++che cancella l'intero passo e fa cadere quasi tutto: i rossi non erano attribuibili. Rifatto senza
++quella mutazione, così ogni rosso ha la sua causa.
++
++---
++
++## 5. FASE 7
++
++```
++npm run verify:full; ESITO=$?; echo "VERIFY_EXIT=$ESITO"
++→ Test Files  448 passed | 6 skipped (454)
++→ Tests       5649 passed | 68 skipped (5717)
++→ ✅ DS compliance · CSRF · reduced-motion · coerenza documenti · salvataggio · progetti Playwright
++→ VERIFY_EXIT=0
++```
++
++**Base dichiarata: 5628 | 68 su 454 → adesso 5649 | 68 su 454.** +21 prove, i file restano 454 (le
++prove nuove stanno nel file del componente, dove stanno già le sue).
++
++⚠️ **Un rosso vero in FASE 7, e la sua correzione.** `eslint` ha fermato la prima stesura con
++`react-hooks/set-state-in-effect`: la ricerca dei pazienti azzerava l'elenco con un `setTrovati([])`
++**sincrono nel corpo dell'effetto**. Non è formalismo — è un render in più a ogni battuta di tasto.
++Il vuoto adesso si **deriva** (`const risultati = q.length >= 2 ? trovati : []`) invece di scriverlo.
++
++---
++
++## 6. Gli scostamenti dal mockup, col perché
++
++**① 🔴 «Elementi» non è un campo di testo: è il selettore di denti.** Il mockup disegna
++`<input class="data" value="dente 26">` sotto l'etichetta «Elementi».
++`provato:` sul contratto `PrescrizioneContenuto.elementi` è **`number[]`**
++(`src/types/domain.ts:447`); `normalizzaContenuto` **scarta** un `elementi` che non sia un array di
++numeri (`prescrizione-mapper.ts:233-239`) e `validaCorrezioni` **rifiuta ciò che è stato scartato**
++(`correzioni.ts:284-292`). ➡️ Un campo di testo lì avrebbe preso **422 a ogni singolo invio**, con il
++messaggio «*Delle caratteristiche prescritte non si corregge «elementi»*». Ho messo l'odontogramma che
++esiste già. **È un difetto del mockup, non una preferenza mia: v. §7.**
++
++**② Il tasto «Correggi e rifai la dichiarazione» sta sul passo DOPO, non sull'elenco.** Il mockup lo
++disegna in fondo all'elenco delle sei righe — ma lo disegna **identico in A e in B**, e la legenda del
++mockup dichiara che *l'unica* differenza fra le due varianti è dove sta la correzione rispetto alle
++quattro caselle. In **B** la correzione è ultima, quindi lì quel tasto è davvero il finale; in **A**
++(la variante scelta) dopo la correzione vengono ancora le quattro domande di legge. Un tasto che dice
++«Correggi e rifai la dichiarazione» e poi apre altre quattro domande è un tasto che mente.
++➡️ Sull'elenco il tasto dice **«Continua»** e tiene il gate del mockup (spento finché non si corregge
++niente, con lo stesso testo sotto). Il tasto **«Correggi e rifai la dichiarazione»** sta sulle quattro
++caselle, dove l'atto avviene davvero, con sotto «*La dichiarazione di oggi resta in archivio come
++superata: non sparisce*» — la frase che il mockup metteva sull'elenco, spostata dove la promessa si
++mantiene. Sull'elenco resta il conto: «*Hai corretto N dati. Restano da rispondere le quattro domande
++di legge.*»
++
++**③ Le persone nell'elenco del paziente non si chiamano «Mario Rossi».** Il mockup mostra righe
++«Mario Rossi · PZ-0042». `GET /api/pazienti` restituisce un **alias**, che è `null` quando il nome
++visibile è il codice travestito (`derivaAlias`, D44), e su questo banco 911 righe su 916 hanno nome e
++cognome vuoti. ➡️ Le righe mostreranno quasi sempre **il solo codice paziente**. Non è un difetto: è la
++scelta GDPR già ratificata. Lo scrivo perché a schermo la lista sarà molto più asciutta del disegno.
++
++**④ Le due vie di fuga («Impostazioni», «Anagrafica») sono `LinkQuieto`, quindi grigie, non blu.** Il
++mockup le disegna blu sottolineate. `LinkQuieto` è il componente di casa per le vie di fuga e porta
++con sé il bersaglio da 44 px e l'anello di messa a fuoco; scriverne uno blu a mano avrebbe voluto dire
++un secondo link inline fuori dal design system. **Deferito al gate L2 del Task D-bis**, che è il posto
++dove si decide se il grigio basta.
++
++**⑤ Il nastro c'è, ma solo sull'elenco.** Il mockup lo disegna sul passo di correzione e non sui
++sotto-passi (che hanno «‹ Torna all'elenco») né sulle quattro caselle: l'ho reso esattamente dov'è
++disegnato. ⚠️ **Era sul punto di non esserci affatto**, e non figurava fra gli scostamenti: una
++dimenticanza, non una scelta — e siccome è proprio l'elemento che il commento del mockup indica come
++«*ciò che distingue le due varianti*», sarebbe stato lo scostamento più grave di tutti, per giunta
++taciuto.
++
++**⑥ La ricerca del paziente cerca da due caratteri in su**, e il mockup non dice da quando. Scelta mia,
++dichiarata: la rotta rifiuta comunque i termini vuoti.
++
++---
++
++## 7. 🔴 DOVE QUESTO BRIEF SBAGLIA
++
++**① GRAVE — il brief elenca `prescrizione_caratteristiche` come «oggetto `{elementi, colore}`»
++(§3) e avverte su tre trappole, ma non sulla quarta, che è nel mockup che consegna.** Il mockup
++disegna `elementi` come **campo di testo** con dentro la *stringa di visualizzazione* («dente 26»),
++esattamente la stessa confusione fra **valore mostrato** e **valore da mandare** che il brief stesso
++segnala per `denti_coinvolti` («*la chiave si chiama come la colonna denormalizzata e invita
++all'errore*»). Chi avesse seguito il mockup alla lettera avrebbe scritto una schermata che prende
++**422 a ogni invio** — e la prova unitaria sarebbe stata verde, perché il rifiuto arriva dal server.
++`provato:` `domain.ts:447` (`elementi?: number[]`) · `prescrizione-mapper.ts:233-239` (scarto) ·
++`correzioni.ts:284-292` (rifiuto di ciò che è stato scartato) ·
++`caratteristiche-prescritte.ts:84-87` (è la stringa che il documento **stampa**, non quella che
++accetta).
++
++**② Il brief non scioglie dove sta il tasto finale, e le due frasi che ne parlano si contraddicono
++sotto la variante A.** Il Passo 4 dice «*il tasto **finale** dice quello che fa*» e rimanda al mockup,
++che lo disegna sull'elenco; il §1 mette l'elenco **prima** delle quattro caselle. Le due cose insieme
++descrivono un tasto che promette un atto e poi apre altre quattro domande. Sciolto come al §6②.
++
++**③ Un'imprecisione minore, segnalata perché il brief la dà per acquisita.** Il §8 elenca fra i
++ritrovamenti già noti «`{"denti_coinvolti": []}` cancella tutti i denti». **Da questa rotta non è
++vero:** `primoVuoto` rifiuta l'array vuoto con 422 (`correzioni.ts:142-159` + `205-214`). Resta vero
++un livello più in basso (la penna), che questo compito non tocca. Lo dico solo perché una riga così,
++letta come «da qui si possono cancellare», farebbe progettare una guardia che c'è già.
++
++**Cercati e NON trovati difetti:** sull'ordine delle due chiamate, sull'`evento_id` da riusare, sul
++gettone da non riparsare, sul divieto di un secondo overlay, su `paziente_id` come UUID e su
++`useNavigaDaOverlay` il brief è esatto, e tutti e sei i punti sono stati verificati sul codice vero
++prima di scrivere una riga.
++
++---
++
++## 8. Ritrovamenti FUORI MANDATO — riferiti, non corretti (R-E2)
++
++**F1 — 🔴 Il gettone di concorrenza della scheda diventa STANTÌO dopo ogni modifica dal foglietto, e
++il mio 409 ne pagherà il prezzo.** `PATCH /api/lavori/[id]` **restituisce** `updated_at`
++(`route.ts:810` — `.select('id, numero_lavoro, stato, updated_at')`), ma `ModificaRigaSheet.salva()`
++passa al padre il **patch della richiesta**, non la risposta (`ModificaRigaSheet.tsx:213`), e
++`handleSalvato` fonde solo quello (`SchedaLavoroV3.tsx:383-386`). ➡️ Chi corregge «Note interne», la
++data di consegna o la tinta e **poi** apre «Devo intervenire» per correggere un dato della
++dichiarazione riceve un **409 «qualcun altro ha toccato questo lavoro»** — che è falso: è stato lui,
++trenta secondi prima. È **fail-closed**, quindi non perde dati e non rompe niente; ma è un messaggio
++che mente sulla causa. 📌 `handleColoreSalvato` fa la cosa giusta (`SchedaLavoroV3.tsx:508` —
++`prossimo.updated_at = esito.updatedAt`), quindi la ricetta esiste già in casa: si tratta di leggere
++`risposta.lavoro.updated_at` in `ModificaRigaSheet.salva` e passarlo nel patch locale. **Non l'ho
++fatto**: tocca due file fuori dal mio mandato e cambia la forma di `patchLocale`, che ha altri
++chiamanti.
++
++**F2 — `tipo_dispositivo` entra nell'atto unico senza controllo di vocabolario.** `validaCorrezioni`
++lo tratta come uno dei tre testi liberi (`correzioni.ts:75-79` + `218-228`): controlla che sia una
++stringa e basta. L'unico argine è la `CHECK lavori_tipo_dispositivo_check` in banca dati, che scatta
++**dopo** che il PDF è stato reso e caricato — cioè il costo che il riquadro in testa a `correggiERifai`
++dichiara di voler evitare (**file orfano su Storage e progressivo bruciato**). La mia schermata lo
++chiude in pratica (le pastiglie offrono solo i dieci `MACRO_SLUGS`), ma **il contratto resta aperto a
++qualunque altro chiamante**. `correzioni.ts` è un contratto fermo: riferito, non toccato.
++
++**F3 — Il documento stampa il tipo con un maiuscolo diverso da quello della schermata.**
++`DdcTemplate.tsx:204-208` tiene un `TIPO_LABELS_DDC_OVERRIDE` («Protesi **F**issa») accanto a
++`LABEL_MACRO` («Protesi fissa»). La mia riga usa `LABEL_MACRO`, perché importare da `DdcTemplate`
++trascinerebbe `@react-pdf/renderer` nel pacchetto del browser. ➡️ La schermata dirà «Protesi fissa» e
++la carta «Protesi Fissa». È cosmetico e già dichiarato in casa
++(`tests/unit/ddc-pdf-content.test.ts` lo sorveglia come invariante), ma su una schermata che promette
++di mostrare «*il valore che il documento stampa*» la differenza si vede.
++
++---
++
++## 9. Che cosa NON ho fatto
++
++- 🛑 **FASE 9 (la prova a schermo su 390/768/1280, chiaro e scuro) e il GATE ESTETICO L2**: sono il
++  **Task D-bis**, di un esecutore diverso. Mi sono fermato alla FASE 7, come da mandato.
++  ➡️ **Da guardare per primo, al Task D-bis:** ① l'odontogramma dentro il foglio — è un componente
++  nato per una pagina intera (`TabClinica`) e porta token v2.3 (`--t2`, DM Sans, `motionTokens` v2.3):
++  a 390 px dentro un bottom sheet va visto sul serio, ed è il candidato numero uno a un ❌ del gate;
++  ② il passo «Caratteristiche prescritte», che adesso ha **due** controlli più l'avviso ed è il più
++  alto di tutti; ③ il grigio dei due link contro il blu del mockup (§6④).
++- **Non ho toccato** nessuno dei contratti fermi elencati nel §7 del brief, né il percorso di
++  `errore_registrazione` (Task A), né gli altri otto motivi.
++- **Non ho allargato** l'elenco delle voci correggibili: restano le sei di
++  `CAMPI_CORREGGIBILI_DOCUMENTO`.
++- **Non ho corretto** i tre ritrovamenti fuori mandato del §8 — in particolare **F1**, che è quello
++  che si vedrà per primo dal vivo.
++- **Non ho lanciato `scripts/guardia-navigazione-overlay.mjs`** (la guardia manuale sugli overlay v3):
++  vuole l'app accesa, le credenziali del banco e un lavoro preparato apposta. Il passo nuovo aggiunge
++  **due vie di navigazione da dentro un overlay** (Impostazioni, Anagrafica), quindi quella guardia
++  **è dovuta** — a mio avviso appartiene al Task D-bis insieme alla prova a schermo, e la riferisco
++  qui perché non resti scoperta.
++- **Non ho aggiornato `memory/MEMORY.md` né la roadmap** (BP-1): è chiusura d'ondata, non di questo
++  compito.
++- **Non ho toccato** `ModificaRigaSheet.salva` per chiudere **F1**, benché la correzione sia di una
++  riga e la ricetta esista già in casa: due file fuori mandato e un contratto (`patchLocale`) con
++  altri chiamanti. ➡️ **F1 e il blocco del tasto sul 409 sono la stessa cosa vista dai due capi**: qui
++  ho chiuso il danno (niente progressivi bruciati a vuoto), là resta la causa (il messaggio che dà la
++  colpa a «qualcun altro» quando è stato l'utente stesso, trenta secondi prima).
++- **Non ho pubblicato niente**: nessun `git push`, nessun merge.
+diff --git a/src/components/features/lavori/scheda-v3/DevoIntervenire.tsx b/src/components/features/lavori/scheda-v3/DevoIntervenire.tsx
+index 411491cc..b51cea2c 100644
+--- a/src/components/features/lavori/scheda-v3/DevoIntervenire.tsx
++++ b/src/components/features/lavori/scheda-v3/DevoIntervenire.tsx
+@@ -55,15 +55,32 @@
+ // ⚖️ D301/D303 — qui parla il BANCO: si dice «manufatto». «Dispositivo» è la
+ //    parola della norma e arriva dal server, dentro il `perche` della proposta.
+ 
+-import { useState } from 'react'
++import { useEffect, useState } from 'react'
+ import { useRouter } from 'next/navigation'
+ import { Sheet } from '@/components/ds/Sheet'
+ import { DialogConferma } from '@/components/ds/DialogConferma'
+ import { TastoPrimario } from '@/components/ds/TastoPrimario'
+ import { TastoSecondario } from '@/components/ds/TastoSecondario'
+ import { ChipScelta } from '@/components/ds/ChipScelta'
++import { CampoTesto } from '@/components/ds/Campo'
++import { LinkQuieto } from '@/components/ds/LinkQuieto'
+ import { useAvvisi } from '@/components/ds/Avviso'
++import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
++import { OdontogrammaFDI } from '@/components/features/odontogramma/OdontogrammaFDI'
+ import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
++// 🔑 L'ELENCO DELLE VOCI CORREGGIBILI NON SI RICOPIA QUI: è quello del
++//    contratto (`CAMPI_CORREGGIBILI_DOCUMENTO`). È sceso due volte in un giorno
++//    — otto → sette (D319) → sei (D320) — e tutt'e due le volte un commento
++//    vicino al codice è rimasto indietro. Le righe a schermo si generano da
++//    lì, e `Record<CampoCorreggibile, …>` fa protestare `tsc` il giorno in cui
++//    un nome entra o esce senza la sua riga.
++import { CAMPI_CORREGGIBILI_DOCUMENTO, type CampoCorreggibile } from '@/lib/dichiarazione/correzioni'
++import type { DenteNormalizzato } from '@/lib/domain/denti-validazione'
++import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
++import { nomePrescrittore } from '@/lib/consegna/prescrittore'
++import { caratteristichePrescritte } from '@/lib/prescrizione/caratteristiche-prescritte'
++import { testoVivo } from '@/lib/utils/testo'
++import type { LavoroDettaglio, PrescrizioneContenuto, TipoDispositivo } from '@/types/domain'
+ import {
+   ORIGINI_INFORMAZIONE,
+   STATI_DISPOSITIVO,
+@@ -92,20 +109,245 @@ import type { AzioneAutomatica } from '@/lib/qualita/effetti'
+  *  🔄 `confermaSbaglio` SI CHIAMAVA COSÌ, e il nome è cambiato col Task A: quel
+  *  passo non conferma più niente, **chiede**. Un nome che dice «conferma» sopra
+  *  una domanda è il primo passo perché qualcuno la riscriva come conferma. */
+-type Fase = 'chiuso' | 'domanda' | 'motivo' | 'domandaUscito' | 'dettagli' | 'proposta' | 'esito'
++type Fase =
++  | 'chiuso' | 'domanda' | 'motivo' | 'domandaUscito'
++  // ⚖️ D322, VARIANTE A — la correzione viene PRIMA delle quattro caselle di
++  //    legge: `motivo → correzione → correzioneCampo* → dettagli → proposta`.
++  //    🛑 E resta UN FOGLIO SOLO che cambia passo: mai un secondo overlay — la
++  //    pila di `storia-overlay.ts` è già stata pagata una volta con un tasto
++  //    «indietro» morto (v. il riquadro in testa al file).
++  | 'correzione' | 'correzioneCampo'
++  | 'dettagli' | 'proposta' | 'esito'
+ 
+ /** Il titolo del foglio cambia col passo: è UN foglio solo, e il titolo è la
+- *  sola cosa che dice a che punto si è. */
++ *  sola cosa che dice a che punto si è.
++ *
++ *  ⚠️ `correzioneCampo` è l'unico passo il cui titolo NON sta qui: dipende da
++ *  quale delle sei voci si sta correggendo, e vive in `TITOLI_VOCE`. */
+ const TITOLI: Record<Fase, string> = {
+   chiuso: '',
+   domanda: 'Vuoi intervenire su questo lavoro?',
+   motivo: 'Che cos\'è successo?',
+   domandaUscito: 'Che cos\'è successo?',
++  correzione: 'Che cosa c\'è di sbagliato?',
++  correzioneCampo: '',
+   dettagli: 'Qualche dettaglio',
+   proposta: 'Ecco cosa ne penso',
+   esito: 'Fatto',
+ }
+ 
++// ══════════════════════════════════════════════════════════════════════════
++//  LE SEI VOCI STAMPATE — Task D, «correggi e rifai la dichiarazione»
++// ══════════════════════════════════════════════════════════════════════════
++
++/** L'etichetta della riga a schermo. `Record<CampoCorreggibile, …>`: una voce
++ *  senza etichetta non compila. */
++const ETICHETTE_VOCE: Record<CampoCorreggibile, string> = {
++  richiedente_nome: 'Chi ha prescritto',
++  paziente_id: 'Paziente',
++  tipo_dispositivo: 'Tipo di dispositivo',
++  descrizione: 'Descrizione',
++  denti_coinvolti: 'Denti',
++  prescrizione_caratteristiche: 'Caratteristiche prescritte',
++}
++
++/** Il titolo del sotto-passo. Non è sempre l'etichetta: sul paziente si chiede
++ *  **quale persona**, e la domanda lo deve dire (⚖️ D320). */
++const TITOLI_VOCE: Record<CampoCorreggibile, string> = {
++  richiedente_nome: 'Chi ha prescritto',
++  paziente_id: 'Quale paziente?',
++  tipo_dispositivo: 'Tipo di dispositivo',
++  descrizione: 'Descrizione',
++  denti_coinvolti: 'Denti',
++  prescrizione_caratteristiche: 'Caratteristiche prescritte',
++}
++
++/**
++ * 🔴 IL PEZZO CHE NESSUNO PASSAVA AL FOGLIO, e senza il quale il passo di
++ * correzione non può esistere: **i valori stampati e il gettone di
++ * concorrenza**.
++ *
++ * 🔑 PERCHÉ UN OGGETTO SOLO, COSTRUITO DA UNA FUNZIONE SOLA. Il contratto della
++ * rotta è «*i valori che hai visto sono ancora quelli*», non «la riga non è
++ * cambiata negli ultimi 200 ms»: valore mostrato e `updated_at` devono venire
++ * dalla **stessa lettura**. Passandoli come sei proprietà sciolte, un domani
++ * qualcuno ne rinfrescherebbe una sola. Qui la firma lo impedisce: si entra con
++ * UN `lavoro` e si esce con tutto, gettone compreso.
++ *
++ * 🛑 `updatedAt` VIAGGIA COSÌ COM'È, sempre. Mai un `new Date(...)`, mai un
++ * `.toISOString()` di ritorno: `timestamptz` ha i microsecondi, `Date` di JS no
++ * — un solo riparsing tronca `.123456` a `.123`, il confronto non torna mai
++ * uguale, e il risultato è un **409 permanente che nemmeno ricaricando si
++ * sana** (stesso modello di `ModificaColoreSheet`, `…/denti:88-93`).
++ */
++export interface VociDocumento {
++  /** Il gettone di concorrenza — `lavori.updated_at`, stringa opaca. */
++  updatedAt: string
++  /** Serve alla ricerca dei pazienti: `GET /api/pazienti` pretende lo studio. */
++  clienteId: string | null
++  /** La colonna. `null` quando il documento ripiega sul nome del dentista. */
++  richiedenteNome: string | null
++  /** Il nome che il documento STAMPA oggi, ripiego compreso (`generate-ddc:266-274`). */
++  prescrittoreMostrato: string
++  pazienteId: string | null
++  /** Come il documento identifica il paziente oggi (`generate-ddc:304`). */
++  pazienteMostrato: string
++  tipoDispositivo: TipoDispositivo
++  descrizione: string
++  /** Le RIGHE vere dei denti, coi loro colori. `null` = l'embed non è stato
++   *  chiesto, e allora quella voce non si corregge: mandare `{fdi, ruolo}` e
++   *  basta cancellerebbe scala e codice di ogni dente che resta. */
++  denti: DenteNormalizzato[] | null
++  /** La colonna denormalizzata, cioè ciò che il documento stampa alla voce
++   *  «Denti» (solo gli elementi). */
++  dentiMostrati: string[]
++  /** Il contenuto della prescrizione trascritta. `null` = non c'è, e la voce
++   *  non si corregge (la rotta risponderebbe 422 dopo aver reso il PDF). */
++  prescrizione: PrescrizioneContenuto | null
++}
++
++/** Compone le sei voci e il gettone **da una lettura sola** del lavoro. */
++export function vociDelDocumento(lavoro: LavoroDettaglio): VociDocumento {
++  return {
++    updatedAt: lavoro.updated_at,
++    clienteId: lavoro.cliente_id ?? null,
++    richiedenteNome: lavoro.richiedente_nome,
++    prescrittoreMostrato:
++      nomePrescrittore(lavoro.richiedente_nome, `${lavoro.cliente?.cognome ?? ''} ${lavoro.cliente?.nome ?? ''}`) ?? '—',
++    pazienteId: lavoro.paziente_id ?? null,
++    pazienteMostrato:
++      lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '—',
++    tipoDispositivo: lavoro.tipo_dispositivo,
++    descrizione: lavoro.descrizione,
++    denti: lavoro.denti
++      ? lavoro.denti.map((d) => ({
++          fdi: d.fdi, ruolo: d.ruolo, scala: d.scala, codice: d.codice,
++          codice_collo: d.codice_collo, codice_corpo: d.codice_corpo,
++          codice_incisale: d.codice_incisale, provenienza: d.provenienza,
++        }))
++      : null,
++    dentiMostrati: lavoro.denti_coinvolti ?? [],
++    prescrizione: lavoro.prescrizione?.contenuto ?? null,
++  }
++}
++
++/** Una voce corretta: il carico da spedire e come si legge a schermo. */
++interface VoceCorretta {
++  /** La forma che il contratto vuole — 🔴 per i denti sono OGGETTI. */
++  valore: unknown
++  /** Come si legge nella riga «vecchio → nuovo». */
++  mostrato: string
++}
++
++type Correzioni = Partial<Record<CampoCorreggibile, VoceCorretta>>
++
++/** Il valore che il DOCUMENTO stampa oggi per quella voce. */
++function valoreDiAdesso(voci: VociDocumento, campo: CampoCorreggibile): string {
++  switch (campo) {
++    case 'richiedente_nome': return voci.prescrittoreMostrato
++    case 'paziente_id': return voci.pazienteMostrato
++    case 'tipo_dispositivo': return LABEL_MACRO[voci.tipoDispositivo] ?? voci.tipoDispositivo
++    case 'descrizione': return voci.descrizione
++    case 'denti_coinvolti': return voci.dentiMostrati.length > 0 ? voci.dentiMostrati.join(', ') : '—'
++    case 'prescrizione_caratteristiche': return caratteristichePrescritte(voci.prescrizione) ?? '—'
++  }
++}
++
++/**
++ * Le voci che da questo foglio NON si possono toccare, con la ragione già
++ * scritta: si dice **prima**, non si scopre con un 422 dopo che il PDF è stato
++ * reso e il progressivo bruciato.
++ */
++function perchePrecluso(voci: VociDocumento, campo: CampoCorreggibile): string | null {
++  if (campo === 'denti_coinvolti' && voci.denti === null) {
++    return 'I denti di questo lavoro non sono stati caricati: da qui non si correggono.'
++  }
++  if (campo === 'prescrizione_caratteristiche' && voci.prescrizione === null) {
++    return 'Questo lavoro non ha una prescrizione trascritta: non c\'è niente da correggere qui.'
++  }
++  if (campo === 'paziente_id' && !voci.clienteId) {
++    return 'Senza lo studio non si può cercare un\'altra persona.'
++  }
++  return null
++}
++
++/** I ruoli che l'odontogramma non sa mostrare. Si CONSERVANO com'erano:
++ *  toglierli sarebbe cancellare un dato che nessuno ha chiesto di cambiare. */
++const RUOLI_FUORI_ODONTOGRAMMA = ['escluso', 'incollato']
++
++/**
++ * Ricompone l'elenco dei denti nella forma della PENNA a partire dai tre
++ * elenchi dell'odontogramma.
++ *
++ * 🔴 IL DENTE CHE RESTA PORTA CON SÉ IL SUO COLORE. La correzione SOSTITUISCE
++ * l'elenco intero (`lavoro_denti_sostituisci_atomica`): mandare `{fdi, ruolo}`
++ * e basta cancellerebbe scala, codice e le tre zone del ceramista su ogni dente
++ * rimasto — un dato perso in silenzio, che è la famiglia di difetto che questo
++ * progetto ha già pagato.
++ */
++function ricomponiDenti(
++  originali: DenteNormalizzato[],
++  selezionati: number[],
++  mancanti: number[],
++  impianti: number[]
++): DenteNormalizzato[] {
++  const perFdi = new Map(originali.map((d) => [d.fdi, d]))
++  const messi = new Set<number>()
++  const nuovi: DenteNormalizzato[] = []
++
++  function aggiungi(fdi: number, ruolo: string) {
++    // 🛑 `validaDenti` rifiuta un `fdi` ripetuto («la lista è un insieme»): un
++    //    dente non può stare in due elenchi, e questa guardia è ciò che lo
++    //    garantisce anche se l'odontogramma cambiasse idea.
++    if (messi.has(fdi)) return
++    messi.add(fdi)
++    const vecchio = perFdi.get(fdi)
++    nuovi.push(
++      vecchio
++        ? { ...vecchio, ruolo }
++        : {
++            fdi, ruolo, scala: null, codice: null, codice_collo: null,
++            codice_corpo: null, codice_incisale: null, provenienza: 'prescritto',
++          }
++    )
++  }
++
++  for (const f of selezionati) aggiungi(f, 'elemento')
++  for (const f of mancanti) aggiungi(f, 'mancante')
++  for (const f of impianti) aggiungi(f, 'impianto')
++  for (const d of originali) {
++    if (!messi.has(d.fdi) && RUOLI_FUORI_ODONTOGRAMMA.includes(d.ruolo)) {
++      messi.add(d.fdi)
++      nuovi.push(d)
++    }
++  }
++
++  return nuovi.sort((a, b) => a.fdi - b.fdi)
++}
++
++/**
++ * Il messaggio che la rotta ha scritto, o quello di casa se il corpo è
++ * illeggibile. 🛑 Non si sostituisce mai un messaggio del server con un
++ * «qualcosa è andato storto»: quello del server dice **che cosa fare**.
++ */
++async function messaggioDiErrore(res: Response, difetto: string): Promise<string> {
++  try {
++    const b = (await res.json()) as { error?: unknown }
++    if (typeof b.error === 'string' && b.error.length > 0) return b.error
++  } catch { /* corpo illeggibile: resta il messaggio di casa */ }
++  return difetto
++}
++
++/** Due elenchi di denti sono lo stesso elenco? Serve a rispondere alla domanda
++ *  «*è ancora una correzione, se l'ho rimessa com'era?*» — no. */
++function stessiDenti(a: DenteNormalizzato[], b: DenteNormalizzato[]): boolean {
++  const canonico = (l: DenteNormalizzato[]) =>
++    JSON.stringify([...l].sort((x, y) => x.fdi - y.fdi).map((d) => [
++      d.fdi, d.ruolo, d.scala, d.codice, d.codice_collo, d.codice_corpo, d.codice_incisale, d.provenienza,
++    ]))
++  return canonico(a) === canonico(b)
++}
++
+ interface Proposta {
+   esito: Esito
+   perche: string
+@@ -166,9 +408,17 @@ function adessoLocale(): string {
+   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+ }
+ 
+-export function DevoIntervenire(props: { lavoroId: string; descrizione: string }) {
+-  const { lavoroId, descrizione } = props
++export function DevoIntervenire(props: {
++  lavoroId: string
++  descrizione: string
++  /** 🔑 OBBLIGATORIA, non facoltativa: senza, il passo di correzione non
++   *  potrebbe mostrare nessun valore — e una proprietà facoltativa si dimentica
++   *  in silenzio, mentre questa la pretende `tsc` a ogni chiamante. */
++  documento: VociDocumento
++}) {
++  const { lavoroId, descrizione, documento: voci } = props
+   const router = useRouter()
++  const navigaDaOverlay = useNavigaDaOverlay()
+   const { errore } = useAvvisi()
+ 
+   const [fase, setFase] = useState<Fase>('chiuso')
+@@ -192,6 +442,18 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+    *  l'elenco dei motivi le mostra in cima la strada giusta (D262). */
+   const [uscitoDichiarato, setUscitoDichiarato] = useState(false)
+ 
++  // ── Task D: il passo di correzione (⚖️ D322) ───────────────────────────────
++  const [correzioni, setCorrezioni] = useState<Correzioni>({})
++  const [voceAperta, setVoceAperta] = useState<CampoCorreggibile | null>(null)
++  /** 🛑 IL 409 CHIUDE IL TASTO, e non è pignoleria: la rotta rende e CARICA il
++   *  PDF **prima** della transazione (suo commento: un conflitto «*lascia
++   *  dietro di sé un file orfano e un numero bruciato*»). Col gettone stantìo
++   *  ogni tocco in più brucia un altro progressivo e non può riuscire finché
++   *  il foglio non si chiude — e chiudendolo la pagina si rinfresca. */
++  const [conflitto, setConflitto] = useState<string | null>(null)
++  /** L'esito della riemissione, quando è avvenuta. */
++  const [riemissione, setRiemissione] = useState<{ numero: string | null; numeroSuperato: string | null } | null>(null)
++
+   /** 🛑 IL RINFRESCO DELLA PAGINA SI FA ALLA CHIUSURA, MAI A FOGLIO APERTO —
+    *  difetto MISURATO sullo schermo vero il 07/08 (FASE 9), e il giro nei dati
+    *  era perfettamente riuscito mentre l'utente vedeva il foglio sparire.
+@@ -207,6 +469,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+     setOrigine('laboratorio_interno'); setStatoDisp('consegnato_non_applicato')
+     setDanno('da_valutare'); setConosciuto(adessoLocale())
+     setUscitoDichiarato(false)
++    setCorrezioni({}); setVoceAperta(null); setRiemissione(null); setConflitto(null)
+     if (daRinfrescare) { setDaRinfrescare(false); router.refresh() }
+   }
+ 
+@@ -217,7 +480,8 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+     //    rispondere — ma UNA la chiede: **dov'era il manufatto**. È l'unica che
+     //    decide se quel motivo sia lecito, perché porta l'annullamento della
+     //    dichiarazione (v. il riquadro sul `DialogConferma`).
+-    setFase(m === 'errore_registrazione' ? 'domandaUscito' : 'dettagli')
++    if (m === 'errore_registrazione') { setFase('domandaUscito'); return }
++    setFase(m === 'errore_dato_dichiarazione' ? 'correzione' : 'dettagli')
+   }
+ 
+   /**
+@@ -239,47 +503,121 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+     if (!motivo) return
+     setLavorando(true)
+     try {
+-      const sbaglio = motivo === 'errore_registrazione'
+-      const corpo: Record<string, unknown> = {
+-        motivo,
+-        origine_informazione: sbaglio ? 'laboratorio_interno' : origine,
+-        stato_dispositivo: statoDichiarato,
+-        conosciuto_il: sbaglio ? adessoLocale() : conosciuto,
+-      }
+-      // 🔑 Sul percorso corto `potenziale_di_danno` NON si manda: lo mette il
+-      //    database col suo default prudente. Mandare «nessuno» sarebbe
+-      //    affermare che non c'era pericolo — una risposta che nessuno ha dato.
+-      if (!sbaglio) corpo.potenziale_di_danno = danno
+-      if (motivo === 'altro') {
+-        corpo.motivo_libero = motivoLibero.trim()
+-        // Per «altro» la natura si CHIEDE (spec §5). Finché la schermata non la
+-        // chiede, si resta sul genere più prudente: nessuna esenzione.
+-        corpo.natura = 'difetto_fisico'
+-      }
++      const dati = await depositaEvento(statoDichiarato)
++      if (!dati) return
++      accogliEvento(dati)
++      // Il fatto è salvato. Sul percorso corto non c'è una proposta da
++      // discutere: si mostra subito che cos'è successo.
++      setFase(motivo === 'errore_registrazione' ? 'esito' : 'proposta')
++    } finally {
++      setLavorando(false)
++    }
++  }
+ 
++  /**
++   * La registrazione dell'evento, e **una sola composizione del suo corpo**.
++   *
++   * 🔑 ESTRATTA COL TASK D, e la ragione è che adesso ha DUE chiamanti: la
++   * strada di sempre (`registra`) e il tocco finale della correzione
++   * (`correggiERifai`), che deve depositare lo stesso evento e poi rifare la
++   * carta. Ricopiare il corpo avrebbe creato due penne che divergono alla
++   * prima revisione — la stessa famiglia di difetto che `motivi-ui.ts` e
++   * `effetti.ts` esistono per evitare.
++   */
++  async function depositaEvento(statoDichiarato: StatoDispositivo): Promise<RispostaEvento | null> {
++    if (!motivo) return null
++    const sbaglio = motivo === 'errore_registrazione'
++    const corpo: Record<string, unknown> = {
++      motivo,
++      origine_informazione: sbaglio ? 'laboratorio_interno' : origine,
++      stato_dispositivo: statoDichiarato,
++      conosciuto_il: sbaglio ? adessoLocale() : conosciuto,
++    }
++    // 🔑 Sul percorso corto `potenziale_di_danno` NON si manda: lo mette il
++    //    database col suo default prudente. Mandare «nessuno» sarebbe
++    //    affermare che non c'era pericolo — una risposta che nessuno ha dato.
++    if (!sbaglio) corpo.potenziale_di_danno = danno
++    if (motivo === 'altro') {
++      corpo.motivo_libero = motivoLibero.trim()
++      // Per «altro» la natura si CHIEDE (spec §5). Finché la schermata non la
++      // chiede, si resta sul genere più prudente: nessuna esenzione.
++      corpo.natura = 'difetto_fisico'
++    }
++
++    try {
+       const res = await fetch(`/api/lavori/${lavoroId}/eventi-qualita`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(corpo),
+       })
+       if (!res.ok) {
+-        let messaggio = 'Non sono riuscita a registrare: riprova fra un momento.'
+-        try {
+-          const b = (await res.json()) as { error?: unknown }
+-          if (typeof b.error === 'string' && b.error.length > 0) messaggio = b.error
+-        } catch { /* corpo illeggibile: resta il messaggio di casa */ }
+-        errore(messaggio)
+-        return
++        errore(await messaggioDiErrore(res, 'Non sono riuscita a registrare: riprova fra un momento.'))
++        return null
+       }
+-      const dati = (await res.json()) as RispostaEvento
+-      setRisposta(dati)
+-      setEsitoScelto(dati.proposta.esito)
+-      // Il fatto è salvato. Sul percorso corto non c'è una proposta da
+-      // discutere: si mostra subito che cos'è successo.
+-      setFase(sbaglio ? 'esito' : 'proposta')
+-      setDaRinfrescare(true)
++      return (await res.json()) as RispostaEvento
+     } catch {
+       errore('Non sono riuscita a registrare: controlla la connessione e riprova.')
++      return null
++    }
++  }
++
++  function accogliEvento(dati: RispostaEvento) {
++    setRisposta(dati)
++    setEsitoScelto(dati.proposta.esito)
++    setDaRinfrescare(true)
++  }
++
++  /**
++   * ⚖️ D322 — IL TOCCO FINALE: **due chiamate in fila**, e la seconda non si fa
++   * senza la prima.
++   *
++   * 🛑 L'EVENTO SI TIENE NELLO STATO E SI RIUSA. Se la riemissione fallisce e la
++   * persona riprova, crearne uno nuovo lascerebbe eventi orfani in banca dati —
++   * ed è anche ciò che rende utile la porta d'idempotenza della rotta, che dopo
++   * un successo restituisce il successore invece di rifare tutto.
++   *
++   * 🛑 IL GETTONE VIAGGIA INTATTO: `voci.updatedAt` così com'è, mai riparsato.
++   */
++  async function correggiERifai() {
++    if (!motivo) return
++    setLavorando(true)
++    try {
++      let evento = risposta
++      if (!evento) {
++        evento = await depositaEvento(statoDisp)
++        if (!evento) return
++        accogliEvento(evento)
++      }
++
++      const carico: Record<string, unknown> = {}
++      for (const [campo, voce] of Object.entries(correzioni)) carico[campo] = voce.valore
++
++      try {
++        const res = await fetch(`/api/lavori/${lavoroId}/dichiarazione/riemetti`, {
++          method: 'POST',
++          headers: { 'Content-Type': 'application/json' },
++          body: JSON.stringify({
++            evento_id: evento.evento.id,
++            correzioni: carico,
++            atteso_updated_at: voci.updatedAt,
++          }),
++        })
++        if (!res.ok) {
++          // ⚖️ Passo 7 — GLI ERRORI SI LEGGONO. La rotta li scrive per chi sta
++          //    al banco: il 422 nomina la casella svuotata col percorso dentro,
++          //    il 409 dice che qualcuno ha toccato il lavoro. Sostituirli con
++          //    «qualcosa è andato storto» butterebbe via l'unica cosa utile.
++          const messaggio = await messaggioDiErrore(res, 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.')
++          if (res.status === 409) setConflitto(messaggio)
++          errore(messaggio)
++          return
++        }
++        const esito = (await res.json()) as { numero?: string | null; numero_superato?: string | null }
++        setRiemissione({ numero: esito.numero ?? null, numeroSuperato: esito.numero_superato ?? null })
++        setFase('proposta')
++      } catch {
++        errore('Non sono riuscita a rifare la dichiarazione: controlla la connessione e riprova.')
++      }
+     } finally {
+       setLavorando(false)
+     }
+@@ -318,6 +656,26 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+   const etichettaMotivo = motivo ? MOTIVI_UI[motivo].etichetta : ''
+   const puoContinuare = motivo !== 'altro' || motivoLibero.trim().length > 0
+ 
++  // ── Task D ────────────────────────────────────────────────────────────────
++  const correggendo = motivo === 'errore_dato_dichiarazione'
++  const quanteCorrezioni = Object.keys(correzioni).length
++  const titoloFoglio = fase === 'correzioneCampo' && voceAperta ? TITOLI_VOCE[voceAperta] : TITOLI[fase]
++
++  /** Registra (o toglie) la correzione di una voce e torna all'elenco.
++   *  🔑 `null` = «l'ho rimessa com'era»: **non è una correzione**, e la voce
++   *  esce dall'elenco. Mandarla produrrebbe un documento identico a quello di
++   *  oggi — cioè proprio ciò che il tasto spento dichiara inutile. */
++  function chiudiVoce(campo: CampoCorreggibile, voce: VoceCorretta | null) {
++    setCorrezioni((prev) => {
++      const prossime = { ...prev }
++      if (voce) prossime[campo] = voce
++      else delete prossime[campo]
++      return prossime
++    })
++    setVoceAperta(null)
++    setFase('correzione')
++  }
++
+   return (
+     <>
+       {/* ① LA RIGA — dove oggi muore il conto alla rovescia. Dice DOVE si va,
+@@ -346,7 +704,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+ 
+       {/* IL FOGLIO — UNO SOLO, che cambia passo. V. il riquadro in testa al file
+           per il difetto misurato che ha imposto questa struttura. */}
+-      <Sheet aperto={fase !== 'chiuso'} onChiudi={ricomincia} titolo={TITOLI[fase]}>
++      <Sheet aperto={fase !== 'chiuso'} onChiudi={ricomincia} titolo={titoloFoglio}>
+ 
+       {/* ② LA DOMANDA D'INGRESSO (D288) — e l'uscita non salva niente. */}
+       {fase === 'domanda' && (
+@@ -430,6 +788,93 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+         </>
+       )}
+ 
++      {/* ③-ter IL PASSO DI CORREZIONE — ⚖️ D322, variante A: PRIMA delle quattro
++          caselle. Mostra VALORI, non controlli: si tocca una riga, si corregge,
++          si torna qui e la riga dice `vecchio → nuovo`. */}
++      {fase === 'correzione' && (
++        <>
++          {/* IL NASTRO DEL PERCORSO — è l'elemento con cui il mockup approvato
++              DICE la variante A: la correzione sta in mezzo, e dopo vengono
++              ancora le quattro caselle di legge. Senza, chi legge non sa che
++              il percorso non finisce qui. */}
++          <NastroPercorso />
++          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
++            Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.
++          </p>
++
++          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.s }}>
++            {CAMPI_CORREGGIBILI_DOCUMENTO.map((campo) => (
++              <RigaVoce
++                key={campo}
++                etichetta={ETICHETTE_VOCE[campo]}
++                adesso={valoreDiAdesso(voci, campo)}
++                corretta={correzioni[campo]}
++                precluso={perchePrecluso(voci, campo)}
++                // ⚖️ D320 — la riga del paziente non apre un campo di testo:
++                //    apre un elenco di persone. La marca lo dice PRIMA del tocco.
++                marca={campo === 'paziente_id' ? 'altra persona' : undefined}
++                onApri={() => { setVoceAperta(campo); setFase('correzioneCampo') }}
++              />
++            ))}
++          </div>
++
++          {/* ⚖️ D316 · D320 — «Da qui non si corregge» nomina DUE cose, e ognuna
++              porta la sua destinazione: un rifiuto indica la strada (D262).
++              🛑 Si naviga con `useNavigaDaOverlay`, mai `router.push` nudo: da
++              dentro un overlay v3 un `push` impila la pagina nuova sopra
++              l'entry del foglio e la lascia sepolta — difetto già pagato. */}
++          <div style={{ borderRadius: raggio.riga, padding: `14px ${spazio.m}px`, background: 'var(--bg-deep)' }}>
++            <p style={{
++              fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
++              textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
++              color: 'var(--faint)', margin: `0 0 ${spazio.s}px`,
++            }}>Da qui non si corregge</p>
++            <p style={{ fontSize: 14, color: 'var(--muted)', margin: `0 0 ${spazio.s}px`, lineHeight: 1.5 }}>
++              Se è sbagliato un dato del <b style={{ color: 'var(--ink)' }}>laboratorio</b> — ragione sociale,
++              indirizzo, partita IVA, luogo di fabbricazione — si corregge in{' '}
++              <LinkQuieto onClick={() => navigaDaOverlay('/impostazioni')}>Impostazioni</LinkQuieto>, e vale
++              per tutte le dichiarazioni da lì in avanti.
++            </p>
++            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
++              Se il <b style={{ color: 'var(--ink)' }}>nome del paziente</b> è scritto male, si corregge in{' '}
++              <LinkQuieto onClick={() => navigaDaOverlay(voci.pazienteId ? `/pazienti/${voci.pazienteId}` : '/pazienti')}>
++                Anagrafica
++              </LinkQuieto>{' '}
++              — così vale per tutti i suoi lavori. Poi torni qui e rifai la dichiarazione. Da questo foglio
++              si cambia <b style={{ color: 'var(--ink)' }}>quale persona</b> è, non come si chiama.
++            </p>
++          </div>
++
++          <TastoPrimario
++            onClick={() => setFase('dettagli')}
++            disabled={quanteCorrezioni === 0}
++            motivoDisabilitato="Tocca una riga e correggi almeno un dato: senza una correzione, il documento nuovo sarebbe identico a quello di oggi."
++          >
++            Continua
++          </TastoPrimario>
++          {quanteCorrezioni > 0 && (
++            <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
++              Hai corretto <b style={{ color: 'var(--ink)' }}>{quanteCorrezioni} dat{quanteCorrezioni === 1 ? 'o' : 'i'}</b>.
++              {' '}Restano da rispondere le quattro domande di legge.
++            </p>
++          )}
++        </>
++      )}
++
++      {/* ③-quater IL SOTTO-PASSO DI UNA VOCE — `key` sulla voce: si rimonta
++          fresco a ogni apertura, così non porta dentro lo stato di quella
++          precedente. */}
++      {fase === 'correzioneCampo' && voceAperta && (
++        <PassoVoce
++          key={voceAperta}
++          campo={voceAperta}
++          voci={voci}
++          corrente={correzioni[voceAperta]}
++          onIndietro={() => { setVoceAperta(null); setFase('correzione') }}
++          onConferma={(voce) => chiudiVoce(voceAperta, voce)}
++        />
++      )}
++
+       {/* ④ LE QUATTRO CASELLE (spec §5) */}
+       {fase === 'dettagli' && (
+         <>
+@@ -494,13 +939,25 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+           onScegli={setDanno}
+         />
+ 
++        {/* ⚖️ D322 — IL TASTO FINALE DICE QUELLO CHE FA, mai «Salva». Su questo
++            motivo è QUI che parte l'atto unico: due chiamate in fila, la
++            registrazione e la riemissione. Sugli altri otto motivi la riga
++            resta esattamente quella di prima. */}
+         <TastoPrimario
+-          onClick={() => { if (!lavorando) void registra(statoDisp) }}
+-          disabled={lavorando || !puoContinuare}
+-          motivoDisabilitato={lavorando ? 'Sto registrando…' : 'Scrivi in due parole di cosa si tratta'}
++          onClick={() => { if (!lavorando) void (correggendo ? correggiERifai() : registra(statoDisp)) }}
++          disabled={lavorando || !puoContinuare || conflitto !== null}
++          motivoDisabilitato={
++            lavorando ? 'Sto registrando…'
++              : conflitto ?? 'Scrivi in due parole di cosa si tratta'
++          }
+         >
+-          {lavorando ? 'Un attimo…' : 'Continua'}
++          {lavorando ? 'Un attimo…' : correggendo ? 'Correggi e rifai la dichiarazione' : 'Continua'}
+         </TastoPrimario>
++        {correggendo && !lavorando && conflitto === null && (
++          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, textAlign: 'center' }}>
++            La dichiarazione di oggi resta in archivio come superata: non sparisce.
++          </p>
++        )}
+         </>
+       )}
+ 
+@@ -508,6 +965,11 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+       {fase === 'proposta' && (
+         <>{risposta && (
+           <>
++            {/* 🔑 LA CARTA NUOVA SI ANNUNCIA SUBITO, prima della valutazione:
++                l'atto unico è già avvenuto, e tacerlo qui sarebbe «riuscire
++                senza dirlo». La classificazione ISO resta una decisione a
++                parte, e la si prende sotto. */}
++            <RiquadroRiemissione riemissione={riemissione} />
+             <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
+               Se non ti torna, cambiala: decidi tu.
+             </p>
+@@ -571,6 +1033,7 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+                 ? 'La registrazione e la valutazione sono agli atti.'
+                 : 'La registrazione è agli atti.'}
+             </Esito>
++            <RiquadroRiemissione riemissione={riemissione} />
+             {/* 🔴 QUESTO BLOCCO ERA UN TESTO FALSO, e l'ha trovato la revisione del
+                 Task 7. Diceva «La dichiarazione è stata annullata» **proprio sul ramo
+                 che la tiene viva**: il ternario guardava `dichiarazione_assente`, che
+@@ -675,6 +1138,422 @@ export function DevoIntervenire(props: { lavoroId: string; descrizione: string }
+   )
+ }
+ 
++/** ⚖️ D322, variante A — i quattro passi, con dov'è adesso in evidenza. */
++function NastroPercorso() {
++  const passi = ['Motivo', 'Che cosa c\'è di sbagliato', 'Le quattro caselle', 'Esito']
++  const qui = 1
++  return (
++    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
++      {passi.map((passo, i) => (
++        <span key={passo} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
++          {i > 0 && <span aria-hidden style={{ color: 'var(--line)' }}>›</span>}
++          <span
++            aria-current={i === qui ? 'step' : undefined}
++            style={{
++              fontSize: 12, fontWeight: tipografia.weight.bold, whiteSpace: 'nowrap',
++              borderRadius: 999, padding: '5px 10px',
++              background: i === qui ? 'var(--ink)' : 'var(--bg-deep)',
++              color: i === qui ? 'var(--bg)' : 'var(--faint)',
++            }}
++          >{passo}</span>
++        </span>
++      ))}
++    </div>
++  )
++}
++
++/** Il riquadro della carta nuova. `null` finché non è avvenuta: si annuncia
++ *  ciò che È SUCCESSO, mai ciò che si sperava. */
++function RiquadroRiemissione(props: { riemissione: { numero: string | null; numeroSuperato: string | null } | null }) {
++  const { riemissione } = props
++  if (!riemissione) return null
++  return (
++    <Esito
++      tono="ok"
++      titolo={riemissione.numero ? `Dichiarazione rifatta — n. ${riemissione.numero}` : 'Dichiarazione rifatta'}
++    >
++      {riemissione.numeroSuperato
++        ? `La n. ${riemissione.numeroSuperato} resta in archivio come superata: non è stata annullata.`
++        : 'Quella di prima resta in archivio come superata: non è stata annullata.'}
++    </Esito>
++  )
++}
++
++/**
++ * Una riga del passo di correzione: **mostra il valore, non un controllo**.
++ * Corretta, dice `vecchio → nuovo` e porta la pastiglia «Da rifare».
++ *
++ * 🛑 Preclusa, NON è un bottone e porta la sua ragione: un bersaglio che si può
++ * premere e non fa niente è peggio di un bersaglio che non c'è.
++ */
++function RigaVoce(props: {
++  etichetta: string
++  adesso: string
++  corretta?: VoceCorretta
++  precluso: string | null
++  marca?: string
++  onApri: () => void
++}) {
++  const { etichetta, adesso, corretta, precluso, marca, onApri } = props
++
++  const corpo = (
++    <span style={{ flex: 1, minWidth: 0 }}>
++      <span style={{
++        display: 'block', fontSize: tipografia.size.label, fontWeight: tipografia.weight.bold,
++        color: 'var(--muted)',
++      }}>{etichetta}</span>
++      <span style={{
++        display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 6,
++        fontSize: 16.5, fontWeight: tipografia.weight.bold, color: 'var(--ink)',
++        lineHeight: 1.3, marginTop: 2, overflowWrap: 'anywhere',
++      }}>
++        {corretta ? (
++          <>
++            <span style={{ color: 'var(--muted)', textDecoration: 'line-through', fontWeight: tipografia.weight.semibold }}>
++              {adesso}
++            </span>
++            <span aria-hidden style={{ color: 'var(--faint)' }}>→</span>
++            <span>{corretta.mostrato}</span>
++          </>
++        ) : (
++          <span>{adesso}</span>
++        )}
++        {marca && !corretta && (
++          <span style={{
++            fontSize: 11.5, fontWeight: tipografia.weight.extrabold, letterSpacing: '0.06em',
++            textTransform: 'uppercase', color: 'var(--purple)', background: 'var(--purple-tint)',
++            borderRadius: 999, padding: '3px 9px',
++          }}>{marca}</span>
++        )}
++      </span>
++      {corretta && (
++        <span style={{
++          display: 'inline-block', marginTop: 6, fontSize: 11.5,
++          fontWeight: tipografia.weight.extrabold, letterSpacing: '0.08em',
++          textTransform: 'uppercase', color: 'var(--blue)', background: 'var(--card)',
++          borderRadius: 999, padding: '3px 9px',
++        }}>Da rifare</span>
++      )}
++      {precluso && (
++        <span style={{ display: 'block', fontSize: 13.5, color: 'var(--faint)', marginTop: 4, lineHeight: 1.4 }}>
++          {precluso}
++        </span>
++      )}
++    </span>
++  )
++
++  const stile = {
++    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
++    // 🛑 In tema scuro una superficie premibile NON si dipinge del colore del
++    //    pannello che la contiene: `--bg-deep` risolve a un tono più chiaro del
++    //    `--card` del foglio, e la riga resta visibile (spec v3 §3.2).
++    background: corretta ? 'var(--blue-tint)' : 'var(--bg-deep)',
++    border: '1px solid transparent', borderRadius: raggio.riga,
++    padding: `13px ${spazio.m}px`, textAlign: 'left' as const,
++    minHeight: 60, font: 'inherit',
++  }
++
++  if (precluso) {
++    return <div style={{ ...stile, opacity: 0.72 }}>{corpo}</div>
++  }
++
++  return (
++    <button type="button" onClick={onApri} style={{ ...stile, cursor: 'pointer' }}>
++      {corpo}
++      <span aria-hidden style={{ color: 'var(--faint)', fontSize: 17, flex: 'none' }}>›</span>
++    </button>
++  )
++}
++
++/** Il tasto «‹ Torna all'elenco» dei sotto-passi. Bersaglio ≥ 44 px. */
++function TornaAllElenco(props: { onClick: () => void }) {
++  return (
++    <button
++      type="button"
++      onClick={props.onClick}
++      style={{
++        display: 'inline-flex', alignItems: 'center', gap: 7, alignSelf: 'flex-start',
++        background: 'transparent', border: 'none', padding: 0, font: 'inherit',
++        fontSize: 14.5, fontWeight: tipografia.weight.bold, color: 'var(--muted)',
++        minHeight: 44, cursor: 'pointer',
++      }}
++    >
++      <span aria-hidden>‹</span> Torna all&apos;elenco
++    </button>
++  )
++}
++
++const NON_SI_SVUOTA = 'Questa voce non si può svuotare: sul documento diventerebbe un\'informazione mancante.'
++
++/**
++ * Il sotto-passo di UNA voce. Ogni ramo risponde a due domande sole: **che
++ * cosa si manda** (la forma che il contratto vuole) e **è ancora una
++ * correzione** (no, se il valore è tornato quello di prima).
++ */
++function PassoVoce(props: {
++  campo: CampoCorreggibile
++  voci: VociDocumento
++  corrente?: VoceCorretta
++  onIndietro: () => void
++  onConferma: (voce: VoceCorretta | null) => void
++}) {
++  const { campo, voci, corrente, onIndietro, onConferma } = props
++
++  // ── I tre testi (`richiedente_nome`, `descrizione`) e il colore ───────────
++  const originaleTesto = campo === 'descrizione' ? voci.descrizione : (voci.richiedenteNome ?? '')
++  const [testo, setTesto] = useState<string>(
++    corrente && (campo === 'descrizione' || campo === 'richiedente_nome') ? String(corrente.valore) : originaleTesto
++  )
++
++  // ── Il tipo di dispositivo — vocabolario CHIUSO ───────────────────────────
++  const [tipo, setTipo] = useState<TipoDispositivo>(
++    corrente && campo === 'tipo_dispositivo' ? (corrente.valore as TipoDispositivo) : voci.tipoDispositivo
++  )
++
++  // ── Il paziente — si sceglie una PERSONA, non si scrive un nome (D320) ────
++  const [cerca, setCerca] = useState('')
++  const [trovati, setTrovati] = useState<{ id: string; codice_paziente: string | null; alias: string | null }[]>([])
++  const [scelto, setScelto] = useState<{ id: string; mostrato: string } | null>(
++    corrente && campo === 'paziente_id' ? { id: corrente.valore as string, mostrato: corrente.mostrato } : null
++  )
++
++  // ── I denti — il carico della PENNA, oggetti `{fdi, ruolo, …}` ────────────
++  const dentiOriginali = voci.denti ?? []
++  const [sel, setSel] = useState<number[]>(() => dentiOriginali.filter((d) => d.ruolo === 'elemento').map((d) => d.fdi))
++  const [man, setMan] = useState<number[]>(() => dentiOriginali.filter((d) => d.ruolo === 'mancante').map((d) => d.fdi))
++  const [imp, setImp] = useState<number[]>(() => dentiOriginali.filter((d) => d.ruolo === 'impianto').map((d) => d.fdi))
++
++  // ── Le caratteristiche prescritte — DUE caselle, `elementi` e `colore` ────
++  const elementiOriginali = voci.prescrizione?.elementi ?? []
++  const coloreOriginale = voci.prescrizione?.colore ?? ''
++  const [elementi, setElementi] = useState<number[]>(() => [...elementiOriginali])
++  const [colore, setColore] = useState(coloreOriginale)
++
++  const q = cerca.trim()
++  useEffect(() => {
++    // 🔑 IL VUOTO SI DERIVA, NON SI SCRIVE (v. `risultati` più sotto): uno
++    //    `setTrovati([])` sincrono nel corpo dell'effetto accende
++    //    `react-hooks/set-state-in-effect` e fa un render in più per niente.
++    if (campo !== 'paziente_id' || !voci.clienteId || q.length < 2) return
++    let annullato = false
++    // 🛑 Una LETTURA, non una scrittura: il Passo 5 («niente si salva prima del
++    //    tocco finale») parla di ciò che si scrive. Cercare una persona non
++    //    tocca niente.
++    fetch(`/api/pazienti?cliente_id=${encodeURIComponent(voci.clienteId)}&q=${encodeURIComponent(q)}`)
++      .then((r) => (r.ok ? r.json() : { pazienti: [] }))
++      .then((j) => { if (!annullato) setTrovati(j.pazienti ?? []) })
++      .catch(() => { if (!annullato) setTrovati([]) })
++    return () => { annullato = true }
++  }, [campo, voci.clienteId, q])
++
++  /** Sotto i due caratteri non si mostra niente: è un DERIVATO della ricerca,
++   *  non uno stato da azzerare a mano. */
++  const risultati = q.length >= 2 ? trovati : []
++
++  /** Che cosa si manda, e se è ancora una correzione. `null` = non lo è. */
++  function componi(): VoceCorretta | null {
++    switch (campo) {
++      case 'richiedente_nome':
++      case 'descrizione': {
++        const vivo = testoVivo(testo)
++        if (vivo === null || vivo === testoVivo(originaleTesto)) return null
++        return { valore: testo, mostrato: vivo }
++      }
++      case 'tipo_dispositivo':
++        if (tipo === voci.tipoDispositivo) return null
++        return { valore: tipo, mostrato: LABEL_MACRO[tipo] }
++      case 'paziente_id':
++        if (!scelto || scelto.id === voci.pazienteId) return null
++        return { valore: scelto.id, mostrato: scelto.mostrato }
++      case 'denti_coinvolti': {
++        const nuovi = ricomponiDenti(dentiOriginali, sel, man, imp)
++        if (nuovi.length === 0 || stessiDenti(nuovi, dentiOriginali)) return null
++        const elencati = nuovi.filter((d) => d.ruolo === 'elemento').map((d) => String(d.fdi))
++        return { valore: nuovi, mostrato: elencati.length > 0 ? elencati.join(', ') : '—' }
++      }
++      case 'prescrizione_caratteristiche': {
++        // 🔑 SI MANDANO SOLO LE SOTTO-CHIAVI CAMBIATE: la penna scrive una
++        //    `jsonb_set` alla volta, quindi correggere il colore non cancella
++        //    gli elementi. E ogni sotto-chiave mandata dev'essere non vuota —
++        //    la voce 6 dell'Allegato XIII è un contenuto dovuto.
++        const sotto: Record<string, unknown> = {}
++        if (testoVivo(colore) !== testoVivo(coloreOriginale)) {
++          if (testoVivo(colore) === null) return null
++          sotto.colore = colore
++        }
++        if (JSON.stringify([...elementi].sort((a, b) => a - b)) !== JSON.stringify([...elementiOriginali].sort((a, b) => a - b))) {
++          if (elementi.length === 0) return null
++          sotto.elementi = [...elementi].sort((a, b) => a - b)
++        }
++        if (Object.keys(sotto).length === 0) return null
++        const fuso = { ...(voci.prescrizione ?? {}), ...sotto } as PrescrizioneContenuto
++        return { valore: sotto, mostrato: caratteristichePrescritte(fuso) ?? '—' }
++      }
++    }
++  }
++
++  /** Il perché il tasto è spento — 🛑 si dice PRIMA, non si scopre con un 422. */
++  function perche(): string | null {
++    switch (campo) {
++      case 'richiedente_nome':
++      case 'descrizione':
++        return testoVivo(testo) === null ? NON_SI_SVUOTA : null
++      case 'paziente_id':
++        return !scelto || scelto.id === voci.pazienteId ? 'Scegli una persona diversa da quella di adesso.' : null
++      case 'denti_coinvolti':
++        return ricomponiDenti(dentiOriginali, sel, man, imp).length === 0
++          ? 'Un elenco di denti vuoto non si può mandare: il documento resterebbe senza.'
++          : null
++      case 'prescrizione_caratteristiche': {
++        if (testoVivo(colore) !== testoVivo(coloreOriginale) && testoVivo(colore) === null) return NON_SI_SVUOTA
++        if (elementi.length === 0 && elementiOriginali.length > 0) return NON_SI_SVUOTA
++        return null
++      }
++      case 'tipo_dispositivo':
++        return null
++    }
++  }
++
++  const spento = perche()
++
++  return (
++    <>
++      <TornaAllElenco onClick={onIndietro} />
++
++      {(campo === 'richiedente_nome' || campo === 'descrizione') && (
++        <>
++          <CampoTesto label="Come deve dire il documento" valore={testo} onCambia={setTesto} />
++          <p style={{ fontSize: 13.5, color: 'var(--faint)', margin: 0 }}>
++            Adesso dice: <b style={{ color: 'var(--muted)' }}>{valoreDiAdesso(voci, campo)}</b>
++          </p>
++          {campo === 'richiedente_nome' && voci.richiedenteNome === null && (
++            <p style={{ fontSize: 13.5, color: 'var(--faint)', margin: 0, lineHeight: 1.45 }}>
++              Qui non c&apos;è ancora nessun nome scritto: sulla dichiarazione compare quello del dentista.
++            </p>
++          )}
++        </>
++      )}
++
++      {campo === 'tipo_dispositivo' && (
++        <>
++          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0 }}>
++            Le voci sono queste: sul documento non ne può comparire un&apos;altra.
++          </p>
++          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
++            {MACRO_SLUGS.map((s) => (
++              <ChipScelta key={s} selezionata={tipo === s} onClick={() => setTipo(s)}>
++                {LABEL_MACRO[s]}
++              </ChipScelta>
++            ))}
++          </div>
++        </>
++      )}
++
++      {campo === 'paziente_id' && (
++        <>
++          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
++            Da qui si cambia <b style={{ color: 'var(--ink)' }}>la persona</b>. Per correggere come è scritto un
++            nome si va in Anagrafica.
++          </p>
++          <CampoTesto label="Cerca per cognome o codice" valore={cerca} onCambia={setCerca} />
++          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
++            {risultati.map((p) => {
++              const mostrato = p.alias ?? p.codice_paziente ?? '—'
++              const eQuelloDiAdesso = p.id === voci.pazienteId
++              return (
++                <button
++                  key={p.id} type="button"
++                  onClick={() => setScelto({ id: p.id, mostrato })}
++                  style={{
++                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
++                    background: 'var(--bg-deep)', borderRadius: 16, minHeight: 56,
++                    border: `1px solid ${scelto?.id === p.id ? 'var(--ink)' : 'transparent'}`,
++                    padding: `12px ${spazio.m}px`, font: 'inherit', textAlign: 'left', cursor: 'pointer',
++                  }}
++                >
++                  <span style={{ flex: 1, minWidth: 0 }}>
++                    <span style={{ display: 'block', fontSize: 16, fontWeight: tipografia.weight.bold, color: 'var(--ink)' }}>
++                      {mostrato}
++                    </span>
++                    <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
++                      {p.codice_paziente ?? '—'}{eQuelloDiAdesso ? ' · è quello di adesso' : ''}
++                    </span>
++                  </span>
++                </button>
++              )
++            })}
++            {q.length >= 2 && risultati.length === 0 && (
++              <p style={{ fontSize: 13.5, color: 'var(--faint)', margin: 0 }}>
++                Nessuna persona trovata in questo studio.
++              </p>
++            )}
++          </div>
++        </>
++      )}
++
++      {campo === 'denti_coinvolti' && (
++        <>
++          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
++            Sul documento compaiono gli <b style={{ color: 'var(--ink)' }}>elementi</b>. Il colore già segnato su
++            un dente resta dov&apos;è.
++          </p>
++          <OdontogrammaFDI
++            selezionati={sel} mancanti={man} impianti={imp}
++            onSelezionati={setSel} onMancanti={setMan} onImpianti={setImp}
++          />
++        </>
++      )}
++
++      {campo === 'prescrizione_caratteristiche' && (
++        <>
++          <p style={{ fontSize: tipografia.size.callout, color: 'var(--muted)', margin: 0, lineHeight: 1.45 }}>
++            Sono le caratteristiche <b style={{ color: 'var(--ink)' }}>indicate dal medico</b> nella prescrizione:
++            sul documento compaiono in una riga sola.
++          </p>
++          <div style={{ borderRadius: raggio.riga, padding: `14px ${spazio.m}px`, background: 'var(--bg-deep)' }}>
++            <p style={{
++              fontSize: tipografia.size.caption, letterSpacing: tipografia.tracking.caption,
++              textTransform: 'uppercase', fontWeight: tipografia.weight.extrabold,
++              color: 'var(--faint)', margin: `0 0 ${spazio.s}px`,
++            }}>Elementi</p>
++            {/* 🔴 NON È UN CAMPO DI TESTO, e il mockup lo disegnava così: sul
++                contratto `elementi` è una lista di NUMERI di dente
++                (`PrescrizioneContenuto.elementi: number[]`). Un testo qui
++                prenderebbe **422 a ogni invio** — `normalizzaContenuto` scarta
++                un `elementi` che non sia un array di numeri e `validaCorrezioni`
++                rifiuta ciò che è stato scartato. V. il resoconto, §6.
++                🔑 Sulla prescrizione esistono SOLO gli elementi: segnare un
++                dente come mancante o impianto qui vuol dire toglierlo. */}
++            <OdontogrammaFDI
++              selezionati={elementi} mancanti={[]} impianti={[]}
++              onSelezionati={setElementi} onMancanti={() => {}} onImpianti={() => {}}
++            />
++            <div style={{ height: 12 }} />
++            <CampoTesto label="Colore" valore={colore} onCambia={setColore} />
++          </div>
++          <div style={{ borderRadius: 16, padding: `12px ${spazio.m}px`, background: 'var(--amber-tint)' }}>
++            <b style={{ display: 'block', fontSize: 14.5, color: 'var(--ink)', marginBottom: 3 }}>
++              Una casella non si può svuotare
++            </b>
++            <span style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.45 }}>
++              Se una caratteristica non va più indicata, non si cancella da qui: sul documento è un contenuto
++              dovuto, e toglierla lo farebbe uscire monco.
++            </span>
++          </div>
++        </>
++      )}
++
++      <TastoPrimario
++        onClick={() => onConferma(componi())}
++        disabled={spento !== null}
++        motivoDisabilitato={spento ?? undefined}
++      >
++        Usa questo
++      </TastoPrimario>
++    </>
++  )
++}
++
+ /** Un gruppo di pastiglie: una domanda, e le sue risposte tutte dello stesso
+  *  peso. 🛑 Nessuna è «la più rapida» — v. il riquadro su `danno`. */
+ function GruppoChip<T extends string>(props: {
+diff --git a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+index 339d6e61..206b308b 100644
+--- a/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
++++ b/src/components/features/lavori/scheda-v3/SchedaLavoroV3.tsx
+@@ -81,7 +81,7 @@ import { SchedaNavRail } from './SchedaNavRail'
+ import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
+ import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
+ import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
+-import { DevoIntervenire } from './DevoIntervenire'
++import { DevoIntervenire, vociDelDocumento } from './DevoIntervenire'
+ import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
+ import { pillStatoScheda } from '@/lib/lavori/stato-pill'
+ import { derivaUrgenza } from '@/lib/lavori/urgenza'
+@@ -586,8 +586,18 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string |
+               minuti, qui non conta niente. Un lavoro consegnato con la data
+               mancante (dato vecchio) deve poter essere corretto lo stesso —
+               D265, il documento sanitario si corregge SEMPRE. */}
++          {/* 🔑 LE SEI VOCI E IL GETTONE VIAGGIANO INSIEME, DA UNA LETTURA SOLA
++              (Task D). `vociDelDocumento` prende `lavoro` — cioè lo specchio
++              locale della scheda — e ne cava i valori stampati E `updated_at`:
++              il contratto della rotta è «*i valori che hai visto sono ancora
++              quelli*», e sei proprietà sciolte permetterebbero a qualcuno di
++              rinfrescarne una sola. */}
+           {lavoro.stato === 'consegnato' && (
+-            <DevoIntervenire lavoroId={lavoro.id} descrizione={lavoro.descrizione} />
++            <DevoIntervenire
++              lavoroId={lavoro.id}
++              descrizione={lavoro.descrizione}
++              documento={vociDelDocumento(lavoro)}
++            />
+           )}
+ 
+           {/* Tracciabilità materiali (MDR Allegato XIII, B1) — segnale sempre
+diff --git a/tests/unit/DevoIntervenire.test.tsx b/tests/unit/DevoIntervenire.test.tsx
+index a6440ce4..e5c0a6a3 100644
+--- a/tests/unit/DevoIntervenire.test.tsx
++++ b/tests/unit/DevoIntervenire.test.tsx
+@@ -12,12 +12,55 @@ import { DevoIntervenire } from '@/components/features/lavori/scheda-v3/DevoInte
+  */
+ 
+ const refreshMock = vi.fn()
+-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: refreshMock }) }))
++const pushMock = vi.fn()
++vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock, replace: vi.fn(), refresh: refreshMock }) }))
++
++// 🛑 NAVIGARE DA DENTRO UN OVERLAY v3 SI FA SOLO CON `useNavigaDaOverlay`
++//    (CLAUDE.md §9): si finge l'hook, non il router, perché in jsdom
++//    `cediEntryAllaNavigazione()` ripiega comunque su `router.push` — cioè un
++//    `router.push` nudo e l'hook sarebbero indistinguibili guardando il router.
++//    Fingendo l'hook, chi lo togliesse lascerebbe questa spia a zero.
++const navigaMock = vi.fn()
++vi.mock('@/components/ds/useNavigaDaOverlay', () => ({ useNavigaDaOverlay: () => navigaMock }))
++
++const LAVORO_ID = '11111111-1111-1111-1111-111111111111'
++const PAZIENTE_ID = '33333333-3333-3333-3333-333333333333'
++const ALTRO_PAZIENTE_ID = '99999999-9999-9999-9999-999999999999'
++
++/** 🔑 IL GETTONE DI CONCORRENZA CON I MICROSECONDI: `timestamptz` li ha, `Date`
++ *  di JS no. Il valore è scelto apposta con `.123456` — se qualcuno lo
++ *  riparsasse (`new Date(...).toISOString()`) tornerebbe `.123Z` e il confronto
++ *  in banca dati non tornerebbe MAI uguale: un 409 permanente. */
++const GETTONE = '2026-08-08T10:20:30.123456+00:00'
++
++/** Le sei voci stampate, così come `SchedaLavoroV3` le compone da UNA lettura. */
++const VOCI = {
++  updatedAt: GETTONE,
++  clienteId: '22222222-2222-2222-2222-222222222222',
++  richiedenteNome: 'Dott. Marco Ferri',
++  prescrittoreMostrato: 'Dott. Marco Ferri',
++  pazienteId: PAZIENTE_ID,
++  pazienteMostrato: 'Mario Rossi',
++  tipoDispositivo: 'protesi_fissa' as const,
++  descrizione: 'Corona in zirconia su 26',
++  denti: [
++    {
++      fdi: 26, ruolo: 'elemento', scala: 'vita_classical', codice: 'A3',
++      codice_collo: null, codice_corpo: null, codice_incisale: null, provenienza: 'prescritto',
++    },
++  ],
++  dentiMostrati: ['26'],
++  prescrizione: { elementi: [26], colore: 'A3' },
++}
+ 
+-function montaComponente() {
++function montaComponente(voci: Partial<typeof VOCI> = {}) {
+   return render(
+     <AvvisiProvider>
+-      <DevoIntervenire lavoroId="11111111-1111-1111-1111-111111111111" descrizione="Corona zirconia n.147" />
++      <DevoIntervenire
++        lavoroId={LAVORO_ID}
++        descrizione="Corona zirconia n.147"
++        documento={{ ...VOCI, ...voci }}
++      />
+     </AvvisiProvider>
+   )
+ }
+@@ -432,3 +475,411 @@ describe('DevoIntervenire', () => {
+     expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(true)
+   })
+ })
++
++// ══════════════════════════════════════════════════════════════════════════
++//  TASK D — IL PASSO DI CORREZIONE (⚖️ D322, variante A)
++//
++//  Mockup APPROVATO: docs/design/mockups/2026-08-08-passo-correzione.html
++//  L'ordine è `motivo → correzione → dettagli → proposta/esito`: la correzione
++//  viene PRIMA delle quattro caselle di legge.
++// ══════════════════════════════════════════════════════════════════════════
++
++const RIEMISSIONE_OK = {
++  numero: 'DDC-2026-0043',
++  url: 'https://esempio/ddc.pdf',
++  numero_superato: 'DDC-2026-0042',
++  dichiarazione_id: '77777777-7777-7777-7777-777777777777',
++  sostituisce_id: '88888888-8888-8888-8888-888888888888',
++  updated_at: '2026-08-08T11:00:00.987654+00:00',
++}
++
++type Risposta = { ok?: boolean; stato?: number; corpo?: unknown; illeggibile?: boolean }
++
++/**
++ * Un finto `fetch` che INSTRADA sull'URL, perché su questo percorso le
++ * chiamate sono tre specie diverse (registrazione, riemissione, ricerca dei
++ * pazienti) e una risposta sola per tutte proverebbe poco.
++ */
++function fingiFetchInstradato(opzioni: {
++  evento?: Risposta
++  riemetti?: Risposta
++  pazienti?: unknown
++} = {}) {
++  const spia = vi.fn(async (url: string) => {
++    const scegli = (r: Risposta | undefined, difetto: unknown): Response => {
++      const ok = r?.ok ?? true
++      return {
++        ok,
++        status: r?.stato ?? (ok ? 200 : 422),
++        json: async () => {
++          if (r?.illeggibile) throw new SyntaxError('corpo illeggibile')
++          return r?.corpo ?? difetto
++        },
++      } as unknown as Response
++    }
++    if (url.includes('/dichiarazione/riemetti')) return scegli(opzioni.riemetti, RIEMISSIONE_OK)
++    if (url.includes('/eventi-qualita')) return scegli(opzioni.evento, RISPOSTA_OK)
++    if (url.includes('/api/pazienti')) {
++      return { ok: true, status: 200, json: async () => opzioni.pazienti ?? { pazienti: [] } } as unknown as Response
++    }
++    return { ok: true, status: 200, json: async () => ({}) } as unknown as Response
++  })
++  vi.stubGlobal('fetch', spia)
++  return spia
++}
++
++/** Riga → «Sì, devo intervenire» → «C'è un dato sbagliato sulla dichiarazione». */
++function apriPassoCorrezione() {
++  apriElencoMotivi()
++  fireEvent.click(screen.getByText('C\'è un dato sbagliato sulla dichiarazione'))
++}
++
++/** Apre il sotto-passo di una riga dell'elenco. */
++function apriRiga(etichetta: string) {
++  fireEvent.click(screen.getByRole('button', { name: new RegExp(etichetta, 'i') }))
++}
++
++/** Corregge la descrizione in `nuovo` e torna all'elenco. */
++function correggiDescrizione(nuovo: string) {
++  apriRiga('Descrizione')
++  fireEvent.change(screen.getByLabelText('Come deve dire il documento'), { target: { value: nuovo } })
++  fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
++}
++
++/** Dall'elenco al tocco finale: «Continua» → le quattro caselle → il tasto. */
++function arrivaAlToccoFinale() {
++  fireEvent.click(screen.getByRole('button', { name: /^Continua/i }))
++  fireEvent.click(screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i }))
++}
++
++function corpoDi(chiamata: unknown[]): Record<string, unknown> {
++  return JSON.parse((chiamata[1] as { body: string }).body) as Record<string, unknown>
++}
++
++function chiamateA(spia: { mock: { calls: unknown[][] } }, frammento: string): unknown[][] {
++  return spia.mock.calls.filter((c) => String(c[0]).includes(frammento))
++}
++
++describe('DevoIntervenire — il passo di correzione (D322, variante A)', () => {
++  beforeEach(() => vi.clearAllMocks())
++  afterEach(() => vi.unstubAllGlobals())
++
++  // ⚖️ D322 — la correzione viene PRIMA delle quattro caselle.
++  it('🛑 «C\'è un dato sbagliato» apre il passo di correzione, NON le quattro caselle', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++
++    expect(screen.getByText('Che cosa c\'è di sbagliato?')).toBeTruthy()
++    // Le quattro caselle esistono ancora, ma DOPO: qui non ci sono.
++    expect(screen.queryByText('Dov\'era il manufatto?')).toBeNull()
++    expect(screen.queryByText('Poteva far male a qualcuno?')).toBeNull()
++  })
++
++  // 🛑 Gli altri motivi NON passano di qui: il percorso vecchio resta intatto.
++  it('🛑 gli altri motivi vanno alle quattro caselle come prima', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriElencoMotivi()
++    fireEvent.click(screen.getByText('Difetto di lavorazione'))
++
++    expect(screen.getByText('Dov\'era il manufatto?')).toBeTruthy()
++    expect(screen.queryByText('Che cosa c\'è di sbagliato?')).toBeNull()
++  })
++
++  // ⚖️ D322 — il NASTRO è l'elemento con cui il mockup approvato DICE che
++  //    variante è: la correzione sta in mezzo, e dopo vengono ancora le quattro
++  //    caselle. Senza, chi legge crede che il percorso finisca qui.
++  it('🛑 il nastro dice DOVE si è, e che le quattro caselle devono ancora venire', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++
++    for (const passo of ['Motivo', 'Le quattro caselle', 'Esito']) {
++      expect(screen.getByText(passo), passo).toBeTruthy()
++    }
++    // Il passo corrente è marcato per chi non vede il colore.
++    const qui = document.querySelector('[aria-current="step"]')
++    expect(qui?.textContent).toBe('Che cosa c\'è di sbagliato')
++  })
++
++  // 🔑 IL PASSO MOSTRA VALORI, NON CONTROLLI — e sono SEI, contate
++  //    sull'allowlist `CAMPI_CORREGGIBILI_DOCUMENTO`, non su una riga di prosa.
++  it('🛑 le sei righe portano il VALORE che il documento stampa adesso', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++
++    for (const riga of ['Chi ha prescritto', 'Paziente', 'Tipo di dispositivo', 'Descrizione', 'Denti', 'Caratteristiche prescritte']) {
++      expect(screen.getByText(riga), riga).toBeTruthy()
++    }
++    expect(screen.getAllByText('Dott. Marco Ferri').length).toBeGreaterThan(0)
++    expect(screen.getByText('Mario Rossi')).toBeTruthy()
++    expect(screen.getByText('Protesi fissa')).toBeTruthy()
++    expect(screen.getByText('Corona in zirconia su 26')).toBeTruthy()
++    // Le caratteristiche si leggono con le parole del DOCUMENTO
++    // (`caratteristichePrescritte`), non come un oggetto JSON.
++    expect(screen.getByText('Elementi: dente 26 · Colore: A3')).toBeTruthy()
++  })
++
++  // ⚖️ Mockup — il tasto è spento COL PERCHÉ SCRITTO SOTTO: un tasto grigio e
++  //    muto non è il disegno approvato.
++  it('🛑 senza nessuna correzione il tasto è spento, e dice PERCHÉ', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++
++    const continua = screen.getByRole('button', { name: /^Continua/i })
++    expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(true)
++    expect(screen.getByText(/senza una correzione, il documento nuovo sarebbe identico/i)).toBeTruthy()
++  })
++
++  it('corretta una riga, mostra vecchio → nuovo con la pastiglia «da rifare», e il tasto si accende', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++
++    expect(screen.getByText('Corona in zirconia su 36')).toBeTruthy()
++    expect(screen.getByText('Da rifare')).toBeTruthy()
++    // Il conto sta in una frase con dentro un `<b>`: si guarda il testo intero
++    // del paragrafo, non i suoi soli nodi diretti.
++    expect(
++      screen.getByText((_, el) => el?.tagName === 'P' && /Hai corretto 1 dato/.test(el.textContent ?? ''))
++    ).toBeTruthy()
++    const continua = screen.getByRole('button', { name: /^Continua/i })
++    expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(false)
++  })
++
++  // 🔴 LA FORMA D'INPUT PIÙ INSIDIOSA: corretta e poi RIMESSA com'era.
++  //    Non è una correzione — mandarla produrrebbe un documento identico a
++  //    quello di oggi, che è esattamente ciò che il testo del tasto spento
++  //    dichiara inutile.
++  it('🛑 una riga rimessa al valore di prima NON è una correzione: il tasto torna spento', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    correggiDescrizione('Corona in zirconia su 26')
++
++    expect(screen.queryByText('Da rifare')).toBeNull()
++    const continua = screen.getByRole('button', { name: /^Continua/i })
++    expect(continua.hasAttribute('disabled') || continua.getAttribute('aria-disabled') === 'true').toBe(true)
++  })
++
++  // ⚖️ D320 — da questo foglio si cambia QUALE PERSONA, mai come si chiama.
++  it('🛑 la riga del paziente NON ha un campo di testo: si sceglie un\'altra persona (D320)', async () => {
++    fingiFetchInstradato({ pazienti: { pazienti: [{ id: ALTRO_PAZIENTE_ID, codice_paziente: 'PZ-0117', alias: 'Maria Rossi', ultimoLavoro: null }] } })
++    montaComponente()
++    apriPassoCorrezione()
++    apriRiga('Paziente')
++
++    expect(screen.getByText('Quale paziente?')).toBeTruthy()
++    // 🛑 UN SOLO campo scrivibile, ed è la RICERCA. Un `queryByLabelText('Nome
++    //    del paziente')` sarebbe stato vero anche in una pagina vuota: qui si
++    //    conta, così un campo «nome» aggiunto un domani accende la prova.
++    const scrivibili = screen.getAllByRole('textbox')
++    expect(scrivibili.length).toBe(1)
++    expect(screen.getByLabelText('Cerca per cognome o codice')).toBe(scrivibili[0])
++    expect(screen.getByText(/Per correggere come è scritto un nome/i)).toBeTruthy()
++  })
++
++  // 🔴 IL DIFETTO ③ DEL TASK B, GIÀ PAGATO: la chiave si chiama come la colonna
++  //    denormalizzata (`["26"]`) e invita a mandare quella. Il contratto vuole
++  //    il carico della PENNA: oggetti `{fdi, ruolo, …}`.
++  it('🛑 i denti viaggiano come OGGETTI {fdi, ruolo}, mai come la lista di stringhe', async () => {
++    const spia = fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    apriRiga('Denti')
++    fireEvent.click(screen.getByRole('button', { name: /^Dente 27/ }))
++    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
++    const corpo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0])
++    const denti = (corpo.correzioni as Record<string, unknown>).denti_coinvolti as Record<string, unknown>[]
++    expect(Array.isArray(denti)).toBe(true)
++    expect(typeof denti[0]).toBe('object')
++    expect(denti.map((d) => d.fdi).sort()).toEqual([26, 27])
++    // 🔑 E IL COLORE PER DENTE NON SI PERDE: la penna SOSTITUISCE l'elenco
++    //    intero, quindi mandare `{fdi, ruolo}` e basta cancellerebbe la scala e
++    //    il codice del dente che resta.
++    const ventisei = denti.find((d) => d.fdi === 26)!
++    expect(ventisei.scala).toBe('vita_classical')
++    expect(ventisei.codice).toBe('A3')
++  })
++
++  // 🛑 «Una casella non si può SVUOTARE» — e a schermo va detto PRIMA, non
++  //    scoperto con un 422 (`correzioni.ts:242-252`, voce 6 Allegato XIII).
++  it('🛑 una caratteristica prescritta non si può svuotare, e lo dice prima', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    apriRiga('Caratteristiche prescritte')
++
++    expect(screen.getByText(/Una casella non si può svuotare/i)).toBeTruthy()
++    fireEvent.change(screen.getByLabelText('Colore'), { target: { value: '   ' } })
++    const usa = screen.getByRole('button', { name: /Usa questo/i })
++    expect(usa.hasAttribute('disabled') || usa.getAttribute('aria-disabled') === 'true').toBe(true)
++  })
++
++  it('🛑 e nemmeno i denti si possono azzerare: il tasto si spegne col suo perché', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    apriRiga('Denti')
++    // Il 26 è l'unico elemento: toglierlo lascia la lista vuota, che la rotta
++    // rifiuta con un 422 («la correzione di "denti_coinvolti" è vuota»).
++    fireEvent.click(screen.getByRole('button', { name: /^Dente 26/ }))
++    const usa = screen.getByRole('button', { name: /Usa questo/i })
++    expect(usa.hasAttribute('disabled') || usa.getAttribute('aria-disabled') === 'true').toBe(true)
++  })
++
++  // ⚖️ D316 · D320 — il blocco «Da qui non si corregge» nomina DUE cose, e
++  //    ognuna porta la sua destinazione.
++  it('🛑 «Da qui non si corregge» nomina il laboratorio E il nome del paziente, con la strada', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++
++    expect(screen.getByText(/Da qui non si corregge/i)).toBeTruthy()
++    expect(screen.getByRole('button', { name: /Impostazioni/i })).toBeTruthy()
++    expect(screen.getByRole('button', { name: /Anagrafica/i })).toBeTruthy()
++    expect(screen.getByText(/così vale per tutti i suoi lavori/i)).toBeTruthy()
++  })
++
++  it('🛑 e quelle due vie navigano con `useNavigaDaOverlay`, mai con un push nudo', () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    fireEvent.click(screen.getByRole('button', { name: /Anagrafica/i }))
++
++    expect(navigaMock).toHaveBeenCalledWith(`/pazienti/${PAZIENTE_ID}`)
++    expect(pushMock).not.toHaveBeenCalled()
++  })
++
++  // ⚖️ Passo 5 — NIENTE si salva prima del tocco finale.
++  it('🛑 monta, corregge, SMONTA: nessuna scrittura sul server', () => {
++    const spia = fingiFetchInstradato()
++    const { unmount } = montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    unmount()
++
++    expect(chiamateA(spia, '/eventi-qualita').length).toBe(0)
++    expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(0)
++  })
++
++  // ⚖️ Passo 6 — DUE chiamate in fila, e il gettone viaggia INTATTO.
++  it('🛑 il tocco finale sono DUE chiamate in fila, e il gettone NON si riparsa', async () => {
++    const spia = fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
++    expect(chiamateA(spia, '/eventi-qualita').length).toBe(1)
++    // L'ordine: prima nasce l'evento, poi si rifà la carta.
++    expect(String(spia.mock.calls[0][0])).toContain('/eventi-qualita')
++
++    const corpo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0])
++    expect(corpo.evento_id).toBe(RISPOSTA_OK.evento.id)
++    expect(corpo.correzioni).toEqual({ descrizione: 'Corona in zirconia su 36' })
++    // 🛑 IDENTICO, microsecondi compresi: un `new Date(...)` qui darebbe
++    //    `2026-08-08T10:20:30.123Z` e un 409 che non si sana nemmeno ricaricando.
++    expect(corpo.atteso_updated_at).toBe(GETTONE)
++  })
++
++  it('più voci corrette insieme viaggiano nella STESSA chiamata', async () => {
++    const spia = fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    apriRiga('Chi ha prescritto')
++    fireEvent.change(screen.getByLabelText('Come deve dire il documento'), { target: { value: 'Dott.ssa Anna Neri' } })
++    fireEvent.click(screen.getByRole('button', { name: /Usa questo/i }))
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
++    const corpo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[0])
++    expect(corpo.correzioni).toEqual({
++      descrizione: 'Corona in zirconia su 36',
++      richiedente_nome: 'Dott.ssa Anna Neri',
++    })
++  })
++
++  // 🛑 L'EVENTO SI TIENE NELLO STATO E SI RIUSA: crearne uno nuovo a ogni
++  //    tentativo lascerebbe eventi orfani, e toglierebbe senso alla porta
++  //    d'idempotenza della rotta.
++  it('🛑 se la riemissione fallisce, il ritentativo RIUSA l\'evento invece di crearne un altro', async () => {
++    const spia = fingiFetchInstradato({
++      riemetti: { ok: false, stato: 500, corpo: { error: 'Non sono riuscita a rifare la dichiarazione: riprova fra un momento.' } },
++    })
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(1))
++    fireEvent.click(screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i }))
++
++    await waitFor(() => expect(chiamateA(spia, '/dichiarazione/riemetti').length).toBe(2))
++    // 🔑 L'asserzione che conta è il CONTO delle registrazioni, non la presenza
++    //    di `evento_id` nel corpo: un evento nuovo lo porterebbe lo stesso.
++    expect(chiamateA(spia, '/eventi-qualita').length).toBe(1)
++    const secondo = corpoDi(chiamateA(spia, '/dichiarazione/riemetti')[1])
++    expect(secondo.evento_id).toBe(RISPOSTA_OK.evento.id)
++  })
++
++  // ⚖️ Passo 7 — gli errori si LEGGONO: la rotta li scrive per chi sta al banco.
++  it('🛑 il 409 si mostra com\'è scritto dalla rotta, non come «qualcosa è andato storto»', async () => {
++    const messaggio = 'Qualcun altro ha toccato questo lavoro mentre stavi correggendo: ricarica e rifai la correzione sui valori aggiornati.'
++    fingiFetchInstradato({ riemetti: { ok: false, stato: 409, corpo: { error: messaggio } } })
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(screen.getAllByText(messaggio).length).toBeGreaterThan(0))
++    // 🛑 E IL TASTO SI CHIUDE, col messaggio della rotta come motivo: la rotta
++    //    rende e CARICA il PDF prima della transazione, quindi ogni tocco in più
++    //    su un gettone stantìo brucia un altro progressivo e non può riuscire.
++    const tasto = screen.getByRole('button', { name: /Correggi e rifai la dichiarazione/i })
++    expect(tasto.hasAttribute('disabled') || tasto.getAttribute('aria-disabled') === 'true').toBe(true)
++  })
++
++  it('🛑 il 422 si mostra col PERCORSO dentro: chi sta al banco deve sapere QUALE casella', async () => {
++    const messaggio = 'La correzione di «prescrizione_caratteristiche.colore» è vuota: un campo svuotato finirebbe sul documento come un\'informazione mancante.'
++    fingiFetchInstradato({ riemetti: { ok: false, stato: 422, corpo: { error: messaggio } } })
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(screen.getAllByText(messaggio).length).toBeGreaterThan(0))
++  })
++
++  it('un corpo illeggibile non lascia la persona senza niente: resta il messaggio di casa', async () => {
++    fingiFetchInstradato({ riemetti: { ok: false, stato: 500, illeggibile: true } })
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(screen.getAllByText(/Non sono riuscita a rifare la dichiarazione/i).length).toBeGreaterThan(0))
++  })
++
++  it('riuscita, la schermata NOMINA la dichiarazione nuova e dice che la vecchia resta in archivio', async () => {
++    fingiFetchInstradato()
++    montaComponente()
++    apriPassoCorrezione()
++    correggiDescrizione('Corona in zirconia su 36')
++    arrivaAlToccoFinale()
++
++    await waitFor(() => expect(screen.getAllByText(/DDC-2026-0043/).length).toBeGreaterThan(0))
++    expect(screen.getByText(/DDC-2026-0042/)).toBeTruthy()
++    expect(screen.getByText(/resta in archivio come superata/i)).toBeTruthy()
++  })
++})

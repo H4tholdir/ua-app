@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { istanteDaTestoRoma, oggiRomaISO } from '@/lib/utils/data-roma'
 
 type Stato = 'trial' | 'attivo' | 'sospeso' | 'scaduto' | 'blacklist'
 type Utente = { id: string; nome: string; cognome: string | null; email: string | null; ruolo: string }
@@ -54,6 +55,48 @@ function sndClick() {
     src.connect(bp); bp.connect(g); g.connect(c.destination); src.start()
   } catch { /* silent */ }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D286 — LA FINE DELLA PROVA GRATUITA È UN ISTANTE ITALIANO (06/08/2026)
+//
+// `<input type="date">` restituisce «2026-08-20», e `new Date('2026-08-20')`
+// vale **mezzanotte UTC** — cioè le 02:00 di Roma, non la mezzanotte che
+// l'amministratore intende quando scrive «estendi fino al 20». Il valore
+// finisce in `laboratori.trial_ends_at`, che è `timestamptz`, e viene poi
+// confrontato con `now()` sia da `isTrialScaduto` sia dalla funzione SQL
+// `lab_is_accessible()`: quella differenza è il confine vero fra un
+// laboratorio che entra e uno che trova la porta chiusa.
+//
+// ⚠️ Qui il difetto NON dipende dal fuso del processo: una data-sola in ISO
+//    8601 è UTC per SPECIFICA ECMAScript, quindi si vede anche da Roma. È la
+//    differenza con l'altro punto di D286 (`api/cassette/lavori-liberi`), dove
+//    invece a decidere era l'orologio della macchina — e per questo i due
+//    punti vogliono due strumenti diversi.
+//
+// 🔑 E IL GIRO DEVE TORNARE INDIETRO. Il valore salvato è le 22:00 UTC del
+//    giorno PRIMA: leggerlo con `.slice(0, 10)`, che è UTC, mostrerebbe il 19
+//    su una prova fissata al 20. Per questo la lettura passa da
+//    `oggiRomaISO()` — il giorno civile italiano di quell'istante — che rende
+//    lo stesso giorno anche per i valori STORICI scritti a mezzanotte UTC.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** L'istante di mezzanotte a Roma per una data «YYYY-MM-DD» del calendario
+ *  nativo. `null` se il campo non porta una data (fail-closed: chi chiama si
+ *  ferma e lo dice, invece di scrivere un valore inventato). */
+function mezzanotteRomaISO(dataInput: string): string | null {
+  const esito = istanteDaTestoRoma(dataInput)
+  return esito.ok ? new Date(esito.ms).toISOString() : null
+}
+
+/** Il giorno civile italiano di un istante salvato, per riempire un
+ *  `<input type="date">` senza che il giorno scivoli indietro. */
+function giornoInputDaIstante(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : oggiRomaISO(d)
+}
+
+const ERRORE_DATA = 'Scegli una data valida dal calendario prima di salvare.'
 
 interface Props {
   labId: string
@@ -118,7 +161,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
-  const [trialDate, setTrialDate] = useState(trialEndsAt ? trialEndsAt.slice(0, 10) : '')
+  const [trialDate, setTrialDate] = useState(giornoInputDaIstante(trialEndsAt))
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRuolo, setInviteRuolo] = useState('titolare')
   const [inviteResult, setInviteResult] = useState<string | null>(null)
@@ -182,7 +225,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
     importo_bollo: String(labData.importo_bollo ?? 2.00),
     bollo_default_attivo: labData.bollo_default_attivo ?? false,
     piano: labData.piano ?? 'lab',
-    trial_ends_at: labData.trial_ends_at ? labData.trial_ends_at.slice(0, 10) : '',
+    trial_ends_at: giornoInputDaIstante(labData.trial_ends_at),
   })
 
   const setF = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -216,11 +259,14 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
   const extendTrial = useCallback(async () => {
     if (!trialDate) return
     sndClick()
+    // D286 — mezzanotte di ROMA, mai `new Date('2026-08-20')` (che è UTC).
+    const fineTrial = mezzanotteRomaISO(trialDate)
+    if (!fineTrial) { setActionMsg({ type: 'err', text: ERRORE_DATA }); return }
     setLoading(true); setActionMsg(null)
     const res = await fetch(`/api/admin/labs/${labId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ trial_ends_at: new Date(trialDate).toISOString() }),
+      body: JSON.stringify({ trial_ends_at: fineTrial }),
     })
     setLoading(false)
     if (res.ok) { setActionMsg({ type: 'ok', text: 'Trial esteso' }); router.refresh() }
@@ -311,6 +357,16 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
   const handleSaveForm = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     sndClick()
+    // D286 — stessa conversione dell'azione rapida «Estendi trial»: è la SECONDA
+    // via di scrittura della STESSA colonna, e due convenzioni diverse in
+    // `trial_ends_at` sarebbero peggio di una sola sbagliata. Fail-closed: una
+    // data illeggibile ferma il salvataggio, non diventa `null` in silenzio
+    // (un `null` qui vuol dire «prova senza scadenza», l'opposto dell'intenzione).
+    const fineTrial = form.trial_ends_at ? mezzanotteRomaISO(form.trial_ends_at) : null
+    if (form.trial_ends_at && !fineTrial) {
+      setFormMsg({ type: 'err', text: ERRORE_DATA })
+      return
+    }
     setFormLoading(true); setFormMsg(null)
 
     const payload: Record<string, unknown> = {
@@ -338,7 +394,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
       importo_bollo: parseFloat(form.importo_bollo) || 2.00,
       bollo_default_attivo: form.bollo_default_attivo,
       piano: form.piano || undefined,
-      trial_ends_at: form.trial_ends_at ? new Date(form.trial_ends_at).toISOString() : null,
+      trial_ends_at: fineTrial,
     }
 
     const res = await fetch(`/api/admin/labs/${labId}`, {

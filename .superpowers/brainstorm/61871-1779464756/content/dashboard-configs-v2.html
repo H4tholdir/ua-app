@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Dashboard Configs V2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Playfair+Display:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#96918D; --t3:#B8B3AE;
+  --primary:#D90012; --gold:#D4A843; --success:#3DCB5C;
+  --info:#5A5FCC; --warning:#B45309;
+  --sh-c:inset 0 1px 0 rgba(255,255,255,.88),inset 0 -1px 2px rgba(0,0,0,.04),-5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.90),inset 0 -2px 3px rgba(0,0,0,.05),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i:inset 4px 4px 9px rgba(148,128,118,.32),inset -3px -3px 7px rgba(255,255,255,.66);
+  --sh-p:inset 3px 4px 8px rgba(148,128,118,.40),inset -2px -2px 5px rgba(255,255,255,.52);
+  --dm:'DM Sans',system-ui,sans-serif; --pf:'Playfair Display',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--dm);background:#C0BBB6;padding:32px 16px 100px;min-height:100vh}
+
+h1{text-align:center;font-family:var(--pf);font-size:22px;font-weight:400;color:var(--t1);letter-spacing:-.02em;margin-bottom:6px}
+.sub{text-align:center;font-size:12px;color:var(--t2);margin-bottom:40px}
+
+/* Grid of configs */
+.grid{display:flex;flex-wrap:wrap;gap:36px;justify-content:center;align-items:flex-start}
+.col{display:flex;flex-direction:column;align-items:center;gap:14px;width:310px}
+.col-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t2)}
+.col-name{font-family:var(--pf);font-size:17px;font-weight:400;color:var(--t1);text-align:center;line-height:1.2}
+.col-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;display:inline-block}
+.tag-r{background:rgba(217,0,18,.12);color:var(--primary)}
+.tag-b{background:rgba(90,95,204,.12);color:var(--info)}
+.tag-g{background:rgba(61,203,92,.12);color:var(--success)}
+.tag-w{background:rgba(180,83,9,.12);color:var(--warning)}
+
+/* Phone */
+.phone{width:310px;border-radius:38px;overflow:hidden;
+  box-shadow:0 22px 60px rgba(0,0,0,.32),0 6px 18px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.35);
+  border:5px solid #222}
+.notch{height:24px;background:#222;display:flex;align-items:center;justify-content:center;gap:7px}
+.ns{width:46px;height:6px;background:#1a1a1a;border-radius:3px}
+.nc{width:9px;height:9px;background:#1a1a1a;border-radius:50%}
+.scr{background:var(--bg);min-height:560px}
+.hp{height:22px;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.hb{width:84px;height:4px;background:rgba(0,0,0,.14);border-radius:2px}
+
+/* ─── atoms ─── */
+.H{padding:11px 16px 6px;display:flex;align-items:center;justify-content:space-between}
+.lname{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t2)}
+.sync{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t2);background:var(--sfc);padding:3px 7px;border-radius:100px;box-shadow:var(--sh-b)}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--success)}
+.av{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-b)}
+.gr{padding:3px 16px 10px}
+.gt{font-size:9px;color:var(--t2);margin-bottom:1px}
+.gn{font-family:var(--pf);font-size:20px;font-weight:400;color:var(--t1);letter-spacing:-.02em;line-height:1.1}
+
+/* Role tabs */
+.rtabs{margin:0 12px 10px;background:var(--prs);border-radius:14px;padding:3px;display:flex;box-shadow:var(--sh-i)}
+.rtab{flex:1;padding:6px 4px;border-radius:11px;font-size:10px;font-weight:600;text-align:center;color:var(--t2)}
+.rtab small{display:block;font-size:8px;opacity:.6;margin-top:1px}
+.rtab.on{background:var(--elv);color:var(--t1);box-shadow:var(--sh-b)}
+
+/* KPI mini */
+.krow{display:flex;gap:6px;padding:0 12px 8px}
+.k{background:var(--sfc);border-radius:12px;padding:9px 9px;box-shadow:var(--sh-b);flex:1}
+.kn{font-family:var(--pf);font-size:20px;font-weight:300;line-height:1}
+.kl{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--t3);margin-top:3px;line-height:1.2}
+
+/* Hero blocks */
+.hb2{border-radius:14px;padding:11px 13px}
+.hb2.D{background:rgba(217,0,18,.09)}
+.hb2.T{background:rgba(90,95,204,.09)}
+.hb2.G{background:rgba(61,203,92,.09)}
+.hb2.W{background:rgba(212,168,67,.11)}
+.hl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.hb2.D .hl{color:var(--primary)}.hb2.T .hl{color:var(--info)}.hb2.G .hl{color:var(--success)}.hb2.W .hl{color:var(--gold)}
+.hn{font-family:var(--pf);font-size:28px;font-weight:300;line-height:1}
+.hb2.D .hn{color:var(--primary)}.hb2.T .hn{color:var(--info)}.hb2.G .hn{color:var(--success)}.hb2.W .hn{color:var(--gold)}
+.hd{font-size:10px;color:var(--t2);margin-top:2px}
+.hcta{font-size:10px;font-weight:700;margin-top:5px;display:flex;align-items:center;gap:2px}
+.hb2.D .hcta{color:var(--primary)}.hb2.T .hcta{color:var(--info)}.hb2.W .hcta{color:var(--warning)}
+
+/* Task list */
+.tlist{padding:0 12px 6px;display:flex;flex-direction:column;gap:4px}
+.ti{background:var(--sfc);border-radius:12px;padding:9px 11px;display:flex;gap:9px;align-items:center;box-shadow:var(--sh-b)}
+.tn{font-family:var(--pf);font-size:12px;font-weight:300;color:var(--t3);width:14px;flex-shrink:0;text-align:center}
+.tb{flex:1;min-width:0}
+.tname{font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tph{font-size:9px;color:var(--t2);margin-top:2px}
+.tr{text-align:right;flex-shrink:0}
+.tt{font-size:10px;font-weight:700;color:var(--t1)}
+.td{font-size:8px;color:var(--t3)}
+.pr{height:3px;background:var(--prs);border-radius:2px;margin-top:4px;overflow:hidden}
+.pf{height:100%;border-radius:2px}
+
+/* Blocco */
+.bl{margin:0 12px 8px;background:rgba(217,0,18,.08);border:1px solid rgba(217,0,18,.16);border-radius:13px;padding:9px 11px}
+.blt{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.bld{width:7px;height:7px;border-radius:50%;background:var(--primary)}
+.btn2{font-size:11px;font-weight:700;color:var(--primary)}
+.bls{font-size:9px;color:var(--t2)}
+.blcta{font-size:9px;font-weight:700;color:var(--primary);margin-top:5px;display:inline-flex;align-items:center;gap:2px}
+
+/* Section */
+.sec{padding:5px 16px 3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3)}
+
+/* Nav pill */
+.nav{margin:6px 12px 0;background:var(--elv);border-radius:100px;display:flex;align-items:center;padding:4px 5px;box-shadow:var(--sh-b);gap:2px;position:relative}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 7px;border-radius:100px;min-width:44px;cursor:pointer;position:relative}
+.ni.on{background:var(--prs);box-shadow:var(--sh-i)}
+.ni-ic{font-size:14px;line-height:1}
+.ni-lb{font-size:7.5px;font-weight:600;color:var(--t2)}
+.ni.on .ni-lb{color:var(--primary);font-weight:700}
+
+/* NAV CTA with tooltip */
+.ncta{width:44px;height:44px;border-radius:50%;background:var(--elv);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-b);color:var(--primary);font-size:20px;font-weight:700;flex-shrink:0;cursor:pointer;position:relative}
+.ncta-tip{position:absolute;bottom:54px;left:50%;transform:translateX(-50%);background:var(--t1);color:var(--elv);font-size:9px;font-weight:600;padding:4px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;box-shadow:var(--sh-b)}
+.ncta-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--t1)}
+
+/* Drag handle indicator */
+.drag-mode .ni::after{content:'⠿';position:absolute;top:2px;right:2px;font-size:8px;color:var(--t3);opacity:.6}
+.drag-mode .nav{outline:2px dashed rgba(217,0,18,.25);outline-offset:3px}
+
+/* Pin indicator */
+.pin-star{position:absolute;top:0;right:0;font-size:8px}
+
+/* Chart mini */
+.cmini{margin:0 12px 7px;background:var(--sfc);border-radius:13px;padding:11px 13px;box-shadow:var(--sh-b)}
+.ch{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.ctl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2)}
+.ctv{font-family:var(--pf);font-size:16px;font-weight:300;color:var(--t1)}
+.bars2{display:flex;gap:4px;align-items:flex-end;height:36px}
+.bar2{flex:1;border-radius:3px 3px 0 0;background:rgba(217,0,18,.18);min-height:3px}
+.bar2.cur{background:var(--primary)}
+
+/* Spotlight layout */
+.spot-big{margin:0 12px 8px;background:var(--sfc);border-radius:18px;padding:14px;box-shadow:var(--sh-c);position:relative}
+.spot-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);margin-bottom:4px}
+.spot-title{font-family:var(--pf);font-size:17px;font-weight:400;color:var(--t1);letter-spacing:-.01em;line-height:1.2;margin-bottom:4px}
+.spot-sub{font-size:10px;color:var(--t2);line-height:1.4}
+.spot-num{font-family:var(--pf);font-size:40px;font-weight:300;color:var(--primary);line-height:1;position:absolute;top:14px;right:16px}
+.spot-prog{margin-top:8px;height:4px;background:var(--prs);border-radius:2px;overflow:hidden}
+.spot-pf{height:100%;border-radius:2px;background:var(--primary)}
+.spot-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.spot-cta{font-size:10px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:3px}
+.spot-ts{font-size:9px;color:var(--t3)}
+
+/* Small cards row */
+.srow{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 12px 6px}
+.sc{background:var(--sfc);border-radius:13px;padding:10px 11px;box-shadow:var(--sh-b)}
+.sc-n{font-family:var(--pf);font-size:20px;font-weight:300;line-height:1}
+.sc-l{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--t3);margin-top:3px}
+.sc-sub{font-size:10px;color:var(--t2);margin-top:4px;line-height:1.3}
+
+/* Briefing */
+.brief{margin:0 12px 10px;background:var(--sfc);border-radius:16px;padding:13px 14px;box-shadow:var(--sh-c)}
+.brief-head{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.brief-text{font-family:var(--pf);font-size:13px;font-weight:400;color:var(--t1);line-height:1.5;letter-spacing:-.01em}
+.brief-text strong{color:var(--primary)}
+.brief-text em{color:var(--info);font-style:normal;font-weight:600}
+.brief-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.brief-btn{background:var(--elv);border-radius:100px;padding:5px 12px;font-size:10px;font-weight:600;color:var(--t1);box-shadow:var(--sh-b)}
+.brief-btn.primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(217,0,18,.28)}
+
+/* Quadrant desktop hint */
+.qdesc{font-size:10px;color:var(--t2);text-align:center;margin-top:4px;line-height:1.4;padding:0 8px}
+
+/* Annotation */
+.ann{background:rgba(255,255,255,.6);border-radius:13px;padding:12px 13px;backdrop-filter:blur(8px);width:310px}
+.ann h4{font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.ann-r{display:flex;gap:7px;align-items:flex-start;margin-bottom:5px;font-size:10px;color:var(--t2);line-height:1.4}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dr{background:var(--primary)}.db{background:var(--info)}.dg{background:var(--success)}.dw{background:var(--gold)}.d_{background:var(--t3)}
+
+/* Bottom bar */
+.bot{position:fixed;bottom:0;left:0;right:0;background:rgba(28,25,22,.94);backdrop-filter:blur(16px);padding:13px 22px;display:flex;align-items:center;justify-content:space-between;z-index:100}
+.bot-t{color:#F0EDE8;font-size:13px;font-weight:600}
+.bot-s{color:rgba(240,237,232,.45);font-size:10px;margin-top:2px}
+
+.divider{height:1px;background:rgba(0,0,0,.06);margin:2px 12px 6px}
+</style>
+</head>
+<body>
+
+<h1>Dashboard V2 — 4 Configurazioni</h1>
+<div class="sub">DS v2.2 Warm Panna · Neumorphismo fisico · Playfair per i numeri · No dark toggle visibile</div>
+
+<div class="grid">
+
+<!-- ═══════════════════ CONFIG 1: SPOTLIGHT ═════════════════ -->
+<div class="col" id="c1" onclick="sel(1)">
+  <div class="col-label">Config 1</div>
+  <div class="col-name">Spotlight<br><small style="font-size:13px;color:var(--t2);font-family:var(--dm)">Un'azione, tutto il peso</small></div>
+  <div class="col-tag tag-r">★ Più forte</div>
+
+  <div class="phone">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr">
+
+      <div class="H">
+        <div><div class="lname">LAB OPROMOLLA</div><div class="sync"><div class="sdot"></div>Aggiornato ora</div></div>
+        <div class="av">FO</div>
+      </div>
+
+      <div class="gr">
+        <div class="gt">venerdì 22 maggio · pomeriggio</div>
+        <div class="gn">Filippo</div>
+      </div>
+
+      <div class="rtabs">
+        <div class="rtab">📊 Gestione<small>business</small></div>
+        <div class="rtab on">🔧 Produzione<small>i miei lavori</small></div>
+      </div>
+
+      <!-- SPOTLIGHT: UN'azione in evidenza -->
+      <div class="spot-big">
+        <div class="spot-eyebrow">⛔ Blocco attivo</div>
+        <div class="spot-title">Impronta non idonea</div>
+        <div class="spot-sub">ESPOSITO MASSIMO · #2026/0002<br>Consegna oggi ore 17:00</div>
+        <div class="spot-num">!</div>
+        <div class="spot-footer">
+          <div class="spot-cta">Risolvi subito →</div>
+          <div class="spot-ts">3 min fa</div>
+        </div>
+      </div>
+
+      <!-- 2x2 small cards sotto lo spotlight -->
+      <div class="srow">
+        <div class="sc"><div class="sc-n" style="color:var(--info)">3</div><div class="sc-l">Da consegnare</div><div class="sc-sub">1 pronto · 2 in lav.</div></div>
+        <div class="sc"><div class="sc-n" style="color:var(--gold)">5</div><div class="sc-l">Da fatturare</div><div class="sc-sub">€ 0 stimato</div></div>
+      </div>
+
+      <!-- Task #1 (il più urgente dopo blocco) -->
+      <div class="sec">Prossimo</div>
+      <div class="tlist">
+        <div class="ti">
+          <div class="tn">1</div>
+          <div class="tb">
+            <div class="tname">STUDIO DENTISTICO ROSSI</div>
+            <div class="tph">🟡 Finitura · lucidatura · oggi 18:30</div>
+            <div class="pr"><div class="pf" style="width:78%;background:var(--gold)"></div></div>
+          </div>
+          <div class="tr"><div class="tt">18:30</div><div class="td">oggi</div></div>
+        </div>
+        <div class="ti">
+          <div class="tn">2</div>
+          <div class="tb">
+            <div class="tname">DI SANTI CATERINA</div>
+            <div class="tph">🟢 Pronta · imballare</div>
+            <div class="pr"><div class="pf" style="width:96%;background:var(--success)"></div></div>
+          </div>
+          <div class="tr"><div class="tt">09:00</div><div class="td">domani</div></div>
+        </div>
+      </div>
+
+      <!-- NAV con tooltip e drag indicator -->
+      <div class="nav" id="nav1">
+        <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+        <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+        <div class="ncta">+<div class="ncta-tip">Nuovo lavoro</div></div>
+        <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+        <div class="ni"><div class="ni-ic">⋯</div><div class="ni-lb">Altro</div><div class="pin-star">📌</div></div>
+      </div>
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="ann">
+    <h4>Spotlight — un problema, tutto il peso</h4>
+    <div class="ann-r"><div class="dot dr"></div>Card spotlight grande per blocco/urgenza più grave</div>
+    <div class="ann-r"><div class="dot db"></div>2x2 grid secondario: quick numbers (consegne, fatturato)</div>
+    <div class="ann-r"><div class="dot dg"></div>Lista task sotto per scorrere: ordine urgenza + scadenza</div>
+    <div class="ann-r"><div class="dot dw"></div>📌 pin sul tab "Altro" — personalizzabile</div>
+    <div class="ann-r"><div class="dot d_"></div>Tooltip "Nuovo lavoro" sempre visibile sul "+"</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CONFIG 2: BRIEFING ═════════════════ -->
+<div class="col" id="c2" onclick="sel(2)">
+  <div class="col-label">Config 2</div>
+  <div class="col-name">Briefing<br><small style="font-size:13px;color:var(--t2);font-family:var(--dm)">La app ti parla</small></div>
+  <div class="col-tag tag-b">Narrativo</div>
+
+  <div class="phone">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr">
+
+      <div class="H">
+        <div><div class="lname">LAB OPROMOLLA</div><div class="sync"><div class="sdot"></div>Aggiornato ora</div></div>
+        <div class="av">FO</div>
+      </div>
+
+      <div class="gr">
+        <div class="gt">venerdì 22 maggio · pomeriggio</div>
+        <div class="gn">Filippo</div>
+      </div>
+
+      <div class="rtabs">
+        <div class="rtab">📊 Gestione</div>
+        <div class="rtab on">🔧 Produzione</div>
+      </div>
+
+      <!-- BRIEFING card: la app ti racconta la giornata -->
+      <div class="brief">
+        <div class="brief-head">La tua giornata</div>
+        <div class="brief-text">
+          Hai <strong>1 blocco</strong> su ESPOSITO MASSIMO che impedisce la consegna di oggi. <em>3 consegne</em> attive, di cui 1 pronta e 2 in lavorazione.
+        </div>
+        <div class="brief-actions">
+          <div class="brief-btn primary">Risolvi blocco →</div>
+          <div class="brief-btn">Vedi consegne</div>
+        </div>
+      </div>
+
+      <!-- KPI row compatta -->
+      <div class="krow">
+        <div class="k"><div class="kn" style="color:var(--primary)">1</div><div class="kl">Blocchi</div></div>
+        <div class="k"><div class="kn" style="color:var(--info)">3</div><div class="kl">Oggi</div></div>
+        <div class="k"><div class="kn" style="color:var(--gold)">5</div><div class="kl">Da fatt.</div></div>
+        <div class="k"><div class="kn" style="color:var(--success)">4</div><div class="kl">Materiali</div></div>
+      </div>
+
+      <div class="sec">I miei lavori</div>
+      <div class="tlist">
+        <div class="ti">
+          <div class="tn">1</div>
+          <div class="tb"><div class="tname">STUDIO ROSSI</div><div class="tph">🟡 Finitura · 78%</div><div class="pr"><div class="pf" style="width:78%;background:var(--gold)"></div></div></div>
+          <div class="tr"><div class="tt">18:30</div><div class="td">oggi</div></div>
+        </div>
+        <div class="ti">
+          <div class="tn">2</div>
+          <div class="tb"><div class="tname">DI SANTI</div><div class="tph">🟢 Pronta · 96%</div><div class="pr"><div class="pf" style="width:96%;background:var(--success)"></div></div></div>
+          <div class="tr"><div class="tt">09:00</div><div class="td">dom</div></div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+        <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+        <div class="ncta">+<div class="ncta-tip">Nuovo lavoro</div></div>
+        <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+        <div class="ni"><div class="ni-ic">⋯</div><div class="ni-lb">Altro</div></div>
+      </div>
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="ann">
+    <h4>Briefing — la app ti racconta la giornata</h4>
+    <div class="ann-r"><div class="dot dr"></div>Card narrativa: frase completa con CTA contestuali</div>
+    <div class="ann-r"><div class="dot db"></div>Riduce cognitive load — non devi interpretare i numeri</div>
+    <div class="ann-r"><div class="dot dg"></div>KPI sotto come verifica, non come starting point</div>
+    <div class="ann-r"><div class="dot d_"></div>Funziona bene per titolari che vogliono "capire subito"</div>
+    <div class="ann-r"><div class="dot dw"></div>Il testo è generato lato server con i dati reali</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CONFIG 3: TIMELINE ═════════════════ -->
+<div class="col" id="c3" onclick="sel(3)">
+  <div class="col-label">Config 3</div>
+  <div class="col-name">Timeline<br><small style="font-size:13px;color:var(--t2);font-family:var(--dm)">Ordine temporale puro</small></div>
+  <div class="col-tag tag-g">Cronologico</div>
+
+  <div class="phone">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr">
+
+      <div class="H">
+        <div><div class="lname">LAB OPROMOLLA</div><div class="sync"><div class="sdot"></div>Aggiornato ora</div></div>
+        <div class="av">FO</div>
+      </div>
+
+      <div class="gr">
+        <div class="gt">venerdì 22 maggio</div>
+        <div class="gn">Filippo</div>
+      </div>
+
+      <div class="rtabs">
+        <div class="rtab">📊 Gestione</div>
+        <div class="rtab on">🔧 Produzione</div>
+      </div>
+
+      <!-- BLOCCO sopra tutto (override temporale) -->
+      <div class="bl">
+        <div class="blt"><div class="bld"></div><div class="btn2">⛔ Blocco · ESPOSITO MASSIMO</div></div>
+        <div class="bls">Impronta non idonea · oggi ore 17:00</div>
+        <div class="blcta">Risolvi →</div>
+      </div>
+
+      <!-- Timeline groups -->
+      <div style="padding:0 12px">
+
+        <!-- OGGI -->
+        <div style="margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--info);display:flex;align-items:center;gap:8px;padding:0 0 5px">
+            <span>📦 OGGI</span>
+            <div style="flex:1;height:1px;background:rgba(90,95,204,.2)"></div>
+            <span style="color:var(--t3)">22 mag</span>
+          </div>
+          <div class="ti" style="margin-bottom:4px">
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0"></div>
+            <div class="tb"><div class="tname">STUDIO DENTISTICO ROSSI</div><div class="tph">Finitura · ore 18:30</div><div class="pr"><div class="pf" style="width:78%;background:var(--gold)"></div></div></div>
+            <div class="tr"><div class="tt" style="color:var(--gold)">78%</div></div>
+          </div>
+        </div>
+
+        <!-- DOMANI -->
+        <div style="margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);display:flex;align-items:center;gap:8px;padding:0 0 5px">
+            <span>DOMANI</span>
+            <div style="flex:1;height:1px;background:var(--prs)"></div>
+            <span style="color:var(--t3)">23 mag</span>
+          </div>
+          <div class="ti" style="margin-bottom:4px">
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--success);flex-shrink:0"></div>
+            <div class="tb"><div class="tname">DI SANTI CATERINA</div><div class="tph">Pronta · imballare · ore 09:00</div><div class="pr"><div class="pf" style="width:96%;background:var(--success)"></div></div></div>
+            <div class="tr"><div class="tt">PRONTO</div></div>
+          </div>
+          <div class="ti">
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--info);flex-shrink:0"></div>
+            <div class="tb"><div class="tname">STUDI MEDICI DI SANTI</div><div class="tph">Modellazione · ore 11:00</div><div class="pr"><div class="pf" style="width:42%;background:var(--info)"></div></div></div>
+            <div class="tr"><div class="tt" style="color:var(--info)">42%</div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="nav">
+        <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+        <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+        <div class="ncta">+<div class="ncta-tip">Nuovo lavoro</div></div>
+        <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+        <div class="ni"><div class="ni-ic">⋯</div><div class="ni-lb">Altro</div></div>
+      </div>
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="ann">
+    <h4>Timeline — ordine temporale puro</h4>
+    <div class="ann-r"><div class="dot dr"></div>Blocchi sempre in cima (override cronologico)</div>
+    <div class="ann-r"><div class="dot db"></div>Gruppi: SCADUTO → OGGI → DOMANI → SETTIMANA</div>
+    <div class="ann-r"><div class="dot dg"></div>Mental model naturale per tecnico al banco</div>
+    <div class="ann-r"><div class="dot dw"></div>Progress bar % da lavori_fasi reali</div>
+    <div class="ann-r"><div class="dot d_"></div>Dot colorato per fase: gold=lavorazione, green=pronto, blue=mod.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CONFIG 4: QUADRANT (DESKTOP) ════════ -->
+<div class="col" id="c4" onclick="sel(4)">
+  <div class="col-label">Config 4</div>
+  <div class="col-name">Quadrant<br><small style="font-size:13px;color:var(--t2);font-family:var(--dm)">Desktop-first, tutto visibile</small></div>
+  <div class="col-tag tag-w">1280px+</div>
+
+  <div class="phone">
+    <div class="notch"><div class="ns"></div><div class="nc"></div></div>
+    <div class="scr">
+
+      <div class="H">
+        <div><div class="lname">LAB OPROMOLLA</div><div class="sync"><div class="sdot"></div>Aggiornato ora</div></div>
+        <div class="av">FO</div>
+      </div>
+      <div class="gr">
+        <div class="gt">venerdì 22 maggio</div>
+        <div class="gn">Filippo</div>
+      </div>
+      <div class="rtabs">
+        <div class="rtab">📊 Gestione</div>
+        <div class="rtab on">🔧 Produzione</div>
+      </div>
+
+      <!-- Su mobile: hero blocks verticali; su desktop: 2x2 grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 12px 7px">
+        <div class="hb2 D" style="grid-column:1/-1">
+          <div class="hl">⛔ Blocco attivo</div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <div class="hn">1</div>
+            <div style="font-size:10px;color:var(--t2)">ESPOSITO MASSIMO · oggi 17:00</div>
+          </div>
+          <div class="hcta">Risolvi subito →</div>
+        </div>
+        <div class="hb2 T">
+          <div class="hl">📦 Consegne oggi</div>
+          <div class="hn">3</div>
+          <div class="hd">1 pronta</div>
+        </div>
+        <div class="hb2 G">
+          <div class="hl">✓ In produzione</div>
+          <div class="hn">4</div>
+          <div class="hd">attivi</div>
+        </div>
+      </div>
+
+      <!-- Mini chart compresso -->
+      <div class="cmini" style="margin:0 12px 6px">
+        <div class="ch"><div class="ctl">Fatturato</div><div class="ctv">€0</div></div>
+        <div class="bars2">
+          <div class="bar2" style="height:55%"></div><div class="bar2" style="height:75%"></div>
+          <div class="bar2" style="height:40%"></div><div class="bar2" style="height:85%"></div>
+          <div class="bar2" style="height:50%"></div><div class="bar2 cur" style="height:15%"></div>
+        </div>
+      </div>
+
+      <!-- nav edit mode preview -->
+      <div class="sec" style="padding:3px 12px 5px">Nav personalizzabile (tieni premuto per modificare)</div>
+      <div class="nav drag-mode">
+        <div class="ni on"><div class="ni-ic">⊞</div><div class="ni-lb">Oggi</div></div>
+        <div class="ni"><div class="ni-ic">≡</div><div class="ni-lb">Lavori</div></div>
+        <div class="ncta">+<div class="ncta-tip">Nuovo lavoro</div></div>
+        <div class="ni"><div class="ni-ic">👤</div><div class="ni-lb">Clienti</div></div>
+        <div class="ni"><div class="ni-ic">📊</div><div class="ni-lb">Analisi</div><div class="pin-star">📌</div></div>
+      </div>
+
+    </div>
+    <div class="hp"><div class="hb"></div></div>
+  </div>
+
+  <div class="qdesc">Su desktop 1280px: 2×2 grid a piena larghezza — Produzione | Blocchi | Business | Agenda. Stack verticale su mobile.</div>
+
+  <div class="ann">
+    <h4>Quadrant — 4 zone sempre visibili su desktop</h4>
+    <div class="ann-r"><div class="dot dr"></div>Mobile: hero blocks + chart compresso</div>
+    <div class="ann-r"><div class="dot db"></div>Desktop: 2×2 grid — Produzione · Blocchi · Business · Agenda</div>
+    <div class="ann-r"><div class="dot dg"></div>Nav in "edit mode" con handle drag (tieni premuto)</div>
+    <div class="ann-r"><div class="dot dw"></div>📌 Pin su qualsiasi tab — sostituisce "Altro"</div>
+    <div class="ann-r"><div class="dot d_"></div>Tooltip sul "+" — sempre visibile nel design</div>
+  </div>
+</div>
+
+</div><!-- end grid -->
+
+<div style="max-width:1300px;margin:40px auto 0;background:rgba(255,255,255,.55);border-radius:16px;padding:20px 28px;backdrop-filter:blur(8px)">
+  <div style="font-family:var(--pf);font-size:15px;font-weight:400;color:var(--t1);margin-bottom:12px">Note architetturali comuni a tutti i config</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;font-size:11px;color:var(--t2);line-height:1.5">
+    <div><strong style="color:var(--t1)">Nav tooltip "+"</strong> — visibile sempre, testo "Nuovo lavoro". Su hover/focus desktop. Su mobile: compare breve come hint al primo accesso.</div>
+    <div><strong style="color:var(--t1)">Drag &amp; drop nav</strong> — long press su qualsiasi tab apre "edit mode" (outline tratteggiato, handle drag). Salva ordine in localStorage + DB user preferences.</div>
+    <div><strong style="color:var(--t1)">Pin shortcuts</strong> — tieni premuto un tab → "Sostituisci con..." → menu di tutte le pagine disponibili → salva. Il tab "Altro" è il default ripristinabile.</div>
+    <div><strong style="color:var(--t1)">Dark/light</strong> — solo in /impostazioni. Auto sistema default. Nessun toggle visibile nell'app operativa.</div>
+    <div><strong style="color:var(--t1)">Avatar nell'header</strong> — integrato, non fisso overlay. Apre UserProfileSheet su tap. Non copre mai il titolo.</div>
+    <div><strong style="color:var(--t1)">Sync badge</strong> — sostituisce "LIVE". Mostra timestamp reale: "Aggiornato ora / 3 min fa". Dot verde = Realtime attivo.</div>
+  </div>
+</div>
+
+<div class="bot">
+  <div><div class="bot-t" id="seltext">Clicca un config per selezionarlo</div><div class="bot-s">Poi dimmi cosa preferisci o cosa cambiare</div></div>
+</div>
+
+<script>
+let cur=null;
+function sel(n){
+  [1,2,3,4].forEach(i=>{
+    const el=document.getElementById('c'+i);
+    if(el) el.style.outline='none';
+  });
+  cur=n;
+  const el=document.getElementById('c'+n);
+  if(el) el.style.outline='2px solid var(--primary)';
+  el.style.outlineOffset='8px';
+  const names={1:'Config 1 — Spotlight',2:'Config 2 — Briefing',3:'Config 3 — Timeline',4:'Config 4 — Quadrant Desktop'};
+  document.getElementById('seltext').textContent='✓ Selezionato: '+names[n];
+  if(window.__recordSelection) window.__recordSelection('config'+n, names[n]);
+}
+</script>
+</body>
+</html>

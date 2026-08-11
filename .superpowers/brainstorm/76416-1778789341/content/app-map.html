@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Mappa Completa PWA</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e8e0f0;
+    padding: 32px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: #9989b0;
+    margin-bottom: 32px;
+  }
+  .zones {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .zone {
+    background: #252540;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .zone-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .zone-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .zone-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .zone-route {
+    font-size: 11px;
+    color: #9989b0;
+    font-family: monospace;
+  }
+  .modules {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .module {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+  }
+  .module:hover {
+    background: rgba(255,255,255,0.08);
+  }
+  .module-icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+  .module-info { flex: 1; }
+  .module-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8e0f0;
+    margin-bottom: 2px;
+  }
+  .module-desc {
+    font-size: 11px;
+    color: #776688;
+    line-height: 1.4;
+  }
+  .module-screens {
+    font-size: 10px;
+    color: #554466;
+    margin-top: 3px;
+  }
+  .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+  .badge-hero { background: #D90012; color: #fff; }
+  .badge-ok { background: #16803a; color: #fff; }
+  .badge-fix { background: #b45309; color: #fff; }
+  .badge-todo { background: #333355; color: #9989b0; }
+
+  /* Zone colors */
+  .z-app .zone-icon { background: #D90012; }
+  .z-auth .zone-icon { background: #2563EB; }
+  .z-admin .zone-icon { background: #7C3AED; }
+  .z-portale .zone-icon { background: #059669; }
+  .z-public .zone-icon { background: #6B7280; }
+
+  .flows-section {
+    margin-top: 28px;
+    background: #252540;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .flows-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .flows-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .flow {
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border-left: 3px solid;
+  }
+  .flow-name { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .flow-time { font-size: 10px; margin-bottom: 6px; }
+  .flow-steps { font-size: 10px; color: #776688; line-height: 1.6; }
+  .flow-1 { border-color: #D90012; }
+  .flow-2 { border-color: #16A34A; }
+  .flow-3 { border-color: #2563EB; }
+  .flow-4 { border-color: #7C3AED; }
+  .flow-5 { border-color: #B45309; }
+  .flow-1 .flow-time { color: #D90012; }
+  .flow-2 .flow-time { color: #16A34A; }
+  .flow-3 .flow-time { color: #2563EB; }
+  .flow-4 .flow-time { color: #7C3AED; }
+  .flow-5 .flow-time { color: #B45309; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #9989b0;
+  }
+  .legend-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+
+  .db-section {
+    margin-top: 20px;
+    background: #252540;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .db-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .db-table {
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .db-table-name { font-size: 12px; font-weight: 600; color: #D4A843; font-family: monospace; }
+  .db-table-desc { font-size: 10px; color: #665577; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<h1>UÀ PWA — Mappa Completa</h1>
+<p class="subtitle">50+ schermate · 5 zone · 8 flow operativi · 14 moduli core</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-badge badge-hero">HERO</span> Operazione core</div>
+  <div class="legend-item"><span class="legend-badge badge-ok">OK</span> Implementato</div>
+  <div class="legend-item"><span class="legend-badge badge-fix">FIX</span> Bug da correggere</div>
+  <div class="legend-item"><span class="legend-badge badge-todo">TODO</span> Da fare / UI da rifare</div>
+</div>
+
+<div class="zones">
+
+  <!-- ZONA AUTH -->
+  <div class="zone z-auth">
+    <div class="zone-header">
+      <div class="zone-icon">🔐</div>
+      <div>
+        <div class="zone-name">Auth</div>
+        <div class="zone-route">/(auth)/*</div>
+      </div>
+    </div>
+    <div class="modules">
+      <div class="module">
+        <div class="module-icon">🔑</div>
+        <div class="module-info">
+          <div class="module-name">Login</div>
+          <div class="module-desc">Email+password, passkey WebAuthn (Touch ID), link magico</div>
+          <div class="module-screens">Screen: login</div>
+        </div>
+        <span class="badge badge-ok">OK</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">📧</div>
+        <div class="module-info">
+          <div class="module-name">Reset Password</div>
+          <div class="module-desc">Forgot + reset via email</div>
+          <div class="module-screens">Screen: forgot, reset</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">✉️</div>
+        <div class="module-info">
+          <div class="module-name">Inviti</div>
+          <div class="module-desc">Registrazione tramite invito da Francesco</div>
+          <div class="module-screens">Screen: invite/[token]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONA APP CORE -->
+  <div class="zone z-app" style="grid-column: span 2;">
+    <div class="zone-header">
+      <div class="zone-icon">⚡</div>
+      <div>
+        <div class="zone-name">App Core — Zona Operativa</div>
+        <div class="zone-route">/(app)/*  — richiede auth</div>
+      </div>
+    </div>
+    <div class="modules" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+
+      <div class="module">
+        <div class="module-icon">🏠</div>
+        <div class="module-info">
+          <div class="module-name">Dashboard</div>
+          <div class="module-desc">3 KPI (ritardi, oggi, fatturato mese), lista lavori urgenti, agenda giornaliera</div>
+          <div class="module-screens">Screens: /dashboard</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">📋</div>
+        <div class="module-info">
+          <div class="module-name">Lavori</div>
+          <div class="module-desc">Lista commesse, filtri stato, ricerca, card C con timeline</div>
+          <div class="module-screens">Screens: /lavori, /lavori/[id]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module" style="border: 1px solid #D90012;">
+        <div class="module-icon">🚀</div>
+        <div class="module-info">
+          <div class="module-name">CONSEGNA</div>
+          <div class="module-desc">1 tap → DdC + Buono + Fattura generati in parallelo → PEC + WhatsApp</div>
+          <div class="module-screens">Screen: /lavori/[id]/consegna</div>
+        </div>
+        <span class="badge badge-hero">HERO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">➕</div>
+        <div class="module-info">
+          <div class="module-name">Nuovo Lavoro</div>
+          <div class="module-desc">Wizard 5 step: dentista → paziente → tipo → data → note</div>
+          <div class="module-screens">Screen: /lavori/nuovo</div>
+        </div>
+        <span class="badge badge-fix">FIX</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">👨‍⚕️</div>
+        <div class="module-info">
+          <div class="module-name">Clienti (Dentisti)</div>
+          <div class="module-desc">Anagrafica dentisti/studi, storico lavori, fatturato</div>
+          <div class="module-screens">Screens: /clienti, /clienti/[id]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">🧑‍🦱</div>
+        <div class="module-info">
+          <div class="module-name">Pazienti</div>
+          <div class="module-desc">Archivio pseudonimizzato GDPR, storico lavori per paziente</div>
+          <div class="module-screens">Screens: /pazienti, /pazienti/[id]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">📦</div>
+        <div class="module-info">
+          <div class="module-name">Magazzino</div>
+          <div class="module-desc">Inventario materiali, tracciabilità lotto MDR, consumo automatico</div>
+          <div class="module-screens">Screens: /magazzino, /magazzino/[id]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">💰</div>
+        <div class="module-info">
+          <div class="module-name">Listino</div>
+          <div class="module-desc">72+ lavorazioni, prezzi personalizzati per cliente/dentista</div>
+          <div class="module-screens">Screens: /listino</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">🧾</div>
+        <div class="module-info">
+          <div class="module-name">Fatture</div>
+          <div class="module-desc">FatturaPA XML, 8 stati SDI, bollo €2, N4 IVA, invio PEC/SdI</div>
+          <div class="module-screens">Screens: /fatture, /fatture/[id]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">📅</div>
+        <div class="module-info">
+          <div class="module-name">Agenda</div>
+          <div class="module-desc">Calendario consegne e prove, vista giornaliera/settimanale</div>
+          <div class="module-screens">Screen: /agenda</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">📊</div>
+        <div class="module-info">
+          <div class="module-name">Analytics</div>
+          <div class="module-desc">KPI storici, trend fatturato, performance tecnici, lavorazioni più frequenti</div>
+          <div class="module-screens">Screen: /analytics</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">👷</div>
+        <div class="module-info">
+          <div class="module-name">Tecnici</div>
+          <div class="module-desc">Team lab, assegnamento fasi, ore lavorate, performance</div>
+          <div class="module-screens">Screen: /tecnici</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">🏥</div>
+        <div class="module-info">
+          <div class="module-name">Qualità MDR</div>
+          <div class="module-desc">PSUR annuale, DdC, rischi, incidenti, registro ITCA</div>
+          <div class="module-screens">Screens: /qualita, /psur, /rischi, /incidenti</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+      <div class="module">
+        <div class="module-icon">🌐</div>
+        <div class="module-info">
+          <div class="module-name">Rete Multi-lab</div>
+          <div class="module-desc">Gestione network di laboratori, consolidato rete</div>
+          <div class="module-screens">Screen: /rete</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ZONA ADMIN -->
+  <div class="zone z-admin">
+    <div class="zone-header">
+      <div class="zone-icon">👑</div>
+      <div>
+        <div class="zone-name">Admin Francesco</div>
+        <div class="zone-route">/admin/*  — solo Francesco</div>
+      </div>
+    </div>
+    <div class="modules">
+      <div class="module">
+        <div class="module-icon">🏭</div>
+        <div class="module-info">
+          <div class="module-name">Gestione Laboratori</div>
+          <div class="module-desc">Crea lab, gestisce stato (trial→attivo→sospeso), whitelist/blacklist</div>
+          <div class="module-screens">Screens: /admin, /admin/lab/[id]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">💳</div>
+        <div class="module-info">
+          <div class="module-name">Billing & Piani</div>
+          <div class="module-desc">Stripe subscriptions, stato abbonamenti, revenue</div>
+          <div class="module-screens">Screens: /admin/billing</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">📤</div>
+        <div class="module-info">
+          <div class="module-name">Inviti</div>
+          <div class="module-desc">Invia inviti ai titolari, gestisce onboarding</div>
+          <div class="module-screens">Screen: /admin/inviti</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONA PORTALE -->
+  <div class="zone z-portale">
+    <div class="zone-header">
+      <div class="zone-icon">🦷</div>
+      <div>
+        <div class="zone-name">Portale Dentista</div>
+        <div class="zone-route">/portale/*  — no login, token temporaneo</div>
+      </div>
+    </div>
+    <div class="modules">
+      <div class="module">
+        <div class="module-icon">👁️</div>
+        <div class="module-info">
+          <div class="module-name">Stato Lavori</div>
+          <div class="module-desc">Il dentista vede i propri lavori aperti senza login. Read-only.</div>
+          <div class="module-screens">Screen: /portale/[token]</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">📄</div>
+        <div class="module-info">
+          <div class="module-name">Documenti DdC</div>
+          <div class="module-desc">Download dichiarazione di conformità PDF</div>
+          <div class="module-screens">Incluso in portale</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">💬</div>
+        <div class="module-info">
+          <div class="module-name">Feedback PMCF</div>
+          <div class="module-desc">Il dentista lascia feedback post-market obbligatorio MDR</div>
+          <div class="module-screens">Screen: /portale/[token]/feedback</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONA PUBLIC -->
+  <div class="zone z-public">
+    <div class="zone-header">
+      <div class="zone-icon">🌍</div>
+      <div>
+        <div class="zone-name">Pagine Pubbliche</div>
+        <div class="zone-route">/  — no auth</div>
+      </div>
+    </div>
+    <div class="modules">
+      <div class="module">
+        <div class="module-icon">🏠</div>
+        <div class="module-info">
+          <div class="module-name">Landing Page</div>
+          <div class="module-desc">Homepage pubblica, pitch, CTA registrazione</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">🚫</div>
+        <div class="module-info">
+          <div class="module-name">Blocked / Sospeso</div>
+          <div class="module-desc">Schermata se abbonamento scaduto o sospeso</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+      <div class="module">
+        <div class="module-icon">💸</div>
+        <div class="module-info">
+          <div class="module-name">Billing (Customer Portal)</div>
+          <div class="module-desc">Stripe Customer Portal per gestione piano dal titolare</div>
+        </div>
+        <span class="badge badge-todo">TODO</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FLOWS -->
+<div class="flows-section">
+  <div class="flows-title">⚡ Flow Operativi Principali</div>
+  <div class="flows-grid">
+    <div class="flow flow-1">
+      <div class="flow-name">1. Nuovo Lavoro</div>
+      <div class="flow-time">~30-90 secondi</div>
+      <div class="flow-steps">
+        Tap "+ Nuovo" → Cerca dentista → Paziente (voce ok) →<br>
+        Tipo dispositivo (6 tile) → Data consegna → Note →<br>
+        CREA → ritorno dashboard
+      </div>
+    </div>
+    <div class="flow flow-2">
+      <div class="flow-name">2. TAP CONSEGNA ★</div>
+      <div class="flow-time">1–3 secondi — operazione CORE</div>
+      <div class="flow-steps">
+        Lavoro 'pronto' → Screen consegna →<br>
+        1 tap → precheck 8 campi MDR →<br>
+        genera DdC + Buono + Fattura (parallelo) →<br>
+        upload Storage → PEC + link WhatsApp →<br>
+        animazione successo + confetti
+      </div>
+    </div>
+    <div class="flow flow-3">
+      <div class="flow-name">3. Tracking Produzione</div>
+      <div class="flow-time">~20-30 secondi per fase</div>
+      <div class="flow-steps">
+        Dashboard → lista lavori assegnati →<br>
+        Dettaglio → Tab Fasi →<br>
+        Esegui fase → Salva → % aggiornata →<br>
+        100% → stato 'pronto' automatico
+      </div>
+    </div>
+    <div class="flow flow-4">
+      <div class="flow-name">4. Portale Dentista</div>
+      <div class="flow-time">link senza login</div>
+      <div class="flow-steps">
+        Lab genera link token → condivide WhatsApp/email →<br>
+        Dentista apre link (no login) →<br>
+        Vede lavori aperti → scarica DdC →<br>
+        lascia feedback PMCF
+      </div>
+    </div>
+    <div class="flow flow-5">
+      <div class="flow-name">5. Onboarding Nuovo Lab</div>
+      <div class="flow-time">wizard 6 step</div>
+      <div class="flow-steps">
+        Francesco crea lab /admin → invito email →<br>
+        Titolare clicca link → Wizard: dati lab + logo +<br>
+        PRRC nomina + PEC SMTP + primo cliente + listino
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DB -->
+<div class="db-section">
+  <div class="flows-title">🗄️ Database — Tabelle Principali</div>
+  <div class="db-grid">
+    <div class="db-table"><div class="db-table-name">laboratori</div><div class="db-table-desc">Lab + stato tenant + Stripe</div></div>
+    <div class="db-table"><div class="db-table-name">utenti</div><div class="db-table-desc">Profili + ruolo + lab</div></div>
+    <div class="db-table"><div class="db-table-name">clienti</div><div class="db-table-desc">Dentisti + studi</div></div>
+    <div class="db-table"><div class="db-table-name">pazienti</div><div class="db-table-desc">Archivio GDPR pseudonimizzato</div></div>
+    <div class="db-table"><div class="db-table-name">lavori</div><div class="db-table-desc">Commesse + stato + MDR</div></div>
+    <div class="db-table"><div class="db-table-name">fasi_lavoro</div><div class="db-table-desc">Step produzione + tecnico</div></div>
+    <div class="db-table"><div class="db-table-name">dichiarazioni_conformita</div><div class="db-table-desc">DdC MDR — immutabile</div></div>
+    <div class="db-table"><div class="db-table-name">fatture</div><div class="db-table-desc">FatturaPA XML + stato SDI</div></div>
+    <div class="db-table"><div class="db-table-name">sdi_receipts</div><div class="db-table-desc">Ricevute SdI (8 stati)</div></div>
+    <div class="db-table"><div class="db-table-name">listino</div><div class="db-table-desc">72+ lavorazioni + prezzi</div></div>
+    <div class="db-table"><div class="db-table-name">magazzino</div><div class="db-table-desc">Materiali + giacenza</div></div>
+    <div class="db-table"><div class="db-table-name">lotti_magazzino</div><div class="db-table-desc">Lotti + scadenza (MDR)</div></div>
+    <div class="db-table"><div class="db-table-name">psur</div><div class="db-table-desc">PSUR annuale MDR</div></div>
+    <div class="db-table"><div class="db-table-name">reclami</div><div class="db-table-desc">Incidenti + rischi MDR</div></div>
+    <div class="db-table"><div class="db-table-name">webauthn_credentials</div><div class="db-table-desc">Passkey Touch ID</div></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,335 @@
+# Review package: 4e4d32c6..15c79dfc
+
+## Commits
+15c79dfc fix(api): il vecchio codice paziente non diventa cognome + isolamento provato in scrittura
+
+## Files changed
+ src/app/api/pazienti/[id]/route.ts    | 29 +++++++++--
+ tests/unit/api-pazienti-patch.test.ts | 92 ++++++++++++++++++++++++++++-------
+ 2 files changed, 99 insertions(+), 22 deletions(-)
+
+## Diff
+diff --git a/src/app/api/pazienti/[id]/route.ts b/src/app/api/pazienti/[id]/route.ts
+index 7dbe882b..53bfc50d 100644
+--- a/src/app/api/pazienti/[id]/route.ts
++++ b/src/app/api/pazienti/[id]/route.ts
+@@ -45,48 +45,67 @@ export async function PATCH(
+   // 🛑 Perché NON basta metterli nell'allowlist: il trigger
+   // `sync_paziente_nome_cognome` è `BEFORE INSERT OR UPDATE`. Il pannello di
+   // modifica invia l'intero form a ogni salvataggio, quindi due caselle
+   // lasciate vuote scriverebbero `('', '')` → il trigger comporrebbe `' '`
+   // (uno spazio) → `precheck.ts:40-43` si ferma lì (`''` non è nullish),
+   // non arriva mai a `codice_paziente` → elemento 4 dell'Allegato XIII
+   // fallito → CONSEGNA BLOCCATA, da un salvataggio che sembra un no-op.
+   // La regola §5 va applicata anche qui, sui valori RISULTANTI (body sopra
+   // riga corrente), non solo su quelli inviati.
+   if ('nome' in body || 'cognome' in body) {
+-    const { data: attuale } = await svc
++    const { data: attuale, error: letturaError } = await svc
+       .from('pazienti')
+       .select('nome, cognome, codice_paziente')
+       .eq('id', id)
+       .eq('laboratorio_id', context.laboratorioId)
+       .single()
+ 
++    // Distingui il guasto vero (query fallita) dalla riga assente: senza
++    // questo controllo un errore momentaneo del DB si travestiva da
++    // «Paziente non trovato» — 404, non 500 — e l'utente lo leggeva come «il
++    // paziente non c'è più». `PGRST116` di PostgREST è la sola forma in cui
++    // "nessuna riga" arriva anche come errore da `.single()`: quella resta
++    // un 404 vero, non un guasto.
++    if (letturaError && letturaError.code !== 'PGRST116') {
++      // G9 — mai il testo grezzo del DB al client.
++      console.error('PATCH /api/pazienti/[id] — lettura riga corrente fallita:', letturaError.message)
++      return NextResponse.json({ error: 'Non è stato possibile aggiornare il paziente' }, { status: 500 })
++    }
++
+     if (!attuale) {
+       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 })
+     }
+ 
+     const codice = 'codice_paziente' in body
+       ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
+       : attuale.codice_paziente
+ 
+-    // `cognomeEffettivo` su ENTRAMBI i rami, non solo su quello che legge dal
++    const spogliaCodice = (v: string | null | undefined) =>
++      // Il cognome SALVATO specchia il codice VECCHIO (è l'invariante 2: sui
++      // pazienti senza nome il codice vive dentro `cognome`); quello che
++      // arriva dal body specchia semmai il NUOVO. Nessuno dei due vale come
++      // cognome, quindi si spoglia contro entrambi — altrimenti rinominare il
++      // codice trasforma il vecchio in un cognome e riapre la trappola 3.
++      cognomeEffettivo(cognomeEffettivo(v, codice), attuale.codice_paziente)
++
++    // `spogliaCodice` su ENTRAMBI i rami, non solo su quello che legge dal
+     // DB: è la precondizione dichiarata nel JSDoc di `risolviNomePaziente`,
+     // che da sola NON può difendere l'invariante 3. Sui pazienti creati dal
+     // wizard senza nome il CODICE vive dentro `cognome` (invariante 2), e
+     // trattarlo come un cognome vero lo farebbe vincere sul nome appena
+     // digitato → «Pz-0042 Giuseppe» in targa. Vale anche per il valore che
+     // arriva dal body: il client non è una fonte fidata.
+     const coppia = risolviNomePaziente({
+-      cognome: cognomeEffettivo(
++      cognome: spogliaCodice(
+         'cognome' in body
+           ? (typeof body.cognome === 'string' ? body.cognome : null)
+-          : attuale.cognome,
+-        codice
++          : attuale.cognome
+       ),
+       nome: 'nome' in body
+         ? (typeof body.nome === 'string' ? body.nome : null)
+         : attuale.nome,
+       codice,
+     })
+ 
+     if (!coppia) {
+       return NextResponse.json({ error: 'Serve almeno il codice paziente' }, { status: 422 })
+     }
+diff --git a/tests/unit/api-pazienti-patch.test.ts b/tests/unit/api-pazienti-patch.test.ts
+index 4a1061b4..6c42e9e1 100644
+--- a/tests/unit/api-pazienti-patch.test.ts
++++ b/tests/unit/api-pazienti-patch.test.ts
+@@ -46,74 +46,91 @@ function richiesta(body: unknown) {
+ function richiestaDelete() {
+   return new Request(`http://localhost/api/pazienti/${PAZIENTE_ID}`, {
+     method: 'DELETE',
+     headers: { origin: 'http://localhost', host: 'localhost' },
+   })
+ }
+ 
+ const updateMock = vi.fn()
+ let rigaCorrente: { nome: string | null; cognome: string | null; codice_paziente: string | null } | null
+ let selectEqCalls: unknown[][]
++let updateEqCalls: unknown[][]
++let selectError: { message: string; code?: string } | null
+ 
+ /**
+  * `pazienti` per i test PATCH: `select` registra OGNI `.eq(...)` in
+- * `selectEqCalls` (catena permissiva, non un conteggio fisso — così una
+- * mutazione che toglie un `.eq()` non crasha per forma sbagliata, ma si
+- * verifica DAVVERO con un'asserzione sui valori, come lo scoping tenant
+- * richiede) e risolve `rigaCorrente` a `single()`; `update` cattura il
+- * payload in `updateMock` e risolve `updateResult` dopo 2 `.eq()` (schema
+- * reale della route: nessun `.select()` dopo l'update).
++ * `selectEqCalls` e `update` registra OGNI `.eq(...)` in `updateEqCalls`
++ * (catene permissive, non un conteggio fisso — così una mutazione che toglie
++ * un `.eq()` non crasha per forma sbagliata, ma si verifica DAVVERO con
++ * un'asserzione sui valori, come lo scoping tenant richiede). `select`
++ * risolve `rigaCorrente`/`selectError` a `single()`; `update` cattura il
++ * payload in `updateMock` e risolve `updateResult`.
+  */
+ function mockPatchTabella(updateResult: { error: unknown } = { error: null }) {
+   mockFrom.mockImplementation((tabella: string) => {
+     if (tabella === 'pazienti') {
+       const selectChain = {
+         eq: (...args: unknown[]) => {
+           selectEqCalls.push(args)
+           return selectChain
+         },
+-        single: async () => ({ data: rigaCorrente }),
++        single: async () => ({ data: rigaCorrente, error: selectError }),
+       }
+       return {
+         select: () => selectChain,
+         update: (dati: Record<string, unknown>) => {
+           updateMock(dati)
+-          return { eq: () => ({ eq: async () => updateResult }) }
++          const chain = {
++            eq: (...args: unknown[]) => {
++              updateEqCalls.push(args)
++              return chain
++            },
++            then: (r: (v: unknown) => unknown) => Promise.resolve(updateResult).then(r),
++          }
++          return chain
+         },
+       }
+     }
+     throw new Error(`Unexpected table: ${tabella}`)
+   })
+ }
+ 
+ beforeEach(() => {
+   vi.clearAllMocks()
+   updateMock.mockReset()
+   selectEqCalls = []
++  updateEqCalls = []
++  selectError = null
+   mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+   rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+   mockPatchTabella()
+ })
+ 
+ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', () => {
+   it('correggere il cognome lo scrive davvero (il trigger risincronizza nome_cognome)', async () => {
+     const res = await PATCH(richiesta({ cognome: 'Bagheria', nome: 'Giuseppe' }), { params })
+     expect(res.status).toBe(200)
+     expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Bagheria', nome: 'Giuseppe' })
+   })
+ 
+   it('la lettura della riga corrente è scoping al laboratorio (isolamento tenant)', async () => {
+     await PATCH(richiesta({ cognome: 'Bagheria', nome: 'Giuseppe' }), { params })
+     expect(selectEqCalls).toContainEqual(['id', PAZIENTE_ID])
+     expect(selectEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
+   })
+ 
++  it('anche la SCRITTURA è ristretta al laboratorio corrente (isolamento fra laboratori)', async () => {
++    await PATCH(richiesta({ note: 'ciao' }), { params })
++    expect(updateEqCalls).toContainEqual(['id', PAZIENTE_ID])
++    expect(updateEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
++  })
++
+   it('🛑 svuotare ENTRAMBE le caselle NON scrive una coppia vuota: torna il codice', async () => {
+     await PATCH(richiesta({ cognome: '', nome: '' }), { params })
+     // Senza questa guardia nome_cognome diventerebbe ' ' → consegna bloccata.
+     expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'PZ-0042', nome: '' })
+   })
+ 
+   it('solo il nome → finisce nel cognome (mai il codice accanto al nome)', async () => {
+     await PATCH(richiesta({ cognome: '', nome: 'Giuseppe' }), { params })
+     expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
+   })
+@@ -124,80 +141,114 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
+     expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Bagheria', nome: 'Giuseppe' })
+   })
+ 
+   it('il «codice travestito» non fa da cognome: caselle vuote su un paziente-wizard restano il codice', async () => {
+     rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+     await PATCH(richiesta({ nome: 'Giuseppe' }), { params })
+     // `cognome` non è nel body: quello attuale È il codice → non vale come cognome.
+     expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
+   })
+ 
++  it('codice rinominato + nome, senza `cognome` nel body: il vecchio codice NON diventa cognome', async () => {
++    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
++    await PATCH(richiesta({ codice_paziente: 'PZ-9999', nome: 'Giuseppe' }), { params })
++    expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
++  })
++
++  it('codice svuotato + nome, senza `cognome` nel body: stesso esito', async () => {
++    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
++    await PATCH(richiesta({ codice_paziente: '', nome: 'Giuseppe' }), { params })
++    expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
++  })
++
+   it('una patch che non tocca il nome NON scrive nome/cognome', async () => {
+     await PATCH(richiesta({ note: 'ciao' }), { params })
+     expect(updateMock.mock.calls[0][0]).not.toHaveProperty('nome')
+     expect(updateMock.mock.calls[0][0]).not.toHaveProperty('cognome')
+     expect(updateMock.mock.calls[0][0]).toMatchObject({ note: 'ciao' })
++    // La lettura extra della riga corrente gira SOLO quando la modifica tocca
++    // il nome: qui non lo tocca, quindi nessuna query di lettura deve partire.
++    expect(selectEqCalls).toEqual([])
+   })
+ 
+   it('paziente inesistente in questo laboratorio → 404, nessun update', async () => {
+     rigaCorrente = null
+     const res = await PATCH(richiesta({ cognome: 'Bagheria' }), { params })
+     expect(res.status).toBe(404)
+     expect(updateMock).not.toHaveBeenCalled()
+   })
+ 
++  it('guasto DB nella lettura della riga corrente → messaggio generico, MAI 404 (il paziente non è sparito, il DB è caduto)', async () => {
++    rigaCorrente = null
++    selectError = { message: 'connection to server was lost', code: '08006' }
++    const res = await PATCH(richiesta({ cognome: 'Bagheria' }), { params })
++    expect(res.status).toBe(500)
++    const corpo = await res.json()
++    expect(corpo.error).not.toContain('connection to server')
++    expect(corpo.error).toBe('Non è stato possibile aggiornare il paziente')
++    expect(updateMock).not.toHaveBeenCalled()
++  })
++
+   it('nulla da scrivere, nemmeno il codice → 422', async () => {
+     rigaCorrente = { nome: '', cognome: '', codice_paziente: '' }
+     const res = await PATCH(richiesta({ cognome: '', nome: '' }), { params })
+     expect(res.status).toBe(422)
+     expect(updateMock).not.toHaveBeenCalled()
+   })
+ 
+   it('errore DB nell\'aggiornamento → messaggio generico, MAI il testo grezzo del DB (G9)', async () => {
+     mockPatchTabella({ error: { message: 'duplicate key value violates unique constraint "pazienti_pkey"' } })
+     const res = await PATCH(richiesta({ note: 'ciao' }), { params })
+     expect(res.status).toBe(500)
+     const corpo = await res.json()
+     expect(corpo.error).not.toContain('pazienti_pkey')
+     expect(corpo.error).toBe('Non è stato possibile aggiornare il paziente')
+   })
+ })
+ 
+ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
++  let deleteSelectEqCalls: unknown[][]
++
++  /**
++   * `select` registra OGNI `.eq(...)` in `deleteSelectEqCalls` (catena
++   * permissiva, non un conteggio fisso — come per il PATCH: così una
++   * mutazione che toglie un filtro non crasha per forma sbagliata, ma si
++   * verifica DAVVERO con un'asserzione sui valori). `update` resta invariato.
++   */
+   function mockDeleteTabella(opts: {
+     esiste?: boolean
+     softDeleteError?: unknown
+   }) {
+     const { esiste = true, softDeleteError = null } = opts
+     mockFrom.mockImplementation((tabella: string) => {
+       if (tabella === 'pazienti') {
++        const selectChain = {
++          eq: (...args: unknown[]) => {
++            deleteSelectEqCalls.push(args)
++            return selectChain
++          },
++          single: async () => ({ data: esiste ? { id: PAZIENTE_ID } : null }),
++        }
+         return {
+-          select: () => ({
+-            eq: () => ({
+-              eq: () => ({
+-                eq: () => ({
+-                  single: async () => ({ data: esiste ? { id: PAZIENTE_ID } : null }),
+-                }),
+-              }),
+-            }),
+-          }),
++          select: () => selectChain,
+           update: (dati: Record<string, unknown>) => {
+             updateMock(dati)
+             return { eq: () => ({ eq: async () => ({ error: softDeleteError }) }) }
+           },
+         }
+       }
+       throw new Error(`Unexpected table: ${tabella}`)
+     })
+   }
+ 
+   beforeEach(() => {
++    deleteSelectEqCalls = []
+     mockDeleteTabella({ esiste: true })
+   })
+ 
+   it('paziente esistente → 200, soft-delete (archiviato:true)', async () => {
+     const res = await DELETE(richiestaDelete(), { params })
+     expect(res.status).toBe(200)
+     expect(updateMock.mock.calls[0][0]).toEqual({ archiviato: true })
+   })
+ 
+   it('paziente inesistente o di altro laboratorio → 404, nessun update', async () => {
+@@ -211,11 +262,18 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
+     mockDeleteTabella({
+       esiste: true,
+       softDeleteError: { message: 'update or delete on table "pazienti" violates foreign key constraint' },
+     })
+     const res = await DELETE(richiestaDelete(), { params })
+     expect(res.status).toBe(500)
+     const corpo = await res.json()
+     expect(corpo.error).not.toContain('foreign key')
+     expect(corpo.error).toBe('Non è stato possibile archiviare il paziente')
+   })
++
++  it('la lettura pre-cancellazione è ristretta al laboratorio corrente (isolamento fra laboratori)', async () => {
++    await DELETE(richiestaDelete(), { params })
++    expect(deleteSelectEqCalls).toContainEqual(['id', PAZIENTE_ID])
++    expect(deleteSelectEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
++    expect(deleteSelectEqCalls).toContainEqual(['archiviato', false])
++  })
+ })

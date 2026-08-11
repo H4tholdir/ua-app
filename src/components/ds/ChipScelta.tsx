@@ -27,10 +27,23 @@ export function ChipScelta(props: {
   selezionata: boolean
   onClick: () => void
   ariaExpanded?: boolean
+  /**
+   * La voce esiste ma su QUESTO percorso non si può scegliere.
+   *
+   * 🔑 PERCHÉ SPENTA E NON TOLTA. Una risposta che sparisce lascia chi la
+   * cercava senza sapere se esista: la si vede, non si preme, e la ragione la
+   * scrive il chiamante accanto al gruppo (D262 — un rifiuto indica la strada).
+   * ⚠️ È additiva: senza questa proprietà il componente si comporta esattamente
+   * come prima, e nessuno dei consumatori esistenti cambia resa.
+   * 🛑 Spenta non vibra: `vibra('selection')` è la conferma di una selezione
+   * avvenuta, e qui non avviene niente.
+   */
+  disabilitata?: boolean
 }) {
-  const { children, selezionata, onClick, ariaExpanded } = props
+  const { children, selezionata, onClick, ariaExpanded, disabilitata = false } = props
 
   function handleClick() {
+    if (disabilitata) return
     vibra('selection')
     onClick()
   }
@@ -50,8 +63,10 @@ export function ChipScelta(props: {
         className="ds-chip-scelta"
         aria-pressed={selezionata}
         aria-expanded={ariaExpanded}
+        disabled={disabilitata}
+        aria-disabled={disabilitata}
         onClick={handleClick}
-        whileTap={{ scale: 0.97 }}
+        whileTap={disabilitata ? undefined : { scale: 0.97 }}
         transition={molla.press}
         style={{
           display: 'inline-flex',
@@ -61,13 +76,27 @@ export function ChipScelta(props: {
           padding: '0 20px',
           borderRadius: raggio.pill,
           border: 'none',
-          background: selezionata ? 'var(--green-tint)' : 'var(--card)',
-          boxShadow: selezionata ? 'none' : 'var(--sh-press)',
-          color: selezionata ? 'var(--green)' : 'var(--ink)',
+          // 🔴 SPENTA NON VUOL DIRE ASSENTE, e togliere l'ombra non basta —
+          //    misurato allo scatto del gate L2 del Task 9, 390 chiaro. La
+          //    pillola viva è `--card` + `--sh-press`, ma il pannello del foglio
+          //    È anch'esso `--card`: senza ombra restava **solo il testo**,
+          //    sospeso. È la QUARTA replica dello stesso difetto in questo
+          //    progetto (v. `ds-v3.css`, la regola su `.ds-medico-riga` /
+          //    `.ds-via-d212`), e stavolta arriva dal lato chiaro.
+          // ➡️ Una pillola spenta resta una SUPERFICIE, e per giunta INCASSATA:
+          //    `--fondo-superficie` è più scuro del pannello in tutti e due i
+          //    temi, quindi il racconto fisico è coerente — viva = sollevata,
+          //    spenta = affondata. E il fondo non si scrive qui: è il token che
+          //    D329 ha già introdotto per le superfici dentro un foglio.
+          background: disabilitata
+            ? 'var(--fondo-superficie)'
+            : selezionata ? 'var(--green-tint)' : 'var(--card)',
+          boxShadow: disabilitata ? 'none' : selezionata ? 'none' : 'var(--sh-press)',
+          color: disabilitata ? 'var(--faint)' : selezionata ? 'var(--green)' : 'var(--ink)',
           fontFamily: tipografia.famiglia,
           fontSize: 16,
           fontWeight: tipografia.weight.bold,
-          cursor: 'pointer',
+          cursor: disabilitata ? 'default' : 'pointer',
         }}
       >
         {selezionata && (

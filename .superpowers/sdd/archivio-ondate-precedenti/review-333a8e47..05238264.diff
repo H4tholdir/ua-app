@@ -1,0 +1,258 @@
+# Review package: 333a8e47..HEAD
+
+## Commits
+05238264 docs(piano): corretto un difetto del piano trovato dall'esecutore del Task 2
+3e2e4521 fix(ddc): gli accenti nel documento — e il test smette di fissare il refuso (D104)
+
+## Files changed
+ .../plans/2026-08-03-accenti-documenti.md          | 14 ++++++--
+ src/components/features/pdf/DdcTemplate.tsx        | 12 +++----
+ tests/unit/ddc-pdf-content.test.ts                 | 41 ++++++++++++++++++++--
+ 3 files changed, 56 insertions(+), 11 deletions(-)
+
+## Diff
+diff --git a/docs/superpowers/plans/2026-08-03-accenti-documenti.md b/docs/superpowers/plans/2026-08-03-accenti-documenti.md
+index b2e284e2..92fa684a 100644
+--- a/docs/superpowers/plans/2026-08-03-accenti-documenti.md
++++ b/docs/superpowers/plans/2026-08-03-accenti-documenti.md
+@@ -187,29 +187,39 @@ Messaggio: `docs(ddc): il registro delle versioni, e le due definizioni smettono
+ 
+ In `tests/unit/ddc-pdf-content.test.ts`, sostituisci il test a riga 109-112 con:
+ 
+ ```ts
+   it('il titolo porta l\'accento: «DICHIARAZIONE DI CONFORMITÀ»', () => {
+     // textTransform:'uppercase' — react-pdf rende le maiuscole nel PDF, À compresa
+     // (provato: scripts/tmp/sonda-accenti.tsx). Questo test PRETENDE l'accento:
+     // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
+     // tornata silenziosa in entrambe le direzioni.
+     expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
+-    expect(pdfText).not.toContain('DICHIARAZIONE DI CONFORMITA ')
++    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: «CONFORMITA» senza
++    //    accento non è sottostringa di «CONFORMITÀ» (À ≠ A), quindi questa riga
++    //    si accende su qualunque occorrenza rimasta — comprese quelle che le
++    //    asserzioni puntuali non guardano.
++    expect(pdfText).not.toContain('CONFORMITA')
++    expect(pdfText).not.toContain('Conformita')
+   })
+ 
+   it('l\'etichetta della firma porta l\'accento', () => {
+     expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
+   })
+ 
+   it('il titolo del §7 porta l\'accento', () => {
+-    expect(pdfText).toContain('§7 — Dichiarazione di Conformità')
++    // ⚠️ CORRETTO IN CORSA (difetto del piano, trovato dall'esecutore del Task 2):
++    //    `styles.sectionTitle` (DdcTemplate.tsx:86) ha `textTransform:'uppercase'`,
++    //    quindi il foglio stampa il §7 in MAIUSCOLO. L'etichetta della firma no
++    //    (`firmaLabel` non ha uppercase): le due asserzioni hanno forme diverse
++    //    perché i due stili sono diversi, non per distrazione.
++    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
+   })
+ ```
+ 
+ - [ ] **Step 2: esegui e CONTA quanti rossi si accendono (R-P4)**
+ 
+ Run: `npx vitest run tests/unit/ddc-pdf-content.test.ts`
+ Atteso: **3 rossi su 3 asserzioni nuove**, con messaggi che mostrano il testo senza accento.
+ 🛑 Scrivi il numero che hai visto nel referto del task. Se i rossi sono meno di 3, una delle asserzioni non
+ misura quello che crede: fermati e riferisci.
+ 
+diff --git a/src/components/features/pdf/DdcTemplate.tsx b/src/components/features/pdf/DdcTemplate.tsx
+index da004cdd..3f41cb83 100644
+--- a/src/components/features/pdf/DdcTemplate.tsx
++++ b/src/components/features/pdf/DdcTemplate.tsx
+@@ -282,23 +282,23 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+     ? lavoro.materiali
+         .map((m) => {
+           const parts = [m.nome_materiale_snapshot, m.numero_lotto_snapshot, m.produttore_snapshot].filter(Boolean)
+           return parts.join(' – ')
+         })
+         .join('\n')
+     : null
+ 
+   return (
+     <Document
+-      title={`Dichiarazione di Conformita ${ddc.numero_ddc ?? ''}`}
++      title={`Dichiarazione di Conformità ${ddc.numero_ddc ?? ''}`}
+       author={ddc.fabbricante_nome ?? lab.ragione_sociale ?? lab.nome}
+-      subject="Dichiarazione di Conformita MDR 2017/745"
++      subject="Dichiarazione di Conformità MDR 2017/745"
+       keywords="DDC MDR 2017/745 Allegato XIII"
+       creator="UA PWA"
+     >
+       <Page size="A4" style={styles.page}>
+ 
+         {/* ── HEADER ── */}
+         <View style={styles.header}>
+           <View style={styles.headerLeft}>
+             <Text style={styles.labNome}>
+               {ddc.fabbricante_nome ?? lab.ragione_sociale ?? lab.nome}
+@@ -316,21 +316,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           <View style={styles.headerRight}>
+             {logoUrl ? (
+               // eslint-disable-next-line jsx-a11y/alt-text
+               <Image src={logoUrl} style={styles.logo} />
+             ) : null}
+           </View>
+         </View>
+ 
+         {/* ── TITOLO ── */}
+         <View style={styles.titoloWrapper}>
+-          <Text style={styles.titolo}>Dichiarazione di Conformita</Text>
++          <Text style={styles.titolo}>Dichiarazione di Conformità</Text>
+         </View>
+         <Text style={styles.sottotitolo}>
+           Ai sensi dell&apos;Art. 52(8) e Allegato XIII del Regolamento UE 2017/745
+         </Text>
+ 
+         {/* ── SEPARATORE ── */}
+         <View style={styles.separator} />
+ 
+         {/* ── NUMERO DDC ── */}
+         {ddc.numero_ddc ? (
+@@ -436,21 +436,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           {ddc.prescrizione_caratteristiche ? (
+             <View style={styles.row}>
+               <Text style={styles.label}>Caratteristiche prescritte:</Text>
+               <Text style={styles.value}>{ddc.prescrizione_caratteristiche}</Text>
+             </View>
+           ) : null}
+           <View style={styles.row}>
+             <Text style={styles.label}>Sostanze / tessuti:</Text>
+             <Text style={styles.value}>
+               {ddc.contiene_sostanze_o_tessuti
+-                ? (ddc.sostanze_tessuti_dettaglio ?? 'Si — vedere documentazione allegata')
++                ? (ddc.sostanze_tessuti_dettaglio ?? 'Sì — vedere documentazione allegata')
+                 : 'No'}
+             </Text>
+           </View>
+           <Text style={styles.rischiText}>
+             Dispositivo su misura ai sensi dell&apos;Art. 2(1)(3) MDR — non soggetto a marcatura CE ai sensi dell&apos;Art. 20(1) MDR 2017/745.
+           </Text>
+         </View>
+ 
+         {/* ── §6 CLASSIFICAZIONE ── */}
+         <View style={styles.section}>
+@@ -476,21 +476,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+             {ddc.norme_json.map((norma, i) => (
+               <Text key={i} style={styles.value}>
+                 • {norma.codice} — {norma.titolo}{norma.anno ? ` (${norma.anno})` : ''}
+               </Text>
+             ))}
+           </View>
+         ) : null}
+ 
+         {/* ── §7 CONFORMITA ── */}
+         <View style={styles.section}>
+-          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformita</Text>
++          <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformità</Text>
+           <View style={styles.conformitaBox}>
+             <Text style={styles.conformitaText}>
+               {ddc.testo_conformita_snapshot ?? '—'}
+             </Text>
+           </View>
+         </View>
+ 
+         {/* ── §8 RISCHI RESIDUI ── */}
+         {ddc.rischi_residui_snapshot ? (
+           <View style={styles.section}>
+@@ -504,21 +504,21 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           <View style={styles.firmaLeft}>
+             <Text style={styles.firmaLabel}>Data di emissione:</Text>
+             <Text style={styles.firmaNome}>
+               {ddc.data_emissione ? formatData(ddc.data_emissione) : '—'}
+             </Text>
+             {ddc.luogo_emissione ? (
+               <Text style={styles.firmaQualifica}>{ddc.luogo_emissione}</Text>
+             ) : null}
+           </View>
+           <View style={styles.firmaRight}>
+-            <Text style={styles.firmaLabel}>Responsabile della Conformita (PRRC)</Text>
++            <Text style={styles.firmaLabel}>Responsabile della Conformità (PRRC)</Text>
+             {ddc.firma_ddc_storage_path ? (
+               // eslint-disable-next-line jsx-a11y/alt-text
+               <Image src={ddc.firma_ddc_storage_path} style={styles.firmaImage} />
+             ) : (
+               <View style={styles.firmaLinea} />
+             )}
+             <Text style={styles.firmaNome}>{ddc.prrc_nome || '—'}</Text>
+             {ddc.prrc_qualifica ? (
+               <Text style={styles.firmaQualifica}>{ddc.prrc_qualifica}</Text>
+             ) : null}
+diff --git a/tests/unit/ddc-pdf-content.test.ts b/tests/unit/ddc-pdf-content.test.ts
+index 0acd7588..fac1bc97 100644
+--- a/tests/unit/ddc-pdf-content.test.ts
++++ b/tests/unit/ddc-pdf-content.test.ts
+@@ -99,23 +99,43 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)',
+   it('PDF > 1 KB', async () => {
+     const element = createElement(DdcTemplate, {
+       lavoro: LAVORO_FIXTURE,
+       lab: LAB_FIXTURE,
+       ddc: DDC_FIXTURE,
+     })
+     const buffer = await renderPdfDocument(element)
+     expect(buffer.length).toBeGreaterThan(1024)
+   })
+ 
+-  it('titolo contiene "dichiarazione di conformita" (case-insensitive)', () => {
+-    // textTransform: 'uppercase' — react-pdf rende le lettere maiuscole nel PDF
+-    expect(pdfText.toLowerCase()).toContain('dichiarazione di conformita')
++  it('il titolo porta l\'accento: «DICHIARAZIONE DI CONFORMITÀ»', () => {
++    // textTransform:'uppercase' — react-pdf rende le maiuscole nel PDF, À compresa
++    // (provato: scripts/tmp/sonda-accenti.tsx). Questo test PRETENDE l'accento:
++    // fino al 03/08/2026 pretendeva il refuso, quindi la regressione sarebbe
++    // tornata silenziosa in entrambe le direzioni.
++    expect(pdfText).toContain('DICHIARAZIONE DI CONFORMITÀ')
++    // 🛑 Nessun refuso residuo, in NESSUN punto del foglio: si accende su
++    //    qualunque occorrenza rimasta, comprese quelle che le asserzioni
++    //    puntuali non guardano.
++    expect(pdfText).not.toContain('CONFORMITA')
++    expect(pdfText).not.toContain('Conformita')
++  })
++
++  it('l\'etichetta della firma porta l\'accento', () => {
++    // styles.firmaLabel NON ha textTransform: 'uppercase' (a differenza di
++    // styles.sectionTitle) — qui la forma attesa resta mista.
++    expect(pdfText).toContain('Responsabile della Conformità (PRRC)')
++  })
++
++  it('il titolo del §7 porta l\'accento', () => {
++    // styles.sectionTitle ha textTransform: 'uppercase' (DdcTemplate.tsx:86) —
++    // il §7, come ogni titolo di sezione, esce in maiuscolo nel PDF.
++    expect(pdfText).toContain('§7 — DICHIARAZIONE DI CONFORMITÀ')
+   })
+ 
+   // ── §1 Fabbricante ────────────────────────────────────────────────────────
+ 
+   it('§1 stampa ragione sociale del fabbricante', () => {
+     expect(pdfText).toContain('Laboratorio Odontotecnico Opromolla S.r.l.')
+   })
+ 
+   it('§1 stampa indirizzo del fabbricante', () => {
+     expect(pdfText).toContain('Via Roma 12')
+@@ -346,10 +366,25 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)',
+       })
+       const buffer = await renderPdfDocument(element)
+       const parser = new PDFParse({ data: buffer })
+       const result = await parser.getText()
+       await parser.destroy()
+       expect(result.text).not.toContain('38, 37')
+       expect(result.text.toLowerCase()).not.toContain('denti coinvolti')
+     })
+   })
+ })
++
++describe('DdcTemplate — sostanze o tessuti presenti (ramo non coperto fino al 03/08/2026)', () => {
++  it('rende «Sì» con l\'accento quando il dispositivo contiene sostanze o tessuti', async () => {
++    const element = createElement(DdcTemplate, {
++      lavoro: LAVORO_FIXTURE,
++      lab: LAB_FIXTURE,
++      ddc: { ...DDC_FIXTURE, contiene_sostanze_o_tessuti: true, sostanze_tessuti_dettaglio: null },
++    })
++    const buffer = await renderPdfDocument(element)
++    const parser = new PDFParse({ data: buffer })
++    const result = await parser.getText()
++    await parser.destroy()
++    expect(result.text).toContain('Sì — vedere documentazione allegata')
++  }, 30_000)
++})

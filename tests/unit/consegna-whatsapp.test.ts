@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 
+// ⚖️ D345 (09/08/2026) — la firma è il NOME DEL LABORATORIO, non «UÀ Lab».
+const LAB = 'Laboratorio Odontotecnico di Prova'
+
 describe('buildWhatsappMessage — GDPR compliance', () => {
   const base = {
     numeroLavoro: '2026/0094',
     portalToken: 'tok_abc123',
+    nomeLaboratorio: LAB,
   }
 
   it('non contiene nome paziente', () => {
@@ -37,10 +41,16 @@ describe('buildWhatsappMessage — GDPR compliance', () => {
   })
 
   it('token vuoto produce messaggio senza link portale', () => {
-    const msg = buildWhatsappMessage({ numeroLavoro: '2026/0094', portalToken: '' })
+    const msg = buildWhatsappMessage({ numeroLavoro: '2026/0094', portalToken: '', nomeLaboratorio: LAB })
     expect(msg).toContain('2026/0094')
     expect(msg).not.toContain('/portale/')
-    expect(msg).toContain('UÀ Lab')
+    // 🔄 ⚖️ D345 — questa riga diceva `toContain('UÀ Lab')`: era l'UNICA prova, in
+    //    tutta la casa, che guardasse come finisce un messaggio, e fissava la
+    //    firma SBAGLIATA. Ora fissa quella giusta; il resto della regola
+    //    (e il divieto della vecchia) sta in
+    //    `tests/unit/firma-messaggi-nome-laboratorio.test.ts`.
+    expect(msg).toContain(`— ${LAB}`)
+    expect(msg).not.toContain('UÀ Lab')
   })
 })
 

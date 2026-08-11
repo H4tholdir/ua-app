@@ -1,0 +1,1590 @@
+# Review package: cb200cee..97e1ab7b
+
+## Commits
+97e1ab7b feat(avvisi): la sezione «Comunicazioni» nella scheda del cliente (Task 9, D337/D352)
+
+## Files changed
+ .superpowers/sdd/avviso-dentista-task-9-brief.md  | 113 +++++++++
+ .superpowers/sdd/avviso-dentista-task-9-report.md | 255 ++++++++++++++++++++
+ src/app/(app)/clienti/[id]/page.tsx               | 119 +++++++++
+ src/lib/avvisi/archivio.ts                        | 238 ++++++++++++++++++
+ src/lib/avvisi/queries.ts                         |  53 ++++-
+ src/lib/avvisi/ruoli.ts                           |  34 +++
+ tests/unit/avvisi-archivio.test.ts                | 278 ++++++++++++++++++++++
+ tests/unit/avvisi-queries.test.ts                 | 112 ++++++++-
+ tests/unit/avvisi-ruoli.test.ts                   |  46 ++++
+ tests/unit/cliente-dpa-ultima-emissione.test.ts   |  10 +
+ 10 files changed, 1255 insertions(+), 3 deletions(-)
+
+## Diff
+diff --git a/.superpowers/sdd/avviso-dentista-task-9-brief.md b/.superpowers/sdd/avviso-dentista-task-9-brief.md
+new file mode 100644
+index 00000000..9ab73b9d
+--- /dev/null
++++ b/.superpowers/sdd/avviso-dentista-task-9-brief.md
+@@ -0,0 +1,113 @@
++# Task 9 — LA SEZIONE «COMUNICAZIONI» NELLA SCHEDA DEL DENTISTA (⚖️ D337 · D352)
++
++**Ondata:** «l'avviso al dentista» · **ramo:** `intervento-post-consegna` (già attivo — NON crearne un altro, MAI un worktree)
++**Piano:** `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md` — sezione «Task 9».
++**BASE:** `cb200cee`. **Zero migration attese.**
++
++---
++
++## 0. Dove sta questo compito
++
++Il dentista ora vede gli avvisi nel suo portale (Task 8). Questo task costruisce il **rovescio, lato
++laboratorio**: nella scheda del cliente (`/clienti/[id]`), l'**archivio** di ciò che gli è stato
++comunicato — la prova, consultabile, di «quando · come · chi · e se l'ha aperta».
++
++⚖️ **D337: è un ARCHIVIO, NON un allarme.** Niente pastiglie rosse, niente contatori che chiamano,
++niente urgenza. La sollecitazione ad agire vive già su scheda e striscia; qui si CONSULTA.
++
++## 1. Il mandato (dal piano)
++
++**File:** Modifica `src/app/(app)/clienti/[id]/page.tsx` — 🛑 **MAI LETTO in fase di piano: il tuo
++PRIMO passo è aprirlo INTERO e scriverne la struttura nel resoconto** (righe, sezioni esistenti, come
++carica i dati, che stile usa). Più: `src/lib/avvisi/queries.ts` e `src/lib/avvisi/ruoli.ts` (v. §2) ·
++prove nuove.
++
++- [ ] Per ogni comunicazione: **quando** (`comunicato_at`) · **come** (dall'app / a voce, dal vocabolario
++  di `stati.ts`) · **chi** (`comunicato_da` → nome leggibile: guarda il modello di casa
++  `leggiTecniciSenzaAnagrafica` citato in `queries.ts`) · **se e quando l'ha aperta**
++  (`visto_dal_dentista_at` — da stamattina il portale la scrive davvero, Task 8).
++- [ ] Le righe ancora `da_comunicare` si mostrano per quello che sono (in archivio la prova c'è già),
++  ma **senza nessun segnale d'allarme** (D337): niente rosso, niente badge che chiama. La forma la
++  scegli guardando lo stile della pagina; motivala nel resoconto.
++- [ ] 🛑 ⚖️ **D336 — il valore vecchio non compare MAI.** Le voci si descrivono con
++  `descriviCampiCorretti` (nomi dei campi), mai con valori.
++- [ ] Legge **`archivioCliente()`** — **nessuna query nuova** sulla tabella (una lettura di supporto per
++  i nomi di chi ha comunicato è ammessa se serve, col modello di casa).
++- [ ] Zero migration. Zero v3 (v. §3).
++
++## 2. 🔴 IL CANCELLO D352 — e l'interazione nuova col Task 8, nata STAMATTINA
++
++⚖️ **D352 (ratificata):** l'archivio lo vedono **`titolare` · `tecnico` · `front_desk`** — esclusi
++`admin_rete` e `admin_sistema` **PER NOME**. L'elenco coincide con quello di D342 (la chiusura
++dell'avviso) **ma per una strada diversa**: là il cancello discende dal permesso di AGIRE; qui non c'è
++niente da chiudere — discende da **chi è nel perimetro del titolare del trattamento**. Sola lettura.
++
++🛑 **Per questo NON si riusa l'export di D342 in `ruoli.ts`: si aggiunge una costante NUOVA nello
++stesso file** (es. `RUOLI_ARCHIVIO_CLIENTE`), col commento che cita D352 e il PERCHÉ non è un alias:
++due decisioni che oggi coincidono possono divergere domani, e un alias le salderebbe in silenzio.
++
++⚠️ **L'interazione nuova, che l'handoff di stanotte non poteva sapere:** da stamattina
++`archivioCliente` ha **DUE chiamanti** con due autorità diverse —
++1. il **portale** (`src/app/portale/[token]/page.tsx`, Task 8): autorità = **il token**, nessun ruolo
++   utente. È già sul ramo e NON deve rompersi.
++2. la **scheda cliente** (questo task): autorità = **il ruolo** (D352).
++
++➡️ **Il cancello D352 vive in `src/lib/avvisi/` (non nella pagina: una superficie futura non deve
++poterlo dimenticare), ma NON può essere un blocco nudo dentro `archivioCliente`.** Il modello di casa è
++quello del Task 7 (`striscia.ts`): **la lettura/il ruolo si PROPAGA dal chiamante**, con sentinelle, e
++il ripiego è **fail-closed** (ruolo assente o fuori elenco → archivio vuoto/negato, MAI «passa»).
++La forma esatta (wrapper `archivioClientePerLaboratorio`, parametro discriminato, due entry point…)
++**la scegli tu dopo aver letto i due chiamanti veri** — e la motivi nel resoconto.
++🛑 Qualunque forma scegli: **il chiamante del portale resta com'è o cambia in modo provato** (le sue
++prove del Task 8 devono restare verdi), e **il cancello si prova PER INVERSIONE e per lato**
++(lezioni Task 6 e 7, sotto).
++
++## 3. Stile della pagina
++
++`/clienti/[id]` **NON è fra le pagine migrate a v3** → è una superficie **v2.3 legacy**: token da
++`src/design-system/tokens.ts`, motion da `src/design-system/motion.ts` (MAI `duration` inline), niente
++import da `design-system/v3/` né da `components/ds/`. **MAI mischiare i due sistemi nella stessa
++pagina** (v3 §14). In pratica: segui lo stile che la pagina ha, che leggerai al primo passo.
++Anti-pattern: niente tabella full-width su mobile (card), massimo rispetto di ciò che la pagina già fa.
++
++## 4. Le prove (R-P4 — enumera PRIMA le forme)
++
++- **Il cancello, per inversione e per lato** (lezione Task 6: una prova che sorveglia l'esistenza non
++  sorveglia il verso; lezione Task 7: i lati si provano SEPARATI): ① ciascuno dei tre ruoli ammessi
++  vede l'archivio (la spia giusta guarda **se il banco è stato interrogato**, non solo il valore di
++  ritorno — per «escluso» e «vuoto» il ritorno è identico) · ② `admin_rete` NON vede, e il banco NON
++  è stato interrogato · ③ `admin_sistema` NON vede, idem · ④ ruolo assente/imprevisto → fail-closed.
++- **L'archivio:** ⑤ cliente con due comunicazioni chiuse (una dall'app con testo, una a voce) → quando ·
++  come · chi · vista/non vista · ⑥ riga `da_comunicare` → si mostra senza allarme · ⑦ archivio vuoto →
++  la sezione non urla (comportamento scelto e dichiarato) · ⑧ D336: mai un valore vecchio.
++- **Il portale non si rompe:** ⑨ le prove del Task 8 restano verdi (`avvisi-portale.test.ts`), e se
++  tocchi la firma di `archivioCliente` lo dichiari e provi il chiamante del portale.
++- Dopo il primo rosso: abbozzo inerte e **conteggio `N su M`** nel resoconto.
++
++## 5. Trappole note
++
++- 🛑 Gli snippet dei piani hanno già portato **due errori di campo**: ogni campo si verifica sul TIPO
++  (`database.types.ts`, `AvvisoRiga` in `queries.ts:54`) prima di usarlo.
++- `page.tsx` di clienti è un server component MAI letto: **non assumere niente** della sua struttura —
++  potrebbe avere tab, sezioni, o un pattern dati tutto suo. Prima leggi, poi progetta.
++- Il cancello D342 in `ruoli.ts` ha già un nome: NON riusarlo per D352 (v. §2). La rotta ri-esporta
++  per compatibilità: non toccare quella catena.
++- `tsc` non vede `server-only`: la FASE 7 chiede anche `next build` per questo.
++- FASE 9 (browser) e gate estetico L2: **accorpati al Task 10** — NON farli qui.
++- 🛑 Un difetto fuori mandato si RIFERISCE (R-E2), non si corregge.
++
++## 6. Regole di casa (vincolanti)
++
++- Directory `/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app`, ramo già attivo.
++- TDD RED→GREEN; iterando lancia i file di prova toccati; suite intera UNA volta prima del commit.
++- FASE 7: `npx tsc --noEmit` · `npx vitest run` · `npx next build`, output reale.
++- 🛑 `git status` PRIMA · `git add <percorsi>`, MAI `-A` · messaggi lunghi `-F <file>` fuori repo ·
++  **NIENTE push**.
++- Commit: `feat(avvisi): …`.
++
++## 7. Il resoconto
++
++Completo in `.superpowers/sdd/avviso-dentista-task-9-report.md`: la STRUTTURA di `clienti/[id]/page.tsx`
++(righe citate — è il primo mandato) · la forma scelta per il cancello e il perché · evidenza TDD
++(RED, `N su M`, GREEN) · file toccati · autorevisione · riserve. Poi rispondi con SOLO (max 15 righe):
++**Status** · commit · una riga sui test · la forma del cancello in una riga · riserve · percorso del resoconto.
+diff --git a/.superpowers/sdd/avviso-dentista-task-9-report.md b/.superpowers/sdd/avviso-dentista-task-9-report.md
+new file mode 100644
+index 00000000..01f0fd4e
+--- /dev/null
++++ b/.superpowers/sdd/avviso-dentista-task-9-report.md
+@@ -0,0 +1,255 @@
++# Task 9 — La sezione «Comunicazioni» nella scheda del cliente — resoconto
++
++**Ondata:** «l'avviso al dentista» · **ramo:** `intervento-post-consegna`
++**Brief:** `.superpowers/sdd/avviso-dentista-task-9-brief.md`
++
++---
++
++## 0. La struttura di `clienti/[id]/page.tsx` — MAI letta prima, primo passo del mandato
++
++File letto INTERO prima di ogni modifica (441 righe nella versione di partenza, 560 dopo). Struttura:
++
++- **1-51**: import · `type PageProps` · `type ClienteDettaglio` (le colonne di `clienti` che la
++  pagina legge) · `type UltimaEmissioneDpa`.
++- **52-117**: due componenti server di supporto, `InfoRow` (etichetta + valore, `null` → non
++  renderizza niente) e `SectionCard` (titolo uppercase + `border-top` + figli in colonna). **Sono
++  il vocabolario visivo di TUTTA la pagina** — ogni sezione è una `SectionCard`, ogni campo
++  un'`InfoRow`. Nessun import da `design-system/tokens.ts`: gli stili sono inline con variabili CSS
++  dirette (`var(--t1, #1C1916)`, `var(--surface, #E4DFD9)`, ecc.) — convenzione propria di questo
++  file, non della spec v2.3 generale.
++- **119-282** (nella versione di partenza): il componente pagina `ClienteDettaglioPage`.
++  - **120-142**: `params` → `id` · `getLabContext()` (404 se manca `laboratorioId`) ·
++    `getServiceClient()` · lettura `clienti` con `.eq('id', id).eq('laboratorio_id', …).is('deleted_at', null).single()` → 404 se assente.
++  - **149-196**: **DUE letture in `Promise.all`**, deliberatamente parallele (commento esplicito:
++    «due andate e ritorni in sequenza si SOMMANO»): l'ultima emissione del DPA
++    (`data_processing_agreements`) e i dati fiscali del laboratorio (`laboratori`).
++  - **198-256**: gestione dei DUE guasti di lettura (mai confusi con «non c'è»), formattazione
++    della data (`timeZone: 'Europe/Rome'` esplicito — difetto già pagato altrove nell'ondata),
++    calcolo di `mancanzaDpa` (predicato `&&`, non `||` — D159) e `puoEmettere` (D158: cortesia
++    visiva, non un controllo di sicurezza — la vera guardia è nella rotta).
++  - **258-282**: costruzione di `modButton` (`ClienteModificaButton`).
++  - **284-441**: il render — `PageWrapper` → `AppHeader` → sezioni in `SectionCard`: Anagrafica,
++    Dati fiscali, Commerciale, Note (condizionale), Portale dentista (`PortaleLinkButtons`),
++    `PortaleFatturazioneCard` (fuori da `SectionCard`, ha la sua card interna), Privacy — GDPR
++    (tasto DPA condizionato dal ruolo + tre casi sull'ultima emissione: guasto / emessa / mai
++    emessa).
++
++**Stile:** v2.3 legacy confermato — nessun `data-ds="v3"`, nessun import da `design-system/v3/` né
++da `components/ds/`. Pattern: card con `SectionCard`, righe con `InfoRow` o markup ad hoc quando
++serve più struttura di «etichetta + valore» (come per il badge «Non soggetto a fattura
++elettronica», l'unico precedente di *pastiglia colorata* nella pagina — usa `--amber`, riservato a
++un avviso informativo, non a un allarme).
++
++**Come carica i dati:** SEMPRE `getServiceClient()` (client di servizio, bypassa la RLS) con
++filtro `laboratorio_id` ESPLICITO su ogni tabella — mai un affidamento implicito alla RLS. Letture
++indipendenti raggruppate in `Promise.all`, letture dipendenti in sequenza dopo.
++
++---
++
++## 1. I due chiamanti veri di `archivioCliente` (letti prima di progettare il cancello)
++
++1. **`src/app/portale/[token]/page.tsx:467`** (Task 8, sul ramo da stamattina): `const righeAvviso
++   = await archivioCliente(svc, { clienteId: cliente.id, laboratorioId: cliente.laboratorio_id
++   })`. Nessun ruolo utente — l'autorità è il **token** del cliente, verificato più sopra nello
++   stesso file. Il commento alla riga 465-466 lo dice esplicitamente: «`archivioCliente` non ha un
++   cancello di ruolo — per il portale va bene così, il cancello è il token».
++2. **`clienti/[id]/page.tsx`** (questo task): l'autorità è il **ruolo** dell'utente autenticato
++   (`context.ruolo`, da `getLabContext()`), ⚖️ D352.
++
++---
++
++## 2. La forma scelta per il cancello, e perché
++
++**Secondo entry point che avvolge il primo — `archivioPerSchedaCliente` in `src/lib/avvisi/queries.ts`**,
++con la stessa identica forma di `avvisoPerLaScheda`/`avvisoPerLaStriscia` (Task 6/7, già in
++quel file): controlla `puoVedereArchivioCliente(ruolo)` **prima** di interrogare il banco, e
++ritorna `[]` senza toccare `svc` se il ruolo non passa — fail-closed, nessun secondo ramo.
++`archivioCliente` resta **invariata** (firma e corpo) ed è tuttora la funzione che il portale
++chiama; questa pagina chiama `archivioPerSchedaCliente`, mai la grezza.
++
++**Perché questa forma e non le altre due indicate dal brief (§2):**
++- *Blocco nudo dentro `archivioCliente`*: scartato per esplicito divieto del brief, e comunque
++  avrebbe rotto il portale (che non ha un ruolo da passare) o l'avrebbe costretto a un ruolo finto.
++- *Parametro discriminato* (`{ tipo: 'portale' } | { tipo: 'scheda', ruolo }`): scartato perché più
++  complesso senza portare nessun vantaggio — il portale non deve sapere che esiste un'altra
++  autorità, e un parametro discriminato l'avrebbe comunque toccato (bisognava passare `{ tipo:
++  'portale' }` da lì).
++- **Secondo entry point** (scelto): zero tocchi al chiamante del portale, stessa forma già in casa
++  per lo stesso identico problema (`avvisoPerLaScheda` sopra `avvisiDaComunicare`), una sola
++  funzione nuova da capire.
++
++**La costante di ruolo è NUOVA**: `RUOLI_ARCHIVIO_CLIENTE` in `src/lib/avvisi/ruoli.ts`, non un
++alias di `RUOLI_CHIUSURA_AVVISO` — per mandato esplicito del brief §2. Una prova dedicata
++(`avvisi-ruoli.test.ts`) verifica che le due costanti NON siano lo stesso riferimento (`not.toBe`),
++oltre al contenuto identico di oggi.
++
++**La lettura di supporto per «chi»** (`nomiComunicatori`, su `utenti`) vive in un file nuovo,
++`src/lib/avvisi/archivio.ts`, non in `queries.ts`: stesso principio già applicato da `portale.ts`
++al Task 8 — `queries.ts` legge `avvisi_dentista` (e i suoi cancelli), `archivio.ts` legge
++`utenti` e compone la presentazione. Non è gated per ruolo al suo interno: riceve solo gli id
++`comunicato_da` delle righe **già filtrate** da `archivioPerSchedaCliente`, quindi per un ruolo
++escluso la lista di id è sempre vuota e la funzione non interroga nulla (verificato dal test
++«nessun id → nessuna lettura»).
++
++---
++
++## 3. Evidenza TDD
++
++### 3.1 — `puoVedereArchivioCliente` / `RUOLI_ARCHIVIO_CLIENTE` (`tests/unit/avvisi-ruoli.test.ts`)
++
++RED: 8 prove nuove, `RUOLI_ARCHIVIO_CLIENTE is not iterable` / import mancante (8 falliscono, 15
++preesistenti passano). GREEN dopo l'implementazione: **23/23**.
++
++### 3.2 — `archivioPerSchedaCliente` (`tests/unit/avvisi-queries.test.ts`)
++
++RED: 10 prove nuove, `archivioPerSchedaCliente is not a function` (10 falliscono, 36 preesistenti
++passano).
++
++**Abbozzo inerte (R-P4)**: `archivioPerSchedaCliente` che ritorna `[]` sempre, ignorando `ruolo` e
++senza mai chiamare `svc`. Conteggio: **7 su 10** si accendono (i tre ammessi, la prova sui cinque
++ruoli, «escluso vs vuoto», filtri/ordine, guasto-nei-log). **3 su 10 passano anche con l'abbozzo
++inerte**, e non per debolezza della prova: sono i due esclusi e il fail-closed, che con QUALSIASI
++implementazione fail-closed (anche muta) ricevono `[]` — è la stessa asimmetria già misurata al
++Task 6/7 su `avvisoPerLaScheda`/`avvisoPerLaStriscia`.
++
++GREEN dopo l'implementazione vera: **46/46** (36 preesistenti + 10 nuove).
++
++### 3.3 — `nomiComunicatori` / `costruisciRigheArchivio` / `formattaQuando` (`tests/unit/avvisi-archivio.test.ts`, file nuovo)
++
++RED: import fallito (modulo inesistente), 0 prove eseguibili. Non serve un abbozzo inerte separato
++per questo file: le funzioni sono pure/di lettura semplice, senza un cancello booleano da poter
++capovolgere in modo invisibile — l'abbozzo inerte è già stato fatto (e conta) dove serviva, sul
++cancello di ruolo (§3.2).
++
++GREEN dopo l'implementazione: **16/16**, incluse le prove esplicite del brief §4 —
++- ⑤ due comunicazioni chiuse (dall'app con testo, a voce) → quando/come/chi/vista tutti corretti
++  per riga, comprese le due date in Europe/Rome (`9 agosto 2026, 14:00` da un `Z` UTC di mezzogiorno).
++- ⑥ riga `da_comunicare` → `chiuso: false`, `quando: null`, `chi: null`, `comeLabel: 'Da comunicare'`
++  (asserito anche `not.toMatch(/urgent|attenzione|!|⚠/i)`).
++- ⑦ archivio vuoto → `[]`, nessun errore.
++- ⑧ D336 → `campiDescritti` porta le descrizioni italiane (`'la descrizione'`), mai la chiave
++  tecnica grezza (`'descrizione'`).
++- più: `chi` sconosciuto → ripiego dichiarato (mai `null`/vuoto su una riga chiusa); stato fuori
++  vocabolario → riga NON scompare, log scritto; `deleted_at` NON filtrato su `nomiComunicatori`
++  (v. §4 sotto).
++
++### 3.4 — Il portale non si è rotto (brief §4, prova ⑨)
++
++`archivioCliente` non ha cambiato firma: nessuna modifica a `avvisi-portale.test.ts` è stata
++necessaria. Confermato dalla suite intera (§5).
++
++### 3.5 — Una prova preesistente ROTTA dalla modifica a `page.tsx`, e riparata
++
++`tests/unit/cliente-dpa-ultima-emissione.test.ts` è l'UNICA prova unitaria che RENDE
++`ClienteDettaglioPage` per vero (con un mock di `svc.from` che lancia un errore su ogni tabella non
++prevista). Aggiungere la lettura di `archivioPerSchedaCliente` all'interno della pagina ha fatto
++scattare quel guardrail: 22 prove su 24 sono diventate rosse (`Mock scheda cliente: tabella
++inattesa «avvisi_dentista»`). **Non è un difetto fuori mandato (R-E2): è la conseguenza diretta e
++prevista di questo stesso task**, quindi si ripara qui, non si riferisce. Aggiunta una riga al mock
++(`if (tabella === 'avvisi_dentista') return createChain({ data: [], error: null })`), con un
++commento che spiega perché non serve anche un ramo per `utenti` (lista vuota → `nomiComunicatori`
++non interroga nulla). Riverificata anche la prova A2 (le due letture DPA/laboratorio partono
++insieme): l'ordine relativo fra `data_processing_agreements` e `laboratori` non cambia, perché
++`archivioPerSchedaCliente` è il terzo elemento dell'array passato a `Promise.all` e viene valutato
++DOPO gli altri due (ordine di valutazione sincrono di un array literal). Tutte e 24 le prove sono
++tornate verdi.
++
++---
++
++## 4. Riserve — dove ho scelto e dove il mandato lascia un vuoto
++
++**① L'archivio non porta un riferimento al LAVORO a schermo.** `AvvisoRiga` porta `lavoro_id` (un
++`uuid`, non leggibile) ma non `numero_lavoro` — per averlo servirebbe una SECONDA lettura di
++supporto su `lavori`, che il brief §1 non menziona («una lettura di supporto **per i nomi di chi
++ha comunicato**» è l'UNICA licenza esplicita per una query oltre `archivioCliente`). Ho scelto di
++attenermi alla lettera del mandato e NON aggiungere quella lettura: l'interfaccia `RigaArchivioCliente`
++porta `lavoroId` (grezzo) ma la card oggi non lo mostra. **Conseguenza pratica:** un cliente con
++comunicazioni su più lavori vede un archivio senza modo di distinguere a quale lavoro si riferisce
++ciascuna riga — un vuoto reale, non cosmetico. Segnalo esplicitamente perché il brief §1 elenca
++solo quattro campi (quando/come/chi/vista) e non ne discute un quinto: è un punto che merita una
++decisione dichiarata (aggiungere la lettura su `lavori`, o accettare il limite) prima che l'ondata
++si chiuda — non l'ho presa da solo perché eccederebbe la licenza di lettura che il brief accorda.
++
++**② `nomiComunicatori` NON filtra `deleted_at`, deviando dalla regola di casa «N11: filtro
++`deleted_at` SEMPRE».** Deviazione dichiarata, non dimenticata: la migration `20260809123206`
++(righe 48-54) spiega che `comunicato_da` è `REFERENCES public.utenti(id)` **senza** `ON DELETE SET
++NULL` proprio perché il CHECK `avviso_comunicato_ha_autore_e_data` pretende l'autore su ogni riga
++chiusa — l'autore deve sopravvivere alla cancellazione (soft) dell'utente. Filtrare `deleted_at IS
++NULL` nella lettura dei nomi avrebbe fatto sparire dall'archivio (che è la prova ex Art. 5(2) GDPR)
++il nome di chi ha lasciato il laboratorio: l'esatto contrario della scelta già incisa nello schema.
++Motivato nel codice (`archivio.ts`, commento su `nomiComunicatori`) e provato (`avvisi-archivio.test.ts`,
++prova dedicata).
++
++**③ Nessun mockup HTML nuovo in `docs/design/mockups/`.** CLAUDE.md §0B/§4 chiede in generale
++un'approvazione visiva prima di ogni codice UI, ma il mockup dell'ondata
++(`2026-08-09-avviso-al-dentista.html`) copre solo le superfici A (scheda del lavoro) e B (portale)
++— la scheda cliente non è mai stata disegnata, e il brief Task 9 esplicitamente rimanda «FASE 9
++(browser) e gate estetico L2» al Task 10. Ho scelto di NON produrre un mockup a sé, e di riusare
++**esattamente** il vocabolario visivo già approvato della pagina (`SectionCard`/`InfoRow`, stessi
++token, stesso font, nessun colore nuovo fuori da `--elv`/`--t2`/`--t3` già in uso) invece di
++introdurre un pattern nuovo. È una scelta di prudenza (estendere l'esistente, non inventare), non
++un'esenzione che mi sono dato da solo: la segnalo perché la regola generale non distingue questo
++caso, e se Francesco preferisce comunque un mockup a sé per «Comunicazioni», il Task 10 (che ha
++già in mandato il gate estetico L2) è il punto naturale per produrlo prima del merge finale.
++
++**④ Un ruolo escluso e un archivio genuinamente vuoto mostrano la STESSA schermata**
++(«Nessuna comunicazione registrata per questo studio.»), per scelta deliberata: la sezione resta
++SEMPRE a schermo (mai `{condizione && <SectionCard>}`), sul modello della card DPA che già oggi
++mostra sempre un esito (mai il vuoto). L'alternativa — un messaggio tipo «non hai il permesso di
++vedere questa sezione» — rivelerebbe a un `admin_rete`/`admin_sistema` che esistono dati nascosti,
++un'informazione che D352 non vuole trapelare. Motivato nel commento sopra la `SectionCard`.
++
++**⑤ Limiti noti, non corretti (fuori mandato):** l'ordine dell'archivio segue `created_at DESC`
++(da `archivioCliente`), non `comunicato_at` — la rotta di chiusura (`avviso/route.ts:391-395`)
++documenta che i due orologi (database vs processo Node) possono divergere di poco, quindi le date
++mostrate non sono garantite strettamente monotone riga per riga. E ⚖️ D354 (un atto chiude tutte le
++righe aperte di un lavoro) significa che più righe distinte possono condividere lo stesso
++`comunicato_at`/`comunicato_da`/`stato`, differendo solo nei campi corretti — l'archivio le mostra
++comunque come atti separati, correttamente, ma un lettore che non conosce D354 potrebbe chiedersi
++perché due righe hanno lo stesso istante.
++
++---
++
++## 5. Comando FASE 7 — output reale
++
++```
++npx tsc --noEmit            → nessun output, exit 0
++npx vitest run               → Test Files  461 passed | 11 skipped (472)
++                                Tests  6045 passed | 137 skipped (6182)
++npx next build                → completata, exit 0, /clienti/[id] presente come route ƒ (dinamica)
++```
++
++(gli 11 file/137 test skipped sono le prove d'integrazione che richiedono il banco vero — invariato
++rispetto a prima di questo task, non introdotto da esso.)
++
++---
++
++## 6. File toccati
++
++- `src/lib/avvisi/ruoli.ts` — `RUOLI_ARCHIVIO_CLIENTE` + `puoVedereArchivioCliente` (nuovi export)
++- `src/lib/avvisi/queries.ts` — `archivioPerSchedaCliente` (nuovo export); `archivioCliente` invariata
++- `src/lib/avvisi/archivio.ts` — **nuovo file**: `formattaQuando`, `nomiComunicatori`,
++  `costruisciRigheArchivio`, `RigaArchivioCliente`
++- `src/app/(app)/clienti/[id]/page.tsx` — import, componente `RigaComunicazione`, lettura in
++  `Promise.all`, risoluzione nomi, sezione «Comunicazioni»
++- `tests/unit/avvisi-ruoli.test.ts` — blocco nuovo per D352
++- `tests/unit/avvisi-queries.test.ts` — blocco nuovo per `archivioPerSchedaCliente`
++- `tests/unit/avvisi-archivio.test.ts` — **nuovo file**
++- `tests/unit/cliente-dpa-ultima-emissione.test.ts` — una riga di mock aggiunta (riparazione, §3.5)
++
++---
++
++## 7. Autorevisione
++
++- [x] Ogni campo verificato sul tipo prima dell'uso (`AvvisoRiga` in `queries.ts:54`,
++  `utenti` in `database.types.ts`) — nessuno dei «due errori di campo» delle trappole note.
++- [x] Il cancello provato per inversione (capovolgerlo renderebbe rosse tutte le prove sui cinque
++  ruoli) e per lato (AMMESSI ed ESCLUSI in blocchi separati, non un solo test che «esiste»).
++- [x] D336 provata esplicitamente (nomi di campo, mai valori).
++- [x] D337 provata sul dato (nessuna parola d'urgenza) e argomentata sullo stile (nessun colore
++  d'allarme, stessa forma per ogni stato).
++- [x] Zero migration, zero import v3, `archivioCliente` invariata, portale non toccato.
++- [x] FASE 7 completa con output reale incollato.
++- [ ] Riserva aperta ①: nessun riferimento al lavoro nell'archivio — segnalata, non risolta
++  (fuori dalla licenza di lettura del brief).
++- [ ] Riserva aperta ③: nessun mockup dedicato — segnalata, deferita al Task 10 se richiesto.
+diff --git a/src/app/(app)/clienti/[id]/page.tsx b/src/app/(app)/clienti/[id]/page.tsx
+index 08c185ac..a7d06dfd 100644
+--- a/src/app/(app)/clienti/[id]/page.tsx
++++ b/src/app/(app)/clienti/[id]/page.tsx
+@@ -2,20 +2,27 @@ import { notFound } from 'next/navigation'
+ import { getLabContext } from '@/lib/supabase/lab-context'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { AppHeader } from '@/components/layout/AppHeader'
+ import { PageWrapper } from '@/components/layout/PageWrapper'
+ import { PortaleLinkButtons } from '@/components/features/clienti/PortaleLinkButtons'
+ import { PortaleFatturazioneCard } from '@/components/features/clienti/PortaleFatturazioneCard'
+ import { ClienteModificaButton } from '@/components/features/clienti/ClienteModificaButton'
+ import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
+ import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica'
+ import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
++// Task 9 dell'ondata «l'avviso al dentista» — l'archivio delle comunicazioni
++// (⚖️ D337 · D352). Il cancello di ruolo vive DENTRO `archivioPerSchedaCliente`
++// (`src/lib/avvisi/queries.ts`): questa pagina non ripete `puoVedereArchivioCliente`
++// a mano — lo propaga passando `context.ruolo`, stesso modello di `puoEmettere` qui
++// sopra ma con la chiusura fail-closed dentro la lettura stessa, non nel JSX.
++import { archivioPerSchedaCliente } from '@/lib/avvisi/queries'
++import { nomiComunicatori, costruisciRigheArchivio, type RigaArchivioCliente } from '@/lib/avvisi/archivio'
+ 
+ type PageProps = { params: Promise<{ id: string }> }
+ 
+ type ClienteDettaglio = {
+   id: string
+   studio_nome: string | null
+   nome: string
+   cognome: string
+   telefono: string | null
+   cellulare_whatsapp: string | null
+@@ -109,20 +116,85 @@ function SectionCard({ title, children }: { title: string; children: React.React
+           flexDirection: 'column',
+           gap: '0',
+         }}
+       >
+         {children}
+       </div>
+     </div>
+   )
+ }
+ 
++/**
++ * Una riga dell'archivio «Comunicazioni» — Task 9, ⚖️ D337 · D336.
++ *
++ * 🛑 STESSA FORMA NEUTRA PER OGNI STATO, ED È IL PUNTO: la pastiglia di
++ *    `comeLabel` usa SEMPRE `--elv`/`--t2` — mai `--amber` (l'unico colore di
++ *    richiamo che questa pagina già conosce, sulla riga «Non soggetto a
++ *    fattura elettronica» qui sopra), mai un rosso. ⚖️ D337 vieta un segnale
++ *    d'allarme anche per una riga ancora `da_comunicare`: qui non c'è NESSUNA
++ *    differenza di stile fra una riga aperta e una chiusa — solo il TESTO
++ *    cambia (`riga.comeLabel`, `riga.quando`, `riga.chi`), mai il colore.
++ *    Motivato nel resoconto del Task 9.
++ */
++function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
++  return (
++    <div
++      style={{
++        padding: '12px 0',
++        borderBottom: '1px solid var(--elv, #EDEDEA)',
++        display: 'flex',
++        flexDirection: 'column',
++        gap: '4px',
++      }}
++    >
++      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
++        <span
++          style={{
++            fontFamily: 'DM Sans, sans-serif',
++            fontSize: '11px',
++            fontWeight: 600,
++            color: 'var(--t2, #4A3D33)',
++            background: 'var(--elv, #EDEDEA)',
++            borderRadius: '6px',
++            padding: '3px 10px',
++            textTransform: 'uppercase',
++            letterSpacing: '0.04em',
++          }}
++        >
++          {riga.comeLabel}
++        </span>
++        {riga.quando && (
++          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t3, #6B5C51)' }}>
++            {riga.quando}
++          </span>
++        )}
++      </div>
++
++      {riga.chi && (
++        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--t1, #1C1916)' }}>
++          {riga.chi}
++        </span>
++      )}
++
++      {riga.campiDescritti.length > 0 && (
++        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', lineHeight: 1.4 }}>
++          Corretto: {riga.campiDescritti.join(', ')}
++        </span>
++      )}
++
++      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3, #6B5C51)' }}>
++        {riga.vistoLabel ? `Vista dal dentista il ${riga.vistoLabel}` : 'Non ancora vista dal dentista'}
++      </span>
++    </div>
++  )
++}
++
+ export default async function ClienteDettaglioPage({ params }: PageProps) {
+   const { id } = await params
+ 
+   const context = await getLabContext()
+   if (!context?.laboratorioId) notFound()
+ 
+   const svc = getServiceClient()
+   const { data: cliente, error } = await svc
+     .from('clienti')
+     .select(`
+@@ -162,20 +234,21 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
+   //    RIUSABILE per QUESTI dati e QUESTA versione di modello?», e per questo
+   //    filtrano anche su `payload_sha256`, `template_versione` e sullo STATO.
+   //    Qui la domanda è un'altra — «qual è stata l'ULTIMA emissione per questo
+   //    studio?» — ed è una domanda di STORIA: resta vera anche per un contratto
+   //    poi revocato o scaduto, che UÀ conserva lo stesso. Allineare questo
+   //    filtro a quello del guard farebbe sparire dalla scheda un'emissione che
+   //    esiste davvero.
+   const [
+     { data: emissioneRaw, error: erroreRegistro },
+     { data: labFiscale, error: erroreLabFiscale },
++    righeArchivioAvviso,
+   ] = await Promise.all([
+     svc
+       .from('data_processing_agreements')
+       .select('numero_dpa, emesso_at')
+       .eq('laboratorio_id', context.laboratorioId)
+       .eq('dentista_id', c.id)
+       .not('numero_dpa', 'is', null)
+       .is('deleted_at', null)
+       .order('emesso_at', { ascending: false })
+       .limit(1)
+@@ -186,20 +259,25 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
+     //    di un laboratorio senza Partita IVA lo scoprirebbe premendo — su OGNI
+     //    dentista, uno per uno.
+     // 🛑 In PARALLELO, mai in fila: questa pagina si apre a ogni scheda dentista,
+     //    e due andate e ritorni in sequenza si SOMMANO. Nessun `await` dentro
+     //    l'array: le due partono entrambe prima che l'una risponda.
+     svc
+       .from('laboratori')
+       .select('partita_iva, codice_fiscale')
+       .eq('id', context.laboratorioId)
+       .maybeSingle(),
++    // Task 9 — l'archivio «Comunicazioni» (⚖️ D337 · D352). Il cancello di
++    // ruolo vive DENTRO `archivioPerSchedaCliente`: per `admin_rete`/
++    // `admin_sistema` questa promessa risolve a `[]` SENZA interrogare
++    // `avvisi_dentista` (fail-closed, provato in `avvisi-queries.test.ts`).
++    archivioPerSchedaCliente({ svc, clienteId: c.id, laboratorioId: context.laboratorioId, ruolo: context.ruolo }),
+   ])
+ 
+   // 🛑 Un guasto di LETTURA non è «non è mai stato emesso»: sono due fatti
+   //    diversi e vanno detti diversi (stessa distinzione di
+   //    `generate-dpa.ts:134-145`). Qui però NON si ferma la pagina — la scheda
+   //    del cliente serve anche senza questa riga, e toglierla tutta per un
+   //    dettaglio informativo sarebbe un danno più grande del difetto. Il fatto
+   //    resta nei log, dove lo legge chi ripara.
+   if (erroreRegistro) {
+     console.error('ClienteDettaglioPage — registro DPA non leggibile:', c.id, erroreRegistro.message)
+@@ -207,20 +285,31 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
+   // 🛑 STESSA distinzione, e qui pesa ancora di più: «non sono riuscito a
+   //    leggere» NON è «il dato non c'è». Se questo guasto si trasformasse in
+   //    «Mancano i dati del tuo laboratorio», il titolare andrebbe in
+   //    /impostazioni a cercare una Partita IVA che è già scritta lì. Sotto, la
+   //    prevenzione si arrende: il tasto resta vivo e decide la rotta, che il
+   //    controllo lo rifà comunque (D159 — la prevenzione non sostituisce il 422).
+   if (erroreLabFiscale) {
+     console.error('ClienteDettaglioPage — dati fiscali del laboratorio non leggibili:', context.laboratorioId, erroreLabFiscale.message)
+   }
+ 
++  // Task 9 — «chi» ha comunicato: una lettura di supporto SU `utenti`, non su
++  // `avvisi_dentista` (brief §1: «nessuna query nuova [sulla tabella]»).
++  // 🛑 Sequenziale e non nel `Promise.all` di sopra: dipende dagli id appena
++  //    letti (`comunicato_da` di ogni riga), quindi non può partire prima.
++  const nomiComunicanti = await nomiComunicatori(
++    svc,
++    righeArchivioAvviso.map((r) => r.comunicato_da),
++    context.laboratorioId
++  )
++  const righeComunicazioni = costruisciRigheArchivio(righeArchivioAvviso, nomiComunicanti)
++
+   const ultimaEmissione = emissioneRaw as UltimaEmissioneDpa | null
+ 
+   // 🛑 `timeZone: 'Europe/Rome'` NON è pignoleria — è il difetto già pagato in
+   //    questa stessa ondata su `DpaTemplate.tsx:95-108`. Questo è un componente
+   //    SERVER: la data la formatta la macchina, e in produzione la macchina gira
+   //    a UTC. Senza fuso dichiarato, un contratto emesso alle 00:30 di Roma si
+   //    mostra col giorno PRIMA — e a quel punto la scheda e il PDF, che il fuso
+   //    ce l'ha, si contraddicono a vicenda.
+   //    ⚠️ Invisibile a occhio in FASE 9: il collaudo gira da una macchina a Roma,
+   //    dove il codice sbagliato dà la stessa risposta di quello giusto.
+@@ -359,20 +448,50 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
+           <PortaleLinkButtons portaleToken={c.portale_token} clienteNome={`${c.cognome} ${c.nome}`.trim()} />
+         </SectionCard>
+ 
+         {/* Portale — fatturazione concordata (interruttore, PIN, rigenera link) */}
+         <PortaleFatturazioneCard
+           clienteId={c.id}
+           attiva={c.portale_fatturazione_attiva}
+           pinImpostato={c.portale_pin_hash != null}
+         />
+ 
++        {/* Comunicazioni — l'archivio di ⚖️ D337 (Task 9): quando · come · chi ·
++            se e quando l'ha aperta. Sola lettura, cancello di ruolo ⚖️ D352
++            (`titolare` · `tecnico` · `front_desk`) dentro `archivioPerSchedaCliente`.
++            🛑 La card resta SEMPRE a schermo, anche vuota — stesso modello della
++            card DPA qui sotto (D160: «chi non vede il tasto vede comunque tutto
++            il resto»): un archivio si CONSULTA, e una sezione che sparisce a
++            seconda del ruolo rivelerebbe implicitamente che qualcosa esiste ma
++            è nascosto. Un ruolo escluso e un archivio genuinamente vuoto
++            mostrano perciò la STESSA schermata — di proposito, nessuna fuga di
++            informazione su «c'è qualcosa che non puoi vedere». */}
++        <SectionCard title="Comunicazioni">
++          {righeComunicazioni.length === 0 ? (
++            <div style={{ padding: '10px 0' }}>
++              <p
++                style={{
++                  fontFamily: 'DM Sans, sans-serif',
++                  fontSize: '13px',
++                  color: 'var(--t2, #4A3D33)',
++                  margin: 0,
++                  lineHeight: 1.5,
++                }}
++              >
++                Nessuna comunicazione registrata per questo studio.
++              </p>
++            </div>
++          ) : (
++            righeComunicazioni.map((riga) => <RigaComunicazione key={riga.id} riga={riga} />)
++          )}
++        </SectionCard>
++
+         {/* DPA GDPR Art. 28 */}
+         <SectionCard title="Privacy — GDPR">
+           <div style={{ padding: '12px 0' }}>
+             <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2)', marginBottom: '10px', lineHeight: 1.5 }}>
+               Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.
+             </p>
+             {/* 🛑 Qui NON c'è più una `<a href>`, ed è il cuore di P17: premere
+                 un collegamento era una NAVIGAZIONE, quindi un errore della rotta
+                 finiva a schermo come `{"error":"…"}` — titolo vuoto, zero
+                 elementi premibili, e in una PWA installata nemmeno un «indietro».
+diff --git a/src/lib/avvisi/archivio.ts b/src/lib/avvisi/archivio.ts
+new file mode 100644
+index 00000000..6f8027f6
+--- /dev/null
++++ b/src/lib/avvisi/archivio.ts
+@@ -0,0 +1,238 @@
++// src/lib/avvisi/archivio.ts
++//
++// Task 9 dell'ondata «l'avviso al dentista» — LA PRESENTAZIONE dell'archivio
++// nella scheda del cliente (⚖️ D337): la lettura di supporto dei nomi di chi
++// ha comunicato, e la funzione pura che traduce le righe grezze di
++// `archivioCliente` in ciò che `clienti/[id]/page.tsx` mostra.
++//
++// 🔑 PERCHÉ UN FILE NUOVO E NON UNA FUNZIONE IN `queries.ts`. Quel modulo
++//    legge `avvisi_dentista` (e il suo cancello di ruolo, `archivioPerSchedaCliente`,
++//    resta lì accanto alla lettura che avvolge). Questo file legge `utenti` —
++//    la «lettura di supporto per i nomi di chi ha comunicato», esplicitamente
++//    ammessa dal brief Task 9 §1 («col modello di casa») — e compone la
++//    presentazione. Stesso principio di `portale.ts` (Task 8): le due
++//    domande sono diverse, e la seconda vive dove non confonde la prima.
++//
++// 🛑 `clienti/[id]/page.tsx` È UN COMPONENTE SERVER ASINCRONO: nessuna prova
++//    unitaria lo rende (stessa lezione, già pagata due volte in questa
++//    ondata — Task 6 su `lavori/[id]/page.tsx`, Task 8 su
++//    `portale/[token]/page.tsx`). Ogni riga con posta in gioco normativa —
++//    ⚖️ D336 (mai un valore vecchio), ⚖️ D337 (niente allarme) — sta qui,
++//    dove una prova la esercita davvero (`tests/unit/avvisi-archivio.test.ts`).
++
++import { descriviCampiCorretti } from '@/lib/avvisi/messaggio'
++import type { AvvisoRiga } from '@/lib/avvisi/queries'
++import { isStatoAvviso, chiudeIlPromemoria, type StatoAvvisoChiuso } from '@/lib/avvisi/stati'
++import type { getServiceClient } from '@/lib/supabase/server-service'
++
++type Svc = ReturnType<typeof getServiceClient>
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 1. formattaQuando — l'istante nelle parole del banco, SEMPRE Europe/Rome
++// ═══════════════════════════════════════════════════════════════════════════
++
++/**
++ * «9 agosto 2026, 14:00». 🛑 `timeZone: 'Europe/Rome'` è ESPLICITO: questo
++ * modulo lo consuma un componente SERVER, e senza fuso dichiarato
++ * `toLocaleDateString`/`toLocaleTimeString` formattano nel fuso del
++ * PROCESSO — UTC su Vercel. Un avviso comunicato alle 00:30 di Roma
++ * mostrerebbe il giorno prima (stesso difetto già pagato e corretto in
++ * `clienti/[id]/page.tsx:219-231` per la data del DPA, e in
++ * `portale/[token]/page.tsx:57-73` per `formatDataAvviso`).
++ *
++ * 🔑 Torna `null` invece di una stringa inventata quando il valore non è un
++ * istante leggibile: il precedente in casa è `quandoLeggibile` in
++ * `AvvisoDentista.tsx` — «*la riuscita si rilegge senza orologio piuttosto
++ * che con un orologio inventato*». Qui vale doppio: `comunicato_at` e
++ * `visto_dal_dentista_at` sono entrambi legittimamente `NULL` (un avviso
++ * ancora aperto, o mai visto dal dentista), e quello NON è un guasto da
++ * mascherare — è un fatto da non scrivere.
++ */
++export function formattaQuando(iso: string | null): string | null {
++  if (!iso) return null
++  const quando = new Date(iso)
++  if (Number.isNaN(quando.getTime())) return null
++  const data = quando.toLocaleDateString('it-IT', {
++    day: 'numeric',
++    month: 'long',
++    year: 'numeric',
++    timeZone: 'Europe/Rome',
++  })
++  const ora = quando.toLocaleTimeString('it-IT', {
++    hour: '2-digit',
++    minute: '2-digit',
++    timeZone: 'Europe/Rome',
++  })
++  return `${data}, ${ora}`
++}
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 2. nomiComunicatori — la lettura di supporto per «chi» (brief §1, ammessa)
++// ═══════════════════════════════════════════════════════════════════════════
++
++/**
++ * Risolve `comunicato_da` (un `uuid` verso `public.utenti`) in un nome
++ * leggibile, per gli id **che servono davvero** — non tutto il laboratorio,
++ * a differenza del modello citato dal brief (`leggiTecniciSenzaAnagrafica`,
++ * che legge l'intero laboratorio perché la striscia lo chiede lab-wide). Qui
++ * la domanda è più stretta: solo gli autori delle righe che l'archivio sta
++ * per mostrare.
++ *
++ * 🛑 `laboratorio_id` NON È DECORATIVO. Il client è quello di servizio
++ *    (`rolbypassrls = true`): questa `.eq()` è l'unica cosa che impedisce di
++ *    risolvere per errore il nome di un utente di un ALTRO laboratorio (uno
++ *    stesso `uuid`, in teoria, non può collidere fra laboratori — ma la
++ *    difesa in profondità è il modello di casa su ogni lettura di questo
++ *    client: `queries.ts:13-20`, `portale.ts:157-160`).
++ *
++ * 🔑 **NESSUN FILTRO SU `deleted_at`, ED È DELIBERATO.** La colonna gemella
++ *    `comunicato_da` è stata disegnata `REFERENCES public.utenti(id)` **senza**
++ *    `ON DELETE SET NULL` proprio perché l'azione referenziale è un `UPDATE`
++ *    di `avvisi_dentista`, e la migration lo dice per esteso (`20260809123206`,
++ *    righe 48-54): un CHECK vivo pretende l'autore su ogni riga chiusa, quindi
++ *    l'autore deve sopravvivere alla cancellazione (soft) dell'utente. Filtrare
++ *    `deleted_at IS NULL` qui vorrebbe dire far sparire dall'archivio — che è
++ *    la PROVA ex Art. 5(2) GDPR — il nome di chi ha lasciato il laboratorio:
++ *    l'esatto contrario della scelta già fatta un piano più in basso.
++ *    ⚠️ Questo SI DISCOSTA dalla regola di casa «N11: filtro `deleted_at`
++ *    SEMPRE» (`lab-context.ts`): è uno scostamento dichiarato, non
++ *    dimenticato, e vale SOLO per questa lettura di un `uuid` già noto e
++ *    fidato (arriva da `avvisi_dentista`, non da un input esterno).
++ *
++ * 🛑 Un guasto di lettura non porta giù la scheda — la mappa torna vuota, e
++ *    ogni «chi» si legge col ripiego di `costruisciRigheArchivio` — ma il
++ *    silenzio non è muto: resta nei log, stesso idioma di `vuotoConNota` in
++ *    `queries.ts`.
++ */
++export async function nomiComunicatori(
++  svc: Svc,
++  ids: readonly (string | null)[],
++  laboratorioId: string
++): Promise<Map<string, string>> {
++  const univoci = Array.from(new Set(ids.filter((id): id is string => !!id)))
++  if (univoci.length === 0) return new Map()
++
++  const { data, error } = await svc
++    .from('utenti')
++    .select('id, nome, cognome')
++    .in('id', univoci)
++    .eq('laboratorio_id', laboratorioId)
++
++  if (error || !data) {
++    console.error('[AVVISI] nomiComunicatori: lettura fallita —', error?.message)
++    return new Map()
++  }
++
++  return new Map(
++    (data as Array<{ id: string; nome: string; cognome: string }>).map((u) => [
++      u.id,
++      `${u.nome} ${u.cognome}`,
++    ])
++  )
++}
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 3. costruisciRigheArchivio — quando · come · chi · vista/non vista
++// ═══════════════════════════════════════════════════════════════════════════
++
++/** Ciò che `clienti/[id]/page.tsx` rende per ogni comunicazione dell'archivio. */
++export interface RigaArchivioCliente {
++  id: string
++  lavoroId: string
++  /** `false` per una riga ancora `da_comunicare`. Determina SOLO quali campi
++   *  hanno un valore (`quando`/`chi`), MAI uno stile: ⚖️ D337 vieta un
++   *  segnale d'allarme, e la forma neutra la sceglie la pagina. */
++  chiuso: boolean
++  /** «Dall'app, su WhatsApp» · «A voce» · «Da comunicare» per una riga
++   *  aperta — sempre una frase neutra, mai una parola d'urgenza. */
++  comeLabel: string
++  /** `comunicato_at`, formattato Europe/Rome. `null` per una riga aperta
++   *  (il CHECK `avviso_comunicato_ha_autore_e_data` lo garantisce NULL). */
++  quando: string | null
++  /** Il nome di chi ha comunicato, o `null` per una riga aperta
++   *  (`comunicato_da` è NULL finché non si chiude). Per una riga chiusa il
++   *  nome è SEMPRE una stringa — mai `null` — grazie al ripiego dichiarato
++   *  quando l'id non risolve dalla mappa (utente sconosciuto/guasto). */
++  chi: string | null
++  /** `visto_dal_dentista_at`, formattato Europe/Rome, o `null` se il
++   *  dentista non l'ha ancora aperto nel portale. */
++  vistoLabel: string | null
++  /** ⚖️ D336 — SOLO nomi di campo, mai un valore: `descriviCampiCorretti`
++   *  non riceve altro che `campi_corretti`, quindi non può mostrarne uno. */
++  campiDescritti: string[]
++}
++
++const COME_ARCHIVIO: Record<StatoAvvisoChiuso, string> = {
++  comunicato_dall_app: 'Dall’app, su WhatsApp',
++  comunicato_a_voce: 'A voce',
++}
++
++/** ⚖️ D337 — la parola per una riga ancora aperta: un fatto, non un allarme. */
++const COME_APERTO = 'Da comunicare'
++
++/** ⚠️ Difensivo: non dovrebbe essere raggiungibile (`avviso_stato_vocabolario`
++ *  è un CHECK vivo), ma una riga con uno stato fuori vocabolario non sparisce
++ *  in silenzio — stesso idioma di `CAMPO_NON_PIU_PREVISTO` in `messaggio.ts`. */
++const COME_SCONOSCIUTO = 'Stato non riconosciuto'
++
++/** Chi ha comunicato, quando la riga è chiusa ma l'id non risolve dalla
++ *  mappa (utente non trovato o lettura di supporto fallita). Un ripiego
++ *  dichiarato, mai un buco silenzioso — idioma di `CAMPO_NON_PIU_PREVISTO`. */
++const RIPIEGO_CHI = 'un utente del laboratorio'
++
++function classificaStato(stato: string, logGuasto: (stato: string) => void): { chiuso: boolean; comeLabel: string } {
++  if (!isStatoAvviso(stato)) {
++    logGuasto(stato)
++    return { chiuso: false, comeLabel: COME_SCONOSCIUTO }
++  }
++  if (chiudeIlPromemoria(stato)) {
++    return { chiuso: true, comeLabel: COME_ARCHIVIO[stato] }
++  }
++  return { chiuso: false, comeLabel: COME_APERTO }
++}
++
++/**
++ * Traduce le righe grezze di `archivioCliente`/`archivioPerSchedaCliente` in
++ * ciò che la sezione «Comunicazioni» mostra — funzione PURA: nessuna lettura,
++ * nessun orologio nascosto (`formattaQuando` prende sempre l'istante dalla
++ * riga, mai `new Date()`).
++ *
++ * 🛑 NESSUN RAGGRUPPAMENTO PER LAVORO, a differenza di `raggruppaPerLavoro`
++ *    (Task 8): qui ogni riga è una comunicazione a sé — «cliente con DUE
++ *    comunicazioni chiuse» (brief §4, prova ⑤) sono DUE righe distinte, non
++ *    una unione. ⚠️ Conseguenza dichiarata di ⚖️ D354 (Task 4-quater): un
++ *    atto che chiude più promemoria dello stesso lavoro in un colpo solo
++ *    produce più righe con lo STESSO `comunicato_at`/`comunicato_da`/`stato`,
++ *    diverse solo nei `campi_corretti` — sono comunque atti distinti nel
++ *    registro, e l'archivio li mostra entrambi.
++ *
++ * ⚠️ **L'ORDINE VIENE DA `archivioCliente`** (`created_at DESC`), non da
++ *    `comunicato_at`: la rotta di chiusura documenta che i due orologi
++ *    (database vs processo Node) possono divergere di poco
++ *    (`avviso/route.ts:391-395`) — quindi le date mostrate non sono
++ *    garantite strettamente monotone riga per riga. Limite noto, non corretto
++ *    qui: la fonte dell'ordine resta unica (`DAL_PIU_VECCHIO`/`archivioCliente`
++ *    in `queries.ts`), e riordinare qui sarebbe una seconda regola sulla
++ *    stessa cosa.
++ */
++export function costruisciRigheArchivio(
++  righe: readonly AvvisoRiga[],
++  nomi: ReadonlyMap<string, string>
++): RigaArchivioCliente[] {
++  return righe.map((r) => {
++    const { chiuso, comeLabel } = classificaStato(r.stato, (stato) =>
++      console.error('[AVVISI] costruisciRigheArchivio: stato fuori vocabolario —', { id: r.id, stato })
++    )
++
++    return {
++      id: r.id,
++      lavoroId: r.lavoro_id,
++      chiuso,
++      comeLabel,
++      quando: formattaQuando(r.comunicato_at),
++      chi: r.comunicato_da ? (nomi.get(r.comunicato_da) ?? RIPIEGO_CHI) : null,
++      vistoLabel: formattaQuando(r.visto_dal_dentista_at),
++      campiDescritti: descriviCampiCorretti(r.campi_corretti),
++    }
++  })
++}
+diff --git a/src/lib/avvisi/queries.ts b/src/lib/avvisi/queries.ts
+index cda559af..057e72d2 100644
+--- a/src/lib/avvisi/queries.ts
++++ b/src/lib/avvisi/queries.ts
+@@ -21,21 +21,21 @@
+ //
+ // 📌 Il vocabolario degli stati arriva da `stati.ts`, mai battuto a mano qui:
+ //    due elenchi che si somigliano divergono, e questo è già il terzo posto che
+ //    lo legge (tabella · rotta · lettura).
+ 
+ import {
+   STATI_AVVISO,
+   chiudeIlPromemoria,
+   type StatoAvviso,
+ } from '@/lib/avvisi/stati'
+-import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
++import { puoVedereAvviso, puoVedereArchivioCliente } from '@/lib/avvisi/ruoli'
+ import type { getServiceClient } from '@/lib/supabase/server-service'
+ 
+ type Svc = ReturnType<typeof getServiceClient>
+ 
+ /**
+  * Gli stati che **non** chiudono il promemoria, **derivati** e non riscritti.
+  *
+  * 🔑 È la stessa espressione di `avviso/route.ts:136`, di proposito: chi legge
+  * il promemoria e chi lo chiude devono guardare lo stesso elenco, o il giorno in
+  * cui nasce un quarto stato la scheda mostrerebbe una riga che la rotta rifiuta
+@@ -351,10 +351,61 @@ export async function archivioCliente(
+     .from('avvisi_dentista')
+     .select(COLONNE)
+     .eq('cliente_id', filtro.clienteId)
+     .eq('laboratorio_id', filtro.laboratorioId)
+     .order('created_at', { ascending: false })
+     .order('id', { ascending: false })
+ 
+   if (error || !data) return vuotoConNota('archivioCliente', error)
+   return data as unknown as AvvisoRiga[]
+ }
++
++/**
++ * L'ARCHIVIO, VISTO DALLA SCHEDA DEL CLIENTE — il cancello di ⚖️ D352 e la
++ * lettura **nella stessa funzione**, esattamente come `avvisoPerLaScheda`
++ * (⚖️ D342) fa per il promemoria aperto. Task 9.
++ *
++ * 🔴 PERCHÉ ESISTE, E NON È UN BLOCCO NUDO DENTRO `archivioCliente`. Da
++ *    stamattina (Task 8) `archivioCliente` ha DUE chiamanti con DUE autorità
++ *    diverse: il portale (`src/app/portale/[token]/page.tsx`), la cui
++ *    autorità è il TOKEN — nessun ruolo utente, e la funzione grezza deve
++ *    restare **utilizzabile senza un ruolo** — e la scheda cliente (qui),
++ *    la cui autorità è il RUOLO (D352). Mettere il cancello dentro
++ *    `archivioCliente` stesso avrebbe rotto il primo chiamante (gli
++ *    servirebbe un `ruolo` che non ha) o l'avrebbe costretto a passare un
++ *    ruolo finto — un bicondizionale che D352 non chiede. Il modello di casa
++ *    è invece un SECONDO entry point che avvolge il primo, come `striscia.ts`
++ *    fa con `usaFiscali` e come `avvisoPerLaScheda`/`avvisoPerLaStriscia`
++ *    fanno già in questo stesso file: la lettura/il ruolo si PROPAGA dal
++ *    chiamante, con una sentinella, e il ripiego è fail-closed.
++ *
++ * 🛑 `ruolo` È OBBLIGATORIO, E LA CHIUSURA È PER COSTRUZIONE, NON PER
++ *    DISCIPLINA — stessa forma di `avvisoPerLaScheda`: la chiave non è
++ *    opzionale (chi dimentica di dichiarare *chi guarda* non compila), ma il
++ *    TIPO ammette `null`/`undefined` perché il chiamante vero
++ *    (`clienti/[id]/page.tsx`, componente server) li ha davvero, e quei
++ *    valori non passano il cancello — nessun secondo ramo, `includes()`
++ *    risponde `false` da sé (`puoVedereArchivioCliente`).
++ *
++ * 🔑 **`RUOLI_ARCHIVIO_CLIENTE`, MAI `RUOLI_CHIUSURA_AVVISO`.** L'elenco di
++ *    oggi coincide (v. `ruoli.ts`), ma la costante è un'altra: due decisioni
++ *    che oggi rispondono uguale possono divergere domani.
++ *
++ * ⚠️ **`archivioCliente` NON CAMBIA FIRMA, e resta esportata**: è la lettura
++ *    grezza che il portale continua a chiamare esattamente com'è
++ *    (`portale/[token]/page.tsx:467`) — le sue prove del Task 8
++ *    (`avvisi-portale.test.ts`) non hanno bisogno di sapere che questa
++ *    funzione esiste. 🛑 Chi rende la scheda del cliente usa **questa**, non
++ *    quella: chiamare la grezza da lì vorrebbe dire rifare il cancello a
++ *    mano — lo stesso ternario invisibile che il Task 6 ha già pagato una
++ *    volta (v. il riquadro su `avvisoPerLaScheda`, sopra).
++ */
++export async function archivioPerSchedaCliente(arg: {
++  svc: Svc
++  clienteId: string
++  laboratorioId: string
++  ruolo: string | null | undefined
++}): Promise<AvvisoRiga[]> {
++  if (!puoVedereArchivioCliente(arg.ruolo)) return []
++
++  return archivioCliente(arg.svc, { clienteId: arg.clienteId, laboratorioId: arg.laboratorioId })
++}
+diff --git a/src/lib/avvisi/ruoli.ts b/src/lib/avvisi/ruoli.ts
+index 89aa7d29..53aeb79b 100644
+--- a/src/lib/avvisi/ruoli.ts
++++ b/src/lib/avvisi/ruoli.ts
+@@ -99,10 +99,44 @@ export function puoChiudereAvviso(ruolo: string | null | undefined): boolean {
+  * qualcuno che invece deve adempiere.
+  *
+  * 🛑 **E IL SOTTOINSIEME È GARANTITO DALLA FORMA, non da una nota:** questa
+  * funzione è *derivata* da `puoChiudereAvviso`, quindi non può diventare più
+  * larga di lei per sbaglio. Restringerla, il giorno in cui servisse, vuol dire
+  * aggiungere una condizione **qui** — mai togliere un nome dall'elenco.
+  */
+ export function puoVedereAvviso(ruolo: string | null | undefined): boolean {
+   return puoChiudereAvviso(ruolo)
+ }
++
++/**
++ * 🛑 **CHI VEDE L'ARCHIVIO DELLE COMUNICAZIONI NELLA SCHEDA DEL CLIENTE —
++ * ⚖️ D352, e NON è un alias di `RUOLI_CHIUSURA_AVVISO`.**
++ *
++ * L'elenco coincide con quello di D342 (`titolare` · `tecnico` · `front_desk`,
++ * esclusi `admin_rete` e `admin_sistema` PER NOME) ma per una strada diversa:
++ * D342 discende dal permesso di **agire** (chiudere un obbligo), D352 da chi è
++ * nel **perimetro del titolare del trattamento** — qui non c'è niente da
++ * chiudere, si CONSULTA soltanto (⚖️ D337). Due decisioni che oggi coincidono
++ * possono divergere domani, e un `export const RUOLI_ARCHIVIO_CLIENTE =
++ * RUOLI_CHIUSURA_AVVISO` le salderebbe in silenzio — per questo è una
++ * costante NUOVA, anche se il contenuto di oggi è identico
++ * (`tests/unit/avvisi-ruoli.test.ts`, blocco D352, prova «non è un alias»).
++ *
++ * `admin_rete` e `admin_sistema` escono per le STESSE due ragioni di D342 (v.
++ * sopra `RUOLI_CHIUSURA_AVVISO`): il primo sta sopra più laboratori, il
++ * secondo è personale UÀ che agisce su istruzione documentata (GDPR
++ * Art. 28(3)(a)) e non è nel perimetro del titolare del trattamento di
++ * QUESTO laboratorio.
++ *
++ * 📮 Consumatore: `archivioPerSchedaCliente` in `queries.ts` (Task 9).
++ */
++export const RUOLI_ARCHIVIO_CLIENTE = ['titolare', 'tecnico', 'front_desk'] as const
++
++/**
++ * Può **vedere l'archivio**? Stesso idioma fail-closed di `puoChiudereAvviso`:
++ * nessun `if` dedicato a `null`/`undefined`/un nome sconosciuto — `includes()`
++ * risponde `false` da sé, e non esiste un secondo ramo in cui sbagliare il
++ * verso del confronto.
++ */
++export function puoVedereArchivioCliente(ruolo: string | null | undefined): boolean {
++  return (RUOLI_ARCHIVIO_CLIENTE as readonly string[]).includes(ruolo ?? '')
++}
+diff --git a/tests/unit/avvisi-archivio.test.ts b/tests/unit/avvisi-archivio.test.ts
+new file mode 100644
+index 00000000..be0ba01e
+--- /dev/null
++++ b/tests/unit/avvisi-archivio.test.ts
+@@ -0,0 +1,278 @@
++// tests/unit/avvisi-archivio.test.ts
++//
++// Task 9 dell'ondata «l'avviso al dentista» — LA PRESENTAZIONE dell'archivio
++// nella scheda del cliente (`src/lib/avvisi/archivio.ts`).
++//
++// 🔑 IL CANCELLO DI RUOLO (⚖️ D352) NON STA QUI: sta in `archivioPerSchedaCliente`
++//    (`src/lib/avvisi/queries.ts`), provato in `avvisi-queries.test.ts`. Qui si
++//    prova la TRADUZIONE delle righe grezze di `archivioCliente` in ciò che la
++//    scheda mostra — quando · come · chi · vista/non vista — più la lettura di
++//    supporto dei nomi, ammessa dal brief («col modello di casa»).
++//
++// 🛑 `clienti/[id]/page.tsx` È UN COMPONENTE SERVER ASINCRONO: nessuna prova
++//    unitaria lo rende (stessa lezione del Task 6 su `lavori/[id]/page.tsx` e
++//    del Task 8 su `portale/[token]/page.tsx`). Ogni riga con posta in gioco
++//    normativa — ⚖️ D336 (mai un valore vecchio), D337 (niente allarme) — sta
++//    in questo modulo, dove una prova la esercita davvero.
++
++import { describe, it, expect, vi, afterEach } from 'vitest'
++import { nomiComunicatori, costruisciRigheArchivio, formattaQuando } from '@/lib/avvisi/archivio'
++import type { AvvisoRiga } from '@/lib/avvisi/queries'
++
++const LAB = '11111111-1111-1111-1111-111111111111'
++const CLIENTE = '44444444-4444-4444-4444-444444444444'
++const UTENTE_1 = '55555555-5555-5555-5555-555555555555'
++const UTENTE_2 = '66666666-6666-6666-6666-666666666666'
++const UTENTE_FANTASMA = '77777777-7777-7777-7777-777777777777'
++
++// ── Lo stesso idioma di spia di `avvisi-queries.test.ts`: il finto REGISTRA i
++//    filtri invece di ignorarli — un finto che li ignora non può provare che
++//    un utente di un altro laboratorio non entri nella mappa (lo daresti tu).
++type Spia = {
++  consultato: number
++  tabella: string | null
++  colonne: string | null
++  filtri: Array<[string, unknown]>
++}
++
++function svcFinto(righe: Array<Record<string, unknown>>, guasto = false) {
++  const spia: Spia = { consultato: 0, tabella: null, colonne: null, filtri: [] }
++
++  const catena = {
++    eq(colonna: string, valore: unknown) {
++      spia.filtri.push([`eq:${colonna}`, valore])
++      return catena
++    },
++    in(colonna: string, valore: unknown) {
++      spia.filtri.push([`in:${colonna}`, valore])
++      return catena
++    },
++    then(risolvi: (v: unknown) => unknown, rifiuta?: (e: unknown) => unknown) {
++      const esito = guasto
++        ? { data: null, error: { message: 'connessione caduta' } }
++        : { data: righe, error: null }
++      return Promise.resolve(esito).then(risolvi, rifiuta)
++    },
++  }
++
++  const svc = {
++    from(tabella: string) {
++      spia.consultato++
++      spia.tabella = tabella
++      return {
++        select(colonne: string) {
++          spia.colonne = colonne
++          return catena
++        },
++      }
++    },
++  }
++
++  return { svc: svc as never, spia }
++}
++
++function riga(over: Partial<AvvisoRiga> = {}): AvvisoRiga {
++  return {
++    id: 'avv-1',
++    lavoro_id: 'lav-1',
++    cliente_id: CLIENTE,
++    dichiarazione_id: 'ddc-1',
++    stato: 'da_comunicare',
++    campi_corretti: ['descrizione'],
++    testo_inviato: null,
++    comunicato_at: null,
++    comunicato_da: null,
++    visto_dal_dentista_at: null,
++    created_at: '2026-08-09T10:00:00.000Z',
++    ...over,
++  }
++}
++
++afterEach(() => {
++  vi.restoreAllMocks()
++})
++
++describe('formattaQuando — l’istante nelle parole del banco, SEMPRE Europe/Rome', () => {
++  it('formatta data e ora esplicitamente nel fuso di Roma (non quello del processo)', () => {
++    // 12:00 UTC d'agosto = 14:00 a Roma (CEST, UTC+2): se il fuso non fosse
++    // esplicito, un processo che gira a UTC (Vercel) mostrerebbe le 12:00.
++    expect(formattaQuando('2026-08-09T12:00:00.000Z')).toBe('9 agosto 2026, 14:00')
++  })
++
++  it('un istante vicino alla mezzanotte di Roma non torna al giorno sbagliato', () => {
++    // 23:30 UTC del 9 agosto = 01:30 del 10 agosto a Roma.
++    expect(formattaQuando('2026-08-09T23:30:00.000Z')).toBe('10 agosto 2026, 01:30')
++  })
++
++  it('`null` → `null`, non una stringa inventata', () => {
++    expect(formattaQuando(null)).toBeNull()
++  })
++
++  it('una stringa che non è una data → `null`, non «Invalid Date» a schermo', () => {
++    expect(formattaQuando('non-una-data')).toBeNull()
++  })
++})
++
++describe('nomiComunicatori — la lettura di supporto per «chi» (ammessa dal brief, col modello di casa)', () => {
++  it('chiede `id, nome, cognome` su `utenti`, filtrando per gli id E per il laboratorio', async () => {
++    const { svc, spia } = svcFinto([{ id: UTENTE_1, nome: 'Mario', cognome: 'Rossi' }])
++    await nomiComunicatori(svc, [UTENTE_1], LAB)
++
++    expect(spia.tabella).toBe('utenti')
++    expect(spia.colonne).toContain('id')
++    expect(spia.colonne).toContain('nome')
++    expect(spia.colonne).toContain('cognome')
++    expect(spia.filtri).toEqual([
++      ['in:id', [UTENTE_1]],
++      ['eq:laboratorio_id', LAB],
++    ])
++  })
++
++  it('id duplicati si chiedono una volta sola', async () => {
++    const { svc, spia } = svcFinto([{ id: UTENTE_1, nome: 'Mario', cognome: 'Rossi' }])
++    await nomiComunicatori(svc, [UTENTE_1, UTENTE_1, UTENTE_2, UTENTE_1], LAB)
++
++    const [, idsChiesti] = spia.filtri.find(([c]) => c === 'in:id') as [string, string[]]
++    expect(idsChiesti).toHaveLength(2)
++    expect(new Set(idsChiesti)).toEqual(new Set([UTENTE_1, UTENTE_2]))
++  })
++
++  it('nessun id → nessuna lettura, e una mappa vuota (non un errore)', async () => {
++    const { svc, spia } = svcFinto([])
++    const mappa = await nomiComunicatori(svc, [], LAB)
++
++    expect(spia.consultato, 'un elenco di id vuoto non deve interrogare il banco').toBe(0)
++    expect(mappa.size).toBe(0)
++  })
++
++  it('🛑 NON filtra `deleted_at`: `comunicato_da` è FK NO ACTION apposta perché l’autore sopravviva (migration 20260809123206:48-54)', async () => {
++    // Se questa lettura filtrasse `deleted_at IS NULL`, il nome di chi ha
++    // lasciato il laboratorio sparirebbe dall'archivio — che è la prova ex
++    // Art. 5(2) GDPR — proprio nel caso in cui la FK è stata scritta com'è
++    // (NO ACTION, non SET NULL) perché quel nome restasse leggibile.
++    const { svc, spia } = svcFinto([{ id: UTENTE_1, nome: 'Mario', cognome: 'Rossi' }])
++    await nomiComunicatori(svc, [UTENTE_1], LAB)
++    expect(spia.filtri.some(([c]) => c === 'eq:deleted_at' || c === 'is:deleted_at')).toBe(false)
++  })
++
++  it('costruisce la mappa id → "Nome Cognome"', async () => {
++    const { svc } = svcFinto([
++      { id: UTENTE_1, nome: 'Mario', cognome: 'Rossi' },
++      { id: UTENTE_2, nome: 'Anna', cognome: 'Verdi' },
++    ])
++    const mappa = await nomiComunicatori(svc, [UTENTE_1, UTENTE_2], LAB)
++
++    expect(mappa.get(UTENTE_1)).toBe('Mario Rossi')
++    expect(mappa.get(UTENTE_2)).toBe('Anna Verdi')
++  })
++
++  it('se il banco non risponde: mappa vuota, e il guasto scritto nei log (il silenzio non è muto)', async () => {
++    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
++    const { svc } = svcFinto([], true)
++
++    const mappa = await nomiComunicatori(svc, [UTENTE_1], LAB)
++    expect(mappa.size).toBe(0)
++    expect(spiaLog).toHaveBeenCalled()
++  })
++})
++
++describe('costruisciRigheArchivio — quando · come · chi · vista/non vista (⚖️ D336 · D337)', () => {
++  it('⑤ due comunicazioni CHIUSE (una dall’app con testo, una a voce): quando · come · chi · vista/non vista', () => {
++    const righe: AvvisoRiga[] = [
++      riga({
++        id: 'avv-app',
++        stato: 'comunicato_dall_app',
++        testo_inviato: 'La dichiarazione è stata rifatta.',
++        comunicato_at: '2026-08-09T12:00:00.000Z',
++        comunicato_da: UTENTE_1,
++        visto_dal_dentista_at: '2026-08-09T13:00:00.000Z',
++        campi_corretti: ['descrizione'],
++      }),
++      riga({
++        id: 'avv-voce',
++        stato: 'comunicato_a_voce',
++        testo_inviato: null,
++        comunicato_at: '2026-08-02T09:00:00.000Z',
++        comunicato_da: UTENTE_2,
++        visto_dal_dentista_at: null,
++        campi_corretti: ['denti_coinvolti'],
++      }),
++    ]
++    const nomi = new Map([
++      [UTENTE_1, 'Mario Rossi'],
++      [UTENTE_2, 'Anna Verdi'],
++    ])
++
++    const [dallApp, aVoce] = costruisciRigheArchivio(righe, nomi)
++
++    expect(dallApp.chiuso).toBe(true)
++    expect(dallApp.comeLabel).toBe('Dall’app, su WhatsApp')
++    expect(dallApp.quando).toBe('9 agosto 2026, 14:00')
++    expect(dallApp.chi).toBe('Mario Rossi')
++    expect(dallApp.vistoLabel).toBe('9 agosto 2026, 15:00')
++    expect(dallApp.campiDescritti).toEqual(['la descrizione'])
++
++    expect(aVoce.chiuso).toBe(true)
++    expect(aVoce.comeLabel).toBe('A voce')
++    expect(aVoce.quando).toBe('2 agosto 2026, 11:00')
++    expect(aVoce.chi).toBe('Anna Verdi')
++    expect(aVoce.vistoLabel).toBeNull() // non ancora vista dal dentista
++    expect(aVoce.campiDescritti).toEqual(['i denti indicati'])
++  })
++
++  it('⑥ una riga ANCORA `da_comunicare` si mostra per quello che è, senza segnale d’allarme', () => {
++    const [esito] = costruisciRigheArchivio([riga({ stato: 'da_comunicare' })], new Map())
++
++    expect(esito.chiuso).toBe(false)
++    expect(esito.quando).toBeNull() // comunicato_at è NULL finché resta aperta (CHECK)
++    expect(esito.chi).toBeNull() // comunicato_da è NULL finché resta aperta (CHECK)
++    // 🛑 D337 — LA FORMA NEUTRA: nessuna parola d'urgenza («urgente», punti
++    //    esclamativi, «ATTENZIONE»...) nell'etichetta. È la pagina a decidere
++    //    lo STILE (nessun rosso, nessun badge); questa funzione garantisce che
++    //    il DATO in sé non porti già un giudizio.
++    expect(esito.comeLabel).toBe('Da comunicare')
++    expect(esito.comeLabel).not.toMatch(/urgent|attenzione|!|⚠/i)
++  })
++
++  it('⑦ archivio vuoto → nessuna riga, e non è un errore', () => {
++    expect(costruisciRigheArchivio([], new Map())).toEqual([])
++  })
++
++  it('⑧ ⚖️ D336 — i campi si descrivono coi NOMI (`descriviCampiCorretti`), MAI con la chiave tecnica grezza', () => {
++    const [esito] = costruisciRigheArchivio(
++      [riga({ campi_corretti: ['descrizione', 'denti_coinvolti'] })],
++      new Map()
++    )
++    // 🛑 Non 'descrizione'/'denti_coinvolti' (le chiavi tecniche): le
++    //    descrizioni in italiano, come le rende `descriviCampiCorretti` — che
++    //    per firma non riceve mai un valore, quindi non può mostrarlo.
++    expect(esito.campiDescritti).toEqual(['la descrizione', 'i denti indicati'])
++    expect(esito.campiDescritti).not.toContain('descrizione')
++    expect(esito.campiDescritti).not.toContain('denti_coinvolti')
++  })
++
++  it('«chi» sconosciuto (id non risolto dalla mappa) → un ripiego dichiarato, mai un buco silenzioso', () => {
++    const [esito] = costruisciRigheArchivio(
++      [
++        riga({
++          stato: 'comunicato_a_voce',
++          comunicato_at: '2026-08-09T12:00:00.000Z',
++          comunicato_da: UTENTE_FANTASMA,
++        }),
++      ],
++      new Map() // UTENTE_FANTASMA non c'è
++    )
++    expect(esito.chi).not.toBeNull()
++    expect(esito.chi).not.toBe('')
++    expect(typeof esito.chi).toBe('string')
++  })
++
++  it('uno stato fuori dal vocabolario (difensivo — non dovrebbe esistere, CHECK vivo) non fa sparire la riga, e lo dice nei log', () => {
++    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
++    const [esito] = costruisciRigheArchivio([riga({ stato: 'stato-inventato' })], new Map())
++
++    expect(esito).toBeDefined()
++    expect(esito.chiuso).toBe(false)
++    expect(spiaLog).toHaveBeenCalled()
++  })
++})
+diff --git a/tests/unit/avvisi-queries.test.ts b/tests/unit/avvisi-queries.test.ts
+index 7c460352..c70ed1c5 100644
+--- a/tests/unit/avvisi-queries.test.ts
++++ b/tests/unit/avvisi-queries.test.ts
+@@ -37,23 +37,30 @@
+ //      sbagliato spegnerebbe il promemoria ex Art. 19 GDPR **in silenzio**, e le
+ //      prove qui sotto resterebbero verdi.
+ //    🛑 Non si allontanano perché non rispondono alla stessa domanda: qui non si
+ //    aggiunge una prova di schema, e là non si aggiunge una prova di logica.
+ //    ⚠️ Resta invece del **Task 10** il giro completo dell'utente sul banco vero:
+ //    `avvisi_dentista` ha l'`INSERT` REVOCATO a `service_role` (migration
+ //    20260809123206), quindi una riga non si crea senza passare dalla RPC della
+ //    riemissione, col suo corredo di lavoro, evento e dichiarazione.
+ 
+ import { describe, it, expect, vi, afterEach } from 'vitest'
+-import { avvisiDaComunicare, archivioCliente, avvisoPerLaScheda, avvisoPerLaStriscia } from '@/lib/avvisi/queries'
++import {
++  avvisiDaComunicare,
++  archivioCliente,
++  avvisoPerLaScheda,
++  avvisoPerLaStriscia,
++  archivioPerSchedaCliente,
++} from '@/lib/avvisi/queries'
+ // Task 7 — ⚖️ D342: il perimetro si INTERROGA, non si ribatte.
+-import { puoVedereAvviso } from '@/lib/avvisi/ruoli'
++// Task 9 — ⚖️ D352: stessa idea, costante NUOVA (v. `ruoli.ts`).
++import { puoVedereAvviso, puoVedereArchivioCliente } from '@/lib/avvisi/ruoli'
+ import { STATI_AVVISO, STATI_CHIUSI } from '@/lib/avvisi/stati'
+ 
+ const LAB = '11111111-1111-1111-1111-111111111111'
+ const ALTRO_LAB = '22222222-2222-2222-2222-222222222222'
+ const LAVORO = '33333333-3333-3333-3333-333333333333'
+ const CLIENTE = '44444444-4444-4444-4444-444444444444'
+ /** I cinque veri, dal CHECK su `public.utenti.ruolo` — non i quattro di `schema.sql`. */
+ const CINQUE_RUOLI = ['titolare', 'tecnico', 'front_desk', 'admin_rete', 'admin_sistema'] as const
+ 
+ type Spia = {
+@@ -419,20 +426,121 @@ describe('archivioCliente — tutte le comunicazioni di QUEL cliente (consumator
+ 
+   it('se il banco non risponde, l’archivio è vuoto e lo dice nei log', async () => {
+     const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+     const { svc } = svcFinto([], true)
+ 
+     await expect(archivioCliente(svc, { clienteId: CLIENTE, laboratorioId: LAB })).resolves.toEqual([])
+     expect(spiaLog).toHaveBeenCalled()
+   })
+ })
+ 
++describe('archivioPerSchedaCliente — il cancello di ⚖️ D352 SOPRA `archivioCliente` (Task 9)', () => {
++  // 🔴 STESSA FORMA DI `avvisoPerLaScheda` (⚖️ D342), E NON È UN CASO: è il
++  //    modello di casa per «la lettura/il ruolo si PROPAGA dal chiamante, con
++  //    sentinelle, e il ripiego è fail-closed» (brief Task 9 §2). ⚠️ Ma la
++  //    COSTANTE è un'altra: D352 NON è un alias di D342, benché l'elenco di
++  //    oggi coincida — v. `RUOLI_ARCHIVIO_CLIENTE` in `ruoli.ts`. Se domani le
++  //    due liste divergessero, una prova che confondesse le costanti non se ne
++  //    accorgerebbe: qui si intercetta SEMPRE `puoVedereArchivioCliente`, mai
++  //    `puoVedereAvviso`.
++  //
++  // 🔑 E SI GUARDA LA SPIA, NON SOLO IL VALORE DI RITORNO — lezione del Task 6:
++  //    per un ruolo escluso e per un archivio genuinamente vuoto il ritorno è
++  //    IDENTICO (`[]`). Si asserisce `spia.consultato`, cioè se il banco è
++  //    stato interrogato: è l'unica cosa che distingue «non può vedere» da
++  //    «può vedere e non c'è niente».
++
++  const AMMESSI = ['titolare', 'tecnico', 'front_desk'] as const
++  const ESCLUSI = ['admin_rete', 'admin_sistema'] as const
++
++  for (const ruolo of AMMESSI) {
++    it(`«${ruolo}» VEDE l'archivio: il banco è interrogato`, async () => {
++      const { svc, spia } = svcFinto([rigaAperta()])
++      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
++
++      expect(spia.consultato, `${ruolo}: il banco doveva essere interrogato`).toBe(1)
++      expect(esito).toHaveLength(1)
++    })
++  }
++
++  for (const ruolo of ESCLUSI) {
++    it(`🛑 «${ruolo}» NON vede l'archivio, e il banco non viene nemmeno interrogato`, async () => {
++      const { svc, spia } = svcFinto([rigaAperta()])
++      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
++
++      // Il finto HA una riga da restituire: se il cancello guardasse dal verso
++      // sbagliato, `esito` la conterrebbe. È la mutazione che questa prova
++      // esiste per prendere (lezione Task 6, prova «per inversione»).
++      expect(esito, `${ruolo} non deve vedere l'archivio`).toEqual([])
++      expect(spia.consultato, `${ruolo}: il banco non doveva essere interrogato`).toBe(0)
++    })
++  }
++
++  it('🛑 FAIL-CLOSED: ruolo assente, nullo o sconosciuto → archivio vuoto, nessuna lettura', async () => {
++    for (const ruolo of [null, undefined, '', 'admin', 'front-desk']) {
++      const { svc, spia } = svcFinto([rigaAperta()])
++      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
++
++      expect(esito, `«${String(ruolo)}» non deve vedere l'archivio`).toEqual([])
++      expect(spia.consultato, `«${String(ruolo)}»: nessuna lettura`).toBe(0)
++    }
++  })
++
++  it('🛑 i CINQUE ruoli veri: interroga il banco ESATTAMENTE per chi `puoVedereArchivioCliente` ammette', async () => {
++    // L'elenco NON si ribatte qui: si interroga `ruoli.ts`. Capovolgere il
++    // cancello renderebbe questa rossa su tutte e cinque (prova «per inversione»).
++    for (const ruolo of CINQUE_RUOLI) {
++      const { svc, spia } = svcFinto([rigaAperta()])
++      const esito = await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo })
++
++      expect(spia.consultato > 0, `ruolo ${ruolo}: ha interrogato il banco?`).toBe(puoVedereArchivioCliente(ruolo))
++      expect(esito.length > 0, `ruolo ${ruolo}: ha ricevuto l'archivio?`).toBe(puoVedereArchivioCliente(ruolo))
++    }
++  })
++
++  it('un cliente escluso e un archivio genuinamente vuoto tornano LO STESSO valore — la spia è ciò che li distingue', async () => {
++    const { svc: svcVuoto, spia: spiaVuoto } = svcFinto([])
++    const vuoto = await archivioPerSchedaCliente({ svc: svcVuoto, clienteId: CLIENTE, laboratorioId: LAB, ruolo: 'titolare' })
++
++    const { svc: svcEscluso, spia: spiaEscluso } = svcFinto([rigaAperta()])
++    const escluso = await archivioPerSchedaCliente({ svc: svcEscluso, clienteId: CLIENTE, laboratorioId: LAB, ruolo: 'admin_rete' })
++
++    expect(vuoto).toEqual(escluso)
++    expect(spiaVuoto.consultato, 'un titolare con archivio vuoto HA interrogato il banco').toBe(1)
++    expect(spiaEscluso.consultato, 'admin_rete NON deve aver interrogato il banco').toBe(0)
++  })
++
++  it('i filtri (cliente + laboratorio) e l’ordine (dal più recente) restano quelli di `archivioCliente`', async () => {
++    const { svc, spia } = svcFinto([rigaAperta()])
++    await archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: ALTRO_LAB, ruolo: 'titolare' })
++
++    expect(spia.filtri).toEqual([
++      ['eq:cliente_id', CLIENTE],
++      ['eq:laboratorio_id', ALTRO_LAB],
++    ])
++    expect(spia.ordini).toEqual([
++      ['created_at', false],
++      ['id', false],
++    ])
++  })
++
++  it('se il banco non risponde: archivio vuoto per un ruolo ammesso, e il guasto scritto nei log', async () => {
++    const spiaLog = vi.spyOn(console, 'error').mockImplementation(() => {})
++    const { svc } = svcFinto([], true)
++
++    await expect(
++      archivioPerSchedaCliente({ svc, clienteId: CLIENTE, laboratorioId: LAB, ruolo: 'titolare' })
++    ).resolves.toEqual([])
++    expect(spiaLog).toHaveBeenCalled()
++  })
++})
++
+ // ════════════════════════════════════════════════════════════════════════════
+ // Task 7 — LA TERZA LETTURA: «c'è un promemoria aperto in QUESTO laboratorio?».
+ //
+ // 🔑 Diversa dalle altre due, e per questo esiste: `avvisiDaComunicare` guarda un
+ //    LAVORO, `archivioCliente` guarda un CLIENTE, questa guarda un LABORATORIO
+ //    intero — è la domanda che si fa la striscia della home, e nessuna delle due
+ //    poteva rispondere.
+ //
+ // 🛑 LE DUE DOMANDE CHE OGNI PROVA QUI DEVE SUPERARE, e sono quelle costate care
+ //    in questa casa: «se tolgo il cancello, questa diventa rossa?» e — quella che
+diff --git a/tests/unit/avvisi-ruoli.test.ts b/tests/unit/avvisi-ruoli.test.ts
+index cf35015b..bdc0054b 100644
+--- a/tests/unit/avvisi-ruoli.test.ts
++++ b/tests/unit/avvisi-ruoli.test.ts
+@@ -17,20 +17,22 @@
+ //    È la lezione già pagata in questa casa e scritta in `api-avviso.test.ts:559`:
+ //    un ciclo sulla costante è **tautologico** — chi togliesse `front_desk`
+ //    dall'elenco farebbe girare il ciclo su due nomi, e la prova si adatterebbe al
+ //    difetto invece di trovarlo. L'elenco atteso qui è la DECISIONE, non il codice.
+ 
+ import { describe, it, expect } from 'vitest'
+ import {
+   RUOLI_CHIUSURA_AVVISO,
+   puoChiudereAvviso,
+   puoVedereAvviso,
++  RUOLI_ARCHIVIO_CLIENTE,
++  puoVedereArchivioCliente,
+ } from '@/lib/avvisi/ruoli'
+ 
+ /**
+  * I CINQUE ruoli veri di questo progetto, scritti a mano.
+  * `provato:` il CHECK vivo su `public.utenti.ruolo`, letto sul catalogo il
+  * 09/08/2026 (v. il riquadro in `src/lib/avvisi/ruoli.ts`).
+  * ⚠️ E NON si leggono da `supabase/schema.sql:247`, che porta un CHECK vecchio di
+  * quattro ruoli (senza `admin_sistema`): chi costruisse un cancello da lì ne
+  * dimenticherebbe uno.
+  */
+@@ -115,10 +117,54 @@ describe('puoVedereAvviso — la VISIBILITÀ, che è un sottoinsieme del permess
+     // in cui le due funzioni smettessero di coincidere: si prova l'IMPLICAZIONE,
+     // non l'uguaglianza, così restringere la visibilità domani non farà arrossire
+     // una prova che parla d'altro.
+     for (const ruolo of [...CINQUE_RUOLI, 'admin', '', 'front-desk']) {
+       if (puoVedereAvviso(ruolo)) {
+         expect(puoChiudereAvviso(ruolo), `«${ruolo}» vedrebbe un avviso che non può chiudere`).toBe(true)
+       }
+     }
+   })
+ })
++
++// ════════════════════════════════════════════════════════════════════════════
++// ⚖️ D352 — Task 9: chi vede l'ARCHIVIO nella scheda del cliente.
++//
++// 🛑 STESSA TAVOLA DI D342 OGGI, MA È UNA COSTANTE DIVERSA: il brief (§2) vieta
++//    esplicitamente di riusare `RUOLI_CHIUSURA_AVVISO` come alias — le due
++//    decisioni nascono da strade diverse (D342 = permesso di AGIRE, D352 = chi
++//    è nel perimetro del titolare del trattamento) e possono divergere domani.
++//    La prova qui sotto («non è lo stesso array») esiste apposta per prendere
++//    un eventuale alias silenzioso.
++// ════════════════════════════════════════════════════════════════════════════
++
++describe('puoVedereArchivioCliente — ⚖️ D352, chi consulta l’archivio delle comunicazioni', () => {
++  for (const ruolo of CINQUE_RUOLI) {
++    const atteso = ATTESO_CHIUSURA[ruolo] // stessa tavola di verità di D342, oggi
++    it(`«${ruolo}» ${atteso ? 'VEDE' : 'NON vede'} l'archivio`, () => {
++      expect(puoVedereArchivioCliente(ruolo)).toBe(atteso)
++    })
++  }
++
++  it('i tre ammessi e i due esclusi sono esattamente quelli, e nessun altro', () => {
++    expect(CINQUE_RUOLI.filter(puoVedereArchivioCliente)).toEqual(['titolare', 'tecnico', 'front_desk'])
++    expect(CINQUE_RUOLI.filter((r) => !puoVedereArchivioCliente(r))).toEqual(['admin_rete', 'admin_sistema'])
++    expect([...RUOLI_ARCHIVIO_CLIENTE].sort()).toEqual(['front_desk', 'tecnico', 'titolare'])
++  })
++
++  it('🛑 FAIL-CLOSED: ruolo assente, vuoto, o un nome che non esiste → NO', () => {
++    expect(puoVedereArchivioCliente(null)).toBe(false)
++    expect(puoVedereArchivioCliente(undefined)).toBe(false)
++    expect(puoVedereArchivioCliente('')).toBe(false)
++    expect(puoVedereArchivioCliente('admin')).toBe(false)
++    expect(puoVedereArchivioCliente('front-desk')).toBe(false)
++    expect(puoVedereArchivioCliente('Titolare')).toBe(false)
++  })
++
++  it('🛑 NON È UN ALIAS DI `RUOLI_CHIUSURA_AVVISO`: è una costante NUOVA (brief Task 9 §2)', () => {
++    // Coincidono OGGI nel contenuto (stessa tavola), ma non nell'identità: un
++    // `export const RUOLI_ARCHIVIO_CLIENTE = RUOLI_CHIUSURA_AVVISO` passerebbe
++    // ogni prova sul CONTENUTO qui sopra e violerebbe comunque il mandato.
++    expect(RUOLI_ARCHIVIO_CLIENTE).not.toBe(RUOLI_CHIUSURA_AVVISO)
++    // E il contenuto, oggi, è lo stesso — altrimenti la tavola sopra sarebbe già rossa.
++    expect([...RUOLI_ARCHIVIO_CLIENTE].sort()).toEqual([...RUOLI_CHIUSURA_AVVISO].sort())
++  })
++})
+diff --git a/tests/unit/cliente-dpa-ultima-emissione.test.ts b/tests/unit/cliente-dpa-ultima-emissione.test.ts
+index 40ff702c..161a1c13 100644
+--- a/tests/unit/cliente-dpa-ultima-emissione.test.ts
++++ b/tests/unit/cliente-dpa-ultima-emissione.test.ts
+@@ -130,20 +130,30 @@ function preparaClient(
+           await new Promise((r) => setTimeout(r, 0))
+           return vero(...a)
+         }
+       }
+       return catenaDpa
+     }
+     if (tabella === 'laboratori') {
+       catenaLab = createChain(risultatoLab)
+       return catenaLab
+     }
++    // Task 9 (ondata «l'avviso al dentista») — la pagina ora legge anche
++    // l'archivio «Comunicazioni» (⚖️ D337/D352, `archivioPerSchedaCliente`).
++    // Questo file prova il DPA, non l'archivio: si torna una lista vuota, che
++    // per un ruolo escluso (admin_rete/admin_sistema) non viene nemmeno
++    // interrogata (fail-closed dentro `archivioPerSchedaCliente` stesso) e per
++    // un ruolo ammesso lascia `nomiComunicatori` senza id da risolvere — quindi
++    // nessun `utenti` in più da simulare qui.
++    if (tabella === 'avvisi_dentista') {
++      return createChain({ data: [], error: null })
++    }
+     throw new Error(`Mock scheda cliente: tabella inattesa «${tabella}»`)
+   })
+ }
+ 
+ function rendiPagina() {
+   return ClienteDettaglioPage({ params: Promise.resolve({ id: CLIENTE_ID }) }) as Promise<ReactElement>
+ }
+ 
+ /** Tutti gli elementi dell'albero reso, in profondità.
+  *  🔑 `SectionCard` non viene MAI eseguito (nessun renderer gira qui): i suoi

@@ -12,6 +12,7 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { precheckMDR } from '@/lib/consegna/precheck'
 import { materialiCarenti } from '@/lib/consegna/materiali-carenti'
+import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import type { LavoroDettaglio, PrecheckConsegnaResponse } from '@/types/domain'
 
 export async function GET(
@@ -47,7 +48,8 @@ export async function GET(
         cliente:clienti(*),
         paziente:pazienti(*),
         lavorazioni:lavori_lavorazioni(*),
-        materiali:lavori_materiali(*)
+        materiali:lavori_materiali(*),
+        prescrizione:lavori_prescrizioni(*)
       `)
       .eq('id', id)
       .eq('laboratorio_id', labId)
@@ -55,11 +57,21 @@ export async function GET(
       .single()
     if (!lavoro) return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
 
+    // D295 — l'embed si normalizza prima del precheck, come in orchestrate.ts.
+    // 🔑 «Stesso precheck del POST, divergenza impossibile per costruzione»
+    //    (commento di testa) vale solo se anche l'INGRESSO è lo stesso: senza
+    //    questa riga la schermata direbbe verde su un lavoro che il POST
+    //    avviserebbe.
+    lavoro.prescrizione = normalizzaPrescrizione(lavoro.prescrizione)
+
     const pre = precheckMDR(lavoro as unknown as LavoroDettaglio)
     const carenti = await materialiCarenti(svc, id, labId)
 
     const warnings: string[] = [
       ...(pre.mdr_campi_mancanti ?? []).map((c) => `${c} non registrato all'accettazione`),
+      // D295 — avvisi già scritti in italiano compiuto: NON prendono la coda
+      // «non registrato all'accettazione», che per loro sarebbe falsa.
+      ...(pre.avvisi ?? []),
       ...carenti.map((m) => `${m.nome} sotto scorta (${m.scorta_attuale} ${m.unita_misura} su ${m.quantita_necessaria})`),
     ]
 

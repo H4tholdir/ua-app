@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Gap Analysis Flow + Competitor</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, sans-serif; background: #080c14; color: #e2e8f0; padding: 28px; }
+  h1 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #475569; margin-bottom: 28px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .full { grid-column: 1 / -1; }
+
+  .card { background: #111827; border-radius: 14px; padding: 18px; border: 1px solid #1f2937; }
+  .card-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 16px; }
+
+  /* MISSING FLOWS */
+  .missing-flow { background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .mf-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .mf-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .mf-critical { background: #991b1b; color: #fca5a5; }
+  .mf-important { background: #92400e; color: #fde68a; }
+  .mf-nice { background: #1e3a5f; color: #93c5fd; }
+  .mf-name { font-size: 14px; font-weight: 700; color: #fff; }
+  .mf-freq { font-size: 10px; color: #6b7280; margin-top: 1px; }
+  .mf-steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .mf-step { font-size: 10px; padding: 3px 8px; background: rgba(255,255,255,0.04); border-radius: 4px; color: #94a3b8; border: 1px solid rgba(255,255,255,0.07); }
+  .mf-step.red { background: rgba(220,38,38,0.1); border-color: rgba(220,38,38,0.3); color: #fca5a5; }
+  .mf-why { font-size: 11px; color: #6b7280; margin-top: 8px; font-style: italic; }
+
+  /* KILLER FEATURE */
+  .killer { background: linear-gradient(135deg, #1a0a2e 0%, #0a1a0e 100%); border: 1px solid #7c3aed; border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .killer-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .killer-sub { font-size: 12px; color: #9ca3af; margin-bottom: 16px; }
+  .killer-quote { font-size: 13px; color: #c4b5fd; border-left: 3px solid #7c3aed; padding-left: 12px; font-style: italic; line-height: 1.6; }
+  .today-mock { background: #0f0f1a; border-radius: 10px; padding: 14px; margin-top: 14px; }
+  .today-title { font-size: 12px; font-weight: 700; color: #7c3aed; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .today-section { margin-bottom: 10px; }
+  .today-section-label { font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .today-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; margin-bottom: 3px; font-size: 11px; }
+  .today-item:hover { background: rgba(255,255,255,0.04); }
+  .today-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-red { background: #ef4444; }
+  .dot-orange { background: #f97316; }
+  .dot-blue { background: #3b82f6; }
+  .dot-purple { background: #a855f7; }
+  .dot-green { background: #22c55e; }
+  .today-label { flex: 1; color: #d1d5db; }
+  .today-meta { font-size: 10px; color: #6b7280; }
+
+  /* COMPETITOR TABLE */
+  .comp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .comp-table th { text-align: left; padding: 8px 10px; background: #1f2937; color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 9px; letter-spacing: 0.05em; }
+  .comp-table td { padding: 7px 10px; border-bottom: 1px solid #111827; vertical-align: middle; }
+  .comp-table tr:last-child td { border-bottom: none; }
+  .comp-name { font-weight: 700; color: #e2e8f0; }
+  .comp-type { font-size: 9px; color: #6b7280; }
+  .feat { font-size: 10px; padding: 2px 6px; border-radius: 3px; display: inline-block; margin: 1px; }
+  .feat-y { background: #14532d; color: #86efac; }
+  .feat-n { background: #1f2937; color: #4b5563; }
+  .feat-partial { background: #422006; color: #fdba74; }
+  .ua-col { background: rgba(217, 0, 18, 0.05); }
+
+  /* EXTRA FEATURES */
+  .extra { display: flex; flex-direction: column; gap: 6px; }
+  .extra-item { display: flex; gap: 10px; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; align-items: flex-start; }
+  .extra-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .extra-label { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+  .extra-desc { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .extra-tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+</style>
+</head>
+<body>
+<h1>UÀ — Gap Analysis: Flow Mancanti + Competitor</h1>
+<p class="subtitle">Ricerca profonda (OrisLab Q, OdontoSoft, ODIX, PrimoLab, Crownbeam) + review Codex come gestore esperto</p>
+
+<!-- KILLER FEATURE -->
+<div class="killer">
+  <div class="killer-title">★ La Feature Killer di UÀ non è il confetti al tap consegna</div>
+  <div class="killer-sub">È la schermata "OGGI" — dal report Codex gestore esperto:</div>
+  <div class="killer-quote">"Il tecnico ogni mattina non apre il PSUR. Apre 'cosa devo consegnare oggi e cosa manca per finirlo'. Se quella schermata è perfetta, UÀ può battere software più vecchi e pesanti."</div>
+  <div class="today-mock">
+    <div class="today-title">📱 Mockup: Schermata "OGGI" — La vera dashboard</div>
+    <div class="today-section">
+      <div class="today-section-label">🔴 In ritardo (2)</div>
+      <div class="today-item"><div class="today-dot dot-red"></div><div class="today-label">Dr. Bianchi — Corona 14 — Mario R.</div><div class="today-meta">Scaduto ieri</div></div>
+      <div class="today-item"><div class="today-dot dot-red"></div><div class="today-label">Dr. Verdi — Scheletrato — Luigi M.</div><div class="today-meta">Scaduto 2gg fa</div></div>
+    </div>
+    <div class="today-section">
+      <div class="today-section-label">📦 Da consegnare oggi (3)</div>
+      <div class="today-item"><div class="today-dot dot-orange"></div><div class="today-label">Dr. Russo — Bridge 24-26</div><div class="today-meta">Pronto ✓</div></div>
+      <div class="today-item"><div class="today-dot dot-orange"></div><div class="today-label">Dr. Esposito — Protesi mobile</div><div class="today-meta">In lavorazione</div></div>
+    </div>
+    <div class="today-section">
+      <div class="today-section-label">🔄 In prova esterna (2) — atteso rientro oggi</div>
+      <div class="today-item"><div class="today-dot dot-purple"></div><div class="today-label">Dr. Ferrari — Toronto bar</div><div class="today-meta">Uscito 2gg fa</div></div>
+      <div class="today-item"><div class="today-dot dot-purple"></div><div class="today-label">Dr. Conti — Mobile totale</div><div class="today-meta">Prova 1 di 2</div></div>
+    </div>
+    <div class="today-section">
+      <div class="today-section-label">💰 Materiali mancanti (1)</div>
+      <div class="today-item"><div class="today-dot dot-blue"></div><div class="today-label">Zirconia — scorta esaurita</div><div class="today-meta">Blocca 3 lavori</div></div>
+    </div>
+    <div class="today-section">
+      <div class="today-section-label">💸 Pagamenti scaduti (€1.240)</div>
+      <div class="today-item"><div class="today-dot dot-green"></div><div class="today-label">Dr. Bianchi — Fattura 2026/023</div><div class="today-meta">Scaduta 15gg · €680</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW MANCANTI -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title"><span class="icon">🚨</span>Flow CRITICI mancanti — senza questi UÀ copre solo 60-65%</div>
+
+    <div class="missing-flow">
+      <div class="mf-header">
+        <span class="mf-badge mf-critical">CRITICO</span>
+        <div>
+          <div class="mf-name">Flow PROVE / Try-in</div>
+          <div class="mf-freq">Frequenza: 20-40% di tutti i lavori · 60-80% su mobile e implantare</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step">1. Lavoro in produzione</span>
+        <span class="mf-step red">2. "Manda in prova" →</span>
+        <span class="mf-step red">3. Stato: "in prova esterna"</span>
+        <span class="mf-step red">4. Data prevista rientro</span>
+        <span class="mf-step red">5. Rientra con esito: ok / modifiche / rifare</span>
+        <span class="mf-step">6. Note prova → nuova fase</span>
+        <span class="mf-step">7. Storico prove visibile</span>
+      </div>
+      <div class="mf-why">Senza questo: lavori scheletrati, protesi mobili totali, implantoprotesi, estetica anteriore non possono essere gestiti correttamente.</div>
+    </div>
+
+    <div class="missing-flow">
+      <div class="mf-header">
+        <span class="mf-badge mf-critical">CRITICO</span>
+        <div>
+          <div class="mf-name">Stato Fisico del Lavoro</div>
+          <div class="mf-freq">Fondamentale con 2+ tecnici in lab</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step">in laboratorio</span>
+        <span class="mf-step red">in ceramica</span>
+        <span class="mf-step red">al forno</span>
+        <span class="mf-step red">alla CAD</span>
+        <span class="mf-step red">dal dentista (prova)</span>
+        <span class="mf-step red">rientrato</span>
+        <span class="mf-step red">in spedizione</span>
+        <span class="mf-step">consegnato</span>
+      </div>
+      <div class="mf-why">Attuale UÀ ha solo stati astratti (ricevuto/in_lavorazione/pronto/consegnato). Non dice dove è fisicamente il lavoro.</div>
+    </div>
+
+    <div class="missing-flow">
+      <div class="mf-header">
+        <span class="mf-badge mf-critical">CRITICO</span>
+        <div>
+          <div class="mf-name">Rifacimenti (Remakes)</div>
+          <div class="mf-freq">Ogni lab ha 2-5% di lavori da rifare</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step red">1. Lavoro non conforme</span>
+        <span class="mf-step red">2. Motivo non conformità</span>
+        <span class="mf-step red">3. Crea lavoro rifacimento</span>
+        <span class="mf-step red">4. Collegato all'originale</span>
+        <span class="mf-step">5. Costo interno tracciato</span>
+        <span class="mf-step">6. is_rifacimento flag</span>
+      </div>
+      <div class="mf-why">Necessario per MDR (non conformità), per statistiche qualità, per capire perché si rifà e quanto costa.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">⚠️</span>Flow IMPORTANTI mancanti — necessari per adozione completa</div>
+
+    <div class="missing-flow" style="background: #1a1200; border-color: #92400e;">
+      <div class="mf-header">
+        <span class="mf-badge mf-important">IMPORTANTE</span>
+        <div>
+          <div class="mf-name">Scadenzario / Partitario Clienti</div>
+          <div class="mf-freq">Il titolare lo guarda ogni giorno</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step">Chi mi deve soldi</span>
+        <span class="mf-step">Da quanto</span>
+        <span class="mf-step">Importo</span>
+        <span class="mf-step">Insoluti</span>
+        <span class="mf-step">Estratto conto cliente</span>
+        <span class="mf-step">Solleciti</span>
+      </div>
+      <div class="mf-why">OdontoSoft ha un modulo contabilità completo. UÀ ha solo le fatture ma non il tracking pagamenti.</div>
+    </div>
+
+    <div class="missing-flow" style="background: #1a1200; border-color: #92400e;">
+      <div class="mf-header">
+        <span class="mf-badge mf-important">IMPORTANTE</span>
+        <div>
+          <div class="mf-name">Allegati Clinici per Lavoro</div>
+          <div class="mf-freq">Ogni lavoro ha foto, prescrizione, STL, note colore</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step">Foto prescrizione cartacea</span>
+        <span class="mf-step">Foto colore (guida Vita)</span>
+        <span class="mf-step">STL / scansione</span>
+        <span class="mf-step">Foto pre-lavoro</span>
+        <span class="mf-step">Foto post-prova</span>
+        <span class="mf-step">Note vocali</span>
+      </div>
+      <div class="mf-why">La tabella lavori_immagini esiste ma non ha una UI completa. Crownbeam e OrisLab gestiscono file STL nativamente.</div>
+    </div>
+
+    <div class="missing-flow" style="background: #1a1200; border-color: #92400e;">
+      <div class="mf-header">
+        <span class="mf-badge mf-important">IMPORTANTE</span>
+        <div>
+          <div class="mf-name">Ordini Fornitori</div>
+          <div class="mf-freq">Quando magazzino va sotto scorta minima</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step">Scorta sotto minimo → alert</span>
+        <span class="mf-step">Genera ordine fornitore</span>
+        <span class="mf-step">Invia (email/WhatsApp)</span>
+        <span class="mf-step">Ricezione → aggiorna giacenza</span>
+      </div>
+      <div class="mf-why">DentalMaster ha questo modulo. ODIX anche. UÀ ha solo il magazzino ma non il ciclo ordini.</div>
+    </div>
+
+    <div class="missing-flow" style="background: #0a1020; border-color: #1e3a5f;">
+      <div class="mf-header">
+        <span class="mf-badge mf-nice">FASE 3</span>
+        <div>
+          <div class="mf-name">Prescrizione Digitale dal Dentista</div>
+          <div class="mf-freq">Il dentista invia prima che arrivi il lavoro fisico</div>
+        </div>
+      </div>
+      <div class="mf-steps">
+        <span class="mf-step">Dentista → form web semplice</span>
+        <span class="mf-step">Lab riceve notifica</span>
+        <span class="mf-step">Pre-compila il form nuovo lavoro</span>
+        <span class="mf-step">Conferma all'arrivo fisico</span>
+      </div>
+      <div class="mf-why">OdontoSoft ce l'ha. È un differenziatore forte ma non bloccante per il lancio.</div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPETITOR TABLE -->
+<div class="card full">
+  <div class="card-title"><span class="icon">🥊</span>Tabella Comparativa — UÀ vs Competitor</div>
+  <table class="comp-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th class="ua-col">UÀ (attuale)</th>
+        <th>OrisLab Q</th>
+        <th>OdontoSoft</th>
+        <th>ODIX</th>
+        <th>PrimoLab</th>
+        <th>Crownbeam</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Mobile-first (PWA)</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗ desktop</span></td>
+        <td><span class="feat feat-partial">app native</span></td>
+        <td><span class="feat feat-n">✗ desktop</span></td>
+        <td><span class="feat feat-n">✗ desktop</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+      </tr>
+      <tr>
+        <td><strong>WebAuthn / Biometrico</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+      </tr>
+      <tr>
+        <td><strong>1-tap CONSEGNA completa</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓ UNICO</span></td>
+        <td><span class="feat feat-n">multi-step</span></td>
+        <td><span class="feat feat-n">multi-step</span></td>
+        <td><span class="feat feat-partial">60sec MDR</span></td>
+        <td><span class="feat feat-partial">1-click fattura</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+      </tr>
+      <tr>
+        <td><strong>Portale dentista (no login)</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">MyDoc</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-partial">cloud ord.</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-y">✓ premium</span></td>
+      </tr>
+      <tr>
+        <td><strong>WhatsApp nativo</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓ UNICO</span></td>
+        <td><span class="feat feat-n">messaging int.</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-partial">chat interna</span></td>
+      </tr>
+      <tr>
+        <td><strong>FatturaPA XML + SDI</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">+€180/y</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗ (US)</span></td>
+      </tr>
+      <tr>
+        <td><strong>MDR DdC + PSUR + PMCF</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗ (no IT)</span></td>
+      </tr>
+      <tr>
+        <td><strong>PROVE / Try-in flow</strong></td>
+        <td class="ua-col"><span class="feat feat-n">❌ MANCA</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-tier pricing</strong></td>
+        <td class="ua-col"><span class="feat feat-partial">4 tier (6 gap)</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">20 tariffe</span></td>
+        <td><span class="feat feat-y">20 listini</span></td>
+        <td><span class="feat feat-n">basic</span></td>
+      </tr>
+      <tr>
+        <td><strong>Scadenzario / Partitario</strong></td>
+        <td class="ua-col"><span class="feat feat-n">❌ MANCA</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓ completo</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+      </tr>
+      <tr>
+        <td><strong>Ordini fornitori</strong></td>
+        <td class="ua-col"><span class="feat feat-n">❌ MANCA</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-tenant SaaS (zero IT)</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓ UNICO</span></td>
+        <td><span class="feat feat-n">✗ install</span></td>
+        <td><span class="feat feat-partial">cloud</span></td>
+        <td><span class="feat feat-n">✗ install</span></td>
+        <td><span class="feat feat-partial">cloud opt.</span></td>
+        <td><span class="feat feat-y">✓</span></td>
+      </tr>
+      <tr>
+        <td><strong>Stripe billing integrato</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">licenza</span></td>
+        <td><span class="feat feat-n">licenza</span></td>
+        <td><span class="feat feat-n">licenza</span></td>
+        <td><span class="feat feat-n">licenza</span></td>
+        <td><span class="feat feat-y">SaaS</span></td>
+      </tr>
+      <tr>
+        <td><strong>PWA offline</strong></td>
+        <td class="ua-col"><span class="feat feat-y">✓</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-partial">app native</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+        <td><span class="feat feat-n">✗</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- CONCLUSIONI -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">🎯 Cosa aggiungere PRIMA del lancio</div>
+    <div class="extra">
+      <div class="extra-item">
+        <span class="extra-icon">🔄</span>
+        <div>
+          <div class="extra-label">Flow PROVE/Try-in</div>
+          <div class="extra-desc">Stati: in_prova_esterna, rientrato_prova. Storico prove per lavoro. Senza questo 30-40% dei lavori non si può gestire.</div>
+        </div>
+        <span class="extra-tag" style="background:#991b1b;color:#fca5a5;">CRITICO</span>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">📍</span>
+        <div>
+          <div class="extra-label">Stato fisico lavoro</div>
+          <div class="extra-desc">Dove è il lavoro ora? Enum: in_lab / al_forno / al_cad / dal_dentista / in_spedizione</div>
+        </div>
+        <span class="extra-tag" style="background:#991b1b;color:#fca5a5;">CRITICO</span>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">🔁</span>
+        <div>
+          <div class="extra-label">Rifacimenti</div>
+          <div class="extra-desc">Flag is_rifacimento + link a lavoro originale + motivo non conformità MDR</div>
+        </div>
+        <span class="extra-tag" style="background:#991b1b;color:#fca5a5;">CRITICO</span>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">💰</span>
+        <div>
+          <div class="extra-label">Scadenzario clienti</div>
+          <div class="extra-desc">Pagamenti, insoluti, estratto conto per cliente. Titolare lo apre ogni giorno.</div>
+        </div>
+        <span class="extra-tag" style="background:#92400e;color:#fde68a;">IMPORTANTE</span>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">📎</span>
+        <div>
+          <div class="extra-label">Allegati clinici completi</div>
+          <div class="extra-desc">UI completa per foto (colore, prescrizione, pre/post), STL. La tabella DB c'è già.</div>
+        </div>
+        <span class="extra-tag" style="background:#92400e;color:#fde68a;">IMPORTANTE</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏆 Vantaggi imbattibili da proteggere</div>
+    <div class="extra">
+      <div class="extra-item">
+        <span class="extra-icon">📱</span>
+        <div>
+          <div class="extra-label">Schermata OGGI — da costruire perfetta</div>
+          <div class="extra-desc">"Se quella schermata è perfetta, UÀ può battere software più vecchi e pesanti" — Codex</div>
+        </div>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">🚀</span>
+        <div>
+          <div class="extra-label">1-tap CONSEGNA</div>
+          <div class="extra-desc">Nessun competitor ce l'ha. DdC+Buono+Fattura in 1-3 secondi. Va protetto e perfezionato.</div>
+        </div>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">💬</span>
+        <div>
+          <div class="extra-label">WhatsApp nativo</div>
+          <div class="extra-desc">Unico al mondo. Il dentista non entra mai nelle app gestionali. WhatsApp è già sul suo telefono.</div>
+        </div>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">🔑</span>
+        <div>
+          <div class="extra-label">Touch ID / Face ID</div>
+          <div class="extra-desc">Zero competitor ha il WebAuthn. Mani sporche di gesso → touch ID. Questo conta.</div>
+        </div>
+      </div>
+      <div class="extra-item">
+        <span class="extra-icon">🏗️</span>
+        <div>
+          <div class="extra-label">Zero IT · SaaS multi-tenant</div>
+          <div class="extra-desc">Tutti i competitor richiedono installazione. UÀ funziona da browser, domani mattina.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

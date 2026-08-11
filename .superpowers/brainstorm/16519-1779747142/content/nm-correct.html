@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Neumorphism Corretto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   UÀ — NEUMORPHISM v2.3
+   Base: #DDD8D3 | hsl(30, 8%, 84%)
+   Shadow scura:  #B8B0A8 | hsl(30,12%,70%)  [-14L, +4S]
+   Shadow chiara: #F0EDEA | hsl(30, 5%,95%)  [+11L, -3S]
+   Regola: TUTTI gli elementi hanno background #DDD8D3
+   Regola: offset = ~5% dimensione, blur = offset × 2
+   ============================================================ */
+:root {
+  --bg:   #DDD8D3;
+  --t1:   #1C1916;
+  --t2:   #4A3D33;
+  --t3:   #6B5C51;
+  --primary: #D90012;
+  --accent:  #2D5C3F;
+
+  /* Shadow tokens — derivati da hsl(30) */
+  --sd: #B8B0A8;   /* shadow dark  */
+  --sl: #F0EDEA;   /* shadow light */
+
+  /* Shadow composte per scala */
+  --sh-sm:    /* pulsanti, chip, FAB ≤56px */
+    -3px -3px  6px var(--sl),
+     3px  3px  8px var(--sd);
+
+  --sh-md:    /* card medie 60-160px */
+    -5px -5px 11px var(--sl),
+     5px  5px 12px var(--sd);
+
+  --sh-lg:    /* card grandi, pannelli >160px */
+    -8px -8px 18px var(--sl),
+     8px  8px 20px var(--sd);
+
+  --sh-float: /* modal, bottom sheet — massima elevazione */
+    -10px -10px 22px var(--sl),
+     10px  10px 26px var(--sd);
+
+  /* Inset — input, campi, track slider */
+  --sh-inset-sm:
+    inset  3px  3px  7px var(--sd),
+    inset -3px -3px  7px var(--sl);
+
+  --sh-inset-md:
+    inset  4px  4px  9px var(--sd),
+    inset -4px -4px  9px var(--sl);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #CBC6C1; /* bordo leggermente più scuro del bg per far risaltare il piano */
+  font-family: 'DM Sans', sans-serif;
+  padding: 20px 16px 60px;
+  min-height: 100vh;
+}
+
+/* ── Utilities ── */
+.sec { margin-bottom: 28px; }
+.sec-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.10em; color: var(--t3);
+  margin-bottom: 12px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.col-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t3); margin-bottom: 8px; }
+
+/* ── Piano base ── */
+.plane {
+  background: var(--bg);
+  border-radius: 20px;
+  padding: 16px;
+}
+
+/* ── PULSANTI STATO ── */
+.btn {
+  background: var(--bg);
+  border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  color: var(--t1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  width: 100%;
+  transition: box-shadow 180ms ease, transform 80ms ease;
+}
+.btn-raised {
+  box-shadow: var(--sh-sm);
+}
+.btn-raised:hover {
+  box-shadow:
+    -2px -2px  4px var(--sl),
+     2px  2px  5px var(--sd);
+}
+.btn-raised:active {
+  box-shadow: var(--sh-inset-sm);
+  transform: scale(0.985);
+}
+.btn-pressed {
+  box-shadow: var(--sh-inset-sm);
+  color: var(--t3);
+}
+.btn-flat {
+  box-shadow: none;
+  color: var(--t2);
+}
+
+/* ── PUSH BUTTON — UIverse evil-monkey-41 adattato ── */
+.push-wrap {
+  position: relative;
+  border: none; background: transparent;
+  padding: 0; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: filter 250ms;
+  user-select: none; touch-action: manipulation;
+  display: block; width: 100%;
+}
+.push-shadow {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: 12px;
+  background: rgba(110,90,78,0.28);
+  transform: translateY(3px);
+  transition: transform 600ms cubic-bezier(.3,.7,.4,1);
+}
+.push-edge {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(to left,
+    hsl(4,100%,24%) 0%,
+    hsl(4,100%,34%) 8%,
+    hsl(4,100%,34%) 92%,
+    hsl(4,100%,24%) 100%);
+}
+.push-front {
+  display: block; position: relative;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  font-weight: 700; color: #fff;
+  background: var(--primary);
+  transform: translateY(-4px);
+  transition: transform 600ms cubic-bezier(.3,.7,.4,1);
+  text-align: center;
+}
+.push-wrap:hover { filter: brightness(108%); }
+.push-wrap:hover .push-front { transform: translateY(-6px); transition: transform 250ms cubic-bezier(.3,.7,.4,1.5); }
+.push-wrap:hover .push-shadow { transform: translateY(5px); transition: transform 250ms cubic-bezier(.3,.7,.4,1.5); }
+.push-wrap:active .push-front { transform: translateY(-2px); transition: transform 34ms; }
+.push-wrap:active .push-shadow { transform: translateY(1px); transition: transform 34ms; }
+/* Variante ghost */
+.push-edge--ghost {
+  background: linear-gradient(to left,
+    rgba(110,90,78,.50) 0%, rgba(130,108,94,.38) 8%,
+    rgba(130,108,94,.38) 92%, rgba(110,90,78,.50) 100%);
+}
+.push-front--ghost {
+  background: var(--bg);
+  color: var(--t1);
+  box-shadow: var(--sh-sm);
+}
+
+/* ── PILL BUTTON — UIverse spotty-snake-82 adattato ── */
+.pill-wrap {
+  all: unset; cursor: pointer;
+  display: block; width: 100%;
+  border-radius: 100em;
+  background: var(--bg);
+  box-shadow:
+    -0.15em -0.15em 0.15em rgba(240,237,234,.90),
+     0.09em  0.12em 0.22em rgba(184,176,168,.55);
+  font-family: 'DM Sans', sans-serif;
+  position: relative;
+}
+.pill-outer {
+  border-radius: inherit;
+  transition: box-shadow 300ms ease;
+  box-shadow:
+    0    0.05em 0.05em rgba(184,176,168,.70),
+    0    0.01em 0.01em rgba(184,176,168,.35),
+    0.12em 0.25em 0.10em rgba(184,176,168,.18);
+}
+.pill-wrap:hover .pill-outer {
+  box-shadow: 0 0 0 rgba(184,176,168,.0), 0 0 0 rgba(184,176,168,.0), 0 0 0 rgba(184,176,168,.0);
+}
+.pill-inner {
+  border-radius: inherit;
+  padding: 0.75em 1.5em;
+  background: linear-gradient(135deg, #E4DFD9 0%, #D4CFC9 100%);
+  transition: box-shadow 300ms ease, clip-path 250ms ease, background 250ms ease, transform 250ms ease;
+  clip-path: inset(0 0 0 0 round 100em);
+  box-shadow:
+    0 0 0 0                           rgba(184,176,168,.08),
+    -0.05em -0.05em 0.05em 0          rgba(184,176,168,.20),
+    0 0 0.05em 0.18em                 rgba(240,237,234,.45),
+    0.025em  0.05em  0.1em  0         rgba(240,237,234,.90),
+    0.12em   0.12em  0.12em           rgba(240,237,234,.30),
+    -0.075em -0.25em 0.25em 0.1em     rgba(184,176,168,.18);
+}
+.pill-wrap:hover .pill-inner {
+  clip-path: inset(0.0625em 0.0625em 0.0625em 0.0625em round 100em);
+  background: linear-gradient(135deg, #D4CFC9 0%, #C8C3BE 100%);
+  box-shadow:
+    0.1em  0.15em 0.05em 0             rgba(184,176,168,.60),
+    -0.025em -0.03em 0.05em 0.025em    rgba(184,176,168,.40),
+    0.25em  0.25em  0.20em 0           rgba(184,176,168,.40),
+    0 0 0.05em 0.5em                   rgba(240,237,234,.18),
+    0 0 0 0                            rgba(240,237,234,.90),
+    0.12em 0.12em 0.12em               rgba(240,237,234,.20),
+    -0.075em -0.12em 0.20em 0.1em      rgba(184,176,168,.18);
+}
+.pill-wrap:active .pill-inner { transform: scale(0.975); }
+.pill-label {
+  display: block; position: relative; z-index: 4;
+  font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+  color: transparent;
+  background: linear-gradient(135deg, var(--t1) 0%, var(--t2) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  user-select: none; text-align: center;
+  transition: transform 250ms ease;
+}
+.pill-wrap:hover .pill-label { transform: scale(0.975); }
+
+/* ── INPUT FIELD ── */
+.field-wrap { margin-bottom: 12px; }
+.field-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--t3); margin-bottom: 6px; display: block;
+}
+.field-input {
+  background: var(--bg);
+  border: none; outline: none;
+  width: 100%; padding: 11px 14px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; color: var(--t1);
+  box-shadow: var(--sh-inset-md);
+  transition: box-shadow 150ms ease;
+}
+.field-input:focus {
+  box-shadow:
+    inset  4px  4px 10px var(--sd),
+    inset -4px -4px 10px var(--sl),
+    0 0 0 2px rgba(45,92,63,.35);
+}
+.field-input::placeholder { color: var(--t3); }
+
+/* ── CARD ── */
+.card {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 13px 14px;
+  box-shadow: var(--sh-md);
+  margin-bottom: 8px;
+}
+.card-title { font-size: 14px; font-weight: 600; color: var(--t1); }
+.card-sub   { font-size: 12px; color: var(--t2); margin-top: 2px; }
+.card-hint  { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.card-row   { display: flex; justify-content: space-between; align-items: flex-start; }
+
+.badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+
+/* ── KPI ── */
+.kpi-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.kpi-box {
+  flex: 1; background: var(--bg);
+  border-radius: 12px; padding: 11px 12px;
+  box-shadow: var(--sh-sm);
+}
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--t3); margin-top: 3px; }
+
+/* ── NAV PILL ── */
+.nav-pill {
+  background: var(--bg);
+  border-radius: 100px;
+  padding: 8px 12px;
+  box-shadow: var(--sh-float);
+  display: flex; justify-content: space-around;
+}
+.nav-item { font-size: 10px; font-weight: 600; color: var(--t2); text-align: center; }
+.nav-item.act { color: var(--primary); }
+
+/* ── FAB VASSOIO ── */
+.fab-tray {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  border-radius: 100px; padding: 4px;
+  box-shadow: var(--sh-sm);
+}
+.fab-btn {
+  background: var(--primary);
+  border: none; cursor: pointer;
+  border-radius: 100px;
+  padding: 10px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 700; color: #fff;
+  transition: filter 150ms;
+}
+.fab-btn:hover { filter: brightness(110%); }
+.fab-btn:active { filter: brightness(85%); }
+
+/* ── TOGGLE ── */
+.toggle-wrap {
+  display: flex; align-items: center; gap: 12px;
+}
+.toggle-track {
+  width: 52px; height: 28px;
+  background: var(--bg);
+  border-radius: 100px;
+  box-shadow: var(--sh-inset-sm);
+  position: relative; cursor: pointer;
+  transition: all 200ms ease;
+  flex-shrink: 0;
+}
+.toggle-thumb {
+  position: absolute; top: 4px; left: 4px;
+  width: 20px; height: 20px;
+  background: var(--bg);
+  border-radius: 50%;
+  box-shadow: var(--sh-sm);
+  transition: transform 200ms cubic-bezier(.3,.7,.4,1.5);
+}
+.toggle-track.on .toggle-thumb { transform: translateX(24px); }
+.toggle-track.on { background: rgba(45,92,63,.08); }
+.toggle-lbl { font-size: 13px; color: var(--t2); font-weight: 500; }
+
+/* ── SHADOW TOKEN TABLE ── */
+.token-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; background: var(--bg);
+  border-radius: 10px; box-shadow: var(--sh-sm);
+  margin-bottom: 6px;
+}
+.swatch { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; }
+.tok-n { font-size: 11px; font-weight: 600; font-family: monospace; color: var(--t1); flex: 1; }
+.tok-v { font-size: 10px; color: var(--t3); font-family: monospace; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     1. TOKENS SHADOW — BASE MATEMATICA
+     ════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-title">Token shadow — derivati da #DDD8D3 (hsl 30°)</div>
+  <div class="plane">
+    <div class="token-row">
+      <div class="swatch" style="background:#DDD8D3; border:1px solid rgba(0,0,0,.10);"></div>
+      <div class="tok-n">--bg (base)</div>
+      <div class="tok-v">hsl(30, 8%, 84%) = #DDD8D3</div>
+    </div>
+    <div class="token-row">
+      <div class="swatch" style="background:#B8B0A8;"></div>
+      <div class="tok-n">--sd (shadow scura)</div>
+      <div class="tok-v">hsl(30,12%, 70%) = #B8B0A8 · −14L +4S</div>
+    </div>
+    <div class="token-row">
+      <div class="swatch" style="background:#F0EDEA; border:1px solid rgba(0,0,0,.08);"></div>
+      <div class="tok-n">--sl (shadow chiara)</div>
+      <div class="tok-v">hsl(30, 5%, 95%) = #F0EDEA · +11L −3S</div>
+    </div>
+    <div style="margin-top:10px; padding:10px 12px; background:var(--bg); border-radius:10px; box-shadow:var(--sh-sm);">
+      <div style="font-size:11px; color:var(--t3); line-height:1.6;">
+        <strong style="color:var(--t2);">Regola scaling:</strong> offset = 5% dimensione · blur = offset × 2<br>
+        <strong style="color:var(--t2);">Background:</strong> tutti gli elementi hanno <code style="background:rgba(0,0,0,.06); padding:1px 4px; border-radius:4px;">#DDD8D3</code> — la profondità viene solo dalle shadow<br>
+        <strong style="color:var(--t2);">Luce:</strong> sempre da top-left (−X −Y per chiara · +X +Y per scura)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     2. STATI PULSANTE
+     ════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-title">3 stati — raised · flat · pressed (premi per sentire)</div>
+  <div class="plane">
+    <div class="col3" style="margin-bottom:10px;">
+      <div>
+        <div class="col-lbl">Raised</div>
+        <button class="btn btn-raised">Default</button>
+      </div>
+      <div>
+        <div class="col-lbl">Flat</div>
+        <button class="btn btn-flat">Hover</button>
+      </div>
+      <div>
+        <div class="col-lbl">Pressed</div>
+        <button class="btn btn-pressed">Active</button>
+      </div>
+    </div>
+    <div style="font-size:10px; color:var(--t3); padding:6px 0;">
+      Il bottone di sinistra risponde al tocco → premi e tieni premuto.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     3. PUSH BUTTON (UIverse evil-monkey)
+     ════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-title">Push button — CTA principale (tasto fisico 3D)</div>
+  <div class="plane">
+    <div class="col2">
+      <div>
+        <div class="col-lbl">Primary — rosso</div>
+        <button class="push-wrap">
+          <span class="push-shadow"></span>
+          <span class="push-edge"></span>
+          <span class="push-front">Nuova consegna</span>
+        </button>
+      </div>
+      <div>
+        <div class="col-lbl">Ghost — neutro</div>
+        <button class="push-wrap">
+          <span class="push-shadow" style="background:rgba(110,90,78,.18);"></span>
+          <span class="push-edge push-edge--ghost"></span>
+          <span class="push-front push-front--ghost">Annulla</span>
+        </button>
+      </div>
+    </div>
+    <div style="margin-top:8px; font-size:10px; color:var(--t3);">
+      Il CTA rosso usa un "bordo laterale" derivato da hsl(4,100%) — 3 layer DOM separati.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     4. PILL BUTTON (UIverse spotty-snake)
+     ════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-title">Pill button — azione secondaria (passa il mouse)</div>
+  <div class="plane">
+    <div class="col2">
+      <div>
+        <div class="col-lbl">Default → hover → click</div>
+        <button class="pill-wrap">
+          <span class="pill-outer">
+            <span class="pill-inner">
+              <span class="pill-label">Conferma</span>
+            </span>
+          </span>
+        </button>
+      </div>
+      <div>
+        <div class="col-lbl">Accent verde</div>
+        <button class="pill-wrap">
+          <span class="pill-outer" style="box-shadow: 0 0.05em 0.05em rgba(45,92,63,.50), 0 0.01em 0.01em rgba(45,92,63,.25), 0.12em 0.25em 0.10em rgba(45,92,63,.15);">
+            <span class="pill-inner" style="background:linear-gradient(135deg,#355f44 0%,#2D5C3F 100%);">
+              <span class="pill-label" style="background:linear-gradient(135deg,#fff,rgba(255,255,255,.88)); -webkit-background-clip:text; background-clip:text;">Pronto</span>
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div style="margin-top:8px; font-size:10px; color:var(--t3);">
+      Hover → la pillola "atterra" (shadow collassa) → si pressa (shadow inverte a inset)
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     5. INPUT + TOGGLE
+     ════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-title">Input field (inset) · Toggle</div>
+  <div class="plane">
+    <div class="field-wrap">
+      <label class="field-label">Paziente</label>
+      <input class="field-input" placeholder="Mario Bianchi…">
+    </div>
+    <div class="field-wrap" style="margin-bottom:4px;">
+      <label class="field-label">Numero lavoro</label>
+      <input class="field-input" value="#LAV-2024-0847" readonly>
+    </div>
+    <div style="height:12px;"></div>
+    <div class="toggle-wrap">
+      <div class="toggle-track" id="tog1" onclick="this.classList.toggle('on')">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="toggle-lbl">Vista ibrida dashboard</span>
+    </div>
+    <div style="margin-top:10px;" class="toggle-wrap">
+      <div class="toggle-track on" id="tog2" onclick="this.classList.toggle('on')">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="toggle-lbl">Notifiche attive</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     6. FULL MOCKUP — Sistema completo
+     ════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-title">Full mockup — UÀ Dashboard v2.3</div>
+  <div class="plane">
+    <!-- Header -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:var(--primary);">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:var(--accent);">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-n" style="color:var(--t2);">12</div>
+        <div class="kpi-l">In lavoraz.</div>
+      </div>
+    </div>
+
+    <!-- Input ricerca -->
+    <input class="field-input" placeholder="Cerca lavoro o cliente…" style="margin-bottom:12px;">
+
+    <!-- Lista lavori -->
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">#LAV-2024-0847</div>
+          <div class="card-sub">Corona zirconio · Dr. Bianchi</div>
+          <div class="card-hint">Scade: 27 mag · 3 fasi</div>
+        </div>
+        <span class="badge" style="background:rgba(217,0,18,.10); color:var(--primary);">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">#LAV-2024-0846</div>
+          <div class="card-sub">Scheletrato · Dr. Russo</div>
+          <div class="card-hint">Scade: 29 mag · 2 fasi</div>
+        </div>
+        <span class="badge" style="background:rgba(45,92,63,.12); color:var(--accent);">Pronto</span>
+      </div>
+    </div>
+
+    <!-- FAB vassoio + nav -->
+    <div style="display:flex; justify-content:center; margin:14px 0 12px;">
+      <div class="fab-tray">
+        <button class="fab-btn">+ Nuovo lavoro</button>
+      </div>
+    </div>
+
+    <!-- Nav pill — Layer float (shadow più forte) -->
+    <div class="nav-pill">
+      <div class="nav-item act">Home</div>
+      <div class="nav-item">Lavori</div>
+      <div class="nav-item">Clienti</div>
+      <div class="nav-item">Impost.</div>
+    </div>
+  </div>
+</div>
+
+<p style="font-size:10px; color:rgba(0,0,0,.35); text-align:center; margin-top:16px; line-height:1.7; font-style:italic;">
+  Premi i pulsanti. Scrivi nel campo input.<br>
+  Tutto sullo stesso sfondo — profondità solo dalle shadow.<br>
+  Scrivi nel terminale cosa vuoi cambiare.
+</p>
+
+</body>
+</html>

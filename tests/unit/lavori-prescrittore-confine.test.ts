@@ -87,6 +87,13 @@ async function patchConCorpo(body: Record<string, unknown>) {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
     }
+    // D308 — il cancello sui cinque campi stampati conta le dichiarazioni vive.
+    // Su questo lavoro non ce n'è nessuna: il cancello resta un no-op e queste
+    // prove continuano a misurare ciò che misuravano (la normalizzazione D242
+    // di `richiedente_nome`, che sta PRIMA del cancello).
+    if (table === 'dichiarazioni_conformita') {
+      return { select: () => ({ eq: () => ({ eq: () => ({ neq: async () => ({ count: 0, error: null }) }) }) }) }
+    }
     return {
       select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }),
       update: (p: Record<string, unknown>) => {

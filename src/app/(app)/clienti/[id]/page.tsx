@@ -9,6 +9,19 @@ import { ClienteModificaButton } from '@/components/features/clienti/ClienteModi
 import { ScaricaDpaButton } from '@/components/features/clienti/ScaricaDpaButton'
 import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica'
 import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
+// Task 9 dell'ondata «l'avviso al dentista» — l'archivio delle comunicazioni
+// (⚖️ D337 · D352). Il cancello di ruolo vive DENTRO `archivioPerSchedaCliente`
+// (`src/lib/avvisi/queries.ts`): questa pagina non ripete `puoVedereArchivioCliente`
+// a mano — lo propaga passando `context.ruolo`, stesso modello di `puoEmettere` qui
+// sopra ma con la chiusura fail-closed dentro la lettura stessa, non nel JSX.
+import { archivioPerSchedaCliente } from '@/lib/avvisi/queries'
+import {
+  nomiComunicatori,
+  numeriLavoro,
+  costruisciRigheArchivio,
+  etichettaVisto,
+  type RigaArchivioCliente,
+} from '@/lib/avvisi/archivio'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -116,6 +129,104 @@ function SectionCard({ title, children }: { title: string; children: React.React
   )
 }
 
+/**
+ * Una riga dell'archivio «Comunicazioni» — Task 9, ⚖️ D337 · D336.
+ *
+ * 🛑 STESSA FORMA NEUTRA PER OGNI STATO, ED È IL PUNTO: la pastiglia di
+ *    `comeLabel` usa SEMPRE `--elv`/`--t2` — mai `--amber` (l'unico colore di
+ *    richiamo che questa pagina già conosce, sulla riga «Non soggetto a
+ *    fattura elettronica» qui sopra), mai un rosso. ⚖️ D337 vieta un segnale
+ *    d'allarme anche per una riga ancora `da_comunicare`: qui non c'è NESSUNA
+ *    differenza di stile fra una riga aperta e una chiusa — solo il TESTO
+ *    cambia (`riga.comeLabel`, `riga.quando`, `riga.chi`), mai il colore.
+ *    Motivato nel resoconto del Task 9.
+ */
+function RigaComunicazione({ riga }: { riga: RigaArchivioCliente }) {
+  return (
+    <div
+      style={{
+        padding: '12px 0',
+        borderBottom: '1px solid var(--elv, #EDEDEA)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+        <span
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '11px',
+            fontWeight: 600,
+            // 🔄 Gate L2 (11/08/2026, referto 2026-08-10, rilievo ❌2) — era
+            // `var(--t2, #4A3D33)`: su fondo `--elv` scuro dà 3,92:1, sotto
+            // l'AA 4,5. `--t2` NON è un fix generale (dà 4,45:1 anche su
+            // `--surface` scuro, riga 565 qui sotto) — `--t1` è l'unico token
+            // già in uso in QUESTA pagina (righe 85/190/459/565) che supera
+            // 4,5:1 in scuro. Applicato UGUALE su ogni stato (⚖️ D337, righe
+            // 135-142): nessuna differenza di colore fra aperta/chiusa/vista.
+            color: 'var(--t1, #1C1916)',
+            background: 'var(--elv, #EDEDEA)',
+            borderRadius: '6px',
+            padding: '3px 10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {riga.comeLabel}
+        </span>
+        {riga.quando && (
+          // 🔄 Gate L2 (11/08/2026, rilievo ❌1 — stesso token della riga
+          // `etichettaVisto` più sotto, stesso fondo `--surface` scuro):
+          // era `var(--t3, #6B5C51)`, 2,0-2,24:1 in scuro. V. nota su `--t1`
+          // qui sopra.
+          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t1, #1C1916)' }}>
+            {riga.quando}
+          </span>
+        )}
+      </div>
+
+      {/* ⚖️ D356 — il numero del lavoro, sullo stesso formato di
+          `pazienti/[id]/page.tsx:63` (`#{numero_lavoro}`, senza etichetta
+          aggiuntiva): la pagina gemella per anagrafica mostra i lavori
+          esattamente così. `null` (lavoro non risolto: id orfano, lettura
+          fallita) → niente riga, mai un crash. */}
+      {riga.numeroLavoro && (
+        // 🔄 Gate L2 (11/08/2026, rilievo ❌1) — stesso cambio di `quando` qui
+        // sopra: era `var(--t3, #6B5C51)`.
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t1, #1C1916)' }}>
+          #{riga.numeroLavoro}
+        </span>
+      )}
+
+      {riga.chi && (
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--t1, #1C1916)' }}>
+          {riga.chi}
+        </span>
+      )}
+
+      {riga.campiDescritti.length > 0 && (
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', lineHeight: 1.4 }}>
+          Corretto: {riga.campiDescritti.join(', ')}
+        </span>
+      )}
+
+      {/* ⚖️ D357 — le TRE forme (aperta/chiusa-non-vista/vista) le sceglie
+          `etichettaVisto`, provata in `avvisi-archivio.test.ts`: questo
+          componente non può portare una prova unitaria (componente SERVER
+          asincrono), quindi la parola si decide dove una prova la esercita
+          davvero. Lo STILE resta identico nelle tre forme (⚖️ D337).
+          🔄 Gate L2 (11/08/2026, referto 2026-08-10, rilievo ❌1) — era
+          `var(--t3, #6B5C51)`: `rgb(90,86,82)` su fondo card scuro
+          `rgb(35,32,24)` → 2,0-2,24:1, sotto l'AA 4,5. V. nota sul token
+          `--t1` sopra il pill `comeLabel` in questo stesso componente. */}
+      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t1, #1C1916)' }}>
+        {etichettaVisto(riga)}
+      </span>
+    </div>
+  )
+}
+
 export default async function ClienteDettaglioPage({ params }: PageProps) {
   const { id } = await params
 
@@ -169,6 +280,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   const [
     { data: emissioneRaw, error: erroreRegistro },
     { data: labFiscale, error: erroreLabFiscale },
+    righeArchivioAvviso,
   ] = await Promise.all([
     svc
       .from('data_processing_agreements')
@@ -193,6 +305,11 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
       .select('partita_iva, codice_fiscale')
       .eq('id', context.laboratorioId)
       .maybeSingle(),
+    // Task 9 — l'archivio «Comunicazioni» (⚖️ D337 · D352). Il cancello di
+    // ruolo vive DENTRO `archivioPerSchedaCliente`: per `admin_rete`/
+    // `admin_sistema` questa promessa risolve a `[]` SENZA interrogare
+    // `avvisi_dentista` (fail-closed, provato in `avvisi-queries.test.ts`).
+    archivioPerSchedaCliente({ svc, clienteId: c.id, laboratorioId: context.laboratorioId, ruolo: context.ruolo }),
   ])
 
   // 🛑 Un guasto di LETTURA non è «non è mai stato emesso»: sono due fatti
@@ -213,6 +330,20 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
   if (erroreLabFiscale) {
     console.error('ClienteDettaglioPage — dati fiscali del laboratorio non leggibili:', context.laboratorioId, erroreLabFiscale.message)
   }
+
+  // Task 9 — «chi» ha comunicato — e Task 9-ter (⚖️ D356) — «quale lavoro»:
+  // due letture di supporto SU `utenti`/`lavori`, non su `avvisi_dentista`
+  // (brief §1: «nessuna query nuova [sulla tabella]»).
+  // 🛑 Sequenziali rispetto al `Promise.all` di sopra (dipendono dagli id
+  //    appena letti: `comunicato_da`/`lavoro_id` di ogni riga, quindi non
+  //    possono partire prima) ma IN PARALLELO fra loro — stessa regola «mai
+  //    in fila» del `Promise.all` qui sopra: nessuna delle due dipende
+  //    dall'altra.
+  const [nomiComunicanti, numeriDeiLavori] = await Promise.all([
+    nomiComunicatori(svc, righeArchivioAvviso.map((r) => r.comunicato_da), context.laboratorioId),
+    numeriLavoro(svc, righeArchivioAvviso.map((r) => r.lavoro_id), context.laboratorioId),
+  ])
+  const righeComunicazioni = costruisciRigheArchivio(righeArchivioAvviso, nomiComunicanti, numeriDeiLavori)
 
   const ultimaEmissione = emissioneRaw as UltimaEmissioneDpa | null
 
@@ -365,6 +496,36 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
           attiva={c.portale_fatturazione_attiva}
           pinImpostato={c.portale_pin_hash != null}
         />
+
+        {/* Comunicazioni — l'archivio di ⚖️ D337 (Task 9): quando · come · chi ·
+            se e quando l'ha aperta. Sola lettura, cancello di ruolo ⚖️ D352
+            (`titolare` · `tecnico` · `front_desk`) dentro `archivioPerSchedaCliente`.
+            🛑 La card resta SEMPRE a schermo, anche vuota — stesso modello della
+            card DPA qui sotto (D160: «chi non vede il tasto vede comunque tutto
+            il resto»): un archivio si CONSULTA, e una sezione che sparisce a
+            seconda del ruolo rivelerebbe implicitamente che qualcosa esiste ma
+            è nascosto. Un ruolo escluso e un archivio genuinamente vuoto
+            mostrano perciò la STESSA schermata — di proposito, nessuna fuga di
+            informazione su «c'è qualcosa che non puoi vedere». */}
+        <SectionCard title="Comunicazioni">
+          {righeComunicazioni.length === 0 ? (
+            <div style={{ padding: '10px 0' }}>
+              <p
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px',
+                  color: 'var(--t2, #4A3D33)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                Nessuna comunicazione registrata per questo studio.
+              </p>
+            </div>
+          ) : (
+            righeComunicazioni.map((riga) => <RigaComunicazione key={riga.id} riga={riga} />)
+          )}
+        </SectionCard>
 
         {/* DPA GDPR Art. 28 */}
         <SectionCard title="Privacy — GDPR">

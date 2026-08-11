@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ DS v5 — Rainbow + Admin dark + Tasto+</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════
+   LIGHT — warm panna neumorphic (matte, no glow)
+   ══════════════════════════════════════════════════════ */
+:root {
+  --bg:  #DDD8D3;
+  --sfc: #E4DFD9;
+  --t1:  #1C1916;  --t2: #4A3D33;  --t3: #6B5C51;
+  --primary: #D90012;
+
+  /* ── RAINBOW semantic colors (stile admin) ── */
+  --c-blue:   #3B82F6;   /* info · trial · in-corso */
+  --c-green:  #22C55E;   /* success · attivo · pronto */
+  --c-amber:  #F59E0B;   /* warning · sospeso */
+  --c-orange: #F97316;   /* caution */
+  --c-red:    #EF4444;   /* danger · blacklist · scaduto */
+  --c-purple: #8B5CF6;   /* premium */
+
+  /* ── Matte shadows — NO rgba(255,255,255)>.32 ── */
+  --sh-sm:
+    -3px -3px  6px rgba(240,237,234,.42),
+     3px  3px  8px rgba(168,158,148,.62);
+  --sh-md:
+    -5px -5px 12px rgba(240,237,234,.45),
+     6px  7px 14px rgba(155,144,132,.68);
+  --sh-in:
+    inset  4px  4px  9px rgba(168,158,148,.60),
+    inset -4px -4px  9px rgba(240,237,234,.38);
+  --sh-in-deep:
+    inset  5px  5px 12px rgba(148,136,124,.68),
+    inset -4px -4px  9px rgba(240,237,234,.32);
+  --sh-float:
+   -8px -8px 18px rgba(240,237,234,.48),
+   10px 12px 22px rgba(148,136,124,.72);
+}
+
+/* ══════════════════════════════════════════════════════
+   DARK — admin style: flat, clean, zero glow
+   Cards leggermente più chiare del bg — niente neumorphism
+   ══════════════════════════════════════════════════════ */
+.dark {
+  --bg:  #1A1916;
+  --sfc: #232018;   /* card background */
+  --t1:  #F0EDE8;  --t2: #8A8580;  --t3: #5A5652;
+  --primary: #E8001A;
+
+  --sh-sm:   none;
+  --sh-md:   none;
+  --sh-in:   inset 2px 2px 6px rgba(4,3,2,.92), inset -2px -2px 4px rgba(40,37,32,.50);
+  --sh-in-deep: inset 4px 4px 9px rgba(3,2,1,.98), inset -3px -3px 6px rgba(36,33,28,.48);
+  --sh-float: 0 8px 24px rgba(0,0,0,.65), 0 2px 6px rgba(0,0,0,.40);
+}
+
+/* ══════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #C2BDB8; }
+body { font-family: 'DM Sans', sans-serif; padding: 16px 14px 60px; }
+
+.plane {
+  background: var(--bg);
+  border-radius: 18px;
+  padding: 16px;
+}
+.plane:not(.dark) { box-shadow: var(--sh-md); }
+.dark.plane {
+  border: 1px solid rgba(255,255,255,.05);
+  box-shadow: 0 4px 16px rgba(0,0,0,.40);
+}
+
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .55; margin-bottom: 6px; }
+
+.sec-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .10em; color: rgba(90,80,70,.65);
+  margin: 22px 0 10px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.sec-title button {
+  margin-left: 8px; font-size: 9px; font-weight: 700;
+  padding: 2px 8px; border-radius: 100px;
+  background: rgba(45,92,63,.12); color: #2D5C3F;
+  border: none; cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════
+   RAINBOW — TOKEN CHIPS display
+   ══════════════════════════════════════════════════════ */
+.rainbow-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.rc {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════════════
+   STANDARD BUTTONS — 3 stati (FIX dark raised glow)
+   ══════════════════════════════════════════════════════ */
+.btn {
+  background: var(--bg); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--t1); border-radius: 12px; padding: 12px 14px; width: 100%;
+  transition: box-shadow 100ms ease, transform 80ms ease;
+}
+/* LIGHT raised — matte */
+.btn-raised {
+  box-shadow: var(--sh-sm);
+}
+.btn-raised:hover {
+  box-shadow:
+    -2px -2px 4px rgba(240,237,234,.35),
+     2px  2px 5px rgba(168,158,148,.50);
+}
+.btn-raised:active { box-shadow: var(--sh-in); transform: scale(0.982); }
+
+/* DARK raised — NO white glow — sottile border invece */
+.dark .btn-raised {
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.dark .btn-raised:hover {
+  border-color: rgba(255,255,255,.14);
+  background: #282520;
+}
+.dark .btn-raised:active {
+  box-shadow: var(--sh-in);
+  border-color: transparent;
+  transform: scale(0.982);
+}
+
+.btn-flat   { color: var(--t2); }
+.dark .btn-flat { color: var(--t3); }
+.btn-pressed { box-shadow: var(--sh-in); color: var(--t3); }
+.dark .btn-pressed { box-shadow: var(--sh-in); color: var(--t3); }
+
+/* ══════════════════════════════════════════════════════
+   FCOLOMBATI PILL — warm adaptation, font-size:16px
+   ══════════════════════════════════════════════════════ */
+.cta, .ghost, .cta-accent {
+  all: unset;
+  font-size: 16px; cursor: pointer; display: block; width: 100%;
+  border-radius: 100em; position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+/* PRIMARY red */
+.cta { background: rgba(128,4,8,.88); box-shadow: -0.15em -0.15em 0.15em -0.075em rgba(180,10,12,.28), 0.04em 0.04em 0.07em 0 rgba(50,0,4,.22); }
+.cta::after { content:""; position:absolute; z-index:0; width:calc(100% + 0.3em); height:calc(100% + 0.3em); top:-0.15em; left:-0.15em; border-radius:inherit; background:linear-gradient(-135deg,rgba(50,0,4,.45),transparent 20%); filter:blur(0.012em); opacity:.28; mix-blend-mode:multiply; }
+.cta .outer { position:relative; z-index:1; border-radius:inherit; transition:box-shadow 300ms ease; box-shadow: 0 0.05em 0.05em -0.01em rgba(50,0,4,1), 0 0.01em 0.01em -0.01em rgba(50,0,4,.55), 0.15em 0.3em 0.1em -0.01em rgba(50,0,4,.35); }
+.cta:hover .outer { box-shadow:none; }
+.cta .inner { position:relative; z-index:1; border-radius:inherit; padding:0.875em 1.75em; background:linear-gradient(135deg,#D90012,#A0000E); transition:box-shadow 300ms ease,clip-path 250ms ease,background 250ms ease,transform 120ms ease; overflow:clip; clip-path:inset(0 0 0 0 round 100em); box-shadow: 0 0 0 0 inset rgba(50,0,4,.12), -0.05em -0.05em 0.05em 0 inset rgba(50,0,4,.35), 0 0 0 0 inset rgba(50,0,4,.12), 0 0 0.05em .20em inset rgba(255,150,130,.16), 0.025em 0.05em 0.1em 0 inset rgba(255,170,150,.28), 0.12em 0.12em 0.12em inset rgba(255,150,130,.10), -0.075em -0.25em 0.25em 0.1em inset rgba(50,0,4,.40); }
+.cta:hover .inner { clip-path:inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em); background:linear-gradient(135deg,#A0000E,#780008); box-shadow: 0.1em 0.15em 0.05em 0 inset rgba(50,0,4,.92), -0.025em -0.03em 0.05em .025em inset rgba(50,0,4,.60), 0.25em 0.25em 0.20em 0 inset rgba(50,0,4,.60), 0 0 0.05em .5em inset rgba(255,150,130,.07), 0 0 0 0 inset rgba(255,170,150,.28), 0.12em 0.12em 0.12em inset rgba(255,150,130,.08), -0.075em -0.12em 0.20em 0.1em inset rgba(50,0,4,.32); }
+.cta:active .inner { transform:scale(0.975); }
+.cta .inner span { position:relative; z-index:4; display:block; text-align:center; font-family:'DM Sans',sans-serif; font-size:0.9375em; font-weight:700; letter-spacing:-0.02em; color:transparent; background:linear-gradient(135deg,#fff,rgba(255,228,222,.92)); -webkit-background-clip:text; background-clip:text; transition:transform 250ms ease; user-select:none; }
+.cta:hover .inner span { transform:scale(0.975); }
+
+/* GHOST light */
+.ghost { background:rgba(155,148,141,.82); box-shadow:-0.15em -0.15em 0.15em -0.075em rgba(200,190,182,.35),0.04em 0.04em 0.07em 0 rgba(100,86,76,.25); }
+.ghost::after { content:""; position:absolute; z-index:0; width:calc(100% + 0.3em); height:calc(100% + 0.3em); top:-0.15em; left:-0.15em; border-radius:inherit; background:linear-gradient(-135deg,rgba(80,65,55,.40),transparent 20%); filter:blur(0.012em); opacity:.20; mix-blend-mode:multiply; }
+.ghost .outer { position:relative; z-index:1; border-radius:inherit; transition:box-shadow 300ms ease; box-shadow:0 0.05em 0.05em -0.01em rgba(100,86,76,1),0 0.01em 0.01em -0.01em rgba(100,86,76,.55),0.15em 0.3em 0.1em -0.01em rgba(100,86,76,.32); }
+.ghost:hover .outer { box-shadow:none; }
+.ghost .inner { position:relative; z-index:1; border-radius:inherit; padding:0.875em 1.75em; background:linear-gradient(135deg,#E4DFD9,#C8C3BD); transition:box-shadow 300ms ease,clip-path 250ms ease,background 250ms ease,transform 120ms ease; overflow:clip; clip-path:inset(0 0 0 0 round 100em); box-shadow: 0 0 0 0 inset rgba(100,86,76,.10),-0.05em -0.05em 0.05em 0 inset rgba(100,86,76,.28),0 0 0 0 inset rgba(100,86,76,.10),0 0 0.05em .20em inset rgba(240,237,234,.28),0.025em 0.05em 0.1em 0 inset rgba(240,237,234,.30),0.12em 0.12em 0.12em inset rgba(240,237,234,.18),-0.075em -0.25em 0.25em 0.1em inset rgba(100,86,76,.30); }
+.ghost:hover .inner { clip-path:inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em); background:linear-gradient(135deg,#C8C3BD,#B8B3AD); box-shadow:0.1em 0.15em 0.05em 0 inset rgba(100,86,76,.78),-0.025em -0.03em 0.05em .025em inset rgba(100,86,76,.52),0.25em 0.25em 0.20em 0 inset rgba(100,86,76,.52),0 0 0.05em .5em inset rgba(240,237,234,.14),0 0 0 0 inset rgba(240,237,234,.30),0.12em 0.12em 0.12em inset rgba(240,237,234,.15),-0.075em -0.12em 0.20em 0.1em inset rgba(100,86,76,.28); }
+.ghost:active .inner { transform:scale(0.975); }
+.ghost .inner span { position:relative; z-index:4; display:block; text-align:center; font-family:'DM Sans',sans-serif; font-size:0.9375em; font-weight:600; letter-spacing:-0.02em; color:transparent; background:linear-gradient(135deg,#1C1916,#4A3D33); -webkit-background-clip:text; background-clip:text; transition:transform 250ms ease; user-select:none; }
+.ghost:hover .inner span { transform:scale(0.975); }
+
+/* DARK ghost — no glow, flat */
+.dark .ghost { background:rgba(30,27,23,.95); box-shadow:0 1px 3px rgba(0,0,0,.50); }
+.dark .ghost::after { display:none; }
+.dark .ghost .outer { box-shadow:0 0.05em 0.05em -0.01em rgba(3,2,1,1),0 0.01em 0.01em -0.01em rgba(3,2,1,.60),0.15em 0.3em 0.1em -0.01em rgba(3,2,1,.42); }
+.dark .ghost:hover .outer { box-shadow:none; }
+.dark .ghost .inner { background:linear-gradient(135deg,#2C2925,#1C1A16); box-shadow: 0 0 0 0 inset rgba(3,2,1,.25),-0.05em -0.05em 0.05em 0 inset rgba(3,2,1,.55),0 0 0 0 inset rgba(3,2,1,.25),0 0 0.05em .20em inset rgba(44,41,37,.48),0.025em 0.05em 0.1em 0 inset rgba(50,47,43,.55),0.12em 0.12em 0.12em inset rgba(44,41,37,.30),-0.075em -0.25em 0.25em 0.1em inset rgba(3,2,1,.55); }
+.dark .ghost:hover .inner { background:linear-gradient(135deg,#1A1814,#0E0D0B); }
+.dark .ghost .inner span { background:linear-gradient(135deg,#F0EDE8,rgba(200,196,190,.90)); -webkit-background-clip:text; background-clip:text; }
+
+/* ══════════════════════════════════════════════════════
+   INCAVO BUTTON (stile precedente che piaceva)
+   ══════════════════════════════════════════════════════ */
+.incavo {
+  background: var(--bg); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--t1); border-radius: 100px; padding: 13px 28px; width: 100%;
+  box-shadow: var(--sh-in);
+  transition: box-shadow 100ms ease, transform 60ms ease;
+  position: relative;
+}
+.incavo::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(145deg, rgba(240,237,234,.12), rgba(168,158,148,.08));
+  pointer-events: none;
+}
+.incavo:hover { box-shadow: var(--sh-in-deep); }
+.incavo:active {
+  transform: scale(0.975);
+  box-shadow: var(--sh-in-deep);
+}
+/* Primary incavo */
+.incavo-primary {
+  background: var(--primary); color: #fff;
+  box-shadow:
+    inset  3px  3px  7px rgba(80,0,5,.55),
+    inset -3px -3px  7px rgba(255,160,140,.18);
+}
+.incavo-primary::before {
+  background: linear-gradient(145deg, rgba(255,160,140,.10), rgba(80,0,5,.08));
+}
+.incavo-primary:hover {
+  box-shadow:
+    inset  4px  4px  9px rgba(80,0,5,.65),
+    inset -3px -3px  7px rgba(255,160,140,.12);
+}
+.incavo-primary:active { transform: scale(0.975); }
+
+/* Dark incavo */
+.dark .incavo {
+  box-shadow: var(--sh-in);
+  color: var(--t1);
+}
+.dark .incavo:hover { box-shadow: var(--sh-in-deep); }
+
+/* ══════════════════════════════════════════════════════
+   PUSH BUTTON — 3D fisico (stile che piaceva)
+   ══════════════════════════════════════════════════════ */
+.push {
+  all: unset; display: block; width: 100%; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  position: relative;
+  transition: filter 250ms ease; user-select: none; touch-action: manipulation;
+}
+.push__shadow {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 14px;
+  background: rgba(100,20,10,.42);
+  transform: translateY(5px);
+  filter: blur(2px);
+  transition: transform 600ms cubic-bezier(.3,.7,.4,1);
+}
+.push__edge {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 14px;
+  background: linear-gradient(to left, hsl(4,100%,20%) 0%, hsl(4,100%,32%) 6%, hsl(4,100%,32%) 94%, hsl(4,100%,20%) 100%);
+}
+.push__front {
+  display: block; position: relative;
+  padding: 14px 24px; border-radius: 14px;
+  font-size: 14px; font-weight: 700; color: #fff; text-align: center;
+  background: var(--primary);
+  transform: translateY(-8px);
+  transition: transform 600ms cubic-bezier(.3,.7,.4,1);
+  box-shadow: inset 0 1px 0 rgba(255,160,140,.22);
+}
+.push:hover { filter: brightness(106%); }
+.push:hover .push__front { transform: translateY(-11px); transition: transform 250ms cubic-bezier(.3,.7,.4,1.5); }
+.push:hover .push__shadow { transform: translateY(8px); transition: transform 250ms cubic-bezier(.3,.7,.4,1.5); }
+.push:active .push__front { transform: translateY(-1px); transition: transform 34ms; filter: brightness(88%); }
+.push:active .push__shadow { transform: translateY(1px); transition: transform 34ms; }
+/* Ghost push */
+.push__edge--g { background: linear-gradient(to left, rgba(100,80,68,.45) 0%, rgba(120,100,88,.32) 6%, rgba(120,100,88,.32) 94%, rgba(100,80,68,.45) 100%); }
+.push__front--g { background: var(--bg); color: var(--t1); box-shadow: var(--sh-sm); }
+.push__shadow--g { background: rgba(110,90,78,.20); }
+/* Dark push */
+.dark .push__shadow { background: rgba(0,0,0,.75); }
+.dark .push__edge { background: linear-gradient(to left, hsl(4,100%,14%) 0%, hsl(4,90%,22%) 6%, hsl(4,90%,22%) 94%, hsl(4,100%,14%) 100%); }
+.dark .push__front { box-shadow: inset 0 1px 0 rgba(255,100,80,.16); }
+.dark .push__edge--g { background: linear-gradient(to left, rgba(44,41,37,.70) 0%, rgba(50,47,44,.50) 6%, rgba(50,47,44,.50) 94%, rgba(44,41,37,.70) 100%); }
+.dark .push__front--g { background: var(--bg); color: var(--t1); box-shadow: none; border: 1px solid rgba(255,255,255,.08); }
+
+/* ══════════════════════════════════════════════════════
+   TASTO + CIRCOLARE (stile tasto+.png — mantenere rosso)
+   ══════════════════════════════════════════════════════ */
+.fab-plus {
+  width: 60px; height: 60px; border-radius: 50%;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary);
+  /* Raised circle — neumorphic con ring sottile */
+  box-shadow:
+    -5px -5px 12px rgba(240,237,234,.45),
+     6px  7px 15px rgba(148,136,124,.68),
+    /* ring interno: simula il bordo del tasto fisico */
+    inset 0 1px 0 rgba(255,160,140,.20),
+    inset 0 -1px 0 rgba(80,0,5,.30);
+  transition: box-shadow 100ms ease, transform 80ms ease, filter 150ms ease;
+  position: relative;
+}
+.fab-plus::after {
+  /* Corona esterna scura che dà profondità al cerchio */
+  content: "";
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  box-shadow:
+    -3px -3px  7px rgba(240,237,234,.38),
+     4px  5px 10px rgba(148,136,124,.55);
+  pointer-events: none;
+}
+.fab-plus:hover { filter: brightness(108%); }
+.fab-plus:active {
+  transform: scale(0.92);
+  box-shadow:
+    inset  3px  3px  7px rgba(80,0,5,.55),
+    inset -2px -2px  5px rgba(255,160,140,.16),
+    inset 0 -1px 0 rgba(80,0,5,.30);
+  filter: brightness(88%);
+}
+/* Icona + */
+.fab-plus svg { position: relative; z-index: 1; }
+
+/* Versione dark del fab */
+.dark .fab-plus {
+  box-shadow:
+    -4px -4px 10px rgba(42,39,36,.55),
+     5px  6px 14px rgba(3,2,1,.95),
+    inset 0 1px 0 rgba(255,100,80,.18),
+    inset 0 -1px 0 rgba(60,0,5,.45);
+}
+.dark .fab-plus::after {
+  box-shadow:
+    -2px -2px  6px rgba(42,39,36,.45),
+     3px  4px  8px rgba(3,2,1,.85);
+}
+
+/* FAB grande per nav */
+.fab-lg { width: 52px; height: 52px; }
+.fab-sm { width: 44px; height: 44px; }
+.fab-sm svg { width: 18px; height: 18px; }
+
+/* ══════════════════════════════════════════════════════
+   KPI — rainbow colors + stagger animation
+   ══════════════════════════════════════════════════════ */
+@keyframes kpiIn {
+  from { opacity:0; transform:translateY(-14px) scale(.95); }
+  to   { opacity:1; transform:none; }
+}
+.kpi-row { display: flex; gap: 7px; margin-bottom: 10px; }
+.kpi-box {
+  flex: 1; background: var(--bg); border-radius: 11px; padding: 11px 12px;
+  opacity: 0;
+}
+.kpi-box:not(.dark *) { box-shadow: var(--sh-sm); }
+.dark .kpi-box {
+  background: var(--sfc);
+  border: 1px solid rgba(255,255,255,.05);
+}
+.kpi-box.go { animation: kpiIn 0.42s cubic-bezier(0,0,.2,1) both; }
+.kpi-box.go:nth-child(1) { animation-delay: .10s; }
+.kpi-box.go:nth-child(2) { animation-delay: .16s; }
+.kpi-box.go:nth-child(3) { animation-delay: .22s; }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--t3); margin-top: 3px; }
+
+/* ══════════════════════════════════════════════════════
+   CARD / FIELD / BADGE
+   ══════════════════════════════════════════════════════ */
+.card {
+  background: var(--bg); border-radius: 13px; padding: 12px 13px; margin-bottom: 7px;
+}
+:not(.dark) > .card { box-shadow: var(--sh-sm); }
+.dark .card {
+  background: var(--sfc);
+  border: 1px solid rgba(255,255,255,.05);
+}
+.card-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.cn { font-size: 14px; font-weight: 600; color: var(--t1); }
+.cs { font-size: 12px; color: var(--t2); margin-top: 2px; }
+.ch { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+
+.field {
+  background: var(--bg); border: none; outline: none;
+  width: 100%; padding: 11px 13px; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--t1);
+  box-shadow: var(--sh-in); margin-bottom: 10px;
+  transition: box-shadow 150ms ease;
+}
+.field:focus { box-shadow: var(--sh-in-deep), 0 0 0 2px rgba(59,130,246,.30); }
+.field::placeholder { color: var(--t3); }
+
+/* ══════════════════════════════════════════════════════
+   NAV BAR — tutti gli stati con JS funzionante
+   ══════════════════════════════════════════════════════ */
+.nav-pill {
+  background: var(--bg);
+  border-radius: 100px;
+  padding: 7px 10px;
+  display: flex; align-items: center; justify-content: space-around; gap: 2px;
+}
+:not(.dark) .nav-pill { box-shadow: var(--sh-float); }
+.dark .nav-pill {
+  box-shadow: var(--sh-float);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.nav-tab {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 6px 11px; border-radius: 100px; cursor: pointer;
+  border: none; background: transparent;
+  font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 600;
+  color: var(--t2); position: relative;
+  transition: color 150ms ease;
+}
+.nav-tab.active { color: var(--primary); }
+.nav-tab.active::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: rgba(217,0,18,.08);
+  border-radius: 100px;
+}
+.dark .nav-tab.active::before { background: rgba(232,0,26,.12); }
+.nav-tab svg { transition: transform 100ms ease; position: relative; z-index: 1; }
+.nav-tab span { position: relative; z-index: 1; }
+.nav-tab:active svg { transform: scale(0.85); }
+
+/* CTA circolare nella nav */
+.nav-cta {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary); flex-shrink: 0;
+  box-shadow:
+    -4px -4px 10px rgba(240,237,234,.42),
+     5px  6px 14px rgba(148,136,124,.65),
+    inset 0 1px 0 rgba(255,160,140,.20),
+    inset 0 -1px 0 rgba(80,0,5,.28);
+  transition: box-shadow 80ms ease, transform 80ms ease, filter 120ms ease;
+  position: relative;
+}
+.dark .nav-cta {
+  box-shadow:
+    -3px -3px 8px rgba(42,39,36,.52),
+     4px  5px 12px rgba(3,2,1,.95),
+    inset 0 1px 0 rgba(255,100,80,.18),
+    inset 0 -1px 0 rgba(60,0,5,.42);
+}
+.nav-cta:hover { filter: brightness(108%); }
+.nav-cta:active {
+  transform: scale(0.91);
+  box-shadow:
+    inset 3px 3px 7px rgba(80,0,5,.55),
+    inset -2px -2px 5px rgba(255,160,140,.14);
+  filter: brightness(86%);
+}
+
+/* EDIT MODE */
+.nav-pill.edit {
+  outline: 2px dashed rgba(217,0,18,.38);
+  outline-offset: 4px;
+}
+@keyframes wiggle {
+  0%,100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-2deg); }
+  70%      { transform: rotate(2deg); }
+}
+.nav-pill.edit .nav-tab {
+  animation: wiggle 0.5s ease-in-out infinite;
+  cursor: grab;
+}
+.nav-pill.edit .nav-tab:nth-child(2) { animation-delay: .08s; }
+.nav-pill.edit .nav-tab:nth-child(3) { animation-delay: .16s; }
+.nav-pill.edit .nav-tab:nth-child(5) { animation-delay: .04s; }
+
+.remove-btn {
+  display: none;
+  position: absolute; top: -4px; right: -2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--t3); color: #fff; border: none; cursor: pointer;
+  font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+  z-index: 10;
+}
+.nav-pill.edit .remove-btn { display: block; }
+
+.edit-hint {
+  font-size: 10px; color: var(--t3); text-align: center;
+  margin-top: 8px; font-style: italic;
+}
+
+/* Customize panel */
+.cp {
+  background: var(--bg); border-radius: 18px 18px 0 0; padding: 16px;
+  margin-top: 12px;
+}
+:not(.dark) .cp { box-shadow: var(--sh-float); }
+.dark .cp { border: 1px solid rgba(255,255,255,.06); box-shadow: var(--sh-float); }
+.cp-title { font-size: 15px; font-weight: 700; color: var(--t1); margin-bottom: 3px; }
+.cp-sub   { font-size: 11px; color: var(--t3); margin-bottom: 12px; }
+.cp-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid rgba(128,100,80,.08);
+}
+.dark .cp-row { border-color: rgba(255,255,255,.05); }
+.cp-row:last-child { border-bottom: none; }
+.cp-icon { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+:not(.dark) .cp-icon { background: var(--bg); box-shadow: var(--sh-sm); }
+.dark .cp-icon { background: var(--sfc); border: 1px solid rgba(255,255,255,.05); }
+.cp-name { font-size: 13px; font-weight: 600; color: var(--t1); }
+.cp-desc { font-size: 11px; color: var(--t3); margin-top: 1px; }
+.cp-tog {
+  width: 42px; height: 22px; border-radius: 100px; border: none; cursor: pointer;
+  position: relative; flex-shrink: 0; transition: background 200ms;
+}
+.cp-tog.on { background: #22C55E; }
+.cp-tog.off { background: var(--bg); box-shadow: var(--sh-in); }
+.dark .cp-tog.off { box-shadow: var(--sh-in); }
+.cp-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: transform 180ms cubic-bezier(.2,0,0,1);
+}
+.cp-tog.on .cp-thumb { transform: translateX(20px); }
+.cp-tog.off .cp-thumb { background: var(--t3); }
+</style>
+</head>
+<body>
+
+<!-- ══ 0. RAINBOW TOKENS ══ -->
+<div class="sec-title" style="margin-top:0;">Sistema colori — Rainbow semantic (stile admin)</div>
+<div class="plane" style="margin-bottom:4px;">
+  <div class="rainbow-row">
+    <div class="rc" style="background:rgba(59,130,246,.14); color:#3B82F6;">● Blue — info · trial · in-corso</div>
+    <div class="rc" style="background:rgba(34,197,94,.14); color:#22C55E;">● Green — attivo · pronto · ok</div>
+    <div class="rc" style="background:rgba(245,158,11,.14); color:#F59E0B;">● Amber — warning · sospeso</div>
+    <div class="rc" style="background:rgba(249,115,22,.14); color:#F97316;">● Orange — caution</div>
+    <div class="rc" style="background:rgba(239,68,68,.14); color:#EF4444;">● Red — danger · blacklist</div>
+    <div class="rc" style="background:rgba(139,92,246,.14); color:#8B5CF6;">● Purple — premium</div>
+    <div class="rc" style="background:rgba(217,0,18,.14); color:#D90012;">● Rosso CTA — primary solo</div>
+  </div>
+</div>
+
+<!-- ══ 1. STANDARD BUTTONS — 3 stati ══ -->
+<div class="sec-title">Standard button — 3 stati (dark: no white glow)</div>
+<div class="col2">
+  <div class="plane">
+    <div class="col3">
+      <div><div class="lbl" style="color:#6B5C51;">Raised</div><button class="btn btn-raised">Default</button></div>
+      <div><div class="lbl" style="color:#6B5C51;">Flat</div><button class="btn btn-flat">Hover</button></div>
+      <div><div class="lbl" style="color:#6B5C51;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+    </div>
+  </div>
+  <div class="plane dark">
+    <div class="col3">
+      <div><div class="lbl" style="color:#5A5652;">Raised</div><button class="btn btn-raised">Default</button></div>
+      <div><div class="lbl" style="color:#5A5652;">Flat</div><button class="btn btn-flat">Hover</button></div>
+      <div><div class="lbl" style="color:#5A5652;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 2. FCOLOMBATI PILL ══ -->
+<div class="sec-title">FColombati pill — hover per vedere l'animazione</div>
+<div class="plane" style="margin-bottom:8px;">
+  <div class="col2" style="margin-bottom:0;">
+    <div><div class="lbl" style="color:#6B5C51;">Primary CTA</div><button class="cta"><div class="outer"><div class="inner"><span>Nuova consegna</span></div></div></button></div>
+    <div><div class="lbl" style="color:#6B5C51;">Ghost neutro</div><button class="ghost"><div class="outer"><div class="inner"><span>Annulla</span></div></div></button></div>
+  </div>
+</div>
+<div class="plane dark">
+  <div class="col2">
+    <div><div class="lbl" style="color:#5A5652;">Primary dark</div><button class="cta"><div class="outer"><div class="inner"><span>Nuova consegna</span></div></div></button></div>
+    <div><div class="lbl" style="color:#5A5652;">Ghost dark — no glow</div><button class="ghost"><div class="outer"><div class="inner"><span>Annulla</span></div></div></button></div>
+  </div>
+</div>
+
+<!-- ══ 3. INCAVO + PUSH — varianti aggiuntive ══ -->
+<div class="sec-title">Incavo button · Push 3D — varianti aggiuntive (per usi diversi)</div>
+<div class="col2">
+  <div class="plane">
+    <div class="lbl" style="color:#6B5C51; margin-bottom:10px;">Incavo — secondary/conferma</div>
+    <button class="incavo" style="margin-bottom:10px;">Conferma lavoro</button>
+    <button class="incavo incavo-primary">+ Nuovo lavoro</button>
+  </div>
+  <div class="plane dark">
+    <div class="lbl" style="color:#5A5652; margin-bottom:10px;">Incavo dark</div>
+    <button class="incavo" style="margin-bottom:10px;">Conferma lavoro</button>
+    <button class="incavo incavo-primary">+ Nuovo lavoro</button>
+  </div>
+</div>
+
+<div style="margin-top:10px;" class="col2">
+  <div class="plane">
+    <div class="lbl" style="color:#6B5C51; margin-bottom:10px;">Push 3D — CTA isolata (premi!)</div>
+    <button class="push" style="margin-bottom:12px;">
+      <span class="push__shadow"></span><span class="push__edge"></span>
+      <span class="push__front">Nuova consegna</span>
+    </button>
+    <button class="push">
+      <span class="push__shadow push__shadow--g"></span><span class="push__edge push__edge--g"></span>
+      <span class="push__front push__front--g">Annulla</span>
+    </button>
+  </div>
+  <div class="plane dark">
+    <div class="lbl" style="color:#5A5652; margin-bottom:10px;">Push 3D dark</div>
+    <button class="push dark" style="margin-bottom:12px;">
+      <span class="push__shadow"></span><span class="push__edge"></span>
+      <span class="push__front">Nuova consegna</span>
+    </button>
+    <button class="push dark">
+      <span class="push__shadow push__shadow--g"></span><span class="push__edge push__edge--g"></span>
+      <span class="push__front push__front--g">Annulla</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ 4. TASTO + CIRCOLARE ══ -->
+<div class="sec-title">Tasto + circolare — stile tasto+.png, mantenendo rosso</div>
+<div class="col2">
+  <div class="plane" style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div class="lbl" style="color:#6B5C51; margin-bottom:8px;">Grande (60px)</div>
+      <button class="fab-plus">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div style="text-align:center;">
+      <div class="lbl" style="color:#6B5C51; margin-bottom:8px;">Nav (48px)</div>
+      <button class="fab-plus fab-lg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div style="text-align:center;">
+      <div class="lbl" style="color:#6B5C51; margin-bottom:8px;">Piccolo (44px)</div>
+      <button class="fab-plus fab-sm">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div style="font-size:10px; color:#6B5C51; font-style:italic; flex:1; line-height:1.6;">Cerchio raised · luce top-left · pressed: si incassa · mantenuto rosso #D90012</div>
+  </div>
+  <div class="plane dark" style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div class="lbl" style="color:#5A5652; margin-bottom:8px;">Grande dark</div>
+      <button class="fab-plus">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div style="text-align:center;">
+      <div class="lbl" style="color:#5A5652; margin-bottom:8px;">Nav dark</div>
+      <button class="fab-plus fab-lg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div style="font-size:10px; color:#5A5652; font-style:italic; flex:1; line-height:1.6;">In dark mode shadow scura dominante — niente glow</div>
+  </div>
+</div>
+
+<!-- ══ 5. KPI + MOCKUP light + dark ══ -->
+<div class="sec-title">
+  Full mockup — light (neumorphic) + dark (admin-style flat)
+  <button onclick="replayKpi()">↺ REPLAY KPI</button>
+</div>
+<div class="col2">
+  <!-- LIGHT -->
+  <div class="plane">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+    <div class="kpi-row" id="kpi-light">
+      <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div>
+        <span class="badge" style="background:rgba(239,68,68,.12); color:#EF4444;">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div><div class="ch">29 mag · 2 fasi</div></div>
+        <span class="badge" style="background:rgba(34,197,94,.12); color:#22C55E;">Pronto</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0845</div><div class="cs">Bridge · Dr. Ferrari</div><div class="ch">Pagamento in sospeso</div></div>
+        <span class="badge" style="background:rgba(245,158,11,.12); color:#F59E0B;">Sospeso</span>
+      </div>
+    </div>
+    <div style="margin:12px 0 10px; display:flex; justify-content:center;">
+      <button class="fab-plus">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <!-- Nav -->
+    <div class="nav-pill" id="nav-light">
+      <button class="nav-tab active" data-id="oggi-l" onclick="navClick('nav-light','oggi-l')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Oggi</span>
+      </button>
+      <button class="nav-tab" data-id="lavori-l" onclick="navClick('nav-light','lavori-l')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        <span>Lavori</span>
+      </button>
+      <button class="nav-cta fab-sm" title="Nuovo lavoro">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="nav-tab" data-id="clienti-l" onclick="navClick('nav-light','clienti-l')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span>Clienti</span>
+      </button>
+      <button class="nav-tab" data-id="fatture-l" onclick="navClick('nav-light','fatture-l')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Fatture</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- DARK admin style -->
+  <div class="plane dark">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+    <div class="kpi-row" id="kpi-dark">
+      <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div>
+        <span class="badge" style="background:rgba(239,68,68,.18); color:#EF4444;">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div><div class="ch">29 mag · 2 fasi</div></div>
+        <span class="badge" style="background:rgba(34,197,94,.18); color:#22C55E;">Pronto</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="cn">#LAV-2024-0845</div><div class="cs">Bridge · Dr. Ferrari</div><div class="ch">Pagamento in sospeso</div></div>
+        <span class="badge" style="background:rgba(245,158,11,.18); color:#F59E0B;">Sospeso</span>
+      </div>
+    </div>
+    <div style="margin:12px 0 10px; display:flex; justify-content:center;">
+      <button class="fab-plus">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="nav-pill" id="nav-dark">
+      <button class="nav-tab active" data-id="oggi-d" onclick="navClick('nav-dark','oggi-d')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Oggi</span>
+      </button>
+      <button class="nav-tab" data-id="lavori-d" onclick="navClick('nav-dark','lavori-d')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        <span>Lavori</span>
+      </button>
+      <button class="nav-cta fab-sm" title="Nuovo lavoro">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="nav-tab" data-id="clienti-d" onclick="navClick('nav-dark','clienti-d')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span>Clienti</span>
+      </button>
+      <button class="nav-tab" data-id="fatture-d" onclick="navClick('nav-dark','fatture-d')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Fatture</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 6. NAV BAR — edit mode funzionante ══ -->
+<div class="sec-title">Nav bar — edit mode (long press 500ms simulato)</div>
+<div class="plane" style="margin-bottom:8px;">
+  <!-- Controls -->
+  <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+    <button id="btn-edit" onclick="toggleEdit()"
+      style="font-size:11px; font-weight:700; padding:6px 14px; border-radius:100px; background:rgba(217,0,18,.10); color:#D90012; border:none; cursor:pointer;">
+      ⊙ Attiva Edit Mode (simula long press)
+    </button>
+    <button onclick="toggleCustomize()"
+      style="font-size:11px; font-weight:700; padding:6px 14px; border-radius:100px; background:rgba(59,130,246,.10); color:#3B82F6; border:none; cursor:pointer;">
+      ⊕ Mostra Customize Panel
+    </button>
+  </div>
+
+  <!-- Nav interattiva -->
+  <div id="nav-edit-pill" class="nav-pill">
+    <div style="position:relative;">
+      <button class="nav-tab active">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Oggi</span>
+      </button>
+      <button class="remove-btn" onclick="removeTab(this)" title="Rimuovi">−</button>
+    </div>
+    <div style="position:relative;">
+      <button class="nav-tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        <span>Lavori</span>
+      </button>
+      <button class="remove-btn" onclick="removeTab(this)" title="Rimuovi">−</button>
+    </div>
+    <!-- CTA non rimovibile -->
+    <button class="nav-cta fab-sm">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <div style="position:relative;">
+      <button class="nav-tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span>Clienti</span>
+      </button>
+      <button class="remove-btn" onclick="removeTab(this)" title="Rimuovi">−</button>
+    </div>
+    <div style="position:relative;">
+      <button class="nav-tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Fatture</span>
+      </button>
+      <button class="remove-btn" onclick="removeTab(this)" title="Rimuovi">−</button>
+    </div>
+  </div>
+  <div class="edit-hint" id="edit-status">Tieni premuto per attivare · Tap − per rimuovere · Drag per riordinare</div>
+</div>
+
+<!-- Customize panel -->
+<div id="cp-panel" class="cp" style="display:none;">
+  <div class="cp-title">Personalizza navigazione</div>
+  <div class="cp-sub">Attiva / disattiva · Drag per riordinare · CTA sempre presente</div>
+  <div class="cp-row">
+    <div class="cp-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+    <div style="flex:1;"><div class="cp-name">Oggi</div><div class="cp-desc">Dashboard principale</div></div>
+    <button class="cp-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-row">
+    <div class="cp-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+    <div style="flex:1;"><div class="cp-name">Lavori</div><div class="cp-desc">Lista lavori clinici</div></div>
+    <button class="cp-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-row">
+    <div class="cp-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+    <div style="flex:1;"><div class="cp-name">Clienti</div><div class="cp-desc">Dentisti e studi</div></div>
+    <button class="cp-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-row">
+    <div class="cp-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4A3D33" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+    <div style="flex:1;"><div class="cp-name">Fatture</div><div class="cp-desc">Gestione fatturazione</div></div>
+    <button class="cp-tog on" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-row">
+    <div class="cp-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B5C51" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <div style="flex:1;"><div class="cp-name">Sospesi</div><div class="cp-desc">Scadenzario pagamenti</div></div>
+    <button class="cp-tog off" onclick="this.classList.toggle('on');this.classList.toggle('off');"><div class="cp-thumb"></div></button>
+  </div>
+  <div class="cp-row">
+    <div class="cp-icon" style="background:rgba(217,0,18,.08);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D90012" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div style="flex:1;"><div class="cp-name" style="color:var(--primary);">Nuovo lavoro</div><div class="cp-desc">CTA principale — sempre visibile</div></div>
+    <span style="font-size:10px; font-weight:600; color:var(--t3); padding:3px 8px; background:rgba(0,0,0,.06); border-radius:100px;">Fisso</span>
+  </div>
+</div>
+
+<p style="font-size:10px; color:rgba(0,0,0,.30); text-align:center; margin-top:20px; line-height:1.8; font-style:italic;">
+  Tasto +: cerchio raised · FColombati: hover per animazione · Edit mode: pulsante sopra · Replay KPI in cima
+</p>
+
+<script>
+// ─── NAV TAB CLICK ───────────────────────────────
+function navClick(pillId, tabId) {
+  var pill = document.getElementById(pillId);
+  if (!pill) return;
+  pill.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+  var tabs = pill.querySelectorAll('[data-id="' + tabId + '"]');
+  tabs.forEach(function(t) { t.classList.add('active'); });
+}
+
+// ─── EDIT MODE ───────────────────────────────────
+var editActive = false;
+function toggleEdit() {
+  var pill = document.getElementById('nav-edit-pill');
+  var btn  = document.getElementById('btn-edit');
+  var hint = document.getElementById('edit-status');
+  editActive = !editActive;
+  if (editActive) {
+    pill.classList.add('edit');
+    btn.textContent  = '⊙ Disattiva Edit Mode';
+    btn.style.background = 'rgba(217,0,18,.18)';
+    hint.textContent = 'Edit attivo — tap − per rimuovere · Drag per riordinare · Click fuori per uscire';
+  } else {
+    pill.classList.remove('edit');
+    btn.textContent  = '⊙ Attiva Edit Mode (simula long press)';
+    btn.style.background = 'rgba(217,0,18,.10)';
+    hint.textContent = 'Tieni premuto per attivare · Tap − per rimuovere · Drag per riordinare';
+  }
+}
+
+// ─── REMOVE TAB ──────────────────────────────────
+function removeTab(btn) {
+  if (!editActive) return;
+  var wrapper = btn.parentElement;
+  wrapper.style.transition = 'opacity 200ms, transform 200ms';
+  wrapper.style.opacity = '0';
+  wrapper.style.transform = 'scale(0.8)';
+  setTimeout(function() { wrapper.remove(); }, 200);
+}
+
+// ─── CUSTOMIZE PANEL ─────────────────────────────
+var cpVisible = false;
+function toggleCustomize() {
+  var panel = document.getElementById('cp-panel');
+  cpVisible = !cpVisible;
+  panel.style.display = cpVisible ? 'block' : 'none';
+}
+
+// ─── KPI ANIMATION ───────────────────────────────
+function replayKpi() {
+  ['kpi-light','kpi-dark'].forEach(function(id) {
+    var row = document.getElementById(id);
+    if (!row) return;
+    row.querySelectorAll('.kpi-box').forEach(function(el) {
+      el.classList.remove('go');
+      void el.offsetWidth; // reflow
+      el.classList.add('go');
+    });
+  });
+}
+
+// Auto-start KPI on load
+window.addEventListener('load', function() { replayKpi(); });
+
+// Click fuori dalla nav per uscire dall'edit mode
+document.addEventListener('click', function(e) {
+  if (!editActive) return;
+  var pill = document.getElementById('nav-edit-pill');
+  var btn  = document.getElementById('btn-edit');
+  if (pill && !pill.contains(e.target) && !btn.contains(e.target)) {
+    toggleEdit();
+  }
+});
+</script>
+</body>
+</html>

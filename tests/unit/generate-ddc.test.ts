@@ -228,14 +228,36 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
   })
 
-  it('template_version resta `ddc-v1` — il salto è riservato a un cambiamento di SOSTANZA (D105)', async () => {
-    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:202`) chiede solo
+  it('template_version è `ddc-v3` — il secondo salto, e questo è il suo fatto (D294)', async () => {
+    // 🔄 AGGIORNATA IL 07/08/2026 (D294), poche ore dopo il salto a `ddc-v2`.
+    //    La ragione è la stessa regola di prima, letta nell'altra direzione: il
+    //    registro riserva il salto a «un contenuto dell'Allegato XIII che entra,
+    //    ESCE o cambia significato», e nomina fra i candidati proprio «il
+    //    «Sostanze/tessuti: No» affermato senza dato». Con D294 escono DODICI
+    //    blocchi, quello compreso. Restare su `ddc-v2` significherebbe due
+    //    documenti profondamente diversi sotto la stessa etichetta — cioè
+    //    creare, non evitare, il difetto che questa colonna esiste per impedire.
+    // 🛑 `ddc-v2` NON è stato riscritto: il registro tiene tutte e tre le voci in
+    //    fila. Riusare un'etichetta già emessa toglierebbe senso a tutto il
+    //    registro, e nessuno può provare che nessun documento la porti.
+    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:224`) chiede solo
     // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
     // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
     // costante gli dice quando è lecito farlo.
+    //
+    // 🔄 QUESTA PROVA DICEVA `ddc-v1`, ed è stata cambiata il 07/08/2026 — non
+    //    perché desse fastidio, ma perché la sua PREMESSA è decaduta. Il registro
+    //    accanto alla costante riservava il salto «al primo cambiamento di
+    //    SOSTANZA — un contenuto dell'Allegato XIII che entra, esce o cambia
+    //    significato» e nominava fra i candidati «il luogo di fabbricazione
+    //    mancante». Con D295 ne ENTRANO DUE (la voce 6 e la voce 1): è
+    //    esattamente il caso previsto. Lasciare `ddc-v1` significherebbe due
+    //    documenti che dicono cose diverse sotto la stessa etichetta di
+    //    versione — cioè togliere valore all'unica colonna che, fra dieci anni,
+    //    permette di rileggere una dichiarazione sapendo come andava letta.
     await generateDdC(LAVORO_FIXTURE)
     const riga = mockInsert.mock.calls[0][0]
-    expect(riga.template_version).toBe('ddc-v1')
+    expect(riga.template_version).toBe('ddc-v3')
   })
 
   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
@@ -324,23 +346,68 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
   })
 })
 
-describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () => {
+describe('la firma della DdC: nessun lavoro a ogni emissione (giro di correzione, 07/08/2026)', () => {
+  // ⚖️ CAPOVOLTO IN BLOCCO il 07/08/2026, e le quattro prove di prima non sono
+  //    state cancellate: sono queste, con le asserzioni girate.
+  //
+  // 🔴 IL FATTO, che nessuna delle quattro vedeva perché ognuna guardava il
+  //    proprio caso: `generateDdC` **scaricava un file da Storage e ne calcolava
+  //    l'impronta SHA-256 A OGNI EMISSIONE**, per un'immagine che **nessun
+  //    modello rende più** — il blocco firma è uscito dalla dichiarazione con
+  //    D294 — e per una colonna, `firma_ddc_sha256`, che **non ha nessun lettore
+  //    fuori da queste prove**. Una chiamata di rete sincrona dentro il percorso
+  //    di consegna, che può fallire, per un dato che nessuno legge e che
+  //    certifica un'immagine che nessuno stampa.
+  //
+  // 🔑 PERCHÉ LA PROVA È SCRITTA COSÌ: la rete non è «l'hash è null» — quello
+  //    resterebbe verde anche se il download partisse e fallisse, che è
+  //    esattamente il lavoro che si vuole togliere. La rete è
+  //    **`fetch` non viene chiamato**, con la firma CONFIGURATA: è l'unica forma
+  //    che misura il lavoro invece del suo esito.
+  //
+  // 🛑 CONFINE, e non è stato passato: la **schermata di caricamento** della
+  //    firma (`impostazioni/page.tsx`) e l'allowlist di `PATCH /api/impostazioni`
+  //    NON sono toccate. Sono superfici che l'utente vede, e toglierle è una
+  //    decisione di Francesco: riferita, non presa. Le due colonne restano in
+  //    banca dati e `firma_ddc_storage_path` continua a essere scritta.
   const STORAGE_BASE = 'https://example-project.supabase.co'
   const FIRMA_URL = `${STORAGE_BASE}/storage/v1/object/public/documenti/lab-test-001/firma.png`
   beforeEach(() => { vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', STORAGE_BASE) })
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
-  it('con firma configurata scarica il file e inserisce lo SHA-256 esadecimale', async () => {
-    const bytes = new TextEncoder().encode('firma-png-finta')
-    const attesa = (await import('node:crypto')).createHash('sha256').update(bytes).digest('hex')
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => bytes.buffer }))
+  it('🔴 con firma CONFIGURATA non scarica niente: nessun `fetch`, e hash null', async () => {
+    // ⚖️ CAPOVOLTA: si chiamava «con firma configurata scarica il file e
+    //    inserisce lo SHA-256 esadecimale», ed era la prova che teneva in vita
+    //    il download. È il caso che discrimina: è l'unico in cui, prima, il
+    //    lavoro partiva davvero.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('firma-png-finta').buffer,
+    })
+    vi.stubGlobal('fetch', fetchMock)
     mockTables({ ...LAB_FIXTURE, firma_ddc_url: FIRMA_URL })
-    await generateDdC(LAVORO_FIXTURE)
-    expect(fetch).toHaveBeenCalledWith(FIRMA_URL)
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: attesa }))
+
+    const result = await generateDdC(LAVORO_FIXTURE)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(result.numero).toMatch(/^DDC-\d{4}-0001$/)
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: null }))
   })
 
-  it('senza firma configurata: hash null e NESSUN download', async () => {
+  it('e il PERCORSO della firma continua a essere fotografato: esce il lavoro, non il dato', async () => {
+    // 🔑 La distinzione che regge tutto il taglio D294: ciò che esce è la STAMPA
+    //    e il LAVORO, non la colonna. `firma_ddc_storage_path` resta scritta a
+    //    ogni emissione — è la fotografia di com'era configurato il laboratorio
+    //    quel giorno, e non costa niente perché è già in memoria.
+    vi.stubGlobal('fetch', vi.fn())
+    mockTables({ ...LAB_FIXTURE, firma_ddc_url: FIRMA_URL })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ firma_ddc_storage_path: FIRMA_URL }),
+    )
+  })
+
+  it('senza firma configurata: hash null e nessun download (invariato)', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     mockTables(LAB_FIXTURE) // firma_ddc_url: null
@@ -349,21 +416,33 @@ describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () =>
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: null }))
   })
 
-  it('URL fuori dallo storage pubblico del progetto: hashFirmaDdc NON fetcha (anti-SSRF), hash null', async () => {
-    // NB: react-pdf fetcha comunque l'immagine nel render del template
-    // (superficie PRE-esistente, chiusa a monte dalla validazione a scrittura
-    // in PATCH /api/impostazioni) — qui si asserisce che il fetch di
-    // hashFirmaDdc (chiamata a singolo argomento) non parta.
+  it('URL fuori dallo storage pubblico: nessun fetch, e ora è vero PER COSTRUZIONE', async () => {
+    // ⚖️ CAPOVOLTA nella ragione, non nell'esito. Si chiamava «hashFirmaDdc NON
+    //    fetcha (anti-SSRF)»: la difesa era un controllo (`isPublicStorageUrl`)
+    //    davanti a una `fetch` che partiva davvero. Ora **la fetch non esiste**,
+    //    quindi non c'è più nessuna superficie da difendere qui — e questa prova
+    //    resta come rete contro il ritorno del download, non contro l'aggiramento
+    //    di un controllo.
+    // ⚠️ Il commento vecchio diceva anche «react-pdf fetcha comunque l'immagine
+    //    nel render del template»: **oggi è FALSO**, perché nessun modello rende
+    //    più quell'immagine (D294 ha tolto sia il logo sia il blocco firma), ed
+    //    è provato da «nessuna immagine sul foglio» in `ddc-pdf-content.test.ts`.
     const fetchMock = vi.fn().mockRejectedValue(new Error('bloccato'))
     vi.stubGlobal('fetch', fetchMock)
     mockTables({ ...LAB_FIXTURE, firma_ddc_url: 'http://169.254.169.254/latest/meta-data' })
     const result = await generateDdC(LAVORO_FIXTURE)
-    expect(fetchMock).not.toHaveBeenCalledWith('http://169.254.169.254/latest/meta-data')
+    expect(fetchMock).not.toHaveBeenCalled()
     expect(result.numero).toMatch(/^DDC-\d{4}-0001$/)
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: null }))
   })
 
-  it('download fallito (rete o non-ok): fail-open — hash null ma la DdC si genera', async () => {
+  it('storage giù: la DdC si genera, e ora non c\'è nemmeno il modo di accorgersene', async () => {
+    // ⚖️ CAPOVOLTA nella ragione. Era la prova del «fail-open»: se il download
+    //    falliva, l'hash restava null e la dichiarazione usciva lo stesso. Il
+    //    fail-open era la cura giusta per un rischio che ORA NON ESISTE PIÙ:
+    //    senza download, Storage può essere giù quanto vuole e l'emissione non
+    //    se ne accorge. Resta come rete: se il download tornasse, tornerebbe con
+    //    esso un modo di far dipendere una consegna dalla rete.
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('storage giù')))
     mockTables({ ...LAB_FIXTURE, firma_ddc_url: FIRMA_URL })
     const result = await generateDdC(LAVORO_FIXTURE)
@@ -438,4 +517,149 @@ describe('numero DDC a capodanno (fix date fiscali 20/07)', () => {
     expect(result.numero).toBe('DDC-2027-0001')
     expect(mockGeneraProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'ddc', 2027)
   })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D295 — I DUE CONTENUTI DELL'ALLEGATO XIII CHE IL DOCUMENTO NON HA MAI DETTO
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 IL FATTO, misurato il 07/08/2026: `generate-ddc.ts:166` cablava
+//    `prescrizione_caratteristiche: null` — la VOCE 6 dell'Allegato XIII («le
+//    caratteristiche specifiche del prodotto indicate nella prescrizione») non
+//    è MAI comparsa su una dichiarazione, perché il modello rende quella riga
+//    solo se valorizzata. E `luogo_fabbricazione`, che la VOCE 1 pretende
+//    («il nome e l'indirizzo del fabbricante e di TUTTI I LUOGHI DI
+//    FABBRICAZIONE»), è una colonna `NOT NULL DEFAULT 'Italia'` che nessuno ha
+//    mai scritta e che il modello non ha mai stampata.
+describe('D295 voce 6 — le caratteristiche prescritte arrivano sul documento', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+    mockTables(LAB_FIXTURE)
+  })
+
+  it('🔴 con una prescrizione trascritta, la voce 6 è una FRASE, non `null`', async () => {
+    await generateDdC({
+      ...LAVORO_FIXTURE,
+      prescrizione: { contenuto: { elementi: [26, 27], colore: 'A3' } },
+    } as unknown as typeof LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrizione_caratteristiche: 'Elementi: denti 26, 27 · Colore: A3' })
+    )
+  })
+
+  it('senza prescrizione la voce 6 resta vuota — legittimamente, e senza inventare', async () => {
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrizione_caratteristiche: null })
+    )
+  })
+
+  it('prescrizione presente ma contenuto vuoto: `null`, non una frase a vuoto', async () => {
+    await generateDdC({
+      ...LAVORO_FIXTURE,
+      prescrizione: { contenuto: {} },
+    } as unknown as typeof LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ prescrizione_caratteristiche: null })
+    )
+  })
+})
+
+describe('D295 voce 1 — il luogo di fabbricazione, che era un `DEFAULT` mai scritto', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+  })
+
+  it('🔴 il luogo di fabbricazione è l\'INDIRIZZO del laboratorio, non il paese', async () => {
+    // «Italia» è un paese, non un indirizzo: la voce 1 chiede l'indirizzo dei
+    // luoghi di fabbricazione. Per un laboratorio a sede unica il luogo di
+    // fabbricazione COINCIDE con l'indirizzo del fabbricante — e si dice.
+    mockTables(LAB_FIXTURE)
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Via Roma 12, Serre' })
+    )
+  })
+
+  it('laboratorio senza indirizzo: si ripiega su «Italia» — il valore che la colonna già aveva', async () => {
+    mockTables({ ...LAB_FIXTURE, indirizzo: null, citta: null })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Italia' })
+    )
+  })
+
+  it('indirizzo di SOLI SPAZI: è vuoto quanto `null` — la colonna è NOT NULL e non prende stringhe finte', async () => {
+    mockTables({ ...LAB_FIXTURE, indirizzo: '   ', citta: '  ' })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Italia' })
+    )
+  })
+
+  it('solo la città, senza via: si stampa quello che c\'è', async () => {
+    mockTables({ ...LAB_FIXTURE, indirizzo: null })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ luogo_fabbricazione: 'Serre' })
+    )
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D295 — LA PROVA CHE CHIUDE IL GIRO: dal lavoro alla CARTA, senza tagli
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛑 PERCHÉ QUESTA PROVA ESISTE, ed è la lezione del difetto stesso. Il modello
+//    sapeva già stampare la voce 6 (`DdcTemplate.tsx:442-447`) e le prove sul
+//    modello erano VERDI: bastava passargli il valore a mano. Era il
+//    GENERATORE a non passarglielo mai. Due metà giuste e nessuno che
+//    provasse la giuntura — ed è esattamente lì che il difetto è vissuto.
+//    Questa prova parte da un LAVORO e finisce sul TESTO DEL PDF: la giuntura
+//    è dentro, non fuori.
+describe('D295 — dal lavoro alla carta: la voce 6 arriva davvero sul foglio', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
+    mockTables(LAB_FIXTURE)
+  })
+
+  it('🔴 il PDF costruito dai dati del GENERATORE porta la frase e il luogo', async () => {
+    const { createElement } = await import('react')
+    const { PDFParse } = await import('pdf-parse')
+    const { renderPdfDocument } = await import('@/lib/pdf/render-document')
+    const { DdcTemplate } = await import('@/components/features/pdf/DdcTemplate')
+
+    const lavoro = {
+      ...LAVORO_FIXTURE,
+      prescrizione: { contenuto: { elementi: [26, 27], colore: 'A3' } },
+    } as unknown as typeof LAVORO_FIXTURE
+
+    await generateDdC(lavoro)
+    // La riga che il generatore ha DAVVERO scritto — non una fixture a mano.
+    const riga = mockInsert.mock.calls[0][0]
+
+    const buffer = await renderPdfDocument(
+      createElement(DdcTemplate, { lavoro, lab: LAB_FIXTURE, ddc: riga })
+    )
+    const parser = new PDFParse({ data: buffer })
+    const { text } = await parser.getText()
+    await parser.destroy()
+
+    expect(text).toContain('Caratteristiche prescritte')
+    expect(text).toContain('Elementi: denti 26, 27 · Colore: A3')
+    expect(text).toContain('Luogo di fabbricazione')
+    expect(text).toContain('Via Roma 12, Serre')
+    // E mai la forma da macchina: il foglio lo legge una persona.
+    expect(text).not.toContain('"elementi"')
+  }, 30_000)
 })

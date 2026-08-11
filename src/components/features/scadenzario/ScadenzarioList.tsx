@@ -82,10 +82,16 @@ function IconaWhatsApp() {
 function InsolutoCard({
   item,
   index,
+  nomeLaboratorio,
   onCellulareSalvato,
 }: {
   item: InsolutoCliente
   index: number
+  /** ⚖️ D345 — la firma del sollecito: `laboratori.nome`, dal contesto della
+   *  pagina (`(app)/scadenzario/page.tsx`). Ammette `null` perché `LabContext.lab`
+   *  è `null` per l'`admin_sistema`; cosa succede allora lo decide
+   *  `src/lib/messaggi/firma.ts`, non questa card. */
+  nomeLaboratorio: string | null
   /** D183/D185 — dopo il salvataggio il cliente in lista ha di nuovo un
    *  cellulare: si aggiorna lo stato locale (nessuna chiamata in più, il
    *  valore è già quello appena salvato) così un secondo sollecito nella
@@ -120,6 +126,9 @@ function InsolutoCard({
   const whatsappMsg = buildWhatsappSollecito({
     studioNome: item.cliente.studio_nome ?? `${item.cliente.nome} ${item.cliente.cognome}`,
     totaleInsoluto: item.totale_insoluto,
+    // ⚖️ D345 — chi manda il sollecito lo dice: prima di stasera questo messaggio
+    // finiva a «Cordiali saluti» e non nominava nessuno.
+    nomeLaboratorio,
   })
   // P31: il sollecito va sul cellulare. Niente ripiego sul fisso dello studio.
   const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.cellulare_whatsapp ?? undefined)
@@ -394,7 +403,7 @@ function InsolutoCard({
 
 // ─── ScadenzarioList ──────────────────────────────────────────────────────────
 
-export function ScadenzarioList() {
+export function ScadenzarioList({ nomeLaboratorio }: { nomeLaboratorio: string | null }) {
   const [items, setItems] = useState<InsolutoCliente[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -573,7 +582,13 @@ export function ScadenzarioList() {
       {/* Cards */}
       <div>
         {items.map((item, index) => (
-          <InsolutoCard key={item.cliente.id} item={item} index={index} onCellulareSalvato={patchCellulare} />
+          <InsolutoCard
+            key={item.cliente.id}
+            item={item}
+            index={index}
+            nomeLaboratorio={nomeLaboratorio}
+            onCellulareSalvato={patchCellulare}
+          />
         ))}
       </div>
     </div>

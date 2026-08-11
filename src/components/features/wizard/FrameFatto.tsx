@@ -61,6 +61,7 @@ import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 import { troppoGrande } from '@/lib/storage/limite-caricamento'
 import { caricaImmagineDiretta, ErroreCaricamento } from '@/lib/storage/carica-diretto-client'
 import { mappaElementi, type AccessorioFallito } from '@/lib/wizard/crea-lavoro'
+import { etichettaDenti } from '@/lib/prescrizione/caratteristiche-prescritte'
 import type { ColoreOrigine } from './WizardNuovoLavoro'
 import { CambiaDataSheet } from './CambiaDataSheet'
 import { AllegaPrescrizioneSheet, type FonteAllegata } from './AllegaPrescrizioneSheet'
@@ -176,12 +177,13 @@ const FORMA_FONTE: Record<FonteTipo, string> = {
   piattaforma: 'piattaforma',
 }
 
-/** «dente 26» · «denti 26, 27, 31» — mai «1 elementi». Il singolare e il
- *  plurale sono la differenza fra una frase scritta da una persona e una
- *  scritta da un programma. */
-function etichettaDenti(denti: number[]): string {
-  return `${denti.length === 1 ? 'dente' : 'denti'} ${denti.join(', ')}`
-}
+// 📌 `etichettaDenti` VIVEVA QUI ed è stata spostata in
+//    `@/lib/prescrizione/caratteristiche-prescritte` il 07/08/2026 (D295), con
+//    l'import qui sopra. Non è un riordino: da oggi ha DUE lettori — questa
+//    carta e la voce 6 della dichiarazione — e due copie della stessa frase
+//    divergono alla prima revisione. Il giorno in cui succedesse, la schermata
+//    dell'addetta e il documento legale direbbero due cose diverse sugli stessi
+//    denti, e nessuno dei due sarebbe evidentemente sbagliato.
 
 export function FrameFatto(props: {
   lavoro: { id: string; numero_lavoro: string }

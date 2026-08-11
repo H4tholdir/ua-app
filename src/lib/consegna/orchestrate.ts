@@ -5,8 +5,37 @@ import { isStatoConsegnabile } from './costanti'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 import { annoRoma } from '@/lib/utils/data-roma'
+
+/**
+ * IL NOME DEL LABORATORIO CHE FIRMA IL MESSAGGIO — ⚖️ **D345**.
+ *
+ * 🔑 Perché è una funzione e non `lavoro.laboratorio.nome` scritto due volte: i
+ *    due rami di questa consegna (idempotente e normale) fanno **due letture
+ *    diverse** dello stesso lavoro, e prima di stasera lo stesso genere di
+ *    duplicazione aveva già prodotto due comportamenti diversi sullo stesso dato
+ *    (il gettone del portale). Un punto solo, così i due rami non divergono.
+ *
+ * ⚠️ **REGGE ENTRAMBE LE FORME DELL'INCASTRO, e non è pignoleria pagata a
+ *    caso:** questo file porta già la lezione — «*PostgREST restituisce
+ *    `prescrizione` come ARRAY*» — e passarlo così a valle aveva dato un campo
+ *    sempre `undefined`, cioè il difetto mascherato da correzione. Qui la FK
+ *    (`lavori_laboratorio_id_fkey`, colonna singola verso la chiave primaria) dà
+ *    un oggetto, ma la difesa costa una riga e l'alternativa è una firma che
+ *    sparisce in silenzio.
+ *
+ * 🛑 Torna `null` quando l'incastro non c'è, e **non ripiega su «UÀ Lab»**: che
+ *    cosa fa un messaggio senza nome lo decide `src/lib/messaggi/firma.ts`, in un
+ *    posto solo.
+ */
+function nomeLaboratorioDa(lavoro: unknown): string | null {
+  const incastro = (lavoro as { laboratorio?: unknown } | null)?.laboratorio
+  const riga = Array.isArray(incastro) ? incastro[0] : incastro
+  const nome = (riga as { nome?: unknown } | null | undefined)?.nome
+  return typeof nome === 'string' ? nome : null
+}
 
 /**
  * Libera la cassetta del lavoro alla consegna (Task 7, spec §9.1 — L5),
@@ -114,7 +143,7 @@ export async function orchestraConsegna(
 
     const { data: lavoro } = await supabase
       .from('lavori')
-      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(id, telefono, cellulare_whatsapp, cognome, portale_token)')
+      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(id, telefono, cellulare_whatsapp, cognome, portale_token), laboratorio:laboratori(nome)')
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
       .single()
@@ -132,6 +161,11 @@ export async function orchestraConsegna(
     const waMessage = buildWhatsappMessage({
       numeroLavoro,
       portalToken: portaleToken,
+      // ⚖️ D345 — la firma è il nome del laboratorio. Arriva come INCASTRO della
+      // lettura che c'è già (FK `lavori_laboratorio_id_fkey`), non con una
+      // seconda andata al banco: la consegna è un flusso fiscale in produzione
+      // e un round trip in più su ogni consegna si paga per sempre.
+      nomeLaboratorio: nomeLaboratorioDa(lavoro),
     })
     const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
 
@@ -158,6 +192,11 @@ export async function orchestraConsegna(
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
       cassettaLiberata,
+      // 🛑 `avvisi` NON compare qui, ed è una scelta: su questo ramo il
+      //    precheck non gira affatto (il lavoro è già consegnato, i documenti
+      //    sono già emessi). Un `avvisi: []` affermerebbe «nessun avviso» su
+      //    un controllo che nessuno ha eseguito — l'assenza del campo dice il
+      //    vero, l'array vuoto direbbe il falso.
     }
   }
 
@@ -191,7 +230,9 @@ export async function orchestraConsegna(
         cliente:clienti(*),
         paziente:pazienti(*),
         lavorazioni:lavori_lavorazioni(*),
-        materiali:lavori_materiali(*)
+        materiali:lavori_materiali(*),
+        prescrizione:lavori_prescrizioni(*),
+        laboratorio:laboratori(nome)
       `)
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
@@ -207,6 +248,17 @@ export async function orchestraConsegna(
         messaggio: 'Lavoro non trovato o eliminato.',
       }
     }
+
+    // D295 — l'embed della prescrizione si normalizza SUBITO, prima di
+    // chiunque lo legga.
+    // 🔑 PostgREST restituisce `prescrizione` come ARRAY (la FK dell'embed è
+    //    composita, quindi la relazione è `isOneToOne: false`): passarlo così
+    //    a valle darebbe un `contenuto` sempre `undefined` — cioè il difetto di
+    //    prima, mascherato da correzione. `normalizzaPrescrizione` è la STESSA
+    //    funzione della scheda (`lavori/[id]/page.tsx:81`) e della rotta
+    //    (`api/lavori/[id]/route.ts:396`), non una seconda lettura.
+    // ⚠️ Qui e non più giù: il precheck dello Step 2 la legge già.
+    lavoro.prescrizione = normalizzaPrescrizione(lavoro.prescrizione)
 
     // ----------------------------------------------------------------
     // Step 1.5 — Gate B1: solo stati consegnabili (E4, server-side)
@@ -308,6 +360,15 @@ export async function orchestraConsegna(
         conformato: true,
         data_conformazione: now,
         data_consegna_effettiva: now,
+        // 🔑 La prima immissione sul mercato si scrive UNA VOLTA SOLA
+        // (Allegato XIII p.4 + Art. 2(28)): da qui decorrono i 10 anni di
+        // conservazione della dichiarazione. Una riconsegna dopo una
+        // riapertura NON la sposta — `lavoro` è la riga letta allo Step 1
+        // (select('*') su questo stesso lavoro), quindi il valore esistente
+        // è già in mano: se c'è, vince sempre sul nuovo, o il termine
+        // ripartirebbe da capo e la dichiarazione verrebbe distrutta troppo
+        // presto.
+        prima_immissione_at: lavoro.prima_immissione_at ?? now,
         consegna_completata_at: now,
         consegna_precheck_passato_al_primo_tentativo: true,
       }, { count: 'exact' })
@@ -369,6 +430,8 @@ export async function orchestraConsegna(
     const waMessage = buildWhatsappMessage({
       numeroLavoro: lavoro.numero_lavoro as string,
       portalToken: portaleToken,
+      // ⚖️ D345 — stessa firma, stessa funzione: i due rami non divergono.
+      nomeLaboratorio: nomeLaboratorioDa(lavoro),
     })
     const waUrl = buildWhatsappUrl(waMessage, clienteCell || undefined)
 
@@ -386,6 +449,10 @@ export async function orchestraConsegna(
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
       cassettaLiberata,
+      // Gli avvisi non bloccanti che il precheck ha visto allo Step 2 (fra cui
+      // la voce 6, D295). Erano calcolati e buttati via: un client che chiami
+      // il POST senza fare prima il GET non li avrebbe mai visti.
+      avvisi: precheck.avvisi ?? [],
     }
   } catch (err) {
     // Catch-all globale — rilascia lock, restituisci errore generico

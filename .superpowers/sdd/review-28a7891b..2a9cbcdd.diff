@@ -1,0 +1,2308 @@
+# Review package: 28a7891b..2a9cbcdd
+
+## Commits
+2a9cbcdd feat(wizard): il mini-foglio «Chi ha prescritto?» — P37 arriva dal Passo 1
+
+## Files changed
+ .../features/wizard/ChiHaPrescrittoSheet.tsx       | 232 ++++++++++++++++
+ .../features/wizard/NuovoDentistaSheet.tsx         |  11 +-
+ src/components/features/wizard/PassoDentista.tsx   |   4 +-
+ .../features/wizard/WizardNuovoLavoro.tsx          | 160 ++++++++++-
+ src/lib/wizard/crea-lavoro.ts                      |  22 +-
+ src/lib/wizard/dati-wizard.ts                      |  18 +-
+ src/lib/wizard/persistenza.ts                      |   9 +
+ tests/unit/ChiHaPrescrittoSheet.test.tsx           | 146 ++++++++++
+ tests/unit/NuovoDentistaSheet.test.tsx             |   8 +-
+ tests/unit/WizardNuovoLavoro.test.tsx              | 306 +++++++++++++++++++++
+ tests/unit/crea-lavoro-denti.test.ts               |   2 +
+ tests/unit/crea-lavoro-prescrizione.test.ts        |   2 +
+ tests/unit/crea-lavoro.test.ts                     | 129 +++++++++
+ tests/unit/dati-wizard.test.ts                     |  12 +-
+ tests/unit/wizard-persistenza.test.ts              |  25 ++
+ 15 files changed, 1064 insertions(+), 22 deletions(-)
+
+## Diff
+diff --git a/src/components/features/wizard/ChiHaPrescrittoSheet.tsx b/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
+new file mode 100644
+index 00000000..2ee426b4
+--- /dev/null
++++ b/src/components/features/wizard/ChiHaPrescrittoSheet.tsx
+@@ -0,0 +1,232 @@
++'use client'
++
++// DS v3 §7.3 (Ondata B ②, Task 10 · P37/D211) — ChiHaPrescrittoSheet: il
++// mini-foglio «Chi ha prescritto?» che sale SOPRA il Passo 1 quando il
++// cliente scelto è un'entità (`studio_nome` presente) — mai un passo nuovo
++// del wizard (vincolo di ondata: zero passi), e mai bloccante (W22): «Chiudi»
++// (via di fuga di legge dello Sheet, §5.16) equivale a non aver scelto
++// nessuno, esattamente come oggi prima di questo task.
++//
++// FONTE VISIVA: docs/design/mockups/2026-08-04-ondata-b-D-chi-ha-prescritto.html
++// scena d1 (approvato). DUE SCOSTAMENTI DICHIARATI dal mockup, entrambi
++// perché il mockup promette più di quanto i dati di questa ondata sappiano
++// dire (vedi report task-10):
++// 1. Nessuna riga è evidenziata come «proposta»/«l'ultimo che ha prescritto
++//    qui»: `GET /api/clienti/[id]/studio-members` non porta né un ordine per
++//    recenza né un conteggio prescrizioni, e un'evidenza verde senza un fatto
++//    dietro sarebbe la bugia che l'intera ondata B esiste per chiudere
++//    (0B-9: «una riga vuota è peggio di una riga che manca» — vale anche per
++//    una riga sicura di sé che non lo è). Le righe sono tutte alla pari.
++// 2. Il sottotitolo non nomina "prescrivono": `studio-members` elenca chi
++//    RISULTA allo studio, non chi ha davvero scritto una prescrizione — dire
++//    «prescrivono in tre» affermerebbe un fatto che non abbiamo.
++//
++// GATE (deciso in WizardNuovoLavoro.tsx, non qui): questo componente non
++// decide MAI da solo se aprirsi. Il chiamante ha già interrogato
++// `studio-members` e apre il foglio SOLO se la risposta ha almeno un
++// elemento — uno studio "di uno solo" (studio_nome compilato ma nessun
++// collega) si comporta come un dottore singolo: nessun foglio, nessuna
++// domanda, la Dichiarazione ripiega sul nome del cliente esattamente come
++// per un cliente senza studio_nome (stesso ripiego server-side,
++// generate-ddc.ts:146 — l'unico dato che quel cliente porta È il nome della
++// persona, quindi il ripiego è già la risposta corretta).
++//
++// STUDIO_NOME AUTORITATIVO: si legge da `medici[0].studio_nome` (il valore
++// grezzo della riga DB), MAI da un'etichetta derivata altrove (es. il
++// `label` del tile del Passo 1, che potrebbe un giorno guadagnare una
++// decorazione e disallinearsi silenziosamente dalla ragione sociale vera).
++// Tutti i membri restituiti hanno lo STESSO `studio_nome` per costruzione
++// della query (`route.ts:50`: `.eq('studio_nome', cliente.studio_nome)`).
++//
++// «È un altro»: fallback DICHIARATO (non il pattern NuovoDentistaSheet
++// riusato as-is) — quel componente calcola `label = studio_nome ?? Dr.
++// Cognome`, e qui `studio_nome` è SEMPRE compilato (lo stiamo preimpostando
++// noi), quindi la sua label collasserebbe sempre sul nome dello STUDIO, mai
++// sulla persona appena creata: esattamente il dato sbagliato per
++// `richiedente_nome`. Il fallback onesto è un mini-form locale (Nome +
++// Cognome, stesso vincolo MDR "obbligatori" di NuovoDentistaSheet) che POSTa
++// allo stesso endpoint `/api/clienti` con `studio_nome` preimpostato — il
++// nuovo medico «entra nello studio» (stessa riga DB, stesso raggruppamento
++// per `studio-members`), e il nome scelto è quello appena digitato.
++
++import { useState, type CSSProperties } from 'react'
++import { Sheet } from '@/components/ds/Sheet'
++import { CampoTesto } from '@/components/ds/Campo'
++import { TastoPrimario } from '@/components/ds/TastoPrimario'
++import { LinkQuieto } from '@/components/ds/LinkQuieto'
++import { Avatar } from '@/components/ds/Avatar'
++import { useAvvisi } from '@/components/ds/Avviso'
++import { vibra } from '@/design-system/v3/haptic'
++import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
++
++export type MembroStudio = { id: string; nome: string; cognome: string; studio_nome: string | null }
++
++/** «Cognome Nome» — STESSO ordine del placeholder già in produzione
++ *  (TabDati.tsx:309, "Dott. Cognome Nome") e della chip-shortcut
++ *  (TabDati.tsx:241, `${cognome} ${nome.charAt(0)}.`). Qui si usa il nome
++ *  PER INTERO (non abbreviato): questo foglio ha spazio per una riga intera,
++ *  e un nome completo è il fallimento migliore su un documento a valore
++ *  legale — la DIVERGENZA dalla forma abbreviata di TabDati è dichiarata nel
++ *  report (R-E2: due superfici che scrivono lo stesso campo con convenzioni
++ *  diverse è un'incoerenza da segnalare, non da correggere qui). Ciò che
++ *  conta è che display e valore salvato siano LA STESSA stringa. */
++function nomeCompleto(m: MembroStudio): string {
++  return `${m.cognome} ${m.nome}`.trim()
++}
++
++/**
++ * ChiHaPrescrittoSheet — il mini-foglio D211 (P37).
++ *
++ * `medici` arriva GIÀ CARICATO dal chiamante (niente fetch qui: la decisione
++ * "apro il foglio?" richiede il risultato PRIMA di montare il foglio stesso —
++ * v. commento in testa al file). Sempre non vuoto quando `aperto` è vero
++ * (contratto del chiamante); questo componente non filtra né ordina.
++ */
++export function ChiHaPrescrittoSheet(props: {
++  aperto: boolean
++  medici: MembroStudio[]
++  onScelto: (richiedenteNome: string, istituzioneSanitaria: string) => void
++  onChiudi: () => void
++}) {
++  const { aperto, medici, onScelto, onChiudi } = props
++  const { errore } = useAvvisi()
++
++  const studioNome = medici[0]?.studio_nome ?? ''
++
++  const [modoAggiungi, setModoAggiungi] = useState(false)
++  const [nome, setNome] = useState('')
++  const [cognome, setCognome] = useState('')
++  const [vincolo, setVincolo] = useState<string | null>(null)
++  const [invio, setInvio] = useState(false)
++
++  function resetForm() {
++    setModoAggiungi(false)
++    setNome('')
++    setCognome('')
++    setVincolo(null)
++    setInvio(false)
++  }
++
++  function chiudi() {
++    resetForm()
++    onChiudi()
++  }
++
++  function scegli(m: MembroStudio) {
++    vibra('selection')
++    onScelto(nomeCompleto(m), studioNome)
++  }
++
++  async function aggiungi() {
++    const nomeOk = nome.trim()
++    const cognomeOk = cognome.trim()
++    if (!nomeOk || !cognomeOk) {
++      setVincolo('Nome e cognome sono obbligatori')
++      return
++    }
++    setVincolo(null)
++    setInvio(true)
++
++    try {
++      const res = await fetch('/api/clienti', {
++        method: 'POST',
++        credentials: 'same-origin',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ nome: nomeOk, cognome: cognomeOk, studio_nome: studioNome }),
++      })
++      if (!res.ok) {
++        errore('Non sono riuscita ad aggiungere il medico. Riprova.')
++        setInvio(false)
++        return
++      }
++      // Nome COME DIGITATO (nomeOk/cognomeOk), non una rilettura dal server —
++      // stessa ragione di `nomeCompleto` sopra: la riga richiede la persona,
++      // e la persona l'ha appena scritta chi sta al banco.
++      onScelto(`${cognomeOk} ${nomeOk}`, studioNome)
++    } catch {
++      errore('Non sono riuscita ad aggiungere il medico. Riprova.')
++      setInvio(false)
++    }
++  }
++
++  const sottotitolo =
++    medici.length === 1
++      ? `Da ${studioNome} risulta un medico. Sulla Dichiarazione va il nome della persona, non dello studio.`
++      : `Da ${studioNome} risultano ${medici.length} medici. Sulla Dichiarazione va il nome della persona, non dello studio.`
++
++  return (
++    <Sheet aperto={aperto} onChiudi={chiudi} titolo="Chi ha prescritto?">
++      {modoAggiungi ? (
++        <>
++          <CampoTesto label="Nome" valore={nome} onCambia={setNome} placeholder="Mario" autoFocus />
++          <CampoTesto label="Cognome" valore={cognome} onCambia={setCognome} placeholder="Rossi" />
++          {vincolo && (
++            <p role="alert" style={stileVincolo}>
++              {vincolo}
++            </p>
++          )}
++          <TastoPrimario onClick={aggiungi} disabled={invio} motivoDisabilitato="Un attimo…">
++            Aggiungi allo studio
++          </TastoPrimario>
++        </>
++      ) : (
++        <>
++          <p style={stileSotto}>{sottotitolo}</p>
++          <div>
++            {medici.map((m) => (
++              <button key={m.id} type="button" onClick={() => scegli(m)} style={stileMedico}>
++                <Avatar nome={nomeCompleto(m)} diametro={46} />
++                <span style={stileMedicoNome}>{nomeCompleto(m)}</span>
++              </button>
++            ))}
++          </div>
++          <div style={{ marginTop: spazio.s, display: 'flex', justifyContent: 'center' }}>
++            <LinkQuieto onClick={() => setModoAggiungi(true)}>È un altro: lo aggiungo allo studio</LinkQuieto>
++          </div>
++        </>
++      )}
++    </Sheet>
++  )
++}
++
++const stileSotto: CSSProperties = {
++  fontSize: tipografia.size.callout,
++  fontWeight: tipografia.weight.semibold,
++  color: 'var(--muted)',
++  lineHeight: 1.4,
++  margin: 0,
++}
++
++// wizard.html:.medico — riga 60 min-height, radius 18 (raggio.riga), bordo
++// hairline `--line`, ombra di pressione (stessa materia degli altri
++// controlli premibili dello sheet). Tutte le righe hanno LO STESSO stile
++// (nessuna evidenziata come "proposta" — v. commento in testa al file).
++const stileMedico: CSSProperties = {
++  width: '100%',
++  display: 'flex',
++  alignItems: 'center',
++  gap: spazio.m,
++  minHeight: 60,
++  textAlign: 'left',
++  background: 'var(--card)',
++  border: '1.5px solid var(--line)',
++  borderRadius: raggio.riga,
++  boxShadow: 'var(--sh-press)',
++  padding: '10px 16px',
++  marginBottom: spazio.s,
++  cursor: 'pointer',
++  fontFamily: 'inherit',
++}
++
++const stileMedicoNome: CSSProperties = {
++  fontSize: 17,
++  fontWeight: tipografia.weight.extrabold,
++  color: 'var(--ink)',
++}
++
++const stileVincolo: CSSProperties = {
++  fontSize: tipografia.size.callout,
++  fontWeight: tipografia.weight.bold,
++  color: 'var(--red)',
++  margin: 0,
++}
+diff --git a/src/components/features/wizard/NuovoDentistaSheet.tsx b/src/components/features/wizard/NuovoDentistaSheet.tsx
+index f359e965..ed57e0f2 100644
+--- a/src/components/features/wizard/NuovoDentistaSheet.tsx
++++ b/src/components/features/wizard/NuovoDentistaSheet.tsx
+@@ -35,21 +35,28 @@ import { Sheet } from '@/components/ds/Sheet'
+ import { CampoTesto } from '@/components/ds/Campo'
+ import { TastoPrimario } from '@/components/ds/TastoPrimario'
+ import { useAvvisi } from '@/components/ds/Avviso'
+ import { tipografia } from '@/design-system/v3/tokens'
+ 
+ type ClienteCreato = { id: string; nome: string; cognome: string; studio_nome: string | null }
+ 
+ export function NuovoDentistaSheet(props: {
+   aperto: boolean
+   onChiudi: () => void
+-  onCreato: (d: { id: string; label: string }) => void
++  // `studioNome` (Task 10, P37): il PASSTHROUGH grezzo di `studio_nome` così
++  // com'è tornato dal server — MAI ridotto a booleano né ricavato dal
++  // `label` qui sotto (label collassa già su studio_nome quando presente,
++  // ma quella coincidenza non è la fonte di verità: v. commento in
++  // ChiHaPrescrittoSheet.tsx). Permette a `WizardNuovoLavoro.sceltaDentista`
++  // di applicare lo STESSO gate "è un'entità?" a un dentista appena creato
++  // qui e a un dentista scelto dalla griglia del Passo 1 (dati-wizard.ts).
++  onCreato: (d: { id: string; label: string; studioNome: string | null }) => void
+ }) {
+   const { aperto, onChiudi, onCreato } = props
+   const { errore } = useAvvisi()
+ 
+   const [nome, setNome] = useState('')
+   const [cognome, setCognome] = useState('')
+   const [telefonoStudio, setTelefonoStudio] = useState('')
+   const [cellulare, setCellulare] = useState('')
+   const [studio, setStudio] = useState('')
+   const [vincolo, setVincolo] = useState<string | null>(null)
+@@ -95,21 +102,21 @@ export function NuovoDentistaSheet(props: {
+ 
+       if (!res.ok) {
+         errore('Non sono riuscita a creare il dentista. Riprova.')
+         setInvio(false)
+         return
+       }
+ 
+       const dati = (await res.json()) as { cliente: ClienteCreato }
+       const label = dati.cliente.studio_nome ?? `Dr. ${dati.cliente.cognome}`
+       resetForm()
+-      onCreato({ id: dati.cliente.id, label })
++      onCreato({ id: dati.cliente.id, label, studioNome: dati.cliente.studio_nome })
+     } catch {
+       errore('Non sono riuscita a creare il dentista. Riprova.')
+       setInvio(false)
+     }
+   }
+ 
+   return (
+     <Sheet aperto={aperto} onChiudi={chiudi} titolo="Nuovo dentista">
+       <CampoTesto label="Nome" valore={nome} onCambia={setNome} placeholder="Mario" autoFocus />
+       <CampoTesto label="Cognome" valore={cognome} onCambia={setCognome} placeholder="Rossi" />
+diff --git a/src/components/features/wizard/PassoDentista.tsx b/src/components/features/wizard/PassoDentista.tsx
+index d6f4678e..e6394cde 100644
+--- a/src/components/features/wizard/PassoDentista.tsx
++++ b/src/components/features/wizard/PassoDentista.tsx
+@@ -26,21 +26,21 @@ import { tipografia } from '@/design-system/v3/tokens'
+ import { TileScelta, TileNuovo } from '@/components/ds/TileScelta'
+ import { RigaCerca } from '@/components/ds/RigaCerca'
+ import { CampoTesto } from '@/components/ds/Campo'
+ import { PillVoce } from '@/components/ds/PillVoce'
+ import type { DentistaWizard } from '@/lib/wizard/dati-wizard'
+ 
+ const MAX_TILE = 4
+ 
+ export function PassoDentista(props: {
+   dentisti: DentistaWizard[]
+-  onScegli: (d: { id: string; label: string }) => void
++  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
+   onNuovoDentista: () => void
+ }) {
+   const { dentisti, onScegli, onNuovoDentista } = props
+   // null = riga di ricerca chiusa (§5.13, stesso pattern di PilaAperta/Task 8).
+   const [query, setQuery] = useState<string | null>(null)
+ 
+   const inEvidenza = dentisti.slice(0, MAX_TILE)
+ 
+   const risultatiRicerca = useMemo(() => {
+     if (query === null) return []
+@@ -49,21 +49,21 @@ export function PassoDentista(props: {
+     return dentisti.filter((d) => normalizza(d.label).includes(q))
+   }, [dentisti, query])
+ 
+   function tile(d: DentistaWizard) {
+     return (
+       <TileScelta
+         key={d.id}
+         nome={d.label}
+         sotto={`${d.count30} lavori · 30gg`}
+         avatar={d.label}
+-        onClick={() => onScegli({ id: d.id, label: d.label })}
++        onClick={() => onScegli({ id: d.id, label: d.label, studioNome: d.studioNome ?? null })}
+       />
+     )
+   }
+ 
+   return (
+     <div>
+       <h1 style={stileDomanda}>Per quale dentista?</h1>
+       <p style={stileHint}>Tocca chi te l&apos;ha portato. I più frequenti stanno in alto.</p>
+ 
+       {query === null ? (
+diff --git a/src/components/features/wizard/WizardNuovoLavoro.tsx b/src/components/features/wizard/WizardNuovoLavoro.tsx
+index 97cf9177..8a26ef5a 100644
+--- a/src/components/features/wizard/WizardNuovoLavoro.tsx
++++ b/src/components/features/wizard/WizardNuovoLavoro.tsx
+@@ -26,20 +26,21 @@ import { useRouter } from 'next/navigation'
+ import { motion, AnimatePresence } from 'motion/react'
+ import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
+ import { TastoTondo } from '@/components/ds/TastoTondo'
+ import { ProgressDots } from '@/components/ds/ProgressDots'
+ import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+ import { initSuoni } from '@/design-system/v3/sound'
+ import { PassoDentista } from './PassoDentista'
+ import { PassoTipo } from './PassoTipo'
+ import { PassoPaziente } from './PassoPaziente'
+ import { NuovoDentistaSheet } from './NuovoDentistaSheet'
++import { ChiHaPrescrittoSheet, type MembroStudio } from './ChiHaPrescrittoSheet'
+ import { RipresaSheet } from './RipresaSheet'
+ import { FrameFatto } from './FrameFatto'
+ import {
+   creaLavoroDaWizard,
+   stimaGiorni,
+   descrizioneTipo,
+   type AccessorioFallito,
+ } from '@/lib/wizard/crea-lavoro'
+ import { dataSuggerita } from '@/lib/lavori/tempi-medi'
+ import { salvaStato, leggiStato, azzeraStato, type StatoSalvato } from '@/lib/wizard/persistenza'
+@@ -63,32 +64,42 @@ export type ColoreOrigine = 'prescrizione' | 'lab'
+ export type StatoWizard = {
+   passo: 1 | 2 | 3
+   cliente: { id: string; label: string } | null
+   tipo: TipoScelto | null
+   pz: string
+   alias: string
+   elemento: string
+   colore: string
+   /** OPZIONALE apposta: i salvataggi `v: 1` scritti prima del Task 1 non lo hanno — v. persistenza.ts. */
+   coloreOrigine?: ColoreOrigine
++  // P37 (ondata B ②, Task 10, D211) — «Chi ha prescritto?»: la persona che ha
++  // prescritto e, se del caso (D206), la ragione sociale dello studio.
++  // STRINGHE SEMPRE (mai `undefined`): "nessun prescrittore" è '', stesso
++  // pattern di `pz`/`alias`/`elemento`/`colore` qui sopra — a differenza di
++  // `coloreOrigine` non c'è un valore di riposo diverso da "vuoto" da
++  // rappresentare con l'assenza della chiave.
++  richiedenteNome: string
++  istituzioneSanitaria: string
+   foto: File | null
+ }
+ 
+ const STATO_INIZIALE: StatoWizard = {
+   passo: 1,
+   cliente: null,
+   tipo: null,
+   pz: '',
+   alias: '',
+   elemento: '',
+   colore: '',
+   coloreOrigine: 'prescrizione',
++  richiedenteNome: '',
++  istituzioneSanitaria: '',
+   foto: null,
+ }
+ 
+ /**
+  * WizardNuovoLavoro — shell del wizard «Nuovo lavoro» (§7.3), montata dalla
+  * RSC `page.tsx` con i dati server (`getDatiWizard`, Task 7).
+  *
+  * `contesto` (userId/labId) — consumato dal Task 13 (persistenza abbandono
+  * 24h, spec §9): guardia "dispositivo condiviso" di `leggiStato` e chiave
+  * scritta da `salvaStato`. Vedi task-8-brief.md per il perché è nel
+@@ -106,20 +117,36 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
+   // aggiornarla fa scivolare il passo dal lato sbagliato — nessun errore, solo
+   // un bug visivo silenzioso.
+   const [direzione, setDirezione] = useState<'avanti' | 'indietro'>('avanti')
+   // Task 9 (A7): stato dello sheet «Nuovo dentista», montato una sola volta
+   // qui sotto (non dentro RenderPasso) perché deve sopravvivere al cambio di
+   // `stato.passo` — vedi `dentistaCreato` sotto: la creazione riuscita
+   // avanza subito al Passo 2, e lo sheet deve chiudersi nello stesso istante
+   // senza un frame intermedio in cui esiste ma è "orfano" del Passo 1.
+   const [sheetDentistaAperto, setSheetDentistaAperto] = useState(false)
+ 
++  // Task 10 (P37/D211): stato del mini-foglio «Chi ha prescritto?».
++  // `clientePendente` è il cliente-entità già tappato ma non ancora "commesso"
++  // in `stato.cliente` — resta pendente finché l'odontotecnico non sceglie un
++  // medico, aggiunge un collega, o chiude il foglio (in ognuno dei tre casi si
++  // avanza comunque al Passo 2, v. `avanzaConCliente` sotto: MAI bloccante,
++  // W22). `mediciPendenti` è la risposta GIÀ CARICATA di `studio-members`
++  // (fatto 14, array nudo) — il foglio stesso non fa rete, la decide questo
++  // componente PRIMA di aprirlo (v. `caricaStudioEApri`). `chiavePrescrittore`
++  // rimonta il foglio ad ogni apertura (stesso pattern `chiaveSheet` di
++  // FrameFatto.tsx), così il suo stato interno («È un altro» + i due campi)
++  // riparte pulito senza un effect di reset.
++  const [clientePendente, setClientePendente] = useState<{ id: string; label: string } | null>(null)
++  const [mediciPendenti, setMediciPendenti] = useState<MembroStudio[]>([])
++  const [sheetPrescrittoreAperto, setSheetPrescrittoreAperto] = useState(false)
++  const [chiavePrescrittore, setChiavePrescrittore] = useState(0)
++
+   // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
+   // componente è il root client SEMPRE montato di `/lavori/nuovo` e renderizza
+   // `TastoTondo` (`suona('tap')`) più `TileScelta`/`FrameFatto` nei propri passi (idem,
+   // `suona('tap')`/`suona('fatta')`), senza che nulla a monte chiamasse mai `initSuoni()`:
+   // primo tap muto, stesso bug di G1. Fix: stesso schema di `HomeV3.tsx`. Idempotente (v.
+   // `initFatto` in `sound.ts`).
+   useEffect(() => {
+     initSuoni()
+   }, [])
+ 
+@@ -180,36 +207,44 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
+       userId: contesto.userId,
+       labId: contesto.labId,
+       passo: stato.passo,
+       cliente: stato.cliente,
+       tipo: stato.tipo,
+       pz: stato.pz,
+       alias: stato.alias,
+       elemento: stato.elemento,
+       colore: stato.colore,
+       coloreOrigine: stato.coloreOrigine,
++      richiedenteNome: stato.richiedenteNome,
++      istituzioneSanitaria: stato.istituzioneSanitaria,
+     })
+   }, [pronto, stato, contesto.userId, contesto.labId])
+ 
+   // 'Riprendi': ripristina lo stato al passo salvato — `foto` resta `null`
+   // (perdita accettata, spec §9: non persistita, quindi non ripristinabile).
+   const riprendi = useCallback(() => {
+     if (!statoSalvato) return
+     setStato({
+       passo: statoSalvato.passo,
+       cliente: statoSalvato.cliente,
+       tipo: statoSalvato.tipo,
+       pz: statoSalvato.pz,
+       alias: statoSalvato.alias,
+       elemento: statoSalvato.elemento,
+       colore: statoSalvato.colore,
+       coloreOrigine: statoSalvato.coloreOrigine,
++      // `?? ''` (Task 10): i salvataggi `v: 1` scritti prima di questo task
++      // non hanno queste due chiavi — senza il coalesce, `stato.richiedenteNome`
++      // (tipizzato `string`, MAI opzionale) diventerebbe `undefined` e il primo
++      // `.trim()` a valle (`crea-lavoro.ts`) esploderebbe con un TypeError.
++      richiedenteNome: statoSalvato.richiedenteNome ?? '',
++      istituzioneSanitaria: statoSalvato.istituzioneSanitaria ?? '',
+       foto: null,
+     })
+     setSheetRipresaAperto(false)
+     setPronto(true)
+   }, [statoSalvato])
+ 
+   // Chiusura NON distruttiva (fix round 1): tap-scrim/Esc/swipe/«Chiudi»
+   // chiudono solo l'overlay SENZA azzerare il salvataggio — lo stato resta in
+   // localStorage e ricomparirà al prossimo mount. `pronto` resta `false`
+   // (nessuna interazione decisa): il wizard, di fatto vuoto a Passo 1, non
+@@ -237,31 +272,113 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
+   const vaIndietro = useCallback(() => {
+     if (stato.passo === 1) {
+       router.push('/dashboard')
+       return
+     }
+     interazioneAvvenutaRef.current = true
+     setDirezione('indietro')
+     setStato((s) => ({ ...s, passo: (s.passo - 1) as StatoWizard['passo'] }))
+   }, [stato.passo, router])
+ 
+-  const sceltaDentista = useCallback((cliente: { id: string; label: string }) => {
+-    interazioneAvvenutaRef.current = true
+-    setDirezione('avanti')
+-    setStato((s) => ({ ...s, cliente, passo: 2 }))
+-  }, [])
++  // Il punto UNICO che commette un cliente in `stato.cliente` e avanza al
++  // Passo 2 (Task 10): sia il percorso "dottore singolo, nessuna domanda"
++  // (D196) sia i tre esiti del mini-foglio (scelto un medico, aggiunto un
++  // collega, chiuso senza scegliere — W22, MAI bloccante) passano da qui,
++  // così direzione/coreografia/persistenza restano un'unica fonte di verità.
++  // `richiedenteNome`/`istituzioneSanitaria` sono SEMPRE passati espliciti
++  // (mai un default implicito): un giro "indietro poi un altro dentista" non
++  // deve mai ereditare il prescrittore del giro precedente.
++  const avanzaConCliente = useCallback(
++    (cliente: { id: string; label: string }, richiedenteNome: string, istituzioneSanitaria: string) => {
++      interazioneAvvenutaRef.current = true
++      setDirezione('avanti')
++      setStato((s) => ({ ...s, cliente, richiedenteNome, istituzioneSanitaria, passo: 2 }))
++    },
++    []
++  )
++
++  // Task 10 (P37/D211) — carica gli altri medici dello studio PRIMA di aprire
++  // il foglio: un foglio che ne elenca zero sarebbe la riga vuota che 0B-9
++  // vieta, quindi uno "studio di uno solo" (nessun collega trovato) si
++  // comporta esattamente come un dottore singolo — e il ripiego server-side
++  // sul nome del cliente (`generate-ddc.ts:146`) è già la risposta corretta
++  // in quel caso, perché quel cliente-riga porta comunque il nome della
++  // persona. Fail-open sul GET (stesso schema di TabDati.tsx e
++  // NuovoDentistaSheet): un guasto di rete qui non deve MAI bloccare la
++  // scelta del dentista già fatta — degrada silenziosamente a "nessun
++  // collega trovato".
++  const caricaStudioEApri = useCallback(
++    async (cliente: { id: string; label: string }) => {
++      let medici: MembroStudio[] = []
++      try {
++        const res = await fetch(`/api/clienti/${cliente.id}/studio-members`, { credentials: 'same-origin' })
++        const dati: unknown = res.ok ? await res.json() : []
++        medici = Array.isArray(dati) ? (dati as MembroStudio[]) : []
++      } catch {
++        medici = []
++      }
++      if (medici.length === 0) {
++        avanzaConCliente(cliente, '', '')
++        return
++      }
++      setClientePendente(cliente)
++      setMediciPendenti(medici)
++      setChiavePrescrittore((c) => c + 1)
++      setSheetPrescrittoreAperto(true)
++    },
++    [avanzaConCliente]
++  )
++
++  // Il gate "è un'entità?" (D196: SOLO se il cliente ha `studio_nome`).
++  // Dottore singolo → invariato, sincrono, ZERO rete in più (v. commento su
++  // `DentistaWizard.studioNome`). Entità → `caricaStudioEApri` sopra decide
++  // se il foglio vale la pena di aprirsi.
++  const sceltaDentista = useCallback(
++    (cliente: { id: string; label: string; studioNome: string | null }) => {
++      if (!cliente.studioNome) {
++        avanzaConCliente({ id: cliente.id, label: cliente.label }, '', '')
++        return
++      }
++      void caricaStudioEApri({ id: cliente.id, label: cliente.label })
++    },
++    [avanzaConCliente, caricaStudioEApri]
++  )
++
++  // Scelto un medico esistente, o appena aggiunto («È un altro») — i due
++  // esiti "positivi" del foglio condividono lo stesso commit.
++  const scelgoPrescrittore = useCallback(
++    (richiedenteNome: string, istituzioneSanitaria: string) => {
++      if (!clientePendente) return
++      setSheetPrescrittoreAperto(false)
++      avanzaConCliente(clientePendente, richiedenteNome, istituzioneSanitaria)
++      setClientePendente(null)
++    },
++    [clientePendente, avanzaConCliente]
++  )
++
++  // Chiusura del foglio SENZA scegliere (scrim/Esc/swipe/«Chiudi» — tutte le
++  // vie di fuga di Sheet.tsx instradano su questo `onChiudi`, W22: MAI
++  // bloccante). Il cliente-entità già tappato resta comunque commesso, senza
++  // prescrittore — "come oggi" (contesto del brief, punto 7).
++  const chiudiSheetPrescrittore = useCallback(() => {
++    setSheetPrescrittoreAperto(false)
++    if (clientePendente) {
++      avanzaConCliente(clientePendente, '', '')
++      setClientePendente(null)
++    }
++  }, [clientePendente, avanzaConCliente])
+ 
+   // CONTRATTO Task 9: `NuovoDentistaSheet.onCreato` chiama questa — riusa
+   // `sceltaDentista` (stesso percorso di selezione di un tile esistente),
+-  // così direzione/coreografia restano un'unica fonte di verità.
++  // così direzione/coreografia/gate-entità restano un'unica fonte di verità.
+   const dentistaCreato = useCallback(
+-    (cliente: { id: string; label: string }) => {
++    (cliente: { id: string; label: string; studioNome: string | null }) => {
+       setSheetDentistaAperto(false)
+       sceltaDentista(cliente)
+     },
+     [sceltaDentista]
+   )
+ 
+   const apriSheetDentista = useCallback(() => setSheetDentistaAperto(true), [])
+ 
+   // Task 10: la scelta del tipo (tile, catalogo o «Descrivilo») salva `tipo` e
+   // avanza al Passo 3 — `direzione` 'avanti' PRIMA del cambio passo (contratto
+@@ -319,20 +436,27 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
+         {reduced ? <EntrataRidotta>{corpo}</EntrataRidotta> : (
+           <motion.div initial={{ y: '6%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={molla.smooth}>
+             {corpo}
+           </motion.div>
+         )}
+         <NuovoDentistaSheet
+           aperto={sheetDentistaAperto}
+           onChiudi={() => setSheetDentistaAperto(false)}
+           onCreato={dentistaCreato}
+         />
++        <ChiHaPrescrittoSheet
++          key={chiavePrescrittore}
++          aperto={sheetPrescrittoreAperto}
++          medici={mediciPendenti}
++          onScelto={scelgoPrescrittore}
++          onChiudi={chiudiSheetPrescrittore}
++        />
+         <RipresaSheet
+           aperto={sheetRipresaAperto}
+           stato={statoSalvato}
+           onChiudi={chiudiRipresa}
+           onRiprendi={riprendi}
+           onRicomincia={ricomincia}
+         />
+       </div>
+     </AvvisiProvider>
+   )
+@@ -343,20 +467,26 @@ type StatoFatto = {
+   lavoro: { id: string; numero_lavoro: string }
+   accessoriFalliti: AccessorioFallito[]
+   // Ondata B ③ / T3 — i due grezzi del Passo 3, così il «Fatto!» può dire con
+   // le sue due carte che cosa è stato trascritto dalla prescrizione e che cosa
+   // invece è una scelta del laboratorio. Si fotografano QUI, insieme al resto
+   // dell'esito: `azzeraStato()` sgombera la persistenza subito dopo, e leggerli
+   // più tardi da `stato` significherebbe leggerli già puliti.
+   elemento: string
+   colore: string
+   coloreOrigine?: ColoreOrigine
++  // P37 (ondata B ②, Task 10) — la persona che ha prescritto, se scelta nel
++  // mini-foglio «Chi ha prescritto?» — stringa vuota se assente (stesso
++  // pattern di `StatoWizard.richiedenteNome`, mai `undefined`). `FrameFatto`
++  // la accetta già come prop OPZIONALE (`richiedenteNome?`, ondata B ③/T3):
++  // qui è sempre passata, la riga «Prescritto da» sparisce da sola quando è ''.
++  richiedenteNome: string
+   dentista: string
+   lavoroLabel: string
+   pz: string
+   giorni: number
+   daStoria: boolean
+   dataConsegna: Date
+ }
+ 
+ /**
+  * CorpoWizard — testata + AnimatePresence dei 3 passi, oppure FrameFatto
+@@ -366,21 +496,21 @@ type StatoFatto = {
+  * condiviso con `WizardNuovoLavoro` — quello stato non serve a nessun altro
+  * (testata/ProgressDots spariscono insieme al passo-tree quando `fatto` è
+  * valorizzato, quindi non serve nemmeno "risalire" per nasconderli).
+  */
+ function CorpoWizard(props: {
+   dati: DatiWizard
+   stato: StatoWizard
+   direzione: 'avanti' | 'indietro'
+   reduced: boolean
+   vaIndietro: () => void
+-  sceltaDentista: (d: { id: string; label: string }) => void
++  sceltaDentista: (d: { id: string; label: string; studioNome: string | null }) => void
+   apriSheetDentista: () => void
+   sceltaTipo: (t: TipoScelto) => void
+   cambiaPaziente: (patch: Partial<StatoWizard>) => void
+   onTornaHome: () => void
+ }) {
+   const { dati, stato, direzione, reduced, vaIndietro, sceltaDentista, apriSheetDentista, sceltaTipo, cambiaPaziente, onTornaHome } = props
+   const { errore } = useAvvisi()
+   const [inCreazione, setInCreazione] = useState(false)
+   const [fatto, setFatto] = useState<StatoFatto | null>(null)
+ 
+@@ -395,20 +525,22 @@ function CorpoWizard(props: {
+     const { giorni, daStoria } = stimaGiorni(tipo, dati.giorniPerTipo)
+     const dataConsegna = dataSuggerita(giorni)
+     const esito = await creaLavoroDaWizard({
+       cliente,
+       tipo,
+       pz: stato.pz,
+       alias: stato.alias,
+       elemento: stato.elemento,
+       colore: stato.colore,
+       coloreOrigine: stato.coloreOrigine,
++      richiedenteNome: stato.richiedenteNome,
++      istituzioneSanitaria: stato.istituzioneSanitaria,
+       foto: stato.foto,
+       dataConsegna,
+     })
+     setInCreazione(false)
+     if (!esito.lavoro) {
+       // Z1 (30/07) — testo RATIFICATO da Francesco, **D37**: si scrive alla
+       // lettera, non si parafrasa.
+       //
+       // Perché ne serviva uno diverso: «Riprova» qui era un anello chiuso. Il
+       // codice `pz` non si ricalcola mai (`:258`: viene da `dati.prossimoPz`,
+@@ -449,41 +581,43 @@ function CorpoWizard(props: {
+     // Task 13 (spec §9): creazione completata → azzera la persistenza. Un
+     // nuovo giro di wizard (es. l'odontotecnico torna subito a "Nuovo
+     // lavoro") non deve trovare residui del lavoro appena creato.
+     azzeraStato()
+     setFatto({
+       lavoro: esito.lavoro,
+       accessoriFalliti: esito.accessoriFalliti,
+       elemento: stato.elemento,
+       colore: stato.colore,
+       coloreOrigine: stato.coloreOrigine,
++      richiedenteNome: stato.richiedenteNome,
+       dentista: cliente.label,
+       lavoroLabel: descrizioneTipo(tipo),
+       pz: stato.pz,
+       giorni,
+       daStoria,
+       dataConsegna,
+     })
+   }, [stato, dati.giorniPerTipo, errore])
+ 
+   if (fatto) {
+     return (
+       <FrameFatto
+         lavoro={fatto.lavoro}
+         accessoriFalliti={fatto.accessoriFalliti}
+         elemento={fatto.elemento}
+         colore={fatto.colore}
+         coloreOrigine={fatto.coloreOrigine}
+-        // 🚧 `richiedenteNome` NON si passa: il wizard non ha (ancora) una
+-        //    casella per il prescrittore — arriva con T10. La riga «Prescritto
+-        //    da» del «Fatto!» è già scritta e resta semplicemente assente,
+-        //    perché una riga vuota è peggio di una riga che manca (0B-9).
++        // Task 10 (P37) — chiude il 🚧 lasciato dalla ondata B ③/T3: il
++        // wizard ora HA una via per il prescrittore (il mini-foglio «Chi ha
++        // prescritto?»). Stringa vuota quando assente — `FrameFatto` nasconde
++        // da sola la riga «Prescritto da» in quel caso (0B-9).
++        richiedenteNome={fatto.richiedenteNome}
+         dentista={fatto.dentista}
+         lavoroLabel={fatto.lavoroLabel}
+         pz={fatto.pz}
+         giorni={fatto.giorni}
+         daStoria={fatto.daStoria}
+         dataConsegna={fatto.dataConsegna}
+         onTornaHome={onTornaHome}
+       />
+     )
+   }
+@@ -528,21 +662,21 @@ function CorpoWizard(props: {
+         )}
+       </AnimatePresence>
+     </div>
+   )
+ }
+ 
+ /** Il corpo del passo corrente. */
+ function RenderPasso(props: {
+   stato: StatoWizard
+   dati: DatiWizard
+-  onScegli: (d: { id: string; label: string }) => void
++  onScegli: (d: { id: string; label: string; studioNome: string | null }) => void
+   onNuovoDentista: () => void
+   onScegliTipo: (t: TipoScelto) => void
+   onCambiaPaziente: (patch: Partial<StatoWizard>) => void
+   onContinuaPaziente: () => void
+   inCreazione: boolean
+ }) {
+   const { stato, dati, onScegli, onNuovoDentista, onScegliTipo, onCambiaPaziente, onContinuaPaziente, inCreazione } = props
+ 
+   if (stato.passo === 1) {
+     return (
+diff --git a/src/lib/wizard/crea-lavoro.ts b/src/lib/wizard/crea-lavoro.ts
+index ba2231f5..224d3ce3 100644
+--- a/src/lib/wizard/crea-lavoro.ts
++++ b/src/lib/wizard/crea-lavoro.ts
+@@ -234,24 +234,31 @@ export async function creaLavoroDaWizard(input: {
+   cliente: { id: string }
+   tipo: TipoScelto
+   pz: string
+   alias: string
+   elemento: string
+   colore: string
+   // Ondata B ②/T1 — assente o 'prescrizione' = il colore è trascrizione del
+   // foglio (D223: scrivere È trascrivere); 'lab' = sganciato, scelta di
+   // laboratorio, quindi NIENTE da trascrivere anche se `colore` è compilato.
+   coloreOrigine?: ColoreOrigine
++  // P37 (ondata B ②, Task 10) — «Chi ha prescritto?» (D211): la persona che ha
++  // prescritto e, se del caso (D206), la ragione sociale dello studio. Stringhe
++  // SEMPRE (mai `undefined`): "nessun prescrittore" è '', stesso pattern di
++  // `alias`/`elemento`/`colore` qui sopra. Il server accetta già le due chiavi
++  // (route.ts:273-278) — qui si decide SOLO se mandarle (mai `''`, v. sotto).
++  richiedenteNome: string
++  istituzioneSanitaria: string
+   foto: File | null
+   dataConsegna: Date
+ }): Promise<EsitoCreazione> {
+-  const { cliente, tipo, pz, alias, elemento, colore, coloreOrigine, foto, dataConsegna } = input
++  const { cliente, tipo, pz, alias, elemento, colore, coloreOrigine, richiedenteNome, istituzioneSanitaria, foto, dataConsegna } = input
+ 
+   // Passi 1-2: risolvi (o crea) il paziente. Qualunque fallimento qui è
+   // BLOCCANTE (spec §7: il paziente fa parte del percorso primario) — nessun
+   // POST /api/lavori viene tentato.
+   let pazienteId: string
+   try {
+     const resGet = await fetch(`/api/pazienti?cliente_id=${encodeURIComponent(cliente.id)}`, {
+       credentials: 'same-origin',
+     })
+     if (!resGet.ok) return ESITO_BLOCCANTE
+@@ -347,34 +354,47 @@ export async function creaLavoroDaWizard(input: {
+   // dal contenuto di `prescrizione` — quindi quando la chiave parte SOLO per
+   // gli elementi il corpo è `prescrizione: {}`: il gate la accetta (M-T3-3,
+   // `componi-snapshot.ts:39`: `contenuto` non vuoto se `elementi` non vuoto)
+   // e il server prende i denti da dove sono già stati mandati.
+   //
+   // Il wizard oggi non ha una casella per `numero_prescrizione`: la chiave
+   // resta fuori da questo corpo (non si inventa un campo che non esiste).
+   const coloreTrascritto = coloreOrigine !== 'lab' && colore.trim() !== ''
+   const trascriviPrescrizione = denti.length > 0 || coloreTrascritto
+ 
++  // 🛑 MAI `richiedente_nome: ''` (P37, Task 10) — la rotta scrive
++  // `body.richiedente_nome ?? null` (route.ts:273): SOLO `null`/assente fa
++  // scattare il ripiego sul nome del cliente in `generate-ddc.ts:146`
++  // (`lavoro.richiedente_nome ?? cliente.cognome+nome`, un `??`, non un `||`).
++  // Una stringa vuota `''` NON è null: sopravvivrebbe al `??` e la
++  // Dichiarazione di Conformità uscirebbe con un prescrittore VUOTO invece del
++  // cliente. Trim, poi ometti la chiave — stesso pattern di `colore_codice`/
++  // `denti` qui sotto: chi non ha nulla da dire non manda la chiave.
++  const richiedenteTrim = richiedenteNome.trim()
++  const istituzioneTrim = istituzioneSanitaria.trim()
++
+   let lavoro: { id: string; numero_lavoro: string }
+   let coloreScartato = false
+   try {
+     const res = await fetch('/api/lavori', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         cliente_id: cliente.id,
+         paziente_id: pazienteId,
+         tipo_dispositivo: corpo.tipo_dispositivo,
+         descrizione: corpo.descrizione,
+         data_consegna_prevista: isoDataLocale(dataConsegna),
+         classe_rischio: corpo.classe_rischio,
++        ...(richiedenteTrim ? { richiedente_nome: richiedenteTrim } : {}),
++        ...(istituzioneTrim ? { istituzione_sanitaria: istituzioneTrim } : {}),
+         // Chiavi OMESSE quando non c'è nulla da dire: `denti: null` sarebbe un
+         // 422 («presente ma non è una lista»), e una lista vuota un viaggio a
+         // vuoto. Chi non ha denti da mandare non manda la chiave.
+         ...(denti.length > 0
+           ? {
+               denti: denti.map((fdi) => ({
+                 fdi,
+                 // Costanti, non scelte dell'utente — e la ragione va scritta:
+                 // il wizard è l'ACCETTAZIONE di ciò che il dentista ha
+                 // prescritto (`PassoDentista` sceglie il dentista, il Passo 3
+diff --git a/src/lib/wizard/dati-wizard.ts b/src/lib/wizard/dati-wizard.ts
+index 6c2e9aa0..98a58ddc 100644
+--- a/src/lib/wizard/dati-wizard.ts
++++ b/src/lib/wizard/dati-wizard.ts
+@@ -1,17 +1,32 @@
+ import 'server-only'
+ import type { SupabaseClient } from '@supabase/supabase-js'
+ import { inizioGiorno, aggiungiGiorni } from '@/lib/date/giorni'
+ import { TIPI_LAVORO, labelTipo, CANONICI_DAY1 } from '@/lib/domain/tipi-lavoro'
+ import { fetchCampioniConsegna, calcolaGiorniPerTipo } from '@/lib/lavori/tempi-medi'
+ 
+-export type DentistaWizard = { id: string; label: string; count30: number }
++export type DentistaWizard = {
++  id: string
++  label: string
++  count30: number
++  /**
++   * OPZIONALE (Task 10, Ondata B ②/P37): il codice reale (`aggregaDatiWizard`
++   * sotto) lo valorizza SEMPRE — è opzionale nel TIPO solo per non forzare
++   * ogni fixture di test esistente (nessuna delle quali tocca il gate del
++   * mini-foglio «Chi ha prescritto?») a portarlo. `null`/assente = dottore
++   * singolo (D196): il Passo 1 non fa MAI la `GET /studio-members` per lui —
++   * non solo perché la risposta sarebbe `[]` (route.ts:41-43, `studio_nome`
++   * nullo → array vuoto), ma perché quella chiamata di rete in più non deve
++   * esistere per il caso comune.
++   */
++  studioNome?: string | null
++}
+ export type DatiWizard = {
+   dentisti: DentistaWizard[]
+   frequenzeTipi: Record<string, number>
+   topTipi: string[]
+   prossimoPz: string
+   giorniPerTipo: Record<string, { giorni: number; daStoria: boolean }>
+ }
+ 
+ // `nome` NON è nella select: la label wizard usa solo studio_nome/cognome
+ // ('Dr. Cognome'), diversamente da pile-home che mostra 'Nome Cognome'.
+@@ -95,20 +110,21 @@ export function aggregaDatiWizard(
+   const countPerCliente = new Map<string, number>()
+   for (const l of ultimi30gg) {
+     countPerCliente.set(l.cliente_id, (countPerCliente.get(l.cliente_id) ?? 0) + 1)
+   }
+ 
+   const dentisti: DentistaWizard[] = clienti
+     .map((c) => ({
+       id: c.id,
+       label: c.studio_nome ?? `Dr. ${c.cognome}`,
+       count30: countPerCliente.get(c.id) ?? 0,
++      studioNome: c.studio_nome,
+     }))
+     .sort((a, b) => b.count30 - a.count30 || a.label.localeCompare(b.label))
+ 
+   const frequenzeTipi: Record<string, number> = {}
+   for (const t of TIPI_LAVORO) {
+     const label = labelTipo(t)
+     frequenzeTipi[t.id] = ultimi30gg.filter((l) => l.descrizione === label).length
+   }
+ 
+   // Top 4: i tipi con count>0 ordinati per frequenza desc — `.sort` è
+diff --git a/src/lib/wizard/persistenza.ts b/src/lib/wizard/persistenza.ts
+index 3be451bb..76ac8002 100644
+--- a/src/lib/wizard/persistenza.ts
++++ b/src/lib/wizard/persistenza.ts
+@@ -21,20 +21,29 @@ export type StatoSalvato = {
+   alias: string
+   elemento: string
+   colore: string
+   /**
+    * OPZIONALE (Task 1, Ondata B ②): i salvataggi `v: 1` scritti PRIMA di
+    * questo task non hanno questa chiave — restano validi, `v` non cambia
+    * (il campo nuovo è additivo). Assente = stessa semantica di `'prescrizione'`
+    * (v. `ColoreOrigine` in WizardNuovoLavoro.tsx).
+    */
+   coloreOrigine?: StatoWizard['coloreOrigine']
++  /**
++   * OPZIONALI (Task 10, Ondata B ②/P37): stesso principio di `coloreOrigine`
++   * qui sopra — i salvataggi `v: 1` scritti prima di questo task non hanno
++   * queste due chiavi, `v` non cambia (additivo). Assenti = "nessun
++   * prescrittore scelto", stessa semantica di una stringa vuota — il
++   * consumatore (`WizardNuovoLavoro.riprendi`) coalesce con `?? ''`.
++   */
++  richiedenteNome?: StatoWizard['richiedenteNome']
++  istituzioneSanitaria?: StatoWizard['istituzioneSanitaria']
+ }
+ 
+ export const CHIAVE_WIZARD = 'ua:wizard-lavoro:v1'
+ 
+ const VENTIQUATTRO_ORE_MS = 24 * 60 * 60 * 1000
+ 
+ /** Scrive lo stato — try/catch silenzioso (quota superata, storage disabilitato, iframe sandboxato, ecc.). */
+ export function salvaStato(s: StatoSalvato): void {
+   try {
+     window.localStorage.setItem(CHIAVE_WIZARD, JSON.stringify(s))
+diff --git a/tests/unit/ChiHaPrescrittoSheet.test.tsx b/tests/unit/ChiHaPrescrittoSheet.test.tsx
+new file mode 100644
+index 00000000..cd6a1dc7
+--- /dev/null
++++ b/tests/unit/ChiHaPrescrittoSheet.test.tsx
+@@ -0,0 +1,146 @@
++import { render, screen, fireEvent, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { AvvisiProvider } from '@/components/ds/Avviso'
++import { ChiHaPrescrittoSheet, type MembroStudio } from '@/components/features/wizard/ChiHaPrescrittoSheet'
++
++// Task 10 (P37/D211) — il mini-foglio «Chi ha prescritto?». `medici` arriva
++// GIÀ CARICATO (nessun fetch dentro il componente — v. header del file
++// sorgente): il chiamante reale (WizardNuovoLavoro) apre il foglio SOLO
++// quando la lista non è vuota, quindi qui si testa il componente a partire
++// da quel contratto.
++
++const MEDICI: MembroStudio[] = [
++  { id: 'm1', nome: 'Francesco', cognome: 'Colombo', studio_nome: 'Studio Bianchi' },
++  { id: 'm2', nome: 'Marta', cognome: 'Bianchi', studio_nome: 'Studio Bianchi' },
++  { id: 'm3', nome: 'Anna', cognome: 'Ferri', studio_nome: 'Studio Bianchi' },
++]
++
++function renderSheet(props?: Partial<Parameters<typeof ChiHaPrescrittoSheet>[0]>) {
++  const onChiudi = vi.fn()
++  const onScelto = vi.fn()
++  const utils = render(
++    <AvvisiProvider>
++      <ChiHaPrescrittoSheet aperto medici={MEDICI} onChiudi={onChiudi} onScelto={onScelto} {...props} />
++    </AvvisiProvider>
++  )
++  return { ...utils, onChiudi, onScelto }
++}
++
++describe('ChiHaPrescrittoSheet (Task 10, P37/D211)', () => {
++  beforeEach(() => {
++    vi.stubGlobal('fetch', vi.fn())
++  })
++  afterEach(() => {
++    vi.unstubAllGlobals()
++  })
++
++  it('titolo del dialog è "Chi ha prescritto?"', () => {
++    renderSheet()
++    expect(screen.getByRole('dialog', { name: 'Chi ha prescritto?' })).toBeInTheDocument()
++  })
++
++  it('mostra una riga per ciascun medico, «Cognome Nome»', () => {
++    renderSheet()
++    expect(screen.getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
++    expect(screen.getByRole('button', { name: /Ferri Anna/ })).toBeInTheDocument()
++  })
++
++  it('sottotitolo: plurale con il conteggio reale quando i medici sono più di uno', () => {
++    renderSheet()
++    expect(screen.getByText(/Studio Bianchi risultano 3 medici/)).toBeInTheDocument()
++  })
++
++  it('sottotitolo: singolare quando c\'è un solo medico', () => {
++    renderSheet({ medici: [MEDICI[0]] })
++    expect(screen.getByText(/Studio Bianchi risulta un medico/)).toBeInTheDocument()
++  })
++
++  // 0B-9 / R-E1 — divergenza DICHIARATA dal mockup approvato: nessuna riga
++  // rivendica di essere «l'ultimo che ha prescritto qui» (dato che non
++  // possediamo — v. header del file sorgente). Prova negativa esplicita:
++  // se qualcuno reintroducesse quella frase senza il dato dietro, il test
++  // la becca.
++  it('nessuna riga afferma di essere "l\'ultimo che ha prescritto qui" (dato non disponibile)', () => {
++    renderSheet()
++    expect(screen.queryByText(/l.ultimo che ha prescritto/i)).not.toBeInTheDocument()
++  })
++
++  it('tap su un medico → onScelto("Cognome Nome", studio_nome) e vibra(selection)', async () => {
++    const { onScelto } = renderSheet()
++    await userEvent.setup().click(screen.getByRole('button', { name: /Colombo Francesco/ }))
++    expect(onScelto).toHaveBeenCalledWith('Colombo Francesco', 'Studio Bianchi')
++  })
++
++  it('«Chiudi» → onChiudi(), onScelto MAI chiamato', async () => {
++    const { onChiudi, onScelto } = renderSheet()
++    await userEvent.setup().click(screen.getByRole('button', { name: 'Chiudi' }))
++    expect(onChiudi).toHaveBeenCalledTimes(1)
++    expect(onScelto).not.toHaveBeenCalled()
++  })
++
++  it('«È un altro» apre un mini-form Nome/Cognome (niente rete finché non si conferma)', async () => {
++    renderSheet()
++    await userEvent.setup().click(screen.getByRole('button', { name: /È un altro/ }))
++    expect(screen.getByLabelText('Nome')).toBeInTheDocument()
++    expect(screen.getByLabelText('Cognome')).toBeInTheDocument()
++    expect(fetch).not.toHaveBeenCalled()
++  })
++
++  it('«È un altro» → submit con nome/cognome vuoti NON chiama fetch, mostra il vincolo', async () => {
++    const { onScelto } = renderSheet()
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /È un altro/ }))
++    fireEvent.click(screen.getByRole('button', { name: /aggiungi allo studio/i }))
++    expect(await screen.findByRole('alert')).toHaveTextContent(/nome.*cognome|obbligator/i)
++    expect(fetch).not.toHaveBeenCalled()
++    expect(onScelto).not.toHaveBeenCalled()
++  })
++
++  it('«È un altro» → submit valido: POST /api/clienti con {nome, cognome, studio_nome preimpostato}, poi onScelto col nome digitato', async () => {
++    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
++      ok: true,
++      status: 201,
++      json: async () => ({ cliente: { id: 'nuovo-1', nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' } }),
++    })
++    const { onScelto } = renderSheet()
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /È un altro/ }))
++    await user.type(screen.getByLabelText('Nome'), 'Luca')
++    await user.type(screen.getByLabelText('Cognome'), 'Verdi')
++    await user.click(screen.getByRole('button', { name: /aggiungi allo studio/i }))
++
++    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/clienti', {
++      method: 'POST',
++      credentials: 'same-origin',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' }),
++    }))
++    expect(onScelto).toHaveBeenCalledWith('Verdi Luca', 'Studio Bianchi')
++  })
++
++  it('«È un altro» → errore di rete: Avviso.errore, onScelto MAI chiamato, il form resta aperto', async () => {
++    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
++    const { onScelto } = renderSheet()
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /È un altro/ }))
++    await user.type(screen.getByLabelText('Nome'), 'Luca')
++    await user.type(screen.getByLabelText('Cognome'), 'Verdi')
++    await user.click(screen.getByRole('button', { name: /aggiungi allo studio/i }))
++
++    await waitFor(() =>
++      expect(screen.getByText('Non sono riuscita ad aggiungere il medico. Riprova.')).toBeInTheDocument()
++    )
++    expect(onScelto).not.toHaveBeenCalled()
++    expect(screen.getByLabelText('Nome')).toBeInTheDocument()
++  })
++
++  it('chiudendo e riaprendo (nuova key dal chiamante) il mini-form NON resta aperto — reset via remount', () => {
++    const { unmount } = renderSheet()
++    unmount()
++    renderSheet()
++    expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
++    expect(screen.getByRole('button', { name: /È un altro/ })).toBeInTheDocument()
++  })
++})
+diff --git a/tests/unit/NuovoDentistaSheet.test.tsx b/tests/unit/NuovoDentistaSheet.test.tsx
+index cfeeacdc..4c9b70c4 100644
+--- a/tests/unit/NuovoDentistaSheet.test.tsx
++++ b/tests/unit/NuovoDentistaSheet.test.tsx
+@@ -105,21 +105,23 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
+     })
+ 
+     const { onCreato } = renderSheet()
+     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Mario' } })
+     fireEvent.change(screen.getByLabelText('Cognome'), { target: { value: 'Rossi' } })
+     fireEvent.change(screen.getByLabelText('Telefono dello studio'), { target: { value: '02 1234567' } })
+     fireEvent.change(screen.getByLabelText('Cellulare WhatsApp'), { target: { value: '333123456' } })
+     fireEvent.change(screen.getByLabelText('Studio'), { target: { value: 'Studio Rossi' } })
+     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
+ 
+-    await waitFor(() => expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi' }))
++    await waitFor(() =>
++      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi', studioNome: 'Studio Rossi' })
++    )
+     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         nome: 'Mario',
+         cognome: 'Rossi',
+         telefono: '02 1234567',
+         cellulare_whatsapp: '333123456',
+         studio_nome: 'Studio Rossi',
+@@ -132,21 +134,23 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
+       ok: true,
+       status: 201,
+       json: async () => ({ cliente: { id: 'cli-2', nome: 'Luca', cognome: 'Bianchi', studio_nome: null } }),
+     })
+ 
+     const { onCreato } = renderSheet()
+     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Luca' } })
+     fireEvent.change(screen.getByLabelText('Cognome'), { target: { value: 'Bianchi' } })
+     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
+ 
+-    await waitFor(() => expect(onCreato).toHaveBeenCalledWith({ id: 'cli-2', label: 'Dr. Bianchi' }))
++    await waitFor(() =>
++      expect(onCreato).toHaveBeenCalledWith({ id: 'cli-2', label: 'Dr. Bianchi', studioNome: null })
++    )
+     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ nome: 'Luca', cognome: 'Bianchi' }),
+     })
+   })
+ 
+   it('errore rete/500 → Avviso.errore("Non sono riuscita a creare il dentista. Riprova.") e lo sheet resta aperto', async () => {
+     fetchMock().mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'boom' }) })
+diff --git a/tests/unit/WizardNuovoLavoro.test.tsx b/tests/unit/WizardNuovoLavoro.test.tsx
+index 8a38e6fe..495a6fbf 100644
+--- a/tests/unit/WizardNuovoLavoro.test.tsx
++++ b/tests/unit/WizardNuovoLavoro.test.tsx
+@@ -219,20 +219,326 @@ describe('WizardNuovoLavoro — wiring NuovoDentistaSheet (Task 9, A7)', () => {
+ 
+     // Il wizard seleziona il dentista appena creato e avanza al Passo 2
+     // (direzione 'avanti' — contratto in WizardNuovoLavoro.tsx).
+     await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+     // Lo sheet resta nel DOM per la durata dell'uscita animata (AnimatePresence,
+     // §8.2.2): si attende lo smontaggio, non lo si pretende sincrono.
+     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nuovo dentista' })).not.toBeInTheDocument())
+   })
+ })
+ 
++// Task 10 (P37/D211, ondata B ②) — il mini-foglio «Chi ha prescritto?».
++// Fixture SEPARATA da `DENTISTI`/`DATI` (usati da decine di altri test in
++// questo file): niente `studioNome` sugli esistenti, per non introdurre una
++// `GET /studio-members` in test che oggi non la stubbano (v. avviso R-E1 —
++// la rete in più deve esistere SOLO dove il tile tappato è un'entità).
++describe('WizardNuovoLavoro — mini-foglio «Chi ha prescritto?» (Task 10, P37/D211)', () => {
++  const MEDICI = [
++    { id: 'm1', nome: 'Francesco', cognome: 'Colombo', studio_nome: 'Studio Bianchi' },
++    { id: 'm2', nome: 'Marta', cognome: 'Bianchi', studio_nome: 'Studio Bianchi' },
++  ]
++
++  const DENTISTI_STUDIO = [
++    { id: '1', label: 'Dr. Esposito', count30: 12, studioNome: null },
++    { id: '2', label: 'Studio Bianchi', count30: 8, studioNome: 'Studio Bianchi' },
++    { id: '3', label: 'Dr. Russo', count30: 5, studioNome: null },
++    { id: '4', label: 'Studio Solo', count30: 2, studioNome: 'Studio Solo' },
++  ]
++
++  const DATI_STUDIO: DatiWizard = {
++    ...DATI,
++    dentisti: DENTISTI_STUDIO,
++    topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
++    frequenzeTipi: { corona_zirconia: 9 },
++    giorniPerTipo: { corona_zirconia: { giorni: 6, daStoria: true } },
++  }
++
++  /** Router URL→risposta: le nuove chiamate (studio-members, POST clienti
++   *  del "È un altro") si distinguono dalla sequenza pazienti/lavori già
++   *  nota (Task 12) per URL/metodo, non per ordine — più leggibile di una
++   *  coda `mockResolvedValueOnce` quando i percorsi possono intrecciarsi. */
++  function routerFetch(opts: { members?: unknown; nuovoCliente?: unknown } = {}) {
++    const { members = [], nuovoCliente } = opts
++    return vi.fn((url: string, init?: RequestInit) => {
++      const metodo = init?.method ?? 'GET'
++      if (url.includes('/studio-members')) {
++        return Promise.resolve({ ok: true, status: 200, json: async () => members })
++      }
++      if (url.includes('/api/clienti') && metodo === 'POST') {
++        return Promise.resolve({
++          ok: true,
++          status: 201,
++          json: async () => nuovoCliente ?? { cliente: { id: 'x', nome: 'X', cognome: 'Y', studio_nome: null } },
++        })
++      }
++      if (url.includes('/api/pazienti') && metodo === 'GET') {
++        return Promise.resolve({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
++      }
++      if (url.includes('/api/pazienti') && metodo === 'POST') {
++        return Promise.resolve({ ok: true, status: 201, json: async () => ({ paziente: { id: 'pz-1' } }) })
++      }
++      if (url.includes('/api/lavori') && metodo === 'POST') {
++        return Promise.resolve({
++          ok: true,
++          status: 201,
++          json: async () => ({ lavoro: { id: 'lav-1', numero_lavoro: '2026/0001' } }),
++        })
++      }
++      throw new Error(`fetch non gestito nel test: ${metodo} ${url}`)
++    })
++  }
++
++  afterEach(() => {
++    vi.unstubAllGlobals()
++  })
++
++  async function corpoPostLavori(m: ReturnType<typeof vi.fn>) {
++    const chiamata = m.mock.calls.find(([url, init]) => url.includes('/api/lavori') && init?.method === 'POST')
++    return JSON.parse((chiamata![1] as RequestInit).body as string)
++  }
++
++  it('dottore singolo: NESSUN foglio, NESSUNA GET studio-members, avanza subito (D196)', async () => {
++    const m = routerFetch()
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
++    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
++    expect(screen.queryByRole('dialog', { name: 'Chi ha prescritto?' })).not.toBeInTheDocument()
++    expect(m).not.toHaveBeenCalled()
++  })
++
++  it('studio con più medici: il foglio sale, elenca i medici trovati', async () => {
++    vi.stubGlobal('fetch', routerFetch({ members: MEDICI }))
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    expect(within(dialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
++    expect(within(dialog).getByRole('button', { name: /Bianchi Marta/ })).toBeInTheDocument()
++    // Il Passo 1 resta VISIBILE dietro il foglio (overlay, non un passo nuovo — vincolo di ondata).
++    expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
++  })
++
++  it('studio "di uno solo" (studio_nome compilato, ZERO colleghi) → nessun foglio, si comporta come dottore singolo', async () => {
++    vi.stubGlobal('fetch', routerFetch({ members: [] }))
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /^Studio Solo/ }))
++
++    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
++    expect(screen.queryByRole('dialog', { name: 'Chi ha prescritto?' })).not.toBeInTheDocument()
++  })
++
++  it('scelta di un medico → il POST /api/lavori porta richiedente_nome E istituzione_sanitaria, «Fatto!» mostra «Prescritto da»', async () => {
++    const m = routerFetch({ members: MEDICI })
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++
++    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    await user.click(within(dialog).getByRole('button', { name: /Bianchi Marta/ }))
++
++    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
++    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
++    await user.click(screen.getByRole('button', { name: 'Continua' }))
++
++    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
++    const corpo = await corpoPostLavori(m)
++    expect(corpo.richiedente_nome).toBe('Bianchi Marta')
++    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
++
++    const cartaLavoro = within(screen.getByRole('region', { name: 'Il lavoro' }))
++    expect(cartaLavoro.getByText('Prescritto da')).toBeInTheDocument()
++    expect(cartaLavoro.getByText('Bianchi Marta')).toBeInTheDocument()
++  })
++
++  // Verifica advisor (pre-commit): `scelgoPrescrittore` chiude sia `setSheetPrescrittoreAperto(false)`
++  // sia `setClientePendente(null)` nello STESSO handler — un `onChiudi` "in coda" (Esc/scrim/exit
++  // animato dell'AnimatePresence) che catturasse una closure PRE-null di `clientePendente`
++  // sovrascriverebbe il prescrittore appena scelto con `''`. `aperto` passa a `false` nello stesso
++  // aggiornamento batched: l'effect Esc di Sheet.tsx dipende da `[aperto, ...]` e ritorna subito se
++  // `!aperto`, quindi il listener è già rimosso — ma qui si prova il comportamento REALE, non la
++  // lettura del codice.
++  it('scelta di un medico, poi Esc: il prescrittore NON viene sovrascritto dalla chiusura in coda', async () => {
++    const m = routerFetch({ members: MEDICI })
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++
++    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    await user.click(within(dialog).getByRole('button', { name: /Bianchi Marta/ }))
++    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
++
++    // Il foglio è chiuso (aperto=false) ma può restare nel DOM per l'uscita
++    // animata (AnimatePresence, §8.2.2) — un Esc qui non deve avere alcun
++    // effetto sul prescrittore già commesso.
++    await user.keyboard('{Escape}')
++
++    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
++    await user.click(screen.getByRole('button', { name: 'Continua' }))
++    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
++    const corpo = await corpoPostLavori(m)
++    expect(corpo.richiedente_nome).toBe('Bianchi Marta')
++    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
++  })
++
++  // Verifica advisor (pre-commit): `key={chiavePrescrittore}` rimonta il foglio ad ogni apertura —
++  // qui si esercita il SECONDO giro nella STESSA sessione montata (indietro, poi lo stesso tile di
++  // nuovo), non uno smontaggio+render fresco come nel test di reset in ChiHaPrescrittoSheet.test.tsx.
++  it('si può riaprire il foglio una seconda volta nella stessa sessione (indietro, poi lo stesso tile)', async () => {
++    const m = routerFetch({ members: MEDICI })
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++
++    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++    const primoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    await user.click(within(primoDialog).getByRole('button', { name: 'Chiudi' }))
++    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
++
++    await user.click(screen.getByRole('button', { name: 'Indietro' }))
++    expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
++
++    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++    const secondoDialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    expect(within(secondoDialog).getByRole('button', { name: /Colombo Francesco/ })).toBeInTheDocument()
++
++    // Esc funziona ancora sul foglio rimontato (la registrazione overlay-stack
++    // di Sheet.tsx non è rimasta "appesa" al giro precedente).
++    await user.keyboard('{Escape}')
++    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
++  })
++
++  it('«Chiudi» il foglio SENZA scegliere → avanza comunque (W22, MAI bloccante), nessun prescrittore nel POST', async () => {
++    const m = routerFetch({ members: MEDICI })
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++
++    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    await user.click(within(dialog).getByRole('button', { name: 'Chiudi' }))
++
++    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
++    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
++    await user.click(screen.getByRole('button', { name: 'Continua' }))
++
++    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
++    const corpo = await corpoPostLavori(m)
++    expect(corpo).not.toHaveProperty('richiedente_nome')
++    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
++    expect(screen.queryByText('Prescritto da')).not.toBeInTheDocument()
++  })
++
++  it('«È un altro»: crea un collega nello studio e lo usa come prescrittore', async () => {
++    const m = routerFetch({
++      members: MEDICI,
++      nuovoCliente: { cliente: { id: 'nuovo-9', nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' } },
++    })
++    vi.stubGlobal('fetch', m)
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++
++    await user.click(screen.getByRole('button', { name: /^Studio Bianchi/ }))
++    const dialog = await screen.findByRole('dialog', { name: 'Chi ha prescritto?' })
++    await user.click(within(dialog).getByRole('button', { name: /È un altro/ }))
++    await user.type(within(dialog).getByLabelText('Nome'), 'Luca')
++    await user.type(within(dialog).getByLabelText('Cognome'), 'Verdi')
++    await user.click(within(dialog).getByRole('button', { name: /aggiungi allo studio/i }))
++
++    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
++    expect(
++      m.mock.calls.some(([url, init]) => url === '/api/clienti' && init?.method === 'POST')
++    ).toBe(true)
++    const corpoPost = JSON.parse(
++      (m.mock.calls.find(([url, init]) => url === '/api/clienti' && init?.method === 'POST')![1] as RequestInit)
++        .body as string
++    )
++    expect(corpoPost).toEqual({ nome: 'Luca', cognome: 'Verdi', studio_nome: 'Studio Bianchi' })
++
++    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
++    await user.click(screen.getByRole('button', { name: 'Continua' }))
++    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
++    const corpoLavoro = await corpoPostLavori(m)
++    expect(corpoLavoro.richiedente_nome).toBe('Verdi Luca')
++  })
++
++  // Trappola nota (fatto 3 del censimento, stessa classe di `coloreOrigine`,
++  // WizardNuovoLavoro.test.tsx:512): `salvaStato` (l'effect) e `riprendi`
++  // ENUMERANO le chiavi a mano — un test a livello di `persistenza.ts` non lo
++  // scoprirebbe (quelle funzioni sono un passthrough generico). Riprendi → un
++  // vero avanzamento → localStorage copre ENTRAMBE le metà in un colpo solo.
++  it('richiedenteNome/istituzioneSanitaria sopravvivono al giro Riprendi → un vero avanzamento → salvaStato', async () => {
++    vi.stubGlobal('fetch', routerFetch())
++    window.localStorage.setItem(
++      CHIAVE_WIZARD,
++      JSON.stringify({
++        v: 1,
++        salvatoA: Date.now() - 1000,
++        userId: CONTESTO.userId,
++        labId: CONTESTO.labId,
++        passo: 3,
++        cliente: { id: '2', label: 'Studio Bianchi' },
++        tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
++        pz: 'PZ-9999',
++        alias: '',
++        elemento: '',
++        colore: '',
++        richiedenteNome: 'Bianchi Marta',
++        istituzioneSanitaria: 'Studio Bianchi',
++      } satisfies StatoSalvato)
++    )
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: 'Riprendi' }))
++    await waitFor(() => expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument())
++
++    await user.click(screen.getByRole('button', { name: 'Indietro' }))
++
++    await waitFor(() => {
++      const salvato = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato | null
++      expect(salvato).not.toBeNull()
++      expect(salvato!.richiedenteNome).toBe('Bianchi Marta')
++      expect(salvato!.istituzioneSanitaria).toBe('Studio Bianchi')
++    })
++  })
++
++  // Un salvataggio SCRITTO PRIMA di questo task non ha le due chiavi — additivo,
++  // `v` resta 1 (v. persistenza.ts). `riprendi()` deve coalescerle a '' senza
++  // esplodere: senza `?? ''` il primo `.trim()` a valle (crea-lavoro.ts) sarebbe
++  // un TypeError su `undefined`.
++  it('Riprendi da un salvataggio SENZA richiedenteNome/istituzioneSanitaria (formato pre-Task-10) non esplode', async () => {
++    vi.stubGlobal('fetch', routerFetch())
++    window.localStorage.setItem(
++      CHIAVE_WIZARD,
++      JSON.stringify({
++        v: 1,
++        salvatoA: Date.now() - 1000,
++        userId: CONTESTO.userId,
++        labId: CONTESTO.labId,
++        passo: 3,
++        cliente: { id: '1', label: 'Dr. Esposito' },
++        tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
++        pz: 'PZ-9998',
++        alias: '',
++        elemento: '',
++        colore: '',
++        // richiedenteNome/istituzioneSanitaria ASSENTI apposta.
++      })
++    )
++    render(<WizardNuovoLavoro dati={DATI_STUDIO} contesto={CONTESTO} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: 'Riprendi' }))
++    await waitFor(() => expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument())
++  })
++})
++
+ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione → Frame Fatto (Task 12)', () => {
+   const DATI_TASK12: DatiWizard = {
+     ...DATI,
+     topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
+     frequenzeTipi: { corona_zirconia: 9 },
+     giorniPerTipo: { corona_zirconia: { giorni: 6, daStoria: true } },
+   }
+ 
+   beforeEach(() => {
+     vi.stubGlobal('fetch', vi.fn())
+diff --git a/tests/unit/crea-lavoro-denti.test.ts b/tests/unit/crea-lavoro-denti.test.ts
+index a3f0ec49..52e11e2c 100644
+--- a/tests/unit/crea-lavoro-denti.test.ts
++++ b/tests/unit/crea-lavoro-denti.test.ts
+@@ -58,20 +58,22 @@ function percorsoPrimarioOk(m: ReturnType<typeof mockFetch>) {
+ }
+ 
+ async function crea(patch: { elemento?: string; colore?: string; foto?: File | null }) {
+   return creaLavoroDaWizard({
+     cliente: CLIENTE,
+     tipo: TIPO_CATALOGO,
+     pz: 'PZ-0001',
+     alias: '',
+     elemento: '',
+     colore: '',
++    richiedenteNome: '',
++    istituzioneSanitaria: '',
+     foto: null,
+     dataConsegna: DATA_CONSEGNA,
+     ...patch,
+   })
+ }
+ 
+ /** Il corpo del POST /api/lavori, qualunque sia la sua posizione nella sequenza. */
+ function corpoPostLavori(m: ReturnType<typeof mockFetch>): Record<string, unknown> {
+   const chiamata = m.mock.calls.find((c) => c[0] === '/api/lavori' && c[1]?.method === 'POST')
+   if (!chiamata) throw new Error('POST /api/lavori non è mai stato chiamato')
+diff --git a/tests/unit/crea-lavoro-prescrizione.test.ts b/tests/unit/crea-lavoro-prescrizione.test.ts
+index 5cd14ebb..46f7d2dd 100644
+--- a/tests/unit/crea-lavoro-prescrizione.test.ts
++++ b/tests/unit/crea-lavoro-prescrizione.test.ts
+@@ -67,20 +67,22 @@ async function crea(patch: {
+   coloreOrigine?: 'prescrizione' | 'lab'
+   elemento?: string
+ }) {
+   return creaLavoroDaWizard({
+     cliente: CLIENTE,
+     tipo: TIPO,
+     pz: 'PZ-0001',
+     alias: '',
+     elemento: '',
+     colore: '',
++    richiedenteNome: '',
++    istituzioneSanitaria: '',
+     foto: null,
+     dataConsegna: DATA_CONSEGNA,
+     ...patch,
+   })
+ }
+ 
+ describe('creaLavoroDaWizard — prescrizione (Task 1, D216/D223/D210)', () => {
+   // 1. ASSENTE — nessun `coloreOrigine` passato (il wizard di oggi, prima del
+   // Task 2, non lo passa mai): semantica di riposo = 'prescrizione'.
+   it('coloreOrigine ASSENTE + colore compilato → prescrizione trascritta GREZZA, colore_codice normalizzato', async () => {
+diff --git a/tests/unit/crea-lavoro.test.ts b/tests/unit/crea-lavoro.test.ts
+index b01840ad..605541a0 100644
+--- a/tests/unit/crea-lavoro.test.ts
++++ b/tests/unit/crea-lavoro.test.ts
+@@ -76,20 +76,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-1', nome_cognome: 'PZ-0001 ' } }))
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-1', numero_lavoro: '2026/0001', stato: 'ricevuto' } }))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0001',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: { id: 'lav-1', numero_lavoro: '2026/0001' }, accessoriFalliti: [] })
+     expect(m).toHaveBeenCalledTimes(3)
+ 
+     // 1. GET pazienti
+     const [urlGet, optGet] = m.mock.calls[0]
+     expect(String(urlGet)).toBe('/api/pazienti?cliente_id=cli-1')
+@@ -129,20 +131,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-2' } }))
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-2', numero_lavoro: '2026/0002' } }))
+ 
+     await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0002',
+       alias: 'Mario R.',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     const bodyPost = JSON.parse(m.mock.calls[1][1].body)
+     expect(bodyPost).toEqual({
+       cliente_id: 'cli-1',
+       codice_paziente: 'PZ-0002',
+       nome: '',
+       cognome: 'Mario R.',
+@@ -156,20 +160,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     )
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-9', numero_lavoro: '2026/0009' } }))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0042',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(m).toHaveBeenCalledTimes(2)
+     expect(esito.lavoro).toEqual({ id: 'lav-9', numero_lavoro: '2026/0009' })
+     const bodyLavori = JSON.parse(m.mock.calls[1][1].body)
+     expect(bodyLavori.paziente_id).toBe('pz-9')
+   })
+ 
+@@ -179,20 +185,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-3' } }))
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-3', numero_lavoro: '2026/0003' } }))
+ 
+     await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_LIBERO,
+       pz: 'PZ-0003',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     const bodyLavori = JSON.parse(m.mock.calls[2][1].body)
+     expect(bodyLavori.tipo_dispositivo).toBe('altro')
+     expect(bodyLavori.descrizione).toBe('Placca su misura')
+     expect(bodyLavori.classe_rischio).toBe('classe_i')
+   })
+ 
+@@ -211,20 +219,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-4' } }))
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-4', numero_lavoro: '2026/0004' } }))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0004',
+       alias: '',
+       elemento: '2.6, 2.7  3.1',
+       colore: 'A2',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(m).toHaveBeenCalledTimes(3)
+     expect(esito).toEqual({ lavoro: { id: 'lav-4', numero_lavoro: '2026/0004' }, accessoriFalliti: [] })
+     expect(m.mock.calls.some((c) => c[1]?.method === 'PATCH')).toBe(false)
+ 
+     const corpoLavori = JSON.parse(m.mock.calls[2][1].body)
+     expect(corpoLavori.denti).toEqual([
+@@ -250,20 +260,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-1' } }))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0005',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(m).toHaveBeenCalledTimes(4)
+     expect(esito.accessoriFalliti).toEqual([])
+ 
+     const [urlImg, optImg] = m.mock.calls[3]
+     expect(urlImg).toBe('/api/lavori/lav-5/immagini')
+     expect(optImg.method).toBe('POST')
+@@ -287,20 +299,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-2' } }))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0006',
+       alias: '',
+       elemento: '2.6',
+       colore: 'A2',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(m).toHaveBeenCalledTimes(4)
+     expect(esito.accessoriFalliti).toEqual([])
+     expect(m.mock.calls.some((c) => c[1]?.method === 'PATCH')).toBe(false)
+     expect(m.mock.calls[3][0]).toBe('/api/lavori/lav-6/immagini')
+   })
+ 
+@@ -310,20 +324,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-7' } }))
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-7', numero_lavoro: '2026/0007' } }))
+ 
+     await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0007',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(m).toHaveBeenCalledTimes(3)
+   })
+ 
+   // Adeguato al Task 11: il ramo «la PATCH dei dettagli è fallita» non esiste
+   // più — non c'è più una PATCH da far fallire. Al suo posto l'unico modo in cui
+   // un elemento può ancora andare perso: la casella conteneva qualcosa che non è
+@@ -336,20 +352,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-3' } }))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0008',
+       alias: '',
+       elemento: 'incisivo',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(m).toHaveBeenCalledTimes(4)
+     expect(esito.lavoro).toEqual({ id: 'lav-8', numero_lavoro: '2026/0008' })
+     expect(esito.accessoriFalliti).toEqual(['elementi'])
+   })
+ 
+   it('POST immagini fallisce (foto) → accessoriFalliti:["foto"], lavoro comunque presente', async () => {
+@@ -360,20 +378,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0010',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.lavoro).toEqual({ id: 'lav-10', numero_lavoro: '2026/0010' })
+     expect(esito.accessoriFalliti).toEqual(['foto'])
+   })
+ 
+   // Stessa ragione del caso qui sopra. L'ordine dell'elenco è quello in cui le
+   // due cose accadono: gli elementi si perdono PRIMA di spedire, la foto dopo.
+@@ -385,77 +405,85 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0011',
+       alias: '',
+       elemento: 'boh',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.accessoriFalliti).toEqual(['elementi', 'foto'])
+   })
+ 
+   it('fallimento GET pazienti (non-ok) → BLOCCANTE: lavoro:null, nessuna chiamata successiva (1 fetch)', async () => {
+     const m = mockFetch()
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0012',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+     expect(m).toHaveBeenCalledTimes(1)
+   })
+ 
+   it('fallimento GET pazienti (rete: fetch rifiuta) → BLOCCANTE', async () => {
+     const m = mockFetch()
+     m.mockRejectedValueOnce(new Error('network down'))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0013',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+     expect(m).toHaveBeenCalledTimes(1)
+   })
+ 
+   it('fallimento POST pazienti (nuovo, non-ok) → BLOCCANTE: nessun POST lavori (2 fetch)', async () => {
+     const m = mockFetch()
+     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0014',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+     expect(m).toHaveBeenCalledTimes(2)
+   })
+ 
+   it('fallimento POST lavori (non-ok) → BLOCCANTE anche con elemento/colore/foto presenti: nessuna immagine (3 fetch)', async () => {
+     const m = mockFetch()
+@@ -464,20 +492,22 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0015',
+       alias: '',
+       elemento: '2.6',
+       colore: 'A2',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+     expect(m).toHaveBeenCalledTimes(3)
+   })
+ })
+ 
+ // ─────────────────────────────────────────────────────────────────────────
+@@ -512,60 +542,66 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', ()
+     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+     m.mockResolvedValueOnce(conflitto409())
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0918',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [], motivo: 'codice_gia_in_uso' })
+     expect(m).toHaveBeenCalledTimes(2)
+   })
+ 
+   it('🛑 NEGATIVA: un 500 sul POST pazienti resta un guasto SENZA motivo (mai «il codice è occupato» su un singhiozzo)', async () => {
+     const m = mockFetch()
+     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0919',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.lavoro).toBeNull()
+     expect(esito.motivo).toBeUndefined()
+   })
+ 
+   it('🛑 NEGATIVA: un 409 con un motivo che non conosciamo NON diventa «codice occupato»', async () => {
+     const m = mockFetch()
+     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+     m.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: 'boh', motivo: 'altra_cosa' }) })
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0920',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.motivo).toBeUndefined()
+   })
+ 
+   it('🛑 409 con un corpo ILLEGGIBILE → esito bloccante senza motivo, e nessuna eccezione', async () => {
+     // Leggere il corpo di una risposta fallita è superficie nuova: se il corpo
+     // non è JSON, `.json()` solleva. L'esito deve degradare al blocco
+@@ -587,20 +623,22 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', ()
+       },
+     })
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0921',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+     expect(esito.motivo).toBeUndefined()
+   })
+ 
+   it('🛑 NEGATIVA: un 409 sul POST LAVORI non porta il motivo del paziente', async () => {
+     // Il conflitto di codice esiste solo al passo del paziente. Se un giorno
+@@ -611,20 +649,22 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', ()
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-20' } }))
+     m.mockResolvedValueOnce(conflitto409())
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0922',
+       alias: '',
+       elemento: '',
+       colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+     expect(esito.motivo).toBeUndefined()
+   })
+ })
+ 
+ // M2 (revisione pre-merge ondata a) — il colore digitato male non si perde più
+@@ -644,20 +684,22 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0016',
+       alias: '',
+       elemento: '',
+       // La digitazione vera del banco: virgola invece del punto. «A3,5» non è in
+       // catalogo (verificato sul database il 28/07/2026), «A3.5» sì.
+       colore: 'A3,5',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.lavoro).toEqual({ id: 'lav-16', numero_lavoro: '2026/0016' })
+     expect(esito.accessoriFalliti).toEqual(['colore'])
+     // Il codice parte comunque: normalizzare e confrontare col catalogo è
+     // mestiere del server, non del client (v. `risolviColoreCaso`).
+     expect(JSON.parse(m.mock.calls[2][1].body).colore_codice).toBe('A3,5')
+   })
+@@ -670,20 +712,22 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
+       jsonOk(201, { lavoro: { id: 'lav-17', numero_lavoro: '2026/0017' }, colore_scartato: false })
+     )
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0017',
+       alias: '',
+       elemento: '',
+       colore: 'A3.5',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.accessoriFalliti).toEqual([])
+   })
+ 
+   // 🛑 Un avviso che compare quando non serve si impara a ignorare, e allora non
+   // avvisa più. Chi non riceve la parola non la inventa.
+   it('risposta SENZA il campo → nessun avviso: mai un falso allarme', async () => {
+@@ -692,20 +736,22 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
+     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-18' } }))
+     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-18', numero_lavoro: '2026/0018' } }))
+ 
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0018',
+       alias: '',
+       elemento: '',
+       colore: 'A2',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: null,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.accessoriFalliti).toEqual([])
+   })
+ 
+   // L'ordine è quello della schermata («Elemento», «Colore», foto), che è anche
+   // quello in cui le tre cose si perdono.
+   it('elementi + colore + foto tutti persi → ["elementi","colore","foto"]', async () => {
+@@ -718,18 +764,101 @@ describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', ()
+     m.mockResolvedValueOnce(jsonFail(500))
+ 
+     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+     const esito = await creaLavoroDaWizard({
+       cliente: CLIENTE,
+       tipo: TIPO_CATALOGO,
+       pz: 'PZ-0019',
+       alias: '',
+       elemento: 'boh',
+       colore: 'ZZ9',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
+       foto: file,
+       dataConsegna: DATA_CONSEGNA,
+     })
+ 
+     expect(esito.lavoro).toEqual({ id: 'lav-19', numero_lavoro: '2026/0019' })
+     expect(esito.accessoriFalliti).toEqual(['elementi', 'colore', 'foto'])
+   })
+ })
++
++// Task 10 (P37/D211, ondata B ②) — «Chi ha prescritto?»: `richiedenteNome`/
++// `istituzioneSanitaria` sono SEMPRE stringhe (mai `undefined`, v. firma di
++// `creaLavoroDaWizard`), ma il corpo del POST le OMETTE quando vuote — MAI
++// `richiedente_nome: ''`. La rotta scrive `body.richiedente_nome ?? null`
++// (route.ts:273) e `generate-ddc.ts:146` ripiega sul cliente con `??`, non
++// `||`: una stringa vuota sopravviverebbe al `??` e la Dichiarazione di
++// Conformità uscirebbe con un prescrittore VUOTO invece del cliente.
++describe('creaLavoroDaWizard — richiedente_nome/istituzione_sanitaria (Task 10, P37)', () => {
++  it('entrambi valorizzati → entrambi nel corpo del POST, trimmati', async () => {
++    const m = mockFetch()
++    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
++    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-20' } }))
++    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-20', numero_lavoro: '2026/0020' } }))
++
++    await creaLavoroDaWizard({
++      cliente: CLIENTE,
++      tipo: TIPO_CATALOGO,
++      pz: 'PZ-0020',
++      alias: '',
++      elemento: '',
++      colore: '',
++      richiedenteNome: '  Bianchi Marta  ',
++      istituzioneSanitaria: '  Studio Bianchi  ',
++      foto: null,
++      dataConsegna: DATA_CONSEGNA,
++    })
++
++    const corpo = JSON.parse(m.mock.calls[2][1].body)
++    expect(corpo.richiedente_nome).toBe('Bianchi Marta')
++    expect(corpo.istituzione_sanitaria).toBe('Studio Bianchi')
++  })
++
++  it('entrambi assenti (stringa vuota) → NESSUNA delle due chiavi nel corpo (MAI \'\')', async () => {
++    const m = mockFetch()
++    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
++    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-21' } }))
++    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-21', numero_lavoro: '2026/0021' } }))
++
++    await creaLavoroDaWizard({
++      cliente: CLIENTE,
++      tipo: TIPO_CATALOGO,
++      pz: 'PZ-0021',
++      alias: '',
++      elemento: '',
++      colore: '',
++      richiedenteNome: '',
++      istituzioneSanitaria: '',
++      foto: null,
++      dataConsegna: DATA_CONSEGNA,
++    })
++
++    const corpo = JSON.parse(m.mock.calls[2][1].body)
++    expect(corpo).not.toHaveProperty('richiedente_nome')
++    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
++  })
++
++  it('solo spazi → trattato come vuoto, chiave omessa (stesso principio di M-T5-4)', async () => {
++    const m = mockFetch()
++    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
++    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-22' } }))
++    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-22', numero_lavoro: '2026/0022' } }))
++
++    await creaLavoroDaWizard({
++      cliente: CLIENTE,
++      tipo: TIPO_CATALOGO,
++      pz: 'PZ-0022',
++      alias: '',
++      elemento: '',
++      colore: '',
++      richiedenteNome: '   ',
++      istituzioneSanitaria: '   ',
++      foto: null,
++      dataConsegna: DATA_CONSEGNA,
++    })
++
++    const corpo = JSON.parse(m.mock.calls[2][1].body)
++    expect(corpo).not.toHaveProperty('richiedente_nome')
++    expect(corpo).not.toHaveProperty('istituzione_sanitaria')
++  })
++})
+diff --git a/tests/unit/dati-wizard.test.ts b/tests/unit/dati-wizard.test.ts
+index dc7e27c6..01df16c8 100644
+--- a/tests/unit/dati-wizard.test.ts
++++ b/tests/unit/dati-wizard.test.ts
+@@ -61,20 +61,30 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
+     { id: 'c2', cognome: 'Bianchi', studio_nome: null },
+     { id: 'c3', cognome: 'Verdi', studio_nome: null },
+   ]
+ 
+   it('label dentista: studio_nome se presente, altrimenti "Dr. Cognome"', () => {
+     const r = aggregaDatiWizard(clienti, [], [], OGGI)
+     expect(r.dentisti.find((d) => d.id === 'c1')!.label).toBe('Studio Esposito')
+     expect(r.dentisti.find((d) => d.id === 'c2')!.label).toBe('Dr. Bianchi')
+   })
+ 
++  // Task 10 (P37/D211) — il gate del mini-foglio «Chi ha prescritto?» in
++  // WizardNuovoLavoro legge `studioNome`, PASSTHROUGH grezzo di `studio_nome`
++  // (mai derivato da `label`, che collassa sulla stessa stringa ma non È la
++  // fonte di verità).
++  it('studioNome: passthrough grezzo di studio_nome (mai derivato da label)', () => {
++    const r = aggregaDatiWizard(clienti, [], [], OGGI)
++    expect(r.dentisti.find((d) => d.id === 'c1')!.studioNome).toBe('Studio Esposito')
++    expect(r.dentisti.find((d) => d.id === 'c2')!.studioNome).toBeNull()
++  })
++
+   it('dentisti: TUTTI i clienti, anche con count30 zero', () => {
+     const r = aggregaDatiWizard(clienti, [], [], OGGI)
+     expect(r.dentisti).toHaveLength(3)
+     expect(r.dentisti.every((d) => d.count30 === 0)).toBe(true)
+   })
+ 
+   it('count30: solo lavori con data_ingresso >= oggi-30gg (45gg fa escluso, 5gg fa incluso)', () => {
+     const lavori = [
+       { cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-07-07' }, // 5gg fa → dentro
+       { cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-05-28' }, // 45gg fa → fuori
+@@ -248,21 +258,21 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
+   it('compone dentisti/frequenzeTipi/topTipi/prossimoPz/giorniPerTipo dalle query', async () => {
+     const { svc } = svcRouter({
+       clienti: [{ data: clientiData, error: null }],
+       lavori: [
+         { data: [{ cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-07-10' }], error: null }, // query wizard (30gg)
+         { data: [], error: null }, // query interna a fetchCampioniConsegna (storico consegne)
+       ],
+       pazienti: [{ data: [{ codice_paziente: 'PZ-0010' }], error: null }],
+     })
+     const r: DatiWizard = await getDatiWizard(svc, 'lab-1', OGGI)
+-    expect(r.dentisti).toEqual([{ id: 'c1', label: 'Studio Esposito', count30: 1 }])
++    expect(r.dentisti).toEqual([{ id: 'c1', label: 'Studio Esposito', count30: 1, studioNome: 'Studio Esposito' }])
+     expect(r.frequenzeTipi.corona_zirconia).toBe(1)
+     expect(r.prossimoPz).toBe('PZ-0011')
+     expect(r.giorniPerTipo.corona_zirconia).toEqual({ giorni: 5, daStoria: false }) // nessuno storico → fallback tassonomia
+   })
+ 
+   it('fail-closed: errore sulla query clienti → throw', async () => {
+     const { svc } = svcRouter({
+       clienti: [{ data: null, error: { message: 'boom clienti' } }],
+       lavori: [{ data: [], error: null }, { data: [], error: null }],
+       pazienti: [{ data: [], error: null }],
+diff --git a/tests/unit/wizard-persistenza.test.ts b/tests/unit/wizard-persistenza.test.ts
+index d55a06c9..aba8c2da 100644
+--- a/tests/unit/wizard-persistenza.test.ts
++++ b/tests/unit/wizard-persistenza.test.ts
+@@ -75,10 +75,35 @@ describe('persistenza wizard — salvaStato/leggiStato/azzeraStato (Task 13, spe
+     salvaStato(statoBase())
+     azzeraStato()
+     expect(window.localStorage.getItem(CHIAVE_WIZARD)).toBeNull()
+     expect(leggiStato('u1', 'lab1', ORA + 1000)).toBeNull()
+   })
+ 
+   it('azzeraStato su chiave già assente non lancia', () => {
+     expect(() => azzeraStato()).not.toThrow()
+   })
+ })
++
++// Task 10 (P37/D211) — `richiedenteNome`/`istituzioneSanitaria`: OPZIONALI
++// (stesso principio di `coloreOrigine`, Task 1), `v: 1` invariato.
++describe('persistenza wizard — richiedenteNome/istituzioneSanitaria (Task 10)', () => {
++  it('roundtrip CON i due campi valorizzati', () => {
++    const s = statoBase({ richiedenteNome: 'Bianchi Marta', istituzioneSanitaria: 'Studio Bianchi' })
++    salvaStato(s)
++    expect(leggiStato('u1', 'lab1', ORA + 1000)).toEqual(s)
++  })
++
++  // Un salvataggio `v: 1` scritto PRIMA di questo task non ha queste due
++  // chiavi — additivo, `v` non cambia. `leggiStato` non le inventa: il
++  // risultato le porta semplicemente assenti, ed è compito del CONSUMATORE
++  // (`WizardNuovoLavoro.riprendi`, coperto in WizardNuovoLavoro.test.tsx)
++  // coalescerle a `''` prima di scriverle in `StatoWizard` (tipizzato
++  // sempre-stringa, mai opzionale).
++  it('un salvataggio SENZA le due chiavi (formato pre-Task-10) resta leggibile, chiavi assenti', () => {
++    const vecchio = statoBase()
++    window.localStorage.setItem(CHIAVE_WIZARD, JSON.stringify(vecchio))
++    const letto = leggiStato('u1', 'lab1', ORA + 1000)
++    expect(letto).not.toBeNull()
++    expect(letto!.richiedenteNome).toBeUndefined()
++    expect(letto!.istituzioneSanitaria).toBeUndefined()
++  })
++})

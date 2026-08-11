@@ -1,0 +1,281 @@
+# Review package: 269374b5..310f8c4b
+
+## Commits
+310f8c4b feat(pazienti): cognome e nome correggibili dalla scheda paziente
+1ed58ee0 docs(paziente): piano allineato alla spogliatura per ramo
+
+## Files changed
+ .../2026-07-27-nome-cognome-paziente-tappa-1.md    | 44 ++++++++++++++------
+ src/app/(app)/pazienti/[id]/page.tsx               |  4 +-
+ .../features/pazienti/PazienteEditSheet.tsx        | 33 +++++++++++++++
+ tests/unit/PazienteEditSheet.test.tsx              | 47 ++++++++++++++++++++++
+ 4 files changed, 114 insertions(+), 14 deletions(-)
+
+## Diff
+diff --git a/docs/superpowers/plans/2026-07-27-nome-cognome-paziente-tappa-1.md b/docs/superpowers/plans/2026-07-27-nome-cognome-paziente-tappa-1.md
+index f22cf65d..53049afd 100644
+--- a/docs/superpowers/plans/2026-07-27-nome-cognome-paziente-tappa-1.md
++++ b/docs/superpowers/plans/2026-07-27-nome-cognome-paziente-tappa-1.md
+@@ -1157,34 +1157,52 @@ import { risolviNomePaziente, cognomeEffettivo } from '@/lib/domain/nome-pazient
+       .single()
+ 
+     if (!attuale) {
+       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 })
+     }
+ 
+     const codice = 'codice_paziente' in body
+       ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
+       : attuale.codice_paziente
+ 
+-    // `cognomeEffettivo` su ENTRAMBI i rami, non solo su quello che legge dal
+-    // DB: è la precondizione dichiarata nel JSDoc di `risolviNomePaziente`,
+-    // che da sola NON può difendere l'invariante 3. Sui pazienti creati dal
+-    // wizard senza nome il CODICE vive dentro `cognome` (invariante 2), e
+-    // trattarlo come un cognome vero lo farebbe vincere sul nome appena
+-    // digitato → «Pz-0042 Giuseppe» in targa. Vale anche per il valore che
+-    // arriva dal body: il client non è una fonte fidata.
++    // 🛑 CORRETTO IN REVISIONE (27/07): la prima stesura spogliava il cognome
++    // contro il solo codice NUOVO, e questo difetto è stato riprodotto
++    // eseguendo la route vera. Il cognome SALVATO specchia il codice VECCHIO
++    // (invariante 2: sui pazienti senza nome il codice vive dentro `cognome`);
++    // confrontato col nuovo non coincide più, quindi passava per un cognome
++    // vero. Riga `{nome:'', cognome:'PZ-0042', codice:'PZ-0042'}` + PATCH
++    // `{codice_paziente:'PZ-9999', nome:'Giuseppe'}` → si scriveva
++    // `{cognome:'PZ-0042', nome:'Giuseppe'}` → il trigger componeva
++    // `PZ-0042 GIUSEPPE` → trappola 3, e via `generate-ddc.ts:93` quella
++    // stringa finiva nel campo paziente della DdC (dieci anni di
++    // conservazione). Idem con `codice_paziente:''`, che è ciò che il pannello
++    // di modifica manda davvero.
++    //
++    // 🛑 SECONDA CORREZIONE (ri-revisione, 27/07): la prima correzione
++    // spogliava contro ENTRAMBI i codici, e **cancellava un cognome vero**.
++    // Riprodotto: riga `{nome:'Giuseppe', cognome:'Rossi', codice:'Rossi'}` +
++    // PATCH `{codice_paziente:'PZ-0042', cognome:'Rossi'}` → si scriveva
++    // `{cognome:'Giuseppe', nome:''}`: «Rossi» sparito e il nome slittato nel
++    // cognome, con la DdC che riportava `GIUSEPPE` invece di `ROSSI GIUSEPPE`.
++    // Ed è raggiungibile proprio col gesto che la direttiva D10 vuole
++    // permettere (un laboratorio che aveva usato il cognome come codice e poi
++    // lo corregge).
++    //
++    // La regola giusta: **ogni valore si spoglia contro il codice che
++    // SPECCHIA**, non contro tutti e due. Quello dal body può ripetere il
++    // codice nuovo; quello salvato ripete il vecchio (invariante 2). È lo
++    // stesso principio già usato nel Task 3 (`cognomeEffettivo(esistente.cognome,
++    // esistente.codice_paziente)`).
+     const coppia = risolviNomePaziente({
+-      cognome: cognomeEffettivo(
+-        'cognome' in body
+-          ? (typeof body.cognome === 'string' ? body.cognome : null)
+-          : attuale.cognome,
+-        codice
+-      ),
++      cognome: 'cognome' in body
++        ? cognomeEffettivo(typeof body.cognome === 'string' ? body.cognome : null, codice)
++        : cognomeEffettivo(attuale.cognome, attuale.codice_paziente),
+       nome: 'nome' in body
+         ? (typeof body.nome === 'string' ? body.nome : null)
+         : attuale.nome,
+       codice,
+     })
+ 
+     if (!coppia) {
+       return NextResponse.json({ error: 'Serve almeno il codice paziente' }, { status: 422 })
+     }
+ 
+diff --git a/src/app/(app)/pazienti/[id]/page.tsx b/src/app/(app)/pazienti/[id]/page.tsx
+index edd0d5b5..bd069c42 100644
+--- a/src/app/(app)/pazienti/[id]/page.tsx
++++ b/src/app/(app)/pazienti/[id]/page.tsx
+@@ -9,21 +9,21 @@ import { PazienteEditSheet } from '@/components/features/pazienti/PazienteEditSh
+ interface Props { params: Promise<{ id: string }> }
+ 
+ export default async function PazienteDetailPage({ params }: Props) {
+   const { id } = await params
+   const context = await getLabContext()
+   if (!context?.laboratorioId) redirect('/login?error=no_lab')
+ 
+   const svc = getServiceClient()
+   const { data: paziente } = await svc
+     .from('pazienti')
+-    .select('id, nome_cognome, codice_paziente, note, anamnesi, asl, sesso, data_nascita, created_at')
++    .select('id, nome_cognome, codice_paziente, nome, cognome, note, anamnesi, asl, sesso, data_nascita, created_at')
+     .eq('id', id).eq('laboratorio_id', context.laboratorioId).single()
+ 
+   if (!paziente) redirect('/pazienti')
+ 
+   const canEdit = context.ruolo === 'titolare' || context.ruolo === 'admin_rete'
+ 
+   const { data: lavori } = await svc
+     .from('lavori')
+     .select('id, numero_lavoro, stato, tipo_dispositivo, data_consegna_prevista, clienti(studio_nome, nome, cognome)')
+     .eq('paziente_id', id).eq('laboratorio_id', context.laboratorioId).is('deleted_at', null)
+@@ -79,20 +79,22 @@ export default async function PazienteDetailPage({ params }: Props) {
+               Nessun lavoro trovato per questo paziente.
+             </div>
+           )}
+ 
+           {/* Azioni paziente — solo titolare/admin_rete */}
+           {canEdit && (
+             <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+               <PazienteEditSheet paziente={{
+                 id: paziente.id,
+                 codice_paziente: paziente.codice_paziente ?? null,
++                nome: (paziente as Record<string, unknown>).nome as string | null ?? null,
++                cognome: (paziente as Record<string, unknown>).cognome as string | null ?? null,
+                 note: paziente.note ?? null,
+                 anamnesi: (paziente as Record<string, unknown>).anamnesi as string | null ?? null,
+                 asl: (paziente as Record<string, unknown>).asl as string | null ?? null,
+                 sesso: (paziente as Record<string, unknown>).sesso as string | null ?? null,
+                 data_nascita: (paziente as Record<string, unknown>).data_nascita as string | null ?? null,
+               }} />
+               <PazienteArchiviaButton
+                 pazienteId={paziente.id}
+                 pazienteNome={paziente.nome_cognome}
+               />
+diff --git a/src/components/features/pazienti/PazienteEditSheet.tsx b/src/components/features/pazienti/PazienteEditSheet.tsx
+index 9bd8dec7..a807bbca 100644
+--- a/src/components/features/pazienti/PazienteEditSheet.tsx
++++ b/src/components/features/pazienti/PazienteEditSheet.tsx
+@@ -1,35 +1,46 @@
+ 'use client'
+ import { useState } from 'react'
+ import { useRouter } from 'next/navigation'
+ import { motion, AnimatePresence } from 'motion/react'
+ import { motionTokens } from '@/design-system/motion'
+ import { hapticLight } from '@/lib/feedback/haptic'
++import { cognomeEffettivo } from '@/lib/domain/nome-paziente-scrittura'
+ 
+ interface PazienteEditProps {
+   paziente: {
+     id: string
+     codice_paziente: string | null
++    nome: string | null
++    cognome: string | null
+     note: string | null
+     anamnesi: string | null
+     asl: string | null
+     sesso: string | null
+     data_nascita: string | null
+   }
+ }
+ 
+ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
+   const router = useRouter()
+   const [open, setOpen] = useState(false)
+   const [saving, setSaving] = useState(false)
+   const [form, setForm] = useState({
+     codice_paziente: paziente.codice_paziente ?? '',
++    // `cognomeEffettivo`: sui pazienti creati dal wizard senza nome il CODICE
++    // vive dentro `cognome` (invariante 2 della regola §5). Mostrarlo in una
++    // casella etichettata «Cognome» inviterebbe a cancellarlo — e cancellarlo
++    // è esattamente il gesto che, senza la guardia server (Task 5), bloccava
++    // la consegna. Qui lo si nasconde: la casella parte vuota, e se resta
++    // vuota il server rimette il codice da sé.
++    cognome: cognomeEffettivo(paziente.cognome, paziente.codice_paziente),
++    nome: paziente.nome ?? '',
+     asl: paziente.asl ?? '',
+     sesso: paziente.sesso ?? '',
+     data_nascita: paziente.data_nascita ?? '',
+     anamnesi: paziente.anamnesi ?? '',
+     note: paziente.note ?? '',
+   })
+ 
+   const handleSave = async () => {
+     setSaving(true)
+     hapticLight()
+@@ -146,20 +157,42 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
+                 <div>
+                   <label style={labelStyle}>Codice paziente (GDPR)</label>
+                   <input
+                     style={inputStyle}
+                     value={form.codice_paziente}
+                     placeholder="es. PAZ/2024/001"
+                     onChange={e => setForm(p => ({ ...p, codice_paziente: e.target.value }))}
+                   />
+                 </div>
+ 
++                {/* Cognome + Nome — la via di rettifica (Art. 16 GDPR).
++                    Cognome sopra: è la parte che identifica il lavoro. */}
++                <div>
++                  <label style={labelStyle} htmlFor="paz-cognome">Cognome</label>
++                  <input
++                    id="paz-cognome"
++                    style={inputStyle}
++                    value={form.cognome}
++                    placeholder="Anche solo un soprannome"
++                    onChange={e => setForm(p => ({ ...p, cognome: e.target.value }))}
++                  />
++                </div>
++                <div>
++                  <label style={labelStyle} htmlFor="paz-nome">Nome</label>
++                  <input
++                    id="paz-nome"
++                    style={inputStyle}
++                    value={form.nome}
++                    onChange={e => setForm(p => ({ ...p, nome: e.target.value }))}
++                  />
++                </div>
++
+                 {/* Sesso + Data nascita */}
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                   <div>
+                     <label style={labelStyle}>Sesso</label>
+                     <select
+                       style={{ ...inputStyle }}
+                       value={form.sesso}
+                       onChange={e => setForm(p => ({ ...p, sesso: e.target.value }))}
+                     >
+                       <option value="">—</option>
+diff --git a/tests/unit/PazienteEditSheet.test.tsx b/tests/unit/PazienteEditSheet.test.tsx
+new file mode 100644
+index 00000000..978826b0
+--- /dev/null
++++ b/tests/unit/PazienteEditSheet.test.tsx
+@@ -0,0 +1,47 @@
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { PazienteEditSheet } from '@/components/features/pazienti/PazienteEditSheet'
++
++vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
++
++const BASE = {
++  id: 'pz-1',
++  codice_paziente: 'PZ-0042',
++  nome: null as string | null,
++  cognome: null as string | null,
++  note: null, anamnesi: null, asl: null, sesso: null, data_nascita: null,
++}
++
++beforeEach(() => { vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }))) })
++afterEach(() => { vi.unstubAllGlobals() })
++
++describe('PazienteEditSheet — correzione di nome e cognome (D9 parte paziente, G4)', () => {
++  it('il pannello mostra le caselle Cognome e Nome', async () => {
++    render(<PazienteEditSheet paziente={{ ...BASE, cognome: 'Bagheria', nome: 'Giuseppe' }} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /modifica/i }))
++    expect(screen.getByLabelText(/Cognome/i)).toHaveValue('Bagheria')
++    expect(screen.getByLabelText(/^Nome/i)).toHaveValue('Giuseppe')
++  })
++
++  it('🛑 il «codice travestito» NON compare nella casella Cognome (inviterebbe a cancellarlo)', async () => {
++    // I pazienti creati dal wizard senza nome hanno il CODICE dentro `cognome`.
++    render(<PazienteEditSheet paziente={{ ...BASE, cognome: 'PZ-0042', nome: '' }} />)
++    await userEvent.setup().click(screen.getByRole('button', { name: /modifica/i }))
++    expect(screen.getByLabelText(/Cognome/i)).toHaveValue('')
++  })
++
++  it('salvare invia nome e cognome nella PATCH', async () => {
++    render(<PazienteEditSheet paziente={{ ...BASE, cognome: 'Bagherra', nome: 'Giuseppe' }} />)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /modifica/i }))
++    await user.clear(screen.getByLabelText(/Cognome/i))
++    await user.type(screen.getByLabelText(/Cognome/i), 'Bagheria')
++    await user.click(screen.getByRole('button', { name: /salva/i }))
++
++    const [url, opt] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
++    expect(url).toBe('/api/pazienti/pz-1')
++    expect(opt.method).toBe('PATCH')
++    expect(JSON.parse(opt.body)).toMatchObject({ cognome: 'Bagheria', nome: 'Giuseppe' })
++  })
++})

@@ -1,0 +1,1195 @@
+# Review package: 267197b0..782fe812
+
+## Commits
+782fe812 test(lavori): la prova sull'ancora del focus provava il render sbagliato
+5507ea18 fix(lavori): il caricamento foto scrive di nuovo, e chiede la categoria
+
+## Files changed
+ .../features/lavori/form/TabImmagini.tsx           | 344 ++++++++------
+ tests/unit/lavori/TabImmagini.test.tsx             | 502 +++++++++++++++++++++
+ 2 files changed, 705 insertions(+), 141 deletions(-)
+
+## Diff
+diff --git a/src/components/features/lavori/form/TabImmagini.tsx b/src/components/features/lavori/form/TabImmagini.tsx
+index f2c5b5ab..25cf5ca7 100644
+--- a/src/components/features/lavori/form/TabImmagini.tsx
++++ b/src/components/features/lavori/form/TabImmagini.tsx
+@@ -1,42 +1,31 @@
+ 'use client'
+ 
+ import { useRef, useState, useCallback, useEffect } from 'react'
+ import { motion, AnimatePresence } from 'motion/react'
+ import imageCompression from 'browser-image-compression'
+ import type { LavoroImmagine } from '@/types/domain'
+-import { motionTokens, useReducedMotion } from '@/design-system/motion'
+-import { hapticLight, hapticSuccess, hapticError } from '@/lib/feedback/haptic'
+-import { soundError } from '@/lib/feedback/sounds'
++import { molla, useReducedMotion } from '@/design-system/v3/motion'
++import { vibra } from '@/design-system/v3/haptic'
++import { suona } from '@/design-system/v3/sound'
+ import { raisedShadow } from './styles'
+-
+-// ─── Tipi foto ─────────────────────────────────────────────────────
+-type TipoFoto = 'impronta' | 'pre_lavoro' | 'colore' | 'post_prova' | 'rx' | 'altro'
+-
+-const TIPI_FOTO: { value: TipoFoto; label: string }[] = [
+-  { value: 'impronta',   label: 'Impronta' },
+-  { value: 'pre_lavoro', label: 'Pre-lavoro' },
+-  { value: 'colore',     label: 'Guida colore' },
+-  { value: 'post_prova', label: 'Post-prova' },
+-  { value: 'rx',         label: 'Radiografia' },
+-  { value: 'altro',      label: 'Altro' },
+-]
++import { CATEGORIE_FOTO, type CategoriaFoto } from '@/lib/domain/categorie-foto'
++import { FoglioCategoria } from '@/components/ds/FoglioCategoria'
+ 
+ // ─── Stato locale per upload ottimistico ────────────────────────────
+ interface FotoLocale {
+   id: string              // uuid locale temporaneo
+   previewUrl: string      // URL.createObjectURL
+   nomeFile: string
++  isPdf: boolean          // T11: un PDF si rende come tessera documento, mai <img>
+   progress: number        // 0-100, 100 = completato
+   error: string | null
+-  tipo: TipoFoto
+-  uploadedId?: string     // id DB dopo upload success
+ }
+ 
+ // ─── Opzioni compressione ───────────────────────────────────────────
+ const COMPRESSION_OPTIONS = {
+   maxSizeMB: 0.4,
+   maxWidthOrHeight: 1920,
+   useWebWorker: true,
+   fileType: 'image/webp' as const,
+   initialQuality: 0.85,
+ }
+@@ -71,98 +60,178 @@ function ProgressRing({ progress }: { progress: number }) {
+         strokeWidth="3"
+         strokeDasharray={circumference}
+         strokeDashoffset={offset}
+         strokeLinecap="round"
+         style={{ transition: 'stroke-dashoffset 0.15s linear' }}
+       />
+     </svg>
+   )
+ }
+ 
++// ─── Tessera documento (PDF) — mai un <img>, T11 ─────────────────────
++// Riusa SOLO le variabili CSS già in uso in questo file (--sfc, --t2,
++// --font-v3): nessun colore nuovo inventato.
++function TesseraDocumento({ nomeFile, listaVista }: { nomeFile: string; listaVista: boolean }) {
++  return (
++    <div
++      role="img"
++      aria-label={`Documento: ${nomeFile}`}
++      style={{
++        width: listaVista ? '44px' : '100%',
++        height: listaVista ? '44px' : '100%',
++        display: 'flex',
++        flexDirection: listaVista ? 'row' : 'column',
++        alignItems: 'center',
++        justifyContent: 'center',
++        gap: '4px',
++        borderRadius: listaVista ? '8px' : '0',
++        background: 'var(--sfc, #E4DFD9)',
++        flexShrink: listaVista ? 0 : undefined,
++        padding: listaVista ? '0' : '8px',
++        overflow: 'hidden',
++        boxSizing: 'border-box',
++      }}
++    >
++      <span aria-hidden="true" style={{ fontSize: listaVista ? '18px' : '28px' }}>📄</span>
++      {!listaVista && (
++        <span
++          style={{
++            fontFamily: 'var(--font-v3, sans-serif)',
++            fontSize: '10px',
++            fontWeight: 600,
++            color: 'var(--t2, #4A3D33)',
++            textAlign: 'center',
++            overflow: 'hidden',
++            textOverflow: 'ellipsis',
++            whiteSpace: 'nowrap',
++            maxWidth: '100%',
++          }}
++        >
++          {nomeFile}
++        </span>
++      )}
++    </div>
++  )
++}
++
++/** `true` se il percorso di Storage è quello di un PDF. Il percorso porta
++ *  sempre l'estensione (assegnata dalla rotta, `route.ts:111`), a differenza
++ *  di `nome_file` che può mancare. */
++function isPdfPath(storagePath: string): boolean {
++  return storagePath.toLowerCase().endsWith('.pdf')
++}
++
+ // ─── Props ──────────────────────────────────────────────────────────
+ interface TabImmaginiProps {
+   immagini: LavoroImmagine[]
+   lavoro_id: string
+   onAdd: (img: LavoroImmagine) => void
+ }
+ 
+ // ─── Generatore UUID semplice ───────────────────────────────────────
+ function genId(): string {
+   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+ }
+ 
++// ─── Foglio categoria — stato del gruppo in attesa di una scelta ────
++interface SheetCategoriaState {
++  aperto: boolean
++  quante: number
++  anteprime: string[]
++}
++
+ // ─── Componente ─────────────────────────────────────────────────────
+ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+   const reduced = useReducedMotion()
+-  const spring = motionTokens.spring.snappy
++  const spring = molla.snappy
+ 
+   const cameraRef = useRef<HTMLInputElement>(null)
+   const galleryRef = useRef<HTMLInputElement>(null)
++  const cameraBtnRef = useRef<HTMLButtonElement>(null)
++  const galleryBtnRef = useRef<HTMLButtonElement>(null)
+ 
+   const [fotoLocali, setFotoLocali] = useState<FotoLocale[]>([])
+   const [listaVista, setListaVista] = useState(false)
+   // Inizializzato con lazy initializer per evitare window access su server
+   const [isSmallViewport, setIsSmallViewport] = useState<boolean>(() => {
+     if (typeof window === 'undefined') return false
+     return window.matchMedia('(max-width: 390px)').matches
+   })
+ 
+   // Controlla viewport per "Vista lista" su iOS vecchi
+   useEffect(() => {
+     const mq = window.matchMedia('(max-width: 390px)')
+     const handler = (e: MediaQueryListEvent) => setIsSmallViewport(e.matches)
+     mq.addEventListener('change', handler)
+     return () => mq.removeEventListener('change', handler)
+   }, [])
+ 
+-  const totalFotos = immagini.length + fotoLocali.filter((f) => !!f.uploadedId).length
++  // T11 (fix D81-bis): la foto locale SPARISCE non appena arriva quella vera
++  // (`uploadFile`, ramo di successo) — quindi qui non c'è più doppio conteggio:
++  // `fotoLocali` non contiene mai una foto già salita.
++  const totalFotos = immagini.length + fotoLocali.length
++
++  // ─── Il foglio che chiede la categoria — una volta per gruppo (D65/D74) ──
++  // `pendingUploadRef` porta i File grezzi delle foto appena selezionate, in
++  // attesa che l'utente scelga (o esca, e allora è il foglio stesso a
++  // scegliere 'altro' per lui). `ancoraCategoriaRef` è l'àncora del focus:
++  // un `useRef` STABILE, mai un letterale — un letterale ricreato a ogni
++  // render strapperebbe il focus all'utente (vedi FoglioCategoria.tsx).
++  const pendingUploadRef = useRef<Array<{ localId: string; file: File }>>([])
++  const ancoraCategoriaRef = useRef<HTMLElement | null>(null)
++  const [sheetCategoria, setSheetCategoria] = useState<SheetCategoriaState>({
++    aperto: false,
++    quante: 0,
++    anteprime: [],
++  })
+ 
+   // Upload singolo file con XHR (per progress)
+   const uploadFile = useCallback(
+-    async (file: File, localId: string, tipo: TipoFoto) => {
++    async (file: File, localId: string, categoria: CategoriaFoto) => {
+       try {
+         // Compressione solo per immagini
+         let fileToUpload = file
+         if (file.type.startsWith('image/')) {
+           fileToUpload = await imageCompression(file, COMPRESSION_OPTIONS)
+         }
+ 
+         const formData = new FormData()
+         formData.append('file', fileToUpload)
+-        formData.append('descrizione', tipo)
++        formData.append('categoria', categoria)
+ 
+         await new Promise<void>((resolve, reject) => {
+           const xhr = new XMLHttpRequest()
+ 
+           xhr.upload.onprogress = (e) => {
+             if (e.lengthComputable) {
+               const pct = Math.min(Math.round((e.loaded / e.total) * 100), 99)
+               setFotoLocali((prev) =>
+                 prev.map((f) => (f.id === localId ? { ...f, progress: pct } : f))
+               )
+             }
+           }
+ 
+           xhr.onload = async () => {
+             if (xhr.status >= 200 && xhr.status < 300) {
+               try {
+                 const json = JSON.parse(xhr.responseText)
+                 if (json.immagine) {
+                   onAdd(json.immagine as LavoroImmagine)
+-                  setFotoLocali((prev) =>
+-                    prev.map((f) =>
+-                      f.id === localId
+-                        ? { ...f, progress: 100, uploadedId: json.immagine.id }
+-                        : f
+-                    )
+-                  )
+-                  hapticSuccess()
++                  // La foto locale sparisce: quella vera arriva già dentro
++                  // `immagini` (via `onAdd`), e tenerle entrambe raddoppierebbe
++                  // sia il conteggio sia il render.
++                  setFotoLocali((prev) => {
++                    const locale = prev.find((f) => f.id === localId)
++                    if (locale) URL.revokeObjectURL(locale.previewUrl)
++                    return prev.filter((f) => f.id !== localId)
++                  })
++                  vibra('success')
+                 }
+                 resolve()
+               } catch {
+                 reject(new Error('Risposta non valida'))
+               }
+             } else {
+               try {
+                 const json = JSON.parse(xhr.responseText)
+                 reject(new Error(json.error ?? `Upload fallito: ${xhr.status}`))
+               } catch {
+@@ -173,94 +242,107 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+ 
+           xhr.onerror = () => reject(new Error('Errore di rete'))
+           xhr.open('POST', `/api/lavori/${lavoro_id}/immagini`)
+           xhr.send(formData)
+         })
+       } catch (err) {
+         const msg = err instanceof Error ? err.message : 'Upload fallito'
+         setFotoLocali((prev) =>
+           prev.map((f) => (f.id === localId ? { ...f, error: msg, progress: 0 } : f))
+         )
+-        hapticError()
+-        soundError()
++        vibra('error')
++        suona('errore')
+       }
+     },
+     [lavoro_id, onAdd]
+   )
+ 
+-  // Gestione files selezionati (camera o galleria)
++  // Gestione files selezionati (camera o galleria): crea le carte ottimistiche
++  // e apre il foglio categoria. L'upload vero parte SOLO dopo la scelta
++  // (`handleScegliCategoria`) — niente più «indovina dalla sorgente».
+   const handleFiles = useCallback(
+     (files: FileList | null, fromCamera: boolean) => {
+       if (!files || files.length === 0) return
+ 
+       const filesArr = Array.from(files)
+-
+-      // Tipo di default
+-      const tipoDefault: TipoFoto = fromCamera ? 'impronta' : 'altro'
++      const pendenti: Array<{ localId: string; file: File }> = []
++      const nuovi: FotoLocale[] = []
+ 
+       filesArr.forEach((file) => {
+         const localId = genId()
+         const previewUrl = URL.createObjectURL(file)
++        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+ 
+         const nuovaFoto: FotoLocale = {
+           id: localId,
+           previewUrl,
+           nomeFile: file.name,
++          isPdf,
+           progress: 0,
+           error: null,
+-          tipo: tipoDefault,
+         }
+ 
++        nuovi.push(nuovaFoto)
++        pendenti.push({ localId, file })
++
+         setFotoLocali((prev) => [...prev, nuovaFoto])
+ 
+-        hapticLight()
++        vibra('light')
++      })
+ 
+-        uploadFile(file, localId, tipoDefault)
++      pendingUploadRef.current = pendenti
++      ancoraCategoriaRef.current = fromCamera ? cameraBtnRef.current : galleryBtnRef.current
++      setSheetCategoria({
++        aperto: true,
++        quante: filesArr.length,
++        // Le anteprime sono SOLO immagini: un PDF passato come `src` di un
++        // <img> del foglio renderebbe un'icona rotta (FoglioCategoria.tsx:123).
++        anteprime: nuovi.filter((f) => !f.isPdf).slice(0, 3).map((f) => f.previewUrl),
+       })
+     },
+-    [uploadFile]
++    []
+   )
+ 
+-  // Aggiorna tipo di una foto locale (e persiste se già uploadata)
+-  const handleTipoChange = useCallback(
+-    async (localId: string, tipo: TipoFoto) => {
+-      setFotoLocali((prev) =>
+-        prev.map((f) => (f.id === localId ? { ...f, tipo } : f))
+-      )
+-      // Persisti su DB se upload completato
+-      const foto = fotoLocali.find((f) => f.id === localId)
+-      if (foto?.uploadedId) {
+-        try {
+-          await fetch(`/api/lavori/${lavoro_id}/immagini/${foto.uploadedId}`, {
+-            method: 'PATCH',
+-            headers: { 'Content-Type': 'application/json' },
+-            body: JSON.stringify({ descrizione: tipo }),
+-          })
+-        } catch {
+-          // Non-blocking: il tipo è aggiornato localmente anche se PATCH fallisce
+-        }
+-      }
++  // La categoria scelta (o 'altro' se l'utente è uscito senza scegliere,
++  // D74 — è il foglio stesso a garantirlo) avvia l'upload di OGNI file del
++  // gruppo in attesa.
++  const handleScegliCategoria = useCallback(
++    (categoria: CategoriaFoto) => {
++      const pendenti = pendingUploadRef.current
++      pendingUploadRef.current = []
++      pendenti.forEach(({ localId, file }) => {
++        void uploadFile(file, localId, categoria)
++      })
+     },
+-    [fotoLocali, lavoro_id]
++    [uploadFile]
+   )
+ 
+-  // Aggiorna tipo di un'immagine già in DB
+-  const handleTipoChangeDb = useCallback(
+-    async (imgId: string, tipo: TipoFoto) => {
++  const handleChiudiCategoria = useCallback(() => {
++    setSheetCategoria((s) => ({ ...s, aperto: false }))
++  }, [])
++
++  // ─── UNA sola funzione di scrittura per la categoria (D70) ──────────
++  // Sostituisce i due gestori quasi identici che c'erano (uno per le foto
++  // ancora locali, uno per quelle già in banca dati): dal momento in cui la
++  // foto locale sparisce non appena sale (sopra), la correzione della
++  // categoria ha un solo punto di applicazione possibile, quello delle foto
++  // già in `immagini`.
++  const handleCategoriaChange = useCallback(
++    async (imgId: string, categoria: CategoriaFoto) => {
+       try {
+         await fetch(`/api/lavori/${lavoro_id}/immagini/${imgId}`, {
+           method: 'PATCH',
+           headers: { 'Content-Type': 'application/json' },
+-          body: JSON.stringify({ descrizione: tipo }),
++          body: JSON.stringify({ categoria }),
+         })
+       } catch {
+-        // Non-blocking
++        // Non-blocking: come in origine, un fallimento qui non blocca l'utente.
+       }
+     },
+     [lavoro_id]
+   )
+ 
+   // Breakpoint responsivi espliciti (3 col mobile, 4 tablet, 5 desktop)
+   const [windowW, setWindowW] = useState<number>(() =>
+     typeof window !== 'undefined' ? window.innerWidth : 390
+   )
+   useEffect(() => {
+@@ -310,29 +392,42 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+         multiple
+         hidden
+         aria-hidden="true"
+         tabIndex={-1}
+         onChange={(e) => {
+           handleFiles(e.target.files, false)
+           if (galleryRef.current) galleryRef.current.value = ''
+         }}
+       />
+ 
++      {/* Il foglio che chiede «che foto è» — una volta per gruppo appena
++          selezionato (§5.41). L'àncora del focus è il bottone che ha aperto
++          il selettore file, dichiarata da un ref stabile qui sopra. */}
++      <FoglioCategoria
++        aperto={sheetCategoria.aperto}
++        quante={sheetCategoria.quante}
++        anteprime={sheetCategoria.anteprime}
++        ancoraFocus={ancoraCategoriaRef}
++        onScegli={handleScegliCategoria}
++        onChiudi={handleChiudiCategoria}
++      />
++
+       <div
+         style={{
+           display: 'grid',
+           gridTemplateColumns: '1fr 1fr',
+           gap: '10px',
+           marginBottom: '20px',
+         }}
+       >
+         <button
++          ref={cameraBtnRef}
+           type="button"
+           onClick={() => cameraRef.current?.click()}
+           style={{
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+             gap: '8px',
+             height: '52px',
+             borderRadius: '14px',
+             border: '1.5px dashed rgba(0,0,0,.08)',
+@@ -343,20 +438,21 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+             fontWeight: 600,
+             cursor: 'pointer',
+           }}
+           aria-label="Scatta foto con la fotocamera"
+         >
+           <span aria-hidden="true" style={{ fontSize: '18px' }}>📸</span>
+           Camera
+         </button>
+ 
+         <button
++          ref={galleryBtnRef}
+           type="button"
+           onClick={() => galleryRef.current?.click()}
+           style={{
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+             gap: '8px',
+             height: '52px',
+             borderRadius: '14px',
+             border: '1.5px dashed rgba(0,0,0,.08)',
+@@ -421,34 +517,38 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+                   overflow: 'hidden',
+                   height: getThumbnailHeight(),
+                   background: 'var(--elv, #EDEDEA)',
+                   boxShadow: raisedShadow,
+                   display: listaVista ? 'flex' : 'block',
+                   alignItems: listaVista ? 'center' : undefined,
+                   gap: listaVista ? '12px' : undefined,
+                   padding: listaVista ? '0 10px' : '0',
+                 }}
+               >
+-                {/* Thumbnail */}
+-                {/* eslint-disable-next-line @next/next/no-img-element */}
+-                <img
+-                  src={foto.previewUrl}
+-                  alt={foto.nomeFile}
+-                  style={{
+-                    width: listaVista ? '44px' : '100%',
+-                    height: listaVista ? '44px' : '100%',
+-                    objectFit: 'cover',
+-                    borderRadius: listaVista ? '8px' : '0',
+-                    flexShrink: listaVista ? 0 : undefined,
+-                  }}
+-                  loading="lazy"
+-                />
++                {/* Thumbnail — un PDF è una tessera documento, mai un <img> */}
++                {foto.isPdf ? (
++                  <TesseraDocumento nomeFile={foto.nomeFile} listaVista={listaVista} />
++                ) : (
++                  // eslint-disable-next-line @next/next/no-img-element
++                  <img
++                    src={foto.previewUrl}
++                    alt={foto.nomeFile}
++                    style={{
++                      width: listaVista ? '44px' : '100%',
++                      height: listaVista ? '44px' : '100%',
++                      objectFit: 'cover',
++                      borderRadius: listaVista ? '8px' : '0',
++                      flexShrink: listaVista ? 0 : undefined,
++                    }}
++                    loading="lazy"
++                  />
++                )}
+ 
+                 {/* Progress overlay (solo durante upload) */}
+                 {foto.progress < 100 && !foto.error && (
+                   <div
+                     style={{
+                       position: listaVista ? 'static' : 'absolute',
+                       inset: listaVista ? undefined : 0,
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+@@ -496,65 +596,20 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+                         fontSize: '11px',
+                         fontWeight: 700,
+                         color: listaVista ? 'var(--primary, #D90012)' : 'white',
+                         textAlign: 'center',
+                       }}
+                     >
+                       {listaVista ? '⚠ Errore' : '⚠'}
+                     </span>
+                   </div>
+                 )}
+-
+-                {/* Tipo select — disponibile dopo upload completato */}
+-                {(foto.uploadedId || foto.progress === 100) && (
+-                  <div
+-                    style={
+-                      listaVista
+-                        ? { flex: 1, minWidth: 0 }
+-                        : {
+-                            position: 'absolute',
+-                            bottom: 0,
+-                            left: 0,
+-                            right: 0,
+-                            background: 'rgba(0,0,0,.62)',
+-                          }
+-                    }
+-                  >
+-                    <select
+-                      value={foto.tipo}
+-                      onChange={(e) =>
+-                        void handleTipoChange(foto.id, e.target.value as TipoFoto)
+-                      }
+-                      aria-label={`Categoria foto: ${foto.nomeFile}`}
+-                      style={{
+-                        width: '100%',
+-                        minHeight: '44px',
+-                        background: 'transparent',
+-                        border: 'none',
+-                        color: listaVista ? 'var(--t1, #1C1916)' : 'white',
+-                        fontFamily: 'var(--font-v3, sans-serif)',
+-                        fontSize: '12px',
+-                        fontWeight: 600,
+-                        cursor: 'pointer',
+-                        outline: 'none',
+-                        padding: '12px 8px',
+-                        appearance: 'none',
+-                      }}
+-                    >
+-                      {TIPI_FOTO.map((tf) => (
+-                        <option key={tf.value} value={tf.value}>
+-                          {tf.label}
+-                        </option>
+-                      ))}
+-                    </select>
+-                  </div>
+-                )}
+               </motion.div>
+             ))}
+           </AnimatePresence>
+         </div>
+       )}
+ 
+       {/* ─── Immagini già caricate (da DB) ──────────────────────── */}
+       {immagini.length > 0 ? (
+         <div>
+           <p
+@@ -581,33 +636,40 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+                   height: getThumbnailHeight(),
+                   background: 'var(--elv, #EDEDEA)',
+                   boxShadow: raisedShadow,
+                   display: listaVista ? 'flex' : 'block',
+                   alignItems: listaVista ? 'center' : undefined,
+                   gap: listaVista ? '12px' : undefined,
+                   padding: listaVista ? '0 10px' : '0',
+                 }}
+               >
+                 {img.url && (
+-                  // eslint-disable-next-line @next/next/no-img-element
+-                  <img
+-                    src={img.url}
+-                    alt={img.nome_file ?? 'Immagine allegata'}
+-                    style={{
+-                      width: listaVista ? '44px' : '100%',
+-                      height: listaVista ? '44px' : '100%',
+-                      objectFit: 'cover',
+-                      borderRadius: listaVista ? '8px' : '0',
+-                      flexShrink: listaVista ? 0 : undefined,
+-                    }}
+-                    loading="lazy"
+-                  />
++                  isPdfPath(img.storage_path) ? (
++                    <TesseraDocumento
++                      nomeFile={img.nome_file ?? 'Documento.pdf'}
++                      listaVista={listaVista}
++                    />
++                  ) : (
++                    // eslint-disable-next-line @next/next/no-img-element
++                    <img
++                      src={img.url}
++                      alt={img.nome_file ?? 'Immagine allegata'}
++                      style={{
++                        width: listaVista ? '44px' : '100%',
++                        height: listaVista ? '44px' : '100%',
++                        objectFit: 'cover',
++                        borderRadius: listaVista ? '8px' : '0',
++                        flexShrink: listaVista ? 0 : undefined,
++                      }}
++                      loading="lazy"
++                    />
++                  )
+                 )}
+                 {listaVista && (
+                   <span
+                     style={{
+                       fontFamily: 'var(--font-v3, sans-serif)',
+                       fontSize: '13px',
+                       fontWeight: 500,
+                       color: 'var(--t1, #1C1916)',
+                       overflow: 'hidden',
+                       textOverflow: 'ellipsis',
+@@ -624,44 +686,44 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
+                     style={{
+                       position: 'absolute',
+                       bottom: 0,
+                       left: 0,
+                       right: 0,
+                       background: 'rgba(0,0,0,.62)',
+                     }}
+                   >
+                     <select
+                       defaultValue={
+-                        TIPI_FOTO.find((tf) => tf.value === img.descrizione)?.value ?? 'altro'
++                        CATEGORIE_FOTO.find((c) => c.valore === img.categoria)?.valore ?? 'altro'
+                       }
+                       onChange={(e) =>
+-                        void handleTipoChangeDb(img.id, e.target.value as TipoFoto)
++                        void handleCategoriaChange(img.id, e.target.value as CategoriaFoto)
+                       }
+                       aria-label={`Categoria foto: ${img.nome_file ?? 'immagine'}`}
+                       style={{
+                         width: '100%',
+                         minHeight: '44px',
+                         background: 'transparent',
+                         border: 'none',
+                         color: 'white',
+                         fontFamily: 'var(--font-v3, sans-serif)',
+                         fontSize: '12px',
+                         fontWeight: 600,
+                         cursor: 'pointer',
+                         outline: 'none',
+                         padding: '12px 8px',
+                         appearance: 'none',
+                       }}
+                     >
+-                      {TIPI_FOTO.map((tf) => (
+-                        <option key={tf.value} value={tf.value}>
+-                          {tf.label}
++                      {CATEGORIE_FOTO.map((c) => (
++                        <option key={c.valore} value={c.valore}>
++                          {c.etichetta}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+               </div>
+             ))}
+           </div>
+         </div>
+       ) : fotoLocali.length === 0 ? (
+diff --git a/tests/unit/lavori/TabImmagini.test.tsx b/tests/unit/lavori/TabImmagini.test.tsx
+new file mode 100644
+index 00000000..60364c94
+--- /dev/null
++++ b/tests/unit/lavori/TabImmagini.test.tsx
+@@ -0,0 +1,502 @@
++// T11 (ondata b) — `src/components/features/lavori/form/TabImmagini.tsx`.
++//
++// 🔴 RIPARAZIONE, non abbellimento. Da T3 (30/07) la rotta di upload PRETENDE
++//    il campo `categoria` (`src/app/api/lavori/[id]/immagini/route.ts:97-103`)
++//    e questo componente spediva ancora `descrizione`: OGNI caricamento
++//    riceveva 422. Insieme a D81 (il client leggeva `img.descrizione` come
++//    categoria, colonna che non esiste più), la funzione «carica una foto»
++//    era ferma su entrambi i lati fino a questo task.
++//
++// ============================================================
++// R-P4 — misura sull'implementazione «inerte»
++// ============================================================
++// L'ABBOZZO INERTE è il file COM'ERA prima di questo task (commit `28a83c70`,
++// `git show 28a83c70:src/components/features/lavori/form/TabImmagini.tsx`):
++// niente `FoglioCategoria` montato, campo `descrizione`, `TIPI_FOTO` locale,
++// `totalFotos` che conta doppio, due gestori di scrittura separati,
++// `img.descrizione` letto come categoria.
++// Comando: `npx vitest run tests/unit/lavori/TabImmagini.test.tsx` con quel
++// file rimesso al suo posto (via `git stash`, poi ripristinato il fix).
++// Esito MISURATO sull'abbozzo inerte: **15 falliti su 16** (1 solo verde).
++// La sola prova verde è «nessun file selezionato: no-op» — prova di ASSENZA,
++// vera anche sul file rotto perché `handleFiles` faceva il return anticipato
++// anche lì. Tutte le altre 14 mordono davvero: senza `FoglioCategoria`
++// montato nessun bottone dello stub esiste (`getByText('scegli-…')` non
++// trova nulla → throw), quindi ogni prova che dipende dal foglio va rossa
++// per un motivo REALE (comportamento assente), non per "modulo non trovato".
++// Le tre prove D70/D81 restano rosse anche in isolamento sintattico: la spia
++// conta 2 occorrenze di `method: 'PATCH'` (non 1), il PATCH manuale porta
++// ancora `descrizione` invece di `categoria`, e il <select> legge
++// `img.descrizione` invece di `img.categoria`.
++//
++// Ogni forma d'ingresso enumerata PRIMA delle asserzioni (R-P4): nessun file ·
++// una foto sola · più file insieme · un PDF · un tipo che il server rifiuta ·
++// una richiesta che fallisce in rete · l'utente che esce dal foglio senza
++// scegliere.
++
++import { useState } from 'react'
++import { readFileSync } from 'node:fs'
++import { render, screen, act, within } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import type { LavoroImmagine } from '@/types/domain'
++
++// ─── Mock: compressione immagine (Web Worker/canvas non esistono in jsdom) ──
++vi.mock('browser-image-compression', () => ({
++  default: vi.fn(async (file: File) => file),
++}))
++
++// ─── Mock: haptic/sound v3 — stessa convenzione di FoglioCategoria.test.tsx ─
++const vibraMock = vi.fn()
++const suonaMock = vi.fn()
++vi.mock('@/design-system/v3/haptic', () => ({
++  vibra: (tipo: string) => vibraMock(tipo),
++}))
++vi.mock('@/design-system/v3/sound', () => ({
++  suona: (nome: string) => suonaMock(nome),
++}))
++
++// ─── Mock: FoglioCategoria — stub deterministico, tracciato per props ───────
++// 🛑 NON si mocka per aggirare il componente reale: si mocca per ISOLARE la
++// logica di TabImmagini dalla sua (già provata altrove, FoglioCategoria.test
++// .tsx). Qui serve tracciare OGNI chiamata con le sue props — è l'unico modo
++// di provare che `ancoraFocus` resta la STESSA identità attraverso i render
++// del genitore (la trappola nota del brief).
++const { foglioCalls } = vi.hoisted(() => ({ foglioCalls: [] as Array<Record<string, unknown>> }))
++vi.mock('@/components/ds/FoglioCategoria', () => ({
++  FoglioCategoria: (props: {
++    aperto: boolean
++    quante: number
++    anteprime: string[]
++    ancoraFocus: { current: HTMLElement | null }
++    onScegli: (c: string) => void
++    onChiudi: () => void
++  }) => {
++    foglioCalls.push(props)
++    if (!props.aperto) return null
++    return (
++      <div role="dialog" aria-label="foglio-categoria-stub">
++        <span data-quante={props.quante}>{props.quante} foto</span>
++        {['impronta', 'pre_lavoro', 'colore', 'post_prova', 'rx', 'altro'].map((c) => (
++          <button
++            key={c}
++            onClick={() => {
++              props.onScegli(c)
++              props.onChiudi()
++            }}
++          >
++            scegli-{c}
++          </button>
++        ))}
++        <button
++          onClick={() => {
++            // Stessa sequenza del vero FoglioCategoria (D74): ogni uscita
++            // che non è una scelta chiama comunque onScegli('altro') PRIMA
++            // di onChiudi().
++            props.onScegli('altro')
++            props.onChiudi()
++          }}
++        >
++          esci-senza-scegliere
++        </button>
++      </div>
++    )
++  },
++}))
++
++import { TabImmagini } from '@/components/features/lavori/form/TabImmagini'
++
++// ─── FakeXHR — XMLHttpRequest non esiste altrimenti in jsdom per l'upload ──
++class FakeXHR {
++  static instances: FakeXHR[] = []
++  upload: { onprogress: ((e: ProgressEvent) => void) | null } = { onprogress: null }
++  onload: (() => void | Promise<void>) | null = null
++  onerror: (() => void) | null = null
++  status = 0
++  responseText = ''
++  method = ''
++  url = ''
++  body: FormData | null = null
++
++  constructor() {
++    FakeXHR.instances.push(this)
++  }
++  open(method: string, url: string) {
++    this.method = method
++    this.url = url
++  }
++  send(body: FormData) {
++    this.body = body
++  }
++}
++
++function ultimaXHR(): FakeXHR {
++  const x = FakeXHR.instances[FakeXHR.instances.length - 1]
++  if (!x) throw new Error('nessuna XHR registrata: l\'upload non è partito')
++  return x
++}
++
++async function simulaSuccesso(xhr: FakeXHR, immagine: LavoroImmagine) {
++  await act(async () => {
++    xhr.status = 201
++    xhr.responseText = JSON.stringify({ immagine })
++    await xhr.onload?.()
++  })
++}
++
++async function simulaErrore(xhr: FakeXHR, status: number, error: string) {
++  await act(async () => {
++    xhr.status = status
++    xhr.responseText = JSON.stringify({ error })
++    await xhr.onload?.()
++  })
++}
++
++async function simulaErroreRete(xhr: FakeXHR) {
++  await act(async () => {
++    xhr.onerror?.()
++  })
++}
++
++function immagineDb(overrides: Partial<LavoroImmagine> = {}): LavoroImmagine {
++  return {
++    id: `db-${Math.random().toString(36).slice(2, 8)}`,
++    laboratorio_id: 'lab-1',
++    lavoro_id: 'lav-1',
++    url: 'https://storage.esempio/immagine.webp',
++    storage_path: 'lavori/lav-1/123.webp',
++    nome_file: 'immagine.webp',
++    descrizione: null,
++    data_scatto: null,
++    categoria: 'colore',
++    created_at: new Date().toISOString(),
++    ordine: 0,
++    ...overrides,
++  }
++}
++
++function mockMatchMedia(matches: boolean) {
++  window.matchMedia = vi.fn((query: string) => ({
++    matches,
++    media: query,
++    onchange: null,
++    addListener: vi.fn(),
++    removeListener: vi.fn(),
++    addEventListener: vi.fn(),
++    removeEventListener: vi.fn(),
++    dispatchEvent: vi.fn(),
++  })) as unknown as typeof window.matchMedia
++}
++
++// ─── Harness — replica il chiamante reale (`LavoroFormClient.tsx:128-130`):
++//     `immagini` vive nello STATO DEL GENITORE, `onAdd` lo accresce. ────────
++function Harness({ onAddSpy }: { onAddSpy?: (img: LavoroImmagine) => void }) {
++  const [immagini, setImmagini] = useState<LavoroImmagine[]>([])
++  return (
++    <TabImmagini
++      immagini={immagini}
++      lavoro_id="lav-1"
++      onAdd={(img) => {
++        onAddSpy?.(img)
++        setImmagini((prev) => [...prev, img])
++      }}
++    />
++  )
++}
++
++function inputGalleria(container: HTMLElement): HTMLInputElement {
++  return container.querySelector('input[accept="image/*,application/pdf"]') as HTMLInputElement
++}
++function inputCamera(container: HTMLElement): HTMLInputElement {
++  return container.querySelector('input[capture="environment"]') as HTMLInputElement
++}
++
++beforeEach(() => {
++  FakeXHR.instances = []
++  foglioCalls.length = 0
++  vibraMock.mockClear()
++  suonaMock.mockClear()
++  vi.stubGlobal('XMLHttpRequest', FakeXHR)
++  // jsdom non implementa affatto questi due (verificato: `undefined`, non un
++  // no-op) — senza lo stub `handleFiles` esplode sul PRIMO file.
++  vi.stubGlobal('URL', Object.assign(URL, {
++    createObjectURL: vi.fn(() => `blob:mock-${Math.random().toString(36).slice(2, 8)}`),
++    revokeObjectURL: vi.fn(),
++  }))
++  mockMatchMedia(false)
++})
++
++afterEach(() => {
++  vi.unstubAllGlobals()
++})
++
++describe('TabImmagini — T11: la categoria si chiede una volta, si scrive da un punto solo', () => {
++  // ══ LE FORME DI INGRESSO (R-P4: enumerate PRIMA delle asserzioni) ═══════
++  describe('le forme di ingresso', () => {
++    it('nessun file selezionato: no-op, nessun foglio, nessuna richiesta', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      await utente.upload(inputGalleria(container), [])
++      expect(screen.queryByRole('dialog')).toBeNull()
++      expect(FakeXHR.instances).toHaveLength(0)
++    })
++
++    it('una foto sola: il foglio chiede quante=1', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++      expect(screen.getByRole('dialog')).toBeTruthy()
++      expect(foglioCalls.at(-1)?.quante).toBe(1)
++    })
++
++    it('più file insieme: il foglio chiede UNA VOLTA per il gruppo, e la scelta vale per tutti', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const f1 = new File(['a'], 'uno.jpg', { type: 'image/jpeg' })
++      const f2 = new File(['b'], 'due.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), [f1, f2])
++
++      expect(foglioCalls.filter((p) => p.aperto)).toHaveLength(1)
++      expect(foglioCalls.at(-1)?.quante).toBe(2)
++
++      await utente.click(screen.getByText('scegli-colore'))
++
++      expect(FakeXHR.instances).toHaveLength(2)
++      expect(FakeXHR.instances[0].body?.get('categoria')).toBe('colore')
++      expect(FakeXHR.instances[1].body?.get('categoria')).toBe('colore')
++    })
++
++    it('un PDF: si rende come tessera documento, MAI un <img> — in upload e da banca dati', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const pdf = new File(['%PDF-1.4'], 'referto.pdf', { type: 'application/pdf' })
++      await utente.upload(inputGalleria(container), pdf)
++      await utente.click(screen.getByText('scegli-colore'))
++
++      // In volo: nessun <img>, e la tessera porta il nome del file.
++      expect(container.querySelectorAll('img')).toHaveLength(0)
++      expect(screen.getByRole('img', { name: /Documento: referto\.pdf/ })).toBeTruthy()
++
++      // Dopo il successo: la stessa cosa vale per la foto ORA in banca dati
++      // (il locale è sparito, la tessera viene da `storage_path` che finisce
++      // per `.pdf`).
++      await simulaSuccesso(
++        ultimaXHR(),
++        immagineDb({ storage_path: 'lavori/lav-1/999.pdf', nome_file: 'referto.pdf', categoria: 'colore' })
++      )
++      expect(container.querySelectorAll('img')).toHaveLength(0)
++      expect(screen.getByRole('img', { name: /Documento: referto\.pdf/ })).toBeTruthy()
++    })
++
++    it('il server rifiuta (es. tipo non ammesso, 415): errore visibile, vibrazione+suono d\'errore', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++      await utente.click(screen.getByText('scegli-colore'))
++
++      await simulaErrore(ultimaXHR(), 415, 'Tipo file non consentito: image/jpeg')
++
++      expect(screen.getByRole('alert')).toBeTruthy()
++      expect(vibraMock).toHaveBeenCalledWith('error')
++      expect(suonaMock).toHaveBeenCalledWith('errore')
++    })
++
++    it('la rete fallisce (xhr.onerror): stesso trattamento d\'errore', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++      await utente.click(screen.getByText('scegli-colore'))
++
++      await simulaErroreRete(ultimaXHR())
++
++      expect(screen.getByRole('alert')).toBeTruthy()
++      expect(vibraMock).toHaveBeenCalledWith('error')
++    })
++
++    it('l\'utente esce dal foglio senza scegliere: la categoria è "altro" (D74), non un errore', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++      await utente.click(screen.getByText('esci-senza-scegliere'))
++
++      expect(FakeXHR.instances).toHaveLength(1)
++      expect(FakeXHR.instances[0].body?.get('categoria')).toBe('altro')
++    })
++  })
++
++  // ══ D81 — IL CAMPO SPEDITO ═══════════════════════════════════════════════
++  describe('il campo spedito alla POST', () => {
++    it('porta `categoria`, MAI `descrizione` — ogni caricamento riceveva 422 fino a qui', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++      await utente.click(screen.getByText('scegli-rx'))
++
++      const body = ultimaXHR().body
++      expect(body?.get('categoria')).toBe('rx')
++      expect(body?.get('descrizione')).toBeNull()
++    })
++  })
++
++  // ══ LA FOTO LOCALE SPARISCE QUANDO ARRIVA QUELLA VERA ═══════════════════
++  describe('niente doppioni: la locale sparisce al successo', () => {
++    it('dopo un caricamento riuscito la foto compare UNA VOLTA SOLA', async () => {
++      const utente = userEvent.setup()
++      const onAddSpy = vi.fn()
++      const { container } = render(<Harness onAddSpy={onAddSpy} />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++      await utente.click(screen.getByText('scegli-colore'))
++
++      await simulaSuccesso(ultimaXHR(), immagineDb({ nome_file: 'foto.jpg' }))
++
++      expect(onAddSpy).toHaveBeenCalledTimes(1)
++      // Un solo <img> nell'intero componente: non uno locale + uno da DB.
++      expect(container.querySelectorAll('img')).toHaveLength(1)
++      expect(screen.getByText('1 foto allegate')).toBeTruthy()
++    })
++
++    it('il contatore che decideva "Vista lista" NON conta più doppio (era il sintomo osservabile del bug)', async () => {
++      // `totalFotos` non compare mai come testo: il suo UNICO lettore è la
++      // soglia `isSmallViewport && totalFotos >= 6` (riga 378 pre-T11). Sul
++      // file rotto, 3 upload riusciti facevano 3 (immagini) + 3 (fotoLocali
++      // con uploadedId MAI rimosso) = 6 → soglia raggiunta. Dopo il fix: 3.
++      mockMatchMedia(true) // forza isSmallViewport=true (il mock globale di tests/setup.ts è sempre `false`)
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++
++      const files = [
++        new File(['a'], 'uno.jpg', { type: 'image/jpeg' }),
++        new File(['b'], 'due.jpg', { type: 'image/jpeg' }),
++        new File(['c'], 'tre.jpg', { type: 'image/jpeg' }),
++      ]
++      await utente.upload(inputGalleria(container), files)
++      await utente.click(screen.getByText('scegli-colore'))
++
++      expect(FakeXHR.instances).toHaveLength(3)
++      for (const xhr of FakeXHR.instances) {
++        await simulaSuccesso(xhr, immagineDb())
++      }
++
++      expect(screen.queryByRole('button', { name: /vista lista|vista griglia/i })).toBeNull()
++    })
++  })
++
++  // ══ D70 — UN SOLO PUNTO DI SCRITTURA ═════════════════════════════════════
++  describe('un solo punto di scrittura della categoria (D70)', () => {
++    it('spia sul sorgente: un SOLO `method: \'PATCH\'` nel file', () => {
++      const src = readFileSync(
++        'src/components/features/lavori/form/TabImmagini.tsx',
++        'utf-8'
++      )
++      const occorrenze = src.match(/method:\s*['"]PATCH['"]/g) ?? []
++      expect(occorrenze).toHaveLength(1)
++    })
++
++    it('correggere la categoria di una foto già in banca dati chiama quella funzione (fetch PATCH)', async () => {
++      const fetchMock = vi.fn().mockResolvedValue({ ok: true })
++      vi.stubGlobal('fetch', fetchMock)
++
++      const { container } = render(
++        <TabImmagini
++          immagini={[immagineDb({ id: 'img-9', categoria: 'impronta', nome_file: 'a.jpg' })]}
++          lavoro_id="lav-1"
++          onAdd={() => {}}
++        />
++      )
++      const select = container.querySelector('select') as HTMLSelectElement
++      const utente = userEvent.setup()
++      await utente.selectOptions(select, 'rx')
++
++      expect(fetchMock).toHaveBeenCalledWith(
++        '/api/lavori/lav-1/immagini/img-9',
++        expect.objectContaining({
++          method: 'PATCH',
++          body: JSON.stringify({ categoria: 'rx' }),
++        })
++      )
++    })
++
++    it('legge `img.categoria`, non `img.descrizione` (D81)', () => {
++      const { container } = render(
++        <TabImmagini
++          immagini={[
++            immagineDb({ id: 'img-1', categoria: 'rx', descrizione: 'nota libera irrilevante' }),
++          ]}
++          lavoro_id="lav-1"
++          onAdd={() => {}}
++        />
++      )
++      const select = container.querySelector('select') as HTMLSelectElement
++      expect(within(select).getByText('Radiografia').getAttribute('value')).toBe('rx')
++      expect(select.value).toBe('rx')
++    })
++  })
++
++  // ══ LA TRAPPOLA NOTA — ancoraFocus stabile attraverso i render ══════════
++  describe('FoglioCategoria — `ancoraFocus` (trappola nota del brief)', () => {
++    it('è la STESSA identità attraverso un re-render del genitore, mai un letterale ricreato', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++
++      const primaChiamata = foglioCalls.at(-1)
++      const lunghezzaPrima = foglioCalls.length
++      expect(primaChiamata?.aperto).toBe(true)
++
++      // Forza un re-render di TabImmagini SENZA toccare il foglio: il
++      // listener di resize aggiorna `windowW`, uno stato TUTTO SUO. 🛑 jsdom
++      // parte da `innerWidth: 1024` e un `resize` che non lo cambia farebbe
++      // scrivere a `setWindowW` lo STESSO valore — React salterebbe il
++      // render (bailout su stato invariato) e lo stub non verrebbe MAI
++      // richiamato una seconda volta: cambio davvero la larghezza, prima.
++      Object.defineProperty(window, 'innerWidth', {
++        writable: true,
++        configurable: true,
++        value: 800,
++      })
++      await act(async () => {
++        window.dispatchEvent(new Event('resize'))
++      })
++
++      // 🛑 Prova che lo stub sia stato DAVVERO richiamato una seconda volta
++      // (non che React abbia bypassato il render): senza questa riga
++      // `secondaChiamata` potrebbe essere lo STESSO oggetto della prima per
++      // assenza di un secondo render, e il confronto sotto passerebbe per il
++      // motivo sbagliato — proprio la trappola che questa prova deve chiudere.
++      expect(foglioCalls.length).toBeGreaterThan(lunghezzaPrima)
++
++      const secondaChiamata = foglioCalls.at(-1)
++      expect(secondaChiamata?.aperto).toBe(true)
++      expect(secondaChiamata?.ancoraFocus).toBe(primaChiamata?.ancoraFocus)
++    })
++
++    it('l\'àncora è il bottone Galleria quando i file vengono da lì', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputGalleria(container), file)
++
++      const bottoneGalleria = screen.getByRole('button', { name: 'Seleziona da galleria o file' })
++      const ancora = foglioCalls.at(-1)?.ancoraFocus as { current: HTMLElement | null }
++      expect(ancora.current).toBe(bottoneGalleria)
++    })
++
++    it('l\'àncora è il bottone Camera quando i file vengono dalla fotocamera', async () => {
++      const utente = userEvent.setup()
++      const { container } = render(<Harness />)
++      const file = new File(['x'], 'scatto.jpg', { type: 'image/jpeg' })
++      await utente.upload(inputCamera(container), file)
++
++      const bottoneCamera = screen.getByRole('button', { name: 'Scatta foto con la fotocamera' })
++      const ancora = foglioCalls.at(-1)?.ancoraFocus as { current: HTMLElement | null }
++      expect(ancora.current).toBe(bottoneCamera)
++    })
++  })
++})

@@ -24,17 +24,26 @@
 #  file di allarme sulla Scrivania che resta finché il salvataggio non riesce.
 #
 #  ⚠️ CHE COSA QUESTO NON COMPRA. `provato:` un lavoro `launchd` di utente parte
-#  solo se il Mac è acceso e Francesco ha fatto l'accesso; e `provato:` l'orario
-#  è registrato davvero (`launchctl print` → `calendarinterval`, Hour 3 Minute 0,
-#  `watching = 1`), non solo il programma.
-#  🛑 **NON VERIFICATO:** che cosa faccia macOS se alle 03:00 il Mac è spento o
-#  dorme — si legge in giro che il lavoro venga recuperato al risveglio, ma qui
-#  NON è stato provato (servirebbe un ciclo di sonno vero a cavallo delle 03:00),
-#  e finché non lo è **si conta un giorno saltato come saltato**.
-#  🔑 Quindi: toglie la dipendenza dalla MEMORIA di qualcuno; NON garantisce una
-#  copia al giorno. Quella la dà solo il piano a pagamento — D137 (c) · P20.
+#  solo se il Mac è acceso e Francesco ha fatto l'accesso.
+#  🔄 **IL «NON VERIFICATO» È STATO CHIUSO L'08/08/2026, E LA RISPOSTA ERA LA
+#  PEGGIORE.** Qui c'era scritto: «*non verificato che cosa faccia macOS se alle
+#  03:00 il Mac è spento — si legge in giro che il lavoro venga recuperato al
+#  risveglio*». **Non lo recupera.** `provato:` `~/Backup-UA-database/launchd.log`
+#  — un giro riuscito ogni notte fino al `2026-08-05 03:00`, poi **nessuna riga**
+#  il 6, il 7 e l'8. Non un errore: il lavoro non è partito, e nessuno ha
+#  rimediato. **Tre giorni senza rete di sicurezza**, e la guardia del commit se
+#  n'è accorta prima di qualunque persona.
+#  🔑 **Che cosa è cambiato da quel fatto:** il lavoro non ha più UN orario ma
+#  TRE sveglie — 11:00, 16:00 e ogni accesso (`RunAtLoad`) — e questo script è
+#  diventato **idempotente nella giornata** (blocco ①-bis): la prima sveglia che
+#  trova il Mac acceso fa la copia, le altre escono senza nemmeno accendere
+#  Docker. ➡️ Ora una copia al giorno c'è **se il Mac viene acceso in qualunque
+#  momento della giornata**, non solo se è acceso a un'ora precisa.
+#  ⚠️ Resta scoperto il solo caso «Mac mai acceso per un giorno intero»: quello
+#  lo copre solo il piano a pagamento — D137 (c) · P20.
 #
-#  USO A MANO:  bash scripts/salvataggio-programmato.sh
+#  USO A MANO:  bash scripts/salvataggio-programmato.sh          (salta se oggi è già fatta)
+#               bash scripts/salvataggio-programmato.sh --forza  (la fa comunque)
 #  INSTALLA:    bash scripts/installa-salvataggio-programmato.sh
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail   # 🛑 NON -e: gli errori qui si gestiscono, non si subiscono
@@ -102,6 +111,36 @@ if [ -n "${ULTIMA}" ]; then
   [ "${GIORNI}" -ge 3 ] && nota "⚠️ sono passati ${GIORNI} giorni dall'ultima copia"
 else
   nota "⚠️ nessuna copia precedente sul disco"
+fi
+
+# ── ①-bis UNA COPIA AL GIORNO, E LA FA LA PRIMA SVEGLIA CHE TROVA IL MAC ACCESO ─
+#    🔑 PERCHÉ ESISTE, e il fatto è misurato (08/08/2026): **launchd NON recupera
+#    un orario mancato.** `provato:` `~/Backup-UA-database/launchd.log` porta un
+#    giro riuscito ogni notte fino al `2026-08-05 03:00` e poi **nessuna riga** il
+#    6, il 7 e l'8 — non un errore: il lavoro non è proprio partito, perché il Mac
+#    era spento, e al risveglio nessuno ha rimediato. **Tre giorni senza rete.**
+#    🛑 Questo chiude il «NON VERIFICATO» che stava in testa a questo file: ora è
+#    verificato, e la risposta è che macOS non fa niente.
+#
+#    ➡️ IL RIMEDIO NON È UN ORARIO MIGLIORE: è chiedere PIÙ VOLTE e non farlo due
+#    volte. Il lavoro ora si sveglia alle **11:00**, alle **16:00** e **a ogni
+#    accesso** (`RunAtLoad`), e questo blocco è ciò che rende quelle tre sveglie
+#    **gratuite**: la prima che trova il Mac acceso fa la copia, le altre escono
+#    subito. Senza di lui sarebbero tre copie al giorno, cioè cinque giorni di
+#    storico invece di quattordici.
+#
+#    🛑 DUE CONDIZIONI, non una: la cartella di oggi **e** l'esito RIUSCITO. Una
+#    copia fallita a metà può lasciare la cartella sul disco: se guardassimo solo
+#    quella, la sveglia successiva salterebbe **proprio il giorno in cui serve**.
+#    🔑 E l'uscita sta PRIMA di Docker apposta: accenderlo per non fare niente
+#    costa un minuto di macchina e la ventola, tre volte al giorno.
+OGGI="$(date '+%Y-%m-%d')"
+if [ "${1:-}" != "--forza" ] \
+   && [ -n "$(find "${DESTINAZIONE}" -maxdepth 1 -type d -name "${OGGI}_*" 2>/dev/null | head -1)" ] \
+   && grep -q '^RIUSCITO' "${STATO}" 2>/dev/null; then
+  nota "la copia di oggi (${OGGI}) c'è già ed è riuscita — non ne servono due"
+  nota "── fine, niente da fare (per farla comunque: --forza) ──"
+  exit 0
 fi
 
 # ── ② Docker: si accende, e si ASPETTA che risponda davvero ──────────────────

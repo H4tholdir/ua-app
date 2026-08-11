@@ -1,0 +1,1346 @@
+# Review package: b8fba0f3..9cea1339
+
+## Commits
+9cea1339 test(avvisi): prova esplicita D336 su costruisciCardAvviso — la frase non mescola mai campi corretti e dati veri del lavoro
+8625854a feat(avvisi): la sezione «Avvisi dal laboratorio» nel portale del dentista (Task 8, D346/D354)
+
+## Files changed
+ src/app/portale/[token]/page.tsx                   | 201 ++++++++++++
+ src/lib/avvisi/portale.ts                          | 313 ++++++++++++++++++
+ src/lib/portale/audit.ts                           |   3 +
+ src/types/database.types.ts                        |   4 +
+ .../20260810072748_avvisi_segna_visti.sql          |  59 ++++
+ tests/integration/avvisi-segna-visti.rpc.test.ts   | 221 +++++++++++++
+ tests/unit/avvisi-portale.test.ts                  | 348 +++++++++++++++++++++
+ 7 files changed, 1149 insertions(+)
+
+## Diff
+diff --git a/src/app/portale/[token]/page.tsx b/src/app/portale/[token]/page.tsx
+index cc3d4eae..2c2c43dd 100644
+--- a/src/app/portale/[token]/page.tsx
++++ b/src/app/portale/[token]/page.tsx
+@@ -1,17 +1,31 @@
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
+ import { headers } from 'next/headers'
+ import type { LavoroPortale, StatoLavoro, TipoDispositivo } from '@/types/domain'
+ import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
+ import { FatturazioneSection } from '@/components/features/portale/FatturazioneSection'
+ import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
++// Task 8 dell'ondata «l'avviso al dentista» — la sezione «Avvisi dal
++// laboratorio» (⚖️ D346, eredità ⚖️ D354). La lettura grezza degli avvisi
++// resta `archivioCliente` (Task 6/9); la logica di raggruppamento/unione e la
++// scrittura della ricevuta vivono in `avvisi/portale.ts`, testabili — questo
++// file è un componente server asincrono che nessuna prova unitaria rende.
++import { archivioCliente } from '@/lib/avvisi/queries'
++import {
++  raggruppaPerLavoro,
++  lavoriPerLeCard,
++  costruisciCardAvviso,
++  segnaAvvisiVisti,
++  type CardAvvisoPortale,
++} from '@/lib/avvisi/portale'
++import type { AzionePortale } from '@/lib/portale/audit'
+ 
+ type PageProps = { params: Promise<{ token: string }> }
+ 
+ const statoLabels: Record<StatoLavoro, string> = {
+   ricevuto: 'Ricevuto',
+   in_lavorazione: 'In lavorazione',
+   in_prova: 'In prova',
+   in_prova_esterna: 'In prova esterna',
+   pronto: 'Pronto',
+   consegnato: 'Consegnato',
+@@ -33,20 +47,38 @@ const statoColors: Record<StatoLavoro, string> = {
+ }
+ 
+ // B4: label identiche allo standard → import diretto da LABEL_MACRO
+ const tipoLabels: Record<TipoDispositivo, string> = LABEL_MACRO
+ 
+ function formatDataIT(dateStr: string): string {
+   const d = new Date(dateStr + 'T00:00:00')
+   return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+ }
+ 
++/**
++ * Come `formatDataIT`, ma per un `timestamptz` vero (`created_at` di un
++ * avviso) e non per una colonna DATE: qui NON si aggiunge `'T00:00:00'` — il
++ * valore porta già un'ora, e sommarne un'altra produrrebbe una stringa non
++ * valida.
++ * 🛑 `timeZone: 'Europe/Rome'` è ESPLICITO: questo è un componente server, e
++ * senza fuso `toLocaleDateString` formatta nel fuso del PROCESSO (UTC su
++ * Vercel) — un avviso creato alle 00:30 di Roma mostrerebbe il giorno prima.
++ */
++function formatDataAvviso(iso: string): string {
++  return new Date(iso).toLocaleDateString('it-IT', {
++    day: 'numeric',
++    month: 'long',
++    year: 'numeric',
++    timeZone: 'Europe/Rome',
++  })
++}
++
+ function LavoroCard({ lavoro }: { lavoro: LavoroPortale }) {
+   const stato = lavoro.stato as StatoLavoro
+   const tipo = lavoro.tipo_dispositivo as TipoDispositivo
+   const statoColor = statoColors[stato] ?? '#8899CC'
+   const statoLabel = statoLabels[stato] ?? stato
+   const tipoLabel = tipoLabels[tipo] ?? tipo
+ 
+   return (
+     <div
+       style={{
+@@ -193,20 +225,130 @@ function LavoroCard({ lavoro }: { lavoro: LavoroPortale }) {
+             >
+               🧾 Buono di Consegna
+             </a>
+           )}
+         </div>
+       )}
+     </div>
+   )
+ }
+ 
++// ─── Avvisi dal laboratorio (⚖️ D346, mockup B1 — «una sezione come le
++//     altre», stessa card che il dentista già conosce) ───────────────────
++function AvvisoCard({ avviso }: { avviso: CardAvvisoPortale }) {
++  return (
++    <div
++      style={{
++        background: '#FFFFFF',
++        borderRadius: '12px',
++        padding: '16px',
++        boxShadow: '0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)',
++        marginBottom: '8px',
++      }}
++    >
++      <div
++        style={{
++          display: 'flex',
++          alignItems: 'center',
++          justifyContent: 'space-between',
++          gap: '8px',
++        }}
++      >
++        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
++          #{avviso.numeroLavoro}
++        </span>
++        <span
++          style={{
++            fontFamily: 'DM Sans, sans-serif',
++            fontSize: '11px',
++            fontWeight: 700,
++            color: '#92400E',
++            background: '#FEF3C7',
++            border: '1px solid #FDE68A',
++            borderRadius: '6px',
++            padding: '3px 10px',
++            textTransform: 'uppercase',
++            letterSpacing: '0.04em',
++            whiteSpace: 'nowrap',
++          }}
++        >
++          Aggiornata
++        </span>
++      </div>
++
++      <p
++        style={{
++          fontFamily: 'DM Sans, sans-serif',
++          fontSize: '15px',
++          fontWeight: 600,
++          color: '#111827',
++          margin: '6px 0 0',
++        }}
++      >
++        {avviso.pazienteMostrato}
++      </p>
++
++      <p
++        style={{
++          fontFamily: 'DM Sans, sans-serif',
++          fontSize: '13px',
++          color: '#6B7280',
++          margin: '3px 0 0',
++        }}
++      >
++        {avviso.frase}
++      </p>
++
++      <div
++        style={{
++          display: 'flex',
++          alignItems: 'center',
++          justifyContent: 'space-between',
++          gap: '8px',
++          marginTop: '10px',
++        }}
++      >
++        {/* #6B7280 e non #9CA3AF: una parte NUOVA non eredita il difetto di
++            contrasto misurato altrove nel portale (2,54:1 su bianco). */}
++        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#6B7280' }}>
++          {formatDataAvviso(avviso.dataPiuRecente)}
++        </span>
++        {avviso.ddcUrl && (
++          <a
++            href={avviso.ddcUrl}
++            target="_blank"
++            rel="noopener noreferrer"
++            style={{
++              display: 'inline-flex',
++              alignItems: 'center',
++              gap: '6px',
++              minHeight: '44px',
++              padding: '0 14px',
++              background: '#F3F4F6',
++              borderRadius: '8px',
++              fontFamily: 'DM Sans, sans-serif',
++              fontSize: '12px',
++              fontWeight: 700,
++              color: '#374151',
++              textDecoration: 'none',
++              border: '1px solid #E5E7EB',
++            }}
++            aria-label="Scarica la dichiarazione aggiornata"
++          >
++            📄 Dichiarazione aggiornata
++          </a>
++        )}
++      </div>
++    </div>
++  )
++}
++
+ // ─── Link scaduto ──────────────────────────────────────────────
+ function LinkScaduto() {
+   return (
+     <main
+       style={{
+         minHeight: '100vh',
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         padding: '24px',
+@@ -312,20 +454,55 @@ export default async function PortalePage({ params }: PageProps) {
+       cliente_id: cliente.id,
+       laboratorio_id: cliente.laboratorio_id,
+       ip_address: ip,
+       azione: 'view_lavori',
+     })
+     if (logErr) console.error('[Portale] Audit log failed:', logErr.message)
+   } catch {
+     // Tabella non ancora nel DB — ignora
+   }
+ 
++  // ─── Task 8 — «Avvisi dal laboratorio»: UNA card per lavoro (⚖️ D354) ───
++  // Lettura grezza riusata com'è (checklist §1): `archivioCliente` non ha un
++  // cancello di ruolo — per il portale va bene così, il cancello è il token.
++  const righeAvviso = await archivioCliente(svc, { clienteId: cliente.id, laboratorioId: cliente.laboratorio_id })
++  const gruppiAvviso = raggruppaPerLavoro(righeAvviso)
++  const lavoriConAvviso = await lavoriPerLeCard(svc, {
++    lavoroIds: gruppiAvviso.map((g) => g.lavoroId),
++    clienteId: cliente.id,
++    laboratorioId: cliente.laboratorio_id,
++  })
++  const avvisiCards = costruisciCardAvviso(gruppiAvviso, lavoriConAvviso, { token })
++
++  // Il visto (e il suo audit) si scrivono SOLO se c'è almeno una card
++  // MOSTRATA — mai per una sezione vuota (trappola nota, §3 del brief). Gli
++  // id vengono da `avvisiCards`, cioè DOPO il filtro sui lavori risolti: un
++  // avviso il cui lavoro non si è risolto (difensivo) non riceve un visto per
++  // qualcosa che il dentista non ha visto.
++  if (avvisiCards.length > 0) {
++    const azioneAvviso: AzionePortale = 'view_avviso'
++    try {
++      const { error: logAvvisoErr } = await svc.from('portale_accessi').insert({
++        cliente_id: cliente.id,
++        laboratorio_id: cliente.laboratorio_id,
++        ip_address: ip,
++        azione: azioneAvviso,
++      })
++      if (logAvvisoErr) console.error('[Portale] Audit log (view_avviso) failed:', logAvvisoErr.message)
++    } catch {
++      // Tabella non ancora nel DB — ignora, stesso ripiego del log sopra.
++    }
++
++    const idsDaSegnareVisti = avvisiCards.flatMap((c) => c.avvisoIds)
++    await segnaAvvisiVisti(svc, idsDaSegnareVisti, cliente.laboratorio_id)
++  }
++
+   // Dati laboratorio
+   const { data: lab } = await svc
+     .from('laboratori')
+     .select('nome, ragione_sociale, logo_url, telefono, email')
+     .eq('id', cliente.laboratorio_id)
+     .single()
+ 
+   // Lavori aperti
+   const { data: lavoriApertiRaw } = await svc
+     .from('lavori')
+@@ -481,20 +658,44 @@ export default async function PortalePage({ params }: PageProps) {
+               fontSize: '13px',
+               fontWeight: 700,
+               color: '#374151',
+               textDecoration: 'none',
+             }}
+           >
+             ➕ Richiedi nuovo lavoro
+           </a>
+         </div>
+ 
++        {/* Avvisi dal laboratorio — ⚖️ D346 (Variante B1), eredità ⚖️ D354.
++            In cima, SOPRA i lavori in corso; niente sezione se non c'è nulla
++            da mostrare (checklist §3: zero avvisi → niente scrittura visto). */}
++        {avvisiCards.length > 0 && (
++          <section style={{ marginBottom: '32px' }}>
++            <h3
++              style={{
++                fontFamily: 'DM Sans, sans-serif',
++                fontSize: '13px',
++                fontWeight: 700,
++                color: '#374151',
++                textTransform: 'uppercase',
++                letterSpacing: '0.06em',
++                margin: '0 0 12px',
++              }}
++            >
++              Avvisi dal laboratorio ({avvisiCards.length})
++            </h3>
++            {avvisiCards.map((avviso) => (
++              <AvvisoCard key={avviso.lavoroId} avviso={avviso} />
++            ))}
++          </section>
++        )}
++
+         {/* Lavori aperti */}
+         <section style={{ marginBottom: '32px' }}>
+           <h3
+             style={{
+               fontFamily: 'DM Sans, sans-serif',
+               fontSize: '13px',
+               fontWeight: 700,
+               color: '#374151',
+               textTransform: 'uppercase',
+               letterSpacing: '0.06em',
+diff --git a/src/lib/avvisi/portale.ts b/src/lib/avvisi/portale.ts
+new file mode 100644
+index 00000000..bb8f27d9
+--- /dev/null
++++ b/src/lib/avvisi/portale.ts
+@@ -0,0 +1,313 @@
++// src/lib/avvisi/portale.ts
++//
++// Task 8 dell'ondata «l'avviso al dentista» — LA SEZIONE «Avvisi dal
++// laboratorio» nel portale del dentista (⚖️ D346, mockup B1) e la sua eredità
++// ⚖️ D354: UNA card per lavoro, l'unione dei campi corretti, l'ULTIMA
++// dichiarazione da scaricare, la ricevuta di lettura scritta su OGNI riga
++// mostrata.
++//
++// 🔑 PERCHÉ UN FILE NUOVO E NON UNA TERZA/QUARTA FUNZIONE IN `queries.ts`.
++//    Quel modulo si dichiara «LE DUE LETTURE di avvisi_dentista» (poi diventate
++//    tre con `avvisoPerLaStriscia`, per una DOMANDA nuova, non una terza
++//    strada per la stessa). Qui la domanda è ANCORA diversa e più ampia: non
++//    «quali avvisi», ma «quali LAVORI hanno un avviso, con che dichiarazione
++//    viva e con quale frase». Le funzioni di questo file leggono `lavori` e
++//    `dichiarazioni_conformita`, non `avvisi_dentista` — la lettura grezza
++//    degli avvisi resta `archivioCliente` (`queries.ts:346`), riusata
++//    com'è, senza duplicati.
++//
++// 🛑 QUESTO FILE NON HA UN CANCELLO DI RUOLO, ED È GIUSTO COSÌ: il portale del
++//    dentista non ha ruoli applicativi, il suo cancello è il token
++//    (`archivioCliente` lo dice di sé: «per il portale va bene così»).
++
++import { descriviCampiCorretti } from '@/lib/avvisi/messaggio'
++import type { AvvisoRiga } from '@/lib/avvisi/queries'
++import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
++import type { getServiceClient } from '@/lib/supabase/server-service'
++
++type Svc = ReturnType<typeof getServiceClient>
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 1. raggruppaPerLavoro — UNA card per lavoro, l'unione dei campi (⚖️ D354)
++// ═══════════════════════════════════════════════════════════════════════════
++
++/**
++ * UN gruppo per lavoro: l'unione (senza doppioni) dei `campi_corretti` di
++ * TUTTI gli avvisi di quel lavoro, la data dell'avviso PIÙ RECENTE, e TUTTI
++ * gli id degli avvisi che compongono il gruppo — servono a `segnaAvvisiVisti`
++ * per scrivere la ricevuta su ognuno di essi, non solo sul più recente.
++ */
++export interface CardAvviso {
++  lavoroId: string
++  avvisoIds: string[]
++  campiCorretti: string[]
++  dataPiuRecente: string
++}
++
++/**
++ * ⚖️ D354 — «UNA card PER LAVORO che abbia almeno un avviso»: qui è dove
++ * l'unione si costruisce, in un posto solo (stesso principio di
++ * `DAL_PIU_VECCHIO` in `queries.ts`: la regola vive UNA volta, non una per
++ * ogni chiamante).
++ *
++ * 🛑 IL MASSIMO DI `created_at` SI CALCOLA, NON SI ASSUME DALL'ORDINE
++ *    DELL'INPUT. `archivioCliente` restituisce le righe dal più recente, e in
++ *    quell'ordine il primo incontro di un `lavoro_id` porterebbe già la data
++ *    giusta — ma far dipendere la correttezza da un ordinamento scelto altrove
++ *    è una promessa che questo modulo non controlla. Il confronto stringa fra
++ *    due ISO 8601 con lo stesso fuso (`timestamptz` via PostgREST è sempre
++ *    UTC con `Z`) ordina correttamente senza bisogno di `new Date(...)`.
++ *
++ * 🔑 D336 — IL VALORE VECCHIO NON PUÒ COMPARIRE QUI PER COSTRUZIONE:
++ *    `campi_corretti` porta solo NOMI di campo (stringhe come `descrizione`),
++ *    mai un valore. Questa funzione non riceve altro dalla riga che nomi e
++ *    date: non ha, strutturalmente, un dato da cui un valore vecchio potrebbe
++ *    entrare — stessa garanzia-per-firma di `buildAvvisoMessage`.
++ */
++export function raggruppaPerLavoro(righe: readonly AvvisoRiga[]): CardAvviso[] {
++  const ordine: string[] = []
++  const gruppi = new Map<string, { avvisoIds: string[]; campi: Set<string>; dataPiuRecente: string }>()
++
++  for (const r of righe) {
++    let g = gruppi.get(r.lavoro_id)
++    if (!g) {
++      g = { avvisoIds: [], campi: new Set<string>(), dataPiuRecente: r.created_at }
++      gruppi.set(r.lavoro_id, g)
++      ordine.push(r.lavoro_id)
++    }
++    g.avvisoIds.push(r.id)
++    for (const campo of r.campi_corretti) g.campi.add(campo)
++    if (r.created_at > g.dataPiuRecente) g.dataPiuRecente = r.created_at
++  }
++
++  return ordine.map((lavoroId) => {
++    const g = gruppi.get(lavoroId) as { avvisoIds: string[]; campi: Set<string>; dataPiuRecente: string }
++    return {
++      lavoroId,
++      avvisoIds: g.avvisoIds,
++      campiCorretti: Array.from(g.campi),
++      dataPiuRecente: g.dataPiuRecente,
++    }
++  })
++}
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 2. fraseAvviso — la frase delle voci, SOLO nel portale (⚖️ D334 · D336)
++// ═══════════════════════════════════════════════════════════════════════════
++
++/** Elenco in italiano: «a», «a e b», «a, b e c» — mai la virgola di Oxford. */
++function elenca(voci: readonly string[]): string {
++  if (voci.length === 0) return ''
++  if (voci.length === 1) return voci[0]
++  return `${voci.slice(0, -1).join(', ')} e ${voci[voci.length - 1]}`
++}
++
++/**
++ * La frase che la card mostra al dentista — il dettaglio che ⚖️ D334 vieta su
++ * WhatsApp e ammette SOLO qui.
++ *
++ * 🛑 NESSUN VERBO CHE DEVE CONCORDARE COL GENERE/NUMERO DELLE VOCI. Il
++ *    mockup approvato (B1) scriveva «sono cambiati i denti indicati e le
++ *    caratteristiche prescritte» — ma «cambiati» è maschile plurale e non
++ *    concorda con «il paziente» (richiederebbe «è cambiato») né con «la
++ *    descrizione» («è cambiata»): con un'unione arbitraria di voci di generi
++ *    diversi non esiste UN participio che vada sempre bene. Si tiene
++ *    l'apertura del mockup («La dichiarazione è stata rifatta:») e si chiude
++ *    con l'elenco nudo, senza un secondo verbo — grammaticalmente sempre
++ *    corretto, qualunque sia la combinazione di voci.
++ *
++ * 🔑 USA `descriviCampiCorretti` (⚖️ D336, garanzia di firma: non riceve un
++ *    valore, quindi non può mostrarlo) — non reinventa la traduzione qui.
++ */
++export function fraseAvviso(campiCorretti: readonly string[]): string {
++  const descrizioni = descriviCampiCorretti(campiCorretti)
++  if (descrizioni.length === 0) return 'La dichiarazione è stata rifatta.'
++  return `La dichiarazione è stata rifatta: ${elenca(descrizioni)}.`
++}
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 3. lavoriPerLeCard — i lavori con avviso: numero, paziente, la DdC viva
++// ═══════════════════════════════════════════════════════════════════════════
++
++/** Riga di `lavori` coi soli campi che la card mostra, più la dichiarazione
++ *  ATTIVA (`stato <> 'annullata'`) di quel lavoro, se c'è. */
++export interface LavoroConAvviso {
++  lavoroId: string
++  numeroLavoro: string
++  pazienteNomeSnapshot: string | null
++  descrizione: string
++  stato: string
++  ddcStoragePathPdf: string | null
++}
++
++/**
++ * I lavori che hanno almeno un avviso, con l'UNICA dichiarazione ancora viva
++ * (se c'è — il pattern `.neq('ddc.stato', 'annullata')` è lo stesso già usato
++ * da `page.tsx` per `lavoriConsegnati`, righe ~344-359, riusato com'è per
++ * ⚖️ D354).
++ *
++ * 🛑 `stato` DI `lavori` VIAGGIA ANCHE SE LA CARD NON LO MOSTRA DIRETTAMENTE:
++ *    serve a `costruisciCardAvviso` per decidere il CHIP di download, perché
++ *    la rotta `/api/portale/[token]/lavori/[lavoro_id]/[documento]` filtra
++ *    `.eq('stato', 'consegnato')` (righe 45-52) OLTRE alla dichiarazione non
++ *    annullata. Offrire il chip quando la rotta lo rifiuterebbe sarebbe un
++ *    link morto: il predicato del chip dev'essere IDENTICO a quello della
++ *    rotta, non un secondo predicato che spera di coincidere.
++ *
++ * 🔑 `cliente_id` + `laboratorio_id`, ENTRAMBI: il client è di servizio (`svc`,
++ *    `rolbypassrls = true`), quindi queste due `.eq()` sono l'UNICA cosa che
++ *    impedisce alla card di un lavoro di un altro cliente/laboratorio di
++ *    comparire — stessa ragione già scritta in `queries.ts:13-20`.
++ */
++export async function lavoriPerLeCard(
++  svc: Svc,
++  filtro: { lavoroIds: string[]; clienteId: string; laboratorioId: string }
++): Promise<LavoroConAvviso[]> {
++  if (filtro.lavoroIds.length === 0) return []
++
++  const { data, error } = await svc
++    .from('lavori')
++    .select(
++      `
++      id, numero_lavoro, paziente_nome_snapshot, descrizione, stato,
++      ddc:dichiarazioni_conformita(storage_path_pdf)
++    `
++    )
++    .in('id', filtro.lavoroIds)
++    .eq('cliente_id', filtro.clienteId)
++    .eq('laboratorio_id', filtro.laboratorioId)
++    .is('deleted_at', null)
++    .neq('ddc.stato', 'annullata')
++
++  if (error || !data) {
++    console.error('[AVVISI] lavoriPerLeCard: lettura fallita —', error?.message)
++    return []
++  }
++
++  return (
++    data as unknown as Array<{
++      id: string
++      numero_lavoro: string
++      paziente_nome_snapshot: string | null
++      descrizione: string
++      stato: string
++      ddc: { storage_path_pdf: string | null } | { storage_path_pdf: string | null }[] | null
++    }>
++  ).map((r) => {
++    // Stessa cautela di `mapLavoroConsegnato` in `page.tsx`: PostgREST può
++    // restituire un embed to-one come oggetto o come array a seconda di come
++    // inferisce la cardinalità.
++    const ddcRaw = r.ddc
++    const ddcRow = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
++    return {
++      lavoroId: r.id,
++      numeroLavoro: r.numero_lavoro,
++      pazienteNomeSnapshot: r.paziente_nome_snapshot,
++      descrizione: r.descrizione,
++      stato: r.stato,
++      ddcStoragePathPdf: ddcRow?.storage_path_pdf ?? null,
++    }
++  })
++}
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 4. costruisciCardAvviso — dai gruppi + dai lavori, la card che si rende
++// ═══════════════════════════════════════════════════════════════════════════
++
++/** Ciò che `page.tsx` rende per ogni card. `avvisoIds` resta a bordo (non
++ *  solo per uso interno): è da qui, DOPO il filtro sui lavori risolti, che si
++ *  ricava l'elenco di id da segnare visti — «tutte le righe MOSTRATE». */
++export interface CardAvvisoPortale {
++  lavoroId: string
++  avvisoIds: string[]
++  numeroLavoro: string
++  pazienteMostrato: string
++  frase: string
++  dataPiuRecente: string
++  ddcUrl: string | null
++}
++
++/**
++ * Unisce i gruppi (§1) con le righe di `lavori` (§3) in ciò che la pagina
++ * rende.
++ *
++ * 🛑 UN GRUPPO SENZA LAVORO RISOLTO NON PRODUCE UNA CARD — difensivo: le due
++ *    letture condividono lo stesso `clienteId`/`laboratorioId`, quindi in
++ *    pratica ogni gruppo trova il suo lavoro; ma se un giorno non lo trovasse
++ *    (riga soft-cancellata fra le due letture, corsa rarissima), il silenzio
++ *    è la scelta giusta: mostrare una card senza numero/paziente sarebbe
++ *    peggio di ometterla, e chi conta gli id da segnare (`page.tsx`, sul
++ *    risultato di QUESTA funzione) non troverà quegli id — non si scrive un
++ *    visto per un avviso che il dentista non ha visto.
++ *
++ * 🔑 IL CHIP DI DOWNLOAD RIPETE LO STESSO PREDICATO DELLA ROTTA
++ *    (`stato === 'consegnato' && ddcStoragePathPdf`): v. il riquadro su
++ *    `lavoriPerLeCard`. La CARD invece non ha questo cancello — ⚖️ D354 vieta
++ *    un filtro di stato sull'avviso, quindi un lavoro riaperto (senza
++ *    dichiarazione viva, quindi senza chip) mostra comunque la sua card.
++ */
++export function costruisciCardAvviso(
++  gruppi: readonly CardAvviso[],
++  lavori: readonly LavoroConAvviso[],
++  opts: { token: string }
++): CardAvvisoPortale[] {
++  const mappa = new Map(lavori.map((l) => [l.lavoroId, l]))
++  const cards: CardAvvisoPortale[] = []
++
++  for (const g of gruppi) {
++    const l = mappa.get(g.lavoroId)
++    if (!l) continue
++
++    const ddcUrl =
++      l.stato === 'consegnato' && l.ddcStoragePathPdf
++        ? `/api/portale/${opts.token}/lavori/${g.lavoroId}/ddc`
++        : null
++
++    cards.push({
++      lavoroId: g.lavoroId,
++      avvisoIds: g.avvisoIds,
++      numeroLavoro: l.numeroLavoro,
++      // Stesso campo, stesso formato del portale di oggi (`page.tsx`, `mapLavoro`):
++      // paziente minimizzato, e se manca si scende sulla descrizione.
++      pazienteMostrato: minimizzaPhi(l.pazienteNomeSnapshot) ?? l.descrizione,
++      frase: fraseAvviso(g.campiCorretti),
++      dataPiuRecente: g.dataPiuRecente,
++      ddcUrl,
++    })
++  }
++
++  return cards
++}
++
++// ═══════════════════════════════════════════════════════════════════════════
++// 5. segnaAvvisiVisti — la ricevuta di lettura, via SECURITY DEFINER (§2)
++// ═══════════════════════════════════════════════════════════════════════════
++
++/**
++ * Scrive la ricevuta di lettura del dentista (⚖️ D332) chiamando la funzione
++ * `avvisi_segna_visti` (migration dedicata, §2 del brief): NULL→now() solo
++ * alla prima visione, mai un UPDATE diretto — non concesso a nessun ruolo
++ * dell'app (migration 20260809124517).
++ *
++ * 🛑 PER NOME DI ARGOMENTO, NON POSIZIONALE: PostgREST chiama le RPC per nome
++ *    di parametro, e senza un generic `Database` su `getServiceClient` `tsc`
++ *    non verifica né il nome della funzione né quello degli argomenti (stessa
++ *    trappola già documentata in `20260809133546_correggi_e_riemetti_con_avviso.sql`).
++ *    La sonda sul catalogo vivo (FASE 6b/§2) chiama con `p_ids => …,
++ *    p_laboratorio_id => …` per lo stesso motivo.
++ *
++ * 🔑 UN GUASTO QUI NON FA CADERE LA PAGINA: la ricevuta di lettura non è il
++ *    motivo per cui il dentista è venuto — vede comunque i suoi avvisi. Si
++ *    logga e si torna `false`, stesso idioma di `vuotoConNota`/`nienteConNota`
++ *    in `queries.ts`.
++ */
++export async function segnaAvvisiVisti(svc: Svc, ids: string[], laboratorioId: string): Promise<boolean> {
++  if (ids.length === 0) return true
++
++  const { error } = await svc.rpc('avvisi_segna_visti', { p_ids: ids, p_laboratorio_id: laboratorioId })
++  if (error) {
++    console.error('[AVVISI] segnaAvvisiVisti: RPC fallita —', error.message)
++    return false
++  }
++  return true
++}
+diff --git a/src/lib/portale/audit.ts b/src/lib/portale/audit.ts
+index c41431d9..448aef4c 100644
+--- a/src/lib/portale/audit.ts
++++ b/src/lib/portale/audit.ts
+@@ -8,20 +8,23 @@ type Svc = ReturnType<typeof getServiceClient>
+ 
+ export type AzionePortale =
+   | 'view_lavori' | 'download_ddc' | 'download_buono'
+   | 'view_fatturazione' | 'lista_stampata' | 'proposta_fatturazione'
+   | 'view_fatture' | 'download_fattura'
+   | 'view_situazione'
+   | 'pin_ok' | 'pin_errato' | 'pin_bloccato'
+   | 'pin_impostato' | 'pin_reimpostato'
+   | 'interruttore_on' | 'interruttore_off'
+   | 'link_rigenerato'
++  // Task 8 dell'ondata «l'avviso al dentista» (⚖️ D346): l'apertura del
++  // portale con almeno una card «Avvisi dal laboratorio» visibile.
++  | 'view_avviso'
+ 
+ export function ipDaRequest(req: Request): string | null {
+   const fwd = req.headers.get('x-forwarded-for')
+   return fwd ? fwd.split(',')[0].trim() : null
+ }
+ 
+ export async function logPortaleAudit(
+   svc: Svc,
+   entry: {
+     laboratorio_id: string
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index 52babab9..d12b4393 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -6352,20 +6352,24 @@ export type Database = {
+           um_scarico: string
+           updated_at: string
+         }[]
+         SetofOptions: {
+           from: "*"
+           to: "magazzino"
+           isOneToOne: false
+           isSetofReturn: true
+         }
+       }
++      avvisi_segna_visti: {
++        Args: { p_ids: string[]; p_laboratorio_id: string }
++        Returns: Json
++      }
+       calcola_imponibile_lavoro: {
+         Args: { p_lavoro_id: string }
+         Returns: number
+       }
+       cassetta_assegna_atomica: {
+         Args: {
+           p_cassetta_id?: string
+           p_colore?: string
+           p_lab: string
+           p_lavoro: string
+diff --git a/supabase/migrations/20260810072748_avvisi_segna_visti.sql b/supabase/migrations/20260810072748_avvisi_segna_visti.sql
+new file mode 100644
+index 00000000..9c6d037b
+--- /dev/null
++++ b/supabase/migrations/20260810072748_avvisi_segna_visti.sql
+@@ -0,0 +1,59 @@
++-- supabase/migrations/20260810072748_avvisi_segna_visti.sql
++-- Task 8 dell'ondata «l'avviso al dentista» — §2 del brief.
++--
++-- La migration precedente (20260809124517) ha tolto l'UPDATE di
++-- `visto_dal_dentista_at` a OGNI ruolo dell'app, e ha dichiarato la via
++-- d'uscita nel suo COMMENT: una funzione SECURITY DEFINER, modello
++-- `valutazione_supera` (20260806142910). Questa migration la scrive.
++--
++-- 🔑 SEMANTICA: NULL→now(), MAI un timestamp fornito dal chiamante — la
++-- ricevuta registra la PRIMA visione. Un secondo giro sullo stesso id non
++-- riscrive nulla (prova nella FASE 6b/§2 e nel test d'integrazione gemello).
++--
++-- 🔴 LA FIRMA NON È SOLO `(p_ids uuid[])`, COME SUGGERIVA IL BRIEF — DEVIAZIONE
++-- DICHIARATA, MOTIVATA NEL RESOCONTO. Il modello di casa (`valutazione_supera`)
++-- scopa SEMPRE per laboratorio, anche quando l'id del chiamante basterebbe da
++-- solo a isolare la riga giusta: è difesa in profondità, non ridondanza. Qui
++-- gli id arrivano da una lettura già scoped per cliente+laboratorio
++-- (`archivioCliente`), quindi il rischio pratico è basso — ma il costo di un
++-- secondo parametro è zero, e allinea questa funzione all'UNICO precedente in
++-- casa invece di re-interpretare da capo cosa "scoped abbastanza" voglia dire.
++-- Il danno di un id fuori posto resterebbe comunque basso (marca "letto" un
++-- avviso di un altro laboratorio, non rivela né altera nient'altro), ma non
++-- c'è ragione di lasciarlo possibile quando costa un parametro.
++--
++-- 📌 IDIOMA: DROP -> CREATE -> REVOKE -> GRANT -> COMMENT, lo stesso delle
++-- migration precedenti di quest'ondata. Il REVOKE è PORTANTE: dopo un
++-- DROP+CREATE Postgres concede EXECUTE a PUBLIC.
++
++DROP FUNCTION IF EXISTS public.avvisi_segna_visti(uuid[], uuid);
++
++CREATE FUNCTION public.avvisi_segna_visti(
++  p_ids uuid[], p_laboratorio_id uuid
++) RETURNS json
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_rows int;
++BEGIN
++  UPDATE public.avvisi_dentista
++     SET visto_dal_dentista_at = now()
++   WHERE id = ANY(p_ids)
++     AND laboratorio_id = p_laboratorio_id
++     AND visto_dal_dentista_at IS NULL;
++  GET DIAGNOSTICS v_rows = ROW_COUNT;
++  RETURN json_build_object('esito', 'ok', 'aggiornati', v_rows);
++END;
++$$;
++
++REVOKE ALL ON FUNCTION public.avvisi_segna_visti(uuid[], uuid) FROM PUBLIC, anon, authenticated;
++GRANT EXECUTE ON FUNCTION public.avvisi_segna_visti(uuid[], uuid) TO service_role;
++
++COMMENT ON FUNCTION public.avvisi_segna_visti(uuid[], uuid) IS
++  'Ricevuta di lettura del dentista (D332): scrive now() su visto_dal_dentista_at '
++  'SOLO dove e'' NULL — la prima visione, mai riscritta. Unica via: l''UPDATE '
++  'diretto della colonna non e'' concesso a nessun ruolo (migration 20260809124517). '
++  'SECURITY DEFINER, scoped su laboratorio_id per difesa in profondita'' '
++  '(modello: valutazione_supera, 20260806142910). Task 8 — sezione avvisi del portale.';
+diff --git a/tests/integration/avvisi-segna-visti.rpc.test.ts b/tests/integration/avvisi-segna-visti.rpc.test.ts
+new file mode 100644
+index 00000000..fc2f742a
+--- /dev/null
++++ b/tests/integration/avvisi-segna-visti.rpc.test.ts
+@@ -0,0 +1,221 @@
++import { describe, it, expect } from 'vitest'
++import { randomUUID } from 'node:crypto'
++import { withRollback, skipIntegrationTests } from './helpers/pg-client'
++
++// Comportamento REALE di `public.avvisi_segna_visti` (Task 8 dell'ondata
++// «l'avviso al dentista», §2 del brief), contro il database vero, in
++// transazione sempre annullata.
++//
++// 🔑 MODELLO: le prove (e) di `tests/integration/eventi-qualita-schema.rpc.test.ts`
++// su `valutazione_supera` — stessa famiglia di funzione (SECURITY DEFINER che
++// riapre una colonna revocata a tutti i ruoli app), stesso schema di prova:
++// il rifiuto diretto, la controprova via RPC, il cross-tenant, i permessi di
++// EXECUTE dal catalogo.
++//
++// ⚠️ IL RUOLO DELLA CONNESSIONE È `postgres` (BYPASSRLS): le prove sui
++// permessi passano da `SET LOCAL ROLE` (transazionale, la annulla il ROLLBACK).
++
++const LAB_A = '00000000-0000-0000-0000-000000000001' // lab E2E dedicato
++
++type Client = Parameters<Parameters<typeof withRollback>[0]>[0]
++
++/** I tre riferimenti veri del lab E2E — stesso helper di
++ *  `avvisi-dentista-schema.rpc.test.ts`, ripetuto qui per non far dipendere
++ *  un file di Task diverso da un altro (ogni file d'integrazione sta in piedi
++ *  da solo). */
++async function riferimentiVeri(client: Client) {
++  const { rows } = await client.query(
++    `SELECT (SELECT id FROM lavori   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS lavoro_id,
++            (SELECT id FROM clienti  WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS cliente_id,
++            (SELECT id FROM dichiarazioni_conformita WHERE laboratorio_id = $1
++              ORDER BY created_at LIMIT 1) AS dichiarazione_id`,
++    [LAB_A]
++  )
++  const r = rows[0]
++  for (const [nome, valore] of Object.entries(r)) {
++    if (!valore) throw new Error(`il lab E2E ${LAB_A} non ha ${nome}: eseguire scripts/seed-e2e.ts`)
++  }
++  return r as { lavoro_id: string; cliente_id: string; dichiarazione_id: string }
++}
++
++async function creaAvviso(client: Client, laboratorioId: string, rif: { lavoro_id: string; cliente_id: string; dichiarazione_id: string }) {
++  const { rows } = await client.query(
++    `INSERT INTO public.avvisi_dentista (laboratorio_id, lavoro_id, cliente_id, dichiarazione_id, campi_corretti)
++     VALUES ($1, $2, $3, $4, ARRAY['descrizione'])
++     RETURNING id, visto_dal_dentista_at`,
++    [laboratorioId, rif.lavoro_id, rif.cliente_id, rif.dichiarazione_id]
++  )
++  return rows[0] as { id: string; visto_dal_dentista_at: string | null }
++}
++
++async function creaLaboratorioB(client: Client) {
++  const labB = randomUUID()
++  await client.query(`INSERT INTO laboratori (id, nome) VALUES ($1, $2)`, [labB, 'Lab B — prova avvisi_segna_visti'])
++  return labB
++}
++
++describe.skipIf(skipIntegrationTests)('avvisi_segna_visti — comportamento reale', () => {
++  it('un UPDATE diretto di visto_dal_dentista_at come service_role resta rifiutato (specchio di p8, non un doppione: qui si prova che la RPC esiste PER QUESTO)', async () => {
++    // 🛑 SAVEPOINT, non un try/catch nudo: in Postgres un errore aborta
++    // l'INTERA transazione, e le istruzioni dopo (incluso `RESET ROLE`)
++    // fallirebbero con «current transaction is aborted» — misurato qui, prima
++    // di questa correzione. Stesso idioma di `attesoRifiuto` in
++    // `avvisi-dentista-schema.rpc.test.ts`.
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const avviso = await creaAvviso(client, LAB_A, rif)
++
++      await client.query('SET LOCAL ROLE service_role')
++      await client.query('SAVEPOINT prima_dello_update_diretto')
++      let fallito = false
++      try {
++        await client.query(`UPDATE public.avvisi_dentista SET visto_dal_dentista_at = now() WHERE id = $1`, [avviso.id])
++      } catch (e) {
++        fallito = true
++        expect((e as Error).message).toMatch(/permission denied/i)
++        await client.query('ROLLBACK TO SAVEPOINT prima_dello_update_diretto')
++      }
++      expect(fallito).toBe(true)
++      await client.query('RESET ROLE')
++    })
++  })
++
++  it('la RPC, chiamata PER NOME DI ARGOMENTO, scrive now() sulla prima visione', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const avviso = await creaAvviso(client, LAB_A, rif)
++      expect(avviso.visto_dal_dentista_at).toBeNull()
++
++      await client.query('SET LOCAL ROLE service_role')
++      const { rows: [esito] } = await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid) AS r`,
++        [[avviso.id], LAB_A]
++      )
++      expect(esito.r).toEqual({ esito: 'ok', aggiornati: 1 })
++      await client.query('RESET ROLE')
++
++      const { rows: [dopo] } = await client.query(
++        `SELECT visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = $1`, [avviso.id]
++      )
++      expect(dopo.visto_dal_dentista_at).not.toBeNull()
++    })
++  })
++
++  it('un SECONDO giro sullo STESSO id NON riscrive il timestamp — la ricevuta è la PRIMA visione', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const avviso = await creaAvviso(client, LAB_A, rif)
++
++      await client.query('SET LOCAL ROLE service_role')
++      await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid)`, [[avviso.id], LAB_A]
++      )
++      const { rows: [primo] } = await client.query(
++        `SELECT visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = $1`, [avviso.id]
++      )
++
++      // Aspetta un istante misurabile: se il secondo giro riscrivesse, il
++      // timestamp cambierebbe di sicuro, non per un pareggio di clock.
++      await client.query('SELECT pg_sleep(0.05)')
++
++      const { rows: [secondo] } = await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid) AS r`,
++        [[avviso.id], LAB_A]
++      )
++      expect(secondo.r).toEqual({ esito: 'ok', aggiornati: 0 }) // 0 righe: NULL→now() non ritrova nulla da scrivere
++
++      const { rows: [dopo] } = await client.query(
++        `SELECT visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = $1`, [avviso.id]
++      )
++      expect(new Date(dopo.visto_dal_dentista_at).getTime()).toBe(new Date(primo.visto_dal_dentista_at).getTime())
++      await client.query('RESET ROLE')
++    })
++  })
++
++  it('due id nello stesso array — entrambi vengono segnati in un giro solo (⚖️ D354: tutte le righe mostrate)', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const primoAvviso = await creaAvviso(client, LAB_A, rif)
++      const secondoAvviso = await creaAvviso(client, LAB_A, rif)
++
++      await client.query('SET LOCAL ROLE service_role')
++      const { rows: [esito] } = await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid) AS r`,
++        [[primoAvviso.id, secondoAvviso.id], LAB_A]
++      )
++      expect(esito.r).toEqual({ esito: 'ok', aggiornati: 2 })
++      await client.query('RESET ROLE')
++
++      const { rows } = await client.query(
++        `SELECT id, visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = ANY($1::uuid[])`,
++        [[primoAvviso.id, secondoAvviso.id]]
++      )
++      expect(rows.every((r: { visto_dal_dentista_at: string | null }) => r.visto_dal_dentista_at !== null)).toBe(true)
++    })
++  })
++
++  it('la RPC è scoped su laboratorio_id — un id vero con il lab SBAGLIATO non viene toccato (difesa in profondità)', async () => {
++    await withRollback(async (client) => {
++      const labB = await creaLaboratorioB(client)
++      const rif = await riferimentiVeri(client)
++      const avviso = await creaAvviso(client, LAB_A, rif)
++
++      await client.query('SET LOCAL ROLE service_role')
++      const { rows: [esito] } = await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid) AS r`,
++        [[avviso.id], labB]
++      )
++      expect(esito.r).toEqual({ esito: 'ok', aggiornati: 0 })
++      await client.query('RESET ROLE')
++
++      const { rows: [dopo] } = await client.query(
++        `SELECT visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = $1`, [avviso.id]
++      )
++      expect(dopo.visto_dal_dentista_at).toBeNull() // la riga di A resta intatta
++    })
++  })
++
++  it('un array vuoto risponde «ok, 0 aggiornati» — non è un errore', async () => {
++    await withRollback(async (client) => {
++      await client.query('SET LOCAL ROLE service_role')
++      const { rows: [esito] } = await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid) AS r`,
++        [[], LAB_A]
++      )
++      expect(esito.r).toEqual({ esito: 'ok', aggiornati: 0 })
++      await client.query('RESET ROLE')
++    })
++  })
++
++  it('EXECUTE sulla RPC è concesso a service_role e a NESSUN altro ruolo dell\'app', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(`
++        SELECT grantee FROM information_schema.role_routine_grants
++         WHERE routine_schema = 'public' AND routine_name = 'avvisi_segna_visti'
++           AND privilege_type = 'EXECUTE' AND grantee IN ('anon','authenticated','service_role','PUBLIC')
++         ORDER BY grantee`)
++      expect(rows.map((r) => r.grantee)).toEqual(['service_role'])
++    })
++  })
++
++  it('il CATALOGO conferma i nomi degli argomenti — PostgREST chiama per nome, non per posizione', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_function_arguments('public.avvisi_segna_visti'::regproc) AS argomenti`
++      )
++      expect(rows[0].argomenti).toBe('p_ids uuid[], p_laboratorio_id uuid')
++    })
++  })
++
++  it('un id inesistente non lancia: risponde «ok, 0 aggiornati»', async () => {
++    await withRollback(async (client) => {
++      await client.query('SET LOCAL ROLE service_role')
++      const { rows: [esito] } = await client.query(
++        `SELECT public.avvisi_segna_visti(p_ids => $1::uuid[], p_laboratorio_id => $2::uuid) AS r`,
++        [['00000000-0000-0000-0000-000000000000'], LAB_A]
++      )
++      expect(esito.r).toEqual({ esito: 'ok', aggiornati: 0 })
++      await client.query('RESET ROLE')
++    })
++  })
++})
+diff --git a/tests/unit/avvisi-portale.test.ts b/tests/unit/avvisi-portale.test.ts
+new file mode 100644
+index 00000000..4deccc77
+--- /dev/null
++++ b/tests/unit/avvisi-portale.test.ts
+@@ -0,0 +1,348 @@
++// tests/unit/avvisi-portale.test.ts
++//
++// Task 8 dell'ondata «l'avviso al dentista» — la LOGICA di
++// `src/lib/avvisi/portale.ts`: la sezione «Avvisi dal laboratorio» nel
++// portale del dentista (⚖️ D346 + eredità ⚖️ D354).
++//
++// 🔑 PERCHÉ QUESTA LOGICA NON VIVE IN `page.tsx`, E NON È UNA PREFERENZA DI
++//    STILE. `src/app/portale/[token]/page.tsx` è un componente server
++//    asincrono, e nessuna prova unitaria lo rende: è la stessa lezione già
++//    pagata dal Task 6 su `lavori/[id]/page.tsx` (v. `avvisi/queries.ts:176`,
++//    «una mutazione al suo interno non diventa mai rossa»). Ogni riga con
++//    posta in gioco normativa — l'unione dei campi (D354), il vecchio valore
++//    che non deve MAI comparire (D336), quali id ricevono la ricevuta di
++//    lettura — sta qui, dove una prova la esercita davvero.
++//
++// 🛑 LA DOMANDA CHE OGNI PROVA QUI DEVE SUPERARE: «se cambio l'implementazione
++//    in un modo sbagliato, questa diventa rossa?» — stesso idioma di
++//    `avvisi-queries.test.ts`.
++
++import { describe, it, expect, vi, afterEach } from 'vitest'
++import {
++  raggruppaPerLavoro,
++  fraseAvviso,
++  lavoriPerLeCard,
++  costruisciCardAvviso,
++  segnaAvvisiVisti,
++  type CardAvviso,
++  type LavoroConAvviso,
++} from '@/lib/avvisi/portale'
++import type { AvvisoRiga } from '@/lib/avvisi/queries'
++
++const LAB = '11111111-1111-1111-1111-111111111111'
++const CLIENTE = '44444444-4444-4444-4444-444444444444'
++const LAVORO_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
++const LAVORO_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
++
++function riga(over: Partial<AvvisoRiga> = {}): AvvisoRiga {
++  return {
++    id: 'avv-1',
++    lavoro_id: LAVORO_A,
++    cliente_id: CLIENTE,
++    dichiarazione_id: 'ddc-1',
++    stato: 'da_comunicare',
++    campi_corretti: ['descrizione'],
++    testo_inviato: null,
++    comunicato_at: null,
++    comunicato_da: null,
++    visto_dal_dentista_at: null,
++    created_at: '2026-08-09T10:00:00.000Z',
++    ...over,
++  }
++}
++
++afterEach(() => {
++  vi.restoreAllMocks()
++})
++
++// ═══ raggruppaPerLavoro — UNA card per lavoro, unione dei campi (⚖️ D354) ═══
++describe('raggruppaPerLavoro', () => {
++  it('nessun avviso → nessun gruppo', () => {
++    expect(raggruppaPerLavoro([])).toEqual([])
++  })
++
++  it('avvisi di DUE lavori diversi → DUE gruppi', () => {
++    const righe = [riga({ id: 'a1', lavoro_id: LAVORO_A }), riga({ id: 'a2', lavoro_id: LAVORO_B })]
++    const gruppi = raggruppaPerLavoro(righe)
++    expect(gruppi).toHaveLength(2)
++    expect(gruppi.map((g) => g.lavoroId).sort()).toEqual([LAVORO_A, LAVORO_B].sort())
++  })
++
++  it('due avvisi sullo STESSO lavoro → UN gruppo, con l\'UNIONE dei campi_corretti', () => {
++    const righe = [
++      riga({ id: 'a1', lavoro_id: LAVORO_A, campi_corretti: ['descrizione'] }),
++      riga({ id: 'a2', lavoro_id: LAVORO_A, campi_corretti: ['denti_coinvolti'] }),
++    ]
++    const gruppi = raggruppaPerLavoro(righe)
++    expect(gruppi).toHaveLength(1)
++    expect(gruppi[0].campiCorretti.sort()).toEqual(['denti_coinvolti', 'descrizione'])
++  })
++
++  it('lo stesso campo corretto in due avvisi diversi NON si duplica nell\'unione (senza doppioni)', () => {
++    const righe = [
++      riga({ id: 'a1', lavoro_id: LAVORO_A, campi_corretti: ['descrizione'] }),
++      riga({ id: 'a2', lavoro_id: LAVORO_A, campi_corretti: ['descrizione', 'denti_coinvolti'] }),
++    ]
++    const gruppi = raggruppaPerLavoro(righe)
++    expect(gruppi[0].campiCorretti).toEqual(['descrizione', 'denti_coinvolti'])
++  })
++
++  it('la data del gruppo è quella dell\'avviso PIÙ RECENTE, indipendentemente dall\'ordine di input', () => {
++    const righe = [
++      riga({ id: 'a1', lavoro_id: LAVORO_A, created_at: '2026-08-01T10:00:00.000Z' }),
++      riga({ id: 'a2', lavoro_id: LAVORO_A, created_at: '2026-08-09T08:00:00.000Z' }),
++      riga({ id: 'a3', lavoro_id: LAVORO_A, created_at: '2026-08-05T10:00:00.000Z' }),
++    ]
++    expect(raggruppaPerLavoro(righe)[0].dataPiuRecente).toBe('2026-08-09T08:00:00.000Z')
++  })
++
++  it('avvisoIds accumula TUTTI gli id del lavoro — servono a scrivere il visto su ognuno', () => {
++    const righe = [riga({ id: 'a1', lavoro_id: LAVORO_A }), riga({ id: 'a2', lavoro_id: LAVORO_A })]
++    expect(raggruppaPerLavoro(righe)[0].avvisoIds.sort()).toEqual(['a1', 'a2'])
++  })
++
++  it('l\'ordine dei gruppi segue il primo incontro nell\'input (coerente con archivioCliente, dal più recente)', () => {
++    const righe = [riga({ id: 'a1', lavoro_id: LAVORO_B }), riga({ id: 'a2', lavoro_id: LAVORO_A })]
++    expect(raggruppaPerLavoro(righe).map((g) => g.lavoroId)).toEqual([LAVORO_B, LAVORO_A])
++  })
++})
++
++// ═══ fraseAvviso — la frase delle voci, SOLO nel portale (⚖️ D334) ═══
++describe('fraseAvviso', () => {
++  it('nessun campo → frase generica, senza due punti', () => {
++    expect(fraseAvviso([])).toBe('La dichiarazione è stata rifatta.')
++  })
++
++  it('un campo solo', () => {
++    expect(fraseAvviso(['descrizione'])).toBe('La dichiarazione è stata rifatta: la descrizione.')
++  })
++
++  it('due campi — uniti da "e", non da virgola', () => {
++    expect(fraseAvviso(['denti_coinvolti', 'prescrizione_caratteristiche'])).toBe(
++      'La dichiarazione è stata rifatta: i denti indicati e le caratteristiche prescritte.'
++    )
++  })
++
++  it('tre campi — virgola fra i primi, "e" prima dell\'ultimo', () => {
++    expect(fraseAvviso(['paziente_id', 'denti_coinvolti', 'descrizione'])).toBe(
++      'La dichiarazione è stata rifatta: il paziente, i denti indicati e la descrizione.'
++    )
++  })
++
++  it('un campo non più previsto ricade sul ripiego — non scompare, di sponda a D336: mai il valore, sempre il fatto', () => {
++    expect(fraseAvviso(['numero_prescrizione'])).toBe('La dichiarazione è stata rifatta: una voce del documento.')
++  })
++})
++
++// ═══ costruisciCardAvviso — la card ⟺ lavoro risolto; il chip ⟺ DdC viva E lavoro consegnato ═══
++describe('costruisciCardAvviso', () => {
++  const GRUPPO_A: CardAvviso = {
++    lavoroId: LAVORO_A,
++    avvisoIds: ['a1', 'a2'],
++    campiCorretti: ['descrizione'],
++    dataPiuRecente: '2026-08-09T10:00:00.000Z',
++  }
++  const GRUPPO_B: CardAvviso = {
++    lavoroId: LAVORO_B,
++    avvisoIds: ['b1'],
++    campiCorretti: ['denti_coinvolti'],
++    dataPiuRecente: '2026-08-02T10:00:00.000Z',
++  }
++  const LAVORO_INFO_A: LavoroConAvviso = {
++    lavoroId: LAVORO_A,
++    numeroLavoro: '2026/0042',
++    pazienteNomeSnapshot: 'ROSSI MARIO',
++    descrizione: 'Corona',
++    stato: 'consegnato',
++    ddcStoragePathPdf: 'lab/ddc-a.pdf',
++  }
++
++  it('un gruppo SENZA lavoro risolto (difensivo) non produce una card, e i suoi id NON finiscono fra quelli da segnare', () => {
++    const cards = costruisciCardAvviso([GRUPPO_A, GRUPPO_B], [LAVORO_INFO_A], { token: 'tok' })
++    expect(cards).toHaveLength(1)
++    expect(cards.flatMap((c) => c.avvisoIds)).toEqual(['a1', 'a2'])
++  })
++
++  it('il paziente si mostra minimizzato come nel resto del portale (ROSSI MARIO → R. MARIO)', () => {
++    const cards = costruisciCardAvviso([GRUPPO_A], [LAVORO_INFO_A], { token: 'tok' })
++    expect(cards[0].pazienteMostrato).toBe('R. MARIO')
++  })
++
++  it('senza lo snapshot del paziente, il fallback è la descrizione — come fa già LavoroCard oggi', () => {
++    const senzaPaziente: LavoroConAvviso = { ...LAVORO_INFO_A, pazienteNomeSnapshot: null, descrizione: 'Corona ceramica' }
++    const cards = costruisciCardAvviso([GRUPPO_A], [senzaPaziente], { token: 'tok' })
++    expect(cards[0].pazienteMostrato).toBe('Corona ceramica')
++  })
++
++  it('DdC viva E lavoro "consegnato" → il chip porta l\'URL della rotta di download esistente', () => {
++    const cards = costruisciCardAvviso([GRUPPO_A], [LAVORO_INFO_A], { token: 'tok123' })
++    expect(cards[0].ddcUrl).toBe(`/api/portale/tok123/lavori/${LAVORO_A}/ddc`)
++  })
++
++  it('nessuna DdC viva → niente chip, ma la card resta (D354: nessun filtro di stato sull\'avviso)', () => {
++    const senzaDdc: LavoroConAvviso = { ...LAVORO_INFO_A, ddcStoragePathPdf: null }
++    const cards = costruisciCardAvviso([GRUPPO_A], [senzaDdc], { token: 'tok' })
++    expect(cards).toHaveLength(1)
++    expect(cards[0].ddcUrl).toBeNull()
++  })
++
++  it('DdC viva MA lavoro non più "consegnato" (es. riaperto) → niente chip: la rotta di download lo rifiuterebbe comunque', () => {
++    const riaperto: LavoroConAvviso = { ...LAVORO_INFO_A, stato: 'pronto' }
++    const cards = costruisciCardAvviso([GRUPPO_A], [riaperto], { token: 'tok' })
++    expect(cards).toHaveLength(1)
++    expect(cards[0].ddcUrl).toBeNull()
++  })
++
++  it('la frase e il numero del lavoro arrivano dal gruppo/lavoro corrispondenti', () => {
++    const cards = costruisciCardAvviso([GRUPPO_A], [LAVORO_INFO_A], { token: 'tok' })
++    expect(cards[0].numeroLavoro).toBe('2026/0042')
++    expect(cards[0].frase).toBe('La dichiarazione è stata rifatta: la descrizione.')
++    expect(cards[0].dataPiuRecente).toBe('2026-08-09T10:00:00.000Z')
++  })
++
++  it('⚖️ D336 — PROVA ESPLICITA: la frase non porta MAI il valore, nemmeno quando il gruppo e il lavoro condividono la stessa card', () => {
++    // Il caso peggiore possibile per una fuga: un gruppo che dichiara
++    // corretto PROPRIO il paziente, unito a un lavoro il cui nome/descrizione
++    // sono valori VERI e riconoscibili. Se la frase mescolasse le due fonti
++    // (campi corretti + dati del lavoro), qui uscirebbe "ROSSI MARIO" o
++    // "Corona" — invece esce solo il FATTO, mai il dato.
++    const gruppoPazienteCorretto: CardAvviso = {
++      lavoroId: LAVORO_A,
++      avvisoIds: ['a1'],
++      campiCorretti: ['paziente_id', 'descrizione', 'denti_coinvolti', 'prescrizione_caratteristiche'],
++      dataPiuRecente: '2026-08-09T10:00:00.000Z',
++    }
++    const cards = costruisciCardAvviso([gruppoPazienteCorretto], [LAVORO_INFO_A], { token: 'tok' })
++    expect(cards[0].frase).not.toContain('ROSSI MARIO')
++    expect(cards[0].frase).not.toContain('Corona')
++    expect(cards[0].frase).toBe(
++      'La dichiarazione è stata rifatta: il paziente, la descrizione, i denti indicati e le caratteristiche prescritte.'
++    )
++    // E il PAZIENTE MOSTRATO (dato del lavoro OGGI, non un diff) resta un
++    // campo separato — le due cose non si scambiano di posto.
++    expect(cards[0].pazienteMostrato).toBe('R. MARIO')
++  })
++})
++
++// ═══ lavoriPerLeCard — i lavori con avviso: due campi per la card + la DdC viva ═══
++describe('lavoriPerLeCard', () => {
++  it('lavoroIds vuoto → [] SENZA interrogare il banco', async () => {
++    const from = vi.fn()
++    const svc = { from }
++    const risultato = await lavoriPerLeCard(svc as never, { lavoroIds: [], clienteId: CLIENTE, laboratorioId: LAB })
++    expect(risultato).toEqual([])
++    expect(from).not.toHaveBeenCalled()
++  })
++
++  function catenaConRighe(righe: Array<Record<string, unknown>>, guasto = false) {
++    const spia: Array<[string, unknown]> = []
++    const catena = {
++      eq(c: string, v: unknown) {
++        spia.push([`eq:${c}`, v])
++        return catena
++      },
++      in(c: string, v: unknown) {
++        spia.push([`in:${c}`, v])
++        return catena
++      },
++      is(c: string, v: unknown) {
++        spia.push([`is:${c}`, v])
++        return catena
++      },
++      neq(c: string, v: unknown) {
++        spia.push([`neq:${c}`, v])
++        return catena
++      },
++      then(risolvi: (v: unknown) => unknown, rifiuta?: (e: unknown) => unknown) {
++        const esito = guasto ? { data: null, error: { message: 'connessione caduta' } } : { data: righe, error: null }
++        return Promise.resolve(esito).then(risolvi, rifiuta)
++      },
++    }
++    const svc = { from: () => ({ select: () => catena }) }
++    return { svc, spia }
++  }
++
++  it('applica TUTTI i filtri di isolamento e normalizza l\'embed ddc quando arriva come OGGETTO', async () => {
++    const { svc, spia } = catenaConRighe([
++      {
++        id: LAVORO_A,
++        numero_lavoro: '2026/0042',
++        paziente_nome_snapshot: 'ROSSI MARIO',
++        descrizione: 'Corona',
++        stato: 'consegnato',
++        ddc: { storage_path_pdf: 'lab/x.pdf' },
++      },
++    ])
++    const risultato = await lavoriPerLeCard(svc as never, { lavoroIds: [LAVORO_A], clienteId: CLIENTE, laboratorioId: LAB })
++    expect(risultato).toEqual([
++      {
++        lavoroId: LAVORO_A,
++        numeroLavoro: '2026/0042',
++        pazienteNomeSnapshot: 'ROSSI MARIO',
++        descrizione: 'Corona',
++        stato: 'consegnato',
++        ddcStoragePathPdf: 'lab/x.pdf',
++      },
++    ])
++    expect(spia).toContainEqual(['in:id', [LAVORO_A]])
++    expect(spia).toContainEqual(['eq:cliente_id', CLIENTE])
++    expect(spia).toContainEqual(['eq:laboratorio_id', LAB])
++    expect(spia).toContainEqual(['is:deleted_at', null])
++    expect(spia).toContainEqual(['neq:ddc.stato', 'annullata'])
++  })
++
++  it('embed ddc come ARRAY (PostgREST può inferirlo così) si normalizza allo stesso modo', async () => {
++    const { svc } = catenaConRighe([
++      {
++        id: LAVORO_A,
++        numero_lavoro: '2026/0042',
++        paziente_nome_snapshot: null,
++        descrizione: 'Corona',
++        stato: 'consegnato',
++        ddc: [{ storage_path_pdf: 'lab/y.pdf' }],
++      },
++    ])
++    const risultato = await lavoriPerLeCard(svc as never, { lavoroIds: [LAVORO_A], clienteId: CLIENTE, laboratorioId: LAB })
++    expect(risultato[0].ddcStoragePathPdf).toBe('lab/y.pdf')
++  })
++
++  it('embed ddc assente (array vuoto o null) → ddcStoragePathPdf null', async () => {
++    const { svc } = catenaConRighe([
++      { id: LAVORO_A, numero_lavoro: '2026/0042', paziente_nome_snapshot: null, descrizione: 'Corona', stato: 'pronto', ddc: [] },
++    ])
++    const risultato = await lavoriPerLeCard(svc as never, { lavoroIds: [LAVORO_A], clienteId: CLIENTE, laboratorioId: LAB })
++    expect(risultato[0].ddcStoragePathPdf).toBeNull()
++  })
++
++  it('un guasto di lettura torna [] — non fa cadere la pagina', async () => {
++    const { svc } = catenaConRighe([], true)
++    const risultato = await lavoriPerLeCard(svc as never, { lavoroIds: [LAVORO_A], clienteId: CLIENTE, laboratorioId: LAB })
++    expect(risultato).toEqual([])
++  })
++})
++
++// ═══ segnaAvvisiVisti — la ricevuta di lettura via RPC, MAI un UPDATE diretto ═══
++describe('segnaAvvisiVisti', () => {
++  it('ids vuoto → true SENZA chiamare la RPC', async () => {
++    const rpc = vi.fn()
++    const svc = { rpc }
++    const esito = await segnaAvvisiVisti(svc as never, [], LAB)
++    expect(esito).toBe(true)
++    expect(rpc).not.toHaveBeenCalled()
++  })
++
++  it('chiama avvisi_segna_visti PER NOME DI ARGOMENTO — PostgREST non è posizionale', async () => {
++    const rpc = vi.fn().mockResolvedValue({ data: { esito: 'ok', aggiornati: 2 }, error: null })
++    const svc = { rpc }
++    const esito = await segnaAvvisiVisti(svc as never, ['a1', 'a2'], LAB)
++    expect(esito).toBe(true)
++    expect(rpc).toHaveBeenCalledWith('avvisi_segna_visti', { p_ids: ['a1', 'a2'], p_laboratorio_id: LAB })
++  })
++
++  it('un guasto della RPC torna false e non lancia', async () => {
++    const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } })
++    const svc = { rpc }
++    const esito = await segnaAvvisiVisti(svc as never, ['a1'], LAB)
++    expect(esito).toBe(false)
++  })
++})

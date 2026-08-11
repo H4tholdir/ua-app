@@ -42,6 +42,46 @@ describe('ModificaRigaSheet — note', () => {
     await waitFor(() => expect(onSalvato).toHaveBeenCalledWith({ note_interne: 'nuova nota' }))
   })
 
+  // 🔴 F1 — IL GETTONE DI CONCORRENZA, e perché questa prova esiste. Fino a
+  //    oggi qui si passava al padre il patch della RICHIESTA, non ciò che il
+  //    server aveva fatto: lo specchio locale della scheda restava con
+  //    l'`updated_at` del caricamento. ➡️ Chi correggeva le note e poi apriva
+  //    «Devo intervenire» per rifare la dichiarazione prendeva un **409 che
+  //    dava la colpa a «qualcun altro»** — ed era stato lui, dieci secondi
+  //    prima. Fail-closed, nessun dato perso; ma un messaggio che mente sulla
+  //    causa, e per giunta sul percorso di fallimento più frequente dell'atto
+  //    unico.
+  // 🔑 Il valore di prova porta i MICROSECONDI apposta: `timestamptz` li ha e
+  //    `Date` di JS no, quindi un riparsing li troncherebbe e il confronto in
+  //    banca dati non tornerebbe MAI uguale — un 409 che non si sana nemmeno
+  //    ricaricando. La stringa dev'essere quella, identica.
+  it('🔴 il gettone di concorrenza torna dal SERVER: onSalvato porta l\'updated_at della risposta (F1)', async () => {
+    const GETTONE_DEL_SERVER = '2026-08-08T12:34:56.654321+00:00'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        lavoro: { id: 'lav', numero_lavoro: '2026-0147', stato: 'consegnato', updated_at: GETTONE_DEL_SERVER },
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const onSalvato = vi.fn()
+    render(
+      <ModificaRigaSheet
+        aperto campo="note" lavoroId="lav" valoreIniziale="vecchia"
+        onChiudi={() => {}} onSalvato={onSalvato} onErrore={() => {}}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText(/note/i, { selector: 'input' }), { target: { value: 'nuova nota' } })
+    fireEvent.click(screen.getByRole('button', { name: /salva/i }))
+
+    await waitFor(() => expect(onSalvato).toHaveBeenCalledWith({
+      note_interne: 'nuova nota',
+      updated_at: GETTONE_DEL_SERVER,
+    }))
+    // 🛑 Il corpo della RICHIESTA non cambia: il gettone si legge, non si manda.
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ note_interne: 'nuova nota' })
+  })
+
   it('su errore chiama onErrore, non onSalvato', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 422 }))
     const onSalvato = vi.fn(); const onErrore = vi.fn()

@@ -1,0 +1,26 @@
+# Progress ledger — DS v3 «Il cuore» Ondata 0 mockup
+Plan: docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md
+Worktree: .claude/worktrees/mockup-il-cuore-ondata-0 (branch worktree-mockup-il-cuore-ondata-0, base 3d883af)
+
+Task 1: complete (commits 3d883af..85ed2e2, review clean dopo 1 fix round font + 2 minor fixati inline: range wght 200..800, riferimento riga README)
+Nota per Task 2-7: .pill default = PillStato; PillTempo richiede override font-size/tracking (v. README «Note per i mockup»). Font via @import in _base.css — nessun <link> nei singoli file.
+Task 2: complete (commits d156fe5..da51593, review clean dopo 1 fix round: striscia 1 riga §2.2, pill fase §5.4/§5.11, rilievo dark card §3.2 nel kit)
+Minor deferiti al final review: copy footer desktop striscia («Fattura n.139 scartata» prioritizza il numero); aria-live striscia (nota per React, non mockup); weight 350 (risolto), refuso riga README (risolto).
+Note cross-task: PillFase FATTA ✓ §5.4 implementata come .pill-fase in home.html (Task 3/5 copiano quel pattern); n.147 TECNICO=Ciro (decisione Task 2, Task 5 tiene coerenza); desktop scheda preview mostra CONSEGNA disabled (coerente col cast: Controllo finale ← prossima — Task 5 frame 1 mostra invece lo stato con tutte le fasi fatte).
+Task 3: complete (commit f65a737, review clean al primo giro)
+Minor deferiti: naming fork CardLavoro (.cl-* in pila-aperta vs .top/.num in home, margini 12/3 vs 10/2 — convergere prima del React); classe .lista riusata con 3 scope; ambra lavori inventati n.145/146/148 senza data consegna (ordine intermedio non verificabile).
+Task 4: complete (commits ea95567..8a4c669, review clean dopo 1 fix round: glifi tipo-lavoro emoji → line-SVG 1.7 §4.4, camera SVG, commento corretto; 🔍 RigaCerca è di legge §5.13)
+Minor deferiti: home.html/pila-aperta.html usano stroke 2/3 nelle icone vs §4.4 1.7 (convergere al final review); frequenze tipi inventate 9/6/4/2 (dichiarate in file, da mostrare a Francesco).
+Task 5: complete (commits 2dfe73f..d02aa38, review clean dopo 1 fix round)
+⚠️ DEVIAZIONE DAL PIANO da presentare a Francesco al Task 8: piano F1 chiedeva PillFase FATTA su Controllo finale + CONSEGNA attivo insieme — incompatibili sotto §7.4/L1; reso con tutte le 4 fasi fatte (annotato nel file e nel report). Sheet modifica: chips-only ottimistico, niente Salva (§2.3/§7.1). F5 usa n.145 spostato in prova (annotato).
+Minor deferiti: report Task 5 con corpo pre-fix (solo Fix round 1 corregge — igiene report).
+Task 6: complete (commits 0bb9689..ac953b6, review clean dopo 1 fix round: verde WhatsApp §3.3.4, tint token dark, stroke 1.7/3, «→» solo dove di piano)
+Note gate Task 8 da Task 6: deviazione brief «disilicato»→«zirconia» (coerenza cast, annotata); «→» nel dialog è testo di piano; 768/1280 solo DialogConferma (invariante legge madre); §3.3.4 silente su direzione gradiente/corsa/dark (scelte annotate); §7.5 legge madre elenca {DdC, fattura, magazzino} ma brief {DdC, Buono, Fattura} — seguito il brief.
+Task 7: complete (commits 50a8be7..0a0808f, review clean; minor copy trim fixato inline)
+Final whole-branch review (Fable): 1 Critical + 4 Important trovati e TUTTI fixati in 808c46b; verifica delta: Ready to present YES.
+React-notes per il decision doc: CardLavoro fork .cl-*/margini (canonico consigliato 12/3), .lista triple scope, aria-live striscia, mic stroke 2 da .pvA, wrap «Le fasi» 1280 (minWidth min-content sp.2).
+HEAD: 808c46b. PROSSIMO: Task 8 Step 2 — presentazione a Francesco, ATTENDERE ok per schermata; poi decision doc + commit.
+Advisor round (6 paralleli, 11/07 sera): report in .superpowers/advisors/01-06. Voti: visual 8, UX 8, odontotecnico 7, a11y 7, DS eng 8, normativo rischio MEDIO. Sintesi presentata a Francesco — attesa decisione su bucket A (fix mockup) / B (decisioni di legge/prodotto) / C (note React).
+Bucket A advisor: 10/10 fix applicati (commit 96a08da), review indipendente Approved (0 Critical/0 Important; 2 minor documentali: subline blu side-fix da annotare, «alle 16» vs «16:00» incoerenza cosmetica). HEAD: 96a08da. RESTANO: gate Task 8 con bucket B + deviazioni annotate.
+DECISIONI BUCKET B (Francesco, 12/07): B1 scurire token --faint (AA) · B2 scurire verdi WhatsApp §3.3.4 + PillFase §5.4 (AA) · B3 SÌ 4ª pila «DA RIFARE / IN PROVA», famiglia VIOLA nuova (token --purple/--purple-tint) · B4 data consegna la decide il laboratorio (mockup già conforme, nessun cambio) · B5 TastoPiu dark resta senza alone · B6 spike architettura route↔pannelli come primo task del piano Ondata 1 · B7 ratificate TUTTE le deviazioni annotate. Revisioni di legge da verbalizzare nella decision doc: §3 (faint scurito + famiglia viola), §3.3.4/§5.4 (verdi scuriti), §5.7/§7.1 (4 pile).
+Bucket B: applicato (008becf) + citazioni di legge complete (2134c25). Review: Approved dopo fix documentale. Revisioni di legge da incidere nella legge madre al momento dellemendamento: §3 (faint scurito, famiglia viola), §3.3 regola 2 + §5.14 (quinto colore ammesso per pila DA RIFARE/IN PROVA), §3.3.4 (WhatsApp scuro), §5.4 (PillFase scura), §5.7/§7.1 (4 pile), §4.2 (passi 10/14 nel regime device-corti), §5.9 (pill IN PROVA). PROSSIMO: ultimo sguardo Francesco su home 4 pile → decision doc → chiusura Ondata 0.

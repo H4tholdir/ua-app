@@ -359,6 +359,10 @@ export async function creaLavoroDaWizard(input: {
   //
   // Il wizard oggi non ha una casella per `numero_prescrizione`: la chiave
   // resta fuori da questo corpo (non si inventa un campo che non esiste).
+  // ⚖️ E da D319 (08/08/2026) NON L'AVRÀ: la casella era in progetto ed è stata
+  //    cancellata dalla stessa decisione che ha tolto il numero dal documento —
+  //    non è un contenuto dovuto dall'Allegato XIII punto 1. Chi legge questa
+  //    riga fra sei mesi non deve aggiungerla credendola una dimenticanza.
   const coloreTrascritto = coloreOrigine !== 'lab' && colore.trim() !== ''
   const trascriviPrescrizione = denti.length > 0 || coloreTrascritto
 

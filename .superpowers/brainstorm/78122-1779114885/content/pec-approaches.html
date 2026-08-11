@@ -1,0 +1,118 @@
+<h2>Configurazione PEC — Quale approccio?</h2>
+<p class="subtitle">3 modi diversi per guidare il titolare del lab a configurare la PEC. Cliccane uno per selezionarlo.</p>
+
+<div class="cards">
+
+  <!-- CARD A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:20px;background:#F5F2EF;border-radius:10px;min-height:260px;display:flex;flex-direction:column;gap:10px;align-items:stretch;">
+      <!-- Mini mockup A: ultra minimal -->
+      <div style="font-size:11px;font-weight:700;color:#D90012;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:4px;">Solo 2 campi — Auto-detect</div>
+      <div style="background:#E4DFD9;border-radius:10px;padding:10px 12px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.1),inset -1px -1px 4px rgba(255,255,255,.7);">
+        <div style="font-size:9px;font-weight:700;color:#96918D;text-transform:uppercase;margin-bottom:4px;">Indirizzo PEC</div>
+        <div style="font-size:12px;color:#1C1916;">lab@pec.aruba.it</div>
+      </div>
+      <!-- Provider badge auto-detect -->
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(22,163,74,.1);border-radius:8px;">
+        <span style="font-size:16px;">✅</span>
+        <span style="font-size:11px;font-weight:700;color:#16A34A;">Aruba PEC rilevata — impostazioni precompilate</span>
+      </div>
+      <div style="background:#E4DFD9;border-radius:10px;padding:10px 12px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.1),inset -1px -1px 4px rgba(255,255,255,.7);">
+        <div style="font-size:9px;font-weight:700;color:#96918D;text-transform:uppercase;margin-bottom:4px;">Password PEC</div>
+        <div style="font-size:12px;color:#96918D;">••••••••••</div>
+      </div>
+      <button style="background:#D90012;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(180,0,0,.35);">
+        Connetti e verifica →
+      </button>
+      <div style="font-size:10px;color:#96918D;text-align:center;">Host/porta gestiti in automatico</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Ultra-minimal (⚡ Raccomandato)</h3>
+      <p>Solo email + password. Provider rilevato dal dominio, SMTP precompilato in automatico. Un click per verificare.</p>
+      <div class="pros-cons" style="font-size:12px;margin-top:8px;">
+        <div class="pros"><h4>Pro</h4><ul><li>Massima semplicità</li><li>0 conoscenze tecniche richieste</li><li>Funziona per il 95% dei lab</li></ul></div>
+        <div class="cons"><h4>Contro</h4><ul><li>Provider non noti → mostra form avanzato</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:20px;background:#F5F2EF;border-radius:10px;min-height:260px;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:4px;">Selezione provider visuale</div>
+      <!-- Provider cards grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div style="background:#fff;border:2px solid #D90012;border-radius:8px;padding:8px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.1);">
+          <div style="font-size:16px;">🔵</div>
+          <div style="font-size:10px;font-weight:700;color:#1C1916;">Aruba PEC</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid #E4DFD9;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">🟢</div>
+          <div style="font-size:10px;font-weight:700;color:#1C1916;">Legalmail</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid #E4DFD9;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">🟠</div>
+          <div style="font-size:10px;font-weight:700;color:#1C1916;">Namirial</div>
+        </div>
+        <div style="background:#E4DFD9;border:1.5px solid #E4DFD9;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:#96918D;font-style:italic;">Altro…</div>
+        </div>
+      </div>
+      <div style="background:#E4DFD9;border-radius:10px;padding:8px 12px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.1);">
+        <div style="font-size:9px;font-weight:700;color:#96918D;text-transform:uppercase;margin-bottom:3px;">Indirizzo PEC</div>
+        <div style="font-size:12px;color:#1C1916;">lab@pec.aruba.it</div>
+      </div>
+      <div style="background:#E4DFD9;border-radius:10px;padding:8px 12px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.1);">
+        <div style="font-size:9px;font-weight:700;color:#96918D;text-transform:uppercase;margin-bottom:3px;">Password</div>
+        <div style="font-size:12px;color:#96918D;">••••••••••</div>
+      </div>
+      <button style="background:#D90012;color:#fff;border:none;border-radius:10px;padding:8px;font-weight:700;font-size:11px;cursor:pointer;">Connetti →</button>
+    </div>
+    <div class="card-body">
+      <h3>B — Selezione provider + email</h3>
+      <p>Prima scegli il provider da card visive, poi inserisci email e password. Più esplicito, l'utente "riconosce" il suo provider.</p>
+      <div class="pros-cons" style="font-size:12px;margin-top:8px;">
+        <div class="pros"><h4>Pro</h4><ul><li>Visivamente rassicurante</li><li>Logo provider = fiducia</li></ul></div>
+        <div class="cons"><h4>Contro</h4><ul><li>Un click in più</li><li>Più spazio su schermo</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:20px;background:#F5F2EF;border-radius:10px;min-height:260px;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:11px;font-weight:700;color:#B45309;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:4px;">Smart form adattivo + verifica live</div>
+      <!-- Email field with inline detection -->
+      <div style="background:#E4DFD9;border-radius:10px;padding:8px 12px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.1);position:relative;">
+        <div style="font-size:9px;font-weight:700;color:#96918D;text-transform:uppercase;margin-bottom:3px;">Indirizzo PEC</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:12px;color:#1C1916;">lab@pec.aruba.it</span>
+          <span style="font-size:10px;background:#16A34A;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700;">Aruba</span>
+        </div>
+      </div>
+      <div style="background:#E4DFD9;border-radius:10px;padding:8px 12px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.1);">
+        <div style="font-size:9px;font-weight:700;color:#96918D;text-transform:uppercase;margin-bottom:3px;">Password PEC</div>
+        <div style="font-size:12px;color:#96918D;">••••••••</div>
+      </div>
+      <!-- Live verify status -->
+      <div style="background:#fff;border-radius:10px;padding:10px 12px;border:1.5px solid #E4DFD9;">
+        <div style="font-size:10px;font-weight:700;color:#96918D;margin-bottom:6px;">STATO VERIFICA</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#16A34A;"><span>✓</span> Connessione server</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#16A34A;"><span>✓</span> Autenticazione</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#B45309;"><span>⟳</span> Invio email test...</div>
+        </div>
+      </div>
+      <button style="background:#D90012;color:#fff;border:none;border-radius:10px;padding:8px;font-weight:700;font-size:11px;cursor:pointer;opacity:.5;" disabled>Verifica in corso…</button>
+    </div>
+    <div class="card-body">
+      <h3>C — Smart form con stati live</h3>
+      <p>Il form si adatta mentre scrivi: badge provider inline nell'input, verifica in tempo reale con progress step-by-step visibili.</p>
+      <div class="pros-cons" style="font-size:12px;margin-top:8px;">
+        <div class="pros"><h4>Pro</h4><ul><li>Massimo feedback visivo</li><li>Diagnostica precisa</li><li>Feeling premium</li></ul></div>
+        <div class="cons"><h4>Contro</h4><ul><li>Più complesso da implementare</li><li>Potenzialmente lento se il server è slow</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

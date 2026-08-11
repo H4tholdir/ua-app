@@ -1,0 +1,258 @@
+# Review package: b101e4d4..899bf0a4
+
+## Commits
+899bf0a4 feat(rifacimento): la RPC scrive evento_id, e il DROP non regala EXECUTE ad anon
+
+## Files changed
+ src/types/database.types.ts                        |   1 +
+ .../20260807185858_rifacimento_evento.sql          | 215 +++++++++++++++++++++
+ 2 files changed, 216 insertions(+)
+
+## Diff
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index 0868043c..85a1c970 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -6313,20 +6313,21 @@ export type Database = {
+         Args: { p_laboratorio_id: string; p_lavoro_id: string }
+         Returns: Json
+       }
+       consegna_lavoro_lock: {
+         Args: { p_laboratorio_id: string; p_lavoro_id: string }
+         Returns: Json
+       }
+       crea_rifacimento_atomico: {
+         Args: {
+           p_costo_interno?: number
++          p_evento_id?: string
+           p_lavoro_originale_id: string
+           p_motivo: string
+           p_note?: string
+           p_rilevato_in?: string
+         }
+         Returns: Json
+       }
+       current_lab_id: { Args: never; Returns: string }
+       decrementa_scorta: {
+         Args: {
+diff --git a/supabase/migrations/20260807185858_rifacimento_evento.sql b/supabase/migrations/20260807185858_rifacimento_evento.sql
+new file mode 100644
+index 00000000..18cb42f4
+--- /dev/null
++++ b/supabase/migrations/20260807185858_rifacimento_evento.sql
+@@ -0,0 +1,215 @@
++-- 20260807185858_rifacimento_evento.sql — ondata «si deve sempre poter
++-- intervenire», Task 5. D306 (l'app crea il rifacimento da sola) + D307
++-- (un ritentativo non ne crea un secondo).
++-- NON aggiungere BEGIN;/COMMIT; — il runner Supabase avvolge già la migration.
++--
++-- ============ COSA CHIUDE ============
++-- `lavori_rifacimenti.evento_id` esiste dal 06/08 (FK COMPOSITA
++-- `(evento_id, laboratorio_id) → eventi_qualita(id, laboratorio_id)`, creata in
++-- 20260806142910), e fino a oggi **nessuno la scrive**: un rifacimento nato da
++-- una segnalazione non sapeva da quale. Senza quel filo:
++--   · il rifacimento non è ricollegabile all'evento che l'ha generato;
++--   · l'indice unico `rifacimento_evento_unique (laboratorio_id, evento_id)
++--     WHERE evento_id IS NOT NULL` creato dal Task 3 (20260807180314) non
++--     protegge nulla, perché la colonna su cui vigila resta sempre NULL.
++-- Da questa migration la RPC accetta l'identificativo dell'evento e lo scrive:
++-- l'indice del Task 3 **si sveglia**, ed è voluto — il secondo tentativo sullo
++-- stesso evento esce 23505 invece di creare un secondo lavoro e bruciare un
++-- secondo progressivo.
++--
++-- ============ PERCHÉ DROP + CREATE, E PERCHÉ I PERMESSI SONO QUI ============
++-- 🛑 `CREATE OR REPLACE` in Postgres NON può aggiungere un parametro
++--    («cannot change name of input parameter» / conteggio argomenti diverso):
++--    serve `DROP` + `CREATE`. Ma il `DROP` **butta via l'ACL**, e una funzione
++--    creata ex novo in `public` nasce con `EXECUTE` a `PUBLIC` — cioè eseguibile
++--    da `anon` e `authenticated`, le due chiavi pubbliche dell'applicazione.
++-- 🛑 `crea_rifacimento_atomico` è `SECURITY DEFINER` e **non ha alcun filtro di
++--    laboratorio al proprio interno**: si fida di chi la chiama. Lasciarla
++--    aperta significherebbe che chiunque, con la chiave pubblica e
++--    l'identificativo di un lavoro, crea un lavoro nel laboratorio di chiunque
++--    altro. Per questo `REVOKE`/`GRANT` stanno NELLA STESSA migration del
++--    `CREATE`, non in una successiva: fra i due non deve esistere un istante.
++-- ⚠️ Il `REVOKE` storico (20260704180000:38-39) è scritto sulla firma a CINQUE
++--    argomenti: dopo questo `CREATE` non copre più niente. Va riemesso sulla
++--    firma a SEI, che è un oggetto diverso per il catalogo.
++--
++-- `provato:` il `DROP` non rompe niente —
++--   SELECT classid::regclass, objid, deptype FROM pg_depend
++--   WHERE refobjid='public.crea_rifacimento_atomico(uuid,text,text,numeric,text)'::regprocedure
++--     AND deptype <> 'i'                                            → 0 righe
++--   pg_policies con la funzione in qual/with_check                  → 0 righe
++--   pg_proc.prosrc ILIKE '%crea_rifacimento_atomico%' (altre funzioni)
++--     → 1 riga, `cassetta_trasferisci_rifacimento` — ma è un COMMENTO
++--       («La RPC 007 crea_rifacimento_atomico NON si tocca.»), non una
++--       chiamata: verificato leggendo pg_get_functiondef. Nessun chiamante SQL.
++-- `provato:` ACL prima del DROP, letta dal catalogo (pg_proc.proacl):
++--   {postgres=X/postgres,service_role=X/postgres} — anon false, authenticated
++--   false, service_role true (has_function_privilege).
++--
++-- ============ IL CORPO È RIBATTUTO DAL CATALOGO VIVO, NON DAL FILE ============
++-- Letto con `SELECT pg_get_functiondef(oid) FROM pg_proc WHERE
++-- proname='crea_rifacimento_atomico'` PRIMA del DROP. Il testo vivo coincide
++-- con 20260805201640 (nessuna migration successiva riscrive la funzione: il
++-- Task 3 tocca il CHECK su `motivo` e l'indice, non la RPC) — ma è il catalogo
++-- ad averlo deciso, non il file: un file può essere superato di un giorno.
++--
++-- ============ IL PARAMETRO VA IN CODA, E CON DEFAULT ============
++-- `p_evento_id` è l'ULTIMO parametro e ha `DEFAULT NULL`: la rotta HTTP
++-- esistente (src/app/api/lavori/[id]/rifacimento/route.ts:181-187) chiama con
++-- CINQUE chiavi nominate e deve continuare a funzionare invariata. Un parametro
++-- in mezzo, o senza default, la romperebbe.
++-- Nell'INSERT su `lavori_rifacimenti` la colonna si aggiunge **in coda a
++-- entrambe le liste** (colonne e valori): le due si corrispondono per indice, e
++-- uno scivolamento fra colonne dello stesso tipo passerebbe senza errore. Il
++-- Passo 3 prova l'accoppiamento vero rileggendo la riga scritta.
++--
++-- ⚠️ `p_evento_id` NON è validato qui, ed è deliberato: la RPC non ha filtro di
++--    laboratorio (v. sopra) e non può stabilire da sola quale evento sia
++--    legittimo. Il riferimento fra laboratori diversi è impedito **dalla FK
++--    composita** `lavori_rifacimenti_evento_fk`, che è l'unico guardiano di quel
++--    caso — il trigger `assert_same_lab_rifacimento()` guarda soltanto
++--    `lavoro_originale_id` e `lavoro_nuovo_id`, mai `evento_id` (verificato su
++--    pg_get_functiondef). Prova ⑤ del referto.
++
++DROP FUNCTION public.crea_rifacimento_atomico(uuid, text, text, numeric, text);
++
++CREATE FUNCTION public.crea_rifacimento_atomico(p_lavoro_originale_id uuid, p_motivo text, p_rilevato_in text DEFAULT NULL::text, p_costo_interno numeric DEFAULT NULL::numeric, p_note text DEFAULT NULL::text, p_evento_id uuid DEFAULT NULL::uuid)
++ RETURNS json
++ LANGUAGE plpgsql
++ SECURITY DEFINER
++ SET search_path TO 'public', 'pg_temp'
++AS $function$
++DECLARE
++  v_lavoro       lavori%ROWTYPE;
++  v_anno         SMALLINT;
++  v_progressivo  INTEGER;
++  v_numero       TEXT;
++  v_nuovo_id     UUID;
++BEGIN
++  SELECT * INTO v_lavoro FROM lavori WHERE id = p_lavoro_originale_id FOR UPDATE;
++  IF NOT FOUND THEN RAISE EXCEPTION 'Lavoro % non trovato', p_lavoro_originale_id; END IF;
++
++  IF v_lavoro.stato NOT IN ('consegnato', 'pronto', 'sospeso') THEN
++    RAISE EXCEPTION 'Impossibile creare rifacimento per lavoro in stato "%"', v_lavoro.stato;
++  END IF;
++
++  v_anno := EXTRACT(YEAR FROM NOW())::SMALLINT;
++
++  INSERT INTO progressivi_anno (laboratorio_id, tipo, anno, progressivo)
++  VALUES (v_lavoro.laboratorio_id, 'lavoro', v_anno, 1)
++  ON CONFLICT (laboratorio_id, tipo, anno)
++  DO UPDATE SET progressivo = progressivi_anno.progressivo + 1
++  RETURNING progressivo INTO v_progressivo;
++
++  v_numero := v_anno::TEXT || '/' || LPAD(v_progressivo::TEXT, 4, '0');
++
++  INSERT INTO lavori (
++    laboratorio_id, numero_lavoro, anno_lavoro,
++    cliente_id, paziente_id, tecnico_id,
++    -- ⬇️ AGGIUNTA B③ — D221/P37: le DUE caselle del prescrittore
++    --    dell'Allegato XIII punto 1. Mancavano ENTRAMBE.
++    richiedente_nome, istituzione_sanitaria,
++    tipo_dispositivo, descrizione, note_interne,
++    colore_dente, denti_coinvolti, arcata,
++    -- ⬇️ AGGIUNTA G1 — il default di caso dell'ondata (a). Senza queste due
++    --    colonne il rifacimento per 'colore_sbagliato' nasceva senza colore.
++    colore_scala, colore_codice,
++    -- ⬇️ AGGIUNTA D42/Task 6 — la tinta del manufatto (bite_splint/ortodonzia).
++    --    Stesso difetto di G1, gemello: senza queste due colonne il
++    --    rifacimento perdeva la tinta scelta sul lavoro originale.
++    tinta_famiglia, tinta_codice,
++    -- ⬇️ AGGIUNTA G1 — coerenza con le righe clonate qui sotto.
++    denti_mancanti, denti_impianti,
++    classe_rischio, norma_riferimento,
++    da_conformare, conformato,
++    stato, priorita,
++    data_ingresso, data_consegna_prevista,
++    codice_iva, natura_iva,
++    is_rifacimento, rifacimento_motivo,
++    listino_id, prezzo_unitario
++  ) VALUES (
++    v_lavoro.laboratorio_id, v_numero, v_anno,
++    v_lavoro.cliente_id, v_lavoro.paziente_id, v_lavoro.tecnico_id,
++    v_lavoro.richiedente_nome, v_lavoro.istituzione_sanitaria,
++    v_lavoro.tipo_dispositivo, v_lavoro.descrizione, p_note,
++    -- 🛑 `colore_dente` NON si toglie: `main` la legge ancora in produzione.
++    --    La rimozione è dell'ondata (c). Vedi il cappello di 20260728103000.
++    v_lavoro.colore_dente, v_lavoro.denti_coinvolti, v_lavoro.arcata,
++    v_lavoro.colore_scala, v_lavoro.colore_codice,
++    v_lavoro.tinta_famiglia, v_lavoro.tinta_codice,
++    v_lavoro.denti_mancanti, v_lavoro.denti_impianti,
++    v_lavoro.classe_rischio, v_lavoro.norma_riferimento,
++    TRUE, FALSE,
++    'ricevuto', v_lavoro.priorita,
++    NOW(), v_lavoro.data_consegna_prevista,
++    v_lavoro.codice_iva, v_lavoro.natura_iva,
++    TRUE, p_motivo,
++    v_lavoro.listino_id, v_lavoro.prezzo_unitario
++  ) RETURNING id INTO v_nuovo_id;
++
++  -- ⬇️ AGGIUNTA G1 — la clonazione delle righe dei denti. `provenienza` si
++  -- CONSERVA, non si forza: un rifacimento eredita la storia del lavoro da cui
++  -- nasce, non ne inventa una nuova (commento esteso in 20260728103000:149-168).
++  INSERT INTO lavori_denti (
++    laboratorio_id, lavoro_id, fdi, ruolo, gruppo, gruppo_ruolo,
++    scala, codice, codice_collo, codice_corpo, codice_incisale, provenienza
++  )
++  SELECT
++    d.laboratorio_id, v_nuovo_id, d.fdi, d.ruolo, d.gruppo, d.gruppo_ruolo,
++    d.scala, d.codice, d.codice_collo, d.codice_corpo, d.codice_incisale, d.provenienza
++  FROM lavori_denti d
++  WHERE d.lavoro_id = p_lavoro_originale_id
++    AND d.laboratorio_id = v_lavoro.laboratorio_id;
++
++  -- ⚠️ Le tre colonne denormalizzate NON si ricalcolano dalle righe clonate: si
++  --    COPIANO dall'originale (sopra). Ragione estesa: 20260728103000:180-188.
++
++  -- ⬇️ AGGIUNTA B② — il clone della trascrizione (D214). Il rifacimento è lo
++  --    STESSO documento del dentista applicato a un lavoro nuovo: contenuto,
++  --    fonte (le tre colonne insieme: il CHECK fonte_ck regge per costruzione)
++  --    e numero_prescrizione viaggiano; `divergenze` e la conferma NO — il
++  --    rifacimento riparte da zero e riconferma guardando il foglio (default
++  --    '[]' e NULL della tabella, D212). La FK composita dell'immagine regge:
++  --    stesso fonte_immagine_id, stesso laboratorio_id. Se l'originale non ha
++  --    la riga, la SELECT non produce nulla: nessuna riga vuota (V2).
++  INSERT INTO lavori_prescrizioni (
++    laboratorio_id, lavoro_id, contenuto,
++    fonte_tipo, fonte_immagine_id, fonte_riferimento, numero_prescrizione
++  )
++  SELECT laboratorio_id, v_nuovo_id, contenuto,
++         fonte_tipo, fonte_immagine_id, fonte_riferimento, numero_prescrizione
++    FROM lavori_prescrizioni
++   WHERE lavoro_id = p_lavoro_originale_id
++     AND laboratorio_id = v_lavoro.laboratorio_id;
++
++  INSERT INTO lavori_rifacimenti (
++    laboratorio_id, lavoro_originale_id, lavoro_nuovo_id,
++    motivo, rilevato_in, costo_interno, note,
++    -- ⬇️ AGGIUNTA Task 5 (D306/D307) — il filo verso la segnalazione che ha
++    --    generato il rifacimento. In coda a ENTRAMBE le liste. NULL quando il
++    --    rifacimento nasce a mano dalla rotta storica: l'indice unico del
++    --    Task 3 è parziale (`WHERE evento_id IS NOT NULL`) proprio per questo.
++    evento_id
++  ) VALUES (
++    v_lavoro.laboratorio_id, p_lavoro_originale_id, v_nuovo_id,
++    p_motivo, p_rilevato_in, p_costo_interno, p_note,
++    p_evento_id
++  );
++
++  RETURN json_build_object('lavoro_nuovo_id', v_nuovo_id, 'numero_lavoro', v_numero);
++END;
++$function$;
++
++COMMENT ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text,uuid) IS
++  'Crea il lavoro di rifacimento copiando dal lavoro originale. QUARTA penna su lavori_prescrizioni insieme alle RPC lavoro_crea_atomico / lavoro_prescrizione_*: clona le righe dei denti conservando provenienza, copia colore_scala/colore_codice, copia tinta_famiglia/tinta_codice (D42, Task 6 — la tinta del manufatto: stesso difetto gemello di G1, chiuso lì), copia il prescrittore richiedente_nome + istituzione_sanitaria (D221: prima ogni rifacimento nasceva senza le due caselle dell''Allegato XIII p.1), e clona la trascrizione della prescrizione (contenuto+fonte+numero) azzerando divergenze e conferma (D214). p_evento_id (Task 5, D306/D307) scrive lavori_rifacimenti.evento_id: è il filo verso la segnalazione di qualità che ha generato il rifacimento, ed è ciò che rende attivo l''indice unico parziale rifacimento_evento_unique — un ritentativo sullo stesso evento esce 23505 invece di creare un secondo lavoro. Resta NULL per i rifacimenti creati a mano. Il riferimento fra laboratori diversi è impedito dalla FK composita lavori_rifacimenti_evento_fk, non dalla funzione: questa RPC è SECURITY DEFINER e non filtra per laboratorio, quindi va tenuta eseguibile dal solo service_role. colore_dente resta copiata finché main la legge in produzione — si toglie nell''ondata (c).';
++
++-- ============ Permessi: firma a SEI argomenti ============
++-- 🛑 NON è una ripetizione difensiva come in 20260805201640 (dove `CREATE OR
++--    REPLACE` conservava l'ACL e il REVOKE era prudenza): qui il `DROP` l'ACL
++--    l'ha DAVVERO buttata via, e senza queste due righe la funzione resta
++--    eseguibile da `anon` e `authenticated` per default di Postgres.
++-- 🛑 MAI `GRANT ... TO authenticated`: disferebbe l'hardening di 20260704180000.
++-- Atteso dopo questa migration, identico a prima del DROP:
++--   proacl = {postgres=X/postgres,service_role=X/postgres}
++REVOKE ALL ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text,uuid) FROM PUBLIC, anon, authenticated;
++GRANT EXECUTE ON FUNCTION public.crea_rifacimento_atomico(uuid,text,text,numeric,text,uuid) TO service_role;

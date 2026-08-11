@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
 import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica, leggiLiberazioneRecente, giorniCiviliRimasti } from '@/lib/dashboard/striscia'
 import { getParete } from '@/lib/cassette/parco'
+import { avvisoPerLaStriscia } from '@/lib/avvisi/queries'
 import { homePrefDa, pareteIntroVista, serveParete, vistaHome } from '@/lib/preferenze/home'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
@@ -31,7 +32,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
   // striscia.ts) — front_desk/tecnico non pagano il round-trip.
   const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
-  const [pile, ingressi, tecniciSenzaAnagrafica, liberazioneRecente, preferenze, pareteLetta] = await Promise.all([
+  const [pile, ingressi, tecniciSenzaAnagrafica, liberazioneRecente, preferenze, pareteLetta, avvisoDaComunicare] = await Promise.all([
     getPileHome(svc, labId, perimetro),
     fetchIngressiStriscia(svc, labId, ruolo),
     usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
@@ -48,6 +49,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     // pile» paga 3 query che non guarda, ma in PARALLELO: zero latenza aggiunta. È il baratto
     // giusto sulla pagina più caricata dell'app.
     getParete(svc, labId),
+    // Task 7 (ondata «l'avviso al dentista») — il promemoria ex Art. 19 GDPR ancora aperto nel
+    // laboratorio, per la striscia in cima.
+    //
+    // 🛑 STA QUI E NON DENTRO `fetchIngressiStriscia`, e la ragione è la stessa —
+    //    MISURATA — di `leggiTecniciSenzaAnagrafica` (v. il suo commento in `striscia.ts`):
+    //    quella funzione è condivisa con `getSegnaleStriscia`, che l'anteprima admin
+    //    (`/admin/labs/[id]/live/page.tsx:58`) chiama col ruolo **cablato** `'titolare'`. Quella
+    //    pagina la guarda un `admin_sistema` — il ruolo che ⚖️ D342 esclude PER NOME (personale
+    //    UÀ, responsabile del trattamento ex GDPR Art. 28(3)(a): non era alla telefonata). Se la
+    //    lettura vivesse là dentro, il cancello per ruolo non lo fermerebbe, perché il ruolo che
+    //    riceve è 'titolare': il personale UÀ vedrebbe il promemoria di un laboratorio in cui non
+    //    lavora. Tenendola qui, per l'anteprima il campo resta `undefined` → nessun segnale.
+    // 🔑 Il cancello per ruolo vive DENTRO `avvisoPerLaStriscia`, non in un ternario qui: un
+    //    ternario in un componente server non è provabile (lezione del Task 6,
+    //    `src/lib/avvisi/queries.ts` sopra `avvisoPerLaScheda`). Chi non può vedere il
+    //    promemoria non interroga nemmeno il banco — se ne occupa la funzione.
+    avvisoPerLaStriscia({ svc, laboratorioId: labId, ruolo }),
   ])
   if (preferenze.error) {
     // Fail-soft: `homePrefDa` degrada a 'due_stanze' su null/garbage. Si logga perché una
@@ -83,7 +101,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // per-utente. `scegliSegnale` resta puro; `sPareteIntro` decide da sé sotto trial e sopra i
   // sereni. Assente (n=0 o intro già vista) → nessun segnale nuovo.
   const pareteIntro = { n: pareteLetta.length, introVista: pareteIntroVista(preferenze.data?.nav_preferences) }
-  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, parete: pareteIntro, liberazioneRecente, pile: pile.striscia })
+  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, parete: pareteIntro, liberazioneRecente, avvisoDaComunicare, pile: pile.striscia })
 
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'

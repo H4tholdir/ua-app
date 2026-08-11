@@ -1,0 +1,127 @@
+# Review package: 870569a9..HEAD
+
+## Commits
+50b0b72d docs(ddc): il registro delle versioni, e le due definizioni smettono di contraddirsi (D105)
+
+## Files changed
+ src/lib/pdf/generate-ddc.ts     | 23 ++++++++++++++++++-----
+ supabase/schema.sql             |  4 +++-
+ tests/unit/generate-ddc.test.ts | 10 ++++++++++
+ 3 files changed, 31 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/src/lib/pdf/generate-ddc.ts b/src/lib/pdf/generate-ddc.ts
+index 5aa4f25a..dd87aeef 100644
+--- a/src/lib/pdf/generate-ddc.ts
++++ b/src/lib/pdf/generate-ddc.ts
+@@ -23,28 +23,41 @@ async function hashFirmaDdc(url: string | null): Promise<string | null> {
+     const res = await fetch(url)
+     if (!res.ok) return null
+     const buf = Buffer.from(await res.arrayBuffer())
+     return crypto.createHash('sha256').update(buf).digest('hex')
+   } catch (err) {
+     console.error('[DdC] hash firma non calcolato:', err instanceof Error ? err.message : err)
+     return null
+   }
+ }
+ 
+-/** La versione della FORMA del documento. Cambia quando cambia ciò che il PDF
+- *  rende — non a ogni ritocco di codice.
++/** La versione della FORMA del documento. Cambia quando cambia **ciò che il
++ *  documento dice** — non a ogni ritocco di codice, e non per un glifo.
+  *
+  *  🛑 Introdotta con D102, e «introdotta» è la parola giusta: la colonna
+  *  `template_version` esiste in `supabase/schema.sql` dal primo giorno e non
+- *  l'ha mai scritta nessuno. Ogni DdC emessa fino a oggi la porta `NULL` —
+- *  cioè il documento non dice di che forma è. Fra dieci anni (quindici per gli
+- *  impiantabili) è la riga che permette di rileggerlo sapendo come andava letto. */
++ *  l'ha mai scritta nessuno. Fra dieci anni (quindici per gli impiantabili) è la
++ *  riga che permette di rileggere un documento sapendo come andava letto.
++ *
++ *  ═══ REGISTRO DELLE VERSIONI ═════════════════════════════════════════════
++ *  `ddc-v1` — dalla prima emissione con le impronte (03/08/2026) a oggi.
++ *     Comprende, per decisione **D105**, anche la correzione ortografica del
++ *     03/08 (gli accenti in titolo, §7 ed etichetta della firma, e `e'` → `è`
++ *     nel testo di conformità) e la comparsa del **§2 — Data di emissione**:
++ *     nessuna delle due cambia ciò che il documento DICE.
++ *  🔑 Il salto a `ddc-v2` è riservato al primo cambiamento di **sostanza** —
++ *     un contenuto dell'Allegato XIII che entra, esce o cambia significato.
++ *     I candidati sono già in `docs/superpowers/specs/2026-08-03-accenti-documenti-design.md`
++ *     §5 (referral ①②③④): la clausola «e ai disposti dell'Allegato XIII», il
++ *     luogo di fabbricazione mancante, il «Sostanze/tessuti: No» affermato senza
++ *     dato, l'identificazione del paziente che può ridursi a un trattino.
++ *  ═════════════════════════════════════════════════════════════════════════ */
+ const VERSIONE_TEMPLATE_DDC = 'ddc-v1'
+ 
+ /** Serializzazione CANONICA: le chiavi degli oggetti in ordine alfabetico, gli
+  *  array nel loro ordine (che è un dato, non una casualità).
+  *
+  *  🔑 Perché canonica e non `JSON.stringify` nudo: l'impronta deve certificare
+  *  i DATI, non l'ordine in cui un refactoring futuro capita di dichiararli. Con
+  *  la stringa nuda, spostare due righe nel builder cambierebbe l'impronta di un
+  *  documento identico — e un'impronta che cambia senza che cambi niente non
+  *  prova più niente. */
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index fc1fde65..b56fa0b0 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -1239,21 +1239,23 @@ CREATE TABLE dichiarazioni_conformita (
+                     DEFAULT 'Dispositivo su misura: non soggetto a marcatura CE ai sensi dell''Art. 20(1) MDR 2017/745',
+ 
+   -- Luogo di fabbricazione (presente nella DdC reale DentalMaster: "Luogo di fabbricazione: Italia")
+   luogo_fabbricazione TEXT NOT NULL DEFAULT 'Italia',
+ 
+   -- PDF archiviato con integrità verificabile
+   -- FIX (2026-05-12 — adversarial review #9): aggiunto hash per prova integrità
+   pdf_url               TEXT,               -- Supabase Storage URL
+   pdf_sha256            TEXT,               -- SHA-256 del blob PDF al momento della generazione
+   payload_sha256        TEXT,               -- SHA-256 del JSON input usato per generare il PDF
+-  template_version      TEXT,               -- Es. "ddc-v1.2.0" — versione template react-pdf
++  template_version      TEXT,               -- Es. "ddc-v1" — versione della FORMA del documento; il registro
++                                            -- di cosa contiene ogni versione vive accanto alla costante in
++                                            -- src/lib/pdf/generate-ddc.ts. NON è un semver: si conta 1, 2, 3.
+   pdf_generato_at       TIMESTAMPTZ,
+   generated_by          UUID REFERENCES utenti(id), -- chi ha premuto "Consegna"
+   storage_object_version TEXT,             -- versione oggetto Supabase Storage (per audit)
+ 
+   stato             TEXT NOT NULL DEFAULT 'bozza'
+                     CHECK (stato IN ('bozza','generata','firmata','consegnata')),
+ 
+   -- Rischi non eliminabili (4 rischi standard da Odontec/DentalMaster)
+   rischi_json       JSONB,
+ 
+diff --git a/tests/unit/generate-ddc.test.ts b/tests/unit/generate-ddc.test.ts
+index 14ad2886..33434bb6 100644
+--- a/tests/unit/generate-ddc.test.ts
++++ b/tests/unit/generate-ddc.test.ts
+@@ -199,20 +199,30 @@ describe('D102 ① — le due firme del documento, che non erano MAI state scrit
+     mockTables(LAB_FIXTURE)
+   })
+ 
+   it('l\'insert porta `template_version` e `payload_sha256` valorizzati', async () => {
+     await generateDdC(LAVORO_FIXTURE)
+     const riga = mockInsert.mock.calls[0][0]
+     expect(riga.template_version).toBeTruthy()
+     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+   })
+ 
++  it('template_version resta `ddc-v1` — il salto è riservato a un cambiamento di SOSTANZA (D105)', async () => {
++    // Non è tautologico: fissa una DECISIONE. La prova vicina (`:202`) chiede solo
++    // che la colonna sia valorizzata (`toBeTruthy`), quindi un bump passerebbe
++    // inosservato. Chi alzerà la versione passa di qui, e il registro accanto alla
++    // costante gli dice quando è lecito farlo.
++    await generateDdC(LAVORO_FIXTURE)
++    const riga = mockInsert.mock.calls[0][0]
++    expect(riga.template_version).toBe('ddc-v1')
++  })
++
+   it('l\'impronta dei DATI non è quella del FILE: sono due cose diverse', async () => {
+     await generateDdC(LAVORO_FIXTURE)
+     const riga = mockInsert.mock.calls[0][0]
+     expect(riga.pdf_sha256).toMatch(/^[0-9a-f]{64}$/)
+     // 🛑 Questa riga PRIMA del confronto, e non è pignoleria: senza,
+     //    `expect(undefined).not.toBe(<hash>)` è VERDE sul difetto vivo — la
+     //    prova tautologica che le regole di casa vietano (R-P4). Misurato: sul
+     //    codice non ancora corretto questa prova passava.
+     expect(riga.payload_sha256).toMatch(/^[0-9a-f]{64}$/)
+     expect(riga.payload_sha256).not.toBe(riga.pdf_sha256)

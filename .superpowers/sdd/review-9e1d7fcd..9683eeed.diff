@@ -1,0 +1,1934 @@
+# Review package: 9e1d7fcd..9683eeed
+
+## Commits
+9683eeed fix(test): la spia dei dizionari legge la FUNZIONE, non il file
+7cc5a5a0 feat(api): route dei gesti della prescrizione (fonte · typo · divergenza)
+
+## Files changed
+ .../lavori/[id]/prescrizione/divergenza/route.ts   | 152 +++++++++
+ .../api/lavori/[id]/prescrizione/fonte/route.ts    | 210 ++++++++++++
+ src/app/api/lavori/[id]/prescrizione/typo/route.ts | 224 +++++++++++++
+ src/lib/api/corpo-json.ts                          |  68 ++++
+ src/lib/domain/prescrizione-costanti.ts            |  84 +++++
+ tests/unit/api-prescrizione-divergenza.test.ts     | 246 ++++++++++++++
+ tests/unit/api-prescrizione-fonte.test.ts          | 313 ++++++++++++++++++
+ tests/unit/api-prescrizione-typo.test.ts           | 354 +++++++++++++++++++++
+ .../prescrizione-costanti-spia-migration.test.ts   | 210 ++++++++++++
+ 9 files changed, 1861 insertions(+)
+
+## Diff
+diff --git a/src/app/api/lavori/[id]/prescrizione/divergenza/route.ts b/src/app/api/lavori/[id]/prescrizione/divergenza/route.ts
+new file mode 100644
+index 00000000..aee4190f
+--- /dev/null
++++ b/src/app/api/lavori/[id]/prescrizione/divergenza/route.ts
+@@ -0,0 +1,152 @@
++import { NextResponse } from 'next/server'
++import { getServiceClient } from '@/lib/supabase/server-service'
++import { getFreshLabContext } from '@/lib/supabase/lab-context'
++import { assertLabOperativo } from '@/lib/supabase/lab-guard'
++import { isSameOrigin } from '@/lib/utils/csrf'
++import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
++import { leggiCorpoJson } from '@/lib/api/corpo-json'
++// 🛑 I dizionari si IMPORTANO, non si riscrivono (v. prescrizione-costanti.ts).
++import { isCampoTypo, isMotivoDivergenza } from '@/lib/domain/prescrizione-costanti'
++
++// POST /api/lavori/[id]/prescrizione/divergenza — «lo cambiamo noi»: la metà
++// «divergenza» del gesto V4/D212 (V9).
++//
++// A differenza del typo, questa NON riscrive il contenuto: la trascrizione
++// resta ciò che il dentista ha prescritto, e al registro si APPENDE
++// `{campo, motivo, nota, utente_id, registrata_at}`.
++//
++// 🔴 IL DIZIONARIO DEL CAMPO VIVE QUI, E OGGI SOLO QUI. Provato a banco (sonda
++//    S3): `lavoro_prescrizione_registra_divergenza` accetta `p_campo :=
++//    'pippo'` e perfino `NULL`, e risponde `ok`. Una divergenza registrata su
++//    un campo che non esiste è una riga che nessuna schermata mostrerà mai e
++//    che nessuno saprà di avere — un dato perso in silenzio, che è la classe di
++//    difetto peggiore di questo repo. Il Task 5 chiude il buco anche in banca
++//    dati; questa porta resta comunque la prima.
++//
++// 🛑 NIENTE GETTONE DI CONCORRENZA, ed è una scelta, non una dimenticanza: la
++//    RPC non tocca `lavori.updated_at` (fatto 12 del censimento) e l'operazione
++//    è un APPEND — due divergenze concorrenti sono due righe legittime, non una
++//    sovrascrittura. Non si promette un 409 che non esiste. Un client che
++//    mandasse `atteso_updated_at` prende un 422 da chiave ignota: meglio un
++//    rifiuto esplicito che un campo accettato e ignorato.
++
++type RouteContext = { params: Promise<{ id: string }> }
++
++const CHIAVI_NOTE = ['campo', 'motivo', 'nota'] as const
++
++function errore422(messaggio: string, valore?: unknown) {
++  return NextResponse.json({ errore: messaggio, valore }, { status: 422 })
++}
++
++export async function POST(req: Request, { params }: RouteContext) {
++  const { id } = await params
++
++  if (!isSameOrigin(req)) {
++    return NextResponse.json({ errore: 'Richiesta non consentita' }, { status: 403 })
++  }
++
++  const context = await getFreshLabContext()
++  if (!context) return NextResponse.json({ errore: 'Non autorizzato' }, { status: 401 })
++  if (!context.laboratorioId) {
++    return NextResponse.json({ errore: 'Laboratorio non trovato' }, { status: 403 })
++  }
++
++  const guard = assertLabOperativo(context, 'POST')
++  if (guard) return guard
++
++  const letto = await leggiCorpoJson(req, CHIAVI_NOTE)
++  if (!letto.ok) return letto.risposta
++  const corpo = letto.corpo
++  const labId: string = context.laboratorioId
++
++  // ── campo: dal dizionario (la guardia che oggi il database non ha) ────────
++  if (!isCampoTypo(corpo.campo)) {
++    return errore422('campo non valido: usa elementi, colore o tipo', corpo.campo)
++  }
++
++  // ── motivo: dal dizionario chiuso ─────────────────────────────────────────
++  if (!isMotivoDivergenza(corpo.motivo)) {
++    return errore422(
++      'motivo non valido: usa richiesta_dentista, esigenza_tecnica, materiale_non_disponibile o altro',
++      corpo.motivo
++    )
++  }
++
++  // ── nota: facoltativa ─────────────────────────────────────────────────────
++  // Vuota o di soli spazi = nessuna nota: registrarla come stringa vuota
++  // costringerebbe ogni lettore a distinguere due vuoti diversi. Il valore
++  // NON si normalizza (niente trim su ciò che si spedisce): il trim decide
++  // soltanto se c'è qualcosa.
++  let nota: string | null = null
++  if (corpo.nota !== undefined && corpo.nota !== null) {
++    if (typeof corpo.nota !== 'string') {
++      return errore422('nota non valida: deve essere testo', corpo.nota)
++    }
++    nota = corpo.nota.trim().length === 0 ? null : corpo.nota
++  }
++
++  const svc = getServiceClient()
++
++  const { data, error } = await callRpcWithRetry(() =>
++    svc.rpc('lavoro_prescrizione_registra_divergenza', {
++      p_lab: labId,
++      p_lavoro: id,
++      p_campo: corpo.campo,
++      p_motivo: corpo.motivo,
++      p_nota: nota,
++      // 🛑 IL «CHI» NON SI CHIEDE AL CLIENT. `p_utente` è l'utente autenticato,
++      //    sempre: la divergenza è una firma — dice chi ha deciso di scostarsi
++      //    dalla prescrizione — e una firma che il firmatario si sceglie da sé
++      //    non vale niente. Un `utente_id` nel corpo è una chiave ignota: 422.
++      p_utente: context.userId,
++    })
++  )
++
++  if (error) return NextResponse.json({ errore: error.message }, { status: 500 })
++
++  const esito = data as { esito?: string; divergenze?: number } | null
++
++  if (esito?.esito === 'non_trovato') {
++    // Anche il caso cross-tenant finisce qui: un lavoro di un altro laboratorio
++    // non esiste, non è «vietato». 404, non 403 (R4).
++    return NextResponse.json({ errore: 'Lavoro non trovato' }, { status: 404 })
++  }
++  if (esito?.esito === 'congelata') {
++    return NextResponse.json(
++      {
++        errore:
++          'La trascrizione è congelata: il lavoro ha una Dichiarazione di Conformità attiva. Per registrare una divergenza, annulla prima la dichiarazione.',
++        esito: 'congelata',
++      },
++      { status: 409 }
++    )
++  }
++  if (esito?.esito === 'senza_prescrizione') {
++    return NextResponse.json(
++      {
++        errore: 'Questo lavoro non ha ancora una trascrizione: prima allega il foglio.',
++        esito: 'senza_prescrizione',
++      },
++      { status: 409 }
++    )
++  }
++  if (esito?.esito === 'motivo_non_valido' || esito?.esito === 'campo_non_valido') {
++    // Difesa in profondità: i dizionari hanno già morso sopra.
++    // ⚠️ `campo_non_valido` NON esiste ancora: lo aggiunge il Task 5 alla RPC.
++    //    Mapparlo oggi vuol dire che il giorno del deploy di quella migration
++    //    questa porta risponde già 422 invece di 500, senza toccare niente.
++    return NextResponse.json(
++      { errore: 'Valore non valido', esito: esito.esito },
++      { status: 422 }
++    )
++  }
++  // Un `ok` senza conteggio non è un successo: il client mostrerebbe
++  // «registrata» con un registro che non sa contare.
++  if (esito?.esito !== 'ok' || typeof esito.divergenze !== 'number') {
++    return NextResponse.json({ errore: 'Esito inatteso' }, { status: 500 })
++  }
++
++  // Il conteggio del registro è l'unica cosa che il chiamante non può dedurre
++  // da sé senza rileggere.
++  return NextResponse.json({ divergenze: esito.divergenze })
++}
+diff --git a/src/app/api/lavori/[id]/prescrizione/fonte/route.ts b/src/app/api/lavori/[id]/prescrizione/fonte/route.ts
+new file mode 100644
+index 00000000..2b480387
+--- /dev/null
++++ b/src/app/api/lavori/[id]/prescrizione/fonte/route.ts
+@@ -0,0 +1,210 @@
++import { NextResponse } from 'next/server'
++import { getServiceClient } from '@/lib/supabase/server-service'
++import { getFreshLabContext } from '@/lib/supabase/lab-context'
++import { assertLabOperativo } from '@/lib/supabase/lab-guard'
++import { isSameOrigin } from '@/lib/utils/csrf'
++import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
++import { leggiCorpoJson } from '@/lib/api/corpo-json'
++// 🛑 Il dizionario si IMPORTA, non si riscrive: la spia
++// (`tests/unit/prescrizione-costanti-spia-migration.test.ts`) sorveglia la
++// costante e i vincoli SQL, e una lista scritta a mano qui dentro non la
++// vedrebbe nessuno — né la spia né `tsc` (R27).
++import { isFonteTipo } from '@/lib/domain/prescrizione-costanti'
++
++// POST /api/lavori/[id]/prescrizione/fonte — «allega la fonte» (spec §4.2,
++// D202/V7/V8).
++//
++// Chiama `lavoro_prescrizione_allega_fonte`, che è un UPSERT DELIBERATO: i
++// lavori nati prima dell'ondata B non hanno la riga di `lavori_prescrizioni`, e
++// allegare la fonte a posteriori la crea con `contenuto '{}'` (D101 — è anche
++// la via che rende sanabile il `senza_prescrizione` della route typo; provata a
++// banco, sonda S1).
++//
++// 🔑 LA FONTE SI SOSTITUISCE PER INTERO. L'`ON CONFLICT DO UPDATE` della RPC
++//    riscrive tutte e tre le colonne con ciò che riceve. Quindi qui «chiave
++//    assente» e «`null` esplicito» dicono la STESSA cosa: nessun valore.
++//    ⚠️ ASIMMETRIA DELIBERATA con la route typo, dove `null` è un ATTO
++//    (rimuove la chiave dal contenuto) e la chiave assente è un errore: là la
++//    scrittura è puntuale, qui è integrale. Chi arriva da una delle due non
++//    deve dedurre l'altra per analogia.
++//
++// 🔑 PERCHÉ IL «CORPO» SI PRETENDE QUI E NON IN SQL. Due buchi diversi, una
++//    sola porta che li chiude:
++//    ① tutti e tre i parametri NULL: la RPC risponde `ok` e CREA una riga
++//      vuota (provato a banco, sonda S2) — che poi mente al precheck della DdC;
++//    ② `fonte_tipo` valorizzato senza corpo: lo respinge il CHECK
++//      `lavori_prescrizioni_fonte_ck` con un 23514, cioè un 500 illeggibile.
++//    La regola unica «almeno uno fra immagine e riferimento» li copre entrambi.
++
++type RouteContext = { params: Promise<{ id: string }> }
++
++const CHIAVI_NOTE = ['fonte_tipo', 'fonte_immagine_id', 'fonte_riferimento'] as const
++
++// Sintassi soltanto: l'ESISTENZA e il tenant li prova il lookup qui sotto.
++// Serve perché un `fonte_immagine_id` malformato arriverebbe a PostgREST come
++// 22P02 («invalid input syntax for type uuid») → 500 al posto di un 422.
++const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
++
++function errore422(messaggio: string, valore?: unknown) {
++  return NextResponse.json({ errore: messaggio, valore }, { status: 422 })
++}
++
++export async function POST(req: Request, { params }: RouteContext) {
++  const { id } = await params
++
++  if (!isSameOrigin(req)) {
++    return NextResponse.json({ errore: 'Richiesta non consentita' }, { status: 403 })
++  }
++
++  // Route mutante → `getFreshLabContext` (getUser di rete), MAI `getLabContext`:
++  // questa route non è in `LAB_CONTEXT_ROUTE_ALLOWLIST` e non deve entrarci.
++  const context = await getFreshLabContext()
++  if (!context) return NextResponse.json({ errore: 'Non autorizzato' }, { status: 401 })
++  if (!context.laboratorioId) {
++    return NextResponse.json({ errore: 'Laboratorio non trovato' }, { status: 403 })
++  }
++
++  const guard = assertLabOperativo(context, 'POST')
++  if (guard) return guard
++
++  const letto = await leggiCorpoJson(req, CHIAVI_NOTE)
++  if (!letto.ok) return letto.risposta
++  const corpo = letto.corpo
++  const labId: string = context.laboratorioId
++
++  // ── fonte_tipo: dal dizionario, oppure niente (V7) ────────────────────────
++  let fonteTipo: string | null = null
++  if (corpo.fonte_tipo !== undefined && corpo.fonte_tipo !== null) {
++    if (!isFonteTipo(corpo.fonte_tipo)) {
++      return errore422(
++        'fonte_tipo non valido: usa foglio, email, modulo o piattaforma',
++        corpo.fonte_tipo
++      )
++    }
++    fonteTipo = corpo.fonte_tipo
++  }
++
++  // ── fonte_immagine_id ─────────────────────────────────────────────────────
++  let immagineId: string | null = null
++  if (corpo.fonte_immagine_id !== undefined && corpo.fonte_immagine_id !== null) {
++    if (typeof corpo.fonte_immagine_id !== 'string' || !UUID_RE.test(corpo.fonte_immagine_id)) {
++      return errore422('fonte_immagine_id non valido', corpo.fonte_immagine_id)
++    }
++    immagineId = corpo.fonte_immagine_id
++  }
++
++  // ── fonte_riferimento ─────────────────────────────────────────────────────
++  // 🔑 Il `.trim()` decide SOLO se la stringa è vuota: il valore spedito non si
++  //    normalizza (precedente e ragione: il gettone del PUT denti). Una stringa
++  //    vuota è respinta perché `'' IS NOT NULL` è VERO: passerebbe il CHECK e
++  //    la riga sembrerebbe avere una fonte che non c'è — la stessa bugia della
++  //    riga vuota, detta più piano.
++  let riferimento: string | null = null
++  if (corpo.fonte_riferimento !== undefined && corpo.fonte_riferimento !== null) {
++    if (typeof corpo.fonte_riferimento !== 'string') {
++      return errore422('fonte_riferimento non valido: deve essere testo', corpo.fonte_riferimento)
++    }
++    if (corpo.fonte_riferimento.trim().length === 0) {
++      return errore422('fonte_riferimento non può essere vuoto')
++    }
++    riferimento = corpo.fonte_riferimento
++  }
++
++  // ── «almeno un corpo» (v. il cappello: chiude S2 e il CHECK insieme) ──────
++  if (immagineId === null && riferimento === null) {
++    return errore422(
++      'Serve almeno un corpo della fonte: l’immagine del foglio o un riferimento scritto'
++    )
++  }
++
++  const svc = getServiceClient()
++
++  // ── L'immagine è di questo laboratorio? ──────────────────────────────────
++  // La FK composita `(fonte_immagine_id, laboratorio_id)` morde con un 23503,
++  // cioè un 500 illeggibile. Il controllo di appartenenza sta qui, col
++  // precedente delle FK del POST /api/lavori (`route.ts:158-174`), che risponde
++  // 403. `deleted_at` filtrato per lo stesso motivo: una foto cancellata non è
++  // una fonte a cui appoggiare una Dichiarazione.
++  if (immagineId !== null) {
++    const { data: img } = await svc
++      .from('lavori_immagini')
++      .select('laboratorio_id')
++      .eq('id', immagineId)
++      .is('deleted_at', null)
++      .single()
++    if (!img || img.laboratorio_id !== labId) {
++      return NextResponse.json(
++        { errore: 'fonte_immagine_id non appartiene a questo laboratorio' },
++        { status: 403 }
++      )
++    }
++  }
++
++  // 🛑 I tipi generati NON descrivono questa chiamata, e non ci si appoggia:
++  //    `Database['public']['Functions']['lavoro_prescrizione_allega_fonte']`
++  //    marca `p_fonte_tipo`/`p_fonte_immagine_id`/`p_fonte_riferimento` come
++  //    NOT NULL (`string`), mentre la funzione in banca dati li accetta NULL —
++  //    ed è proprio col NULL che si esprimono la V7 e la sostituzione
++  //    integrale. Tipizzare la chiamata sui generati vieterebbe qui la forma
++  //    che il database considera legittima. (Oggi la questione è comunque
++  //    inerte: `getServiceClient()` costruisce il client SENZA il generico
++  //    `<Database>`, quindi nessun tipo generato incontra mai questa chiamata —
++  //    rilievo R27. Il commento resta per chi un giorno chiuderà R27.)
++  const { data, error } = await callRpcWithRetry(() =>
++    svc.rpc('lavoro_prescrizione_allega_fonte', {
++      // laboratorio e lavoro si derivano da sessione e URL: il client non
++      // sceglie il proprio tenant (e non potrebbe nemmeno provarci — le chiavi
++      // ignote sono un 422).
++      p_lab: labId,
++      p_lavoro: id,
++      p_fonte_tipo: fonteTipo,
++      p_fonte_immagine_id: immagineId,
++      p_fonte_riferimento: riferimento,
++    })
++  )
++
++  // postgrest NON lancia: l'errore si controlla, non si aspetta in un catch.
++  if (error) return NextResponse.json({ errore: error.message }, { status: 500 })
++
++  const esito = data as { esito?: string } | null
++
++  if (esito?.esito === 'non_trovato') {
++    // Anche il caso cross-tenant finisce qui: un lavoro di un altro laboratorio
++    // non esiste, non è «vietato». 404, non 403 (R4).
++    return NextResponse.json({ errore: 'Lavoro non trovato' }, { status: 404 })
++  }
++  if (esito?.esito === 'fonte_congelata') {
++    return NextResponse.json(
++      {
++        errore:
++          'La fonte è congelata: il lavoro ha una Dichiarazione di Conformità attiva. Per sostituirla, annulla prima la dichiarazione.',
++        esito: 'fonte_congelata',
++      },
++      { status: 409 }
++    )
++  }
++  if (esito?.esito === 'fonte_tipo_non_valido') {
++    // Non deve mai accadere: il dizionario morde prima. Se accade, la costante
++    // e il database sono divergenti — e la risposta resta un 422, mai un 500.
++    // 🔑 L'`esito` c'è apposta: dice al chiamante che il rifiuto viene dal
++    //    DATABASE, non dalla porta — cioè che c'è una deriva da riparare.
++    return NextResponse.json(
++      { errore: 'fonte_tipo non valido', esito: 'fonte_tipo_non_valido', valore: fonteTipo },
++      { status: 422 }
++    )
++  }
++  if (esito?.esito !== 'ok') {
++    return NextResponse.json({ errore: 'Esito inatteso' }, { status: 500 })
++  }
++
++  // Si restituisce la fonte NORMALIZZATA — quella davvero scritta — non l'eco
++  // del corpo ricevuto: il chiamante deve poter ridisegnare senza rileggere
++  // (precedente: PUT /api/lavori/[id]/denti).
++  return NextResponse.json({
++    fonte: {
++      fonte_tipo: fonteTipo,
++      fonte_immagine_id: immagineId,
++      fonte_riferimento: riferimento,
++    },
++  })
++}
+diff --git a/src/app/api/lavori/[id]/prescrizione/typo/route.ts b/src/app/api/lavori/[id]/prescrizione/typo/route.ts
+new file mode 100644
+index 00000000..7cef7768
+--- /dev/null
++++ b/src/app/api/lavori/[id]/prescrizione/typo/route.ts
+@@ -0,0 +1,224 @@
++import { NextResponse } from 'next/server'
++import { getServiceClient } from '@/lib/supabase/server-service'
++import { getFreshLabContext } from '@/lib/supabase/lab-context'
++import { assertLabOperativo } from '@/lib/supabase/lab-guard'
++import { isSameOrigin } from '@/lib/utils/csrf'
++import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
++import { leggiCorpoJson } from '@/lib/api/corpo-json'
++// 🛑 Il dizionario si IMPORTA, non si riscrive (v. prescrizione-costanti.ts).
++import { isCampoTypo } from '@/lib/domain/prescrizione-costanti'
++
++// POST /api/lavori/[id]/prescrizione/typo — «era scritto così sulla
++// prescrizione»: la metà «typo» del gesto V4/D212.
++//
++// Correggere un typo RISCRIVE la trascrizione, cioè lo snapshot che la
++// Dichiarazione di Conformità fotografa. L'altra metà del gesto — «lo cambiamo
++// noi» — non tocca il contenuto e vive in `../divergenza`.
++//
++// 🔑 IL GETTONE DI CONCORRENZA È OBBLIGATORIO, e la RPC resta permissiva.
++//    `lavoro_prescrizione_correggi_typo` salta il confronto quando
++//    `p_atteso_updated_at IS NULL` (20260804152403:222): senza gettone due
++//    correzioni concorrenti tornano ENTRAMBE `ok` e l'ultima vince in
++//    silenzio. È il rilievo M1, riprodotto sul database vero il 28/07/2026 sul
++//    PUT denti e chiuso allo stesso modo — nella porta, non in SQL: la RPC
++//    conosce `conflitto` («qualcun altro ha scritto»), e «non hai mandato la
++//    chiave» non è quello. Farglielo dire sarebbe una bugia all'utente.
++//    ⚠️ Se un domani nascesse una seconda porta su questa RPC, la guardia va
++//    ricopiata lì — oppure si dà alla RPC il suo quarto esito.
++//    Il contratto è esigibile: `GET /api/lavori/[id]` fa `select('*')` su
++//    `lavori`, quindi chi apre la scheda ha già `updated_at` in mano.
++//
++// 🔑 IL GETTONE È UNA STRINGA OPACA END-TO-END (sonda S5, rossa al primo giro
++//    proprio per questo). `timestamptz` ha precisione al MICROSECONDO, `Date`
++//    di JS al millisecondo: un solo giro di riparsing troncherebbe `.123456` a
++//    `.123`, il confronto `IS DISTINCT FROM` dentro la RPC non tornerebbe MAI
++//    uguale e il 409 diventerebbe permanente — insanabile ricaricando la
++//    pagina. Quella che arriva dal client si passa alla RPC; quella che la RPC
++//    restituisce si rimanda al client. Mai un `new Date(...)` in mezzo.
++
++type RouteContext = { params: Promise<{ id: string }> }
++
++const CHIAVI_NOTE = ['campo', 'valore', 'atteso_updated_at'] as const
++
++function errore422(messaggio: string, valore?: unknown) {
++  return NextResponse.json({ errore: messaggio, valore }, { status: 422 })
++}
++
++export async function POST(req: Request, { params }: RouteContext) {
++  const { id } = await params
++
++  if (!isSameOrigin(req)) {
++    return NextResponse.json({ errore: 'Richiesta non consentita' }, { status: 403 })
++  }
++
++  const context = await getFreshLabContext()
++  if (!context) return NextResponse.json({ errore: 'Non autorizzato' }, { status: 401 })
++  if (!context.laboratorioId) {
++    return NextResponse.json({ errore: 'Laboratorio non trovato' }, { status: 403 })
++  }
++
++  const guard = assertLabOperativo(context, 'POST')
++  if (guard) return guard
++
++  const letto = await leggiCorpoJson(req, CHIAVI_NOTE)
++  if (!letto.ok) return letto.risposta
++  const corpo = letto.corpo
++  const labId: string = context.laboratorioId
++
++  // ── campo: dal dizionario ─────────────────────────────────────────────────
++  // Il dizionario morde ANCHE nella RPC (esito `campo_non_valido`), ma qui deve
++  // mordere PRIMA: un 422 che dice cosa correggere, non un giro fino al
++  // database per tornare con un codice.
++  if (!isCampoTypo(corpo.campo)) {
++    return errore422('campo non valido: usa elementi, colore o tipo', corpo.campo)
++  }
++  const campo = corpo.campo
++
++  // ── il gettone ────────────────────────────────────────────────────────────
++  // La stringa vuota è respinta perché `''::timestamptz` è un errore di cast
++  // (22007, provato sul PUT denti): sarebbe un 500 illeggibile al posto di un
++  // 422. Il `.trim()` serve SOLO a decidere se è vuota — il valore spedito non
++  // si tocca.
++  // ⚠️ LIMITE DICHIARATO, identico a quello del PUT denti (route.ts:100-103):
++  // una stringa non vuota ma non interpretabile come istante (`'pippo'`) supera
++  // questa porta e sbatte sullo stesso 22007 → 500. Chiuderlo vorrebbe dire
++  // riconoscere qui tutte le forme che Postgres accetta: meglio scritto che
++  // dedotto.
++  const gettone = corpo.atteso_updated_at
++  if (typeof gettone !== 'string' || gettone.trim().length === 0) {
++    return errore422(
++      'atteso_updated_at obbligatorio: è updated_at del lavoro che stai correggendo',
++      gettone
++    )
++  }
++
++  // ── valore: la chiave DEVE esserci ────────────────────────────────────────
++  // 🔑 S6, ed è il motivo per cui si guarda la CHIAVE e non il valore:
++  //    `JSON.stringify` fa SPARIRE le chiavi con valore `undefined`. Se la
++  //    rimozione si derivasse da `corpo.valore === undefined`, un client con un
++  //    bug di costruzione del corpo CANCELLEREBBE una caratteristica trascritta
++  //    e leggerebbe 200. La rimozione è un atto, e si chiede: `{valore: null}`.
++  if (!('valore' in corpo)) {
++    return errore422(
++      'valore obbligatorio: manda {"valore": null} per dire che quel campo non era sulla prescrizione'
++    )
++  }
++  const valore = corpo.valore
++
++  // ── la FORMA del valore, campo per campo ──────────────────────────────────
++  // 🛑 Si prova la FORMA, non il DOMINIO: nessun controllo sulla numerazione
++  //    FDI degli elementi, nessun confronto del colore col catalogo.
++  //    `contenuto` è una TRASCRIZIONE, e la sua regola fondativa è la fedeltà
++  //    al foglio (D210; fatto 6 del censimento: un colore fuori catalogo viene
++  //    scartato dal CASO ma resta trascritto). Importare qui la validazione di
++  //    `denti-validazione` contraddirebbe lo snapshot.
++  if (valore !== null) {
++    if (campo === 'elementi') {
++      if (!Array.isArray(valore)) {
++        return errore422('elementi deve essere una lista di numeri di dente', valore)
++      }
++      if (valore.length === 0) {
++        // «Non c'era nessun elemento sulla prescrizione» si dice con
++        // `{"valore": null}`: la chiave sparisce. Una lista vuota nel contenuto
++        // sarebbe un terzo stato — presente ma vuota — che nessun altro pezzo
++        // del sistema produce (`componiSnapshot` OMETTE la chiave) e che ogni
++        // lettore dovrebbe imparare a distinguere dall'assenza.
++        return errore422(
++          'elementi non può essere una lista vuota: manda {"valore": null} per togliere il campo'
++        )
++      }
++      if (!valore.every((n) => typeof n === 'number' && Number.isInteger(n))) {
++        return errore422('elementi deve contenere solo numeri interi', valore)
++      }
++    } else {
++      // colore · tipo
++      if (typeof valore !== 'string') {
++        return errore422(`${campo} deve essere testo`, valore)
++      }
++      // Stessa regola di `componiSnapshot`: la stringa VUOTA non è la
++      // trascrizione di niente (mentre «solo spazi» si preserva — giudicarlo
++      // vuoto richiederebbe un trim, cioè una normalizzazione).
++      if (valore === '') {
++        return errore422(
++          `${campo} non può essere vuoto: manda {"valore": null} per togliere il campo`
++        )
++      }
++    }
++  }
++
++  const svc = getServiceClient()
++
++  const { data, error } = await callRpcWithRetry(() =>
++    svc.rpc('lavoro_prescrizione_correggi_typo', {
++      p_lab: labId,
++      p_lavoro: id,
++      p_campo: campo,
++      // `null` arriva alla RPC come jsonb `null` e RIMUOVE la chiave
++      // (`contenuto - p_campo`); anche il NULL SQL rimuove, perché passarlo a
++      // `jsonb_set` annienterebbe l'INTERO contenuto — e un typo non può
++      // costare la trascrizione.
++      p_valore: valore,
++      // 🛑 COSÌ COM'È: mai un `new Date(...)`, mai un `.trim()` sul valore
++      //    spedito (v. il cappello del file).
++      p_atteso_updated_at: gettone,
++    })
++  )
++
++  if (error) return NextResponse.json({ errore: error.message }, { status: 500 })
++
++  const esito = data as { esito?: string; updated_at?: string } | null
++
++  if (esito?.esito === 'non_trovato') {
++    // Anche il caso cross-tenant finisce qui: un lavoro di un altro laboratorio
++    // non esiste, non è «vietato». 404, non 403 (R4).
++    return NextResponse.json({ errore: 'Lavoro non trovato' }, { status: 404 })
++  }
++  if (esito?.esito === 'conflitto') {
++    return NextResponse.json(
++      {
++        errore: 'Il lavoro è stato modificato da qualcun altro',
++        esito: 'conflitto',
++        // Il gettone CORRENTE, intatto: è quello con cui il client riproverà.
++        updated_at: esito.updated_at,
++      },
++      { status: 409 }
++    )
++  }
++  if (esito?.esito === 'congelata') {
++    return NextResponse.json(
++      {
++        errore:
++          'La trascrizione è congelata: il lavoro ha una Dichiarazione di Conformità attiva. Per correggerla, annulla prima la dichiarazione.',
++        esito: 'congelata',
++      },
++      { status: 409 }
++    )
++  }
++  if (esito?.esito === 'senza_prescrizione') {
++    // 🔑 Non è un vicolo cieco, ed è per questo che la frase dice il rimedio:
++    //    allegare la fonte CREA la riga anche per i lavori nati prima
++    //    dell'ondata B (UPSERT deliberato, provato dalla sonda S1).
++    return NextResponse.json(
++      {
++        errore: 'Questo lavoro non ha ancora una trascrizione: prima allega il foglio.',
++        esito: 'senza_prescrizione',
++      },
++      { status: 409 }
++    )
++  }
++  if (esito?.esito === 'campo_non_valido') {
++    // Difesa in profondità: il dizionario ha già morso sopra. Se arriva qui,
++    // costante e database sono divergenti — 422, mai un 500.
++    return NextResponse.json(
++      { errore: 'campo non valido', esito: 'campo_non_valido', valore: campo },
++      { status: 422 }
++    )
++  }
++  // Un `ok` senza gettone nuovo non è un successo: il chiamante ripartirebbe
++  // con un gettone stantio e prenderebbe un 409 immeritato al gesto dopo.
++  if (esito?.esito !== 'ok' || !esito.updated_at) {
++    return NextResponse.json({ errore: 'Esito inatteso' }, { status: 500 })
++  }
++
++  return NextResponse.json({ updated_at: esito.updated_at })
++}
+diff --git a/src/lib/api/corpo-json.ts b/src/lib/api/corpo-json.ts
+new file mode 100644
+index 00000000..205f30cc
+--- /dev/null
++++ b/src/lib/api/corpo-json.ts
+@@ -0,0 +1,68 @@
++import { NextResponse } from 'next/server'
++
++// Lettura del corpo JSON di una route mutante, con dizionario CHIUSO delle
++// chiavi ammesse.
++//
++// 🔑 PERCHÉ ESISTE, invece di stare in linea come nelle route più vecchie: la
++//    regola delle «chiavi ignote → 422» nasce con le route della prescrizione
++//    (nota ② 6 del piano di sessione ③: 422 nelle route NUOVE; il POST
++//    /api/lavori resta com'è, per retro-compatibilità D218). Nasce quindi in
++//    TRE posti nello stesso minuto — ed è esattamente la classe R3, «due copie
++//    della stessa regola, una che si aggiorna e l'altra no». Qui ce n'è una.
++//
++// 🔑 PERCHÉ IL 422 SULLE CHIAVI IGNOTE NON È PEDANTERIA. Una chiave che la
++//    route non conosce oggi viene ignorata in silenzio, e chi l'ha mandata
++//    legge «Salvato» su un dato che non è stato scritto: è il difetto già
++//    pagato dall'allowlist della PATCH (`lavori/[id]/route.ts`, citato in
++//    CLAUDE.md R-P6). Con un dizionario chiuso diventa anche impossibile far
++//    scegliere al client cose che spettano al server — il proprio tenant,
++//    l'utente che firma una divergenza — senza doverlo ricordare caso per caso.
++//
++// ⚠️ NON è una validazione dei VALORI: quella resta in ogni route, dove vive
++//    la conoscenza di cosa quel valore significa.
++
++export type EsitoCorpo =
++  | { ok: true; corpo: Record<string, unknown> }
++  | { ok: false; risposta: NextResponse }
++
++export async function leggiCorpoJson(
++  req: Request,
++  chiaviNote: readonly string[]
++): Promise<EsitoCorpo> {
++  let grezzo: unknown
++  try {
++    grezzo = await req.json()
++  } catch {
++    return {
++      ok: false,
++      risposta: NextResponse.json({ errore: 'Corpo non valido: serve un oggetto JSON' }, { status: 400 }),
++    }
++  }
++
++  // ⚠️ `JSON.stringify(null)` è la stringa "null": `req.json()` la parsa SENZA
++  // lanciare, quindi il catch qui sopra NON scatta e ogni lettura `corpo.campo`
++  // sarebbe un TypeError → 500 non gestito. Stessa classe già chiusa in
++  // `lavori/[id]/cassetta/route.ts` e in `lavori/[id]/denti/route.ts:51-58`.
++  // Un array cade qui per lo stesso motivo: `Object.keys([…])` darebbe gli
++  // INDICI, e il controllo delle chiavi ignote diventerebbe teatro.
++  if (grezzo === null || typeof grezzo !== 'object' || Array.isArray(grezzo)) {
++    return {
++      ok: false,
++      risposta: NextResponse.json({ errore: 'Corpo non valido: serve un oggetto JSON' }, { status: 400 }),
++    }
++  }
++
++  const corpo = grezzo as Record<string, unknown>
++  const ignote = Object.keys(corpo).filter((k) => !chiaviNote.includes(k))
++  if (ignote.length > 0) {
++    return {
++      ok: false,
++      risposta: NextResponse.json(
++        { errore: `Chiavi non riconosciute: ${ignote.join(', ')}` },
++        { status: 422 }
++      ),
++    }
++  }
++
++  return { ok: true, corpo }
++}
+diff --git a/src/lib/domain/prescrizione-costanti.ts b/src/lib/domain/prescrizione-costanti.ts
+new file mode 100644
+index 00000000..a2352dbb
+--- /dev/null
++++ b/src/lib/domain/prescrizione-costanti.ts
+@@ -0,0 +1,84 @@
++// src/lib/domain/prescrizione-costanti.ts
++//
++// CASA UNICA dei tre dizionari chiusi della prescrizione (ondata B, spec §3-§4).
++// Modello: `categorie-foto.ts`, e per la stessa ragione.
++//
++// 🔴 La rete che tiene questi elenchi allineati ai vincoli che il DATABASE
++//    esegue è `tests/unit/prescrizione-costanti-spia-migration.test.ts`, ed è
++//    l'UNICA: su questo repo `tsc` non vede le query. I quattro fabbricanti del
++//    client (`src/lib/supabase/{server-service,server-user,browser-anon,
++//    middleware-client}.ts`) creano il client SENZA il generico `<Database>`,
++//    quindi nessun tipo generato incontra mai una chiamata RPC — e i tipi
++//    generati sarebbero comunque più larghi del dominio (`fonte_tipo: string`,
++//    non l'unione dei quattro valori). Rilievo R27, 30/07/2026.
++//    ➡️ Chi tocca uno di questi elenchi tocca la migration nello stesso
++//       salvataggio, o la spia si accende.
++//
++// 🛑 NESSUNA COPIA LOCALE. Una quarta lista scritta a mano dentro una route
++//    (`['foglio', …].includes(v)`) non la vedrebbe nessuno: né la spia, né
++//    `tsc`. Sarebbe l'unico posto in cui il dizionario può divergere in
++//    silenzio — e un dizionario divergente qui significa un 23514 crudo
++//    (500 illeggibile) al posto di un 422 che dice cosa correggere.
++
++// ── Le 4 forme della fonte (D202) ──────────────────────────────────────────
++// Vincolo in banca dati, DUE volte: il CHECK di tabella
++// (`20260804150306:30`, che RIFIUTA) e la guardia dentro
++// `lavoro_prescrizione_allega_fonte` (`20260804152403:163`, che risponde
++// `fonte_tipo_non_valido` invece di far esplodere il CHECK).
++//
++// ⚠️ `null` è un valore LEGITTIMO della colonna, e non è un buco: è la V7 —
++//    la prescrizione data a voce o al telefono NON è una fonte, e resta «in
++//    attesa di conferma scritta» col solo `fonte_riferimento` valorizzato.
++export const FONTE_TIPI = ['foglio', 'email', 'modulo', 'piattaforma'] as const
++export type FonteTipo = (typeof FONTE_TIPI)[number]
++
++// ── I campi dello snapshot correggibili come typo (D212) ───────────────────
++// Vincolo in banca dati: `lavoro_prescrizione_correggi_typo`
++// (`20260804152403:242`) → esito `campo_non_valido`.
++//
++// ⚠️ `tipo` è correggibile ma NON viene trascritto alla creazione: entra nello
++//    snapshot solo alla conferma di consegna (D213), copiato da
++//    `lavori.tipo_dispositivo`.
++export const CAMPI_TYPO = ['elementi', 'colore', 'tipo'] as const
++export type CampoTypo = (typeof CAMPI_TYPO)[number]
++
++// ── I motivi di una divergenza prescritto/eseguito (V9, D212) ──────────────
++// Vincolo in banca dati: `lavoro_prescrizione_registra_divergenza`
++// (`20260804152403:299`) → esito `motivo_non_valido`.
++export const MOTIVI_DIVERGENZA = [
++  'richiesta_dentista',
++  'esigenza_tecnica',
++  'materiale_non_disponibile',
++  'altro',
++] as const
++export type MotivoDivergenza = (typeof MOTIVI_DIVERGENZA)[number]
++
++const INSIEME_FONTE = new Set<string>(FONTE_TIPI)
++const INSIEME_CAMPI = new Set<string>(CAMPI_TYPO)
++const INSIEME_MOTIVI = new Set<string>(MOTIVI_DIVERGENZA)
++
++/** `true` se il valore è una delle 4 forme della fonte. La usa la route per
++ *  rispondere 422 invece di lasciar arrivare al database un valore che il
++ *  CHECK respinge con un 23514 illeggibile.
++ *
++ *  🔑 Il controllo di TIPO non è pedanteria: dal corpo di una richiesta JSON
++ *     arrivano numeri, `null`, array e oggetti. Un `FONTE_TIPI.includes(v as
++ *     never)` accetterebbe `undefined` senza accorgersene. */
++export function isFonteTipo(v: unknown): v is FonteTipo {
++  return typeof v === 'string' && INSIEME_FONTE.has(v)
++}
++
++/** `true` se il valore è un campo dello snapshot correggibile. */
++export function isCampoTypo(v: unknown): v is CampoTypo {
++  return typeof v === 'string' && INSIEME_CAMPI.has(v)
++}
++
++/** `true` se il valore è un motivo di divergenza ammesso.
++ *
++ *  🔴 Per il CAMPO della divergenza si usa `isCampoTypo`: fino al Task 5 la
++ *     RPC `lavoro_prescrizione_registra_divergenza` NON valida `p_campo`
++ *     (provato a banco, sonda S3: `'pippo'` e `NULL` rispondono `ok`), quindi
++ *     la route è l'unica guardia. Anche dopo il Task 5 resta la prima. */
++export function isMotivoDivergenza(v: unknown): v is MotivoDivergenza {
++  return typeof v === 'string' && INSIEME_MOTIVI.has(v)
++}
+diff --git a/tests/unit/api-prescrizione-divergenza.test.ts b/tests/unit/api-prescrizione-divergenza.test.ts
+new file mode 100644
+index 00000000..887623b5
+--- /dev/null
++++ b/tests/unit/api-prescrizione-divergenza.test.ts
+@@ -0,0 +1,246 @@
++import { describe, expect, it, vi, beforeEach } from 'vitest'
++
++// ═══════════════════════════════════════════════════════════════════════════
++// POST /api/lavori/[id]/prescrizione/divergenza — «lo cambiamo noi» (T4,
++// ondata B ③, gesto V4/V9/D212).
++//
++// La divergenza NON riscrive la trascrizione: il contenuto resta ciò che il
++// dentista ha prescritto, e al registro si APPENDE {campo, motivo, nota,
++// utente_id, registrata_at}.
++//
++// 🔴 IL DIZIONARIO DEL CAMPO VIVE QUI, E OGGI SOLO QUI. Provato a banco (sonda
++//    S3): `lavoro_prescrizione_registra_divergenza` accetta `p_campo := 'pippo'`
++//    e perfino `NULL`, e risponde `ok`. Una divergenza registrata su un campo
++//    che non esiste è una riga che nessuna schermata mostrerà mai e che nessuno
++//    saprà di avere. Il Task 5 chiude il buco anche in banca dati; fino ad
++//    allora questa porta è l'UNICA guardia — e resta comunque la prima.
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) ═══════════════════════════════
++// Corpo: `{ campo, motivo, nota? }`
++//
++//  ① corpo non-JSON · ② null · ③ array · ④ scalare   → 400
++//  ⑤ chiave ignota (`utente_id`, `atteso_updated_at`) → 422 · RPC non parte
++//  ⑥ `campo` assente / non stringa / array / null     → 422
++//  ⑦ `campo` fuori dizionario ('pippo')               → 422 · RPC non parte (S3)
++//  ⑧ `motivo` assente / non stringa / fuori dizionario→ 422
++//  ⑨ `nota` assente o `null`                          → 200, p_nota = null
++//  ⑩ `nota` vuota o di soli spazi                     → 200, p_nota = null
++//  ⑪ `nota` non stringa                               → 422
++//  ⑫ `p_utente` = utente della sessione, MAI dal corpo
++//  ⑬ esiti: ok(+divergenze) · non_trovato · congelata · senza_prescrizione ·
++//     motivo_non_valido · campo_non_valido (arriva col Task 5)
++//  ⑭ errore PostgREST · esito sconosciuto             → 500
++//
++// 🛑 NON coperte, e con la ragione:
++//  · gettone di concorrenza: NON ESISTE per questo gesto. La RPC non tocca
++//    `lavori.updated_at` (fatto 12 del censimento) e l'operazione è un
++//    APPEND — due divergenze concorrenti sono due righe legittime, non una
++//    sovrascrittura. Mandare `atteso_updated_at` cade in ⑤: 422, non un 409
++//    che qui non esisterebbe.
++//  · `nota` obbligatoria quando il motivo è `altro`: la RPC non la chiede e
++//    nessuna decisione ratificata la impone. Sarebbe una regola inventata
++//    dalla porta; se servirà, la porterà la UI del Task 7 con la sua D.
++// ═══════════════════════════════════════════════════════════════════════════
++
++const rpcMock = vi.fn()
++const contextMock = vi.fn()
++const sameOriginMock = vi.fn(() => true)
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ rpc: rpcMock, from: vi.fn() }),
++}))
++vi.mock('@/lib/supabase/lab-context', () => ({
++  getFreshLabContext: () => contextMock(),
++}))
++vi.mock('@/lib/supabase/lab-guard', () => ({ assertLabOperativo: () => null }))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => sameOriginMock() }))
++
++import { POST } from '@/app/api/lavori/[id]/prescrizione/divergenza/route'
++
++const LAB = 'lab-A'
++const UTENTE = 'utente-di-sessione'
++const params = { params: Promise.resolve({ id: 'L1' }) }
++
++function richiesta(body: unknown) {
++  return new Request('http://localhost/api/lavori/L1/prescrizione/divergenza', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(body),
++  })
++}
++function richiestaGrezza(testo: string) {
++  return new Request('http://localhost/api/lavori/L1/prescrizione/divergenza', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: testo,
++  })
++}
++
++const VALIDO = { campo: 'colore', motivo: 'esigenza_tecnica' }
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  sameOriginMock.mockReturnValue(true)
++  contextMock.mockResolvedValue({
++    userId: UTENTE,
++    laboratorioId: LAB,
++    ruolo: 'tecnico',
++    lab: { stato: 'attivo', trial_ends_at: null },
++  })
++  rpcMock.mockResolvedValue({ data: { esito: 'ok', divergenze: 2 }, error: null })
++})
++
++describe('POST …/prescrizione/divergenza — la porta prima del database', () => {
++  it('403 fuori origine · 401 senza sessione · 403 senza laboratorio', async () => {
++    sameOriginMock.mockReturnValue(false)
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(403)
++
++    sameOriginMock.mockReturnValue(true)
++    contextMock.mockResolvedValue(null)
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(401)
++
++    contextMock.mockResolvedValue({ userId: 'U1', laboratorioId: null, ruolo: 'admin_sistema' })
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(403)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('①②③④ 400 su corpo non-JSON, null, array, scalare', async () => {
++    expect((await POST(richiestaGrezza('<html>'), params)).status).toBe(400)
++    expect((await POST(richiesta(null), params)).status).toBe(400)
++    expect((await POST(richiesta([VALIDO]), params)).status).toBe(400)
++    expect((await POST(richiesta(3), params)).status).toBe(400)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑤ 422 su una chiave ignota — `utente_id` dal corpo non esiste', async () => {
++    // 🔑 Il «chi» non si chiede al client: si legge dalla sessione (⑫). La
++    // chiave ignota rende l'inganno impossibile invece di ignorarlo in
++    // silenzio — e vale anche per `atteso_updated_at`, che qui non ha senso.
++    const res = await POST(richiesta({ ...VALIDO, utente_id: 'altro-utente' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).errore).toMatch(/utente_id/)
++
++    expect((await POST(richiesta({ ...VALIDO, atteso_updated_at: 'X' }), params)).status).toBe(422)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑥⑦ 422 su un campo assente, della forma sbagliata o fuori dizionario (S3)', async () => {
++    const corpi = [
++      { motivo: 'altro' }, // campo assente
++      { campo: null, motivo: 'altro' }, // il NULL che la RPC oggi accetta
++      { campo: 5, motivo: 'altro' },
++      { campo: ['colore'], motivo: 'altro' },
++      { campo: 'pippo', motivo: 'altro' }, // il valore della sonda S3
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(richiesta(corpo), params)).status).toBe(422)
++    }
++    // La prova che conta: nessuna di queste arriva al database, dove OGGI
++    // sarebbero tutte `ok` e diventerebbero righe fantasma nel registro.
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑧ 422 su un motivo assente, della forma sbagliata o fuori dizionario', async () => {
++    const corpi = [
++      { campo: 'colore' },
++      { campo: 'colore', motivo: null },
++      { campo: 'colore', motivo: 5 },
++      { campo: 'colore', motivo: ['altro'] },
++      { campo: 'colore', motivo: 'perche_si' },
++      { campo: 'colore', motivo: 'ALTRO' },
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(richiesta(corpo), params)).status).toBe(422)
++    }
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑨⑩ la nota assente, null, vuota o di soli spazi diventa NULL', async () => {
++    // Una nota vuota non è una nota: registrarla come stringa vuota
++    // costringerebbe ogni lettore a distinguere due vuoti diversi.
++    for (const corpo of [VALIDO, { ...VALIDO, nota: null }, { ...VALIDO, nota: '' }, { ...VALIDO, nota: '   ' }]) {
++      rpcMock.mockClear()
++      const res = await POST(richiesta(corpo), params)
++      expect(res.status).toBe(200)
++      expect(rpcMock.mock.calls[0][1].p_nota).toBeNull()
++    }
++  })
++
++  it('⑪ 422 su una nota che non è testo', async () => {
++    for (const nota of [5, ['x'], { testo: 'x' }, true]) {
++      expect((await POST(richiesta({ ...VALIDO, nota }), params)).status).toBe(422)
++    }
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('la nota viaggia INTATTA, spazi interni ed esterni compresi', async () => {
++    await POST(richiesta({ ...VALIDO, nota: '  il dentista ha detto  «va bene»  ' }), params)
++    expect(rpcMock.mock.calls[0][1].p_nota).toBe('  il dentista ha detto  «va bene»  ')
++  })
++})
++
++describe('POST …/prescrizione/divergenza — la chiamata e gli esiti', () => {
++  it('⑫ 200: p_utente è quello della SESSIONE, tenant e lavoro da sessione e URL', async () => {
++    const res = await POST(richiesta({ ...VALIDO, nota: 'colore non disponibile' }), params)
++    expect(res.status).toBe(200)
++    expect(rpcMock.mock.calls[0][0]).toBe('lavoro_prescrizione_registra_divergenza')
++    expect(rpcMock.mock.calls[0][1]).toEqual({
++      p_lab: LAB,
++      p_lavoro: 'L1',
++      p_campo: 'colore',
++      p_motivo: 'esigenza_tecnica',
++      p_nota: 'colore non disponibile',
++      p_utente: UTENTE,
++    })
++    // Il conteggio del registro torna al chiamante: è l'unica cosa che il
++    // client non può dedurre da sé senza rileggere.
++    expect(await res.json()).toEqual({ divergenze: 2 })
++  })
++
++  it('404 quando la RPC non trova il lavoro — è anche il caso cross-tenant (R4)', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'non_trovato' }, error: null })
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(404)
++  })
++
++  it('409 con l’esito su congelata e su senza_prescrizione', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'congelata' }, error: null })
++    let res = await POST(richiesta(VALIDO), params)
++    expect(res.status).toBe(409)
++    expect((await res.json()).esito).toBe('congelata')
++
++    rpcMock.mockResolvedValue({ data: { esito: 'senza_prescrizione' }, error: null })
++    res = await POST(richiesta(VALIDO), params)
++    expect(res.status).toBe(409)
++    const body = await res.json()
++    expect(body.esito).toBe('senza_prescrizione')
++    expect(body.errore).toMatch(/allega/i)
++  })
++
++  it('422 su motivo_non_valido e su campo_non_valido — difesa in profondità', async () => {
++    // `campo_non_valido` NON esiste ancora: lo aggiunge il Task 5 alla RPC.
++    // Mapparlo oggi significa che il giorno del deploy della migration questa
++    // porta risponde 422 invece di 500, senza toccare niente.
++    rpcMock.mockResolvedValue({ data: { esito: 'motivo_non_valido' }, error: null })
++    let res = await POST(richiesta(VALIDO), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).esito).toBe('motivo_non_valido')
++
++    rpcMock.mockResolvedValue({ data: { esito: 'campo_non_valido' }, error: null })
++    res = await POST(richiesta(VALIDO), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).esito).toBe('campo_non_valido')
++  })
++
++  it('⑭ 500 su errore PostgREST, esito sconosciuto o conteggio mancante', async () => {
++    rpcMock.mockResolvedValue({ data: null, error: { message: 'boom', code: 'XX000' } })
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(500)
++
++    rpcMock.mockResolvedValue({ data: { esito: 'marziano' }, error: null })
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(500)
++
++    // `ok` senza conteggio: il client mostrerebbe «registrata» con un registro
++    // che non sa contare. Se l'esito è incompleto, non è un successo.
++    rpcMock.mockResolvedValue({ data: { esito: 'ok' }, error: null })
++    expect((await POST(richiesta(VALIDO), params)).status).toBe(500)
++  })
++})
+diff --git a/tests/unit/api-prescrizione-fonte.test.ts b/tests/unit/api-prescrizione-fonte.test.ts
+new file mode 100644
+index 00000000..3da008a7
+--- /dev/null
++++ b/tests/unit/api-prescrizione-fonte.test.ts
+@@ -0,0 +1,313 @@
++import { describe, expect, it, vi, beforeEach } from 'vitest'
++
++// ═══════════════════════════════════════════════════════════════════════════
++// POST /api/lavori/[id]/prescrizione/fonte — «allega la fonte» (T4, ondata B ③)
++//
++// La route chiama `lavoro_prescrizione_allega_fonte` (SECURITY DEFINER, EXECUTE
++// al solo service_role). L'UPSERT è deliberato: i lavori nati prima dell'ondata
++// B non hanno la riga di `lavori_prescrizioni`, e allegare la fonte a posteriori
++// la crea con `contenuto '{}'` (D101, via legacy provata dalla sonda S1).
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) ═══════════════════════════════
++// Corpo: `{ fonte_tipo?, fonte_immagine_id?, fonte_riferimento? }`
++//
++//  ① corpo non-JSON (testo grezzo)               → 400
++//  ② corpo `null` (la stringa "null" È JSON)     → 400
++//  ③ corpo array                                 → 400
++//  ④ corpo scalare (numero/stringa)              → 400
++//  ⑤ chiave ignota (`pippo`, `laboratorio_id`)   → 422 · la RPC non parte
++//  ⑥ `{}` — nessun corpo della fonte             → 422 (S2) · la RPC non parte
++//  ⑦ solo `fonte_tipo`, senza corpo              → 422 (sarebbe 23514 → 500)
++//  ⑧ `fonte_tipo` fuori dizionario ('fax')       → 422
++//  ⑨ `fonte_tipo` non stringa (numero/array)     → 422
++//  ⑩ `fonte_tipo: null` esplicito + riferimento  → 200 (assente ≡ null, V7)
++//  ⑪ `fonte_riferimento` vuoto o di soli spazi   → 422 (non è un corpo)
++//  ⑫ `fonte_riferimento` non stringa             → 422
++//  ⑬ `fonte_immagine_id` non stringa             → 422
++//  ⑭ `fonte_immagine_id` non-uuid                → 422 (sarebbe 22P02 → 500)
++//  ⑮ `fonte_immagine_id` di un altro laboratorio → 403 · la RPC non parte
++//  ⑯ `fonte_immagine_id` cancellata (soft)       → 403
++//  ⑰ esiti della RPC: ok · non_trovato · fonte_congelata · fonte_tipo_non_valido
++//  ⑱ errore PostgREST · esito sconosciuto        → 500
++//
++// 🛑 NON coperte, e con la ragione:
++//  · duplicati/forma dell'UUID oltre la sintassi: l'esistenza e il tenant li
++//    prova il lookup (⑮), la forma la prova ⑭ — non c'è una terza domanda.
++//  · `fonte_riferimento` lunghissimo: la colonna è `text`, nessun limite in
++//    banca dati; inventarne uno qui sarebbe una regola senza autorità.
++// ═══════════════════════════════════════════════════════════════════════════
++
++const rpcMock = vi.fn()
++const fromMock = vi.fn()
++const contextMock = vi.fn()
++const sameOriginMock = vi.fn(() => true)
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ rpc: rpcMock, from: fromMock }),
++}))
++vi.mock('@/lib/supabase/lab-context', () => ({
++  getFreshLabContext: () => contextMock(),
++}))
++vi.mock('@/lib/supabase/lab-guard', () => ({ assertLabOperativo: () => null }))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => sameOriginMock() }))
++
++import { POST } from '@/app/api/lavori/[id]/prescrizione/fonte/route'
++
++const LAB = 'lab-A'
++const IMG = '3f2504e0-4f89-11d3-9a0c-0305e82c3301'
++const params = { params: Promise.resolve({ id: 'L1' }) }
++
++function richiesta(body: unknown) {
++  return new Request('http://localhost/api/lavori/L1/prescrizione/fonte', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(body),
++  })
++}
++/** Corpo TESTUALE, per le forme che JSON.stringify non sa produrre. */
++function richiestaGrezza(testo: string) {
++  return new Request('http://localhost/api/lavori/L1/prescrizione/fonte', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: testo,
++  })
++}
++
++/** select → eq → is → single: la catena del lookup tenant sull'immagine. */
++function immagine(data: unknown) {
++  return {
++    select: () => ({
++      eq: () => ({ is: () => ({ single: async () => ({ data, error: null }) }) }),
++    }),
++  }
++}
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  sameOriginMock.mockReturnValue(true)
++  contextMock.mockResolvedValue({
++    userId: 'U1',
++    laboratorioId: LAB,
++    ruolo: 'titolare',
++    lab: { stato: 'attivo', trial_ends_at: null },
++  })
++  rpcMock.mockResolvedValue({ data: { esito: 'ok' }, error: null })
++  fromMock.mockImplementation((t: string) => {
++    if (t === 'lavori_immagini') return immagine({ laboratorio_id: LAB })
++    throw new Error(`Tabella inattesa: ${t}`)
++  })
++})
++
++describe('POST …/prescrizione/fonte — la porta prima del database', () => {
++  it('403 se la richiesta non arriva dalla nostra origine (CSRF)', async () => {
++    sameOriginMock.mockReturnValue(false)
++    const res = await POST(richiesta({ fonte_riferimento: 'x' }), params)
++    expect(res.status).toBe(403)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('401 senza sessione', async () => {
++    contextMock.mockResolvedValue(null)
++    expect((await POST(richiesta({ fonte_riferimento: 'x' }), params)).status).toBe(401)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('403 se l’utente non ha un laboratorio', async () => {
++    contextMock.mockResolvedValue({ userId: 'U1', laboratorioId: null, ruolo: 'admin_sistema' })
++    expect((await POST(richiesta({ fonte_riferimento: 'x' }), params)).status).toBe(403)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('① 400 su un corpo che non è JSON', async () => {
++    expect((await POST(richiestaGrezza('non sono json'), params)).status).toBe(400)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('②③④ 400 su null, array e scalare — non sono oggetti', async () => {
++    // `JSON.stringify(null)` è la stringa "null": `req.json()` la parsa SENZA
++    // lanciare, quindi il catch di ① non scatta e ogni `body.campo` sarebbe un
++    // TypeError → 500 non gestito.
++    expect((await POST(richiesta(null), params)).status).toBe(400)
++    expect((await POST(richiesta(['foglio']), params)).status).toBe(400)
++    expect((await POST(richiesta('foglio'), params)).status).toBe(400)
++    expect((await POST(richiesta(7), params)).status).toBe(400)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑤ 422 su una chiave ignota — il contratto delle route NUOVE è chiuso', async () => {
++    // Nota ② 6 del piano: 422 nelle route nuove (il POST /api/lavori resta
++    // com'è, per retro-compatibilità D218). È anche ciò che rende impossibile
++    // far scegliere al client il proprio tenant o l'utente della divergenza.
++    const res = await POST(richiesta({ fonte_riferimento: 'x', laboratorio_id: 'lab-B' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).errore).toMatch(/laboratorio_id/)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑥ 422 sul corpo VUOTO: la RPC creerebbe una riga senza fonte (S2)', async () => {
++    // 🔑 Provato a banco: `lavoro_prescrizione_allega_fonte(lab, lavoro, NULL,
++    // NULL, NULL)` risponde `ok` e CREA una riga di `lavori_prescrizioni` con
++    // tutte e tre le colonne della fonte a NULL. La riga vuota poi mente al
++    // precheck della DdC. Il rifiuto DEVE stare qui, prima della chiamata.
++    const res = await POST(richiesta({}), params)
++    expect(res.status).toBe(422)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑦ 422 su una fonte dichiarata SENZA corpo: sarebbe il CHECK 23514 → 500', async () => {
++    const res = await POST(richiesta({ fonte_tipo: 'foglio' }), params)
++    expect(res.status).toBe(422)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑧⑨ 422 su fonte_tipo fuori dizionario o della forma sbagliata', async () => {
++    const corpi = [
++      { fonte_tipo: 'fax', fonte_riferimento: 'x' },
++      { fonte_tipo: 5, fonte_riferimento: 'x' },
++      { fonte_tipo: ['foglio'], fonte_riferimento: 'x' },
++      { fonte_tipo: 'FOGLIO', fonte_riferimento: 'x' },
++      { fonte_tipo: ' foglio ', fonte_riferimento: 'x' },
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(richiesta(corpo), params)).status).toBe(422)
++    }
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑩ `fonte_tipo: null` esplicito è legittimo: è la V7, «in attesa di conferma scritta»', async () => {
++    // 🔑 ASIMMETRIA DELIBERATA con la route typo: qui l'UPSERT SOSTITUISCE
++    // tutte e tre le colonne, quindi «chiave assente» e «null esplicito»
++    // dicono la stessa cosa. Sul typo `null` è invece un ATTO (rimuove la
++    // chiave dal contenuto) e la chiave assente è un errore.
++    const res = await POST(
++      richiesta({ fonte_tipo: null, fonte_riferimento: 'il dentista conferma via mail' }),
++      params
++    )
++    expect(res.status).toBe(200)
++    expect(rpcMock.mock.calls[0][1].p_fonte_tipo).toBeNull()
++  })
++
++  it('⑪ 422 su un riferimento vuoto o di soli spazi: non è un corpo', async () => {
++    // `'' IS NOT NULL` è VERO: il CHECK `fonte_ck` passerebbe e la riga
++    // sembrerebbe avere una fonte. È la stessa bugia di ⑥, detta più piano.
++    expect((await POST(richiesta({ fonte_riferimento: '' }), params)).status).toBe(422)
++    expect((await POST(richiesta({ fonte_riferimento: '   ' }), params)).status).toBe(422)
++    expect(
++      (await POST(richiesta({ fonte_tipo: 'email', fonte_riferimento: '' }), params)).status
++    ).toBe(422)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑫⑬ 422 su riferimento o immagine della forma sbagliata', async () => {
++    const corpi = [
++      { fonte_riferimento: 5 },
++      { fonte_riferimento: ['x'] },
++      { fonte_riferimento: { testo: 'x' } },
++      { fonte_immagine_id: 5 },
++      { fonte_immagine_id: [IMG] },
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(richiesta(corpo), params)).status).toBe(422)
++    }
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑭ 422 su un identificativo immagine che non è un UUID: sarebbe 22P02 → 500', async () => {
++    const res = await POST(richiesta({ fonte_immagine_id: 'pippo' }), params)
++    expect(res.status).toBe(422)
++    expect(fromMock).not.toHaveBeenCalled()
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑮⑯ 403 se l’immagine è di un altro laboratorio o è stata cancellata', async () => {
++    // La FK composita (fonte_immagine_id, laboratorio_id) morde con 23503 →
++    // 500 illeggibile. Il controllo di appartenenza sta qui, col precedente
++    // del POST /api/lavori (route.ts:158-174), che risponde 403.
++    fromMock.mockImplementation(() => immagine({ laboratorio_id: 'lab-B' }))
++    expect((await POST(richiesta({ fonte_immagine_id: IMG }), params)).status).toBe(403)
++
++    fromMock.mockImplementation(() => immagine(null)) // inesistente o soft-deleted
++    expect((await POST(richiesta({ fonte_immagine_id: IMG }), params)).status).toBe(403)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++})
++
++describe('POST …/prescrizione/fonte — la chiamata e gli esiti', () => {
++  it('200: i tre parametri arrivano alla RPC, tenant e lavoro da sessione e URL', async () => {
++    const res = await POST(
++      richiesta({ fonte_tipo: 'foglio', fonte_immagine_id: IMG, fonte_riferimento: 'busta 3' }),
++      params
++    )
++    expect(res.status).toBe(200)
++    const args = rpcMock.mock.calls[0][1]
++    expect(rpcMock.mock.calls[0][0]).toBe('lavoro_prescrizione_allega_fonte')
++    expect(args).toEqual({
++      p_lab: LAB,
++      p_lavoro: 'L1',
++      p_fonte_tipo: 'foglio',
++      p_fonte_immagine_id: IMG,
++      p_fonte_riferimento: 'busta 3',
++    })
++    // La risposta rimanda la fonte NORMALIZZATA — quella davvero scritta —
++    // così il chiamante ridisegna senza rileggere (precedente: PUT denti).
++    expect(await res.json()).toEqual({
++      fonte: { fonte_tipo: 'foglio', fonte_immagine_id: IMG, fonte_riferimento: 'busta 3' },
++    })
++  })
++
++  it('le chiavi assenti diventano NULL: la fonte si SOSTITUISCE per intero', async () => {
++    await POST(richiesta({ fonte_riferimento: 'solo questo' }), params)
++    expect(rpcMock.mock.calls[0][1]).toEqual({
++      p_lab: LAB,
++      p_lavoro: 'L1',
++      p_fonte_tipo: null,
++      p_fonte_immagine_id: null,
++      p_fonte_riferimento: 'solo questo',
++    })
++  })
++
++  it('il riferimento viaggia INTATTO, spazi esterni compresi', async () => {
++    // Il `.trim()` serve SOLO a decidere se la stringa è vuota (⑪): il valore
++    // spedito non si normalizza. Precedente e ragione: il gettone del PUT denti.
++    await POST(richiesta({ fonte_riferimento: '  busta 3  ' }), params)
++    expect(rpcMock.mock.calls[0][1].p_fonte_riferimento).toBe('  busta 3  ')
++  })
++
++  it('404 quando la RPC non trova il lavoro — è anche il caso cross-tenant (R4)', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'non_trovato' }, error: null })
++    const res = await POST(richiesta({ fonte_riferimento: 'x' }), params)
++    expect(res.status).toBe(404)
++  })
++
++  it('409 con l’esito quando la fonte è congelata da una DdC attiva (V8)', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'fonte_congelata' }, error: null })
++    const res = await POST(richiesta({ fonte_riferimento: 'x' }), params)
++    expect(res.status).toBe(409)
++    const body = await res.json()
++    // 🔑 `esito` è la parte leggibile dalla macchina: la UI deve poter
++    // distinguere «annulla la dichiarazione» da «prima allega il foglio» da
++    // «ricarica». La frase è per l'umano, il codice è per il ramo di codice.
++    expect(body.esito).toBe('fonte_congelata')
++    expect(typeof body.errore).toBe('string')
++  })
++
++  it('422 se la RPC dice fonte_tipo_non_valido — difesa in profondità', async () => {
++    // Non deve mai accadere (⑧ morde prima). Se accade, i due dizionari sono
++    // divergenti: la risposta resta un 422, mai un 500.
++    rpcMock.mockResolvedValue({ data: { esito: 'fonte_tipo_non_valido' }, error: null })
++    const res = await POST(richiesta({ fonte_tipo: 'foglio', fonte_riferimento: 'x' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).esito).toBe('fonte_tipo_non_valido')
++  })
++
++  it('⑱ 500 su errore PostgREST o esito sconosciuto — mai ignorati', async () => {
++    rpcMock.mockResolvedValue({ data: null, error: { message: 'boom', code: 'XX000' } })
++    expect((await POST(richiesta({ fonte_riferimento: 'x' }), params)).status).toBe(500)
++
++    rpcMock.mockResolvedValue({ data: { esito: 'marziano' }, error: null })
++    expect((await POST(richiesta({ fonte_riferimento: 'x' }), params)).status).toBe(500)
++
++    rpcMock.mockResolvedValue({ data: null, error: null })
++    expect((await POST(richiesta({ fonte_riferimento: 'x' }), params)).status).toBe(500)
++  })
++})
+diff --git a/tests/unit/api-prescrizione-typo.test.ts b/tests/unit/api-prescrizione-typo.test.ts
+new file mode 100644
+index 00000000..10770d3a
+--- /dev/null
++++ b/tests/unit/api-prescrizione-typo.test.ts
+@@ -0,0 +1,354 @@
++import { describe, expect, it, vi, beforeEach } from 'vitest'
++
++// ═══════════════════════════════════════════════════════════════════════════
++// POST /api/lavori/[id]/prescrizione/typo — «era scritto così sulla
++// prescrizione» (T4, ondata B ③, gesto V4/D212).
++//
++// Correggere un typo RISCRIVE la trascrizione: lo snapshot che la Dichiarazione
++// di Conformità fotografa. Per questo la porta è severa — e per questo il
++// gettone di concorrenza è OBBLIGATORIO (v. il describe dedicato in fondo).
++//
++// ═══ ENUMERAZIONE DELLE FORME D'INPUT (R-P4) ═══════════════════════════════
++// Corpo: `{ campo, valore, atteso_updated_at }`
++//
++//  ① corpo non-JSON · ② null · ③ array · ④ scalare      → 400
++//  ⑤ chiave ignota                                       → 422 · RPC non parte
++//  ⑥ `campo` assente / non stringa / array               → 422
++//  ⑦ `campo` fuori dizionario ('pippo')                  → 422 · RPC non parte
++//  ⑧ `valore` — CHIAVE ASSENTE                           → 422 (S6)
++//  ⑨ `valore: null` esplicito                            → 200, rimozione
++//  ⑩ `colore`/`tipo` con valore non stringa              → 422
++//  ⑪ `elementi` con valore non array                     → 422
++//  ⑫ `elementi` con elementi non interi                  → 422
++//  ⑬ `elementi: []`                                      → 422 (la rimozione è ⑨)
++//  ⑭ `atteso_updated_at` assente / null / vuoto / numero → 422 · RPC non parte
++//  ⑮ gettone valido coi microsecondi                     → arriva INTATTO (S5)
++//  ⑯ esiti: ok · non_trovato · conflitto · congelata · senza_prescrizione ·
++//     campo_non_valido
++//  ⑰ errore PostgREST · esito sconosciuto                → 500
++//
++// 🛑 NON coperte, e con la ragione:
++//  · `elementi` con DUPLICATI o fuori numerazione FDI: `contenuto` è una
++//    TRASCRIZIONE, e la sua regola fondativa è la fedeltà al foglio, non la
++//    validità di catalogo (D210; fatto 6 del censimento: un colore fuori
++//    catalogo resta trascritto anche se il CASO lo scarta). Importare qui la
++//    regola di `denti-validazione` contraddirebbe lo snapshot. Si prova la
++//    FORMA (interi), non il DOMINIO (quali interi).
++//  · gettone stringa non vuota ma non interpretabile come istante ('pippo'):
++//    LIMITE DICHIARATO — supera la porta e sbatte su 22007 → 500. Chiuderlo
++//    vorrebbe dire riconoscere qui tutte le forme che Postgres accetta. È lo
++//    stesso limite, dichiarato allo stesso modo, del PUT denti (route.ts:100).
++// ═══════════════════════════════════════════════════════════════════════════
++
++const rpcMock = vi.fn()
++const contextMock = vi.fn()
++const sameOriginMock = vi.fn(() => true)
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({ rpc: rpcMock, from: vi.fn() }),
++}))
++vi.mock('@/lib/supabase/lab-context', () => ({
++  getFreshLabContext: () => contextMock(),
++}))
++vi.mock('@/lib/supabase/lab-guard', () => ({ assertLabOperativo: () => null }))
++vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => sameOriginMock() }))
++
++import { POST } from '@/app/api/lavori/[id]/prescrizione/typo/route'
++
++const LAB = 'lab-A'
++const params = { params: Promise.resolve({ id: 'L1' }) }
++
++// ⚠️ Coi MICROSECONDI: è la forma vera di un `timestamptz` letto da PostgREST.
++const GETTONE = '2026-08-04T09:00:00.123456+00:00'
++const NUOVO = '2026-08-04T09:30:11.654321+00:00'
++
++function richiesta(body: unknown) {
++  return new Request('http://localhost/api/lavori/L1/prescrizione/typo', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(body),
++  })
++}
++function richiestaGrezza(testo: string) {
++  return new Request('http://localhost/api/lavori/L1/prescrizione/typo', {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: testo,
++  })
++}
++
++/**
++ * I casi che NON parlano del gettone lo mandano comunque: senza, tornerebbero
++ * 422 per la ragione sbagliata — cioè smetterebbero di poter fallire per la
++ * propria.
++ *
++ * 🛑 I casi del gettone NON passano di qui e usano `richiesta` nuda: un aiutante
++ * che fornisce da sé il campo sotto esame disarma la guardia che si sta
++ * provando (lezione del PUT denti, 28/07/2026).
++ */
++const conGettone = (body: Record<string, unknown>) =>
++  richiesta({ atteso_updated_at: GETTONE, ...body })
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  sameOriginMock.mockReturnValue(true)
++  contextMock.mockResolvedValue({
++    userId: 'U1',
++    laboratorioId: LAB,
++    ruolo: 'titolare',
++    lab: { stato: 'attivo', trial_ends_at: null },
++  })
++  rpcMock.mockResolvedValue({ data: { esito: 'ok', updated_at: NUOVO }, error: null })
++})
++
++describe('POST …/prescrizione/typo — la porta prima del database', () => {
++  it('403 fuori origine · 401 senza sessione · 403 senza laboratorio', async () => {
++    sameOriginMock.mockReturnValue(false)
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(403)
++
++    sameOriginMock.mockReturnValue(true)
++    contextMock.mockResolvedValue(null)
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(401)
++
++    contextMock.mockResolvedValue({ userId: 'U1', laboratorioId: null, ruolo: 'admin_sistema' })
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(403)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('①②③④ 400 su corpo non-JSON, null, array, scalare', async () => {
++    expect((await POST(richiestaGrezza('{ rotto'), params)).status).toBe(400)
++    expect((await POST(richiesta(null), params)).status).toBe(400)
++    expect((await POST(richiesta([{ campo: 'colore' }]), params)).status).toBe(400)
++    expect((await POST(richiesta('colore'), params)).status).toBe(400)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑤ 422 su una chiave ignota', async () => {
++    const res = await POST(conGettone({ campo: 'colore', valore: 'A3', motivo: 'altro' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).errore).toMatch(/motivo/)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑥⑦ 422 su un campo assente, della forma sbagliata o fuori dizionario', async () => {
++    const corpi = [
++      { valore: 'A3' }, // assente
++      { campo: 5, valore: 'A3' },
++      { campo: ['colore'], valore: 'A3' },
++      { campo: null, valore: 'A3' },
++      { campo: 'pippo', valore: 'A3' }, // il valore della sonda S4
++      { campo: 'numero_prescrizione', valore: 'X' }, // esiste, ma non è un campo del contenuto
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(conGettone(corpo), params)).status).toBe(422)
++    }
++    // 🔑 Il dizionario morde ANCHE nella RPC (esito `campo_non_valido`), ma
++    // qui deve mordere PRIMA: un 422 leggibile, non un giro fino al database.
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑧ 422 quando la chiave `valore` MANCA: la rimozione è un atto, non un vuoto', async () => {
++    // 🔑 S6, ed è la ragione per cui questa prova esiste: `JSON.stringify` fa
++    // SPARIRE le chiavi con valore `undefined`. Se la route derivasse la
++    // rimozione da `body.valore === undefined`, un client con un bug di
++    // costruzione del corpo CANCELLEREBBE una caratteristica trascritta e
++    // leggerebbe 200. La rimozione si chiede: `{valore: null}`.
++    const res = await POST(conGettone({ campo: 'colore' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).errore).toMatch(/valore/)
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑨ `valore: null` esplicito RIMUOVE la chiave dal contenuto', async () => {
++    const res = await POST(conGettone({ campo: 'colore', valore: null }), params)
++    expect(res.status).toBe(200)
++    // La RPC distingue: jsonb 'null' (e il NULL SQL) → `contenuto - campo`.
++    expect(rpcMock.mock.calls[0][1].p_valore).toBeNull()
++  })
++
++  it('⑩ 422 su colore/tipo che non sono testo, e sul testo VUOTO', async () => {
++    const corpi = [
++      { campo: 'colore', valore: 5 },
++      { campo: 'colore', valore: ['A3'] },
++      { campo: 'colore', valore: { scala: 'A3' } },
++      { campo: 'colore', valore: true },
++      { campo: 'tipo', valore: 5 },
++      { campo: 'tipo', valore: ['corona'] },
++      // 🔑 La stringa vuota non è la trascrizione di niente — stessa regola di
++      // `componiSnapshot` (che OMETTE la chiave su `''`). Scriverla creerebbe
++      // una chiave presente e vuota, cioè un terzo stato fra «trascritto» e
++      // «non prescritto». Chi ha svuotato il campo manda `{valore: null}`.
++      { campo: 'colore', valore: '' },
++      { campo: 'tipo', valore: '' },
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(conGettone(corpo), params)).status).toBe(422)
++    }
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑪⑫⑬ 422 su elementi che non sono una lista di interi, e sulla lista vuota', async () => {
++    const corpi = [
++      { campo: 'elementi', valore: '11,12' },
++      { campo: 'elementi', valore: 11 },
++      { campo: 'elementi', valore: { fdi: 11 } },
++      { campo: 'elementi', valore: ['11'] },
++      { campo: 'elementi', valore: [11, 1.5] },
++      { campo: 'elementi', valore: [11, null] },
++      { campo: 'elementi', valore: [] }, // ⑬ «niente di prescritto» si dice con ⑨
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(conGettone(corpo), params)).status).toBe(422)
++    }
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('una lista di interi passa, e arriva alla RPC così com’è', async () => {
++    // 🔑 Nessun controllo sulla numerazione FDI: `contenuto` è la TRASCRIZIONE
++    // del foglio, non un dato di catalogo (v. testa del file). Si prova la
++    // forma, non il dominio.
++    const res = await POST(conGettone({ campo: 'elementi', valore: [11, 12, 99] }), params)
++    expect(res.status).toBe(200)
++    expect(rpcMock.mock.calls[0][1].p_valore).toEqual([11, 12, 99])
++  })
++
++  it('il colore passa COME DIGITATO: nessun trim, nessun maiuscolo (D210)', async () => {
++    await POST(conGettone({ campo: 'colore', valore: '  a3,5  ' }), params)
++    expect(rpcMock.mock.calls[0][1].p_valore).toBe('  a3,5  ')
++  })
++})
++
++describe('POST …/prescrizione/typo — la chiamata e gli esiti', () => {
++  it('200: parametri completi, tenant e lavoro da sessione e URL', async () => {
++    const res = await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)
++    expect(res.status).toBe(200)
++    expect(rpcMock.mock.calls[0][0]).toBe('lavoro_prescrizione_correggi_typo')
++    expect(rpcMock.mock.calls[0][1]).toEqual({
++      p_lab: LAB,
++      p_lavoro: 'L1',
++      p_campo: 'colore',
++      p_valore: 'A3',
++      p_atteso_updated_at: GETTONE,
++    })
++    // Il gettone NUOVO torna al chiamante: senza, la correzione successiva
++    // nascerebbe già stantia e prenderebbe un 409 immeritato.
++    expect(await res.json()).toEqual({ updated_at: NUOVO })
++  })
++
++  it('404 quando la RPC non trova il lavoro — è anche il caso cross-tenant (R4)', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'non_trovato' }, error: null })
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(404)
++  })
++
++  it('409 col gettone CORRENTE quando qualcun altro ha scritto nel frattempo', async () => {
++    rpcMock.mockResolvedValue({
++      data: { esito: 'conflitto', updated_at: NUOVO },
++      error: null,
++    })
++    const res = await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)
++    expect(res.status).toBe(409)
++    const body = await res.json()
++    expect(body.esito).toBe('conflitto')
++    // 🔑 Il gettone corrente torna INTATTO: è quello con cui il client
++    // riproverà. Un `new Date(...)` in mezzo troncherebbe i microsecondi e il
++    // secondo tentativo prenderebbe un altro 409 — per sempre.
++    expect(body.updated_at).toBe(NUOVO)
++  })
++
++  it('409 con l’esito quando lo snapshot è congelato da una DdC attiva (V8)', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'congelata' }, error: null })
++    const res = await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)
++    expect(res.status).toBe(409)
++    expect((await res.json()).esito).toBe('congelata')
++  })
++
++  it('409 «prima allega il foglio» quando la trascrizione non esiste ancora', async () => {
++    // La via c'è ed è provata (sonda S1): allegare la fonte CREA la riga anche
++    // per i lavori nati prima dell'ondata B. La risposta deve dirlo, perché è
++    // il rimedio, non un vicolo cieco.
++    rpcMock.mockResolvedValue({ data: { esito: 'senza_prescrizione' }, error: null })
++    const res = await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)
++    expect(res.status).toBe(409)
++    const body = await res.json()
++    expect(body.esito).toBe('senza_prescrizione')
++    expect(body.errore).toMatch(/allega/i)
++  })
++
++  it('422 se la RPC dice campo_non_valido — difesa in profondità', async () => {
++    rpcMock.mockResolvedValue({ data: { esito: 'campo_non_valido' }, error: null })
++    const res = await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).esito).toBe('campo_non_valido')
++  })
++
++  it('⑰ 500 su errore PostgREST, esito sconosciuto o `ok` senza gettone nuovo', async () => {
++    rpcMock.mockResolvedValue({ data: null, error: { message: 'boom', code: 'XX000' } })
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(500)
++
++    rpcMock.mockResolvedValue({ data: { esito: 'marziano' }, error: null })
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(500)
++
++    // 🔑 Un `ok` senza `updated_at` non è un successo: il client ripartirebbe
++    // col gettone VECCHIO e prenderebbe un 409 immeritato al gesto dopo —
++    // sembrando un conflitto che non è mai esistito.
++    rpcMock.mockResolvedValue({ data: { esito: 'ok' }, error: null })
++    expect((await POST(conGettone({ campo: 'colore', valore: 'A3' }), params)).status).toBe(500)
++  })
++})
++
++// ═══════════════════════════════════════════════════════════════════════════
++// IL GETTONE DI CONCORRENZA È OBBLIGATORIO
++//
++// La RPC salta il confronto quando `p_atteso_updated_at IS NULL`
++// (20260804152403:222): senza gettone, due correzioni consecutive tornano
++// ENTRAMBE `ok` e l'ultima vince in silenzio. È lo stesso difetto — rilievo M1,
++// riprodotto sul database vero il 28/07/2026 — che ha reso obbligatorio il
++// gettone sul PUT denti; qui il campo sovrascritto è la trascrizione della
++// prescrizione, cioè ciò che la Dichiarazione di Conformità fotografa.
++//
++// 🛑 LA GUARDIA VIVE QUI E LA RPC RESTA PERMISSIVA, per la stessa ragione di
++//    vocabolario del PUT denti: la RPC conosce `conflitto` («qualcun altro ha
++//    scritto»), e «non hai mandato la chiave» non è quello. Farglielo dire
++//    sarebbe una bugia all'utente.
++//
++// 🔑 Il contratto è esigibile: `GET /api/lavori/[id]` fa `select('*')` su
++//    `lavori` (route.ts:302-315) e `Lavoro.updated_at` è nel tipo
++//    (domain.ts) — chi apre la scheda ha già il gettone in mano.
++//
++// 🛑 Questi casi usano `richiesta` NUDA, mai `conGettone`.
++// ═══════════════════════════════════════════════════════════════════════════
++describe('POST …/prescrizione/typo — il gettone di concorrenza è obbligatorio', () => {
++  it('🔴 422 quando il gettone MANCA DEL TUTTO', async () => {
++    const res = await POST(richiesta({ campo: 'colore', valore: 'A3' }), params)
++    expect(res.status).toBe(422)
++    expect((await res.json()).errore).toMatch(/atteso_updated_at/)
++    // Senza questa riga la prova passerebbe anche se la route riscrivesse la
++    // trascrizione e POI rispondesse 422.
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('🔴 422 su un gettone null, vuoto, di soli spazi o numerico', async () => {
++    const corpi = [
++      { atteso_updated_at: null, campo: 'colore', valore: 'A3' },
++      { atteso_updated_at: '', campo: 'colore', valore: 'A3' },
++      { atteso_updated_at: '   ', campo: 'colore', valore: 'A3' },
++      { atteso_updated_at: 12345, campo: 'colore', valore: 'A3' },
++    ]
++    for (const corpo of corpi) {
++      expect((await POST(richiesta(corpo), params)).status).toBe(422)
++    }
++    // La stringa vuota è respinta perché `''::timestamptz` è un errore di cast
++    // (22007): sarebbe un 500 illeggibile al posto di un 422.
++    expect(rpcMock).not.toHaveBeenCalled()
++  })
++
++  it('⑮ il gettone arriva alla RPC INTATTO: si controlla, non si normalizza', async () => {
++    // Il gettone è una STRINGA OPACA end-to-end (sonda S5, primo giro rosso
++    // proprio per questo): `timestamptz` ha precisione al microsecondo, `Date`
++    // di JS al millisecondo. Un solo giro di riparsing troncherebbe `.123456`
++    // a `.123` e il confronto `IS DISTINCT FROM` dentro la RPC non tornerebbe
++    // MAI uguale: 409 permanente, che nemmeno ricaricando la pagina si sana.
++    await POST(richiesta({ atteso_updated_at: ` ${GETTONE} `, campo: 'colore', valore: 'A3' }), params)
++    expect(rpcMock.mock.calls[0][1].p_atteso_updated_at).toBe(` ${GETTONE} `)
++  })
++})
+diff --git a/tests/unit/prescrizione-costanti-spia-migration.test.ts b/tests/unit/prescrizione-costanti-spia-migration.test.ts
+new file mode 100644
+index 00000000..d5e40022
+--- /dev/null
++++ b/tests/unit/prescrizione-costanti-spia-migration.test.ts
+@@ -0,0 +1,210 @@
++import { describe, expect, it } from 'vitest'
++import { readFileSync } from 'node:fs'
++import {
++  FONTE_TIPI,
++  CAMPI_TYPO,
++  MOTIVI_DIVERGENZA,
++  isFonteTipo,
++  isCampoTypo,
++  isMotivoDivergenza,
++} from '@/lib/domain/prescrizione-costanti'
++
++// ═══════════════════════════════════════════════════════════════════════════
++// SPIA — i TRE dizionari della prescrizione vivono in due mondi: il vincolo che
++// il database esegue e la costante TypeScript che le route leggono. Questa
++// prova è l'UNICA rete meccanica che impedisce ai due di divergere in silenzio.
++//
++// 🛑 SERVE perché il database NON restringe il tipo generato: `gen types`
++//    produce `fonte_tipo: string`, non l'unione dei quattro valori. 🔴 E dal
++//    30/07/2026 si sa che è PEGGIO: i quattro fabbricanti del client
++//    (`src/lib/supabase/{server-service,server-user,browser-anon,
++//    middleware-client}.ts`) creano il client SENZA il generico `<Database>`,
++//    quindi NESSUN tipo generato incontra mai una query (rilievo R27). `tsc`
++//    non vede nulla di tutto questo.
++//
++// 🔑 CONFRONTA INSIEMI, NON CONTEGGI — modello e ragione in
++//    `categorie-foto-spia-migration.test.ts`: un conteggio resta verde se il
++//    dizionario cresce da tutte e due le parti nello stesso momento sbagliato.
++//
++// 🔑 QUATTRO estrazioni, non tre: `fonte_tipo` è scritto DUE volte in banca
++//    dati — il CHECK della tabella (che RIFIUTA) e la guardia dentro
++//    `lavoro_prescrizione_allega_fonte` (che risponde `fonte_tipo_non_valido`
++//    invece di far esplodere un 23514). Se i due divergessero, la RPC
++//    accetterebbe un valore che la tabella respinge: un 500 al posto di un
++//    esito parlante. La spia li tiene insieme tutti e tre (SQL×2 + TS).
++// ═══════════════════════════════════════════════════════════════════════════
++
++// 🛑 PUNTANO AL VINCOLO IN VIGORE, e si spostano A MANO quando il vincolo si
++//    sposta (modello categorie-foto: la scansione automatica della cartella è
++//    stata SCARTATA — scambierebbe un rosso rumoroso con un verde silenzioso).
++//
++// 🔴 AVVISO A CHI ESEGUE IL TASK 5 DI QUESTA SESSIONE: T5 fa `CREATE OR
++//    REPLACE` di `lavoro_prescrizione_registra_divergenza` in una migration
++//    NUOVA, per aggiungere il dizionario su `p_campo`. Da quel momento il corpo
++//    vivo di quella funzione NON è più in 20260804152403 — ma il testo vecchio
++//    resta nel file, e questa spia continuerebbe a leggerlo e a dichiararsi
++//    verde. `MIGRATION_RPC` va spostata alla migration di T5 NELLO STESSO
++//    salvataggio, e il nuovo `p_campo NOT IN (...)` di `registra_divergenza`
++//    guadagna la sua estrazione qui sotto.
++const MIGRATION_TABELLA = 'supabase/migrations/20260804150306_ondata_b_lavori_prescrizioni.sql'
++const MIGRATION_RPC = 'supabase/migrations/20260804152403_ondata_b_prescrizioni_rpc.sql'
++
++/** Il file SENZA i commenti.
++ *
++ *  🔴 SERVE, e l'ha insegnato un rosso vero nella spia gemella (02/08/2026): le
++ *  migration di questo repo portano in testa blocchi di prosa lunghi quanto il
++ *  codice, e i valori dei dizionari vi compaiono citati. `20260804152403` cita
++ *  le quattro forme della fonte in un commento (riga 160-162) PRIMA di
++ *  scriverle nell'IF. Da qui in poi si guarda ciò che il database esegue, non
++ *  ciò che il file racconta. */
++function soloIstruzioni(sql: string): string {
++  return sql
++    .split('\n')
++    .filter((riga) => !riga.trimStart().startsWith('--'))
++    .join('\n')
++}
++
++/** La definizione di UNA funzione, dal `CREATE` al prossimo oggetto di primo
++ *  livello.
++ *
++ *  🔴 SERVE, e chiude una trappola che la sola scelta del file NON chiude.
++ *     `p_campo NOT IN (…)` comparirà in DUE funzioni diverse: oggi solo in
++ *     `correggi_typo`, dal Task 5 anche in `registra_divergenza`. Una ricerca
++ *     sul file INTERO prende la prima occorrenza — quindi, il giorno in cui
++ *     `MIGRATION_RPC` si sposta alla migration di T5 (che contiene
++ *     `registra_divergenza` e NON `correggi_typo`), la prova di `CAMPI_TYPO`
++ *     leggerebbe il dizionario della DIVERGENZA e lo chiamerebbe dizionario del
++ *     typo. Oggi i due elenchi coincidono, quindi resterebbe VERDE provando la
++ *     cosa sbagliata — e mentirebbe il giorno in cui divergessero.
++ *  🔑 Legando l'estrazione alla FUNZIONE, quello stesso spostamento fa lanciare
++ *     l'errore qui sotto: rumoroso, che è il modo in cui questa spia deve
++ *     guastarsi (v. testa del file). */
++function corpoFunzione(sql: string, funzione: string): string {
++  const apertura = new RegExp(`CREATE (?:OR REPLACE )?FUNCTION public\\.${funzione}\\(`)
++  const m = apertura.exec(sql)
++  if (!m) {
++    throw new Error(
++      `la funzione ${funzione} non è definita in questo file: la spia non può provare nulla — il puntatore va aggiornato`
++    )
++  }
++  const dopo = sql.slice(m.index + m[0].length)
++  // Le righe del CORPO sono tutte indentate o cominciano con DECLARE/BEGIN/END:
++  // una parola chiave di primo livello a colonna zero è già l'oggetto dopo.
++  const fine = dopo.search(/\n(?:CREATE|COMMENT|REVOKE|GRANT|ALTER|DROP)\b/)
++  return fine === -1 ? dopo : dopo.slice(0, fine)
++}
++
++function valori(file: string, funzione: string, regex: RegExp, nome: string): string[] {
++  const sql = corpoFunzione(soloIstruzioni(readFileSync(file, 'utf-8')), funzione)
++  const m = sql.match(regex)
++  if (!m) throw new Error(`${nome} non trovato in ${funzione} (${file}): la spia non può provare nulla`)
++  return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
++}
++
++/** Il CHECK di tabella non sta dentro nessuna funzione: si legge dal file. */
++function valoriDaTabella(file: string, regex: RegExp, nome: string): string[] {
++  const sql = soloIstruzioni(readFileSync(file, 'utf-8'))
++  const m = sql.match(regex)
++  if (!m) throw new Error(`${nome} non trovato in ${file}: la spia non può provare nulla`)
++  return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
++}
++
++/** I due insiemi coincidono, in ENTRAMBE le direzioni. */
++function coincidono(daSql: string[], daTs: readonly string[]) {
++  const sql = new Set<string>(daSql)
++  const ts = new Set<string>(daTs)
++  expect([...ts].filter((v) => !sql.has(v))).toEqual([]) // nel codice, non in banca dati
++  expect([...sql].filter((v) => !ts.has(v))).toEqual([]) // in banca dati, non nel codice
++}
++
++describe('spia — i dizionari della prescrizione non possono divergere dal database', () => {
++  it('FONTE_TIPI = il CHECK della tabella `lavori_prescrizioni`', () => {
++    coincidono(
++      valoriDaTabella(MIGRATION_TABELLA, /CHECK \(fonte_tipo IN \(([^)]+)\)\)/, 'CHECK su fonte_tipo'),
++      FONTE_TIPI
++    )
++  })
++
++  it('FONTE_TIPI = la guardia dentro `lavoro_prescrizione_allega_fonte`', () => {
++    coincidono(
++      valori(
++        MIGRATION_RPC,
++        'lavoro_prescrizione_allega_fonte',
++        /p_fonte_tipo NOT IN \(([^)]+)\)/,
++        'guardia p_fonte_tipo'
++      ),
++      FONTE_TIPI
++    )
++  })
++
++  it('CAMPI_TYPO = la guardia dentro `lavoro_prescrizione_correggi_typo`', () => {
++    coincidono(
++      valori(
++        MIGRATION_RPC,
++        'lavoro_prescrizione_correggi_typo',
++        /p_campo NOT IN \(([^)]+)\)/,
++        'guardia p_campo'
++      ),
++      CAMPI_TYPO
++    )
++  })
++
++  it('MOTIVI_DIVERGENZA = la guardia dentro `lavoro_prescrizione_registra_divergenza`', () => {
++    coincidono(
++      valori(
++        MIGRATION_RPC,
++        'lavoro_prescrizione_registra_divergenza',
++        /p_motivo NOT IN \(([^)]+)\)/,
++        'guardia p_motivo'
++      ),
++      MOTIVI_DIVERGENZA
++    )
++  })
++
++  // 🔴 T5 aggiunge un `p_campo NOT IN (…)` ANCHE dentro
++  //    `lavoro_prescrizione_registra_divergenza`: quando quella migration
++  //    esiste, qui va aggiunta la sua estrazione — `valori(MIGRATION_T5,
++  //    'lavoro_prescrizione_registra_divergenza', /p_campo NOT IN …/)` contro
++  //    `CAMPI_TYPO`. Finché non c'è, il dizionario del campo della divergenza
++  //    vive SOLO nella route (sonda S3), e lo prova
++  //    `api-prescrizione-divergenza.test.ts`.
++})
++
++describe('le tre guardie di tipo riconoscono i valori e rifiutano tutto il resto', () => {
++  // 🔑 Le forme che una route riceve davvero da un corpo JSON: non solo la
++  //    stringa sbagliata, ma il numero, il null, l'array, l'oggetto. Una
++  //    guardia scritta come `FONTE_TIPI.includes(v as never)` accetterebbe
++  //    `undefined` senza accorgersene.
++  const NON_VALORI = [undefined, null, 5, true, {}, [], ['foglio'], '', '  foglio  ', 'FOGLIO']
++
++  // 🔴 SERVE, e l'ha trovata il conteggio R-P4 di questo stesso task: contro
++  //    l'abbozzo inerte (dizionari VUOTI, guardie che rispondono sempre `false`)
++  //    queste tre prove passavano — le uniche 3 su 61. Un `for` su una lista
++  //    vuota non esegue nessuna asserzione: la prova diceva «la guardia
++  //    riconosce i valori» senza guardarne mai uno. Il non-vuoto dichiarato è
++  //    ciò che rende il ciclo capace di fallire.
++  function nonVuoto(dizionario: readonly string[]) {
++    expect(dizionario.length).toBeGreaterThan(0)
++  }
++
++  it('isFonteTipo', () => {
++    nonVuoto(FONTE_TIPI)
++    for (const v of FONTE_TIPI) expect(isFonteTipo(v)).toBe(true)
++    for (const v of NON_VALORI) expect(isFonteTipo(v)).toBe(false)
++    expect(isFonteTipo('fax')).toBe(false)
++  })
++
++  it('isCampoTypo', () => {
++    nonVuoto(CAMPI_TYPO)
++    for (const v of CAMPI_TYPO) expect(isCampoTypo(v)).toBe(true)
++    for (const v of NON_VALORI) expect(isCampoTypo(v)).toBe(false)
++    expect(isCampoTypo('pippo')).toBe(false) // il valore della sonda S4
++  })
++
++  it('isMotivoDivergenza', () => {
++    nonVuoto(MOTIVI_DIVERGENZA)
++    for (const v of MOTIVI_DIVERGENZA) expect(isMotivoDivergenza(v)).toBe(true)
++    for (const v of NON_VALORI) expect(isMotivoDivergenza(v)).toBe(false)
++    expect(isMotivoDivergenza('perche_si')).toBe(false)
++  })
++})

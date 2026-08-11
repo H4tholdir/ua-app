@@ -1,0 +1,425 @@
+// @vitest-environment node
+import { describe, it, expect } from 'vitest'
+import { LAVORO_FIXTURE } from './helpers/pdf-fixtures'
+import type { LavoroDettaglio, Paziente } from '@/types/domain'
+import {
+  CAMPI_CORREGGIBILI_DOCUMENTO,
+  validaCorrezioni,
+  fondiCorrezioni,
+} from '@/lib/dichiarazione/correzioni'
+
+/**
+ * Task C — LE SEI VOCI CORREGGIBILI DEL DOCUMENTO, e la regola sola che
+ * chiude C2.
+ *
+ * 🔑 PERCHÉ QUESTO MODULO ESISTE E NON È «i campi di `lavori`»: una seconda
+ * penna sul lavoro non conoscerebbe le ~200 righe di regole della PATCH
+ * (colore di caso, tinta, sentinelle, blocco fiscale). Qui si correggono le
+ * voci che il DOCUMENTO stampa, e da ⚖️ D320 sono SEI NOMI PER SEI VOCI: un
+ * nome, una riga.
+ *
+ * ⚖️ ERANO SETTE FINO A D320 (08/08/2026): il paziente si correggeva in DUE
+ * modi, e uno dei due è uscito. Chi ha sbagliato PERSONA usa ancora
+ * `paziente_id`; chi ha sbagliato a SCRIVERE IL NOME lo corregge **dove il nome
+ * vive**, cioè in anagrafica (`PATCH /api/pazienti/[id]`). Il perché è tecnico e
+ * sta tutto in una riga: `generate-ddc.ts:304` legge lo snapshot PRIMA del nome
+ * vivo, quindi scriverlo da qui congelerebbe sul lavoro un nome che l'anagrafica
+ * non governa più. V. il blocco «D320» più sotto.
+ *
+ * ⚖️ ERANO OTTO NOMI PER SETTE VOCI FINO A D319 (08/08/2026): il numero di
+ * prescrizione è uscito, perché **non è un contenuto dovuto** dall'Allegato XIII
+ * punto 1 — sulla prescrizione l'elenco chiede il NOME di chi ha prescritto e le
+ * CARATTERISTICHE indicate nella prescrizione, e un numero non compare fra gli
+ * otto trattini. Da qui in avanti quel nome è **rifiutato** come qualsiasi altra
+ * chiave che non sia una voce del documento: v. il blocco «D319» più sotto.
+ *
+ * 🛑 C2, misurato dalla revisione del Task B: una sola chiamata con
+ * `denti_coinvolti: []`, `paziente_id: null` e stringhe vuote è tornata `ok` e
+ * ha SVUOTATO cinque campi. Il database non rifiuta il vuoto. Lo rifiuta qui,
+ * con UNA regola — «una correzione vuota non è una correzione» — non con tre
+ * casi speciali.
+ */
+
+const PAZIENTE_NUOVO = {
+  id: 'paz-nuovo',
+  laboratorio_id: 'lab-test-001',
+  nome_cognome: 'Giuseppa Esposito',
+  codice_paziente: 'PZ-002',
+} as unknown as Paziente
+
+const UUID_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+
+function ok(grezzo: unknown) {
+  const e = validaCorrezioni(grezzo)
+  if (!e.ok) throw new Error(`atteso ok, ricevuto: ${e.errore}`)
+  return e.correzioni
+}
+
+describe('CAMPI_CORREGGIBILI_DOCUMENTO — sei nomi e non uno di più', () => {
+  it('sono esattamente le sei chiavi dell\'allowlist della RPC', () => {
+    // 🛑 Lo stesso elenco vive nella RPC (`c_su_lavori || c_su_penne`). Sono due
+    // scritture della stessa verità e questo test è l'unico posto in cui si
+    // guardano in faccia: la RPC è la penna, questa è la rete davanti.
+    // ⚠️ È un `toEqual` sull'elenco ESATTO, non un `toContain`: è ciò che lo fa
+    //    diventare rosso il giorno in cui qualcuno rimette dentro un nome — ed è
+    //    stato provato rimettendoci `numero_prescrizione` (R-P4, Task C-quinquies)
+    //    e `paziente_nome_snapshot` (R-P4, Task C-sexies).
+    expect([...CAMPI_CORREGGIBILI_DOCUMENTO].sort()).toEqual([
+      'denti_coinvolti', 'descrizione', 'paziente_id',
+      'prescrizione_caratteristiche', 'richiedente_nome', 'tipo_dispositivo',
+    ])
+  })
+})
+
+describe('⚖️ D320 — lo SNAPSHOT del nome del paziente NON è più una voce correggibile', () => {
+  // 🔑 IL FONDAMENTO, e non è una preferenza di prodotto: `generate-ddc.ts:304`
+  //    legge `paziente_nome_snapshot ?? paziente?.nome_cognome ??
+  //    paziente?.codice_paziente ?? ''`. LO SNAPSHOT VINCE. Scriverlo da qui
+  //    congelerebbe sul lavoro un nome che l'anagrafica non governa più: ogni
+  //    correzione futura in anagrafica non arriverebbe su quel documento — cioè
+  //    l'opposto di «e poi tutto si deve aggiornare di conseguenza», che è la
+  //    frase con cui Francesco ha deciso.
+  // 🎯 LA DESTINAZIONE: `pazienti.nome`/`cognome` via `PATCH /api/pazienti/[id]`,
+  //    la via scritta per l'Art. 16 GDPR (`PazienteEditSheet` su `/pazienti/[id]`).
+  // 🛑 E UN CONTRATTO SI GIUDICA PER CIÒ CHE PERMETTE: oggi nessuna schermata
+  //    manda questa chiave, quindi queste prove non difendono da una regressione
+  //    — difendono dalla porta aperta.
+  it('🔴 `paziente_nome_snapshot` con un valore BUONO è rifiutato: è il caso che distingue la regola nuova dalla vecchia', () => {
+    // Un nome pieno e sensato: sotto la regola vecchia sarebbe passato, e la
+    // stessa cosa è stata misurata sulla RPC viva con una copia usa-e-getta che
+    // rimetteva il nome nell'allowlist (esito `ok`, snapshot riscritto).
+    const e = validaCorrezioni({ paziente_nome_snapshot: 'Mario Russo' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('e il messaggio lo NOMINA, invece di scartarlo in silenzio', () => {
+    const e = validaCorrezioni({ paziente_nome_snapshot: 'Mario Russo' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('paziente_nome_snapshot')
+  })
+
+  it('🛑 e non passa nemmeno in compagnia di una voce buona: l\'intera correzione cade', () => {
+    const e = validaCorrezioni({ descrizione: 'Corona in zirconia', paziente_nome_snapshot: 'Mario Russo' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('🔑 …né insieme a `paziente_id`, che è l\'altra metà della coppia e RESTA', () => {
+    // È la forma d'ingresso più probabile a schermo — «ho sbagliato persona e
+    // riscrivo anche il nome» — e va rifiutata INTERA: metà correzione applicata
+    // sarebbe lo scarto muto su una carta a valore legale.
+    const e = validaCorrezioni({ paziente_id: UUID_A, paziente_nome_snapshot: 'Mario Russo' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('📌 `paziente_id` DA SOLO resta invece una correzione buona: D320 chiude una porta, non due', () => {
+    expect(ok({ paziente_id: UUID_A }).paziente_id).toBe(UUID_A)
+  })
+
+  it('🔴 con valore VUOTO risponde «chiave ignota», non «campo vuoto»: l\'ordine dei controlli conta', () => {
+    // 🛑 SENZA QUESTA ASSERZIONE SUL MESSAGGIO la prova sarebbe verde anche con
+    //    la regola vecchia — lì `''` era rifiutato dalla regola sul vuoto (C2),
+    //    cioè per un'altra ragione. È il difetto «una prova che non poteva
+    //    fallire» che quest'ondata ha già incontrato cinque volte.
+    // 📌 E il messaggio giusto conta a schermo: «la correzione è vuota» manderebbe
+    //    chi sta al banco a riempire una casella che non esiste più.
+    const e = validaCorrezioni({ paziente_nome_snapshot: '' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('paziente_nome_snapshot')
+    expect(e.errore).not.toContain('è vuota')
+  })
+
+  it('📌 …e l\'elenco che il messaggio propone NON lo nomina più fra le voci ammesse', () => {
+    const e = validaCorrezioni({ classe_rischio: 'classe_i' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    const ammesse = e.errore.split('si correggono:')[1] ?? ''
+    expect(ammesse).not.toContain('paziente_nome_snapshot')
+  })
+})
+
+describe('⚖️ D319 — il numero di prescrizione NON è più una voce correggibile', () => {
+  // 🔑 IL FONDAMENTO, e non è una scelta di prodotto: l'Allegato XIII punto 1
+  //    chiede, sulla prescrizione, DUE cose — «il nome della persona che ha
+  //    prescritto il dispositivo… e, se del caso, il nome dell'istituzione
+  //    sanitaria» e «le caratteristiche specifiche del prodotto indicate nella
+  //    prescrizione». Un numero, codice o identificativo della prescrizione non
+  //    compare fra gli otto trattini: non è un contenuto dovuto, quindi non sta
+  //    sul documento e non c'è niente da correggere.
+  // 🛑 QUESTE PROVE SOSTITUISCONO quelle che asserivano il contrario, e non le
+  //    affiancano: prima `{numero_prescrizione: {n: 1}}` era rifiutato PERCHÉ
+  //    non era un testo — cioè passava sia con la regola vecchia sia con quella
+  //    nuova, ed era una prova che non poteva fallire.
+  it('🔴 `numero_prescrizione` con un valore BUONO è rifiutato: è il caso che distingue la regola nuova dalla vecchia', () => {
+    // Un testo pieno e sensato: sotto la regola vecchia sarebbe passato.
+    const e = validaCorrezioni({ numero_prescrizione: 'RX-2026-042' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('e il messaggio lo NOMINA, invece di scartarlo in silenzio', () => {
+    const e = validaCorrezioni({ numero_prescrizione: 'RX-2026-042' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('numero_prescrizione')
+  })
+
+  it('🛑 e non passa nemmeno in compagnia di una voce buona: l\'intera correzione cade', () => {
+    // Lo scarto muto di `route.ts:259-264` — «Salvato» su un dato che non c'è —
+    // su una carta a valore legale non si fa, nemmeno per una chiave sola.
+    const e = validaCorrezioni({ descrizione: 'Corona in zirconia', numero_prescrizione: 'RX-77' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('📌 …e l\'elenco che il messaggio propone NON lo nomina più fra le voci ammesse', () => {
+    // Il messaggio dice «si correggono: …». Se il nome restasse in quell'elenco,
+    // chi sta al banco lo rimanderebbe e verrebbe rifiutato una seconda volta.
+    const e = validaCorrezioni({ classe_rischio: 'classe_i' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    const ammesse = e.errore.split('si correggono:')[1] ?? ''
+    expect(ammesse).not.toContain('numero_prescrizione')
+  })
+})
+
+describe('validaCorrezioni — la forma dell\'ingresso', () => {
+  it('un oggetto vuoto NON è una correzione (C2)', () => {
+    // Chi vuole solo rifare la carta OMETTE la chiave: quella è la strada, e
+    // resta aperta. `{}` mandato apposta è una richiesta che non chiede niente.
+    const e = validaCorrezioni({})
+    expect(e.ok).toBe(false)
+  })
+
+  it.each([
+    ['un array', []],
+    ['una stringa', 'richiedente_nome'],
+    ['un numero', 3],
+    ['null', null],
+  ])('%s non è un oggetto di correzioni → rifiutato', (_nome, valore) => {
+    expect(validaCorrezioni(valore).ok).toBe(false)
+  })
+
+  it('una chiave fuori dalle sei è rifiutata, e il messaggio la NOMINA', () => {
+    const e = validaCorrezioni({ classe_rischio: 'classe_i' })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('classe_rischio')
+  })
+
+  it('🛑 una chiave fuori dalle sei non si scarta in silenzio insieme a una buona', () => {
+    // È lo scarto muto di `route.ts:259-264` — l'utente legge «Salvato» su un
+    // dato che non c'è. Su una carta a valore legale non si fa.
+    const e = validaCorrezioni({ descrizione: 'Corona in zirconia', stato: 'consegnato' })
+    expect(e.ok).toBe(false)
+  })
+})
+
+describe('🛑 C2 — una regola sola: una correzione VUOTA non è una correzione', () => {
+  it.each([
+    ['stringa vuota', { descrizione: '' }],
+    ['stringa di soli spazi', { descrizione: '   ' }],
+    ['null su un testo', { richiedente_nome: null }],
+    ['null sul paziente', { paziente_id: null }],
+    ['array vuoto sui denti', { denti_coinvolti: [] }],
+    ['oggetto vuoto sulle caratteristiche', { prescrizione_caratteristiche: {} }],
+    // ⚖️ IL SETTIMO CASO ERA `{paziente_nome_snapshot: '  '}` FINO A D320, ed è
+    //    stato SPOSTATO su un testo che resta correggibile: con la chiave fuori
+    //    dall'allowlist sarebbe rimasto verde per la RAGIONE SBAGLIATA (chiave
+    //    ignota, non «vuoto»), continuando a sembrare la rete sul vuoto.
+    ['testo di soli spazi sul prescrittore', { richiedente_nome: '   ' }],
+  ])('%s → rifiutata', (_nome, corpo) => {
+    expect(validaCorrezioni(corpo).ok).toBe(false)
+  })
+
+  it('⚠️ D242 — un testo vuoto stamperebbe un\'informazione ASSENTE su un documento di legge', () => {
+    // Il caso storico era lo SNAPSHOT del paziente: `generate-ddc.ts:304`
+    // ripiega con `??`, che conosce solo `null`, quindi una stringa vuota lo
+    // supera intatta e la voce 4 dell'Allegato XIII esce vuota.
+    // 🛑 DA D320 QUELLA PORTA È CHIUSA A MONTE (la chiave non è più una voce
+    //    correggibile: v. il blocco «D320»), ma il pericolo NON è sparito — vive
+    //    ancora nel ripiego di `generate-ddc.ts:304`, che non si è toccato. Qui
+    //    si sorveglia ciò che da questa porta può ancora arrivare: il nome del
+    //    prescrittore è la voce 1 dell'Allegato XIII e ha lo stesso difetto.
+    const e = validaCorrezioni({ richiedente_nome: '' })
+    expect(e.ok).toBe(false)
+  })
+
+  it('i testi arrivano ripuliti ai bordi, non come li ha digitati chi scriveva di fretta', () => {
+    expect(ok({ descrizione: '  Corona in zirconia  ' }).descrizione).toBe('Corona in zirconia')
+  })
+})
+
+describe('🔴 C3 — la stessa regola IN PROFONDITÀ: un vuoto annidato cancella una voce dell\'Allegato XIII', () => {
+  // 🛑 IL FATTO, misurato dalla revisione del Task C anello per anello:
+  //    `{colore: ''}` tornava `ok: true`; il documento PERDEVA la
+  //    caratteristica (`caratteristichePrescritte` scarta i vuoti e la riga del
+  //    modello è condizionale — con la sola caratteristica svuotata la voce 6
+  //    non compariva affatto, cioè D295 daccapo); e la penna scriveva `""`
+  //    sulla riga vera rispondendo `ok`, perché valida il NOME del campo e mai
+  //    il valore. HTTP 200 «rifatta», dato buono perso da tutt'e due le parti.
+  it.each([
+    ['colore vuoto', { prescrizione_caratteristiche: { colore: '' } }],
+    ['colore di soli spazi', { prescrizione_caratteristiche: { colore: '   ' } }],
+    ['tipo vuoto', { prescrizione_caratteristiche: { tipo: '' } }],
+    ['elementi come array vuoto', { prescrizione_caratteristiche: { elementi: [] } }],
+    // La penna saprebbe CANCELLARE la sotto-chiave (`contenuto - p_campo`): da
+    // qui non si può, ed è una capacità declinata di proposito — un contenuto
+    // obbligatorio non si toglie da una strada nata per correggere.
+    ['colore null — la penna lo cancellerebbe davvero', { prescrizione_caratteristiche: { colore: null } }],
+    // 🔑 Il caso che dice perché la regola è «BASTA UNA»: la sotto-chiave buona
+    //    passerebbe insieme a quella vuota, e la vuota cancella.
+    ['una sotto-chiave vuota accanto a una buona', { prescrizione_caratteristiche: { elementi: [26], colore: '' } }],
+  ])('%s → rifiutata', (_nome, corpo) => {
+    expect(validaCorrezioni(corpo).ok).toBe(false)
+  })
+
+  it('e il messaggio NOMINA la sotto-chiave, non solo la voce che la contiene', () => {
+    // «le caratteristiche prescritte sono vuote» manderebbe chi sta al banco a
+    // cercare il campo sbagliato: la casella svuotata è una sola e ha un nome.
+    const e = validaCorrezioni({ prescrizione_caratteristiche: { elementi: [26], colore: '' } })
+    if (e.ok) throw new Error('atteso rifiuto')
+    expect(e.errore).toContain('prescrizione_caratteristiche.colore')
+  })
+
+  it('🔑 le sotto-chiavi arrivano RIPULITE ai bordi, come i tre testi di primo livello (D242)', () => {
+    // Prima di C3 `'  A3  '` arrivava sulla riga vera con dentro i suoi spazi,
+    // mentre lo stesso testo su `descrizione` arrivava pulito: due regole per
+    // la stessa cosa, e quella sbagliata sul campo che finisce in un documento.
+    const c = ok({ prescrizione_caratteristiche: { colore: '  A3  ', tipo: ' corona ' } })
+    expect(c.prescrizione_caratteristiche).toEqual({ colore: 'A3', tipo: 'corona' })
+  })
+
+  it('⚠️ …ma NON si scende dentro gli ARRAY: un dente senza colore non è un dente vuoto', () => {
+    // Il confine della regola, e va provato o il prossimo lo sposta: dentro
+    // `denti_coinvolti` un `null` è un'ASSENZA LEGITTIMA («questo dente non ha
+    // colore»), che `validaDenti` accetta e normalizza. Scendere anche lì
+    // rifiuterebbe un carico buono — un array è UN valore, non una mappa di
+    // correzioni.
+    const c = ok({ denti_coinvolti: [{ fdi: 22, scala: null, codice: null }] })
+    expect((c.denti_coinvolti as Array<Record<string, unknown>>)[0]).toMatchObject({ fdi: 22, scala: null })
+  })
+})
+
+describe('validaCorrezioni — le forme che il database non saprebbe raccontare', () => {
+  it('🛑 `denti_coinvolti` come array di STRINGHE FDI è rifiutato qui, non dalla penna', () => {
+    // La chiave si chiama come la colonna denormalizzata e invita all'errore.
+    // Lasciarlo passare costa un PDF orfano e un progressivo bruciato, perché
+    // il rifiuto arriverebbe DOPO il render.
+    const e = validaCorrezioni({ denti_coinvolti: ['21', '22'] })
+    expect(e.ok).toBe(false)
+  })
+
+  it('`denti_coinvolti` come array di oggetti passa, e torna NORMALIZZATO dalla penna unica', () => {
+    const c = ok({ denti_coinvolti: [{ fdi: 22 }, { fdi: 21, ruolo: 'mancante' }] })
+    const denti = c.denti_coinvolti as Array<Record<string, unknown>>
+    // `validaDenti` applica i default: chi non dice il ruolo dice «elemento».
+    expect(denti[0]).toMatchObject({ fdi: 22, ruolo: 'elemento', provenienza: 'prescritto' })
+    expect(denti[1]).toMatchObject({ fdi: 21, ruolo: 'mancante' })
+  })
+
+  it('un dente fuori dal dominio FDI è rifiutato dalla stessa validazione delle altre due porte', () => {
+    expect(validaCorrezioni({ denti_coinvolti: [{ fdi: 99 }] }).ok).toBe(false)
+  })
+
+  it.each([
+    ['una stringa', 'A3'],
+    ['un array', ['A3']],
+    ['un numero', 3],
+  ])('`prescrizione_caratteristiche` come %s → rifiutata', (_n, v) => {
+    expect(validaCorrezioni({ prescrizione_caratteristiche: v }).ok).toBe(false)
+  })
+
+  it('🔑 una sotto-chiave che la prescrizione non conosce è rifiutata QUI, non dalla penna dopo l\'annullo', () => {
+    // Senza questa riga `campo_non_valido` arriverebbe dalla penna DOPO che la
+    // dichiarazione è già stata annullata: il contratto lo trasforma in una
+    // eccezione, cioè in un 500 dove c'era solo un refuso del chiamante.
+    expect(validaCorrezioni({ prescrizione_caratteristiche: { materiale: 'zirconia' } }).ok).toBe(false)
+  })
+
+  it('una sotto-chiave buona ma di forma sbagliata è rifiutata (elementi non è un array di numeri)', () => {
+    expect(validaCorrezioni({ prescrizione_caratteristiche: { elementi: ['26'] } }).ok).toBe(false)
+  })
+
+  it('le tre sotto-chiavi vere passano', () => {
+    const c = ok({ prescrizione_caratteristiche: { elementi: [26], colore: 'A3', tipo: 'corona' } })
+    expect(c.prescrizione_caratteristiche).toEqual({ elementi: [26], colore: 'A3', tipo: 'corona' })
+  })
+
+  it('`paziente_id` che non è un UUID è rifiutato: al database darebbe un 22P02 illeggibile', () => {
+    expect(validaCorrezioni({ paziente_id: 'pippo' }).ok).toBe(false)
+  })
+
+  // ⚖️ IL TERZO CASO ERA `{numero_prescrizione: {n: 1}}` FINO A D319, ed era una
+  //    prova che non poteva fallire: dopo l'uscita di quel nome dall'allowlist
+  //    sarebbe rimasta VERDE per la ragione sbagliata (chiave ignota, non «non è
+  //    un testo»), continuando a sembrare la rete sui tipi dei testi. Sostituito
+  //    con un nome che è ancora una voce del documento, così l'asserzione misura
+  //    ciò che il suo titolo dice.
+  it.each([
+    ['un numero al posto di un testo', { descrizione: 12 }],
+    ['un booleano al posto di un testo', { tipo_dispositivo: true }],
+    ['un oggetto al posto di un testo', { richiedente_nome: { n: 1 } }],
+  ])('%s → rifiutato', (_n, corpo) => {
+    expect(validaCorrezioni(corpo).ok).toBe(false)
+  })
+})
+
+describe('fondiCorrezioni — il PDF si stampa dai dati CORRETTI, non da quelli vecchi', () => {
+  const base = LAVORO_FIXTURE
+
+  it('i testi finiscono sul lavoro che va al generatore', () => {
+    const c = ok({ descrizione: 'Corona in zirconia', richiedente_nome: 'Dott. Bianchi' })
+    const corretto = fondiCorrezioni(base, c)
+    expect(corretto.descrizione).toBe('Corona in zirconia')
+    expect(corretto.richiedente_nome).toBe('Dott. Bianchi')
+  })
+
+  it('🛑 non muta il lavoro originale: la fusione è in memoria e a copia', () => {
+    const prima = base.descrizione
+    fondiCorrezioni(base, ok({ descrizione: 'Un altro testo' }))
+    expect(base.descrizione).toBe(prima)
+  })
+
+  it('🔴 correggere `paziente_id` PORTA CON SÉ L\'EMBED: senza, il PDF stampa il paziente VECCHIO', () => {
+    // `generate-ddc.ts:304` ripiega su `lavoro.paziente?.nome_cognome` quando lo
+    // snapshot è nullo. Cambiare il solo identificativo e lasciare l'embed
+    // stantìo scrive sul documento il nome della persona SBAGLIATA, mentre la
+    // riga in banca dati punta a quella giusta. È il difetto peggiore possibile
+    // su questa carta, e non lo nomina nessun documento a monte.
+    const senzaSnapshot = { ...base, paziente_nome_snapshot: null, paziente: null } as LavoroDettaglio
+    const corretto = fondiCorrezioni(senzaSnapshot, ok({ paziente_id: UUID_A }), PAZIENTE_NUOVO)
+    expect(corretto.paziente_id).toBe(UUID_A)
+    expect(corretto.paziente?.nome_cognome).toBe('Giuseppa Esposito')
+  })
+
+  it('🔑 `tipo_dispositivo` corretto arriva PRIMA della costruzione, che ci pesca i rischi residui', () => {
+    // `costruisciDichiarazione:216` cerca `rischi_tipo_dispositivo` per
+    // `lavoro.tipo_dispositivo`: fondere dopo la costruzione darebbe un
+    // documento col tipo nuovo e i rischi del tipo vecchio.
+    const corretto = fondiCorrezioni(base, ok({ tipo_dispositivo: 'protesi_mobile' }))
+    expect(corretto.tipo_dispositivo).toBe('protesi_mobile')
+  })
+
+  it('i denti si denormalizzano COME LA PENNA: solo i `elemento`, in ordine NUMERICO, come testo', () => {
+    // La penna fa `array_agg(fdi::text ORDER BY fdi)` filtrando `ruolo =
+    // 'elemento'`, e `fdi` è un INTERO: l'ordine è numerico, non alfabetico.
+    // ⚠️ LIMITE DICHIARATO DELLA PROVA: oggi ogni FDI è a due cifre (11-48 e
+    //    51-85), quindi ordine numerico e alfabetico COINCIDONO e questa prova
+    //    non li sa distinguere. Il codice ordina lo stesso per numero, che è la
+    //    forma che resta giusta se il dominio cambia — detto, non nascosto.
+    const c = ok({
+      denti_coinvolti: [
+        { fdi: 26 }, { fdi: 47, ruolo: 'mancante' }, { fdi: 11 }, { fdi: 36, ruolo: 'impianto' },
+      ],
+    })
+    const corretto = fondiCorrezioni(base, c)
+    expect(corretto.denti_coinvolti).toEqual(['11', '26'])
+    expect(corretto.denti_mancanti).toEqual([47])
+    expect(corretto.denti_impianti).toEqual([36])
+  })
+
+  it('le caratteristiche prescritte si FONDONO sul contenuto, non lo sostituiscono', () => {
+    // La penna fa `jsonb_set(contenuto, [campo], valore)` una sotto-chiave alla
+    // volta: correggere il colore non cancella gli elementi.
+    const conPrescrizione = {
+      ...base,
+      prescrizione: { contenuto: { elementi: [26], colore: 'A2', tipo: 'corona' } },
+    } as unknown as LavoroDettaglio
+    const corretto = fondiCorrezioni(conPrescrizione, ok({ prescrizione_caratteristiche: { colore: 'A3' } }))
+    expect(corretto.prescrizione?.contenuto).toEqual({ elementi: [26], colore: 'A3', tipo: 'corona' })
+  })
+})

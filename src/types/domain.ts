@@ -16,6 +16,7 @@ import type { CampoTypo, FonteTipo, MotivoDivergenza } from '@/lib/domain/prescr
 // modulo si tira dietro l'altro a runtime). Copiare qui la forma sarebbe la
 // duplicazione che il censimento della riga 22 ha appena finito di contare.
 import type { TintaManufatto, TintaScelta } from '@/lib/domain/tinta'
+import type { AvvisoRiga } from '@/lib/avvisi/queries'
 
 // ============================================================
 // LABORATORIO
@@ -271,6 +272,25 @@ export interface Lavoro {
   consegna_in_corso: boolean;          // lock ottimistico: TRUE mentre CONSEGNA è in esecuzione
   anno_lavoro: number;
   codice_interno: string | null;
+  /** 🪦 CIMITERO DICHIARATO dall'08/08/2026 (**D319**) — la colonna resta, e non
+   *  la legge né la scrive più nessuno.
+   *
+   *  🔑 PERCHÉ: il numero della prescrizione **non è un contenuto dovuto**
+   *  dall'Allegato XIII punto 1, che sulla prescrizione chiede il NOME di chi ha
+   *  prescritto e le CARATTERISTICHE indicate nella prescrizione. È uscito dal
+   *  documento, e con lui l'ultimo lettore (`generate-ddc.ts`, la chiave
+   *  `prescrizione_id`) e l'ultimo scrittore (l'`UPDATE` di
+   *  `correggi_e_riemetti_atomica`). Fuori dalla PATCH lo era già.
+   *  `provato:` 0 lavori su 299 la portano valorizzata.
+   *
+   *  ⚠️ SEMBRERÀ VIVA, e questa riga esiste per quello: due rotte di
+   *  fatturazione la SELEZIONANO ancora — `api/fatture/batch/route.ts:113` e
+   *  `api/fatture/[id]/xml/route.ts:97` — perché caricano la riga intera del
+   *  lavoro per costruire questo tipo. Nessuna la usa.
+   *
+   *  📌 NON confonderla con `Prescrizione.numero_prescrizione` più sotto, che è
+   *  un'altra colonna su un'altra tabella e **non** è un cimitero: quella si
+   *  scrive ancora da `POST /api/lavori`. */
   numero_prescrizione: string | null;
   numero_cassetta: string | null;
   cliente_id: string;
@@ -503,6 +523,19 @@ export interface LavoroPrescrizione {
   fonte_riferimento: string | null;
   // P38: il numero facoltativo vive QUI, non su lavori.numero_prescrizione
   // (colonna legacy, esclusa dalla PATCH con la sua ragione).
+  /** ⚖️ D319 (08/08/2026) — **NON alimenta più la dichiarazione**, e non la
+   *  alimenterà: il numero della prescrizione non è un contenuto dovuto
+   *  dall'Allegato XIII punto 1. Il compito che doveva spostare qui il lettore
+   *  del documento è stato CANCELLATO dalla stessa decisione.
+   *
+   *  🛑 MA QUESTA COLONNA NON È UN CIMITERO, a differenza dell'omonima su
+   *  `lavori`, e la differenza va tenuta: `POST /api/lavori` la accetta e la
+   *  valida (`api/lavori/route.ts:234-240` → `componiSnapshot`), il clone del
+   *  rifacimento la propaga, e `prescrizione-mapper.ts` la legge dentro questo
+   *  tipo. Quello che è vero è più stretto: **il wizard non ha la casella** e
+   *  nessun documento la stampa. `provato:` 0 righe in tabella.
+   *  ➡️ Chiudere quella porta d'ingresso è una decisione a sé, non un
+   *  allargamento silenzioso: riferita, non presa. */
   numero_prescrizione: string | null;
   confermata_da: string | null;
   confermata_at: string | null;
@@ -541,6 +574,39 @@ export interface LavoroDettaglio extends Lavoro {
   // lettura dimenticata.
   tinta?: TintaScelta | null;
   tinteDisponibili?: TintaManufatto[];
+  // Ondata «l'avviso al dentista» Task 6 — il promemoria ex Art. 19 GDPR ancora
+  // APERTO su questo lavoro, o `null` se non ce n'è. Opzionale sullo stesso
+  // modello di `tinta?`: lo attacca chi rende la schermata (`avvisoPerLaScheda`,
+  // chiamata da `lavori/[id]/page.tsx`), e dove nessuno l'ha chiesto è
+  // `undefined` — la riga non compare, mai una riga vuota per una lettura
+  // dimenticata.
+  // 🛑 **E si passa DA LÌ, non dalla lettura grezza:** `avvisoPerLaScheda`
+  //    pretende `ruolo` come argomento obbligatorio e tiene dentro di sé il
+  //    cancello di ⚖️ D342. Chiamare `avvisiDaComunicare` da una pagina vorrebbe
+  //    dire rifare il cancello a mano, ed è **vietato da una sentinella**
+  //    (`tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx`).
+  //
+  // 🛑 `undefined` e `null` NON dicono la stessa cosa: `undefined` = **nessun
+  //    chiamante ha attaccato il campo** (una pagina che quella lettura non la fa
+  //    affatto), `null` = **il chiamante l'ha attaccato e non c'è niente da
+  //    mostrare**. Per la schermata sono lo stesso silenzio; per chi legge questo
+  //    tipo non lo sono.
+  // 🔄 QUI C'ERA SCRITTO ANCHE «*…o un ruolo che non può chiudere l'avviso*»,
+  //    ED ERA FALSO — corretto dalla revisione del Task 6. Chi sceglie il valore
+  //    è `avvisoPerLaScheda` (`src/lib/avvisi/queries.ts`), che per un ruolo
+  //    escluso torna `null` e per un ruolo ammesso `aperti[0] ?? null`: `null` in
+  //    entrambi i casi, mai `undefined`. Il tipo istituiva una distinzione che il
+  //    suo unico scrittore violava.
+  // 🔑 **E il codice ha ragione, non il commento:** un ruolo escluso deve
+  //    ricevere **esattamente lo stesso silenzio** di «non ce n'è». Distinguere i
+  //    due casi vorrebbe dire far sapere a chi guarda che da qualche parte esiste
+  //    un promemoria che lui non può chiudere — cioè il contrario di ⚖️ D342, che
+  //    quel promemoria lo nasconde apposta. L'indistinguibilità è la funzione,
+  //    non un ripiego.
+  // 🔑 Il tipo viene da `@/lib/avvisi/queries` ed è un `import type`, quindi
+  //    sparisce alla compilazione: nessun modulo di lettura entra nel fagotto
+  //    del browser per colpa di questa riga.
+  avvisoDaComunicare?: AvvisoRiga | null;
 }
 
 // ============================================================
@@ -719,9 +785,43 @@ export interface DichiarazioneConformita {
   fabbricante_piva: string;
   fabbricante_itca: string | null;
   luogo_emissione: string;               // Es. "Serre (SA), Italia"
+  /** VOCE 1 dell'Allegato XIII: «il nome e l'indirizzo del fabbricante e di
+   *  TUTTI I LUOGHI DI FABBRICAZIONE».
+   *
+   *  🔄 Aggiunto al tipo il 07/08/2026 (D295): la colonna esiste dal primo
+   *     giorno (`schema.sql:1251`, `NOT NULL DEFAULT 'Italia'`), ma non stava
+   *     nel tipo, non la scriveva nessuno e il modello non la stampava — così
+   *     ogni dichiarazione emessa portava in banca dati il letterale «Italia»,
+   *     che è un PAESE e non un indirizzo, e sul foglio non portava niente.
+   *  ⚠️ NON è `luogo_emissione` (`lab.citta`): quello è dove il documento è
+   *     stato firmato, questo è dove il dispositivo è stato fabbricato. */
+  luogo_fabbricazione: string;
   // §3 — Prescrittore
   prescrittore_nome: string;
-  prescrizione_id: string | null;        // Numero prescrizione del dentista
+  /** 🪦 COLONNA SENZA PRODUTTORE dall'08/08/2026 (**D319**): nessuna strada
+   *  produce più un VALORE per questa colonna — `costruisciDichiarazione` non
+   *  compone più la chiave — e non aveva lettori oltre al modello, da cui la
+   *  riga «N. prescrizione» è uscita. Resta in banca dati e resta nel tipo
+   *  perché è ancora una colonna vera di `dichiarazioni_conformita`.
+   *
+   *  ⚠️ «SENZA PRODUTTORE» E NON «SENZA SCRITTORI», e la differenza è la stessa
+   *  che vale per `lavori_prescrizioni` qui sopra: la riemissione compone la
+   *  riga nuova con `jsonb_populate_record(v_vecchia, p_nuova || …)`, e una
+   *  chiave ASSENTE da `p_nuova` **si eredita dalla dichiarazione superata**
+   *  invece di essere scritta a `NULL`. Finché la chiave c'era, il successore
+   *  riceveva `NULL` per assegnazione; da oggi si porta avanti quello che
+   *  c'era. Oggi è sempre `NULL` — 0 righe valorizzate su 6 e nessun produttore
+   *  — ma è ereditarietà silenziosa, la stessa famiglia che C-ter ha chiuso
+   *  sulla coppia `anno_ddc`/`progressivo_ddc`, quindi si dice invece di
+   *  lasciarla scoprire.
+   *  📌 Il `COMMENT` della migration `20260808142358` dice «perde il suo unico
+   *  scrittore»: è la formulazione larga, ed è rimasta lì perché quella
+   *  migration è **applicata e nel ledger** e non si tocca. La prossima che
+   *  riscrive quella funzione porti questa precisazione.
+   *  `provato:` valorizzata in **0 righe su 6** — non l'ha mai portata nessuna
+   *  dichiarazione emessa, ed è la ragione per cui `ddc-v3` non è saltata a
+   *  `ddc-v4`: nessun documento cambia di una riga. */
+  prescrizione_id: string | null;        // Numero prescrizione del dentista (D319: non più scritto)
   // §4 — Paziente
   paziente_nome: string;
   paziente_cognome: string | null;
@@ -759,7 +859,24 @@ export interface ConsegnaPayload {
 export interface ConsegnaPrecheckResult {
   ok: boolean;
   errori: {
-    elemento: number; // 1-8 (Allegato XIII MDR)
+    /** La VOCE dell'Allegato XIII punto 1 che questo controllo protegge (1-8),
+     *  oppure `null` quando il controllo non difende una voce dell'Allegato ma
+     *  l'integrità del documento (una colonna `NOT NULL`, un dato d'esercizio).
+     *
+     *  🔄 CORRETTO IL 07/08/2026 (D295). Qui c'era `elemento: number` con il
+     *     commento «1-8 (Allegato XIII MDR)», e la numerazione che ci passava
+     *     dentro NON era quella dell'Allegato: tre voci erano inventate (data
+     *     di emissione, classe di rischio, data di consegna prevista — nessuna
+     *     compare nell'Allegato) e tre voci vere mancavano (la 2 mandatario,
+     *     la 6 caratteristiche prescritte, la 8 sostanze/tessuti).
+     *  🔑 Perché un numero sbagliato è costato mesi: chi leggeva «6 = classe di
+     *     rischio» aveva ogni ragione di credere che la voce 6 fosse coperta.
+     *     Era invece l'unica delle otto che il documento non ha MAI stampato.
+     *  ⚠️ Il numero non arriva all'operatore: `FlussoConsegna.tsx:169` lo usa
+     *     come sola `key` di React, e la schermata mostra `descrizione`. È un
+     *     nome per chi scrive il codice — ed è esattamente per questo che
+     *     sbagliarlo non si vedeva. */
+    elemento: number | null;
     descrizione: string;
     campo: string;
     route: string;
@@ -767,6 +884,15 @@ export interface ConsegnaPrecheckResult {
   /** Segnala campi accettazione-ingresso mancanti (tipo_impronte, disinfettante_usato) — SOFT BLOCK */
   mdr_incompleto?: boolean;
   mdr_campi_mancanti?: string[];
+  /** Avvisi già scritti in italiano compiuto — la rotta di precheck li versa
+   *  nei `warnings`, che la schermata mostra nel foglio di conferma.
+   *
+   *  🛑 NON BLOCCANO, e la distinzione è una direttiva: «la PWA non dà blocchi,
+   *     dà aiuti» (D262). `mdr_campi_mancanti` non basta come casa: quella
+   *     lista porta NOMI DI CAMPO e la rotta li completa con «non registrato
+   *     all'accettazione» (precheck-consegna/route.ts:62) — una coda che per
+   *     un avviso diverso da quelli d'accettazione direbbe una cosa falsa. */
+  avvisi?: string[];
 }
 
 export interface PrecheckConsegnaResponse {
@@ -794,6 +920,22 @@ export interface ConsegnaResult {
    *  (fail-soft: la consegna non si annulla mai per questo). Opzionale per
    *  compatibilità con payload/mock preesistenti che non lo includono. */
   cassettaLiberata?: string | null;
+  /** Gli avvisi non bloccanti del precheck (`ConsegnaPrecheckResult.avvisi`),
+   *  così come li ha visti il POST al momento della consegna.
+   *
+   *  🔑 PERCHÉ ESISTE (giro di correzione 07/08/2026). Il campo aveva **un solo
+   *     consumatore su due**: la rotta di precheck li versa nei `warnings` e la
+   *     schermata li mostra, ma `orchestraConsegna` li calcolava e li buttava
+   *     via. Oggi non morde, perché la schermata fa sempre il GET prima del
+   *     POST — ma un client che chiami direttamente `POST /consegna` non li
+   *     vedrebbe MAI, e su una voce dell'Allegato XIII «non morde oggi» non è
+   *     una ragione per lasciare il filo staccato.
+   *
+   *  ⚠️ OPZIONALE, e l'assenza NON è «nessun avviso»: sul ramo idempotente
+   *     `gia_consegnato` il precheck non gira affatto, quindi il campo manca —
+   *     un array vuoto lì affermerebbe una cosa che nessuno ha verificato.
+   *     Stessa scelta, e stessa ragione, di `cassettaLiberata` qui sopra. */
+  avvisi?: string[];
 }
 
 export interface ConsegnaError {

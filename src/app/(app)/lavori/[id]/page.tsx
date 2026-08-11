@@ -5,6 +5,21 @@ import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLav
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { normalizzaPrescrizione } from '@/lib/domain/prescrizione-mapper'
 import { caricaTinteScheda } from '@/lib/lavori/tinta-scheda'
+// 🛑 UNA CHIAMATA SOLA, E IL RUOLO CI ENTRA DENTRO: `avvisoPerLaScheda` tiene il
+//    cancello di ⚖️ D342 e la lettura nella stessa funzione, e pretende `ruolo`
+//    come argomento obbligatorio. Questa pagina non decide più niente, quindi non
+//    c'è più niente da sbagliare qui — e la decisione sta dove una prova la
+//    esercita. NON si chiama `avvisiDaComunicare` da qui: sarebbe rifare il
+//    cancello a mano (sentinella in `tests/unit/scheda-v3/scheda-avviso-dentista.test.tsx`).
+// 🔄 FINO ALLA REVISIONE DEL TASK 6 QUI SI IMPORTAVA DALLA ROTTA, e non era
+//    innocuo: era l'unico import **di valore** verso un `route.ts` in tutto
+//    `src/` (gli altri undici sono `import type` e spariscono in compilazione), e
+//    tirava nel grafo di questa pagina l'intero gestore della rotta —
+//    `next/server`, csrf, `lab-guard`, `getServiceClient`. `route.ts` è un file
+//    speciale di Next: qualunque effetto a livello di modulo ci finisse verrebbe
+//    eseguito al render della pagina. L'elenco dei ruoli vive ora in un modulo
+//    FOGLIA (`src/lib/avvisi/ruoli.ts`, nessun import), che la rotta ri-esporta.
+import { avvisoPerLaScheda } from '@/lib/avvisi/queries'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
@@ -102,7 +117,32 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   lavoroDettaglio.tinta = tinte.scelta
   lavoroDettaglio.tinteDisponibili = tinte.disponibili
 
-  const [signedDdcUrl] = await Promise.all([
+  // ══ Task 6 «l'avviso al dentista» — CHI VEDE IL PROMEMORIA (⚖️ D342) ══════
+  //
+  // 🔑 «*La visibilità è un SOTTOINSIEME del permesso: nessuno vede un promemoria
+  //    che non può chiudere*» (verbale, centoquarantottesima tornata). Un
+  //    `admin_rete` che vedesse la riga toccherebbe un tasto che risponde 403.
+  // 🛑 QUI NON C'È NESSUN CANCELLO DA LEGGERE, ED È IL PUNTO: il ruolo entra come
+  //    argomento OBBLIGATORIO di `avvisoPerLaScheda`, che decide e legge dentro di
+  //    sé. Non si può chiedere il promemoria senza dichiarare chi guarda — la
+  //    chiusura è per COSTRUZIONE, e un ruolo assente non passa.
+  // 🔄 FINO ALLA SECONDA REVISIONE DEL TASK 6 QUI C'ERA UN TERNARIO, e non era
+  //    innocuo: `provato:` capovolgendolo, **tutte e 68 le prove restavano verdi**
+  //    mentre a vedere la riga sarebbero rimasti solo i due ruoli che D342
+  //    esclude. Questo file è un componente server asincrono che nessuna prova
+  //    unitaria rende, quindi nessuna mutazione scritta QUI può diventare rossa.
+  //    ➡️ La decisione è stata spostata dove una prova la esercita davvero
+  //    (`tests/unit/avvisi-queries.test.ts`), e questa pagina si è fatta più
+  //    stupida apposta.
+  // 🔑 E la scelta «uno solo anche quando sono due» sta con lei, per la stessa
+  //    ragione: era una riga di questa pagina, e nessuna prova la guardava.
+  //
+  // 🔑 La lettura entra NEL `Promise.all` che c'era già: è indipendente dalla
+  //    firma degli allegati, quindi non costa un millisecondo in più di attesa.
+  //    ⚠️ `caricaTinteScheda` qui sopra resta invece un `await` in fila per conto
+  //    suo — inefficienza preesistente, fuori da questo mandato: riferita, non
+  //    spostata (R-E2).
+  const [signedDdcUrl, , avvisoDaMostrare] = await Promise.all([
     lavoroDettaglio.ddc?.storage_path_pdf
       ? getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
       : Promise.resolve(null),
@@ -112,8 +152,16 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
         if (signedImgUrl) img.url = signedImgUrl
       })
     ),
+    avvisoPerLaScheda({
+      svc,
+      lavoroId: id,
+      laboratorioId: context.laboratorioId,
+      ruolo: context.ruolo,
+    }),
   ])
   if (signedDdcUrl && lavoroDettaglio.ddc) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
+
+  lavoroDettaglio.avvisoDaComunicare = avvisoDaMostrare
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>

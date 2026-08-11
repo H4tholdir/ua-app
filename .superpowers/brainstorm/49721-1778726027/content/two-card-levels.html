@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UÀ — Due livelli di card</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#1a1a1a;color:#eee;padding:24px 16px 60px;}
+h2{font-size:20px;font-weight:800;margin-bottom:4px;}
+.sub{color:#888;font-size:12px;margin-bottom:24px;line-height:1.5;}
+.row{display:flex;gap:20px;flex-wrap:wrap;}
+.col{flex:1;min-width:240px;}
+.col-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#D4A843;margin-bottom:12px;}
+.col-desc{font-size:11px;color:#888;margin-bottom:12px;line-height:1.5;}
+
+/* Device shell */
+.device{background:#DDD8D3;border-radius:20px;padding:12px 10px;box-shadow:0 6px 24px rgba(0,0,0,.5);}
+
+/* Card base */
+.lc{background:#E4DFD9;border-radius:12px;padding:12px 14px;margin-bottom:6px;
+  box-shadow:-2px -2px 7px rgba(255,255,255,.65),3px 4px 10px rgba(148,128,118,.28);
+  position:relative;overflow:hidden;border-left:3px solid transparent;}
+.lc.late{border-left-color:#D90012;}
+.lc.pronto{border-left-color:#3DCB5C;}
+.lc.urgent{border-left-color:#B45309;}
+
+/* Top row */
+.top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;}
+.cliente{font-size:10px;font-weight:800;color:#1C1916;}
+.paziente{font-size:8px;color:#96918D;}
+.desc{font-size:9px;font-weight:700;color:#1C1916;margin-bottom:4px;}
+.meta{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;align-items:center;}
+.denti{font-size:7px;font-weight:700;background:#D4CFC9;color:#96918D;padding:2px 5px;border-radius:4px;}
+.vita{font-size:7px;color:#96918D;display:flex;align-items:center;gap:2px;}
+.vdot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* Badges */
+.badge{display:inline-flex;padding:2px 6px;border-radius:99px;font-size:7px;font-weight:800;white-space:nowrap;}
+.bl{background:rgba(59,130,246,.12);color:#2563EB;}
+.bpr{background:rgba(245,158,11,.14);color:#B45309;}
+.bg{background:rgba(34,197,94,.12);color:#16A34A;}
+.br{background:rgba(217,0,18,.12);color:#D90012;}
+.date{font-size:8px;font-weight:700;}
+.date-late{color:#D90012;}
+.date-today{color:#B45309;}
+.date-ok{color:#96918D;}
+.date-g{color:#16A34A;}
+
+/* Timeline */
+.tl{display:flex;align-items:center;}
+.ts{display:flex;flex-direction:column;align-items:center;flex:1;}
+.td{width:7px;height:7px;border-radius:50%;border:1.5px solid #B8B3AE;background:#DDD8D3;}
+.td.done{background:#3DCB5C;border-color:#3DCB5C;}
+.td.cur{background:#D90012;border-color:#D90012;box-shadow:0 0 0 1.5px rgba(217,0,18,.2);}
+.td.curg{background:#3DCB5C;border-color:#3DCB5C;box-shadow:0 0 0 1.5px rgba(61,203,92,.2);}
+.td.curo{background:#F59E0B;border-color:#F59E0B;box-shadow:0 0 0 1.5px rgba(245,158,11,.2);}
+.tl-ln{flex:1;height:1.5px;background:#C8C3BD;}
+.tl-ln.done{background:#3DCB5C;}
+.tl-lbl{font-size:6px;color:#B8B3AE;margin-top:2px;text-align:center;}
+.tl-lbl.active{color:#1C1916;font-weight:700;}
+
+/* EXPAND SECTION */
+.expand-btn{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:6px;padding-top:6px;
+  border-top:1px solid rgba(0,0,0,.06);
+  font-size:8px;font-weight:600;color:#96918D;cursor:pointer;
+}
+.chevron{font-size:10px;color:#B8B3AE;transition:transform .2s;}
+.chevron.open{transform:rotate(180deg);}
+
+/* Expanded content */
+.expanded{
+  margin-top:8px;padding-top:8px;
+  border-top:1px solid rgba(0,0,0,.06);
+}
+.exp-section{margin-bottom:8px;}
+.exp-label{font-size:7px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#B8B3AE;margin-bottom:5px;}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-bottom:6px;}
+.exp-item{}
+.exp-k{font-size:7px;color:#96918D;margin-bottom:1px;}
+.exp-v{font-size:8px;font-weight:700;color:#1C1916;}
+
+/* Quick actions row */
+.actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.act-btn{
+  font-size:8px;font-weight:700;padding:5px 9px;border-radius:8px;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:3px;
+  box-shadow:-1px -1px 3px rgba(255,255,255,.7),1px 2px 5px rgba(148,128,118,.24);
+  background:#E4DFD9;color:#1C1916;
+}
+.act-btn.green{color:#16A34A;}
+.act-btn.amber{color:#B45309;}
+.act-btn.red{color:#D90012;}
+.act-btn.blue{color:#2563EB;}
+.act-btn.consegna{
+  background:#3DCB5C;color:#fff;flex:1;justify-content:center;
+  font-size:9px;font-weight:900;
+  box-shadow:0 2px 8px rgba(61,203,92,.4);
+}
+.act-btn.edit{background:#1C1916;color:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);}
+
+/* Progress indicator on dashboard */
+.tap-hint{
+  position:absolute;inset:0;background:rgba(0,0,0,.0);
+  display:flex;align-items:flex-end;justify-content:flex-end;
+  padding:4px 6px;
+}
+.tap-hint span{font-size:7px;color:#B8B3AE;font-weight:600;}
+
+/* Annotation boxes */
+.annotation{background:#222;border-radius:10px;padding:12px 14px;margin-top:12px;font-size:11px;color:#aaa;line-height:1.7;}
+.annotation strong{color:#eee;}
+</style>
+</head>
+<body>
+
+<h2>Due livelli di card — Progressive Disclosure</h2>
+<p class="sub">Dashboard: lettura veloce, tap apre dettaglio. Lista Lavori: espandibile in-place, quick actions, nessun cambio di pagina per operazioni comuni.</p>
+
+<div class="row">
+
+  <!-- ══ LIVELLO 1: DASHBOARD CARD ══ -->
+  <div class="col">
+    <div class="col-label">Livello 1 — Dashboard</div>
+    <div class="col-desc">Scheda compatta, <strong>solo lettura</strong>. Tap su tutta la card → apre la pagina dettaglio. Nessun bottone, nessuna azione inline.</div>
+    <div class="device">
+      <!-- Section label -->
+      <div style="font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#D90012;margin-bottom:6px;">⚠ In ritardo</div>
+
+      <!-- Card compatta — tap only -->
+      <div class="lc late" style="cursor:pointer;">
+        <div class="tap-hint"><span>Tap →</span></div>
+        <div class="top">
+          <div>
+            <div class="cliente">Dr. Bianchi — GDA STP S.r.l.</div>
+            <div class="paziente">Scovotto Giuseppe</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <span class="badge br">ritardo</span>
+            <span class="date date-late">Ieri</span>
+          </div>
+        </div>
+        <div class="desc">Corona ceramica zirconia — dente 14</div>
+        <div class="meta">
+          <span class="denti">14</span>
+          <span class="vita"><span class="vdot" style="background:#F5E6C8;border:1px solid #ddd;"></span>A2</span>
+        </div>
+        <div class="tl">
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">Ricevuto</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td cur"></div><div class="tl-lbl active">In lavora.</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">In prova</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">Pronto</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">Consegnato</div></div>
+        </div>
+      </div>
+
+      <!-- Card: pronto, consegna oggi -->
+      <div style="font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#96918D;margin-bottom:6px;margin-top:8px;">Da consegnare oggi</div>
+      <div class="lc pronto" style="cursor:pointer;">
+        <div class="tap-hint"><span>Tap →</span></div>
+        <div class="top">
+          <div>
+            <div class="cliente">Dr. Verdi — Studio Verdi</div>
+            <div class="paziente">Bianchi Luigi</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <span class="badge bg">pronto ✓</span>
+            <span class="date date-g">Oggi ore 14</span>
+          </div>
+        </div>
+        <div class="desc">Protesi mobile superiore</div>
+        <div class="meta">
+          <span class="denti">11 12 13 21</span>
+        </div>
+        <div class="tl">
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">Ricevuto</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">In lavora.</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">In prova</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td curg"></div><div class="tl-lbl active" style="color:#16A34A;">Pronto</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">Consegnato</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <strong>Regola:</strong> tap su qualsiasi punto della card → pagina dettaglio completa.<br>
+      <strong>Nessuna azione inline</strong> — la dashboard è solo informativa.<br>
+      <strong>Animazione:</strong> card si "preme" (scale .97) al tap prima del navigate.
+    </div>
+  </div>
+
+  <!-- ══ LIVELLO 2: LISTA LAVORI ══ -->
+  <div class="col">
+    <div class="col-label">Livello 2 — Lista Lavori (espandibile)</div>
+    <div class="col-desc">Card con <strong>accordeon</strong>. Tap sull'intestazione → espande mostrando tutti i dati + quick actions. Nessun cambio di pagina per operazioni comuni.</div>
+    <div class="device">
+      <!-- Search + filters above -->
+      <div style="background:#E4DFD9;border-radius:8px;height:28px;margin-bottom:8px;
+        box-shadow:inset 2px 2px 5px rgba(0,0,0,.10),inset -1px -1px 3px rgba(255,255,255,.62);
+        display:flex;align-items:center;padding:0 8px;gap:5px;">
+        <span style="font-size:9px;color:#96918D;">🔍 Cerca cliente, paziente, N° lavoro…</span>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;">
+        <div style="font-size:7px;font-weight:700;padding:3px 8px;border-radius:6px;background:#1C1916;color:#fff;box-shadow:inset 1px 1px 3px rgba(0,0,0,.3);">Tutti</div>
+        <div style="font-size:7px;font-weight:600;padding:3px 8px;border-radius:6px;background:#E4DFD9;color:#96918D;box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 1px 3px rgba(148,128,118,.22);">Oggi</div>
+        <div style="font-size:7px;font-weight:700;padding:3px 8px;border-radius:6px;background:#E4DFD9;color:#D90012;box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 1px 3px rgba(148,128,118,.22);">Ritardi 1</div>
+        <div style="font-size:7px;font-weight:600;padding:3px 8px;border-radius:6px;background:#E4DFD9;color:#96918D;box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 1px 3px rgba(148,128,118,.22);">Consegnati</div>
+      </div>
+
+      <!-- CARD ESPANSA (pronto, oggi) -->
+      <div class="lc pronto">
+        <div class="top">
+          <div>
+            <div class="cliente">Dr. Verdi — Studio Verdi</div>
+            <div class="paziente">Bianchi Luigi</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <span class="badge bg">pronto ✓</span>
+            <span class="date date-g">Oggi ore 14</span>
+          </div>
+        </div>
+        <div class="desc">Protesi mobile superiore</div>
+        <div class="meta">
+          <span class="denti">11 12 13 21</span>
+          <span style="font-size:7px;color:#96918D;">Arcata sup.</span>
+        </div>
+        <div class="tl">
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">Ricevuto</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">In lavora.</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">In prova</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td curg"></div><div class="tl-lbl active" style="color:#16A34A;">Pronto</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">Consegnato</div></div>
+        </div>
+
+        <!-- EXPAND TOGGLE -->
+        <div class="expand-btn">
+          <span>Dettagli · Azioni</span>
+          <span class="chevron open">▲</span>
+        </div>
+
+        <!-- EXPANDED CONTENT -->
+        <div class="expanded">
+          <!-- Info grid -->
+          <div class="exp-section">
+            <div class="exp-label">Dati lavoro</div>
+            <div class="exp-grid">
+              <div class="exp-item"><div class="exp-k">N° lavoro</div><div class="exp-v">2026/0089</div></div>
+              <div class="exp-item"><div class="exp-k">Ingresso</div><div class="exp-v">08/05/2026</div></div>
+              <div class="exp-item"><div class="exp-k">Tecnico</div><div class="exp-v">Filippo O.</div></div>
+              <div class="exp-item"><div class="exp-k">Ciclo</div><div class="exp-v" style="font-size:7px;">Protesi mobile compl.</div></div>
+              <div class="exp-item"><div class="exp-k">N° prescrizione</div><div class="exp-v">0089/2026</div></div>
+              <div class="exp-item"><div class="exp-k">Cassetta</div><div class="exp-v">C-14</div></div>
+            </div>
+          </div>
+          <div class="exp-section">
+            <div class="exp-label">Date prove</div>
+            <div class="exp-grid">
+              <div class="exp-item"><div class="exp-k">1ª prova</div><div class="exp-v">10/05/2026</div></div>
+              <div class="exp-item"><div class="exp-k">2ª prova</div><div class="exp-v">12/05/2026</div></div>
+              <div class="exp-item"><div class="exp-k">3ª prova</div><div class="exp-v" style="color:#96918D;">—</div></div>
+              <div class="exp-item"><div class="exp-k">4ª prova</div><div class="exp-v" style="color:#96918D;">—</div></div>
+            </div>
+          </div>
+          <div class="exp-section">
+            <div class="exp-label">Materiali · Lotti MDR</div>
+            <div style="font-size:8px;color:#1C1916;font-weight:600;">RESINA ACRILICA · Lotto 2500044</div>
+            <div style="font-size:7px;color:#96918D;">+ 2 materiali — vedi dettaglio</div>
+          </div>
+          <!-- Quick actions -->
+          <div class="exp-label" style="margin-top:8px;">Azioni rapide</div>
+          <div class="actions">
+            <button class="act-btn consegna">✅ CONSEGNA</button>
+          </div>
+          <div class="actions" style="margin-top:5px;">
+            <button class="act-btn amber">In prova</button>
+            <button class="act-btn blue">📄 Documenti</button>
+            <button class="act-btn edit">✏ Modifica</button>
+            <button class="act-btn" style="padding:5px 7px;">📱 WhatsApp</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD CHIUSA (in lavorazione) -->
+      <div class="lc late">
+        <div class="top">
+          <div>
+            <div class="cliente">Dr. Bianchi — GDA STP S.r.l.</div>
+            <div class="paziente">Scovotto Giuseppe</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <span class="badge br">ritardo</span>
+            <span class="date date-late">Ieri</span>
+          </div>
+        </div>
+        <div class="desc">Corona ceramica zirconia — dente 14</div>
+        <div class="meta">
+          <span class="denti">14</span>
+          <span class="vita"><span class="vdot" style="background:#F5E6C8;border:1px solid #ddd;"></span>A2</span>
+        </div>
+        <div class="tl">
+          <div class="ts"><div class="td done"></div><div class="tl-lbl">Ricevuto</div></div>
+          <div class="tl-ln done"></div>
+          <div class="ts"><div class="td cur"></div><div class="tl-lbl active">In lavora.</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">In prova</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">Pronto</div></div>
+          <div class="tl-ln"></div>
+          <div class="ts"><div class="td"></div><div class="tl-lbl">Consegnato</div></div>
+        </div>
+        <!-- Collapsed expand button -->
+        <div class="expand-btn">
+          <span>Dettagli · Azioni</span>
+          <span class="chevron">▼</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="annotation">
+      <strong>Card aperta:</strong> mostra N° lavoro, tecnico, ciclo, date prove, materiali/lotti, quick actions.<br>
+      <strong>CONSEGNA</strong> in verde occupa tutta la riga — azione primaria visibilissima.<br>
+      <strong>Altre azioni:</strong> Segna in prova · Documenti · Modifica · WhatsApp.<br>
+      <strong>Card chiusa:</strong> stessa scheda compatta del dashboard.<br>
+      <strong>Animazione:</strong> accordion con <code>height</code> + spring easing, 280ms.
+    </div>
+  </div>
+
+  <!-- ══ LIVELLO 3: PAGINA DETTAGLIO ══ -->
+  <div class="col" style="max-width:200px;">
+    <div class="col-label">Livello 3 — Pagina Dettaglio</div>
+    <div class="col-desc">Schermata full-screen. Tutto: odontogramma, immagini, tutti i documenti, storico completo, modifica ogni campo.</div>
+    <div style="background:#333;border-radius:16px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,.5);">
+      <div style="font-size:10px;font-weight:700;color:#D4A843;margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase;">Raggiungibile da:</div>
+      <div style="font-size:11px;color:#ccc;line-height:2;">
+        ✅ Tap card Dashboard<br>
+        ✅ Bottone "✏ Modifica" in lista<br>
+        ✅ Bottone "📄 Documenti" in lista<br>
+        ✅ Notifica push → tap
+      </div>
+      <div style="margin-top:12px;font-size:10px;font-weight:700;color:#D4A843;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase;">Contiene tutto:</div>
+      <div style="font-size:10px;color:#aaa;line-height:1.8;">
+        • Odontogramma FDI interattivo<br>
+        • Galleria immagini<br>
+        • Tutte le fasi produzione<br>
+        • Tutti i documenti generati<br>
+        • Storico stati + log<br>
+        • Edit completo ogni campo<br>
+        • TAP CONSEGNA grande
+      </div>
+    </div>
+    <div class="annotation">
+      Tre livelli, tre scopi.<br>
+      <strong>Dashboard</strong> = mattina glance.<br>
+      <strong>Lista</strong> = gestione intraday.<br>
+      <strong>Dettaglio</strong> = editing profondo.
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

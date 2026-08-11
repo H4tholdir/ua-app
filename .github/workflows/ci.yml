@@ -35,6 +35,11 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # D333 (09/08/2026): le prove d'integrazione non sono più facoltative.
+          # `vitest run` senza argomenti raccoglie già tests/integration
+          # (vitest.config.ts:35-39); senza questa variabile si saltavano da sole
+          # (tests/integration/helpers/pg-client.ts:9, skipIntegrationTests).
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
   build:
     name: Next.js Build

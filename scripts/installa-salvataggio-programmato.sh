@@ -41,7 +41,21 @@ QUI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CASA="${HOME}/Library/Application Support/UA-salvataggio"
 ETICHETTA="com.uachelab.salvataggio-database"
 PLIST="${HOME}/Library/LaunchAgents/${ETICHETTA}.plist"
-ORA=3
+# ⏰ LE SVEGLIE — 08/08/2026. Erano UNA (le 3:00) e non bastava.
+#    `provato:` `~/Backup-UA-database/launchd.log` — un giro riuscito ogni notte
+#    fino al `2026-08-05 03:00`, poi **nessuna riga** il 6, il 7 e l'8. Non un
+#    errore: il lavoro non è partito perché il Mac era spento, e **launchd NON
+#    recupera un orario mancato**. Tre giorni senza rete di sicurezza.
+#    🔑 Il rimedio non è indovinare un'ora migliore, è **chiedere più volte e non
+#    farlo due volte**: le 11:00 («*di solito il pc lavora sempre intorno alle
+#    11.00*», Francesco) più un secondo giro al pomeriggio, più `RunAtLoad` che
+#    copre il Mac acceso quando entrambe le ore sono già passate.
+#    🛑 Le sveglie in più sono GRATUITE solo perché `salvataggio-programmato.sh`
+#    è **idempotente nella giornata** (blocco ①-bis): la prima che trova il Mac
+#    acceso fa la copia, le altre escono senza nemmeno accendere Docker. Chi
+#    togliesse quel blocco si ritroverebbe **tre copie al giorno**, cioè cinque
+#    giorni di storico invece di quattordici.
+ORE=(11 16)
 MINUTO=0
 
 # i file che compongono il salvataggio: l'elenco sta QUI e in un posto solo
@@ -85,6 +99,17 @@ done
 chmod 600 "${CASA}/ORIGINE.txt"
 
 # ── ③ Il lavoro programmato, che punta alla COPIA ───────────────────────────
+# Le sveglie si compongono da `ORE`, così l'elenco vive in UN posto solo: chi ne
+# aggiunge una tocca quella riga e basta, e non due punti che possono divergere.
+SVEGLIE=""
+for O in "${ORE[@]}"; do
+  SVEGLIE="${SVEGLIE}    <dict>
+      <key>Hour</key><integer>${O}</integer>
+      <key>Minute</key><integer>${MINUTO}</integer>
+    </dict>
+"
+done
+
 cat > "${PLIST}" <<PLISTFINE
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -99,17 +124,22 @@ cat > "${PLIST}" <<PLISTFINE
     <string>${CASA}/scripts/salvataggio-programmato.sh</string>
   </array>
 
-  <!-- ogni giorno alle ${ORA}:0${MINUTO}. Che cosa faccia macOS se a quell'ora
-       il Mac è spento o dorme: NON VERIFICATO — v. intestazione dello script -->
+  <!-- ⏰ TRE SVEGLIE, NON UN ORARIO. Le due qui sotto più RunAtLoad.
+       🔄 Il commento che stava qui diceva «che cosa faccia macOS se a quell'ora
+       il Mac è spento: NON VERIFICATO». Verificato l'08/08/2026 sul registro:
+       NON RECUPERA. Tre giorni saltati, nessuna riga nel diario. -->
   <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key><integer>${ORA}</integer>
-    <key>Minute</key><integer>${MINUTO}</integer>
-  </dict>
+  <array>
+${SVEGLIE}  </array>
 
-  <!-- 🛑 false: non deve ripartire a ogni accesso, solo all'ora stabilita -->
+  <!-- 🔄 ERA \`false\`, con la ragione «non deve ripartire a ogni accesso»: era
+       giusta finché lo script copiava a OGNI avvio. Ora salta se la copia di
+       oggi c'è già ed è riuscita, quindi la ragione è decaduta — e al suo posto
+       c'è il guadagno: è QUESTA riga a coprire il caso «il Mac è stato acceso
+       alle 15, dopo che entrambi gli orari erano passati».
+       🛑 Chi la rimettesse a \`false\` toglierebbe la sveglia più utile delle tre. -->
   <key>RunAtLoad</key>
-  <false/>
+  <true/>
 
   <key>WorkingDirectory</key>
   <string>${CASA}</string>
@@ -142,7 +172,9 @@ launchctl bootstrap "gui/$(id -u)" "${PLIST}"
 launchctl enable "gui/$(id -u)/${ETICHETTA}"
 
 echo "✅ copia autonoma:  ${CASA}"
-echo "✅ lavoro:          ${ETICHETTA} — ogni giorno alle $(printf '%02d:%02d' "${ORA}" "${MINUTO}")"
+ELENCO_ORE="$(for O in "${ORE[@]}"; do printf '%02d:%02d ' "${O}" "${MINUTO}"; done)"
+echo "✅ lavoro:          ${ETICHETTA} — ogni giorno alle ${ELENCO_ORE}e a ogni accesso"
+echo "   una copia sola:  le sveglie in più escono subito se quella di oggi c'è già"
 echo "   diario:          ${HOME}/Backup-UA-database/diario.log"
 echo "   ultimo esito:    ${HOME}/Backup-UA-database/ULTIMO-ESITO.txt"
 echo

@@ -1,0 +1,658 @@
+# Review package: 4ed6499a..afef7f83
+
+## Commits
+afef7f83 feat(clienti): P31 — le due schermate dell'anagrafica chiedono due numeri, e dicono a cosa servono
+
+## Files changed
+ src/app/(app)/clienti/[id]/page.tsx                |   4 +-
+ src/app/api/clienti/[id]/route.ts                  |   1 +
+ .../features/clienti/ClienteEditSheet.tsx          |  51 ++++++++--
+ .../features/wizard/NuovoDentistaSheet.tsx         |  42 ++++++---
+ tests/unit/ClienteEditSheet.test.tsx               | 105 +++++++++++++++++++++
+ tests/unit/NuovoDentistaSheet.test.tsx             |  55 ++++++++++-
+ 6 files changed, 234 insertions(+), 24 deletions(-)
+
+## Diff
+diff --git a/src/app/(app)/clienti/[id]/page.tsx b/src/app/(app)/clienti/[id]/page.tsx
+index 0667c8c1..08c185ac 100644
+--- a/src/app/(app)/clienti/[id]/page.tsx
++++ b/src/app/(app)/clienti/[id]/page.tsx
+@@ -11,20 +11,21 @@ import { BloccoAvvisoRicarica } from '@/components/feedback/BloccoAvvisoRicarica
+ import { puoEmettereDpa } from '@/lib/pdf/permessi-dpa'
+ 
+ type PageProps = { params: Promise<{ id: string }> }
+ 
+ type ClienteDettaglio = {
+   id: string
+   studio_nome: string | null
+   nome: string
+   cognome: string
+   telefono: string | null
++  cellulare_whatsapp: string | null
+   email: string | null
+   partita_iva: string | null
+   codice_fiscale: string | null
+   codice_sdi: string | null
+   pec: string | null
+   indirizzo: string | null
+   cap: string | null
+   citta: string | null
+   provincia: string | null
+   paese: string
+@@ -118,21 +119,21 @@ function SectionCard({ title, children }: { title: string; children: React.React
+ export default async function ClienteDettaglioPage({ params }: PageProps) {
+   const { id } = await params
+ 
+   const context = await getLabContext()
+   if (!context?.laboratorioId) notFound()
+ 
+   const svc = getServiceClient()
+   const { data: cliente, error } = await svc
+     .from('clienti')
+     .select(`
+-      id, studio_nome, nome, cognome, telefono, email,
++      id, studio_nome, nome, cognome, telefono, cellulare_whatsapp, email,
+       partita_iva, codice_fiscale, codice_sdi, pec,
+       indirizzo, cap, citta, provincia, paese,
+       listino_numero, sconto_percentuale, modalita_pagamento,
+       non_soggetto_fe, portale_token, portale_fatturazione_attiva, portale_pin_hash, note
+     `)
+     .eq('id', id)
+     .eq('laboratorio_id', context.laboratorioId)
+     .is('deleted_at', null)
+     .single()
+ 
+@@ -255,20 +256,21 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
+   const puoEmettere = puoEmettereDpa(context.ruolo)
+ 
+   const modButton = (
+     <ClienteModificaButton
+       cliente={{
+         id: c.id,
+         studio_nome: c.studio_nome,
+         nome: c.nome,
+         cognome: c.cognome,
+         telefono: c.telefono,
++        cellulare_whatsapp: c.cellulare_whatsapp,
+         email: c.email,
+         indirizzo: c.indirizzo,
+         cap: c.cap,
+         citta: c.citta,
+         provincia: c.provincia,
+         partita_iva: c.partita_iva,
+         codice_fiscale: c.codice_fiscale,
+         codice_sdi: c.codice_sdi,
+         pec: c.pec,
+         listino_numero: c.listino_numero,
+diff --git a/src/app/api/clienti/[id]/route.ts b/src/app/api/clienti/[id]/route.ts
+index 5be875c5..698498fc 100644
+--- a/src/app/api/clienti/[id]/route.ts
++++ b/src/app/api/clienti/[id]/route.ts
+@@ -42,20 +42,21 @@ export async function GET(_req: Request, { params }: RouteContext) {
+     // Fetch cliente con count lavori recenti
+     const { data: cliente, error } = await svc
+       .from('clienti')
+       .select(`
+         id,
+         laboratorio_id,
+         studio_nome,
+         nome,
+         cognome,
+         telefono,
++        cellulare_whatsapp,
+         email,
+         partita_iva,
+         codice_fiscale,
+         codice_sdi,
+         pec,
+         indirizzo,
+         cap,
+         citta,
+         provincia,
+         paese,
+diff --git a/src/components/features/clienti/ClienteEditSheet.tsx b/src/components/features/clienti/ClienteEditSheet.tsx
+index f078ea13..f45559c4 100644
+--- a/src/components/features/clienti/ClienteEditSheet.tsx
++++ b/src/components/features/clienti/ClienteEditSheet.tsx
+@@ -6,20 +6,21 @@ import { motion, AnimatePresence } from 'motion/react'
+ import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
+ 
+ // ─── Tipi ──────────────────────────────────────────────────────────────────────
+ 
+ export interface ClienteEditData {
+   id: string
+   studio_nome: string | null
+   nome: string
+   cognome: string
+   telefono: string | null
++  cellulare_whatsapp: string | null
+   email: string | null
+   indirizzo: string | null
+   cap: string | null
+   citta: string | null
+   provincia: string | null
+   partita_iva: string | null
+   codice_fiscale: string | null
+   codice_sdi: string | null
+   pec: string | null
+   listino_numero: number
+@@ -54,40 +55,52 @@ const labelStyle: React.CSSProperties = {
+   display: 'block',
+   fontFamily: 'DM Sans, sans-serif',
+   fontSize: '11px',
+   fontWeight: 600,
+   color: 'var(--t3, #6B5C51)',
+   textTransform: 'uppercase',
+   letterSpacing: '0.06em',
+   marginBottom: '5px',
+ }
+ 
++// Aiuto sotto il campo Cellulare WhatsApp (P31/D184). Riga di testo con lo
++// stile di QUESTO file (v2.3 legacy) — niente da `src/components/ds/`, la
++// migrazione è per route (§14 DS v3), non per singolo componente.
++const aiutoStyle: React.CSSProperties = {
++  fontFamily: 'DM Sans, sans-serif',
++  fontSize: '12px',
++  lineHeight: 1.4,
++  color: 'var(--t3, #6B5C51)',
++  margin: '4px 0 0',
++}
++
+ function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
+   return (
+     <div style={{ marginBottom: '12px' }}>
+       <label style={labelStyle}>{label}</label>
+       {children}
+     </div>
+   )
+ }
+ 
+ // ─── Componente ───────────────────────────────────────────────────────────────
+ 
+ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetProps) {
+   const router = useRouter()
+   const reducedMotion = useReducedMotion()
+ 
+   const [form, setForm] = useState({
+     studio_nome: cliente.studio_nome ?? '',
+     nome: cliente.nome,
+     cognome: cliente.cognome,
+     telefono: cliente.telefono ?? '',
++    cellulare_whatsapp: cliente.cellulare_whatsapp ?? '',
+     email: cliente.email ?? '',
+     indirizzo: cliente.indirizzo ?? '',
+     cap: cliente.cap ?? '',
+     citta: cliente.citta ?? '',
+     provincia: cliente.provincia ?? '',
+     partita_iva: cliente.partita_iva ?? '',
+     codice_fiscale: cliente.codice_fiscale ?? '',
+     codice_sdi: cliente.codice_sdi ?? '',
+     pec: cliente.pec ?? '',
+     listino_numero: String(cliente.listino_numero),
+@@ -123,20 +136,21 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
+ 
+     setLoading(true)
+     setErrorMsg(null)
+ 
+     try {
+       const body: Record<string, unknown> = {
+         studio_nome: form.studio_nome.trim() || null,
+         nome: form.nome.trim(),
+         cognome: form.cognome.trim(),
+         telefono: form.telefono.trim() || null,
++        cellulare_whatsapp: form.cellulare_whatsapp.trim() || null,
+         email: form.email.trim() || null,
+         indirizzo: form.indirizzo.trim() || null,
+         cap: form.cap.trim() || null,
+         citta: form.citta.trim() || null,
+         provincia: form.provincia.trim().toUpperCase() || null,
+         partita_iva: form.partita_iva.trim() || null,
+         codice_fiscale: form.codice_fiscale.trim() || null,
+         codice_sdi: form.codice_sdi.trim() || null,
+         pec: form.pec.trim() || null,
+         listino_numero: parseInt(form.listino_numero, 10) || 1,
+@@ -313,41 +327,64 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
+                   <input
+                     type="text"
+                     value={form.cognome}
+                     onChange={set('cognome')}
+                     placeholder="Rossi"
+                     style={inputStyle}
+                   />
+                 </FieldGroup>
+               </div>
+ 
++              {/* P31/D184 (mockup approvato D186): i due numeri hanno LO STESSO
++                  PESO — stessa colonna della griglia, stesso `inputStyle`,
++                  nessun campo "avanzato"/richiudibile. «Telefono» → «Telefono
++                  dello studio» (può essere un fisso, va sui documenti);
++                  «Cellulare WhatsApp» è il campo NUOVO (→ colonna
++                  `cellulare_whatsapp`, compito 3). Placeholder senza prefisso
++                  (D182): il prefisso lo mette il programma. */}
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+-                <FieldGroup label="Telefono">
++                <FieldGroup label="Telefono dello studio">
+                   <input
+                     type="tel"
+                     value={form.telefono}
+                     onChange={set('telefono')}
+-                    placeholder="+39 02 1234567"
++                    placeholder="02 1234567"
++                    aria-label="Telefono dello studio"
+                     style={inputStyle}
+                   />
+                 </FieldGroup>
+-                <FieldGroup label="Email">
++                <FieldGroup label="Cellulare WhatsApp">
+                   <input
+-                    type="email"
+-                    value={form.email}
+-                    onChange={set('email')}
+-                    placeholder="studio@esempio.it"
++                    type="tel"
++                    value={form.cellulare_whatsapp}
++                    onChange={set('cellulare_whatsapp')}
++                    placeholder="333 1234567"
++                    aria-label="Cellulare WhatsApp"
+                     style={inputStyle}
+                   />
++                  <p style={aiutoStyle}>
++                    È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio.
++                  </p>
+                 </FieldGroup>
+               </div>
+ 
++              <FieldGroup label="Email">
++                <input
++                  type="email"
++                  value={form.email}
++                  onChange={set('email')}
++                  placeholder="studio@esempio.it"
++                  aria-label="Email"
++                  style={inputStyle}
++                />
++              </FieldGroup>
++
+               <FieldGroup label="Indirizzo">
+                 <input
+                   type="text"
+                   value={form.indirizzo}
+                   onChange={set('indirizzo')}
+                   placeholder="Via Roma 1"
+                   style={inputStyle}
+                 />
+               </FieldGroup>
+ 
+diff --git a/src/components/features/wizard/NuovoDentistaSheet.tsx b/src/components/features/wizard/NuovoDentistaSheet.tsx
+index eea83fc6..f359e965 100644
+--- a/src/components/features/wizard/NuovoDentistaSheet.tsx
++++ b/src/components/features/wizard/NuovoDentistaSheet.tsx
+@@ -1,20 +1,28 @@
+ 'use client'
+ 
+ // DS v3 §5.16/§5.27 (Ondata 2, Task 9) — NuovoDentistaSheet: lo sheet «＋ Nuovo
+ // dentista» del Passo 1 del wizard (decisione A7, spec §2.1, gate 12/07/2026
+-// notte). SOLO 4 campi: Nome, Cognome (obbligatori — l'UNICO dato richiesto
++// notte). SOLO 5 campi: Nome, Cognome (obbligatori — l'UNICO dato richiesto
+ // dalla DdC All. XIII MDR, «il nome della persona che ha prescritto»),
+-// Cellulare/WhatsApp e Studio (opzionali). NIENTE campi fiscali qui: il
+-// fiscale diventa bloccante solo alla prima FatturaPA (BACKLOG-TECNICO §O4),
+-// non alla creazione anagrafica — aggiungerli in questo sheet contraddirebbe
+-// la decisione ratificata.
++// Telefono dello studio, Cellulare WhatsApp e Studio (tutti e tre opzionali).
++// NIENTE campi fiscali qui: il fiscale diventa bloccante solo alla prima
++// FatturaPA (BACKLOG-TECNICO §O4), non alla creazione anagrafica — aggiungerli
++// in questo sheet contraddirebbe la decisione ratificata.
++//
++// P31/D184 (03/08/2026, mockup approvato D186): il vecchio campo unico
++// «Cellulare/WhatsApp» scriveva in `telefono` — ambiguo fra fisso e cellulare.
++// Si è sdoppiato in DUE campi con LO STESSO PESO: «Telefono dello studio»
++// (→ colonna `telefono`, può essere un fisso) e «Cellulare WhatsApp»
++// (→ colonna `cellulare_whatsapp`, dove UÀ manda i messaggi di consegna).
++// Entrambi restano facoltativi: il vincolo di creazione resta solo su nome e
++// cognome.
+ //
+ // label del dentista creato = `studio_nome` se compilato, altrimenti
+ // `Dr. ${cognome}` — STESSA regola di `aggregaDatiWizard` (Task 7,
+ // `src/lib/wizard/dati-wizard.ts`): calcolata qui dalla risposta del server
+ // (non dai valori locali del form) così la label riflette esattamente ciò
+ // che `POST /api/clienti` ha persistito.
+ //
+ // Validazione (§2.3 dizionario — «Form / campo obbligatorio» come concetto
+ // sparisce, ma qui i due campi UNICI restano un vincolo di legge MDR, non
+ // negoziabile): submit con nome/cognome vuoti NON chiama la rete, mostra
+@@ -34,29 +42,31 @@ type ClienteCreato = { id: string; nome: string; cognome: string; studio_nome: s
+ export function NuovoDentistaSheet(props: {
+   aperto: boolean
+   onChiudi: () => void
+   onCreato: (d: { id: string; label: string }) => void
+ }) {
+   const { aperto, onChiudi, onCreato } = props
+   const { errore } = useAvvisi()
+ 
+   const [nome, setNome] = useState('')
+   const [cognome, setCognome] = useState('')
+-  const [telefono, setTelefono] = useState('')
++  const [telefonoStudio, setTelefonoStudio] = useState('')
++  const [cellulare, setCellulare] = useState('')
+   const [studio, setStudio] = useState('')
+   const [vincolo, setVincolo] = useState<string | null>(null)
+   const [invio, setInvio] = useState(false)
+ 
+   function resetForm() {
+     setNome('')
+     setCognome('')
+-    setTelefono('')
++    setTelefonoStudio('')
++    setCellulare('')
+     setStudio('')
+     setVincolo(null)
+     setInvio(false)
+   }
+ 
+   function chiudi() {
+     resetForm()
+     onChiudi()
+   }
+ 
+@@ -64,21 +74,22 @@ export function NuovoDentistaSheet(props: {
+     const nomeOk = nome.trim()
+     const cognomeOk = cognome.trim()
+     if (!nomeOk || !cognomeOk) {
+       setVincolo('Nome e cognome sono obbligatori')
+       return
+     }
+     setVincolo(null)
+     setInvio(true)
+ 
+     const body: Record<string, string> = { nome: nomeOk, cognome: cognomeOk }
+-    if (telefono.trim()) body.telefono = telefono.trim()
++    if (telefonoStudio.trim()) body.telefono = telefonoStudio.trim()
++    if (cellulare.trim()) body.cellulare_whatsapp = cellulare.trim()
+     if (studio.trim()) body.studio_nome = studio.trim()
+ 
+     try {
+       const res = await fetch('/api/clienti', {
+         method: 'POST',
+         credentials: 'same-origin',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(body),
+       })
+ 
+@@ -96,24 +107,33 @@ export function NuovoDentistaSheet(props: {
+       errore('Non sono riuscita a creare il dentista. Riprova.')
+       setInvio(false)
+     }
+   }
+ 
+   return (
+     <Sheet aperto={aperto} onChiudi={chiudi} titolo="Nuovo dentista">
+       <CampoTesto label="Nome" valore={nome} onCambia={setNome} placeholder="Mario" autoFocus />
+       <CampoTesto label="Cognome" valore={cognome} onCambia={setCognome} placeholder="Rossi" />
+       <CampoTesto
+-        label="Cellulare/WhatsApp"
+-        valore={telefono}
+-        onCambia={setTelefono}
++        label="Telefono dello studio"
++        valore={telefonoStudio}
++        onCambia={setTelefonoStudio}
++        placeholder="02 1234567"
++        inputMode="tel"
++      />
++      <CampoTesto
++        label="Cellulare WhatsApp"
++        valore={cellulare}
++        onCambia={setCellulare}
+         placeholder="333 1234567"
++        inputMode="tel"
++        aiuto="È il numero a cui UÀ manda i messaggi di consegna su WhatsApp — ci vuole un cellulare, non il fisso dello studio."
+       />
+       <CampoTesto label="Studio" valore={studio} onCambia={setStudio} placeholder="Studio Rossi" />
+ 
+       {vincolo && (
+         <p role="alert" style={stileVincolo}>
+           {vincolo}
+         </p>
+       )}
+ 
+       {/* disabled durante la chiamata (no doppio POST). `motivoDisabilitato`
+diff --git a/tests/unit/ClienteEditSheet.test.tsx b/tests/unit/ClienteEditSheet.test.tsx
+new file mode 100644
+index 00000000..d378907f
+--- /dev/null
++++ b/tests/unit/ClienteEditSheet.test.tsx
+@@ -0,0 +1,105 @@
++import { render, screen, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { ClienteEditSheet, type ClienteEditData } from '@/components/features/clienti/ClienteEditSheet'
++
++// P31/Compito 7 — passo 3-bis/3-ter del brief.
++//
++// 🔑 Il pannello riceve `cliente` da una catena di QUATTRO anelli (select in
++// `clienti/[id]/page.tsx`, tipo `ClienteDettaglio`, oggetto passato a
++// `ClienteModificaButton`, select della GET singolo cliente): se anche uno
++// solo di quegli anelli non porta `cellulare_whatsapp`, questo pannello lo
++// riceve `null`/undefined, il form parte da stringa vuota, e SALVARE
++// (`form.cellulare_whatsapp.trim() || null`, riga 133) CANCELLA un numero già
++// scritto in banca dati — senza errore, senza avviso. La prova sotto è
++// quella che discrimina questo caso: non basta che il campo si salvi quando
++// lo si tocca, deve restare intatto quando NON lo si tocca.
++
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
++}))
++
++const clienteBase: ClienteEditData = {
++  id: 'cli-1',
++  studio_nome: 'Studio Rossi',
++  nome: 'Mario',
++  cognome: 'Rossi',
++  telefono: '02 1234567',
++  cellulare_whatsapp: null,
++  email: 'studio@esempio.it',
++  indirizzo: null,
++  cap: null,
++  citta: null,
++  provincia: null,
++  partita_iva: null,
++  codice_fiscale: null,
++  codice_sdi: null,
++  pec: null,
++  listino_numero: 1,
++  sconto_percentuale: 0,
++  modalita_pagamento: null,
++  note: null,
++}
++
++describe('ClienteEditSheet — i due numeri (P31, Compito 7)', () => {
++  beforeEach(() => {
++    vi.stubGlobal('fetch', vi.fn())
++  })
++
++  afterEach(() => {
++    vi.unstubAllGlobals()
++  })
++
++  function fetchMock() {
++    return fetch as unknown as ReturnType<typeof vi.fn>
++  }
++
++  it('D184 — il pannello chiede ENTRAMBI i numeri, stesso peso visivo', () => {
++    render(<ClienteEditSheet cliente={clienteBase} isOpen onClose={() => {}} />)
++    expect(screen.getByLabelText('Telefono dello studio')).toBeInTheDocument()
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
++  })
++
++  it('cambiare il cellulare lo salva nel campo giusto (cellulare_whatsapp, non telefono)', async () => {
++    fetchMock().mockResolvedValueOnce(new Response('{}', { status: 200 }))
++    render(
++      <ClienteEditSheet
++        cliente={{ ...clienteBase, cellulare_whatsapp: null }}
++        isOpen
++        onClose={() => {}}
++      />
++    )
++
++    await userEvent.type(screen.getByLabelText('Cellulare WhatsApp'), '333 1234567')
++    await userEvent.click(screen.getByRole('button', { name: /salva/i }))
++
++    await waitFor(() => expect(fetchMock()).toHaveBeenCalled())
++    const body = JSON.parse((fetchMock().mock.calls[0][1] as RequestInit).body as string)
++    expect(body.cellulare_whatsapp).toBe('333 1234567')
++    expect(body.telefono).toBe('02 1234567') // invariato — i due campi non si mescolano
++  })
++
++  // 🔑 LA PROVA CHE VALE PIÙ DI TUTTE (passo 3-ter del brief): il caso
++  // distruttivo non è "il campo non si salva", è "si salva un ALTRO campo e
++  // questo sparisce". Senza questa prova, un pannello che dimenticasse
++  // `cellulare_whatsapp` nel body di `handleSalva` passerebbe comunque il
++  // test sopra (che TOCCA il campo) restando rosso solo qui.
++  it('salvare senza toccare il cellulare NON lo cancella', async () => {
++    fetchMock().mockResolvedValueOnce(new Response('{}', { status: 200 }))
++    render(
++      <ClienteEditSheet
++        cliente={{ ...clienteBase, cellulare_whatsapp: '333 1234567' }}
++        isOpen
++        onClose={() => {}}
++      />
++    )
++
++    await userEvent.clear(screen.getByLabelText('Email'))
++    await userEvent.type(screen.getByLabelText('Email'), 'nuova@studio.it')
++    await userEvent.click(screen.getByRole('button', { name: /salva/i }))
++
++    await waitFor(() => expect(fetchMock()).toHaveBeenCalled())
++    const body = JSON.parse((fetchMock().mock.calls[0][1] as RequestInit).body as string)
++    expect(body.cellulare_whatsapp).toBe('333 1234567')
++  })
++})
+diff --git a/tests/unit/NuovoDentistaSheet.test.tsx b/tests/unit/NuovoDentistaSheet.test.tsx
+index 4cc63954..7cfdde4d 100644
+--- a/tests/unit/NuovoDentistaSheet.test.tsx
++++ b/tests/unit/NuovoDentistaSheet.test.tsx
+@@ -1,11 +1,12 @@
+ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
+ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+ import { AvvisiProvider } from '@/components/ds/Avviso'
+ import { NuovoDentistaSheet } from '@/components/features/wizard/NuovoDentistaSheet'
+ 
+ // Task 9 (A7): sheet «Nuovo dentista» a SOLO 4 campi — Nome, Cognome
+ // (obbligatori), Cellulare/WhatsApp, Studio (opzionali). NIENTE campi
+ // fiscali (A7, spec §2.1) — la DdC All. XIII chiede solo il nome del
+ // prescrittore, il fiscale diventa bloccante solo alla prima fattura.
+ 
+ function renderSheet(props?: Partial<Parameters<typeof NuovoDentistaSheet>[0]>) {
+@@ -25,62 +26,106 @@ describe('NuovoDentistaSheet (Task 9, A7)', () => {
+   })
+ 
+   afterEach(() => {
+     vi.unstubAllGlobals()
+   })
+ 
+   function fetchMock() {
+     return fetch as unknown as ReturnType<typeof vi.fn>
+   }
+ 
+-  it('mostra SOLO i 4 campi A7: Nome, Cognome, Cellulare/WhatsApp, Studio — niente campi fiscali', () => {
++  // P31/D184 — le tre nuove prove del brief (Passo 1): il campo unico si
++  // sdoppia in due, con lo stesso peso, e ognuno scrive nella sua colonna.
++  it('D184 — chiede ENTRAMBI i numeri', () => {
++    renderSheet()
++    expect(screen.getByLabelText('Telefono dello studio')).toBeInTheDocument()
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
++  })
++
++  it('D184 — sotto il cellulare è scritto a che cosa serve', () => {
++    renderSheet()
++    const input = screen.getByLabelText('Cellulare WhatsApp')
++    const idAiuto = input.getAttribute('aria-describedby')
++    expect(document.getElementById(idAiuto!)?.textContent).toMatch(/consegna/i)
++  })
++
++  // 🔑 La prova che i due campi finiscono in DUE posti diversi: senza questa,
++  //    due campi che scrivono nella stessa colonna passerebbero.
++  it('i due numeri partono in due campi distinti del corpo della richiesta', async () => {
++    fetchMock().mockResolvedValueOnce({
++      ok: true,
++      status: 201,
++      json: async () => ({ cliente: { id: 'x', nome: 'Mario', cognome: 'Rossi', studio_nome: null } }),
++    })
++    renderSheet()
++    await userEvent.type(screen.getByLabelText('Nome'), 'Mario')
++    await userEvent.type(screen.getByLabelText('Cognome'), 'Rossi')
++    await userEvent.type(screen.getByLabelText('Telefono dello studio'), '02 1234567')
++    await userEvent.type(screen.getByLabelText('Cellulare WhatsApp'), '333 1234567')
++    await userEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
++
++    await waitFor(() => expect(fetchMock()).toHaveBeenCalled())
++    const body = JSON.parse((fetchMock().mock.calls[0][1] as RequestInit).body as string)
++    expect(body.telefono).toBe('02 1234567')
++    expect(body.cellulare_whatsapp).toBe('333 1234567')
++  })
++
++  it('mostra SOLO i 5 campi D184: Nome, Cognome, Telefono dello studio, Cellulare WhatsApp, Studio — niente campi fiscali', () => {
+     renderSheet()
+     expect(screen.getByRole('dialog', { name: 'Nuovo dentista' })).toBeInTheDocument()
+     expect(screen.getByLabelText('Nome')).toBeInTheDocument()
+     expect(screen.getByLabelText('Cognome')).toBeInTheDocument()
+-    expect(screen.getByLabelText('Cellulare/WhatsApp')).toBeInTheDocument()
++    expect(screen.getByLabelText('Telefono dello studio')).toBeInTheDocument()
++    expect(screen.getByLabelText('Cellulare WhatsApp')).toBeInTheDocument()
+     expect(screen.getByLabelText('Studio')).toBeInTheDocument()
+     expect(screen.queryByLabelText(/partita iva/i)).not.toBeInTheDocument()
+     expect(screen.queryByLabelText(/codice fiscale/i)).not.toBeInTheDocument()
+     expect(screen.queryByLabelText(/pec/i)).not.toBeInTheDocument()
+     expect(screen.queryByLabelText(/sdi/i)).not.toBeInTheDocument()
+   })
+ 
+   it('submit con nome/cognome vuoti NON chiama fetch e mostra il vincolo', async () => {
+     const { onCreato } = renderSheet()
+     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
+ 
+     expect(await screen.findByRole('alert')).toHaveTextContent(/nome.*cognome|obbligator/i)
+     expect(fetch).not.toHaveBeenCalled()
+     expect(onCreato).not.toHaveBeenCalled()
+   })
+ 
+-  it('submit valido → POST /api/clienti con {nome, cognome, telefono, studio_nome} e credentials same-origin → onCreato({id, label=studio_nome})', async () => {
++  it('submit valido → POST /api/clienti con {nome, cognome, telefono, cellulare_whatsapp, studio_nome} e credentials same-origin → onCreato({id, label=studio_nome})', async () => {
+     fetchMock().mockResolvedValueOnce({
+       ok: true,
+       status: 201,
+       json: async () => ({ cliente: { id: 'cli-1', nome: 'Mario', cognome: 'Rossi', studio_nome: 'Studio Rossi' } }),
+     })
+ 
+     const { onCreato } = renderSheet()
+     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Mario' } })
+     fireEvent.change(screen.getByLabelText('Cognome'), { target: { value: 'Rossi' } })
+-    fireEvent.change(screen.getByLabelText('Cellulare/WhatsApp'), { target: { value: '333123456' } })
++    fireEvent.change(screen.getByLabelText('Telefono dello studio'), { target: { value: '02 1234567' } })
++    fireEvent.change(screen.getByLabelText('Cellulare WhatsApp'), { target: { value: '333123456' } })
+     fireEvent.change(screen.getByLabelText('Studio'), { target: { value: 'Studio Rossi' } })
+     fireEvent.click(screen.getByRole('button', { name: /crea dentista/i }))
+ 
+     await waitFor(() => expect(onCreato).toHaveBeenCalledWith({ id: 'cli-1', label: 'Studio Rossi' }))
+     expect(fetch).toHaveBeenCalledWith('/api/clienti', {
+       method: 'POST',
+       credentials: 'same-origin',
+       headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({ nome: 'Mario', cognome: 'Rossi', telefono: '333123456', studio_nome: 'Studio Rossi' }),
++      body: JSON.stringify({
++        nome: 'Mario',
++        cognome: 'Rossi',
++        telefono: '02 1234567',
++        cellulare_whatsapp: '333123456',
++        studio_nome: 'Studio Rossi',
++      }),
+     })
+   })
+ 
+   it('label = Dr. {cognome} quando studio non è compilato (stessa regola del Task 7)', async () => {
+     fetchMock().mockResolvedValueOnce({
+       ok: true,
+       status: 201,
+       json: async () => ({ cliente: { id: 'cli-2', nome: 'Luca', cognome: 'Bianchi', studio_nome: null } }),
+     })
+ 

@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centosettesima tornata (D263: si riapre il lavoro dichiarando il motivo, e il motivo sceglie l'iter)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantacinquesima tornata (D359: il ramo `intervento-post-consegna` si merge su `main` — tutti i cancelli passati, code 58-59 dichiarate)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**263 decisioni in centosette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**359 decisioni in centocinquantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -2164,3 +2164,2130 @@ casa prima della messa a disposizione.
 - **L'avviso al medico**: quando è cortesia e quando è **obbligo**.
 - **Se il motivo è correggibile**: chi sbaglia a scegliere l'iter deve poter tornare indietro, o si crea
   un blocco nuovo mentre se ne toglie uno vecchio — cioè si tradisce D262 nel momento in cui la si attua.
+
+---
+
+### Centottesima tornata — D264-D270: l'ondata dell'intervento ha la sua forma, e il panel ha ribaltato il confine (06/08/2026, 13:24)
+
+**Nasce da:** D262 (la direttiva) e D263 (il motivo sceglie l'iter). Panel di **tre advisor** su
+dominio critico — normativo MDR · sistema qualità · architettura sul codice vero — con il metodo del
+§9 (30/07): **premesse da falsificare, non domande da svolgere**.
+
+**Esito del panel: tre premesse, due falsificate e una invertita.**
+
+| Premessa | Esito |
+|---|---|
+| «Chi se n'è accorto» e «il dispositivo è stato applicato» sono lo stesso asse | **FALSIFICATA.** Art. 2(64) àncora allo **stato del dispositivo**, Art. 87(3) alla **conoscenza**: due assi. E l'Art. 2 definisce **tre** momenti di mercato, non due — un booleano non può reggerli. Chi se n'è accorto governa l'**orologio**; stato e potenziale di danno governano la **classe** |
+| Un «reclamo» esiste solo dopo l'applicazione al paziente | 🛑 **FALSIFICATA E INVERTITA.** Ministero della Salute, linee di indirizzo 29/11/2022: i reclami «*si tratta, in genere, di **eventi riscontrati prima dell'uso del dispositivo***». Il **caso 2 è il caso TIPICO di reclamo**, non rilavorazione interna. Avevamo classificato al contrario |
+| Un difetto intercettato dal laboratorio non genera registrazioni | **FALSIFICATA.** ISO 13485 §8.3.1 e §8.3.4: la rilavorazione va registrata e il prodotto ri-verificato |
+| *(al terzo advisor)* la messa a disposizione avviene alla consegna al medico | ✅ **REGGE**, su quattro clausole convergenti. **È il confine** |
+
+| # | Decisione | In una riga |
+|---|---|---|
+| **D264** | Perimetro della prima ondata | Casi **1, 2, 3, 5**. Fuori 4, 6, 7 — scritti, non spariti |
+| **D265** | Documento sanitario e documento fiscale sono **due mondi** | La dichiarazione si corregge **sempre**, anche a fattura emessa |
+| **D266** | L'intervento vive in `eventi_qualita`, **sopra** il rifacimento | Il rifacimento diventa un **esito**. `lavoro_nuovo_id NOT NULL` (`005:75`) gli vieta strutturalmente di esprimere «corretto sul posto» |
+| **D267** | **Fatti, mai conseguenze** — e registrare ≠ giudicare | L'evento si crea sempre; la valutazione è separata e comprende «nessuna azione, ed ecco perché». Gli indicatori contano le **valutazioni**. L'app **propone**, una persona **conferma** |
+| **D268** | 🛑 Il confine è la **consegna**, e l'ordine dei test è **ministeriale** | ① incidente → ② coinvolgimento → ③ conseguenze. **Rifiutata** la derivazione di un advisor che assegnava «reclamo» prima di escludere l'incidente: nasconde l'obbligo di **trend reporting Art. 88** |
+| **D269** | 🛑 **La finestra dei 10 minuti sparisce del tutto**; l'annullo consegna è **assorbito** in «Devo intervenire» | **Scelta esplicita di Francesco**, contro la raccomandazione di affiancare i due gesti. Costo dichiarato e accettato: **due tap invece di uno** per il tasto premuto per sbaglio |
+| **D270** | Una classificazione sbagliata si corregge per **sovrapposizione**, mai con un `UPDATE` | Sola-aggiunta **imposta dal database** (precedente in casa: `20260804154232:9`). **Declassare** chiede il motivo scritto |
+
+**🔑 La riga da tenere, e non riguarda solo quest'ondata:** *l'ordine in cui si fanno i controlli è
+esso stesso una regola*. Due derivazioni con gli stessi ingredienti, in ordine diverso, producono un
+adempimento e un'omissione. Il difetto non sarebbe stato visibile né dai test né dal codice: sarebbe
+entrato dalla porta principale, dentro un parere autorevole.
+
+**📌 Due dati di fatto forniti da Francesco:** non sa se il laboratorio sia certificato ISO 13485
+(➡️ si progetta **come se lo fosse**) · spesso **non si sa** se il dispositivo sia stato applicato
+(➡️ `non_noto` è ammesso e **non blocca** — e i tre test non lo chiedono mai).
+
+**Spec:** `docs/superpowers/specs/2026-08-06-intervento-post-consegna-design.md` — §14 porta **undici
+vuoti dichiarati**, §15 **otto ritrovamenti fuori mandato**, due dei quali gravi (la riga EUDAMED di
+`CLAUDE.md` §5 è sbagliata; `totale_reclami: 0` nel PSUR).
+
+**🔑 Seconda lezione, trovata rileggendo e non decidendo — DUE DECISIONI GIUSTE POSSONO COLLIDERE IN
+UNA CHIAMATA, E LA COLLISIONE NON SI VEDE LEGGENDO LE DECISIONI.** D265 («la dichiarazione si corregge
+sempre, anche a fattura emessa») e D269 («l'annullo consegna è assorbito nell'intervento») sono
+entrambe sane. Ma la prima stesura della spec faceva passare l'esito da `annulla_consegna_atomica`, che
+porta con sé **i cancelli fiscali**: una correzione su un lavoro fatturato sarebbe stata **rifiutata**
+— cioè il contrario esatto di D265. ➡️ **Due decisioni si controllano nel punto in cui il codice le fa
+incontrare, non nel documento che le enuncia.**
+
+---
+
+### Centonovesima tornata — D271 e D272: la certificazione diventa un dato, e una norma letta alla lettera stava per creare un cantiere inutile (06/08/2026, 15:10)
+
+**Nasce da:** le tre risposte di Francesco alle domande lasciate aperte dalla spec dell'intervento.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D271** | 🔑 **LA CERTIFICAZIONE ISO 13485 DIVENTA UN DATO DEL LABORATORIO.** «*facciamo in modo che, nella scheda del laboratorio, puoi segnare se si è certificati oppure no ed in base a questo la pwa si comporta di conseguenza*» | Campo a **tre** stati (`certificato` · `non_certificato` · `non_dichiarato`, default che si comporta come certificato). ⚠️ **Governa cosa l'app considera COMPLETO, non cosa permette:** quasi tutti gli obblighi vengono dal **MDR** (Art. 10(9), 83-88, All. XIII), non da ISO, e valgono comunque. Spec §17 |
+| **D272** | 🛑 **NON SI ANTICIPA LA DICHIARAZIONE AL «PRONTO»: LA PROPOSTA È RESPINTA, E IL MOTIVO VALE OLTRE IL CASO.** Il documento nasce **quando il laboratorio dichiara finito il lavoro**, e quello è l'atto sostanziale | La proposta era mia, nata leggendo l'Art. 52(8) alla lettera («prima dell'immissione sul mercato») dopo che Francesco aveva detto che la consegna si registra **sia prima sia dopo** l'uscita fisica. **Non si fa niente**, e la voce si chiude: non diventa roadmap |
+
+**La risposta di Francesco, per intero — è il metro, non un aneddoto:**
+
+> «*non essere così fiscale, e ti dico perché: ad oggi, chi non usa un'app come questa che stiamo
+> creando, come credi che gestisca la cosa? Cosa cambia se nel momento in cui io premo sul pulsante
+> «ok questo lavoro è finito» il sistema genera tutto quello che c'è da generare, e poi il lavoro o
+> sta ancora al lab o è stato già portato allo studio? Mica è una questione di timestamp con
+> minutaggi o geolocalizzazioni. Ricordati: cosa fa UÀ? Aiuta il laboratorio, lo segue, lo accompagna
+> e soprattutto gli risolve i problemi! Non deve crearne di nuovi.*»
+
+**🔑 LA LEZIONE, ed è la più importante della giornata — UNA NORMA LETTA ALLA LETTERA PUÒ GENERARE UN
+PROBLEMA CHE NON ESISTE.** La dichiarazione **esiste e accompagna il dispositivo**; nessuna norma
+chiede al fabbricante di cronometrare l'uscita dal portone, e **nessun laboratorio al mondo lo fa**.
+Il metro non è «cosa dice il testo isolato», ma **D262**: se una regola nostra non risolve un problema
+vero del laboratorio, **ne sta creando uno**.
+⚠️ **E si noti la simmetria con la giornata:** al mattino il panel aveva trovato che un vincolo
+sopravvive all'architettura che lo giustificava (i 10 minuti); al pomeriggio si stava per **crearne
+uno nuovo** dello stesso genere, partendo però da una fonte autorevole invece che da una costante
+dimenticata. **La provenienza nobile di un vincolo non lo rende utile.**
+
+---
+
+### Centodecima tornata — D273-D275: il panel ha rifatto la proposta invece di approvarla, e il divieto di cancellare da solo era un generatore di numeri falsi (06/08/2026, 17:03)
+
+**Nasce da:** il terzo dei quattro ritrovamenti aperti del Task 1 — l'unico che aspettava una decisione
+di Francesco: se anche `eventi_qualita`, il **fatto**, debba diventare non modificabile.
+**Misurato prima di decidere, sul database vivo:** `eventi_qualita` ha `UPDATE=true` e `DELETE=true`
+per `anon`, `authenticated` e `service_role`; `valutazioni_evento` li ha **tutti e tre a false**. Il
+ritrovamento non era teorico.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D273** | 🔑 **UN EVENTO DI QUALITÀ NON SI CANCELLA MAI IN MODO DEFINITIVO, MA SI RITIRA DICHIARANDO IL MOTIVO — e si corregge sempre.** Francesco: «*sì ratifica D273*» | Tre pezzi: ① **niente `DELETE`** dal database (né `TRUNCATE`); ② **ritiro morbido con motivo obbligatorio**, che toglie l'evento dagli elenchi **e dai conteggi**, sul modello già in casa di `incidenti_mdr` (`002_fase2_schema.sql:420-425` · `psur/route.ts:156-157`); ③ `UPDATE` **resta aperto** (D262) con la traccia ridotta all'osso: chi ha creato, chi ha ritirato, quando è stato corretto. 🛑 **Unica eccezione, e non è trattabile:** un evento che ha **già prodotto un atto verso l'esterno** (dichiarazione riemessa, segnalazione al Ministero, avviso al medico) **non si ritira, si supera** — quello è l'unico blocco che D262 ammette, perché è di legge. ⛔ **L'avviso «il giudizio poggia su una descrizione cambiata» ESCE da quest'ondata**: rientra insieme alla riclassificazione |
+| **D274** | ✅ **I DUE DIFETTI VIVI SI CHIUDONO SUBITO**, benché fuori dal mandato dell'ondata. Francesco: «*chiudi subito i due difetti vivi*» | ① `admin_delete_laboratorio` **non nomina** le due tabelle nuove e `eventi_qualita_lavoro_fk` è `NO ACTION` → la cancellazione di un tenant **aborta** al primo laboratorio con un evento; ② **`TRUNCATE` era rimasto concesso** su `valutazioni_evento`, quindi il commento «la garanzia la dà il DATABASE» (`20260806140823:78`) era **falso** |
+| **D275** | 🔓 **RIENTRARE IN UN LAVORO CONSEGNATO RESTA ALLA PORTATA DI TUTTI — nessun controllo di ruolo.** Francesco: «*di tutti, poi in futuro se dovrò eseguire qualche modifica a riguardo ci torneremo, per adesso va bene così*» | La domanda non era mai stata posta: con la finestra dei dieci minuti che sparisce (D269), lo stesso gesto annulla **una dichiarazione a valore legale, per sempre, su qualunque lavoro**. Oggi annullare la consegna non ha già alcun controllo di ruolo (`api/lavori/[id]/annulla-consegna/route.ts`), e **si sceglie di non introdurne uno**. ⏸️ **Rimandata, non chiusa — e la destinazione è scritta:** `docs/roadmap/2026-08-06-intervento-sera-handoff.md` §3, voce «*il rientro in un lavoro consegnato è materia da titolare?*». Si riapre da lì, e la riapre Francesco |
+
+**🔑 LA LEZIONE — IL DIVIETO DI CANCELLARE, DA SOLO, NON PROTEGGE UN REGISTRO: LO SPORCA.**
+La proposta portata al panel era «non si cancella, ma chi sbaglia dichiara l'errore», e sembrava
+elegante. Due advisor su tre ci sono arrivati per strade diverse: un evento nato da un dito scivolato
+che non si può togliere **resta per sempre dentro i conteggi**, e quei conteggi finiscono nel rapporto
+periodico dovuto per legge (`psur/route.ts:190`, che quest'ondata deve finalmente alimentare).
+➡️ **Vietare la cancellazione senza dare un modo di dire «questa riga non doveva esistere» costruisce
+un generatore di numeri falsi dentro un documento di sistema qualità.**
+
+**⚠️ E il costo cadeva tutto sull'errore di digitazione, cioè sul caso che Francesco ha dichiarato
+NORMALE.** Oggi chi preme «consegnato» per sbaglio ha un tasto «Annulla»: **un tocco**
+(`AnnullaConsegnaBanner.tsx:144-167`). Dopo l'ondata deve aprire «Devo intervenire», scegliere il
+motivo e rispondere a **quattro domande obbligatorie** — da chi ha saputo, quando, dov'era il
+dispositivo, che danno può fare — che per un tasto premuto per sbaglio **non vogliono dire niente**; e
+per confermare «nessuna azione» il database **pretende una giustificazione scritta a mano**
+(`20260806140823:47-49`). La spec dichiara il costo di D269 come «**due tap invece di uno**»
+(spec righe 54 e 346): **quel conto non torna, e non tornava già prima di D273.**
+➡️ **Due correzioni da minuti entrano nel Task 6:** la giustificazione di «nessuna azione» **nasce
+precompilata** col «perché» che la derivazione ha già scritto, e il motivo «ho registrato per sbaglio»
+**non chiede** origine, momento della conoscenza, stato del dispositivo e potenziale di danno.
+
+**🔑 LA REGOLA CHE MANCAVA, e non era stata scritta da nessuno.** La direttiva permanente dice che ogni
+campo si corregge **fino alla consegna** — ma un evento di qualità **nasce dopo la consegna**, quindi
+quella regola non lo copriva. Il principio, spogliato del caso particolare, è un altro:
+
+> **Un dato si corregge liberamente finché non è uscito dal laboratorio dentro un documento. Da lì in
+> poi non si congela: si corregge per sovrapposizione.**
+> Applicato all'evento: *si corregge sempre. Prima che sia uscito, la correzione è diretta; dopo, è per
+> sovrapposizione — come il giudizio. Non si cancella niente, e non si congela niente.*
+
+🛑 **Perché il GIUDIZIO non può essere il confine:** è un atto **interno**, e per progetto è
+**superabile** (D270). Se un atto interno congelasse un fatto, avremmo una regola **più severa** di
+quella data per il lavoro stesso — dove portare a `pronto` non congela niente e congela solo l'uscita.
+
+**📌 Il panel, e come ha lavorato.** Tre advisor con mandato esplicito di **smontare**, non di
+approvare (Regola Advisor, 17/07). Esiti: **normativo** «regge con condizioni» (8 condizioni) ·
+**database/sicurezza** «regge con condizioni» (10 difetti, 3 Critici) · **prodotto** 🔴 **«il punto 1
+così com'è NON regge»**. I due difetti vivi di D274 **non erano nella proposta**: sono usciti cercando
+dove si rompeva. ✅ **Riverificati uno per uno da chi riferisce**, non presi sulla parola degli advisor.
+
+**🟠 Aperti e NON chiusi da questa tornata** (riferiti, R-E2): `audit_log` è **svuotabile** da un
+utente autenticato e **1.644 righe su 1.645 non sanno chi ha fatto la modifica** (l'app parla al
+database con un'identità di servizio) — quindi una memoria delle correzioni costruita lì nascerebbe
+cieca · `valutazione_supera()` non pretende un successore e non registra chi/quando · la spec §6 e il
+piano (righe 391-392) **derivano `errore_registrazione` in due punti diversi** dell'ordine dei test:
+vince il codice, ma il documento **ratificato** dice un'altra cosa · `psur/route.ts:190` continua a
+dichiarare `totale_reclami: 0` per costruzione.
+
+---
+
+### Centoundicesima tornata — D276: l'esenzione non salta la fila, e il controllo pre-volo del piano ha trovato dove il piano contraddiceva la spec (06/08/2026, 18:10)
+
+**Nasce da:** il **controllo pre-volo** obbligatorio prima di mandare in esecuzione il Task 2 (la
+sotto-skill di esecuzione a sottoagenti lo impone: si scandaglia il piano in cerca di contraddizioni
+**prima** di dispacciare, e le si presenta **tutte insieme**). Ne è uscita una, e stava esattamente nel
+compito «su cui si gioca la correttezza normativa».
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D276** | 🔑 **IL CONTROLLO SULL'INCIDENTE VIENE SEMPRE PER PRIMO — NESSUN MOTIVO PUÒ SALTARE LA FILA — e i tre motivi «non è un problema del dispositivo» danno NESSUNA AZIONE, non non-conformità.** Francesco: «*dico di sì alla tua*» | Ordine definitivo: ① incidente (sempre, per ogni motivo) · **①-bis** natura ∈ {`nuova_esigenza_clinica`, `commerciale`, `errore_registrazione`} → **`nessuna_azione`** col perché scritto · ② reclamo · ③ non conformità interna. **Corregge il piano** (che faceva uscire i tre motivi PRIMA dell'incidente) **e precisa la spec §6** (che li faceva ricadere in non conformità interna) |
+
+**🔴 IL DIFETTO CHE IL CONTROLLO PRE-VOLO HA INTERCETTATO, ed era già scritto in forma di codice.**
+Il piano (Task 2, righe 389-393) faceva uscire i tre motivi **prima** del test dell'incidente. Effetto
+concreto: un evento marcato «il dentista chiede una cosa nuova» **usciva senza che nessuno guardasse se
+c'era stato un danno**. Con un danno accertato su una persona nella stessa segnalazione, l'app avrebbe
+risposto «nessuna azione» e **l'obbligo di segnalazione sarebbe sparito**.
+⚠️ **È LO STESSO DIFETTO DI STAMATTINA, IN UN ALTRO VESTITO.** Al mattino un advisor proponeva una
+derivazione che assegnava «reclamo» senza prima escludere l'incidente, e fu **rifiutata** (D268). Il
+piano faceva la stessa cosa con «nessuna azione» — e «nessuna azione» è **peggio**, perché non lascia
+nemmeno una registrazione.
+🛑 **E le prove del piano codificavano il comportamento SBAGLIATO:** scritte come stavano, avrebbero
+**bloccato il difetto invece di trovarlo**. È il caso in cui un test non è una rete: è un lucchetto.
+
+**🔑 L'ALTRA METÀ, che non era chiusa da nessuno dei due documenti.** Passato il test dell'incidente,
+cosa dice l'app per un tasto premuto per sbaglio? La spec §6, **letta alla lettera**, lo faceva ricadere
+in **non conformità interna** — cioè nel registro qualità e nei conteggi. Ma è precisamente ciò che
+**D273** ha stabilito di non fare poche ore prima: un dito scivolato non deve sporcare i numeri che
+finiscono nel rapporto periodico dovuto per legge. ➡️ Si tiene l'**ordine** della spec e l'**esito** del
+piano, e nessuno dei due documenti aveva ragione da solo.
+
+**🔑 LA LEZIONE — DUE DOCUMENTI ENTRAMBI RATIFICATI POSSONO CONTRADDIRSI, E LA CONTRADDIZIONE VIVE NEL
+CODICE, NON NELLA PROSA.** La spec era giusta sull'ordine e sbagliata sull'esito; il piano il contrario.
+Nessuna rilettura dell'uno o dell'altro l'avrebbe mostrato: **si vede solo mettendoli accanto sulla
+stessa riga di codice**. È la stessa forma della lezione di stamattina («due decisioni giuste possono
+collidere in una chiamata»), applicata stavolta fra una spec e il piano che la esegue.
+➡️ **Il controllo pre-volo non è burocrazia: qui ha pagato da solo il suo costo.**
+
+**Emendati nello stesso turno:** spec §6 (nasce il passo ①-bis) · piano Task 2 (codice e prove).
+
+---
+
+### Centododicesima tornata — D277-D279: la gravità si CHIEDE, il banco non è il mercato, e il «perché» non può contraddire chi l'ha scritto (06/08/2026, 18:55)
+
+**Nasce da:** la revisione del Task 2. Conformità al mandato **approvata** (eseguito alla lettera,
+niente di meno e niente di più, ritrovamenti riferiti e non corretti di nascosto), **qualità da
+correggere** — e **tutti e tre i rilievi discendono dal mandato**, cioè dal piano e dalla spec.
+Verificati uno per uno contro il testo della spec ratificata prima di portarli a Francesco.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D277** | 🔴 **LA GRAVITÀ DI UN INCIDENTE SI CHIEDE, NON SI DEDUCE — e la scadenza nasce dalla risposta.** Francesco: «*sì a tutti e tre*» | L'app propone «incidente — **da valutare se grave**» e pone la domanda dell'Art. 2(65) a una persona; `termineOre` resta **vuoto** finché non c'è risposta. I tre termini della spec §3 diventano tutti raggiungibili: **2 giorni** (minaccia grave alla salute pubblica, 87(4)) · **10 giorni** (morte o deterioramento grave non previsto, 87(5)) · **15 giorni** (regola generale, 87(3)) |
+| **D278** | 🛑 **MAI USCITO DAL LABORATORIO = MAI UN INCIDENTE. Fra spec §3 e spec §6 vince la §3** | Se `stato_dispositivo = mai_uscito_dal_lab`, l'esito è **non conformità interna (§8.3.2)** qualunque sia il potenziale di danno. Base: un incidente riguarda un dispositivo «messo a disposizione» (Art. 2(64)) e quello **non lo è mai stato** |
+| **D279** | 🟠 **IL «PERCHÉ» SI COSTRUISCE DAI FATTI REGISTRATI, mai da frasi fisse** | Il testo che l'app propone non può affermare il contrario di ciò che l'utente ha appena dichiarato |
+
+**🔴 D277 — L'UNICO PUNTO IN CUI IL SISTEMA CHIEDEVA MENO DEL DOVUTO, e va detto per intero.**
+Il codice decideva la gravità con **una sola uguaglianza** (`potenziale_di_danno === 'accertato'`),
+mentre l'Art. 2(65) — citato nella **spec stessa**, §3 — dice che è grave anche l'incidente che
+«**avrebbe potuto portare**» a morte o a danno serio. Caso concreto, eseguito: una lega sbagliata su
+un paziente allergico, manufatto non ancora applicato → l'app proponeva «incidente **non grave**,
+nessuna scadenza». E quando diceva «grave» proponeva **sempre 15 giorni**, cioè il **più lungo** dei
+tre: per una morte la spec ne prevede **10**.
+🔑 **La radice non era un refuso: era il modello.** `potenziale_di_danno` ha quattro valori su **un
+asse solo**, e gli si facevano rispondere **due domande diverse** — «è un incidente?» (Art. 2(64)) e
+«è grave?» (Art. 2(65)). Quattro caselle non reggono due domande. ➡️ La risposta non è aggiungere
+valori, è **smettere di indovinare**: D267 dice che l'app propone e **una persona conferma**.
+⚠️ **E `accertato` NON implica grave:** un danno può essere avvenuto ed essere lieve. Anche lì si chiede.
+📌 **Direzione dell'errore, ed è la regola che decide:** Art. 87(7) — «*nel dubbio si segnala*». Ogni
+altro ingresso malformato di questa funzione degradava verso **più** obblighi; solo questo verso meno.
+
+**🛑 D278 — DUE SEZIONI DELLA STESSA SPEC SI CONTRADDICEVANO, e stavolta non fra due documenti.**
+La §3 è netta: «*Prima della consegna… **Nessuna vigilanza, nessun reclamo**. Difetto colto al banco =
+non conformità interna + rilavorazione*». La §6 applicava il test dell'incidente **a tutto**, senza
+guardare se il manufatto fosse mai uscito.
+⚠️ **E non è il caso raro: è quello NORMALE.** In banca dati `potenziale_di_danno` nasce
+**`da_valutare`** (`20260806140823:24`). L'addetta registra un difetto di lavorazione su un lavoro
+**ancora al banco**, lascia il valore com'è, e l'app le propone **«incidente»** con ramo §8.3.3.
+🔑 **Stessa forma di D276, un livello più dentro:** lì si contraddicevano la spec e il piano, qui **due
+sezioni della stessa spec** — e in entrambi i casi la contraddizione era invisibile nella prosa e
+visibile solo sulla riga di codice che le fa incontrare.
+
+**🟠 D279 — non è cosmesi, è la riga che un ispettore legge.** Tre casi provati: se l'utente dichiara
+che il manufatto **era applicato**, l'app scriveva «*anche se non è ancora stato applicato*»; se
+dichiarava «non lo so», scriveva «*a dispositivo già uscito*»; se la segnalazione veniva
+**dall'odontoiatra**, scriveva «*ce ne siamo accorti noi*». Sotto **D267** il «perché» è ciò su cui la
+persona decide se confermare, e finisce in `valutazioni_evento.giustificazione`.
+➡️ **Una motivazione che descrive male il caso è un invito a confermare male.**
+
+**🔑 LA LEZIONE DELLA REVISIONE — «CONFORME AL MANDATO» E «GIUSTO» SONO DUE VERDETTI, ED È GIUSTO CHE
+SIANO DUE.** L'esecutore ha fatto esattamente ciò che gli era stato chiesto, e proprio per questo i
+difetti del mandato sono arrivati intatti fino al codice: **un esecutore fedele è un amplificatore, non
+un filtro**. Il filtro è la revisione con due verdetti separati — e qui il secondo ha trovato tre cose
+che il primo, per costruzione, non poteva vedere.
+
+**Chiuso anche, nello stesso giro:** tre lacune di copertura (un ramo del codice mai raggiunto da
+nessuna prova · `naturaDaMotivo` senza alcuna prova · la prova «ogni proposta porta il perché» che ne
+guardava **una sola** su sei).
+
+---
+
+### Centotredicesima tornata — D280-D282: la domanda sulla gravità prende forma, e nasce l'attrito che sta SOLO sulla porta d'uscita (06/08/2026, 20:54)
+
+**Nasce da:** le due decisioni lasciate aperte dalla chiusura del Task 2, più una **proposta di
+Francesco** che nessuno aveva messo sul tavolo.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D280** | 🔑 **LA DOMANDA SULLA GRAVITÀ HA TRE RISPOSTE «GRAVE» DISTINTE, E A PARITÀ VINCE IL TERMINE PIÙ BREVE.** Francesco: «*sì a entrambe*» | Non una domanda da sì/no: quattro risposte — **non grave** · **grave, regola generale** (15 gg, Art. 87(3)) · **morte o peggioramento grave non previsto** (10 gg, Art. 87(5)) · **minaccia grave per la salute pubblica** (2 gg, Art. 87(4)). 🛑 **Quando ne valgono due insieme** — una morte che è anche una minaccia per la salute pubblica — **vince il termine più breve**, mai la media e mai il primo trovato |
+| **D281** | ✅ **«COMMERCIALE» ED «ERRORE DI REGISTRAZIONE» SU UN LAVORO MAI USCITO DANNO «NESSUNA AZIONE», non non-conformità interna** | Conferma di un'interpretazione che stava già nel codice: D276 (le tre nature esenti) resta più forte di D278 (mai uscito → non conformità). Un tasto premuto per sbaglio **non è un problema del dispositivo**, quindi non entra nel registro qualità né nei conteggi (D273) |
+| **D282** | 🔑 **PRIMA DI TOGLIERE QUALCOSA DAI CONTEGGI, L'APP CHIEDE UNA CONFERMA ESPLICITA — ed è di Francesco.** «*credo che in quel caso dobbiamo prevedere un'opzione del tipo «sei sicuro?» e quindi la pwa procede, così escludiamo tutti i possibili casi di errore*» | Nasce un **passaggio di conferma** sull'unica porta che fa **uscire** un evento dai conteggi. ⚠️ **Tre precisioni, integrate nella decisione:** ① la conferma **dice cosa cambia**, non chiede «sei sicuro?» · ② compare **solo dopo** che l'incidente è stato escluso, **mai** davanti a un obbligo di sicurezza · ③ è **la stessa** conferma del ritiro di D273. Il testo esatto passa dal cancello §0B (mockup → approvazione) |
+
+**🔑 IL PRINCIPIO CHE D282 REGALA AL PROGETTO, e vale oltre questo caso: L'ATTRITO STA SULLA PORTA
+D'USCITA, MAI SU QUELLA D'INGRESSO.** Registrare un evento non deve costare nulla — è la direttiva
+D262. **Toglierlo dai conteggi**, invece, è l'unico gesto che *riduce* ciò che il laboratorio dichiara
+in un documento dovuto per legge: lì una conferma non è un ostacolo, è la differenza fra una scelta e
+un incidente di percorso. ➡️ **D262 non dice «mai attrito»: dice «mai attrito che impedisca di
+lavorare».** Una conferma su un gesto che sottrae è esattamente dove l'attrito serve.
+
+**⚠️ Perché «sei sicuro?» è la forma SBAGLIATA della cosa giusta.** Una conferma che chiede se sei
+sicuro viene premuta senza leggere dopo la terza volta: addestra a passare oltre. Una conferma che
+**dice cosa cambia** — «*questa registrazione non entrerà nel registro qualità*» — viene letta, perché
+porta un'informazione che chi legge non aveva. La proposta di Francesco è giusta nella sostanza; la
+precisione riguarda solo la forma, ed è la differenza fra una rete e un rituale.
+
+**🛑 E la precisione ② non è teorica: senza, la conferma finirebbe nel posto peggiore.** L'ordine
+ratificato (D276, D277) mette il test dell'incidente **prima** di tutto. Se la conferma comparisse
+davanti a quel test, l'app metterebbe un attrito **davanti a un obbligo di segnalazione** — cioè
+esattamente al contrario di dove serve.
+
+**🟠 UN NODO APERTO CHE D282 FA EMERGERE, e va sciolto prima del Task 6: DUE PORTE PORTANO NELLA STESSA
+STANZA.** Oggi ci sono due modi perché una registrazione non conti: `natura = errore_registrazione`
+(il fatto è «abbiamo registrato per sbaglio una consegna», e la classificazione è «nessuna azione») e
+il **ritiro** di D273 (la riga non doveva proprio esistere). Sono davvero diversi — il primo registra
+un fatto vero, il secondo cancella un tocco sbagliato — **ma al banco si somigliano**, e due porte per
+la stessa stanza sono il modo classico di far contare due volte, o zero. ➡️ Il confine si disegna nel
+compito del ritiro, non si lascia all'intuito di chi sta al banco.
+
+---
+
+### Centoquattordicesima tornata — D283: il primo tocco chiede conferma, ed è la rete che D269 aveva tolto senza rimpiazzarla (06/08/2026, 21:26)
+
+**Nasce da:** una proposta di Francesco che **avevo capito male**, e la sua correzione.
+
+🛑 **LA MIA LETTURA SBAGLIATA, per intero e senza attenuanti.** Francesco aveva scritto: «*se abbiamo
+confermato un lavoro e vogliamo riaprirlo… ma se invece per sbaglio premo sul pulsante per riaprirlo?*».
+Io l'ho letta come una conferma **in uscita** (prima di togliere un evento dai conteggi) e ho scritto
+**D282** su quello. Lui parlava del **primo tocco**: la conferma **in ingresso**, che impedisce a un
+tocco involontario di aprire l'iter. Sua la precisazione: «*non mi sono spiegato bene… in prima
+battuta non sarebbe comodo chiedere una cosa tipo, sei sicuro di voler riaprire questo lavoro?*».
+➡️ **D282 resta valida** — è un'altra porta, e serve — **ma non era la sua domanda.**
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D283** | 🔑 **PRIMA DI APRIRE L'ITER, L'APP CHIEDE CONFERMA — e la conferma NOMINA IL LAVORO.** Di Francesco | Il gesto «devo intervenire» su un lavoro consegnato **non parte al primo tocco**: chiede conferma, e nel chiederla **dice quale lavoro** sta per riaprire. ⚠️ **Precisazione integrata:** nominare il lavoro intercetta anche l'errore **più frequente** del tasto sbagliato — quello del **lavoro sbagliato**, che un «sei sicuro?» nudo non prende. Testo esatto dal cancello §0B |
+
+**🔴 PERCHÉ NON È UNA COMODITÀ MA UN BUCO CHE STAVAMO PER LASCIARE APERTO — misurato, non supposto.**
+Oggi il tasto «Annulla» della fascia di consegna **parte al primo tocco**: `onClick={handleAnnulla}`
+in `src/components/features/lavori/AnnullaConsegnaBanner.tsx:145`, e in tutto il file **zero** dialoghi
+di conferma (`grep` → 0 riscontri). L'unica rete che esisteva **erano i dieci minuti**: un tocco
+involontario si annullava da sé, perché la finestra si chiudeva e il gesto era reversibile dentro di
+essa.
+🛑 **D269 toglie quella finestra.** Senza D283 il gesto diventa **permanente e a un tocco solo**: cioè
+**più pericoloso di prima**, non meno. ➡️ **La proposta di Francesco non aggiunge attrito: RIMPIAZZA
+una rete che stavamo smontando senza accorgercene.**
+
+**🔑 LA LEZIONE, e riguarda il metodo prima del prodotto: quando si toglie un vincolo, si censisce che
+cosa quel vincolo stava REGGENDO.** I dieci minuti erano stati diagnosticati come «un residuo di
+un'architettura mai eseguita» (D262), ed era vero **per il motivo per cui erano nati** — la fattura
+automatica alla consegna. Ma nel frattempo reggevano **un secondo carico che nessuno aveva scritto**:
+la protezione dal tocco involontario. Un vincolo inutile per la sua ragione originale può essere
+diventato utile per un'altra, e **toglierlo guardando solo la ragione originale lascia scoperto il
+carico nuovo**.
+⚠️ **E si noti chi l'ha visto:** non il panel, non la revisione, non i test — **Francesco, immaginando
+il gesto al banco.** Nessuno dei tre controlli automatici poteva trovarlo, perché non è un difetto del
+codice: è una cosa che il codice non fa.
+
+**📌 Come stanno insieme le due conferme (D283 e D282), e perché non sono un doppione:**
+D283 sta **in ingresso** e protegge dal gesto non voluto — «stai per riaprire il lavoro n. 412».
+D282 sta **in uscita** e protegge dal togliere qualcosa dai conteggi senza volerlo. Guardano due
+rischi diversi, in due momenti diversi. ➡️ **E con D283 in piedi, il caso del tocco involontario
+diventa raro**: la via più economica per un tocco sbagliato non è registrarlo e poi ritirarlo, è
+**non crearlo**.
+
+---
+
+### Centoquindicesima tornata — D284: applicare una migration al banco di prova non si chiede più (06/08/2026, 21:59)
+
+**Nasce da:** quattro rifiuti del classificatore dei comandi in una sola giornata, e la mia scelta di
+**chiedere invece di aggirare** — corretta come procedura, ma diventata un intralcio quando si ripete.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D284** | 🔑 **APPLICARE UNA MIGRATION AL DATABASE DI PROVA NON SI CHIEDE PIÙ.** Francesco: «*senti questo tipo di comando lo hai sempre eseguito in autonomia e voglio che tu continui a farlo, non chiedermi più di eseguirlo*» | `npx supabase db push --linked --yes` si lancia **da soli**. ⚠️ **La forma conta:** senza `--yes` il comando resta appeso a una domanda interattiva e **sembra fallito senza esserlo** — è successo oggi, e per capirlo è servito leggere il terminale. Il `--linked` punta al progetto collegato |
+
+**📌 Il perimetro, e resta stretto.** Vale per il **database di prova** `iagibumwjstnveqpjbwq`, che
+`ua-app/CLAUDE.md` §8 dichiara pieno di **soli dati di prova, nessun cliente reale**. È la stessa
+famiglia di **D103** («*logga tranquillamente con i dati nel file env*»): su un banco di prova
+chiedere il permesso a ogni giro è cerimonia, non prudenza.
+🛑 **Non si estende** a: pubblicare su `main` (resta di Francesco), cancellare dati, o toccare un
+domani un ambiente con dati veri — e **il giorno in cui il primo laboratorio reale entra**, questa
+decisione va riletta insieme alla sezione §8 che la regge.
+
+**⚠️ Il fatto che l'ha generata, e la lezione che porta con sé.** Oggi il classificatore ha rifiutato
+**quattro volte** i comandi che scrivono sul database. La regola di casa dice «*si chiede, non si
+aggira*», e l'ho seguita: ma il primo comando che ho passato a Francesco era **sbagliato** (senza la
+cartella: il terminale parte da quella superiore), il secondo avrebbe applicato il SQL **senza
+registrare la migration** — disallineando il registro — e il terzo è rimasto **appeso a una domanda**
+che dal mio lato sembrava un fallimento.
+🔑 **Tre errori in tre passaggi di consegne, su un comando che so eseguire.** ➡️ **Passare un compito a
+una persona non è gratis: ogni passaggio è un punto in cui si perde un pezzo di contesto.** Quando il
+contesto necessario ce l'ho io e il rischio è basso, il passaggio **aggiunge** rischio invece di
+toglierlo. La regola «si chiede, non si aggira» resta viva dove il rischio è alto — pubblicare,
+cancellare, toccare dati veri.
+
+---
+
+### Centosedicesima tornata — D285: le due porte sono DUE, e solo il ritiro toglie dai conteggi (06/08/2026, 22:31)
+
+**Nasce da:** il §0③ dell'handoff della sera — «*due porte portano nella stessa stanza*» — portato a
+Francesco **prima** di spendere la serata sui compiti liberi, perché tutta la catena dei blocchi (il
+ritiro → i tre testi → il Task 6 → il Task 7) sta a valle di questa risposta e **niente di quella
+catena si muove senza di lui**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D285** | 🔑 **LE DUE PORTE RESTANO DUE, E SI DISTINGUONO PER *CHE COSA* ERA SBAGLIATO.** Scelta di Francesco fra tre forme proposte | **①** «errore di registrazione» (e «commerciale») = **il fatto è successo davvero**, qualcuno l'ha guardato e ha concluso che non è un problema del dispositivo → esito `nessuna_azione`, **la riga resta in elenco e resta nel conto delle cose esaminate**. **②** Il **RITIRO** (D273) = **questa riga non doveva esistere** (tocco sbagliato, doppione) → esce da elenchi e da **ogni** conteggio, e **resta in archivio col motivo obbligatorio**. ➡️ **I predicati dei conteggi diventano DUE** (v. l'emendamento qui sotto: la prima stesura ne diceva «uno solo» e sbagliava). |
+
+**🔑 La riga che rende la distinzione insegnabile, ed è il motivo per cui regge:** le due porte non si
+distinguono per l'esito — quello si somiglia — ma per **quale oggetto era sbagliato**. Nel primo caso
+era sbagliato **il dato del lavoro**, e l'evento è la prova che qualcuno se n'è accorto e ha guardato.
+Nel secondo era sbagliato **aver aperto la segnalazione**, e la prova che serve è un'altra: il motivo
+per cui è stata tolta.
+
+**⚠️ E questo cambia una riga di codice già scritta — un ritrovamento, non un dettaglio.** Il commento
+di `src/lib/qualita/classifica.ts:158-160` dice oggi che le esenzioni «*non entrano nei conteggi del
+rapporto periodico (D273)*». Con D285 quella frase è **troppo larga**: le esenzioni non entrano nei
+conteggi delle **non conformità e dei reclami**, ma **restano** nel conto delle cose esaminate — che è
+esattamente ciò che dimostra a un'autorità che il laboratorio guarda le cose invece di non registrarle.
+➡️ **La correzione del commento va nel compito del ritiro**, insieme al predicato: sono la stessa cosa
+detta nei due posti dove va detta.
+
+**⏳ Stato della ratifica.** La scelta è di Francesco ed è registrata **subito** (BP-1-bis). La **Regola
+Advisor** vuole il panel *prima* della ratifica: tre advisor con mandato di **smontare** la decisione —
+normativo (è difendibile davanti a un'autorità togliere righe «ritirate» dai numeri dell'Art. 85/86?),
+database (il predicato, la policy `FOR ALL`, il `REVOKE DELETE`, i collegamenti per il divieto di
+ritiro), prodotto (un operatore al banco distingue i due gesti?). **Le loro condizioni si integrano qui
+sotto o si motivano una per una.**
+
+#### 🔬 Il verbale del panel — tre advisor, mandato di SMONTARE: **REGGE CON CONDIZIONI ×3**
+
+Nessuno dei tre dice «non regge». Ma tutti e tre trovano qualcosa che la decisione, **come l'avevo
+scritta**, non copriva.
+
+**🛑 ①  LA MIA FRASE «UN PREDICATO SOLO» ERA SBAGLIATA, E CONTRADDICEVA D281 — correzione, non
+sfumatura.** D281 dice, per gli stessi due valori: «*non entra nel registro qualità **né nei conteggi**
+(D273)*». La mia riga diceva l'opposto. ➡️ **I predicati sono DUE, e la contraddizione sparisce appena
+si smette di dire «i conteggi» come se fossero uno:**
+- **conteggio regolamentare** (non conformità · reclami · incidenti — quelli del rapporto periodico):
+  `non ritirata` **E** l'esito è uno di quelli regolamentari. `errore_registrazione` **NON** ci entra —
+  D281 regge intatta.
+- **conteggio delle cose esaminate** (quante segnalazioni sono state guardate): `non ritirata`, e basta.
+  `errore_registrazione` **ci entra**, ed è ciò che dimostra che il laboratorio guarda.
+⚠️ **Il secondo conteggio oggi NON ESISTE**: `psur/route.ts:190` è `totale_reclami: 0` fisso e la rotta
+**non legge mai** `eventi_qualita`. Un predicato senza una query che lo usi è **prosa** (R-P1). ➡️ **Il
+compito del ritiro deve cablare almeno un conteggio vero**, o non c'è niente da provare.
+
+**🔴 ②  IL TEST CHE DECIDE QUALE PORTA — ed è la condizione più forte del panel normativo.**
+La mia D285 enunciava una *conseguenza*, non un **test**. Il test è questo, e si prova in una riga:
+**se l'informazione è arrivata da FUORI, il ritiro è vietato** — `origine_informazione <>
+'laboratorio_interno'` (quattro valori su cinque sono esterni, `20260806140823:18-20`). **E il divieto
+sta nel database, non nell'interfaccia.** Fondamento: Allegato III §1.1(a) enumera che cosa è dato
+rilevante di sorveglianza — un tocco sbagliato non è nessuna di quelle cose, ma **un reclamo arrivato
+da un odontoiatra sì**, e quello non si toglie mai. ⚠️ Vale **in una direzione sola**: «interno» non
+implica «ritirabile».
+
+**🔴 ③  IL PUNTO PIÙ DEBOLE, e nessuno dei tre lo attenua: il ritiro ricrea, un piano più in su, il
+difetto che D276 esiste per chiudere.** D276 impedisce a una `natura` di **saltare la fila** davanti al
+test dell'incidente; D282 ② promette che la conferma compare **solo dopo** che l'incidente è escluso.
+Ma **il ritiro agisce sulla RIGA**, e oggi si aprirebbe **prima che una derivazione sia mai girata**:
+è l'unica via che non ha mai dovuto rispondere alla domanda dell'Art. 2(64). ➡️ **Condizione: il ritiro
+non è raggiungibile finché non esiste una valutazione viva** con esito diverso da incidente.
+
+**🟠 ④  LA GARANZIA CHE RENDE IL RITIRO DIFENDIBILE È UN NUMERO PUBBLICATO, non un permesso.**
+Il rapporto porta **entrambi**: `righe_totali = righe_contate + righe_ritirate`. Un numero pubblicato
+smette di essere una sparizione. 🔑 Serve perché per i su misura il rapporto periodico **è parte della
+documentazione dell'Allegato XIII §2** (Art. 86(2)): è materiale che un'autorità può farsi consegnare.
+
+**🛑 ⑤  `incidenti_mdr` NON È IL MODELLO — ed è scritto «modello già in casa» nel piano (riga 742).**
+La sua policy `FOR ALL USING (… AND deleted_at IS NULL)` (`002_fase2_schema.sql:423-424`) **non ha
+`WITH CHECK`**: nasconde la riga **al laboratorio stesso**, e non ha né motivo né autore. Copiarlo
+importa il difetto insieme al pattern. ➡️ **Il filtro va nelle query (o in una vista), MAI nella
+policy**: il motivo obbligatorio serve proprio a poter **rivedere** i ritirati.
+
+**🟠 ⑥  IL RITIRO SENZA STORIA NON VALE NIENTE.** Due colonne e l'`UPDATE` aperto (che D262 vuole
+aperto) danno: ritira → dis-ritira → ritira, e resta **solo l'ultimo motivo** — sull'unico gesto che
+**sottrae** da un conteggio dovuto per legge, mentre `valutazioni_evento` è sola-aggiunta proprio per
+ISO 13485 §4.2.5. ➡️ Il ritiro passa da una **RPC `SECURITY DEFINER`** (modello `valutazione_supera`),
+con `GRANT UPDATE` per colonna invece che sulla tabella. ⚠️ **La sentinella
+`tests/integration/eventi-qualita-schema.rpc.test.ts` va spostata su `has_column_privilege`**, o
+diventerà rossa leggendosi come «D262 rotto» quando è vero il contrario.
+
+**🔴 ⑦  L'ECCEZIONE «HA GIÀ PRODOTTO UN ATTO VERSO L'ESTERNO» È OGGI APPLICABILE SU 0 RAMI SU 3.**
+`provato:` nessun `evento_id` su `dichiarazioni_conformita` (e il `sostituisce_id` del Task 5 lega
+documento→documento, quindi **non basta neanche dopo**) · nessun `evento_id` su `incidenti_mdr` ·
+**l'avviso al medico non è registrato da nessuna parte**: si costruisce solo un indirizzo `wa.me`
+(`src/lib/consegna/orchestrate.ts:158`). ➡️ **O il compito crea i legami, o la guardia si dichiara non
+applicabile.** Una guardia che ne controlla zero su tre è peggio dell'assenza: sembra copertura.
+
+**🟢 ⑧  LE DUE FRASI CHE RENDONO LA DISTINZIONE INSEGNABILE AL BANCO** (panel prodotto), da portare al
+cancello §0B invece di inventarne altre: «**Ho sbagliato a segnare il lavoro**» · «**Ho sbagliato ad
+aprire questa nota**». Una parola di differenza — *lavoro* / *nota* — e la domanda diventa una a cui si
+risponde in piedi. La riga «cosa cambia» del ritiro: «*La nota sparisce dagli elenchi. Resta in
+archivio, col motivo che scrivi.*»
+⚠️ **E D282 ③ deve cedere:** «la STESSA conferma» per due gesti che cambiano cose diverse **non può
+dire cosa cambia** — stesso componente, **due frasi**.
+
+#### ⏸️ RESTA APERTO, e la decisione è di Francesco: che cosa FA «errore di registrazione»?
+
+**Il panel prodotto l'ha trovata, io l'ho verificata riga per riga, ed è la TERZA contraddizione fra
+documenti ratificati in un giorno solo** (dopo spec-contro-piano e spec-contro-sé-stessa).
+
+| Dove | Che cosa dice |
+|---|---|
+| **§6** della spec (e il codice, `classifica.ts:163-164`) | `errore_registrazione` → esito **`nessuna azione`**, col perché scritto: «*Non tocca il dispositivo né il documento sanitario*» |
+| **§7** della spec, riga 384 | «*chi ha semplicemente sbagliato tasto usa `natura = errore_registrazione`: **due tap invece di uno***» — cioè è **la via che sostituisce l'annullo della consegna**, e quell'annullo riporta il lavoro a `pronto` **e mette la dichiarazione in `annullata`** |
+
+🔑 **Le due righe possono convivere** — l'esito di *qualità* è «nessuna azione», l'effetto *operativo* è
+il rientro — **ma solo se qualcosa le tiene insieme, e oggi non c'è niente:**
+1. `provato:` la **§4 promette** (righe 197-198) «*un indicatore opzionale «questo evento richiede anche
+   di rientrare in produzione»*». **Quella colonna NON ESISTE**: `grep 'rientr'` sulle due migration
+   dell'ondata → **zero riscontri**; `eventi_qualita` ha 13 colonne e nessuna è quella.
+2. `provato:` **`riapri_lavoro_atomica` — costruita oggi col Task 3, applicata al database — ha ZERO
+   chiamanti**: `grep -r` in `src/` → **un solo riscontro**, ed è `src/types/database.types.ts:6429`,
+   cioè il file dei tipi **generato**. **E nessuno dei nove compiti del piano la chiama.** ➡️ È
+   esattamente la famiglia della **guardia mai agganciata**: una cosa costruita, applicata, e che non
+   gira mai.
+3. Il testo che l'utente legge — «*Non tocca il dispositivo né il documento sanitario*» — **è falso**
+   nel caso in cui il rientro annulli la dichiarazione.
+
+🔴 **E se vince la §7, il rischio è INVERTITO rispetto alla premessa di D285.** Il ritiro fa sparire
+**una nota**; «errore di registrazione», se porta il rientro con sé, **disfa una consegna vera e annulla
+un documento a valore legale** — ed è l'unico dei due che sta sullo schermo **nel momento di panico**,
+offerto dentro una lista di nove voci. Le difese (conferme, attriti, gate) andrebbero allora **sull'altra
+porta** rispetto a dove D282/D283 le hanno messe.
+
+**La domanda, in una riga:** quando qualcuno ha segnato «consegnato» per sbaglio e sceglie «errore di
+registrazione», il lavoro **deve tornare indietro** (e la dichiarazione annullarsi) — **sempre**,
+**mai**, oppure **solo se lo chiede in un secondo passaggio**? Da qui dipendono la colonna mancante, il
+chiamante della RPC del Task 3, e su quale porta vanno le difese.
+
+---
+
+### Centodiciassettesima tornata — D286 e D287: l'orologio è quello di Roma, e il contatore conta solo ciò che è uscito (06/08/2026, 23:39)
+
+**Nasce da:** due punti portati a Francesco in chiusura del Task 4 — uno trovato dall'esecutore
+correggendo sé stesso, uno da adjudicare perché uno scostamento dichiarato resti una decisione e non
+un'abitudine.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D286** | 🔑 **OGNI ORARIO DELL'APP È QUELLO ITALIANO DI ROMA.** Francesco: «*sempre l'app deve seguire l'orario italiano di Roma quello di qualsiasi dispositivo in Italia*» | Un momento che arriva **senza fuso** (`2026-08-06T10:00`, cioè ciò che restituisce un campo data-e-ora del browser) si legge **come ora di Roma**, mai come ora locale di chi esegue. ⚠️ **Il difetto vero che chiude:** il server dell'app gira in **UTC**; senza questa regola avrebbe letto «10:00» come 10:00 UTC, cioè **le 12:00 di Roma** in estate — **due ore di scarto IN AVANTI su una scadenza dell'Art. 87** |
+| **D287** | ✅ **IL CONTATORE DELLE CORREZIONI CONTA SOLO CIÒ CHE ERA USCITO.** Francesco: «*sì*» | `lavori.post_consegna_correzioni` sale **solo** se `stato_dispositivo <> 'mai_uscito_dal_lab'`. Ratifica di uno **scostamento dichiarato** dall'esecutore del Task 4 rispetto alla regola 3 del piano, che diceva «incrementa» e basta |
+
+**📌 D286 — che cosa comporta, in concreto, e dove NON si applica.**
+La regola riguarda **come si legge un momento ambiguo**, non come si conserva: in banca dati i momenti
+restano `TIMESTAMPTZ`, cioè istanti assoluti — che è la forma giusta e non cambia. Cambia il modo di
+**risolvere l'ambiguità in ingresso**, e cambia il **fuso in cui si mostrano** le date all'utente.
+⚠️ **Un caso d'angolo dichiarato, non nascosto:** l'ultima domenica di ottobre l'ora fra le 2 e le 3
+esiste **due volte**. Un momento scritto a mano in quella finestra è genuinamente ambiguo: si sceglie la
+lettura **più prudente per i termini di legge**, cioè quella che rende la scadenza **più vicina**
+(l'istante **precedente**, ora legale). È lo stesso principio di D280 — «a parità vince il termine più
+breve».
+
+**📌 D287 — perché è una ratifica e non un timbro.** Il piano diceva «incrementa» portando come prova
+solo che la **colonna esiste** — mai chi la legge. Il censimento è stato **rifatto in revisione**:
+`post_consegna_correzioni` compare in `src/` in **sei righe** oltre al Task 4 — tre nei tipi generati,
+una nel tipo di dominio, **due nelle rotte fiscali soltanto dentro l'elenco `select(...)`** — e
+`src/lib/fattura/generate-xml.ts` **non la nomina mai**; in `supabase/` nessuna vista né funzione la
+legge. ➡️ **Nessun documento fiscale cambia.** Il predicato è **lo stesso** già usato in
+`classifica.ts:128`, non un secondo criterio che diverge.
+⚠️ **La riserva onesta resta scritta:** `stato_dispositivo` è **dichiarato dal client**, quindi la
+metrica non era comunque indipendentemente affidabile.
+🟠 **E porta un compito al RITIRO:** un evento registrato per sbaglio fa salire quel contatore, e **oggi
+nessuno lo fa scendere**. Se il ritiro toglie la riga dai conteggi ma lascia il numero su, si costruisce
+**un secondo generatore di numeri falsi** accanto a quello che D273 chiude.
+
+**🛑 Esenzione dalla Regola Advisor, dichiarata invece che sottintesa.** Nessuna delle due è passata da
+un panel: **D286** è la scelta ovvia per un'applicazione italiana e non ha alternative sensate da
+mettere a confronto; **D287** ha già avuto **due revisioni indipendenti** e un censimento rifatto da
+zero, che è più di quanto un panel avrebbe prodotto. Le esenzioni previste sono «decisioni banali,
+reversibili in minuti, o già coperte».
+
+---
+
+### Centodiciottesima tornata — D288: l'effetto del rientro si DERIVA dal motivo, e chiude R1-bis (06/08/2026, 23:47)
+
+**Nasce da:** la domanda aperta della tornata precedente («il rientro è sempre, mai, o solo se lo
+chiede?»), a cui Francesco ha risposto con una **quarta forma, più precisa delle tre proposte**.
+
+> «*io consegno un lavoro con la pwa, deve esserci la possibilità di reintervenire sul lavoro
+> consegnato, poter premere un pulsante e prima di tutto dire: vuoi reintervenire sul lavoro o hai
+> premuto questo tasto per sbaglio? sì voglio reintervenire, benissimo, per quale motivo? per x
+> motivi, tra cui, ho sbagliato a premere consegna, allora ripristina tutto, mi sono accorto che devo
+> correggere un dato, lo corregge e posso riconsegnare, è tornato con un difetto e devo poter
+> intervenire etc etc.*»
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D288** | 🔑 **L'EFFETTO SUL LAVORO NON SI CHIEDE A PARTE: SI DERIVA DAL MOTIVO.** Di Francesco | Nessuna casella «vuoi anche rientrare in produzione?». Il motivo **è già** la risposta: «ho sbagliato a premere consegna» → **ripristina tutto** (lavoro a `pronto`, dichiarazione in `annullata`) · «devo correggere un dato» → si corregge e **si riconsegna** · «è tornato con un difetto» → il percorso dell'intervento vero. ➡️ **Stesso principio delle derivazioni già in spec §6**: l'app deriva e propone, la persona conferma |
+
+**🔴 QUESTO CHIUDE R1-bis, E DECIDE QUALE DELLE DUE RIGHE DELLA SPEC VINCE.** La spec diceva due cose
+diverse: §6 dà a `errore_registrazione` esito «nessuna azione» col perché «*Non tocca il dispositivo né
+il documento sanitario*»; §7 riga 384 lo indica come la via di chi ha sbagliato tasto, cioè quella che
+**riporta il lavoro a `pronto` e annulla la dichiarazione**. ➡️ **Vince la §7 sull'EFFETTO. E le due
+righe non erano in contraddizione: parlavano di due piani diversi**, e nessuno dei due documenti lo
+diceva.
+- **Piano della QUALITÀ** — l'esito resta **`nessuna_azione`**: non è un problema del dispositivo,
+  quindi **non entra nei conteggi regolamentari**. D281 e D285 restano intatte.
+- **Piano OPERATIVO** — il lavoro **torna indietro** e la dichiarazione **si annulla**, perché una
+  dichiarazione emessa su una consegna mai avvenuta è un documento che afferma il falso.
+
+🛑 **E il testo mostrato all'utente oggi è FALSO e va corretto** (`src/lib/qualita/classifica.ts:164`):
+«*Non tocca il dispositivo né il documento sanitario*» — mentre la dichiarazione **viene annullata**. Il
+perché deve dire **che cosa succede davvero**.
+
+**✅ E dà finalmente un CHIAMANTE a `riapri_lavoro_atomica`** (ritrovamento R1: costruita col Task 3,
+applicata al database, **zero chiamanti**). È la derivazione dal motivo a invocarla — e va **dentro il
+compito che scrive quella derivazione**, non lasciata a un compito che non esiste.
+
+**📌 D288 conferma e ARRICCHISCE D283.** La conferma in ingresso non è un «sei sicuro?»: la forma che
+Francesco descrive è **«vuoi reintervenire su questo lavoro, o hai premuto per sbaglio?»** — cioè offre
+**l'uscita** insieme alla domanda. È esattamente ciò che il panel prodotto aveva chiesto come
+condizione ③: *una via che non salva niente*, perché senza quella l'operatore sul lavoro sbagliato non
+ha **nessuna scelta giusta** a schermo e prenderà il motivo più vicino.
+
+**⏸️ Resta da decidere, ed è la conseguenza diretta:** ogni motivo dei nove porta il suo effetto, e
+**l'elenco degli effetti non è ancora scritto**. Va fatto **prima** del cancello §0B sui testi: le
+tre frasi da approvare devono dire *cosa cambia*, e non si può dire cosa cambia finché non è deciso
+che cosa cambia.
+
+---
+
+### Centodiciannovesima tornata — D289: il formato della data si allinea a quello di casa, e NON serve il gate (07/08/2026, mattina)
+
+**Nasce da:** un effetto collaterale della propagazione di D286. Correggendo il fuso, due stampe
+server-side sono passate da `toLocaleDateString` nudo a `dataItalianaBreve()`, e con esse il testo
+visibile su `impostazioni/abbonamento`: **`20/8/2026` → `20/08/2026`**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D289** | ✅ **IL FORMATO CON LO ZERO DAVANTI VA BENE, e non apre un gate estetico.** Francesco: «*per il formato della data va benissimo*» | `dataItalianaBreve()` resta la forma unica. **La FASE 9b (gate L2) NON è dovuta** per questo cambio |
+
+**📌 Perché la domanda è stata posta lo stesso, e perché la risposta non svuota D245.** D245 dice che
+**il testo visibile è aspetto**, e che **in dubbio si fa il gate** (fail-closed, come R-P1). Qui il
+dubbio era reale: `impostazioni/abbonamento` **non è una superficie di quest'ondata**, quindi un
+micro-audit su dodici sezioni e sei combinazioni di schermo e tema sarebbe costato più del cambio.
+➡️ **La regola non è stata piegata: è stata applicata, e la sua uscita prevista è che DECIDE
+Francesco.** Un gate saltato **in silenzio** sarebbe stato il difetto già pagato due giorni di fila;
+un gate **dichiarato e sciolto da chi decide** è il funzionamento normale.
+🔑 **E il cambio va nella direzione giusta a prescindere:** `20/8/2026` era il formato **predefinito
+del browser**, non una scelta del progetto — cioè un punto in cui l'app parlava una lingua diversa da
+quella dei propri documenti.
+
+---
+
+### Centoventesima tornata — D290-D292: tre effetti dei nove motivi, decisi da chi il mestiere lo fa (07/08/2026, 08:42)
+
+> 🛑 **CORREZIONE DI ORARIO SU QUESTE DUE TORNATE, e la scrivo per intera perché è esattamente il difetto che D155 esiste per impedire.** Le due intestazioni portavano `00:41` e `00:52`: orari **DEDOTTI** dalla sessione precedente, non letti dall'orologio. `provato:` `date` → **`07/08/2026 08:43 CEST`**, e l'ultimo salvataggio della notte è delle **00:30** — fra i due c'è una pausa di otto ore che avevo registrato come cinquanta minuti. ➡️ D290-D292 portano ora l'ora **misurata**; per D289 non ho una misura dell'istante esatto e scrivo **«mattina»**, che è vero, invece di un numero preciso e falso. 🔑 **Il meccanismo è identico a quello del 02/08: un orario non verificato si eredita dal contesto precedente e nessun passaggio lo confronta con un orologio.** La regola dice `date` **prima** di scrivere una data, non dopo.
+
+
+**Nasce da:** D288 («l'effetto si deriva dal motivo») che ha aperto la conseguenza diretta — **l'elenco
+degli effetti dei nove motivi**, che non esisteva. Cinque righe su nove erano già decise dalla spec o
+da D288; tre erano **domande di mestiere**, non di programmazione, e sono andate a Francesco.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D290** | 🔑 **DIFETTO DI LAVORAZIONE: LO SCEGLIE CHI REGISTRA — «si sistema questo, o se ne fa uno nuovo?»** | L'app **non decide**: chiede. A volte un difetto si corregge sul pezzo, a volte il pezzo non è recuperabile. ➡️ Due esiti dallo stesso motivo: **rientro in produzione** (il lavoro torna a `pronto`) oppure **rifacimento** (lavoro nuovo collegato, `lavori_rifacimenti.evento_id`, che la spec §4 ha già reso «un esito, non la porta d'ingresso») |
+| **D291** | 🔑 **PERSONA SBAGLIATA: SI ANNULLA LA CONSEGNA, MA IL DOCUMENTO RESTA** | Il manufatto si recupera e si riconsegna a chi doveva riceverlo. Il lavoro torna a `pronto`; la dichiarazione **non si rifà**, perché **diceva il vero**: sbagliato era il destinatario, non il contenuto |
+| **D292** | 🔑 **RESO SENZA DIFETTO: DIPENDE DAL PERCHÉ È TORNATO — e l'app lo chiede** | Un manufatto che torna perché il paziente non si è presentato non è la stessa cosa di uno che il medico rimanda indietro senza dire perché. ➡️ Serve **un secondo dettaglio** prima di derivare l'effetto: **vocabolario nuovo, da progettare** |
+
+**🔑 Il filo che tiene insieme le tre, e non è una coincidenza: dove il mestiere ha più di un caso,
+l'app CHIEDE invece di indovinare.** Due risposte su tre sono «dipende», ed è la stessa forma di D267
+(«l'app propone, una persona conferma») applicata all'effetto invece che alla classificazione. 🛑 **Il
+contrario — derivare un esito solo perché è il più frequente — è il difetto che D276 ha già chiuso una
+volta**, in un altro vestito.
+
+**⚠️ Una conseguenza di D290 che DICHIARO invece di assumerla:** la stessa scelta «si sistema o si
+rifà?» ha senso anche per **`difetto_materiale`**, che ha la stessa struttura (il manufatto è fisicamente
+compromesso). **Non l'ho chiesto**, quindi lo porto come **proposta da confermare**, non come deciso.
+
+**⏸️ D292 apre un lavoro nuovo, piccolo ma vero:** il vocabolario dei motivi del reso senza difetto non
+esiste. Va progettato **prima** del cancello §0B, come tutto il resto di questo elenco.
+
+**📌 L'elenco degli effetti, allo stato di questa tornata** (cinque righe erano già decise):
+
+| motivo | il lavoro | il documento |
+|---|---|---|
+| dato sbagliato sul documento | resta consegnato | **si annulla e si rifà** (spec §6) |
+| **difetto di lavorazione** | **si sistema oppure si rifà — sceglie chi registra (D290)** | ❓ **panel normativo in corso** |
+| difetto del materiale | rientra (🟡 proposta: stessa scelta di D290) | **si annulla e si rifà** (spec §6) |
+| **persona sbagliata** | **torna a `pronto` (D291)** | **resta valido (D291)** |
+| modifica chiesta dal medico | **lavoro nuovo**, non un rientro | resta valido (era conforme alla sua prescrizione) |
+| prezzo o quantità sbagliati | non si tocca | non si tocca — l'app **segnala** la nota di credito e non la esegue (caso 6, fuori perimetro) |
+| **reso senza difetto** | **dipende dal perché (D292)** — vocabolario da progettare | idem |
+| ho sbagliato a premere consegna | **ripristina tutto** (D288) | **si annulla** (D288) |
+| altro | niente in automatico | niente — l'app registra e non indovina |
+
+---
+
+### Centoventunesima tornata — D293 e D294: la dichiarazione non si annulla mai, e porta solo ciò che ci deve stare (07/08/2026, 09:44)
+
+**Nasce da:** tre verifiche su fonti primarie, richieste da Francesco («*riconferma le fonti su EUR-Lex
+e poi ratifichiamo, ricordati che a noi interessano le leggi italiane*») dopo che un primo panel aveva
+dovuto ripiegare su un sito-specchio. 🔑 **L'aggiunta «le leggi italiane» è stata la più produttiva
+delle tre:** ha ribaltato la domanda invece di rispondervi.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D293** | 🔑 **LA DICHIARAZIONE NON SI ANNULLA MAI SE IL MANUFATTO È USCITO DAVVERO — e si rifà solo se cambia qualcosa che vi è stampato.** Ratificata da Francesco: «*confermo, ratifichiamo*» | ① `annullata` in banca dati significa **superata**, mai «nulla» · ② una **riconsegna dopo rilavorazione NON è una nuova immissione** (Art. 2(28): «*la **prima** messa a disposizione*») · ③ si riemette **solo** se cambia un campo stampato · ④ se il pezzo si **rifà da zero** il documento nuovo è dovuto e **il vecchio resta**, unica prova di un manufatto esistito e consegnato a un paziente |
+| **D294** | 🔑 **IL DOCUMENTO PORTA SOLO CIÒ CHE CI DEVE STARE — via i materiali.** Francesco: «*togli tutto quello che sul documento non ci deve essere, come la storia dei materiali*» | I materiali e i lotti **escono dalla dichiarazione**. ⚠️ **Tenerne traccia resta**: la tracciatura interna è cosa diversa dalla stampa sul documento (Allegato XIII **punto 2**). ➡️ Serve un **censimento campo per campo** contro gli otto contenuti dell'Allegato XIII punto 1, **prima** di toccare il generatore |
+
+### 📜 Le prove su cui poggiano, e da dove vengono
+
+🛑 **EUR-Lex era SPENTO** (verificato da Francesco con monitoraggio esterno, 09:23 del 07/08/2026;
+quattro punti d'ingresso su quattro falliti). Il testo è stato preso da **`publications.europa.eu`
+(Cellar)**, che **non è uno specchio**: è il deposito da cui EUR-Lex stesso serve i testi. `provato:`
+intestazione → **`02017R0745 — IT — 01.01.2026 — 006.001`**.
+
+- **Art. 2(28)** — «immissione sul mercato»: «*la **prima** messa a disposizione*». Un evento
+  irripetibile. `provato:` `grep` sul file scaricato.
+- **Allegato XIII punto 1** — **OTTO** contenuti, contati: fabbricante e siti · mandatario · dati
+  identificativi del dispositivo · uso esclusivo per il paziente nominato · prescrittore · caratteristiche
+  dalla prescrizione · conformità ai requisiti generali · sostanze/tessuti. **Data, numero, materiali e
+  lotti NON sono nominati.** ⚠️ «Non nominati» ≠ «vietati»: le voci 3 e 6 sono aperte, e **se la
+  prescrizione nomina i materiali, i materiali rientrano da quella porta**.
+- **Allegato XIII punto 4** — «*è conservata per almeno 10 anni **dalla data di immissione sul mercato
+  del dispositivo***» (singolare).
+- 🔴 **Annullamento: CERCATO E NON TROVATO.** `provato:` `grep -c "annull"` sul consolidato → **0
+  occorrenze**. Sospensione e ritiro esistono, ma sono istituti costruiti per i **certificati** degli
+  organismi notificati, mai per l'atto del fabbricante.
+- 🇮🇹 **Nessuna fonte primaria italiana impone il contenuto della dichiarazione**, né i materiali né i
+  lotti: censimento **esaustivo** su D.Lgs. 137/2022 (testo vigente, Normattiva) · DM 9 giugno 2023
+  (unico decreto attuativo dell'art. 7, letto per intero) · l'intero indice del tema del Ministero ·
+  le 16 FAQ ministeriali sui su misura (agg. 06/07/2026).
+- 🔑 **E la prassi italiana dei materiali nasce da una nota del 1998, cioè da un regime ABROGATO — dove
+  però i materiali stavano sull'«attestazione dell'ODONTOIATRA al paziente», non sulla dichiarazione
+  del laboratorio**, e la rintracciabilità delle materie prime stava nel **fascicolo tecnico interno**.
+  ➡️ **Non ha mai avuto quel fondamento, nemmeno prima del MDR.**
+
+### 🔄 Una correzione a me stesso, dentro la stessa ratifica
+
+Avevo riportato che l'**Allegato XIII punto 5** «presuppone che il documento del pezzo difettoso esista
+ancora». **Il testo non lo dice**: dice che il fabbricante valuta e documenta l'esperienza dopo la
+produzione. Era **un'inferenza**, e il verificatore si è rifiutato di farla passare per lettura.
+➡️ **D293 regge lo stesso, ma su una gamba invece che due:** il punto 4 impone di **conservare**, e
+dell'annullamento non c'è traccia.
+
+### 🔴 IL PUNTO DI ATTRITO CHE RESTA APERTO, e cade sopra D290
+
+**Art. 2(30)** rende **fabbricante** chi «*rimette a nuovo*» un dispositivo; **Art. 2(31)** definisce la
+rimessa a nuovo come «*la ricostruzione completa di un dispositivo **già immesso sul mercato**…
+unitamente al conferimento di una nuova vita*». ➡️ **Dove finisce la rilavorazione e dove comincia la
+ricostruzione completa, il testo non lo traccia** — e il bivio di D290 («si sistema questo, o se ne fa
+uno nuovo?») **è esattamente quella soglia**. ⚠️ **Non è una scelta organizzativa: è il punto in cui
+cambia il soggetto giuridico**, e l'interfaccia deve farlo capire senza dirlo in giuridichese.
+
+---
+
+### Centoventiduesima tornata — D295: il documento si ripulisce E si completa, nella stessa ondata (07/08/2026, 10:11)
+
+> 🛑 **SECONDA VIOLAZIONE DI D155 IN UNA MATTINA, E LA CAUSA È PRECISA — la scrivo perché la regola,
+> così com'è formulata, non basta a impedirla.** L'intestazione diceva `10:02`. `provato:` `date` →
+> **`07/08/2026, 10:11`**. Ho eseguito `date` **nello stesso comando** in cui scrivevo il testo: quindi
+> l'orario l'ho **composto prima di poter leggere l'output**, cioè a memoria — che è esattamente il
+> divieto. ➡️ **La regola operativa che mancava: `date` si esegue in un comando SEPARATO, e il testo si
+> compone DOPO averne letto il risultato.** Un `date` che gira accanto al testo che deve datare non
+> data niente: decora.
+
+**Nasce da:** il censimento campo per campo ordinato da D294, che cercava **che cosa togliere** e ha
+trovato **che cosa manca**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D295** | 🔑 **SI TAGLIA E SI RIPARA INSIEME.** Francesco: «*confermo, ripulisci per bene il documento e collega tutto quello che manca*» · «*teniamola*» (partita IVA) · «*riparala in questa ondata*» (la voce 6) | ① **Escono** i quindici campi di classe C · ② la **partita IVA RESTA**, benché nessun obbligo la imponga · ③ 🔴 **la voce 6 dell'Allegato XIII si ripara ORA**, dentro quest'ondata, non in una voce di roadmap |
+
+**🔴 Che cosa mancava, e per quanto tempo.** `provato:` `generate-ddc.ts:166` →
+`prescrizione_caratteristiche: null as string | null`, **cablato**. La voce 6 — «*le caratteristiche
+specifiche del prodotto **indicate nella prescrizione***» — **è obbligatoria e non è mai comparsa su
+nessuna dichiarazione emessa**. Quel file è **l'unico** inseritore della tabella.
+🔑 **Ma il dato ESISTE già:** le ondate precedenti hanno costruito `lavori_prescrizioni` col suo
+contenuto. **Non è un dato da raccogliere: è un dato da collegare** — ed è la ragione per cui Francesco
+ha scelto di ripararlo subito invece di rimandarlo.
+
+**🛑 E perché nessuno se n'era accorto: il cancello controlla un elenco INVENTATO.** `provato:`
+`src/lib/consegna/precheck.ts:5-18` dichiara «*gli 8 elementi obbligatori Allegato XIII*» e poi ne
+elenca **tre che non esistono** (data emissione · classe di rischio · data consegna prevista) omettendo
+**tre voci vere** (mandatario · caratteristiche prescritte · sostanze e tessuti). La stessa numerazione
+inventata è in `src/types/domain.ts:762`, **e da lì arriva all'operatore**.
+➡️ **Quarta volta oggi che un elenco scritto a mano sembra completo e non lo è** — e stavolta l'elenco
+sbagliato era proprio nel controllo che doveva proteggere un documento dovuto per legge.
+
+**📌 Sui tagli, le due ragioni meno ovvie, perché non si rileggano come arbitrarie:**
+- **Codice ITCA** (stampato **due volte**): la voce 1 nomina **due cose**, nome e indirizzo. Un codice
+  di registrazione non è nessuna delle due, e l'obbligo italiano colpisce **l'iscriversi**.
+- **Firma, nome e qualifica del responsabile**: l'Art. 15(3)(b) nomina la *dichiarazione di conformità
+  **UE***, che per i su misura **non esiste** (Art. 10(6)). Le otto voci non parlano né di firma né di
+  persona responsabile. 📌 Il progetto lo sapeva già: `ROADMAP-UFFICIALE.md:1138`.
+
+**🟡 La partita IVA resta per scelta, e la scelta è dichiarata.** Il censimento non ha trovato **nessun
+obbligo** che la imponga: la teneva su un argomento di identificazione. Francesco: «*teniamola*».
+➡️ **Non è un campo dovuto: è un campo voluto.** La differenza va scritta, perché il prossimo che
+rilegge l'elenco non la deduca da una norma che non c'è.
+
+**⚖️ Adattamento del gate estetico L2, DICHIARATO e non saltato.** D245 dice che i testi visibili sono
+**aspetto**, quindi il gate sarebbe dovuto. Ma la superficie qui è un **PDF**: non ha i tre viewport né
+i due temi su cui la checklist è costruita. ➡️ **Si fa la prova a schermo — il documento generato,
+PRIMA e DOPO, guardato** — e **non** il micro-audit a dodici sezioni per sei combinazioni, che su un
+foglio A4 non ha oggetto. 🛑 La regola non è saltata: è **adattata con motivo scritto**, che è
+esattamente ciò che D245 chiede quando dice «risolto **o deferito con motivo**».
+
+---
+
+### Centoventitreesima tornata — D296: il push non si chiede più (07/08/2026, 13:27)
+
+**Nasce da:** una chiusura in cui, per l'ennesima volta, il lavoro è rimasto **solo sul computer di
+Francesco** — e da lui, che ha guardato il rapporto rischio/attrito e l'ha sciolto.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D296** | 🔑 **PUBBLICARE NON SI CHIEDE PIÙ.** Francesco: «*quando ritieni di pushare, fallo, ti autorizzo, tanto possiamo sempre tornare indietro e poi non siamo in distribuzione, la pwa verrà utilizzata dai clienti solo quando lo dirò io, quindi siamo tranquilli*» | `git push` si esegue **da soli**, senza chiedere il permesso ogni volta |
+
+**📌 Le due ragioni che Francesco ha dato, e vanno tenute insieme perché la seconda regge la prima:**
+**«si può sempre tornare indietro»** (un salvataggio pubblicato non è irreversibile) e **«non siamo in
+distribuzione: la PWA la useranno i clienti solo quando lo dirò io»**. ➡️ **Il perimetro di questa
+decisione è esattamente il secondo pezzo**, ed è la stessa struttura di D103 e D284: *il rischio è basso
+perché nessuno è ancora dentro*. 🛑 **Il giorno in cui il primo laboratorio reale entra, questa riga va
+riletta insieme alla §8 di `ua-app/CLAUDE.md` che la regge** — come già scritto per D284.
+
+**🔑 CIÒ CHE D296 TOGLIE È IL PERMESSO, NON IL GIUDIZIO — e la distinzione è tutta la decisione.**
+«Quando **ritieni** di pushare» affida una **valutazione**, non un automatismo. Restano quindi in piedi,
+e non sono attriti burocratici ma il contenuto stesso di quel «ritieni»:
+- **Un ramo si pubblica volentieri**: è una copia di sicurezza fuori dal computer, e non tocca nulla.
+  ⚠️ È l'unica rete contro il caso «il Mac non si accende domani»: fino a oggi **63 salvataggi di lavoro
+  vivevano in un posto solo**.
+- 🛑 **`main` è un'altra cosa: `git push origin main` fa PARTIRE VERCEL**, cioè pubblica. Un'ondata **a
+  metà**, con difetti dichiarati nella §0 del proprio handoff, **non si manda lì** — non perché serva un
+  permesso, ma perché pubblicare un lavoro incompleto è una scelta tecnica sbagliata a prescindere da
+  chi la autorizza.
+- **Il verde va misurato prima, non dopo**: `verify:full` con l'uscita letta **da variabile**.
+
+**⚖️ Applicazione immediata, dichiarata:** il ramo `intervento-post-consegna` **viene pubblicato oggi**;
+il **merge su `main` no**, ed è un giudizio motivato — l'ondata è a **quattro compiti su nove** più il
+lavoro sul documento, e la sua §0 elenca **sette cose non fatte**, fra cui **un testo falso che l'app
+mostra all'utente**.
+
+---
+
+### Centoventiquattresima tornata — D297 e D298: l'elenco degli effetti si chiude a otto righe su nove (07/08/2026, 13:48)
+
+> ✅ **Orario MISURATO, e stavolta nel modo giusto:** `provato:` `date` → **`07/08/2026, 13:48 CEST`**,
+> eseguito in un **comando separato** e letto **prima** di comporre questa riga. È la regola operativa
+> nata dalle due violazioni della mattina (tornate 120 e 122).
+
+**Nasce da:** la rilettura della §0 dell'handoff, che elencava **due** caselle vuote nell'elenco degli
+effetti dei nove motivi. Una era una domanda mai posta; l'altra **aveva già la sua risposta** e nessuno
+l'aveva scritta.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D297** | 🔑 **DIFETTO DEL MATERIALE: STESSA SCELTA DEL DIFETTO DI LAVORAZIONE — «si sistema questo, o se ne fa uno nuovo?»** Francesco: «*ok*» | La proposta portata come tale dalla tornata 120 diventa deciso. Due esiti dallo stesso motivo, come in D290: **rientro in produzione** (il lavoro torna a `pronto`) oppure **rifacimento** (lavoro nuovo collegato). ➡️ I due motivi «il pezzo è fisicamente compromesso» si comportano allo stesso modo, e l'interfaccia non deve inventare due percorsi per la stessa domanda |
+| **D298** | 🔑 **DIFETTO DI LAVORAZIONE → IL DOCUMENTO: LA CASELLA È CHIUSA DA D293, non da un panel nuovo.** Francesco: «*sì*» | La casella era segnata «❓ panel normativo in corso»: **quel panel è stato fatto**, ed è quello che ha prodotto D293 la mattina dopo. La regola generale copre **entrambi** i rami di D290 — ① **si sistema il pezzo** → la riconsegna dopo rilavorazione non è una prima immissione (Art. 2(28)), quindi il documento **resta valido**, salvo che la rilavorazione cambi un campo **stampato**; ② **se ne fa uno nuovo** → **documento nuovo dovuto, e il vecchio resta** (D293④) |
+
+**🔑 Perché D298 non è una decisione nuova ma va scritta lo stesso, ed è il punto della tornata.** La
+risposta esisteva **da quattro ore** quando l'handoff l'ha registrata come mancante: D293 è stata
+ratificata alle 09:44, la tabella degli effetti è della tornata precedente e **non è stata rivisitata
+dopo**. ➡️ È la stessa famiglia già pagata **tre volte** in questo progetto — *una correzione già fatta
+che non arriva alla riga di sintesi*: l'Allegato XIII punto 4 del 29/07 rimasto nel verbale e mai
+salito in `CLAUDE.md`, il quarto posto dello sfondo unico scritto e mai propagato, la voce 6 della
+dichiarazione documentata e mai collegata. 🛑 **Una tabella di sintesi non si aggiorna da sola quando
+la regola che la riempie cambia altrove**, e nessuna guardia meccanica può accorgersene: la guardia
+controlla la coerenza dei conteggi, non se una casella è rimasta indietro rispetto a una decisione.
+
+**🔄 CONSEGUENZA DICHIARATA DI D293+D294 SU UNA TERZA RIGA, e la porto qui invece di applicarla in
+silenzio.** La tabella della tornata 120 dava a **difetto del materiale → il documento** l'effetto «*si
+annulla e si rifà (spec §6)*». Quella riga **precede** D293 e D294 ed è oggi **superata da entrambe**:
+- **D294 ha tolto i materiali dal documento.** Un difetto del materiale non cambia più, di per sé,
+  nessuno degli otto contenuti stampati.
+- **D293③ riemette solo se cambia un campo stampato**, e **D293① dice che la dichiarazione non si
+  annulla mai** se il manufatto è uscito davvero.
+➡️ **Difetto del materiale segue quindi la stessa regola di D298**, non «si annulla e si rifà». La
+riga vecchia era coerente con un documento che stampava i lotti; **quel documento non esiste più**.
+
+**📌 L'ELENCO DEGLI EFFETTI, COMPLETO — otto righe su nove**
+
+| motivo | il lavoro | il documento |
+|---|---|---|
+| dato sbagliato sul documento | resta consegnato | **si riemette** e il vecchio passa a `annullata` = *superata* (D293①) |
+| **difetto di lavorazione** | si sistema **oppure** si rifà — sceglie chi registra (D290) | **D298**: si sistema → **resta valido**; si rifà → **nuovo dovuto, vecchio resta** |
+| **difetto del materiale** | **D297**: stessa scelta di D290 | **come D298** (🔄 non più «si annulla e si rifà»: v. sopra) |
+| persona sbagliata | torna a `pronto` (D291) | **resta valido** (D291) — diceva il vero |
+| modifica chiesta dal medico | **lavoro nuovo**, non un rientro | resta valido (era conforme alla sua prescrizione) |
+| prezzo o quantità sbagliati | non si tocca | non si tocca — l'app **segnala** la nota di credito e non la esegue |
+| ⏸️ **reso senza difetto** | **dipende dal perché** (D292) | idem |
+| ho sbagliato a premere consegna | **ripristina tutto** (D288) | 🛑 **si annulla DAVVERO** — v. il riquadro qui sotto |
+| altro | niente in automatico | niente — l'app registra e non indovina |
+
+> 🔑 **LA DISTINZIONE CHE REGGE L'ULTIMA RIGA, e senza la quale sembra contraddire D293.** D293 dice
+> «la dichiarazione non si annulla mai **se il manufatto è uscito davvero**». In «ho sbagliato a premere
+> consegna» **il manufatto non è mai uscito**: la premessa di D293 non si avvera, e quel documento non è
+> *superato* — afferma un fatto **mai accaduto**. ➡️ È l'unico dei nove motivi in cui `annullata`
+> significa **nullo** invece che *superato*, ed è esattamente la ragione per cui `classifica.ts:164`,
+> che oggi tiene questo motivo e «prezzo sbagliato» **nella stessa riga con la stessa frase**, va
+> **spaccato in due rami** e non riscritto.
+
+**⏸️ RESTA UNA SOLA RIGA, e non è una domanda: è un lavoro.** `reso_senza_difetto` (D292) vuole un
+**vocabolario nuovo di motivi del reso**, che vive come vincolo **in banca dati** — quindi migration,
+quindi percorso GRANDE con FASE 3 e panel di advisor. ⚠️ **E si sovrappone alla voce 9 di roadmap**
+(«era fuori in prova»): un manufatto uscito per una prova e rientrato è plausibilmente uno di quei
+motivi. Progettarli separati significa modellare lo stesso fatto due volte, in due colonne diverse.
+➡️ **Si progettano insieme, in un brainstorming dedicato.** Francesco: «*ok*».
+
+**🚦 Questo NON blocca il resto dell'ondata.** L'elenco doveva essere completo prima del cancello §0B
+sui testi, e per otto motivi su nove **lo è**. La riga del reso blocca **solo** le frasi che descrivono
+quel motivo, non le altre otto né i compiti 5-9.
+
+---
+
+### Centoventicinquesima tornata — D299: «si riconsegna» voleva dire la CARTA, non il pezzo (07/08/2026, 14:23)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 14:23 CEST`**, comando separato, letto prima
+> di comporre questa riga.
+
+**Nasce da:** una scelta che avevo fatto **in silenzio** scrivendo `src/lib/qualita/effetti.ts`, e che
+ho portato a Francesco invece di lasciarla incassata nel codice. **Due documenti ratificati dicevano
+due cose diverse**, e nessuno dei due se ne accorgeva:
+- la tabella degli effetti (tornata 120) dà a «dato sbagliato sul documento» → **il lavoro resta
+  consegnato**;
+- **D288** riporta le parole di Francesco: «*mi sono accorto che devo correggere un dato, lo corregge
+  e **posso riconsegnare***» — che si legge come un lavoro che **torna indietro**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D299** | 🔑 **DATO SBAGLIATO SUL DOCUMENTO: IL LAVORO RESTA CONSEGNATO, SI RIFÀ SOLO LA CARTA.** Francesco: «*il lavoro resta consegnato, si rifà solo la carta*» | Vince la tabella della tornata 120. ➡️ «Riconsegnare», nella frase di D288, voleva dire **riconsegnare il DOCUMENTO**, non il manufatto: il pezzo è a posto e resta dov'è, dal dentista. Nessun rientro in produzione, nessuna riapertura del lavoro |
+
+**🔑 Perché questa riga vale più di quanto sembri: fissa il PERIMETRO del Task 5.** La riemissione
+(annulla → riemetti, spec §8.1) **non tocca `lavori.stato`**, e non deve chiamare
+`riapri_lavoro_atomica`. Senza D299 quel compito avrebbe potuto legittimamente far rientrare il
+lavoro, appoggiandosi alla frase di D288 — e sarebbe stato un rientro **non voluto** su un manufatto
+che sta benissimo dov'è.
+
+**📌 E restringe l'elenco dei casi che hanno bisogno della transizione mancante (ritrovamento R9,
+ROADMAP voce 23) a TRE, non quattro:** persona sbagliata (D291) · difetto di lavorazione nel ramo
+«si sistema» (D290) · difetto del materiale nel ramo «si sistema» (D297). «Dato sbagliato sul
+documento» **esce** da quell'elenco.
+
+**🔄 Nota sulla riga di D288, che resta com'è ma va letta con questa accanto.** Non la correggo:
+riporta **parole testuali di Francesco**, e un verbale che riscrive le parole di chi decide non è più
+un verbale. ⚠️ Ma «riconsegnare» lì è ambiguo, e l'ambiguità è arrivata fino al codice — dove era
+stata sciolta **senza dirlo**. 🔑 **La lezione è quella:** una scelta fatta interpretando due
+documenti che si contraddicono **non è un dettaglio di implementazione**, è una decisione. Se non
+riceve un numero, esiste solo dentro un file `.ts` che nessuno rilegge come se fosse un verbale.
+
+---
+
+### Centoventiseiesima tornata — D300-D302: la variante B, e due parole che hanno scoperto un difetto (07/08/2026, 15:47)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 15:47 CEST`**, comando separato, letto prima
+> di comporre.
+
+**Nasce da:** il cancello §0B sul Task 6 — mockup a due varianti, e la scelta di Francesco.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D300** | 🔑 **«DEVO INTERVENIRE» PRENDE LA VARIANTE B — i nove motivi RAGGRUPPATI per famiglia.** Francesco: «*b*» | Nove righe di fila su un telefono sono un muro: l'occhio salta alla famiglia giusta e ne legge due o tre invece di nove. La variante A (elenco unico) è **scartata** e resta nel mockup a titolo di storia |
+| **D301** | 🔑 **SI DICE «IL MANUFATTO», MAI «IL PEZZO».** Francesco: «*ti riferisci al lavoro fisico con la parola il pezzo, molto meglio il manufatto*» | Vale per **ogni testo che l'utente legge**, non solo per l'etichetta della famiglia. ⚠️ E non è solo mockup: `src/lib/qualita/effetti.ts` diceva «*Il pezzo è compromesso*» e — nella stessa frase — «*Il manufatto è a posto*». **Due parole per la stessa cosa dentro un file solo** |
+| **D302** | 🔑 **SI DICE «LA DICHIARAZIONE», MAI «LA CARTA», quando è un'etichetta.** Francesco: «*così come parli di "la carta", ma immagino tu faccia riferimento alla dichiarazione*» | Nelle **etichette** vince la precisione. 📌 Il registro piano resta dove è di casa: «*si rifà solo la carta*» sono parole di Francesco in **D299** e lì restano — quella è una frase di conversazione, non un'etichetta a schermo |
+
+### 🔴 E LA SECONDA CORREZIONE HA SCOPERTO UN DIFETTO DEL RAGGRUPPAMENTO
+
+Rinominando la famiglia «La carta» in «La dichiarazione» viene fuori che **quella famiglia teneva
+insieme DUE documenti diversi**: la **dichiarazione** (il documento sanitario) e la **fattura** —
+perché dentro c'erano sia «dato sbagliato sul documento» sia «prezzo o quantità sbagliati».
+
+🛑 **Non è un dettaglio di etichetta: è la regola di casa.** `ua-app/CLAUDE.md` §9 dice che lo stato
+**clinico** e quello **fiscale** sono **dimensioni indipendenti**. Metterli sotto la stessa
+intestazione insegna il contrario proprio nel punto in cui la persona sta decidendo.
+
+➡️ **Le famiglie diventano CINQUE**, e le due da una voce sola se la meritano:
+
+| Famiglia | Motivi |
+|---|---|
+| **Il manufatto** | difetto di lavorazione · difetto del materiale · tornato indietro senza difetti |
+| **La dichiarazione** | dato sbagliato sulla dichiarazione |
+| **La persona, o la richiesta** | andato alla persona sbagliata · il medico chiede una modifica |
+| **La fattura** | prezzo o quantità sbagliati |
+| **Un errore nostro qui dentro** | ho premuto «consegna» per sbaglio · altro |
+
+🔑 **Perché «La fattura» da sola è un guadagno e non una frammentazione:** è l'unico motivo che non
+c'entra niente col lato sanitario, e con la sua intestazione diventa **saltabile a colpo d'occhio**
+da chi sta gestendo un problema clinico. Stessa cosa al contrario per «La dichiarazione», che è
+l'unico motivo che fa rifare il documento.
+⚠️ **Portata a Francesco invece di applicata in silenzio:** lui ha scelto **quattro** famiglie, e
+questa ne fa cinque — la decisione di aggiungerne una è mia, e va detta.
+
+---
+
+### Centoventisettesima tornata — D303: «manufatto» e «dispositivo» convivono, ognuno nel suo registro (07/08/2026, 16:02)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 16:02 CEST`**, comando separato.
+
+**Nasce da:** una domanda che ho portato a Francesco invece di risolverla da solo. Dopo D301
+(«manufatto», mai «pezzo») restava un **terzo** modo di chiamare la stessa cosa, e finisce **sulla
+stessa schermata**: `src/lib/qualita/classifica.ts` dice «*il **dispositivo** era stato applicato*»
+mentre `src/lib/qualita/effetti.ts` dice «*il **manufatto** è compromesso*». Nel foglio di «Devo
+intervenire» le due frasi compaiono **una sotto l'altra**.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D303** | 🔑 **LE DUE PAROLE CONVIVONO, E NON È UN COMPROMESSO: È UNA DISTINZIONE DI REGISTRO.** Francesco: «*va benissimo la distinzione tra manufatto e dispositivo, usiamoli tutti e due*» | **«Manufatto»** è la parola del banco: si usa per il lavoro fisico, per ciò che l'odontotecnico ha in mano. **«Dispositivo»** è la parola della **norma** (Art. 2(64) e seguenti): si usa dove il testo parla di legge — classificazione, incidente, reclamo, obblighi. ➡️ Su una stessa schermata possono comparire entrambe, perché stanno rispondendo a **due domande diverse** |
+
+**🔑 Perché la distinzione regge, e non è la scusa per non decidere.** È la stessa separazione dei
+due piani che D288 ha già stabilito e che il codice rispecchia in **due file distinti**:
+- **`classifica.ts` — il piano della NORMA.** Risponde a «è un incidente? un reclamo? niente?», cita
+  gli articoli, e parla la lingua del Regolamento: lì «dispositivo» **è il termine giuridico**, e
+  sostituirlo con una parola di mestiere allontanerebbe il testo dalla fonte che sta applicando.
+- **`effetti.ts` — il piano del BANCO.** Risponde a «che cosa succede adesso al lavoro e alla
+  dichiarazione», e parla come si parla in laboratorio: lì «manufatto».
+
+⚠️ **Quello che questa decisione NON autorizza:** usare le due parole **a caso**, o alternarle dentro
+la stessa frase. Il difetto chiuso oggi in `effetti.ts` — «*Il pezzo è compromesso*» e «*Il manufatto
+è a posto*» nello stesso file — resta un difetto anche col nuovo vocabolario: **dentro un registro la
+parola è UNA.** La rete meccanica (`tests/unit/qualita-effetti.test.ts`) vieta «pezzo» e «carta» nei
+testi degli effetti; **non** vieta «dispositivo» in `classifica.ts`, ed è giusto così.
+
+📌 **Regola in una riga, per chi scrive un testo nuovo:** *se la frase sta spiegando la legge, si dice
+**dispositivo**; se sta dicendo che cosa fare col lavoro, si dice **manufatto**.*
+
+---
+
+### Centoventottesima tornata — D304: il bivio dei due difetti ENTRA nell'ondata, e il terzo tocco è accettato dove il motivo non basta (07/08/2026, 17:27)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 17:27 CEST`**, comando separato.
+
+**Nasce da:** il ritrovamento **R9** (la transizione «torna a `pronto` col documento intatto» non
+esiste) e da una **contraddizione fra documenti già ratificati**, che nessuno dei due conosceva.
+Dei tre motivi che chiedono quella transizione, **uno solo** è derivabile dal motivo — `destinatario_errato`
+(D291). Gli altri due — `difetto_lavorazione` (D290) e `difetto_materiale` (D297) — portano un
+**bivio**: *si sistema questo manufatto, o se ne fa uno nuovo?* La dichiarazione segue quella scelta (D298).
+
+🛑 **E qui i documenti si contraddicono.** **D288** stabilisce che «l'effetto non si chiede a parte: si
+deriva dal motivo», e **D269** fissa il costo in **due tocchi invece di uno** — «Devo intervenire», poi
+il motivo. Ma `scelta_richiesta` è per costruzione un **terzo** tocco. Nessuno dei due documenti sapeva
+dell'altro, e la scelta è stata portata a Francesco invece di essere presa dentro un file `.ts`
+(lezione 5 del 07/08 sera: *una scelta fatta interpretando due documenti che si contraddicono è una decisione*).
+
+| # | Decisione | Testo/scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D304** | 🔑 **SI COSTRUISCONO TUTTI E TRE I MOTIVI, BIVIO COMPRESO** — e quindi il terzo tocco **è accettato** dove il motivo, da solo, non determina l'effetto | scelta esplicita fra tre perimetri (solo `destinatario_errato` · tutti e tre · fermarsi a decidere prima) | L'ondata prende dentro: ① la funzione nuova nel database (`pronto` **senza** toccare `dichiarazioni_conformita`) · ② `destinatario_errato` come azione automatica · ③ **la domanda del bivio** per i due difetti, il posto dove salvarne la risposta, e il ramo «se ne fa uno nuovo» in rapporto al rifacimento che già esiste |
+
+**🔑 Come si scioglie la contraddizione, e perché non è un'eccezione a D288 ma la sua lettura esatta.**
+D288 vieta di **chiedere ciò che il motivo già dice** — «nessuna casella *vuoi anche rientrare in
+produzione?*», perché su `errore_registrazione` la risposta è nel motivo stesso. Su
+`difetto_lavorazione` e `difetto_materiale` la risposta **non è nel motivo**: sono D290 e D297 a dirlo,
+istituendo il bivio. ➡️ **La domanda non è ridondante: è l'unica fonte di quel dato.** Il divieto di D288
+resta pieno sugli altri sette motivi, e il costo di D269 resta due tocchi **dove l'app sa già la risposta**.
+
+⚠️ **Ciò che D304 NON decide, e che resta aperto:** **dove** e **quando** si chiede il bivio — subito
+dentro il foglio «Devo intervenire», oppure dopo, quando il manufatto è stato guardato. Quella è una
+decisione a sé, e la porta la tornata successiva.
+
+---
+
+### Centoventinovesima tornata — D305 e D306: il bivio si chiede SUBITO, e «se ne fa uno nuovo» crea il rifacimento da solo (07/08/2026, 17:36)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 17:36 CEST`**, comando separato.
+
+**Nasce da:** D304, che porta il bivio dentro l'ondata e lascia aperto **dove** e **quando** si chiede.
+🛑 **La domanda è stata portata a Francesco dichiarando di NON sapere la risposta**, invece di
+dedurla dai documenti: nessuna delle quattro prove dello statuto delle fonti dice se, al momento in
+cui si registra un difetto, il manufatto sia già rientrato e qualcuno l'abbia guardato.
+
+| # | Decisione | Testo/scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D305** | ⏱️ **IL BIVIO SI CHIEDE SUBITO, dentro il foglio «Devo intervenire»** — chi registra un difetto, quasi sempre, sa già se il manufatto si sistema o se ne va fatto uno nuovo | «sì, quasi sempre: si chiede subito» | Un **terzo passaggio** nel foglio, subito dopo il motivo, per i soli `difetto_lavorazione` e `difetto_materiale`. 🟢 **Nessuno stato d'attesa** da nessuna parte: niente riga «devi ancora decidere» sulla scheda, niente lavoro sospeso a metà. L'effetto parte nello stesso gesto |
+| **D306** | 🔨 **«SE NE FA UNO NUOVO» CREA IL RIFACIMENTO DA SOLO**, senza un tasto di conferma in più | scelta esplicita fra proporre · creare · registrare soltanto | La rotta chiama `crea_rifacimento_atomico` nello stesso giro in cui salva l'evento. Il lavoro vecchio **resta consegnato** con la sua dichiarazione (D298), e il lavoro nuovo nasce col suo numero |
+
+**⚠️ La riserva, dichiarata prima della scelta e non dopo.** Il flusso del rifacimento è quello che
+Francesco stesso ha definito **«solo una bozza»** il 04/08 (D221, riga 12 della coda di ROADMAP:
+«*va studiato tutto il flusso di un rifacimento*»). Agganciarcisi in automatico significa che
+quest'ondata **eredita i limiti di quel flusso**. Francesco ha scelto sapendolo: la riserva era
+scritta nell'opzione stessa. ➡️ Resta scritta qui perché il giorno in cui la riga 12 si esegue,
+questo è uno dei suoi chiamanti.
+
+**🔴 E il ponte fra i due vocabolari NON esiste — trovato leggendo, non dedotto.**
+`provato:` `lavori_rifacimenti.motivo` porta un CHECK di **sette** valori
+(`005_v1_foundation.sql:77-83`: `colore_sbagliato · misura_errata · fusione_difettosa ·
+rottura_produzione · non_confortevole · errore_prescrizione · altro`), e **nessuno dei due motivi
+dell'evento ha un corrispondente**. Scriverci `altro` sarebbe perdere l'unica informazione che
+conta — cioè il difetto già chiuso altrove: *un elenco che scarta in silenzio*. ➡️ La spec deve
+dire quale dei due si allarga, e con quale migration.
+
+---
+
+### Centotrentesima tornata — D307: si tappano i DUE difetti che creiamo noi, gli altri QUATTRO vanno alla riga 12 (07/08/2026, 18:05)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 18:05 CEST`**, comando separato.
+
+**Nasce da:** il panel della Regola Advisor su questa proposta — tre esaminatori (database · normativa
+MDR · uso al banco). D306 era stata scelta contro una riserva **generica** («il flusso del rifacimento
+è una bozza»); il panel l'ha trasformata in **sei difetti nominati e misurati**. Francesco ha deciso
+sapendo la *forma*; questa tornata gliene dà la *dimensione*.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D307** | 🔨 **I DUE DIFETTI CHE L'ONDATA CREA SI TAPPANO QUI; I QUATTRO CHE IL RIFACIMENTO HA GIÀ vanno alla riga 12 della coda** | scelta esplicita fra tappare due · sistemare tutti e sei · rimandare l'intero ramo | Dentro: ① **l'idempotenza per evento** (un vincolo di unicità su `lavori_rifacimenti`, così il secondo tentativo è un errore riconoscibile e non un lavoro fantasma) · ② **la cassetta segue il rifacimento**, riusando la funzione che la rotta HTTP già chiama. Fuori, e **scritti per nome** nella riga 12: il ritardo alla nascita · `numero_prescrizione` non clonato · nessuna via per annullare un lavoro · la scheda che non mostra i rifacimenti |
+
+**🔑 Il criterio, e vale oltre questo caso: si tappa ciò che l'ondata CREA o AMPLIFICA, si riferisce ciò
+che trova.** L'idempotenza e la cassetta non erano un problema finché il rifacimento nasceva da un
+tasto premuto a mano su una schermata sua; lo diventano nel momento in cui **l'app lo crea da sola**
+dentro un altro flusso. Gli altri quattro sono difetti del rifacimento **già oggi**, e correggerli qui
+sarebbe R-E2 al contrario: una correzione fuori mandato che lascia il difetto vero — il flusso da
+ristudiare — intatto e più difficile da vedere.
+
+---
+
+### Centotrentunesima tornata — D308-D310: la spec è RATIFICATA, e i tre punti aperti sono chiusi (07/08/2026, 18:19)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 18:19 CEST`**, comando separato.
+
+**Nasce da:** la ratifica della spec `docs/superpowers/specs/2026-08-07-torna-a-pronto-documento-intatto-design.md`
+(«*va bene, procedi col piano*»), che portava **tre punti marcati DA RATIFICARE**. Ognuno prende il suo
+numero: un punto ratificato in blocco, senza numero, è una decisione che nessuno ritrova.
+
+| # | Decisione | Conseguenza |
+|---|---|---|
+| **D308** | 🛑 **FINCHÉ UN LAVORO HA UNA DICHIARAZIONE VIVA, I CINQUE CAMPI STAMPATI NON SI CORREGGONO DALLA PATCH** — `paziente_id`, `cliente_id`, `richiedente_nome`, `tipo_dispositivo`, `descrizione` → **422**, con il testo che dice **dove andare** | Chi vuole correggere un dato stampato passa dal motivo «dato sbagliato sulla dichiarazione», che **riemette** conservando la vecchia (Task 5). ⚠️ La regola vale per **ogni** lavoro con dichiarazione viva, non solo per quelli riaperti: restringerla lascerebbe la stessa porta aperta altrove |
+| **D309** | 🧰 **IL TRASFERIMENTO DELLA CASSETTA AL RIFACIMENTO È FAIL-SOFT anche nel percorso nuovo** | Un cassetto non spostato **non annulla** un lavoro già creato. Identico al percorso esistente (`rifacimento/route.ts:197`): due strade che creano lo stesso oggetto non possono comportarsi in modo diverso |
+| **D310** | 🔄 **RI-RATIFICATA «la dichiarazione resta valida dopo una riparazione», con la prova NUOVA** | Il discriminante del panel del 06/08 era **la lista dei lotti stampata sul foglio**, e **D294 l'ha tolta dal documento lo stesso giorno**: quella prova non esiste più. La conclusione regge — senza lotti stampati, una riparazione tipica non cambia nessuna delle voci del foglio — ma **poggia su D294, non più sul panel del 06/08** |
+
+**🔑 Perché D308 non contraddice la direttiva del 27/07** («ogni campo del lavoro si corregge, fino alla
+consegna»). Il confine di quella finestra non è stato scelto oggi: lo ha fissato il **panel normativo
+del 29/07**, e **si aggancia all'emissione della dichiarazione** — Art. 52(8) impone il documento prima
+dell'immissione sul mercato, e Art. 2(28) definisce l'immissione come la **prima messa a disposizione**,
+cioè la consegna. Con una dichiarazione viva la finestra è **chiusa per quelle cinque voci soltanto**;
+ogni altro campo resta correggibile. 🛑 **E non è un blocco cieco:** D262 dice che la PWA non dà blocchi
+ma aiuti, e il 422 **nomina il percorso giusto**, esattamente come fa già la guardia di
+`errore_registrazione` (`eventi-qualita/route.ts:233-235`).
+
+---
+
+### Centotrentaduesima tornata — D311: le migration si battezzano con l'orologio UNIVERSALE, sempre (07/08/2026, 21:27)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 21:27 CEST`**, comando separato.
+
+**Nasce da:** la revisione del Task 5, che ha misurato un fatto invisibile a occhio — **il ledger delle
+migration ha DUE orologi, e il passaggio è avvenuto dentro quest'ondata.**
+`provato:` `git log --diff-filter=A` — `20260807143623_riemissione_ddc.sql` è nata alle **14:53 CEST**
+con nome `14:36` (**locale**); `20260807171033_evento_scelta_intervento.sql` alle **19:18 CEST** con
+nome `17:10`, cioè le 19:10 di Roma (**UTC**). Il piano di stasera prescriveva `date -u`; D155
+descriveva l'ora locale.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D311** | 🕛 **I nomi delle migration si prendono con l'orologio UNIVERSALE (`date -u`), sempre** | scelta esplicita fra universale e ora di Roma | `date -u "+%Y%m%d%H%M%S"`, in un comando **separato** (D155 resta intatta su questo). Il pavimento attuale è già UTC: `20260807185858` |
+
+**🔑 Perché universale e non l'ora di Roma.** L'ora locale **torna indietro di un'ora** l'ultima domenica
+di ottobre: in quella finestra due nomi presi in momenti successivi possono **scavalcarsi**, e un nome
+più basso di quello già applicato è precisamente ciò che rompe il push. L'orologio universale non ha
+quel salto: cresce sempre.
+
+**⚠️ Che cosa succede se i due si alternano, misurato e non temuto.** Roma è avanti di due ore, quindi
+un nome locale sta **sempre sopra** un nome UTC preso nello stesso istante. Il guaio arriva quando dopo
+un nome locale se ne prende uno universale entro due ore: nasce **più basso**, e
+`npx supabase db push` **si ferma** con `LegacyDbPushMissingRemoteError`. 🛑 **E lo sblocco è peggio del
+blocco:** chi passasse `--include-all` farebbe divergere per sempre l'ordine di applicazione vivo da
+quello dei file — in un archivio dove le stesse funzioni vengono riscritte da più migration in fila,
+una ricostruzione da file può far vincere un corpo **più vecchio**. È la stessa classe di guasto che il
+Task 4 ha già pagato ribattendo una funzione dal catalogo.
+
+📌 **Nulla di già applicato è compromesso:** il ledger è monotòno
+(`…143623 < 171033 < 172520 < 174850 < 180314 < 182614 < 185858`). **Il rischio era tutto in avanti**, e
+questa decisione lo chiude.
+
+---
+
+### Centotrentatreesima tornata — D312: «persona sbagliata» prende la sua azione, e la prende dentro il Task 6 (07/08/2026, 22:00)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 22:00 CEST`**, comando separato.
+
+**Nasce da:** il censimento fatto **prima di scrivere il Task 6**, cioè dal punto di applicazione di
+R-E1 — l'esecutore (qui: chi apre il compito) cerca attivamente dove il piano sbaglia. È il **quinto**
+difetto trovato in questo piano, e il primo trovato **prima** che il codice esistesse.
+
+**Il fatto, misurato.** La spec §0 elenca **TRE** motivi che devono riportare il lavoro fra i pronti
+lasciando viva la dichiarazione: `destinatario_errato`, e i due difetti quando si sceglie «si sistema».
+Il Task 6 ne costruiva **due**. Il terzo vive in una riga **fissa** di `EFFETTI_PER_MOTIVO`
+(`src/lib/qualita/effetti.ts:124-131`) che porta `azione: null`, e `effettoDaMotivoEScelta` **non la
+raggiunge** (per quel motivo `richiedeScelta` è falso e la funzione restituisce la riga di base).
+`provato:` `grep -n "EFFETTI_PER_MOTIVO"` sul piano → **zero risultati**: nessuno dei dieci task la
+tocca.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D312** | 🔑 **`destinatario_errato` riceve `azione: 'torna_pronto'`, e la riceve NEL TASK 6** | «*sì, prendilo nel Task 6*» — scelta esplicita fra prenderlo nel T6 e lasciarlo al T7 | Il Task 6 allarga il proprio perimetro di **una riga** della tabella fissa, e porta con sé **tre asserzioni già scritte** che oggi dicono l'opposto (`qualita-effetti.test.ts:33` e `:45`, `eventi-qualita-route.test.ts:823-838`). Piano emendato: **Passo 0 del Task 6**. |
+
+**🔑 Perché non poteva restare com'era, e non è una rifinitura.** Il Task 7 smisterà su
+`effetto.azione`: con `null` non si accende nessun ramo. E il **Task 10 chiede già una prova** — «①
+`destinatario_errato` → lavoro a `pronto`, dichiarazione ancora viva, `prima_immissione_at` invariata»
+— che **sarebbe nata rossa tre compiti più in là**, con l'aria di una regressione invece che di un
+buco di perimetro.
+
+**⚠️ E porta con sé un commento SCADUTO, che è la parte più pericolosa.** La riga fissa è accompagnata
+da tre righe che spiegano perché l'azione è nulla: «*`riapri_lavoro_atomica` annulla SEMPRE la
+dichiarazione, quindi non può servire questa riga. La transizione «pronto col documento intatto» NON
+ESISTE ancora*». **Era vero fino a ieri sera; il PRONTO-4 ha costruito `riporta_a_pronto_atomica`.**
+🛑 Un commento che nega l'esistenza di una cosa già costruita è la **stessa trappola** del file di
+prove del Task 10 (Passo 0): un testo che descrive un mondo superato, lasciato accanto al codice, e che
+la prossima persona legge come se fosse vero.
+
+**📌 Perché dichiarare un'azione che il Task 6 non esegue non è uno degli «otto rami inerti» vietati
+da `effetti.ts:26-31`.** È la **stessa finestra di un compito** che il piano accetta già per i due
+difetti: il T6 dichiara, il T7 esegue. Il divieto riguarda i rami finti che sembrano agire **per
+sempre**, non la dichiarazione che il compito successivo cabla. In quella finestra la rotta continua a
+smistare solo `riapri_lavoro` (`eventi-qualita/route.ts:383-386`), quindi **niente si muove per
+sbaglio** — ed è ciò che la terza asserzione corretta afferma per iscritto.
+
+---
+
+### Centotrentaquattresima tornata — D313: la mappa di recupero e i resoconti entrano sotto git (07/08/2026, 22:53)
+
+> ✅ Orario misurato: `provato:` `date` → **`07/08/2026, 22:53 CEST`**, comando separato.
+
+**Nasce da:** una verifica di chiusura del Task 6. L'esecutore aveva scritto, di passaggio, che il suo
+resoconto «*è su disco ma non versionato*». Controllato invece di essere creduto.
+
+**Il fatto, misurato.** `provato:` `git check-ignore -v .superpowers/sdd/progress.md` → ignorato da
+**due** regole insieme: `.gitignore` (dove `.superpowers/` compariva **due volte**, righe 118 e 140) e
+un `.superpowers/sdd/.gitignore` contenente la sola riga `*`. `provato:` `git ls-files .superpowers/`
+→ **vuoto**: nessuno di quei 282 file è mai entrato in git.
+🔑 **E `progress.md` non è uno scarto di lavorazione: è LA MAPPA DI RECUPERO.** `provato:`
+`grep -rl "superpowers/sdd/progress.md" docs/roadmap/*.md memory/MEMORY.md | wc -l` → **21 documenti
+vivi** la nominano come il posto da cui riprendere. Con lei erano fuori da git i resoconti di esecutori
+e revisori — cioè i numeri misurati, le mutazioni provate, i ritrovamenti fuori mandato.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D313** | 📦 **`.superpowers/` si versiona PER INTERO** — mappa **e** resoconti | «*fai la 2*», scelta esplicita fra tre: solo la mappa (40 KB) · tutto (7,2 MB) · lasciare com'è e smettere di chiamarla «mappa» | Tolte **entrambe** le regole; `.superpowers/sdd/.gitignore` conservato ma **svuotato con la spiegazione dentro**, così una riscrittura dello strumento si vede in `git status`. **215 file** entrano nel primo salvataggio. |
+
+**🛑 Perché non era un dettaglio di configurazione.** È la **terza volta** che questo progetto scopre
+un artefatto che *sembra* durevole e non lo è: il collegamento di `/chiudi` (**D255**, fuori da git,
+non sopravvive a un cambio di computer) e lo script del link d'accesso (**D103**, che viveva in
+`scripts/tmp/`, cartella ignorata). 🔑 **Un artefatto che sembra durevole è peggio della sua assenza**,
+perché nessuno lo cerca altrove: un passaggio di consegne che dice «la mappa è lì» manda la sessione
+nuova a cercare un file che su quella macchina non esiste.
+
+**⚠️ E la riga era scritta DUE VOLTE, il che ha quasi fatto passare il ripensamento per inefficace.**
+Tolta quella in fondo, `git check-ignore` continuava a rispondere «ignorato» indicando la riga 118. Chi
+si fosse fermato al primo tentativo avrebbe concluso che la modifica non funzionava.
+🔑 **Le liste scritte due volte non divergono solo nel codice** — è la stessa famiglia della riga 22
+della coda di ROADMAP, e qui il costo sarebbe stato una decisione ratificata e non applicata.
+
+**📌 Due correzioni a me stesso, e la seconda è più utile della prima.**
+① Il primo controllo sulle credenziali ha dato **verde a torto**: lo stesso identico comando,
+rilanciato **senza `2>/dev/null`**, ha trovato tre file. 🛑 *Un controllo che nasconde i propri errori
+può tornare vuoto perché non è mai partito*, e il vuoto si legge come «pulito».
+② Ho letto l'uscita di un controllo **dietro una pipe** — cioè quella di `cut`, non del `grep`: la
+regola è scritta in `CLAUDE.md` e ci sono cascato lo stesso. Rifatto leggendola da variabile.
+✅ **Esito vero, su 103.888 righe di contenuto in salvataggio: nessuna credenziale.** Le uniche
+corrispondenze sono il segnaposto `sk_live_xyz`, che vive già in `tests/unit/dpa-registro.test.ts` — un
+file versionato e pubblicato da giorni — dentro prove che verificano che l'app **non** lo lasci uscire.
+
+---
+
+### Centotrentacinquesima tornata — D314: «dato sbagliato sulla dichiarazione» apre la correzione di OGNI campo che alimenta il documento (08/08/2026, 09:03)
+
+> ✅ Orario misurato: `provato:` `date` → **`08/08/2026, 09:03 CEST`**, comando separato.
+
+**Nasce da:** il **Critico** trovato dalla revisione del Task 8 — *la strada che il rifiuto indica
+riporta nella stessa stanza*. Verificato in tre punti sul codice, non dedotto: ① nessuna schermata
+collega `errore_dato_dichiarazione` (zero occorrenze in `DevoIntervenire.tsx`) · ② il documento rifatto
+sarebbe **identico** nei cinque campi, perché `generate-ddc.ts:251-261` li legge dalla riga del lavoro
+che il cancello impedisce di correggere · ③ non esiste una finestra: `riemetti_ddc_atomica` annulla e
+inserisce **nella stessa transazione**, per scelta dichiarata (`20260807143623:55-70`).
+➡️ **Non si corregge prima, né durante, né dopo.** L'unico percorso funzionante era
+`errore_registrazione`, che dichiara una consegna mai avvenuta: su un manufatto realmente uscito è una
+**dichiarazione falsa**, cioè ciò che D293 vieta.
+
+| # | Decisione | Testo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D314** | 🔑 **Scegliendo «dato sbagliato sulla dichiarazione» si apre la correzione di OGNI campo del lavoro che alimenta il documento — non solo i cinque stampati** | «*deve essere possibile modificare ogni parte del lavoro che interviene sui dati, ogni possibile campo, così da poter permettere di correggere e rielaborare il tutto*» · e sulla strada: «*se questo vogliamo svilupparlo seguendo la 1. mi sta bene, proponimi tu la strada migliore*» | La finestra di correzione **non è ristretta all'allowlist di D308**: prende tutto ciò che finisce nel documento, **comprese le voci che vivono su altre tabelle** (nome e cognome del cliente, codice del paziente) — cioè anche la «seconda porta laterale» che la revisione aveva riferito come Importante separato. La **forma** della strada è delegata a me, con **panel** (regola Advisor) prima della ratifica. |
+
+**🔑 Perché la richiesta di Francesco è più larga di quella che avevo formulato io, ed è giusto che lo
+sia.** Io avevo proposto di far viaggiare la correzione **dei cinque campi** insieme alla riemissione.
+Francesco ha allargato a **ogni campo che interviene sui dati**: la ragione pratica è che un documento
+sbagliato raramente lo è in un punto solo — chi ha digitato male il paziente può aver sbagliato anche
+il dentista o il tipo di manufatto, e obbligare a due percorsi diversi per due refusi dello stesso
+momento è il modo di far scegliere alla persona quello più veloce invece di quello vero.
+
+**⚠️ Che cosa questa decisione NON dice, e va deciso col panel:** se la correzione sia un **atto solo**
+con la riemissione o una **finestra** che l'evento apre e la riemissione chiude · che cosa succede se
+la persona apre la correzione e **non la completa** · se il documento vecchio resti raggiungibile (D293
+dice di sì: `annullata` = **superata**, mai «nulla») · e come si tiene ferma la regola che un lavoro
+consegnato non resti **mai** senza una dichiarazione viva, che è la ragione per cui la riemissione è
+atomica.
+
+📌 **La riga di D308 resta valida e non è contraddetta:** il cancello continua a rifiutare la modifica
+*silenziosa* dei campi stampati. D314 non lo apre — **gli dà la porta che finora nominava e non
+esisteva**.
+
+---
+
+### Centotrentaseiesima tornata — D315 · D316 · D317: l'atto unico, i sette campi, e il dentista va avvisato (08/08/2026, 10:00)
+
+> ✅ Orario misurato: `provato:` `date` → **`08/08/2026, 10:00 CEST`**, comando separato.
+
+**Nasce da:** il **panel a tre** convocato su D314 (regola Advisor) — prospettiva **normativa MDR**,
+**architettura dei dati e integrità transazionale**, **UX del banco**. I tre pareri sono arrivati
+indipendentemente e **convergono tutti sulla forma 1**, per ragioni diverse.
+
+| # | Decisione | Scelta di Francesco | Conseguenza |
+|---|---|---|---|
+| **D315** | 🔑 **FORMA 1 — ATTO UNICO.** La correzione dei dati e la riemissione del documento avvengono in **una sola transazione**, e fino all'ultimo tocco **in banca dati non cambia niente** | «*sì forma 1*» | Nessuno stato intermedio da spiegare · D308 resta **intatto** (non serve un cancello a due chiavi) · il messaggio del 422 **diventa vero per la prima volta** |
+| **D316** | 📐 **Il perimetro è di SETTE voci, non cinque** | «*prendi tutti e sette*» | Entrano anche i **denti** e le **caratteristiche della prescrizione**, che hanno strade di scrittura proprie. 🛑 Le voci del **laboratorio** (ragione sociale, indirizzo, P.IVA, luogo di fabbricazione) restano fuori **e si dichiarano a schermo**: si correggono in Impostazioni e valgono per tutte le dichiarazioni |
+| **D317** | 📨 **Il documento corretto DEVE arrivare al dentista** | «*e il dentista va avvisato*» | Entra nell'ondata, non diventa una riga di roadmap. **Base giuridica: GDPR Art. 19** (fonte sotto), non MDR |
+
+---
+
+#### 🔑 Le tre scoperte del panel, che nessuno aveva in mano prima
+
+**① IL VINCOLO CHE CREDEVAMO DI LEGGE NON LO È.** «Un lavoro consegnato non deve mai restare senza
+una dichiarazione viva» è una regola **nostra**, di integrità dei dati — e il progetto lo dice già di
+suo (`20260807143623_riemissione_ddc.sql:61-64`: la ragione dichiarata è che quello stato «*nessun
+CHECK e nessun indice possono segnalare*»). `provato:` sul consolidato IT scaricato dal Cellar di
+publications.europa.eu (`02017R0745 — IT — 01.01.2026 — 006.001`): **`annull` → 0 occorrenze**,
+`nullo` → 0; le 16 di `revoc`, 28 di `sospen` e 41 di `ritir` cadono **tutte** su organismi notificati,
+certificati, consenso informato e ritiro **del dispositivo** dal mercato. ➡️ **Il MDR non conosce
+nessun istituto con cui il fabbricante privi di effetto un documento che ha emesso.**
+🔑 **L'unica norma che discrimina fra le tre forme è l'Art. 10(12)** — «*adottano **immediatamente** le
+azioni correttive necessarie*» — e discrimina sulla **prontezza**, non sull'atomicità: premia la forma
+che **garantisce la chiusura** invece di affidarla a un secondo gesto umano. ⚠️ Il passaggio «nome
+sbagliato → non conforme → si apre l'Art. 10(12)» è una **catena inferenziale dichiarata**, non una
+lettura: il regolamento non lo dice in questi termini.
+
+**② LA PREOCCUPAZIONE SUGLI EFFETTI COLLATERALI ERA FONDATA, E HA UNA SOLUZIONE PULITA.** Correggere
+`clienti.cognome` cambierebbe l'anagrafica per **tutti** i lavori di quel cliente. Non serve:
+esistono già **due colonne-ombra sul lavoro che VINCONO** sull'anagrafica —
+`lavori.richiedente_nome` (`generate-ddc.ts:251-255`) e `lavori.paziente_nome_snapshot`
+(`generate-ddc.ts:258`). ➡️ **L'atto unico scrive SOLO su `lavori`**, mai sulle anagrafiche condivise.
+🔴 **E qui il panel ha trovato un difetto vivo:** `paziente_nome_snapshot` **non la scrive nessuno** —
+58 occorrenze fra `src/` e `supabase/`, **tutte letture** tranne `supabase/seed.sql:133`. Quindi
+**oggi l'identità del paziente sulla dichiarazione arriva interamente dall'anagrafica condivisa**, e
+correggere un'anagrafica **sposta in silenzio il nome sotto a dichiarazioni già emesse**. D315 chiude
+anche questo. ⚠️ Attenzione al `??`: uno snapshot **vuoto** vincerebbe sul nome vivo e stamperebbe
+un'identificazione paziente **assente** — è lo stesso difetto già pagato sul gemello `richiedente_nome`
+(D242), e si evita passando da `CAMPI_TESTO_NORMALIZZATI`.
+
+**③ 🔴 LA BUGIA OGGI È SILENZIOSA, E LA DICE L'APP.** `provato:`
+`src/components/features/lavori/scheda-v3/DevoIntervenire.tsx:208` →
+`stato_dispositivo: sbaglio ? 'mai_uscito_dal_lab' : statoDisp`. Scegliendo «ho premuto consegna per
+sbaglio», **il foglio afferma al posto della persona** che il manufatto non è mai uscito dal
+laboratorio. La guardia che dovrebbe rifiutarlo esiste
+(`eventi-qualita/route.ts:246`) e **non può accendersi mai da quel percorso**.
+➡️ Conseguenza: **la strada più corta per correggere un refuso è quella che dichiara il falso**, ed è
+esattamente il moto che D314 nasce per chiudere. Si chiude con **una domanda sola**, dentro il
+`DialogConferma` che esiste già: «*Il manufatto è uscito dal laboratorio?*» — **zero tocchi in più**.
+📌 Effetto collaterale misurato: con quel valore cablato, `post_consegna_correzioni` **non si
+incrementa** (`eventi-qualita/route.ts:695`).
+
+---
+
+#### 📨 D317 — la base giuridica, e non è il MDR
+
+**GDPR, Reg. (UE) 2016/679**, testo consolidato IT (`02016R0679 — IT — 04.05.2016 — 000.003`):
+- **Art. 5(1)(d)** — i dati sono «*esatti e, se necessario, aggiornati; devono essere adottate tutte le
+  misure ragionevoli per cancellare o **rettificare tempestivamente** i dati inesatti*»;
+- **Art. 16** — rettifica «*senza ingiustificato ritardo*»;
+- 🔑 **Art. 19** — «*Il titolare del trattamento **comunica a ciascuno dei destinatari** cui sono stati
+  trasmessi i dati personali le eventuali rettifiche … salvo che ciò si riveli impossibile o implichi
+  uno sforzo sproporzionato.*»
+➡️ **Il dentista ha ricevuto il documento sbagliato: riemettere e archiviare NON chiude l'obbligo.**
+⚠️ **Nessuna delle tre forme in discussione se ne occupava** — è una voce che il panel ha aggiunto, non
+una che ha valutato.
+
+---
+
+#### ⚠️ Le condizioni che il panel pone alla forma 1, e che il piano deve rispettare
+
+1. 🛑 **La validazione del laboratorio sulle chiavi che arrivano dal corpo va fatta PRIMA di generare
+   il PDF.** Il file si carica su Storage **fuori** dalla transazione: un rollback **non lo toglie**, e
+   un documento col paziente di un altro laboratorio resterebbe lì.
+2. 🛑 **`p_correzioni` deve avere la sua allowlist STRETTA** — «i campi che alimentano il documento»,
+   mai «i campi di `lavori`». Altrimenti nasce una **seconda penna** su `lavori` che non conosce
+   nessuna delle regole della PATCH (~200 righe: colore di caso, tinta, sentinelle, blocco fiscale).
+3. 🛑 **L'evento diventa monouso**: serve un indice unico parziale su `annullata_da_evento_id`, sul
+   modello di `rifacimento_evento_unique`. Senza, un doppio tocco **riemette due volte** e brucia due
+   progressivi — la porta d'ingresso si chiude **sull'evento**, mai su «esiste una dichiarazione viva»
+   (quella è la porta che §8.1 vieta espressamente alla riemissione).
+4. **Un gettone di concorrenza** su `lavori.updated_at` fra la lettura e la scrittura, sul modello già
+   in casa di `PUT /api/lavori/[id]/denti` (esito `conflitto` → 409).
+5. **Il foglio mostra VALORI, non controlli**: sette righe da leggere, si corregge una riga alla volta
+   **dentro lo stesso foglio che cambia passo** — mai un secondo overlay, per il difetto già pagato in
+   `storia-overlay.ts`.
+
+📌 **Il modello non è nuovo: è la seconda metà di un precedente già in casa.** La **nota di credito**
+non riapre la fattura — emette un documento nuovo **e nello stesso atto atomico sblocca il lavoro**
+(`20260715110000_credito_storno_nota_credito.sql:154`). D308 aveva generalizzato **metà** di quel
+modello (il congelamento) senza l'atto compensativo che porta i valori nuovi. D315 mette la seconda metà.
+
+---
+
+### Centotrentasettesima tornata — D318: un compito salva NOMINANDO i propri percorsi (08/08/2026, 10:35)
+
+> ✅ Orario misurato: `provato:` `date` → **`08/08/2026, 10:35 CEST`**, comando separato.
+
+**Nasce da un errore mio, e l'ha trovato l'esecutore del Task A** riferendolo invece di correggerlo di
+nascosto (R-E2). Mentre lui lavorava in secondo piano su `DevoIntervenire.tsx`, io ho salvato **due
+volte** con `git add -A` un lavoro completamente diverso — l'orario della copia di sicurezza del
+database. Risultato, misurato:
+
+| salvataggio | titolo | che cosa contiene DAVVERO, oltre al titolo |
+|---|---|---|
+| `128379ea` | *chore(salvataggio): la copia si sposta alle 11:00* | `DevoIntervenire.tsx` **+121** · `DevoIntervenire.test.tsx` **+122** |
+| `b5d0d4c8` | *chore(salvataggio): tre sveglie invece di un orario* | il resoconto del Task A · `eventi-qualita-route.test.ts` **+10** |
+
+🛑 **Niente è andato perso** — il codice è tutto lì, e la suite è verde. **Il danno è alla
+RINTRACCIABILITÀ, ed è quello che costa dopo:** un salvataggio intitolato «la copia del database si
+sposta alle 11:00» contiene la correzione di un difetto per cui **l'app dichiarava il falso al posto
+della persona**. Chi fra sei mesi cercasse quando è stata chiusa quella bugia, cercando nei titoli,
+**non la troverebbe**.
+
+| # | Decisione | Regola | Conseguenza |
+|---|---|---|---|
+| **D318** | 📌 **Un compito salva NOMINANDO i propri percorsi: `git add <percorsi>`, mai `git add -A`** | vale per **chi orchestra** e per **ogni esecutore**, e vale **sempre**, non «quando c'è un agente in corso»: chi salva non può sapere che cosa sta scrivendo qualcun altro | R-E1 (un compito per esecutore) è un'**istruzione di processo**; `git add -A` è uno **strumento che la annulla in silenzio**. Erano in conflitto, e nessuno l'aveva scritto |
+
+**🔑 Perché la regola è formulata «sempre» e non «quando c'è lavoro in parallelo».** Una regola che
+chiede di *ricordarsi* che c'è un agente in corso è una regola che fallisce esattamente nel momento in
+cui serve — cioè quando si sta pensando ad altro. È la stessa forma di D155 sulla data: non «controlla
+l'orologio se hai dubbi», ma «esegui `date`, sempre».
+
+**⚠️ Che cosa NON si fa, e va scritto perché è la tentazione immediata:** **non si riscrive la
+storia**. I due salvataggi sono già pubblicati, e riscriverli per farli sembrare puliti costerebbe più
+di quanto vale — oltre a cancellare la prova dell'errore. ➡️ **Si rende trovabile invece che
+invisibile:** la mappa di recupero (`.superpowers/sdd/progress.md`) e la memoria nominano **tutti e tre**
+i salvataggi in cui vive il Task A (`128379ea` · `b5d0d4c8` · `cd8e0ac0`), così chi riprende trova il
+lavoro anche se il titolo non lo dice.
+
+📌 **Il Task A ha trovato altri tre difetti del piano**, tutti corretti da lui e riferiti:
+① «*la guardia ora può accendersi*» era **impreciso** — dopo il Task A la guardia dell'API resta
+**irraggiungibile dal foglio**, ed è **voluto**: l'app indica la strada *prima* del giro al server,
+invece di far guadagnare alla persona un 422 che leggerebbe come guasto · ② la mia diagnosi su
+`post_consegna_correzioni` era **sbagliata**: non è un effetto del cablaggio, è un predicato con la sua
+ragione scritta, **non va riparato** · ③ «*esiste una guardia automatica sul lessico*» **non era vera
+per quel file**: le due prove scorrono `MOTIVI` su altri moduli, e le stringhe dentro il componente non
+erano coperte da niente. La rete l'ha aggiunta lui.
+
+
+### Centotrentottesima tornata — D319: il numero di prescrizione esce dal documento, perché la legge non lo chiede (08/08/2026, pomeriggio)
+
+**Nasce da una domanda di Francesco**, fatta mentre stavo per lanciare il compito che avrebbe spostato
+quel dato da una colonna all'altra: «*ma siamo sicuri che il numero di prescrizione deve essere indicato?
+sia nella scheda del lavoro che sulla dichiarazione?*»
+
+🛑 **La domanda ha CANCELLATO un compito già istruito, e per questo la sua riga viene prima di tutto il
+resto** (§0A-bis②: *una decisione che cancella del lavoro si scrive PER PRIMA — il lavoro cancellato, se
+non risulta, viene rifatto*).
+
+| # | Decisione | Fondamento |
+|---|---|---|
+| **D319** | 🔑 **IL NUMERO DI PRESCRIZIONE ESCE DALLA DICHIARAZIONE E DALLE VOCI CORREGGIBILI.** Francesco, davanti alle tre vie: «**toglierlo**» | ⚖️ **Non è un contenuto dovuto.** `provato:` sul testo dell'**Allegato XIII punto 1**, letto per intero: sulla prescrizione l'elenco chiede **due** cose — «*il nome della persona che ha prescritto il dispositivo… e, se del caso, il nome dell'istituzione sanitaria*» e «*le caratteristiche specifiche del prodotto indicate nella prescrizione*». **Un numero, codice o identificativo della prescrizione NON compare fra gli otto trattini.** |
+
+**I tre fatti misurati che hanno retto la scelta:**
+- **`0` su `299`** — la colonna che il documento legge (`lavori.numero_prescrizione`) è vuota su **tutti**
+  i lavori, e la tabella «giusta» (`lavori_prescrizioni`) **non ha nemmeno una riga**;
+- **mai comparso su un documento**: la riga del PDF è **condizionale** (`DdcTemplate.tsx:402`) e la
+  condizione non si è **mai** avverata;
+- **nessuno può scriverlo**: il wizard non ha la casella (`crea-lavoro.ts:360`), e la riga di
+  `lavori_prescrizioni` nasce **dentro un `IF`** che nessun chiamante attiva.
+
+🔑 **E c'è già il campo giusto per lo scopo che quel numero sembrava servire:** ritrovare la prescrizione
+di carta è il mestiere di `fonte_tipo`/`fonte_riferimento` (ondata B). Il numero sarebbe stato **un
+secondo modo di fare la stessa cosa** — la famiglia «due fonti della stessa verità» che questa giornata
+ha già incontrato tre volte.
+
+📌 **`ddc-v3` NON si spacca in `ddc-v4`, e non è una scorciatoia: è la REGOLA GIÀ SCRITTA nel registro**
+(`generate-ddc.ts:104-110`) — *il registro salta quando cambia ciò che il documento **dice***. Qui
+**nessuna dichiarazione emessa cambia di una riga**, perché quella riga non è mai stata stampata. È lo
+stesso ragionamento, con gli stessi termini, già applicato a `contiene_sostanze_o_tessuti`.
+
+🛑 **R-P6 — il nome esce da un'allowlist, quindi porta la sua destinazione:** `numero_prescrizione` esce
+da `CAMPI_CORREGGIBILI_DOCUMENTO` (TypeScript) **e** dall'allowlist della RPC (SQL, quarta migration), e
+la sua destinazione è **nessuna: non si scrive più da nessuna parte, perché non serve più a niente**.
+Le colonne **restano** in banca dati — non si cancella niente — e portano la loro riga scritta accanto,
+o fra sei mesi qualcuno le crederà vive.
+
+> 🔄 **DUE CORREZIONI A QUESTA RIGA, misurate dall'esecutore del compito che ne discende, e stanno qui
+> perché erano marcate come fatti.**
+> ① **Le colonne sono TRE, non due:** manca `dichiarazioni_conformita.prescrizione_id`, che questa
+> stessa decisione orfanizza togliendole il produttore.
+> ② 🔴 **«nessuno le scrive» è FALSO** per `lavori_prescrizioni.numero_prescrizione`: `POST /api/lavori`
+> la **valida e la scrive** (`route.ts:234-240` → `lavoro_crea_atomico`), il clone del rifacimento la
+> propaga, e `prescrizione-mapper` la legge. Vera è una cosa **più stretta**: *da D319 quel numero non
+> alimenta più la dichiarazione*. La porta d'ingresso dell'API **resta aperta**, e se debba chiudersi —
+> cioè se il numero sia un appunto interno del laboratorio o non serva affatto — è **la riga 27 della
+> coda di ROADMAP**, non deciso qui.
+> 🔑 *«Nessuno lo scrive» era il tipo di affermazione che questa giornata ha già smentito tre volte: un
+> elenco che sembra completo perché si è guardato dove ci si aspettava di trovare qualcosa.*
+
+**Che cosa cade con questa decisione, e va detto per intero:** il compito «sistemare prima la radice»
+scelto poche ore fa (spostare il lettore su `lavori_prescrizioni`) · la **quarta migration** che serviva
+a spostare quella chiave fra i depositi · la casella nel wizard · e la contraddizione fra
+`lavori/[id]/route.ts:79-83` («*riaprirla sarebbe una seconda penna*») e l'allowlist dell'atto unico.
+➡️ **Le voci correggibili scendono da otto nomi a SETTE, e le voci a schermo da sette a SEI** — tutte e
+sei dovute dall'Allegato XIII.
+
+---
+
+### Centotrentanovesima tornata — D320 · D321: il nome del paziente si corregge dove VIVE, e il numero di prescrizione esce da tutto (08/08/2026, 17:24)
+
+**Nasce da due risposte di Francesco** alla domanda di apertura di sessione sul Task D — la seconda e la
+terza delle tre che gli erano state poste.
+
+🛑 **D321 CANCELLA E RIAPRE del lavoro, quindi la sua riga viene per prima nel ragionamento** (§0A-bis②),
+anche se il numero le tocca in ordine.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D320** | 🔑 **IL NOME DEL PAZIENTE NON SI CORREGGE DAL FOGLIO DELLA DICHIARAZIONE.** Dal foglio si corregge **quale persona** è (`paziente_id`); se è il nome a essere scritto male, si corregge **in anagrafica**, e da lì si propaga | «*se ho sbagliato anagrafica di paziente, è giusto cambiare l'anagrafica, ma se il nome in anagrafica è sbagliato, non va cambiato da qua, ma va cambiato in anagrafica e poi tutto si deve aggiornare di conseguenza*» | ⚖️ **Una fotografia che vince per sempre è il contrario di «tutto si aggiorna di conseguenza».** `generate-ddc.ts:304` legge `paziente_nome_snapshot ?? paziente?.nome_cognome`: **lo snapshot VINCE**. Scriverlo dal foglio significherebbe congelare su quel lavoro un nome che l'anagrafica non governa più — e ogni correzione futura in anagrafica **non arriverebbe** su quel documento |
+| **D321** | 🔑 **IL NUMERO DI PRESCRIZIONE SI ELIMINA OVUNQUE**, non solo dal documento: colonne, porte d'ingresso dell'API, mappatori, propagazioni | «*eliminiamo ogni riferimento e ogni cosa che usa il numero di prescrizione, quello è un numero che utilizza il clinico, il medico, non noi del laboratorio*» | ⚖️ **Estende D319 dal documento a tutta la casa.** D319 aveva stabilito che il numero non è un contenuto dovuto dall'**Allegato XIII punto 1**; questa dice che allora **non è un dato del laboratorio**, e un dato che non è nostro non si chiede, non si valida e non si conserva. 🔑 Ciò che serviva davvero — ritrovare la prescrizione di carta — resta il mestiere di `fonte_tipo`/`fonte_riferimento` (ondata B) |
+
+**I fatti misurati che reggono D320, verificati oggi e non ricordati:**
+- 🔑 **La via di rettifica esiste già, ed è viva**: `PATCH /api/pazienti/[id]:99-140` porta la correzione
+  di nome e cognome, scritta apposta per l'**Art. 16 GDPR** (rilievo G4), con il commento che dichiara il
+  motivo — «*un cognome scritto male finisce in `dichiarazioni_conformita.paziente_nome`, che si conserva
+  10 anni; senza questa via non era correggibile da nessuna parte*». A schermo è `PazienteEditSheet.tsx`,
+  montata su `/pazienti/[id]` (`page.tsx:86`). ➡️ **Francesco non ha chiesto una strada nuova: ha chiesto
+  di non aprirne una seconda accanto a quella che c'è già.**
+- **`paziente_nome_snapshot` non ha oggi NESSUNO scrittore** (P5 del piano), ed è piena su **1 riga su
+  299** — la fixture del seed (P3). ➡️ Oggi l'identità del paziente sul documento **arriva già
+  interamente dall'anagrafica**: D320 non cambia un comportamento, **impedisce che cambi**.
+- 🛑 **E il primo scrittore stava per essere proprio l'atto unico**: è il ritrovamento **I2**, riferito
+  dalla revisione del Task C-quater e rimandato «da decidere nel Task D». **Questa è quella decisione.**
+
+🛑 **R-P6 — un nome esce da un'allowlist, quindi porta la sua destinazione.**
+`paziente_nome_snapshot` esce da `CAMPI_CORREGGIBILI_DOCUMENTO` (`src/lib/dichiarazione/correzioni.ts`)
+**e** dall'allowlist della RPC `correggi_e_riemetti_atomica` (SQL, quinta migration dell'ondata). **La sua
+destinazione è `pazienti.nome`/`pazienti.cognome`, via `PATCH /api/pazienti/[id]`** — che esiste, è
+provata e non va toccata. La colonna **resta** in banca dati con la sua riga scritta accanto: non si
+cancella niente, come già per le tre colonne di D319.
+
+🔑 **PERCHÉ SI CHIUDE ORA E NON DOPO IL FOGLIO, ed è la lezione già pagata due volte in quest'ondata**
+(C-bis e C-ter): la RPC **non ha ancora chiamanti a schermo**, quindi irrigidirla costa una riga. Dopo il
+Task D costerebbe **contratto più consumatore**. E *un contratto si giudica per ciò che permette, non per
+ciò che oggi gli si chiede*: se lo snapshot restasse accettato dalla rotta, la porta che D320 vieta
+resterebbe aperta **per ogni chiamante futuro**, e la sola cosa a tenerla chiusa sarebbe una schermata.
+
+➡️ **Le voci correggibili scendono da SETTE nomi a SEI; le righe a schermo restano SEI** —
+chi ha prescritto · **quale paziente** · tipo di dispositivo · descrizione · denti · caratteristiche
+prescritte. 📌 E cade la nota «*sette nomi per sei voci*»: da qui in avanti **un nome, una riga**, perché
+il nome che faceva del paziente una riga a due teste è proprio quello che esce.
+
+> 🔄 **CORREZIONE, scritta un minuto dopo la riga sopra e lasciata visibile.** Avevo scritto «*le voci a
+> schermo da sei a CINQUE*», e poi ne avevo elencate **sei**. Il conto giusto è: i **nomi** scendono
+> (7 → 6), le **righe** no (6 → 6) — perché la riga «paziente» aveva **due** nomi e ne perde uno, non se
+> ne perde una. 🔑 *È la stessa famiglia dell'errore del `:326` che ha attraversato tre documenti stamattina:
+> un numero ricopiato per simmetria invece che ricontato.* **Il conto autoritativo è l'array
+> `CAMPI_CORREGGIBILI_DOCUMENTO`, e si legge quando si scrive il codice.**
+
+**Che cosa apre D321, e va detto per intero perché è lavoro nuovo:** un compito a sé, **dopo** il Task D,
+che comincia da un **censimento** (R-P6) e non da una cancellazione. I punti già noti dalle due correzioni
+a D319 sono almeno cinque — `lavori.numero_prescrizione` · `lavori_prescrizioni.numero_prescrizione` ·
+`dichiarazioni_conformita.prescrizione_id` · la porta d'ingresso `POST /api/lavori` che lo **valida e lo
+scrive** (`route.ts:234-240` → `lavoro_crea_atomico`) · il clone del rifacimento che lo propaga · e
+`prescrizione-mapper` che lo legge — 🛑 **ma l'elenco non lo decide chi scrive questa riga**: è l'esito del
+censimento a deciderlo, ed è esattamente l'errore che D319 ha già fatto una volta («*nessuno lo scrive*»,
+falso). ➡️ **Chiude la riga 27 della coda di ROADMAP**, che chiedeva proprio se quella porta dovesse
+restare aperta: la risposta è **no**.
+
+---
+
+### Centoquarantesima tornata — D322: la correzione viene PRIMA delle quattro caselle di legge (08/08/2026, 18:46)
+
+**Nasce dal cancello del mockup** (§0B: l'anteprima precede sempre il codice React). Due varianti a
+confronto sullo stesso contenuto, chiaro e scuro, 390 px —
+`docs/design/mockups/2026-08-08-passo-correzione.html`, screenshot in `screenshots/`.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D322** | 🔑 **VARIANTE A — nel foglio «Devo intervenire», col motivo «c'è un dato sbagliato sulla dichiarazione», il passo di correzione viene PRIMA delle quattro caselle di legge** (origine · quando l'hai saputo · dov'è il manufatto · potenziale di danno) | «**variante A**» | 🔑 **È la cosa per cui la persona ha aperto il foglio.** Il piano dichiarava di **non avere una prova** per preferire un ordine all'altro (autorevisione, ultima riga): la scelta era di Francesco per costruzione, non un ripiego |
+
+📌 **Che cosa NON cambia con questa scelta**, e va detto perché la variante toccava **solo l'ordine**: le
+sei righe e i loro valori · la riga «paziente» che apre un **elenco di persone** e non un campo di testo
+(D320) · il blocco «da qui non si corregge» con le sue **due** destinazioni · il tasto finale spento **col
+perché scritto** · le caratteristiche prescritte come sotto-passo a **due** caselle (`elementi`, `colore`
+— **non** `tipo`, che il controllo d'ingresso accetterebbe ma che sul documento non arriva mai, D213).
+Erano identici in tutt'e due le varianti, e restano.
+
+🛑 **UNA MISURA FATTA PRIMA DI DISEGNARE, e senza la quale il foglio sarebbe nato rotto al primo uso
+vero.** Il foglio registra l'evento quando la persona conferma, e **alcuni motivi fanno partire
+un'azione automatica che CONSUMA quell'evento** (`riapri_lavoro_atomica` / `riporta_a_pronto_atomica`
+scrivono `annullata_da_evento_id`). Con l'indice unico del Task B, una correzione che riusasse un evento
+già consumato prenderebbe **`23505`** — è il caso che il piano segnalava nel blocco «DUE COSE CHE IL TASK
+D DEVE SAPERE».
+✅ `provato:` `src/lib/qualita/effetti.ts:112-115` — per `errore_dato_dichiarazione` l'effetto è
+**`azione: null`**, col commento che lo motiva (`:124-125`: «*la riemissione NON tocca `lavori.stato` e
+NON chiama `riapri_lavoro_atomica`*»). ➡️ **L'evento nasce pulito, e la correzione è il suo primo e unico
+consumatore.**
+🔑 *La domanda non era una formalità: se la risposta fosse stata l'opposta, nessun ordine dei passi
+avrebbe salvato niente — sarebbe servita un'altra architettura, e ce ne saremmo accorti al primo uso
+vero invece che sul mockup.*
+
+---
+
+### Centoquarantunesima tornata — D323 · D324: il gettone si muove solo se cambia qualcosa, e il «registro del lavoro» esiste già a metà (08/08/2026, 21:35)
+
+**Nasce da un CRITICO** trovato dalla revisione del Task D-ter e **confermato dall'orchestratore sul
+catalogo vivo**, e dal **panel a tre** che ne è seguito (regola advisor, 17/07/2026).
+
+#### Il difetto, in una riga
+
+L'atto unico fa **due chiamate HTTP**: ① registra l'evento, ② corregge e riemette portando un **gettone
+di concorrenza** (`atteso_updated_at`, contratto: «*i valori che hai visto sono ancora quelli*»).
+🔴 **La ① sposta quel gettone da sola**: incrementa `post_consegna_correzioni` su `lavori`, e il trigger
+`trg_lavori_updated_at` (**BEFORE UPDATE FOR EACH ROW**, corpo `NEW.updated_at = now();` — `provato:`
+sul catalogo) lo muove. Due richieste = due transazioni = due `now()`. ➡️ **Conflitto falso**, e ogni
+tentativo **brucia un progressivo e lascia un PDF orfano**.
+
+🛑 **LA COSA PIÙ GRAVE NON È IL BLOCCO: È LA VIA D'USCITA CHE LA PERSONA SCOPRE DA SOLA.** La pastiglia
+`stato_dispositivo` è raggiungibile sul percorso di correzione (la fase `dettagli` è condivisa), e
+rispondere **«mai uscito dal laboratorio»** fa saltare l'incremento (`eventi-qualita/route.ts:695`) e
+**fa funzionare tutto**. ➡️ **È esattamente la bugia che il Task A ha tolto stamattina**, su un campo che
+alimenta `classifica()` e la proposta di incidente. *Un difetto che rende impossibile la strada onesta e
+funzionante quella disonesta è peggio di un difetto che blocca tutto.*
+📌 E il falso conflitto è **intermittente**, non costante — cinque risposte su sei: *un allarme che suona
+a caso insegna che gli allarmi sono rumore, e si paga su quelli veri.*
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D323** | 🔑 **IL GETTONE DI `lavori` SI MUOVE SOLO SE CAMBIA DAVVERO QUALCOSA CHE NON SIA IL CONTATORE.** `lavori` riceve una **propria** funzione di trigger che confronta la riga vecchia con la nuova al netto di `post_consegna_correzioni` e `updated_at`, e se sono uguali **pinza** il gettone al valore vero. **Più due aggiunte:** il controllo del gettone si sposta **prima del render del PDF** dentro `…/riemetti` (che ha già la riga fresca in mano: **zero query in più**), e il foglio **raccoglie l'`updated_at` che il server già restituisce** su successo **e** su 409 | «**ok**» | ⚖️ **Panel a tre, convergente**: confini API · concorrenza · banco e normativa. **7 sonde** del secondo advisor, in transazione annullata, **compreso il valore che DEVE essere rifiutato** (un payload con `updated_at` falso **non atterra**). 🔑 E la sonda 3 ha trovato più del mandato: **anche un salvataggio che non cambia niente** brucia oggi il gettone — D323 chiude anche quello |
+
+> 🔄 **EMENDAMENTO A D323, MISURATO DALL'ESECUTORE E RIVERIFICATO SUL CATALOGO VIVO (08/08/2026, 22:29).
+> La riga qui sopra descriveva un predicato che AVREBBE ROTTO DUE PENNE.**
+>
+> Avevo scritto «al netto di `post_consegna_correzioni` **e `updated_at`**». **Sbagliato.** Il predicato
+> vero — `provato:` `pg_get_functiondef(public.lavori_set_updated_at)`, riletto dal catalogo e non dal
+> file — sottrae **solo `post_consegna_correzioni`**:
+> ```
+> IF to_jsonb(OLD) - 'post_consegna_correzioni'
+>    IS NOT DISTINCT FROM to_jsonb(NEW) - 'post_consegna_correzioni'
+> THEN NEW.updated_at = OLD.updated_at; ELSE NEW.updated_at = now(); END IF;
+> ```
+> 🔑 **La differenza è UN TOKEN e vale un aggiornamento perso TOTALE.** Sottraendo anche `updated_at`,
+> un `UPDATE` che assegna **soltanto** quel campo diventa indistinguibile da un no-op e viene **pinzato**.
+> Due penne del catalogo fanno esattamente così, ed erano state **misurate** dall'esecutore:
+> · `lavoro_prescrizione_correggi_typo` — `UPDATE lavori SET updated_at = now()` è la **sola** riga che
+> tocca `lavori`: pinzata, **il suo controllo di concorrenza diventa inerte**;
+> · `lavoro_denti_sostituisci_atomica` — una correzione che cambia **solo il codice colore** di un dente
+> lascia i tre array denormalizzati identici, e quella penna fa **DELETE + INSERT**: l'aggiornamento
+> perso sarebbe **totale**. *Il commento di quella penna lo aveva previsto per iscritto.*
+> 📌 **Censimento vero: 13 oggetti, non 8** (il panel ne elencava otto). Con la forma **spedita**: **0 si
+> rompono**. Con la forma che avevo **ratificato**: **2**.
+> 🛑 **Perché questa riga sta qui e non è un dettaglio da resoconto:** la guardia dei documenti controlla
+> la **coerenza**, non la **verità** — non può vedere uno scarto fra un verbale e una funzione in banca
+> dati. Se il testo restasse quello sbagliato, **la prima «pulizia» che nota la differenza rimetterebbe
+> `- 'updated_at'`** riaprendo l'aggiornamento perso, *con la convinzione di star sistemando un refuso.*
+> ⚖️ **Conseguenza accettata, e va detta:** il trigger e la riga `payload.updated_at = new Date()…` di
+> `PATCH /api/lavori/[id]` diventano **accoppiati** — chi rimettesse quella riga spegnerebbe la pinzatura
+> su ogni PATCH. Serve una sentinella che li tenga insieme.
+> 🔑 **E la lezione, che è quella della giornata al suo tredicesimo giro:** *il pezzo di SQL scritto in un
+> piano è **non eseguito** finché qualcuno non lo esegue.* Il blocco che avevo messo nel brief, per
+> giunta, **non riagganciava nemmeno il trigger** — applicato così sarebbe stato **un no-op verde**, e
+> ogni sonda avrebbe misurato il comportamento vecchio.
+
+**Le controindicazioni, scritte perché il panel le ha scritte e non si nascondono:**
+- **Cambia il SIGNIFICATO di `lavori.updated_at` per tutti**, da «ultimo tentativo di scrittura» a «ultimo
+  cambiamento vero». Lo usano **tre funzioni del catalogo** più tre rotte e una schermata: il panel
+  *crede* che nessuna si rompa (un gettone fermo **continua a combaciare**) ma lo dichiara **una
+  convinzione, non una prova** → **va provata funzione per funzione**.
+- **`trigger_set_updated_at` è CONDIVISA da tutte le tabelle e NON si tocca**: `lavori` ha la sua, con un
+  nome proprio e il commento che dice **perché** è separata — o una pulizia futura «unifica i duplicati»
+  e riapre tutto in silenzio.
+- **L'esenzione è un'allowlist**, la classe per cui esiste R-P6. Attenuante misurata: il predicato è
+  scritto **per sottrazione**, quindi una colonna nuova entra **da sola** dalla parte protetta
+  (fail-closed). Il criterio va scritto accanto: **solo colonne che non compaiono su nessun documento e
+  su nessuna schermata che l'operatrice conferma**.
+- **`PATCH /api/lavori/[id]:803` (`payload.updated_at = new Date().toISOString()`) diventa una riga
+  bugiarda** e va tolta **nello stesso giro**.
+- 🛑 **Chiude il CASO, non la CLASSE.** Cambiare cassetta o tracking — cose che sul documento non
+  compaiono — continuerà a far scattare il blocco. La forma definitiva (**il gettone sono le sei voci
+  stampate**, non un orologio) è **la destinazione dichiarata**, e non si fa oggi: richiederebbe di
+  riscrivere `canonico()` (`generate-ddc.ts:171`) una seconda volta in SQL, cioè **due fonti della stessa
+  verità**, la famiglia di difetto già pagata più volte.
+- **Non tocca il costo di un conflitto VERO**: il PDF si rende e il numero si prende **prima** della
+  transazione, quindi un progressivo si brucia lo stesso. Il controllo anticipato lo rende **raro**, non
+  impossibile — e chi scriverà «adesso niente più file orfani» scriverà una cosa falsa.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D324** | 🔑 **IL «REGISTRO DEL LAVORO» SI FA, E NON SI COSTRUISCE DA ZERO: LA METÀ CHE C'È SI COMPLETA.** `post_consegna_correzioni` **resta** (D323 non lo tocca) ma **non è lo strumento**: è un numero senza chi, quando e cosa. Il registro si fa su `audit_log`, e nasce **due mezze cose**: ① far arrivare **l'autore** ② la schermata, **visibile al solo `titolare`** | «*potrebbe servire per un controllo? magari il titolare dello studio può controllare cosa è stato fatto su quel lavoro e da chi? se reputi che possa servire magari facciamo in modo che solo il titolare possa aprire un registro del lavoro*» | ⚖️ **Misurato sul banco, non ipotizzato.** `audit_log` **esiste ed è già acceso**: **1.870 righe** su **11 tabelle** (fra cui `lavori` — **1.092 righe** — e `dichiarazioni_conformita`), col **prima e il dopo per intero** (`old_data`/`new_data` in JSONB). 🔴 **MA L'AUTORE È VUOTO SU 1.869 RIGHE SU 1.870**: `_audit_trigger_fn` prende `auth.uid()`, e le rotte scrivono con la **chiave di servizio**, che non ha un'identità utente. ➡️ **Oggi il registro sa dire CHE COSA è cambiato e QUANDO, non CHI** — cioè manca proprio la metà che Francesco ha chiesto |
+
+🔑 **Perché il contatore non era la strada, e va detto:** `post_consegna_correzioni` è **un numero solo**,
+senza autore né data né contenuto — e **nessuno lo legge** (`provato:` dal panel: **0 consumatori** in
+tutta l'app; le sole occorrenze non-scrittura sono tipi, una fixture e due `select` di colonne che non
+usano il valore). Contro l'audit, che porta la riga intera prima e dopo, non è un'alternativa: è
+un'ombra. **Resta** perché D323 gli toglie il danno e tenerlo non costa niente, **non** perché serva al
+registro.
+
+📌 **Va in coda come DUE voci, e la prima è la portante:** senza l'autore, la schermata sarebbe un
+registro che dice «qualcuno». ⚠️ E il registro tocca **dati personali del paziente** (`old_data`/`new_data`
+portano la riga intera): la schermata nasce con la sua valutazione GDPR, non dopo.
+
+---
+
+### Centoquarantaduesima tornata — D325 · D326 · D327 · D328: «altro» diventa il lavoro neutro, e il segno delle sostanze si sposta dal LAVORO al MATERIALE (09/08/2026, 00:48)
+
+**Come è nata:** dal censimento di chiusura dell'08/08 (§0④ dell'handoff) è riemersa una scelta
+**rimandata a un gate e mai portata a Francesco**: `contiene_sostanze_o_tessuti` cablato a `false` in
+`generate-ddc.ts:349`. Portata stanotte, ha aperto una ricerca normativa, **una decisione**, un **panel a
+tre** e **tre decisioni ancora**.
+
+🔄 **CORREZIONE A CIÒ CHE ERA STATO DETTO A FRANCESCO, prima di tutto il resto.** La riga era stata
+presentata come «cablata **e stampata** sul documento». **La seconda metà è falsa:** `DdcTemplate.tsx:508`
+tiene la riga dentro un `? :`, e con `false` **non compare niente**. Poiché il testo di legge chiede
+l'indicazione «**se del caso**», **tacere quando la sostanza non c'è è la forma giusta**.
+🔑 **Il difetto è quindi l'altro verso, ed è più sottile: non una falsa dichiarazione, ma un'omissione
+che nessuno può correggere** — se un dispositivo contenesse davvero quei materiali, **non esiste nessuna
+strada per dirlo**.
+
+**La norma, con la citazione giusta.** Allegato XIII **punto 1, ULTIMO trattino**: «*se del caso,
+l'indicazione che il dispositivo contiene o incorpora una sostanza medicinale, compreso un derivato dal
+sangue o dal plasma umani, o tessuti o cellule di origine umana o di origine animale di cui al
+regolamento (UE) n. 722/2012*».
+🔴 **`src/types/domain.ts:1223` cita «Allegato XIII §1(e)» ed è SBAGLIATO in due modi:** quel punto **non
+usa lettere, usa trattini**, e l'elemento è l'**ultimo**, non il quinto (**il quinto è il nome del
+prescrittore**). Riferito e **non corretto** (R-E2: l'albero era occupato dal Task D-bis).
+
+**Il perimetro, misurato.** Reg. (UE) **722/2012** art. 1: specie **bovini · ovini · caprini · cervi ·
+alci · visoni · gatti**; materiali **collagene · gelatina · sego**; **esclusi** i derivati del sego
+trattati con metodi rigorosi e i dispositivi che non toccano il corpo o toccano **solo cute integra**.
+**MDCG 2021-24 Rev.1 Nota 1** esclude i prodotti *fatti* dagli animali — **cera d'api**, lanolina, seta.
+🛑 **MA IL RINVIO AL 722/2012 LEGA SOLO IL RAMO ANIMALE:** «sostanza medicinale» e «origine umana»
+restano **senza perimetro**. *La ricerca aveva presentato mezza risposta come se fosse tutta* — corretto
+dall'advisor normativo.
+📌 **Allegato VIII Regola 18:** tessuti/cellule umani o animali non vitali → **classe III**, salvo
+contatto con **sola cute integra**. ➡️ **il campo non è una casella: è un innesco di classificazione.**
+
+**Il verdetto della ricerca, categoria per categoria** (`docs/roadmap/2026-08-09-sostanze-e-tessuti-ricerca.md`):
+nessuna delle **38 voci** del catalogo, nella pratica standard, incorpora quei materiali nel manufatto
+consegnato. **La decima categoria, «altro», è l'unica porta aperta** — ed è testo libero.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D325** | 🔑 **«ALTRO» DIVENTA IL LAVORO NEUTRO A COMPILAZIONE MANUALE:** tutte le opzioni che le altre lavorazioni portano predeterminate — **classe di rischio compresa** — devono poter essere scelte a mano. ⚠️ **La prima metà** (la domanda sulle sostanze **sul lavoro**, solo su «altro») è **EMENDATA da D327**: v. sotto | «*b e solo sul lavoro con altro, nel caso di altro, credo che si debba attivare una procedura per cui è come se fosse un lavoro "neutro" dove tutto deve essere compilato a mano e quindi tutte le possibili opzioni di un lavoro devono poter essere gestite, perchè altro potrebbe essere tutto o niente*» | ⚖️ **Inverte una scelta dichiarata nel codice.** `sequenza-passi.ts:73-96`: oggi il tipo libero **non è trovato** da `trovaTipo()` e il wizard **salta i passi denti e colore**, perché «*fallisce verso il CHIEDERE DI MENO quando il tipo non è riconosciuto*». 🔑 Francesco dice l'opposto per lo stesso motivo, girato: **un tipo che può essere qualunque cosa non può chiedere meno degli altri.** 📊 **E «altro» non è marginale:** `provato:` sul banco — **24 lavori su 299, terzo tipo più usato (~8%)**, e **tutti e 24 in `classe_iia`**, non la `classe_i` che il wizard cabla (`crea-lavoro.ts:153`): quella classe **non la sceglie nessuno, capita** |
+| **D326** | 🎨 **TEMA SCURO: VARIANTE (b)** — tinta invariata, **un filo `--line`**. 🔑 **E IL TEMA CHIARO NON È COPERTO DALLA (b): il contrasto fra il pannello e le righe VA AUMENTATO** | «*preferisco la seconda tipologia del tema scuro, su quello chiaro aumentiamo il contrasto tra lo sfondo della scheda e le opzioni*» | ⚖️ **Scelto su TRE immagini vere della pagina viva** (com'è · (a) · (b)), non su un mockup. 🔑 **E l'osservazione sul chiaro è una MISURA, non un gusto:** `provato:` `ds-v3.css:13` — righe `--bg-deep` **#ECE6D9** dentro pannello `--card` **#FFFEFA** = **1,23:1**, e il filo `--line` **#EBE4D6** contro lo stesso pannello dà **1,25:1**. ➡️ **in chiaro la (b) da sola non si vedrebbe**: Francesco l'ha visto guardando le immagini |
+| **D327** | 🔑 **IL SEGNO «CONTIENE SOSTANZE/TESSUTI» STA SUL MATERIALE, NON SUL LAVORO:** si spunta **una volta sola al carico in magazzino**, e da lì **lo ereditano tutti i lavori che quel materiale usano**. **EMENDA la prima metà di D325** (la domanda per-lavoro su «altro» decade). ⚠️ La seconda metà di D325 — «altro» lavoro neutro — **resta intera** | «*La loro proposta: il segno si mette una volta sola sul materiale, quando entra in magazzino, e da lì se lo portano dietro tutti i lavori che lo usano. Nessuno risponde più a niente, e il dato è più vero di prima.*» | ⚖️ **CONVERGENZA DI DUE ADVISOR SU TRE, indipendenti e da estremi opposti** — e **non era nessuna delle tre strade proposte**. **Normativo:** «*il flag appartiene al materiale, non al tipo di lavoro… una domanda per-lavoro diventa **stantia** il giorno in cui il laboratorio compra un ribasante nuovo*». **UX (riserva n. 1):** «*una domanda la cui risposta non cambia mai **addestra il riflesso del tocco automatico**, e poi scatta sull'unico caso che contava*». 🔑 Esiste già un aggancio in casa: `tracciabilita_materiali_ok` |
+| **D328** | 🔴 **SI APRE UNA VERIFICA A SÉ SULLA CLASSIFICAZIONE DEL MONCONE PERSONALIZZATO**, fuori da quest'ondata | «*ok*» (alla domanda «vuoi che apra una verifica a sé su quella classificazione?») | ⚖️ **Difetto VIVO trovato dal panel FUORI dal suo mandato.** `tipi-lavoro.ts:68` mette `abutment` in **`classe_iia`**; **MDCG 2021-24 Rev.1**, tabella della **Regola 8**, mette «*Dental implants **and abutments***» in **classe IIb**, e la **Nota 4** conferma. 🛑 **NON dichiarato risolto**, e la cautela è dell'advisor: dipende da una domanda che **l'app non fa mai** — se il moncone nasca da un **ti-base CE** (l'alias `'ti-base'` è già nel catalogo, riga 63), cioè **chi sia il fabbricante**. 📌 **Conseguenza misurabile:** `classe_rischio` alimenta `GruppoClassePsur` (`domain.ts:89-105`) e **Art. 86(1)** chiede il PSUR **almeno biennale** per la IIa, **almeno annuale** per IIb/III → **la scadenza detta all'odontotecnico è quella sbagliata**. 📊 Sul banco: **15 lavori `implantologia` in `classe_iia`** (quanti siano abutment: **non misurato**) |
+
+🔑 **PERCHÉ D327 VALE PIÙ DELLA DOMANDA CHE HA SOSTITUITO, e va scritto:** la risposta a quella domanda,
+in odontotecnica, è «no» **praticamente sempre**. Una domanda la cui risposta non cambia mai non
+raccoglie un dato: **addestra a non leggerla** — e il riflesso scatta poi sull'unico caso che contava.
+Spostata sul materiale, la risposta **si dà una volta e resta vera finché il materiale è quello**.
+
+⚠️ **RISERVE DEL PANEL NON ANCORA CHIUSE** — si integrano o si motivano, non si lasciano cadere:
+1. **L'impiantabile non è un dato**: nessun campo dice se il dispositivo lo sia, ma `DpaTemplate.tsx:162`
+   **promette già** la conservazione a **15 anni per gli impiantabili**.
+2. **Se «sì», l'indicazione va ANCHE SULL'ETICHETTA** (Allegato I, cap. III, **23.2**), non solo sulla
+   dichiarazione — **mancava dalla traccia data al panel**.
+3. **Art. 52(8) ha un'alternativa omessa:** Allegato IX capo I **oppure** Allegato XI parte A.
+4. **Un solo blocco duro è difendibile:** «sì» insieme a `classe_i`/`classe_iia`. **Mai bloccare
+   l'emissione**: il laboratorio ha diritto di consegnare.
+5. Il campo **deve entrare in `CAMPI_CORREGGIBILI_DOCUMENTO`** (`correzioni.ts:58`) o nasce una voce
+   obbligatoria **non correggibile**.
+6. **`DdcTemplate.tsx` stampa il ripiego «Sì — vedere documentazione allegata»**: promette un allegato
+   che **può non esistere**. ➡️ dettaglio **obbligatorio** con «sì», e quel ripiego **si toglie**.
+7. **Non chiedere la classe: chiedere la FAMIGLIA** e **suggerire** la classe, dicendo la ragione ad alta
+   voce (UX). *La stessa derivazione a domande avrebbe intercettato l'abutment* (normativo) — **le due
+   prospettive convergono anche qui**.
+8. **Non verificato:** se il macchinario consultivo del 722/2012 tocchi i su misura sotto la classe III
+   impiantabile (presuppone un organismo notificato che qui non c'è).
+
+🔴 **TRE DIFETTI VIVI RIFERITI DAL PANEL, tutti fuori mandato (R-E2), nessuno corretto:**
+- **`precheck.ts:141` è un VICOLO CIECO**: manda a correggere `classe_rischio` nella scheda «dati», dove
+  **il campo non esiste** e **non è in `PATCHABLE_FIELDS`**. In compenso il controllo è
+  **irraggiungibile**: `provato:` catalogo vivo — `lavori.classe_rischio` è `NOT NULL DEFAULT
+  'classe_iia'`, quindi `!lavoro.classe_rischio` non è mai vero.
+- **`api/lavori/route.ts:293`**: `body.classe_rischio ?? 'classe_i'` **senza validazione** (mentre
+  `tipo_dispositivo` è validato a `:141-142`) → un valore fuori dominio **aborta dentro la RPC dopo che
+  il progressivo è stato pescato**: 500 grezzo, lavoro perso.
+- **`api/qualita/psur/route.ts:37-49`** legge la classe di **tutti** i lavori senza filtro: **un solo**
+  lavoro portato a IIb aggiunge il gruppo `classe_iib_iii` e **dichiara dovuto un PSUR che non lo era**.
+
+📌 **Dimensionamento (advisor architettura):** la parte **classe di rischio** non ha migration (colonna
+già viva) → percorso **Medio**. La parte **sostanze** ha bisogno di una **colonna nuova** —
+`contiene_sostanze_o_tessuti` esiste **solo** su `dichiarazioni_conformita` — quindi **migration →
+dominio critico → percorso GRANDE**; e `generate-ddc.ts:106-111` dichiara che il **registro del modello
+salta a `ddc-v4`** proprio quando questo campo comincia a dire qualcosa. ⚠️ **D327 sposta il bersaglio
+della colonna dal lavoro al materiale: il dimensionamento va rifatto sul magazzino, non ereditato.**
+
+---
+
+### Centoquarantatreesima tornata — D329: per il tema chiaro vince la variante che chiude DUE difetti, non uno (09/08/2026, 09:23)
+
+**Come è nata:** D326 aveva lasciato il tema chiaro **aperto di proposito** — «più contrasto fra il
+pannello e le righe» era la direzione, non il rimedio. L'esecutore ha preparato **tre varianti su tre
+assi diversi** (il bordo · l'ombra · la tinta), ognuna fotografata sui tre viewport e **col suo rapporto
+di contrasto calcolato**, e **non ha scelto** (preferenza permanente di Francesco: mai una variante
+sola). Francesco ha scelto **guardando le immagini e leggendo i numeri**.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D329** | 🎨 **TEMA CHIARO: VARIANTE C3 — la riga più scura (#DDD6C9) E le didascalie promosse a `--ink`.** Sono **la stessa variante**, non due: è anche la ragione per cui vince | «*c3*» | ⚖️ **Scelta su tre assi misurati, non su tre sfumature.** **C1 — il bordo:** unico a toccare **una soglia di legge** (filo a **3,08:1**, minimo 3 per gli elementi premibili). **C2 — l'ombra:** gratis in scuro (lì quelle ombre valgono `none`), ma la sua metà semantica **si legge solo a 1280**. **C3 — la tinta:** separazione riga↔pannello da **1,23** a **1,43:1**. 🔑 **E LA FRASE CHE DECIDE, dichiarata dall'esecutore stesso: solo C3 chiude ANCHE il ❌3** — i quattro testi in chiaro a **4,17** contro la soglia 4,5 passano a **12,11**. Con C1 o C2 quel rilievo **resta aperto** e serve una seconda decisione. ⚠️ **Il rovescio, detto a Francesco prima della scelta:** C3 **sposta la gerarchia**, non solo il contrasto — le didascalie diventano inchiostro pieno, quindi la schermata cambia peso |
+
+🔑 **PERCHÉ QUESTA TORNATA VALE COME PRECEDENTE, e non per il colore:** la scelta è stata possibile
+perché l'esecutore ha misurato **tre assi diversi** invece di tre gradazioni dello stesso, e perché ha
+**dichiarato la conseguenza fuori dal proprio rilievo** («solo C3 chiude anche il ❌3»). *Tre varianti
+dello stesso asse non sono una scelta: sono la stessa proposta ripetuta.*
+
+🔄 **CORREZIONE DELL'ESECUTORE A SÉ STESSO, misurata — e vale come modello:** aveva scritto «in chiaro
+il filo non cambia niente» ed era **falso di 2px**. Tre superfici su cinque il bordo non ce l'avevano, e
+**un bordo trasparente occupa spazio lo stesso**: pastiglia **28 → 30**, blocco «Da qui non si corregge»
+**253,25 → 255,25**. Crescono, quindi nessun bersaglio scende sotto i 44px e nessun testo va a capo —
+**ma il numero è stato rimisurato, non dedotto**.
+
+🔴 **DIFETTO DEL MANDATO, trovato contando sulla PAGINA VIVA invece che nel file (R-P6):** il brief
+diceva «le superfici sono **cinque**, non quattro» — correggendo l'errore del giorno prima. **Erano
+SEI.** La sesta è il **tasto primario spento** (`src/components/ds/TastoPrimario.tsx:90`): in scuro
+**#100E0B su pannello #211D18 = 1,15:1 senza filo**, esattamente il difetto del ❌1 su una superficie
+rimasta com'era. **Non toccata** (fuori perimetro, R-E2 + migrazione per route) → **riga 37 della coda**.
+🔑 *Il censimento del gate era stato fatto su un file solo. Due conteggi sbagliati di fila sullo stesso
+elenco, e il terzo è venuto da una sonda sul DOM.*
+
+📌 **Il filo NON è scritto nel componente: è il token `--filo-superficie`** (`ds-v3.css:37` = `transparent`
+in chiaro, `:82` = `var(--line)` in scuro). La ragione è tecnica e decide il seguito: quelle superfici
+dipingono il bordo con uno stile **dentro il tag**, che **batte sempre** una regola del foglio di stile —
+l'unico modo di renderlo condizionale al tema è ridefinire la **variabile**. ➡️ **il chiaro si chiude
+cambiando UNA riga, non sette.**
+
+⚠️ **Misura che nessuno aveva scritto, e ridimensiona la (b):** in scuro il filo **delimita e basta** —
+riga↔pannello resta **1,15:1**, cioè **l'elevazione resta invertita** rispetto alla regola del design
+system (una superficie premibile dovrebbe *salire* dentro un `--card`). Il filo dà **1,25:1** sul
+pannello e **1,44:1** sulla riga. *La (b) rende la riga visibile, non la rende rialzata.*
+
+---
+
+### Centoquarantaquattresima tornata — D330: il fondo torna indietro, il bordo NON si usa, e il gate si chiude com'è (09/08/2026, 09:55)
+
+**Come è nata, e la ragione è una misura contraria alla decisione precedente.** Applicata la C3, la
+verifica dal vivo ha trovato che **il difetto non si era chiuso: si era spostato e triplicato.**
+
+| | prima di C3 | dopo C3 |
+|---|---|---|
+| i 4 testi del **❌3** (`--faint`) | 4,17 ❌ | **12,11** ✅ |
+| i **12** testi rimasti `--muted` | 4,66 ✅ | **4,01** ❌ |
+| il **13°**, didascalia condivisa (`Campo.tsx:28`) | 4,17 ❌ | **3,59** ❌❌ |
+
+🔑 **La diagnosi, ed è più utile del rimedio: l'ASSE ERA FINITO.** Col pannello quasi bianco, scurire la
+riga per staccarla dal pannello **avvicina anche le scritte al loro fondo — è la stessa mossa**. E i
+`--muted` partivano da **4,66**, cioè con **0,16** di margine sulla soglia 4,5: **qualunque scurimento
+abbastanza utile da vedersi li sfonda.**
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D330** | 🔑 **IL FONDO TORNA INDIETRO** (`--fondo-superficie` chiaro → `var(--bg-deep)`), **IL BORDO NON SI USA** (C1 scartata), **e il resto resta com'è**: il **❌1 in tema chiaro è DEFERITO PER DECISIONE**, non per mancanza di rimedio. ➡️ **Il gate si chiude così, e si torna allo sviluppo della PWA** | «*torniamo indietro sul fondo ma non usiamo il bordo, lasciamo per adesso così come sta e procediamo nello sviluppo della pwa*» | ⚖️ **La metà buona di C3 resta:** la promozione delle didascalie a `--ink` **non si tocca**, perché è ciò che ha chiuso il ❌3 — e **col fondo riportato indietro perde il suo effetto collaterale**. ✅ **MISURATO DOPO L'APPLICAZIONE, non previsto:** i dodici tornano a **4,66**, e i quattro **non restano a 12,11 ma salgono a 14,06** (12,11 era il valore *sul fondo scurito*: riportando il fondo, l'inchiostro guadagna). 🔑 **Il tredicesimo torna a 4,17, cioè com'era prima di tutto: preesistente, e in un componente CONDIVISO** (`Campo.tsx:28`) — non è di questa ondata. ⚠️ **Il tema scuro non si tocca, e non è un'opinione: `provato:` conteggio dei pixel, D326 → D330 = ZERO pixel diversi su 302.640** |
+
+🔴 **DOVE IL CONSIGLIO DELL'ORCHESTRATORE ERA SBAGLIATO, e la colpa è di un conteggio, non di un gusto.**
+La C3 era stata raccomandata a Francesco con la frase «*è l'unica che chiude DUE difetti invece di
+uno*». Quella frase contava **i quattro testi che il rilievo ❌3 nominava**, e li ha trattati come il
+totale. **Nessuno aveva misurato TUTTI i testi di quelle superfici** — quando l'esecutore l'ha fatto,
+il numero è saltato da 4 a **13**.
+🔑 **La lezione è del censimento, non del colore, ed è la terza volta in due giorni sullo stesso elenco:**
+*contando solo ciò che un elenco nomina si trova sempre ciò che l'elenco dice.* (Le altre due: le
+superfici erano quattro → cinque → **sei**.)
+
+✅ **ESITO MISURATO, e la domanda vera era «quanti in totale», non «quanti dell'elenco»:** su **84**
+scritte censite sulle superfici del foglio, **in chiaro ne resta UNA sotto soglia** («COLORE», 4,17,
+`Campo.tsx:28`, **preesistente e condivisa**) e **in scuro ZERO**. Le altre — 6 in chiaro e 45 in scuro
+sul totale della schermata — sono tutte **l'odontogramma**, che dipinge il proprio fondo con token
+**v2.3** (`OdontogrammaFDI.tsx:537`): è il **❌5** già agli atti, coi numeri identici a prima di D329.
+
+⚠️ **RESTA APERTO, e va portato a Francesco, non deciso qui:** la promozione delle didascalie **ha
+tolto il «sei qui» al nastro del percorso** — le tappe già fatte hanno ora lo **stesso peso** di quella
+corrente, e a distinguerle resta il solo riempimento della pastiglia. **Nasce dalla promozione, non dal
+fondo: col fondo indietro RESTA** — anzi, di un soffio è **più marcato** (14,06 invece di 12,11).
+🔑 **E il rimedio è una riga, ma RIAPRIREBBE il ❌3:** le due cose sono la stessa promozione.
+Scatti: `d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png` e `d330-nastro-tre-stadi--390-light.png`.
+➡️ **Riga 37 della coda** finché Francesco non decide.
+
+📌 **D329 È STATA APPLICATA lo stesso giorno** (`ds-v3.css:38-39` chiaro · `:97-98` scuro, token
+`--fondo-superficie` e `--didascalia-superficie`; cinque fondi e sei scritte in
+`DevoIntervenire.tsx`). `provato:` **rimisurato sulla pagina viva, non ricalcolato** — riga #DDD6C9,
+separazione **1,43:1**, i quattro testi del ❌3 a **12,11**. In scuro **non è cambiato un pixel**
+(fondo `rgb(16,14,11)`, filo `rgb(52,46,38)`, didascalie 6,07): i due token risolvono ai valori di
+prima, e le due righe del blocco scuro **esistono apposta** — senza, il tema scuro erediterebbe la
+resa del chiaro e la riga si **schiarirebbe**, perché in scuro `--muted` è chiaro.
+
+🔴 **E IL ROVESCIO ANNUNCIATO SI È MATERIALIZZATO, COL SUO NUMERO: il conto dei testi sotto soglia in
+chiaro passa da 4 a 12.** Le scritte promosse a `--ink` guadagnano (4,17 → 12,11); **quelle rimaste
+`--muted` perdono** (4,66 → **4,01**): le sei etichette delle righe, i due paragrafi di «Da qui non si
+corregge», i **due collegamenti** «Impostazioni» e «Anagrafica», le due righe di sotto del selettore di
+persone. **Riferito e NON aggiustato** (R-E2). 🔄 **CORREZIONE, e il tredicesimo non è dello stesso tipo:** contando anche il sotto-passo caratteristiche ce n'è **un altro** — la didascalia **«COLORE»** del campo di testo, `--faint`, che passa da **4,17** a **3,59**. I dodici **passavano** e ora non passano; questo **non passava già** e ora passa peggio. 🔑 **E dice dov'è il confine del rimedio:** vive in `src/components/ds/Campo.tsx:28`, cioè in un **componente condiviso**, non fra le sei scritte di `DevoIntervenire.tsx` — chi chiuderà i dodici deve decidere anche quella.
+🔑 **La lezione, e non è sul colore: su questo asse non si vince.** Con un pannello quasi bianco,
+scurire la riga la allontana dal pannello **e** avvicina il testo alla riga — è la stessa mossa. **Ogni**
+scurimento utile porta `--muted` sotto 4,5, perché parte da 4,66. ➡️ Il seguito non è cambiare variante:
+è **spostare quei dodici testi**, la stessa mossa che ha appena chiuso il ❌3.
+⚠️ **Secondo effetto, riferito con lo scatto** (`d329-rilievo-nastro-prima-sopra-dopo-sotto--390-light.png`):
+le tre tappe **spente** del nastro erano grigie e adesso sono **nero pieno**, cioè lo stesso peso della
+tappa corrente — *il nastro non dice più «sei qui» con l'intensità, solo col riempimento.*
+📌 **E le parole non coincidono con l'immagine:** la decisione dice «didascalie», ma nell'immagine scelta
+era passato a inchiostro **ogni** `--faint` su quelle superfici, **galloni `›` compresi**. È stata
+applicata **l'immagine** — si torna indietro cambiando tre righe. Referto:
+`docs/design/screenshots/2026-08-09-devo-intervenire/GATE-L2.md`, sezione «D329 — applicata».
+
+---
+
+### Centoquarantacinquesima tornata — D331 · D332 · D333 · D334: l'avviso al dentista lo decide l'odontotecnico, arriva da due strade, e il dettaglio resta nel portale (09/08/2026, 12:06)
+
+**Come è nata:** apertura del **Task E** (⚖️ **D317**), l'ultima cosa aperta dell'ondata dell'atto unico
+e **l'unica mai iniziata**. Non è un compito da eseguire: il piano stesso lo dichiara aperto — «*File:
+**da decidere** leggendo il codice esistente degli avvisi*»
+(`docs/superpowers/plans/2026-08-08-correzione-e-riemissione-atto-unico.md:461`).
+
+🔑 **Perché è un obbligo e non una cortesia:** **GDPR Art. 19** impone di comunicare la rettifica a
+ciascun destinatario, e **Art. 5(2)** chiede di **poterlo dimostrare**.
+⚠️ **Vincolo già in casa, e non negoziabile:** i messaggi WhatsApp **non portano mai il nome del
+paziente** (`ua-app/CLAUDE.md` §9).
+
+**Il quadro accertato leggendo il codice, prima di chiedere qualsiasi cosa:** alla consegna parte un
+messaggio WhatsApp che contiene **solo un link al portale**, senza dati personali
+(`src/lib/consegna/orchestrate.ts:384-394`, `whatsapp-template.ts`); dal portale il dentista vede i
+lavori aperti e consegnati e **scarica dichiarazione e buono**
+(`src/app/portale/[token]/page.tsx:155-185, 344-385`), e **ogni scaricamento lascia una traccia**
+(`src/lib/portale/audit.ts:10`, azione `download_ddc`) — che è **già metà della prova richiesta
+dall'Art. 5(2)**. 🔴 **Quello che manca è esattamente ciò che serve: nel portale NON esiste nessun
+posto per gli AVVISI.** Ci sono i documenti, non le comunicazioni.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D331** | 🔑 **L'AVVISO AL DENTISTA NON PARTE DA SOLO: LO DECIDE L'ODONTOTECNICO.** L'app lo **propone**, e l'invio è un gesto suo | «*l'avviso al dentista decidiamo noi se inviarlo o no*» | ⚖️ Tre forme messe a confronto (parte da solo · lo decidi tu · parte da solo con una finestra per fermarlo). 🛑 **Il rovescio è stato detto PRIMA della scelta, non dopo: se non lo mandi, l'obbligo di legge resta scoperto** → l'app **deve ricordarlo finché non è fatto**, e tenerne traccia. *Una scelta che l'utente può non fare ha bisogno di un promemoria che non si spegne da solo* |
+| **D332** | 🔑 **L'AVVISO ARRIVA DA DUE STRADE: vive nel PORTALE e il messaggio WhatsApp è la SPINTA che ci porta.** Non l'uno o l'altro | «*tutti e due*» | ⚖️ La legge chiede di **comunicare**, non di rendere disponibile: **un avviso che nessuno apre non è una comunicazione**. Il portale è dove l'avviso **resta** e dove si **dimostra** che c'era (Art. 5(2)); WhatsApp è ciò che lo fa **vedere**. ⚠️ **E la divisione fra i due canali non è organizzativa, è di legge:** su WhatsApp **non può esserci nulla del paziente** |
+| **D333** | 🔑 **LE PROVE CHE PARLANO COL DATABASE SMETTONO DI ESSERE FACOLTATIVE: si accendono nella pubblicazione automatica.** Francesco ha inserito il segreto `SUPABASE_DB_URL` su GitHub. 🛑 **Ma prima si riparano le QUATTRO prove rosse**, poi si accende l'interruttore | «*risolviamo questa cosa, cosa ti serve per farlo?*» → «*poi ho inserito il secret in github*» | ⚖️ **La riga 39 della coda, chiusa dalla decisione.** Oggi `tests/integration/helpers/pg-client.ts:9` fa **saltare** l'intera suite quando la credenziale manca, invece di farla fallire: **16 prove esistono, sono verdi in locale e non sorvegliano niente.** 🔑 **Stessa famiglia della guardia sugli overlay**, che *quattro compiti di fila* non hanno lanciato perché manuale — *una prova che nessuno esegue è peggio di una che non c'è: fa credere che l'area sia coperta.* 🛑 **L'ordine è portante:** accendere con **quattro rosse dentro** bloccherebbe ogni pubblicazione, e **un allarme che suona sempre insegna a ignorare gli allarmi** |
+
+| **D334** | 🔑 **IL FATTO OVUNQUE, IL DETTAGLIO SOLO NEL PORTALE — e il testo si può ritoccare prima di mandarlo.** Su WhatsApp esce **solo** che la dichiarazione di un dato lavoro è stata rifatta; **che cosa** sia stato corretto vive **nel portale**; e l'app **propone** un testo che l'odontotecnico **può cambiare** | «*il terzo, il fatto ovunque e il dettaglio solo nel portale*» | ⚖️ Tre forme a confronto (tutto in dettaglio · solo il fatto · il fatto ovunque + dettaglio nel portale, ritoccabile). 🔑 **La differenza fra la prima e la terza non è il contenuto ma CHI SCRIVE:** nella terza il testo è **modificabile prima dell'invio**. ⚠️ **E il confine fra i due canali è di LEGGE, non organizzativo:** su WhatsApp non può uscire **nulla** del paziente (`CLAUDE.md` §9), mentre il portale è dietro token **e PIN** e tiene già una traccia degli accessi |
+
+| **D335** | 🔑 **IL PROMEMORIA SI PUÒ CHIUDERE DICHIARANDO «L'HO AVVISATO DI PERSONA», e l'app registra QUANDO e CHI l'ha dichiarato** — senza obbligo di scrivere *come* | «*la seconda*» | ⚖️ Tre forme a confronto (si chiude solo mandando dall'app · si dichiara · si dichiara **scrivendo come**). 🔑 **La prima è stata scartata per la ragione che vale in tutto il progetto: un allarme che non si può spegnere diventa rumore, e si paga sugli allarmi veri** — è lo stesso difetto delle prove che nessuno lancia (D333) e del falso conflitto intermittente dell'08/08. ⚖️ **Ed è difendibile sull'Art. 5(2):** ciò che la norma chiede è **poter dimostrare** di aver comunicato, **non il canale** — una dichiarazione con autore e data **è** una registrazione. ⚠️ La terza forma (scrivere come) resta **più difendibile in un contenzioso**: scartata per costo, non perché sbagliata |
+
+📌 **Chiuse dall'esplorazione del codice, non da una domanda a Francesco:** **a chi va** l'avviso —
+`lavori` ha **un solo `cliente_id`** (`provato:` `information_schema`), quindi il destinatario è uno ·
+**come parte il messaggio** — l'app **non manda niente da sola**: `buildWhatsappUrl` prepara un link
+`wa.me` che si apre nell'applicazione di chi lo tocca (`src/lib/consegna/whatsapp-template.ts`), quindi
+**D331 è già il funzionamento naturale del canale**, non una guardia da costruire.
+📌 **Resta aperta solo la FORMA** della sezione «avvisi» nel portale, che oggi **non esiste** → cancello
+§0B (mockup a più varianti, chiaro e scuro, prima del codice).
+
+---
+
+### Centoquarantaseiesima tornata — D336 · D337 · D338: il valore vecchio non si mostra, e la risposta di Francesco è più grande della domanda (09/08/2026, 12:52)
+
+**Come è nata:** la spec del Task E
+(`docs/superpowers/specs/2026-08-09-avviso-al-dentista-design.md`) è stata scritta lasciando **quattro
+questioni aperte e dichiarate**, invece di deciderle da soli. Francesco ne ha chiuse **tre**; la quarta
+non era chiara e **gli è stata rispiegata** invece di essere data per decisa.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D336** | 🔑 **NELL'AVVISO SI DICE SOLO IL FATTO: IL VALORE VECCHIO NON SI MOSTRA MAI** — né su WhatsApp né nel portale | «*solo il fatto senza il valore vecchio*» | ⚖️ **La ragione vale come regola oltre questo caso:** il valore vecchio di un campo corretto è spesso **il dato di UN'ALTRA PERSONA** — un nome digitato per sbaglio è il nome di qualcun altro. Mostrarlo significherebbe **risolvere un problema di protezione dei dati creandone un secondo**, verso un destinatario che quel dato non deve avere. 📌 **E non serve:** al dentista basta sapere **che** il documento è superato e **dove** trovare quello nuovo; il confronto lo fa **col documento** |
+| **D337** | 🔑 **NASCE UNA SEZIONE «COMUNICAZIONI» NELLA SCHEDA DEL DENTISTA** — l'archivio di tutto ciò che è stato comunicato a quel destinatario: **quando · come · chi · se e quando l'ha aperta**. 🛑 **È un ARCHIVIO, NON un allarme** | «*magari possiamo creare una sezione nella scheda del dentista, che tenga conto delle comunicazioni dirette a lui. Poi tanto abbiamo il registro che segna quando l'ha aperto*» | ⚖️ **La domanda posta era un'altra, e la risposta l'ha migliorata.** Era: «*ti dico che il dentista non ha ancora aperto l'avviso?*». 🔑 Un «non l'ha ancora aperto» attaccato al promemoria sarebbe stato **un secondo allarme su una cosa che non dipende dall'odontotecnico** — proprio il difetto che la domanda voleva evitare. Una **sezione nella scheda** è invece **la forma che l'Art. 5(2) chiede**: *tutto ciò che è stato comunicato a quel destinatario, in un posto solo*, da guardare quando serve. ➡️ `src/app/(app)/clienti/[id]/page.tsx` |
+| **D338** | 🔑 **SI PARTE DA ZERO: nessun avviso retroattivo** per le dichiarazioni già rifatte | «*si parte da zero*» | ⚖️ Il database contiene **solo dati di prova** (`CLAUDE.md` §8), quindi non si perde nulla di reale. 🛑 **La riga esiste perché la scelta sia SCRITTA invece che CAPITATA** — e perché **alla prima onboarding di un laboratorio vero vada riletta**: da quel momento «partire da zero» vorrebbe dire lasciare scoperto un obbligo su documenti veri |
+
+| **D339** | 🔑 **LA BOZZA NON SI CONSERVA: si registra SOLO il testo davvero mandato.** Il messaggio che l'app propone, se l'odontotecnico lo cambia, **sparisce** — in banca dati resta una versione sola | «*non ci serve la bozza, interessa solo quello che abbiamo effettivamente mandato*» | ⚖️ **Domanda posta due volte:** la prima formulazione **non era chiara** («*questa non l'ho capita, spiegamela meglio*») ed è stata **rispiegata invece che data per decisa**. I due usi ipotizzati — ① mostrare in un contenzioso che l'app proponeva un testo corretto ② capire, se **tutti** lo cambiano allo stesso modo, che il testo proposto è **scritto male** — sono **comodità, non necessità**. 🔑 **Ed è anche la scelta più difendibile sulla protezione dei dati:** quel testo riguarda un lavoro e quindi, indirettamente, **un paziente**; *conservare due versioni di un dato personale invece di una vuole una ragione*, e qui la ragione non c'era |
+
+**➡️ Con D339 la spec del Task E non ha più questioni aperte:**
+`docs/superpowers/specs/2026-08-09-avviso-al-dentista-design.md`.
+
+---
+
+### Centoquarantasettesima tornata — D340 · D341: la CI si fa partire con una PR in bozza, e il Task E si esegue un compito alla volta (09/08/2026, 14:1x)
+
+**Come è nata:** la riga per accendere le prove sul database era stata aggiunta e pubblicata, e **non
+era successo niente**. `provato:` quattro volte — i filtri del workflow sono `push: [main, develop]` e
+`pull_request: [main]`, e **un ramo di lavoro non corrisponde a nessuno dei due**: `gh run list
+--branch …` **vuoto da sempre**, `gh workflow run` → **HTTP 422**. 🔑 **Il silenzio è la forma peggiore
+del guasto: la CI non falliva, semplicemente non partiva.**
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D340** | 🔑 **LA CI SI FA PARTIRE CON UNA RICHIESTA DI UNIONE IN BOZZA** verso `main` (`H4tholdir/ua-app/pull/1`) — **non** creando `develop`, **non** allargando i filtri | «*per il controllo vedi tu il modo migliore*» (delega esplicita fra le tre strade presentate) | ⚖️ **Tre strade a confronto.** La bozza **fa girare la CI senza pubblicare niente**, **non tocca la configurazione** (`pull_request: [main]` è già lì) ed è **il posto dove si guarda il verde prima di decidere il merge** — cioè risolve **anche** la decisione successiva invece di rimandarla. ✅ `provato:` esecuzione **`31312042122`**, esito **`success`**: **458/458 file · 5809/5809 prove · ZERO saltate**. 🔑 **E il rischio del segreto è caduto:** `SUPABASE_DB_URL` è nella **forma del pooler**, che ha IPv4 — verificato **guardando solo l'host**, mai il valore |
+| **D341** | 🔑 **IL PIANO DEL TASK E SI ESEGUE UN COMPITO ALLA VOLTA, con esecutore fresco e revisione fra l'uno e l'altro — e in una SESSIONE NUOVA** | «*il piano del task e va eseguito un compito alla volta con esecutore e revisione, ma facciamo tutto in una nuova sessione*» | ⚖️ È il modo che in due giorni ha trovato **un difetto reale in diciotto mandati su diciotto**, compresi quelli scritti dall'orchestratore. 📌 **E il piano stesso dichiara tre punti dove può sbagliare** — un nome di variabile **presunto**, un perimetro per ruolo che è **una proposta e non una decisione di Francesco**, e tre `CHECK` **mai eseguiti insieme** |
+
+🔴 **UN FATTO NUOVO, e vale oltre queste due decisioni: `verify:full` NON carica `.env.local`.**
+In locale le **84** prove d'integrazione **si saltano** (`5725 | 84 saltate su 458`), in CI girano tutte
+(`5809/5809`). ➡️ **Da oggi la pubblicazione automatica è PIÙ SEVERA della verifica locale: un verde
+locale non garantisce un verde in CI.** Se `verify:full` debba caricare `.env.local` quando c'è **non è
+stato deciso** — riga **39** della coda.
+
+---
+
+### Centoquarantottesima tornata — D342 · D343: chi chiude l'avviso al dentista sta IN laboratorio, e la data è quella della registrazione (09/08/2026, 17:39)
+
+**Come è nata.** Il Task 4 dell'avviso al dentista ha costruito la rotta che chiude il promemoria, e
+l'esecutore ha riferito che **il piano non dice quali ruoli possano farlo**: oggi chiunque autenticato in
+quel laboratorio può chiudere un adempimento di legge dichiarando «l'ho avvisato di persona». Ha
+applicato il perimetro della rotta modello (nessun cancello), **l'ha fissato con una prova** perché una
+decisione futura dovesse farla arrossire, e ha portato **una domanda sola** — la stessa che il piano
+dichiarava aperta al Task 7.
+
+🔑 **Panel a tre, e NON ha approvato la proposta: l'ha ribaltata.** La proposta sul tavolo era
+«escludere il tecnico, che non parla col dentista». Due advisor su tre, indipendenti e da direzioni
+opposte (**normativo** e **prodotto**), hanno portato **lo stesso argomento contro**: se il tecnico ha
+telefonato e non può registrarlo, **registra un altro**, e nella riga resta scritto un nome che non
+corrisponde al fatto — *la modifica peggiora la prova che voleva proteggere*, cioè produce
+un'**attribuzione falsa**. L'advisor di prodotto ha aggiunto il caso che decide: in un laboratorio di
+due persone il titolare **è** il tecnico, e un cancello può lasciare **zero** persone in grado di agire.
+📌 **E il panel ha spostato la domanda su un ruolo che nessuno aveva messo a fuoco:** tutti e tre hanno
+segnalato **`admin_rete`** — una persona che sta sopra più laboratori e chiuderebbe l'obbligo di un
+laboratorio in cui non lavora — notando che **la casa è già incoerente su quel ruolo** (alcune rotte lo
+escludono, `striscia.ts:270-274` gli dà gli stessi poteri del titolare).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D342** | 🔑 **CHI CHIUDE L'AVVISO STA *IN* LABORATORIO: `titolare` · `tecnico` · `front_desk`. Esclusi `admin_rete` E `admin_sistema`, entrambi PER NOME** e non per effetto collaterale | «*Solo chi sta in laboratorio*» | ⚖️ **D335** (i due modi valgono uguale) + panel a tre: il tecnico **resta dentro** perché escluderlo produce attribuzioni false (normativo + prodotto, indipendenti); `admin_rete` **esce** perché non lavora in quel laboratorio (3 advisor su 3 l'hanno segnalato); `admin_sistema` **esce per nome** perché è personale UÀ — responsabile del trattamento che agisce su istruzione documentata (GDPR **Art. 28(3)(a)**) e **non era presente alla telefonata**. 🛑 **Escluderlo per nome e non per il 403 su `laboratorio_id` nullo:** `lab-context.ts:16` dice che *lab nullo ⟹ `admin_sistema`*, **non** il converso — un cancello che si regge su un invariante mai misurato è la classe di difetto che `CLAUDE.md` §9 nomina per prima. |
+| **D343** | 🔑 **LA DATA È QUELLA DELLA REGISTRAZIONE, e non se ne aggiunge una seconda** | «*Basta il momento in cui registri*» | Nessuna norma impone due date: l'advisor normativo lo indica come **punto debole della prova** (chi telefona lunedì e registra mercoledì fa scrivere mercoledì) ma **dichiara di non aver trovato** né linea guida EDPB né provvedimento del Garante sulla **forma** della prova ex Art. 19 → **non verificato**, e senza obbligo si sceglie il gesto più corto. ➡️ **Niente migration, niente campo in più, niente tap in più.** |
+
+🔑 **Un principio che nasce qui e vale oltre l'avviso, formulato dall'advisor di sicurezza:**
+**la visibilità è un SOTTOINSIEME del permesso — nessuno vede un promemoria che non può chiudere.**
+Non è un bicondizionale: un lavoro futuro può *ridurre* ciò che un ruolo vede pur lasciandogli il
+permesso, e niente si rompe. ➡️ **Conseguenza immediata sul Task 7:** la striscia della schermata
+iniziale mostra il promemoria a `titolare`, `tecnico`, `front_desk` — **e la proposta del piano, che
+escludeva il tecnico, cade con D342.**
+
+🔴 **Due cose che il panel ha portato e che NON sono decise, entrambe da mettere in coda.**
+① **Il fondamento normativo potrebbe non essere l'Art. 19:** l'Art. 19 si aggancia alle rettifiche
+«*effettuate a norma dell'articolo 16*», cioè **su richiesta dell'interessato**; se il laboratorio
+corregge **di propria iniziativa** il fondamento è **Art. 5(1)(d)** (esattezza) **+ 5(2)**. L'esito
+pratico è identico, **l'etichetta no** — e oggi quell'etichetta è scritta nel commento della tabella.
+② **«Chi» potrebbe non bastare per l'Art. 5(2):** l'advisor normativo chiede anche che il registro sia
+**interrogabile per PAZIENTE** e non solo per promemoria, perché l'Art. 19 seconda frase impone al
+titolare di poter dire all'interessato **quali** destinatari ha informato. 🛑 **Nessuna delle due è
+stata verificata contro una fonte primaria in questa tornata:** vanno a **panel normativo**, insieme
+alla riga **35** (il moncone).
+
+---
+
+### Centoquarantanovesima tornata — D344 → D349: il cancello §0B è PASSATO, e una riga del mockup ha scoperto una firma sbagliata in PRODUZIONE (09/08/2026, 19:17)
+
+**Come è nata.** Mockup del cancello §0B: **due superfici, tre varianti ciascuna**, 390 · 768 · 1280, chiaro
+e scuro (`docs/design/mockups/2026-08-09-avviso-al-dentista.html`, sei scatti in
+`docs/design/mockups/screenshots/2026-08-09-avviso-al-dentista/`). Francesco ha scelto **una variante per
+superficie**, ha corretto una firma, e ha **ribaltato una premessa del disegno** (la scadenza del
+collegamento). 📌 Prima delle scelte, due difetti del mockup erano stati trovati **misurando**: il
+messaggio proposto era **tagliato** (225px di contenuto in 176 visibili) e una data stava a **2,54:1**.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D347** 🔴 | 🔑 **IL PORTALE DEL DENTISTA SI MIGRA INTERO AL DS v3 — ondata a sé, con TEMA SCURO e tutte le varianti per ogni viewport.** E nella stessa ondata si **rivede cosa il dentista può vedere e fare**: ogni lavoro collegato a lui, con tutte le azioni possibili sui lavori **e sulle comunicazioni col laboratorio** | «*va migrato completamente al design system v3, e deve avere il tema scuro e tutte le varianti per ogni viewport… potremmo anche rivedere più di una variante per comprendere se la pagina del dentista dia modo di visionare ogni lavoro a lui collegato con tutte le possibili azioni… ovviamente capisco che va sviluppato tutto in un ondata a sè*» | **Scritta PER PRIMA perché rimanda del lavoro** (§0A-bis regola 2). La misura che l'ha resa necessaria: quella pagina **non è né v3 né v2.3** — hex scritti a mano, DM Sans, fondo `#F8F9FA` che **contraddice l'invariante del fondo unico**, `zero` `data-ds`, **zero** `prefers-color-scheme`, **zero** breakpoint. ➡️ Il tema scuro là non esiste, e per questo il cancello §0B **non poteva** essere soddisfatto su quella superficie. **Riga nuova di roadmap**, non un pezzo di questo piano |
+| **D344** | 🔑 **Il foglio nell'app è la VARIANTE A2 — «due strade pari»:** una domanda sola, due risposte con lo **stesso peso** visivo; il messaggio si apre al passo dopo | «*il foglio nell'app a2*» | È la lettura letterale di ⚖️ **D335** (i due modi valgono uguale) e della **Legge 1** del DS v3 (una cosa alla volta). 📌 **Costo accettato e dichiarato nel mockup: due tap invece di uno** per la strada normale, più un secondo passo da disegnare |
+| **D345** 🔴 | 🛑 **NESSUN messaggio è firmato «UÀ Lab»: la firma è il NOME DEL LABORATORIO. Vale per OGNI messaggio che l'app propone**, non solo per l'avviso | «*ricorda che ogni messaggio che inviamo non deve essere firmato da UA lab, ma dal nome del laboratorio*» | 🔴 **E non era «solo il mockup», come Francesco stesso sospettava: `provato:` `grep -rn "UÀ Lab" src/` → TRE punti, e DUE sono in `src/lib/consegna/whatsapp-template.ts:18,30`, cioè in PRODUZIONE.** 🔑 **La firma diventa un dato che viene passato** (`laboratori.nome`), non una costante scritta nel codice.<br>🔄 **CORRETTA DALL'ESECUTORE DEL TASK 4-ter, e l'errore era MIO: questa riga diceva «*ogni sollecito di pagamento mandato finora si firma col nome dello strumento*», ed è FALSO.** `provato:` le due occorrenze stavano **entrambe dentro `buildWhatsappMessage`**, che è la funzione della **consegna**; **`buildWhatsappSollecito` non era firmato AFFATTO**. 🔑 **Il meccanismo dell'errore, ed è quello già pagato nei mandati:** ho letto «due occorrenze in un file usato da quattro componenti» e ho attribuito la stringa **a tutti i chiamanti**, senza guardare **in quale funzione** vivesse. ➡️ **Il danno era reale, la sua forma no** — e il difetto vero del sollecito è **diverso e peggiore da raccontare**: un messaggio con cui si chiedono **soldi** a un dentista **non diceva chi lo mandava**, e `provato:` **nessuna** delle 5.793 prove lo sorvegliava |
+| **D346** | 🔑 **La sezione nel portale è la VARIANTE B1 — «una sezione come le altre»:** gli avvisi in cima, sopra i lavori in corso, con la stessa card che il dentista già conosce | «*per la sezione avvisi B1*» | Zero elementi nuovi da imparare per il dentista. ⚠️ **Il dubbio scritto nel mockup resta e passa a D347:** una card fra tante **si può scorrere via**, e questa è l'unica che chiede di fare qualcosa — la rivalutazione avviene nell'ondata della migrazione |
+| **D348** 🔴 | 🔑 **IL COLLEGAMENTO AL PORTALE NON SCADE PIÙ A TEMPO.** Vive finché il dentista collabora col laboratorio; **si spegne quando il laboratorio dichiara nell'anagrafica del cliente che la collaborazione è finita**, e **si può riaccendere in qualsiasi momento** | «*il collegamento al portale non deve mai scadere finchè il dottore lavora e collabora con lo studio, cessa di funzionare quando il laboratorio nell'anagrafica del cliente segnala che è terminata la collaborazione e questa cosa può essere ripristinata in qualsiasi momento*» | Sostituisce la scadenza a un anno di `clienti.portale_token_scade_at` (oggi controllata a `portale/[token]/page.tsx:299-302`). ➡️ **Chiude il problema ② del mockup**: non serve più rigenerare un gettone scaduto mentre si compone un avviso, perché **non scade**. ⚠️ **Riserva di sicurezza, scritta e non nascosta:** un collegamento permanente inoltrato per sbaglio dà accesso permanente; con la scadenza il danno si chiudeva da sé. **La mitigazione esiste già** (la rotta che rigenera il gettone) e l'interruttore della collaborazione **diventa** la revoca — ma va progettato: **serve una migration, un comando in anagrafica e la logica del portale.** Lavoro a sé, riga nuova |
+| **D349** | 🔑 **I due difetti di contrasto nei componenti CONDIVISI vanno sistemati — quando e come lo decide chi esegue** | «*3. va sistemato, vedi tu come e quando*» | Sono il **tasto primario spento** (`TastoPrimario.tsx:90`, 1,15:1 in scuro) e la **didascalia dei campi** (`Campo.tsx:28`, 4,17:1 in chiaro). 🔑 **Perché la delega di tempo conta:** stanno in `src/components/ds/`, quindi **ogni** superficie v3 li erediterà — compreso il foglio nuovo di questa ondata — e toccarli è un lavoro che vale per tutta l'app, non per un foglio. Restano fuori da questa ondata, **ma non tornano a essere «deferiti senza destinazione»** |
+
+📌 **Che cosa cambia nel piano, subito:** il **Task 5** disegna la A2 · il **Task 8** disegna la B1 ·
+la **firma** esce dal codice e diventa un dato passato (D345) · il **Task 5 non deve più rigenerare**
+un gettone scaduto (D348) · e la migrazione del portale (D347) **non è un task di questo piano**.
+
+---
+
+### Centocinquantesima tornata — D350 · D351: la terza deroga sul nome del paziente, e «a voce» si chiude con UN tocco (09/08/2026, 21:14)
+
+**Come è nata.** Il Task 5 ha costruito il foglio (variante A2) e l'esecutore **non ha deciso da solo** due
+cose: ha reso il nome del paziente **un valore che gli viene passato** — scrivendo nel codice che «*questa
+sarebbe la terza deroga*» — e ha aggiunto a «a voce» un passo di conferma **che il mockup non mostrava**,
+portandolo a Francesco invece di lasciarlo passare. 🔑 **Entrambe le domande nascono da un esecutore che si
+è fermato sul confine del proprio mandato**: è R-E2 usata in avanti, non solo per i difetti.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D350** | 🔑 **TERZA DEROGA AL PAZIENTE PSEUDONIMIZZATO: nel foglio dell'avviso il nome del paziente SI VEDE**, come sulla targa della parete | «*Sì, come sulla parete*» | La regola è **§2.1** del DS v3: «*Pazienti pseudonimizzati per difetto: `PZ-0231`. Il nome del paziente non compare in UI, notifiche, WhatsApp — salvo deroga esplicita, datata e motivata di Francesco*». Le deroghe erano **due**: **D8** (targa della parete, 27/07: «*in un laboratorio piccolo il tecnico conosce comunque i pazienti*») e **D7** (ricerca per cognome nel wizard, 28/07). ➡️ **Questa è la terza, e la motivazione è la stessa della prima:** il foglio lo vede **solo chi è dentro il laboratorio**, e si apre nel momento in cui si corregge una dichiarazione **già consegnata** — cioè quando l'odontotecnico deve essere sicuro di non aver sbagliato persona. 🛑 **E la deroga NON si estende di un millimetro a WhatsApp:** il nome non può finire nel messaggio, e la difesa non è una regola scritta ma **la forma della funzione**, che non ha nessun modo di riceverlo (`buildAvvisoMessage`). **§2.1 va aggiornata con la terza voce.** |
+| **D351** | 🔑 **«L'HO AVVISATO IO, A VOCE» CHIUDE CON UN TOCCO SOLO**, senza passo di conferma | «*Un tocco solo*» | ⚖️ **Cambia ciò che il Task 5 ha costruito:** l'esecutore aveva messo un secondo passo che rileggeva ciò che sarebbe restato scritto, per tenere le due strade **pari nei tocchi** (anche WhatsApp ne costa due: scegli, poi mandi). Francesco ha scelto la via corta. 🔴 **E la conseguenza era scritta nella domanda stessa: «*servirebbe un modo per annullare*».** Con la conferma, la via di fuga della **Legge 6** («*ogni azione irreversibile ha una via di fuga visibile, entro 10s*») viveva **prima** della scrittura; con un tocco solo, **deve vivere dopo**. ⚠️ **E non è gratis:** la tabella **non ha** uno stato «annullato» (scelta del Task 1: *un promemoria cancellabile è una casella da spuntare*) e la rotta risponde **409** a un avviso già chiuso. 📌 **Il precedente in casa esiste ed è la consegna:** `FINESTRA_ANNULLO_MS = 10 minuti` (`src/lib/consegna/costanti.ts:7`). ➡️ **Come si costruisce la via di fuga lo decide chi esegue**, con il censimento dei precedenti — differire la scrittura, oppure un ritorno a `da_comunicare` dentro una finestra — **ma senza via di fuga la Legge 6 è violata**, e questo non è negoziabile |
+
+🔑 **Un fatto che vale oltre queste due:** il Task 5 ha misurato **0 testi sotto soglia su 42 schermate**
+(7 passi × 3 viewport × 2 temi), **ma la prima sonda dava 15 falsi positivi** perché leggeva solo
+`background-color` e i gradienti rispondono `transparent`. ➡️ *Una sonda sbagliata non dice «non lo so»:
+dice un numero.* E dopo la correzione **due testi erano davvero sotto soglia, ed erano suoi** (4,499 e
+4,09): li ha portati a `--ink`.
+
+---
+
+### Centocinquantunesima tornata — D352: l'archivio delle comunicazioni lo vedono tutti quelli del laboratorio (10/08/2026, 00:36)
+
+**Come è nata.** La revisione del Task 6 ha trovato un'**asimmetria** fra le due letture della stessa
+tabella: il promemoria (`avvisoPerLaScheda`) nasce con un cancello per ruolo — ⚖️ D342 — e l'archivio
+(`archivioCliente`, che servirà al Task 9 sulla scheda del dentista) **non ne ha nessuno**. L'esecutore
+**non l'ha inventato**: ha scritto che «*chi può vedere l'archivio di un dentista è una decisione di quella
+superficie e va presa col suo verbale*». 🔑 **È la stessa forma delle due domande della tornata scorsa: un
+esecutore che si ferma sul confine invece di istituire una regola di permessi per conto proprio.**
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D352** | 🔑 **L'ARCHIVIO DELLE COMUNICAZIONI DI UN DENTISTA LO VEDONO TUTTI QUELLI CHE STANNO IN LABORATORIO: `titolare` · `tecnico` · `front_desk`.** Esclusi `admin_rete` e `admin_sistema`, **per nome** | «*tutti gli elementi di un laboratorio*» | ➡️ **Coincide con ⚖️ D342, e la coincidenza NON è pigrizia: è la stessa frase applicata due volte.** D342 escludeva `admin_rete` perché «*sta sopra più laboratori e chiuderebbe l'obbligo di un laboratorio in cui non lavora*», e `admin_sistema` perché è **personale UÀ** — responsabile del trattamento che agisce su istruzione documentata (GDPR **Art. 28(3)(a)**). Nessuno dei due è «un elemento del laboratorio». 🛑 **Ma il rapporto fra i due cancelli è ROVESCIATO, e va detto:** su D342 la regola era «*la visibilità è un sottoinsieme del permesso — nessuno vede un promemoria che non può chiudere*»; qui **non c'è niente da chiudere**, l'archivio è **sola lettura**, quindi il cancello non discende dal permesso di agire ma da **chi è dentro il perimetro del titolare del trattamento**. Arrivano allo stesso elenco per due strade diverse. 🔑 **E il tecnico dentro è coerente col ribaltamento di D342:** se ha telefonato lui, deve poter **rileggere** ciò che risulta scritto sotto il proprio nome |
+
+⚠️ **Ciò che D352 NON decide, e va scritto perché non venga dato per deciso:** se l'archivio debba essere
+interrogabile **per PAZIENTE** — riserva normativa aperta dall'handoff del 09/08 (§0⑧②: l'Art. 19 seconda
+frase impone al titolare di poter dire all'interessato **quali** destinatari ha informato). Quella resta a
+panel, insieme al fondamento (Art. 19 su richiesta *contro* Art. 5(1)(d) + 5(2) di propria iniziativa).
+
+🟠 **E UNA DOMANDA DI FRANCESCO È ANDATA A PANEL, non ratificata di getto:** «*se il primo promemoria è
+ancora attivo, quando nasce il secondo non dovrebbe spegnere il primo che ormai è superato? chiedo non ne
+sono sicuro*». ✅ **PANEL FATTO nella notte (10/08), tre advisor indipendenti, UNANIMI NEL RISULTATO** —
+referto: `docs/roadmap/2026-08-10-panel-due-avvisi-referto.md`. **La proposta:** il secondo **non** spegne
+il primo (uno stato «superato» è perfino **inscrivibile**: `provato:` `23514` sul vincolo
+`avviso_comunicato_ha_autore_e_data` — un superamento è un atto che nessuno ha compiuto, non ha un autore)
+— ma la sensazione dietro la domanda era **giusta**, e si chiude dall'altra parte: **UN solo atto di
+comunicazione chiude TUTTI i promemoria aperti di quel lavoro**, e il dentista vede **l'unione** delle voci
+corrette. Un messaggio, un promemoria a schermo, due righe a registro (la prova). Zero migration.
+➡️ ✅ **RATIFICATA la mattina del 10/08/2026: è ⚖️ D354 (centocinquantatreesima tornata, in fondo).** 🔄 Qui
+c'era scritto «riservato: D353», ma D353 è andata a una decisione ratificata PRIMA che il panel rientrasse
+(v. tornata sotto) — un numero riservato a una ratifica che potrebbe non arrivare sarebbe un buco nella
+numerazione, e la guardia li conta. Ciò che il Task 6 ha costruito (fra due avvisi aperti si mostra il più
+vecchio, chiusura per riga singola) resta vero **fino al compito nuovo sulla rotta di chiusura**, che nasce
+con la ratifica.
+
+---
+
+### Centocinquantaduesima tornata — D353: la disparità dei tocchi resta, e D334 non si tocca (10/08/2026, 00:20)
+
+**Come è nata.** Era la domanda aperta ⑤ dell'handoff del 09/08 sera: ⚖️ D351 («a voce» chiude con un
+tocco) ha rotto la parità dei tocchi di ⚖️ D335 — dalla scheda, WhatsApp costa **3** tocchi, «a voce»
+**2** — e l'unico modo di riequilibrare sarebbe togliere il passo del messaggio, cioè toccare ⚖️ **D334**
+(il testo modificabile prima dell'invio). Portata a Francesco **prima del gate**, come prescritto.
+⚠️ **E il numero arriva con un giro di ritardo, dichiarato:** la risposta è delle 00:20, la riga è delle
+01:50 — la regola §0A-bis dice «nello stesso turno», e stavolta non è successo. Il buco l'ha trovato il
+censimento di chiusura, che è la rete prevista, ma la rete non è la regola.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D353** | 🔑 **LA DISPARITÀ DEI TOCCHI RESTA COM'È: WhatsApp 3, «a voce» 2 — e ⚖️ D334 NON si tocca** | «*va bene così*» | La parità di ⚖️ D335 era di **peso visivo e di dignità delle due strade**, non di aritmetica dei tocchi: le due righe restano lo stesso componente con gli stessi token e lo stesso gallone. Il tocco in più di WhatsApp **è** D334 — la finestra in cui si rilegge e si corregge il testo prima che parta — e toglierlo per pareggiare un conteggio sarebbe scambiare una tutela per una simmetria. Chiude la domanda ⑤ dell'handoff del 09/08; il foglio non cambia di una riga |
+
+---
+
+### Centocinquantatreesima tornata — D354: un atto chiude tutto, il dentista vede l'unione · D355: l'ordine della ripresa è delegato (10/08/2026, 08:15)
+
+**Come è nata.** L'handoff della notte (§0①) prescriveva: la proposta del panel a Francesco **prima** di
+dispacciare il Task 8. Presentata alla ripresa del mattino col referto
+(`docs/roadmap/2026-08-10-panel-due-avvisi-referto.md`), ratificata al primo passaggio — e il numero
+arriva **nello stesso turno** (§0A-bis rispettata, stavolta senza censimento di recupero).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D354** | 🔑 **IL SECONDO PROMEMORIA NON SPEGNE IL PRIMO — MA UN SOLO ATTO DI COMUNICAZIONE CHIUDE TUTTE LE RIGHE APERTE DEL LAVORO, e il dentista vede l'UNIONE delle voci corrette con l'ULTIMA dichiarazione da scaricare** | «Sì, ratifico» (scelta esplicita fra ratifica / resta D346 com'era / prima ne parliamo) | Panel a tre **unanime**, tre no indipendenti a «spegnere»: **normativo** — due rettifiche sono due obblighi quanto al contenuto, ma un solo atto può estinguerli entrambi (Art. 5(1)(d)+5(2) GDPR; un registro che sa cancellare le proprie righe non è più una prova) · **dati** — lo stato «superato» è **inscrivibile** (`provato:` `23514` sul vincolo `avviso_comunicato_ha_autore_e_data`: un superamento è un atto che nessuno ha compiuto, non ha autore né data) · **banco** — i due WhatsApp sarebbero **la stessa stringa** (`buildAvvisoMessage`): due invii = una comunicazione consegnata due volte. **Conseguenze:** ① la rotta di chiusura passa da `.eq('id', avvisoId)` a «tutte le aperte del lavoro» (`src/app/api/lavori/[id]/avviso/route.ts:330`) — **compito NUOVO dell'ondata**, con la prova diretta (due aperte → un atto → entrambe chiuse, stessi tre valori) e quella inversa (le già chiuse non si toccano) · ② il Task 8 eredita «unione delle voci, ultima dichiarazione» · ③ scheda e striscia non cambiano (mostrano già UN promemoria) · ④ la prova del Task 2 («due riemissioni → due avvisi») resta verde e resta giusta. 📌 Il caso di confine (portale aperto **fra** le due correzioni: la ricevuta di lettura vale solo per la prima rettifica) resta **deciso-di-non-deciderlo qui**: va coi Task 8/9, insieme alla riserva §0⑧② dell'handoff del 09/08 |
+| **D355** | **L'ORDINE DEI TASK DELLA RIPRESA LO SCEGLIE L'ASSISTENTE** | «Decidi tu l'ordine» (scelta esplicita fra Task 9 prima / Task 8 prima / delega) | §0A-bis: anche un «lascia libero» è una decisione e porta il suo numero. L'ordine scelto, con la ragione: **① rotta di chiusura** (il compito nato con D354 — piccolo, a monte del portale: il Task 8 deve nascere sopra la semantica giusta, non adattarcisi dopo) → **② Task 8** (portale) → **③ Task 9** (archivio cliente, indipendente) → **④ Task 10** (giro sul banco vero + gate L2 + FASI 9 accorpate + M-T6-1). Reversibile da Francesco in ogni momento |
+
+---
+
+### Centocinquantaquattresima tornata — D356 · D357 · D358: le tre risposte di contenuto, prima del collaudo (10/08/2026, 11:09)
+
+**Come è nata.** Le revisioni della mattina hanno lasciato tre domande di **contenuto** (parole e
+informazioni a schermo): M-T6-1 dal Task 6 (il foglio con «di —»), M-T9-2 e M-T9-3 dal Task 9
+(l'archivio senza riferimento al lavoro; il testo della riga aperta). Portate a Francesco **prima** di
+dispacciare il Task 10, per fotografare al collaudo la versione giusta e fare il gate una volta sola.
+Tre scelte esplicite fra tre opzioni ciascuna; i numeri dati nello stesso turno.
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D356** | **L'ARCHIVIO «COMUNICAZIONI» PORTA IL NUMERO DEL LAVORO SU OGNI RIGA** | «Sì, col numero del lavoro» | L'archivio è una prova, e una prova che non dice l'oggetto è mezza prova. L'aggancio (`RigaArchivioCliente.lavoroId`, M-T9-2) è già popolato; si autorizza la **lettura di supporto** per `numero_lavoro` (stessa famiglia della lettura per i nomi di chi ha comunicato — il vincolo «nessuna query nuova sulla tabella avvisi» resta intatto). Chiude M-T9-2 |
+| **D357** | **LA RIGA ANCORA APERTA DICE «Non ancora comunicata», NON «Non ancora vista dal dentista»** | «Non ancora comunicata» | I due casi sono diversi e il registro deve dirlo: la ricevuta di lettura può comparire solo DOPO la comunicazione; su una riga aperta parlare di «vista» promette una ricevuta che non può ancora esistere. Chiude M-T9-3. Coerente con ⚖️ D337: nessun allarme, solo la verità della riga |
+| **D358** | **IL FOGLIO SENZA NOME PAZIENTE USA LA FRASE COL NUMERO DEL LAVORO** (es. «Hai rifatto la dichiarazione del lavoro #2026/0042») | «Frase col numero del lavoro» | Sempre vera, niente lineetta vuota, e il numero c'è sempre (`provato:` `database.types.ts:2688` — sulla tabella `lavori` il tipo è `numero_lavoro: string`, non nullabile; la riga nullabile a 6219 è una vista). Chiude **M-T6-1**, che il mandato del Task 6 aveva prescritto di portare a Francesco. Il caso col nome presente NON cambia |
+
+---
+
+### Centocinquantacinquesima tornata — D359: il ramo si merge su `main` (11/08/2026, 08:58)
+
+> 🔄 **Questa intestazione diceva «01:35», scritto A STIMA dalla percezione della sessione invece che
+> dall'orologio — corretto con `date` (le 08:58 del mattino): è esattamente l'errore che D155 vieta,
+> e la riprova che l'ora si legge, non si deduce.**
+
+**Come è nata.** A valle di TUTTI i cancelli: CI verde · gate estetico L2 passato (contrasto scuro
+dell'archivio corretto e misurato >12:1) · revisione finale di ramo a tre aree parallele — **zero
+Critical su 298 commit**, un Important chiuso in sessione (`04974871`), due Important strutturali
+dichiarati in coda (righe 58 · 59 della roadmap). Referto:
+`docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`. Scelta esplicita fra tre opzioni
+(merge ora / domani / prima le code).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D359** | 🔑 **IL RAMO `intervento-post-consegna` SI MERGE SU `main` ADESSO** (= pubblicazione su Vercel/uachelab.com) | «Sì, merge ora» | ⚖️ D296: il permesso di pubblicare c'è, il giudizio va motivato — ed è questo: l'ondata è COMPLETA (nessun difetto dichiarato in una §0, a differenza del caso che D296 vieta), la CI è verde, il giro sul banco vero è passato, e uachelab.com non ha clienti veri (§8: si pubblica a rischio basso). **Le code 58 · 59 restano APERTE E DICHIARATE**: vanno chiuse **prima della prima onboarding reale** — il merge non le seppellisce, la roadmap le tiene. Procedura: attendere il run CI di conferma sull'ultimo push → merge → push di `main` → verifica su uachelab.com (FASE 10) |

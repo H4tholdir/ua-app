@@ -81,6 +81,19 @@ const LOCKED_PRICE_FIELDS = [
 // colonna omonima su `lavori` è legacy: riaprirla qui sarebbe una seconda
 // penna sullo stesso fatto, la classe già pagata con numero_cassetta.
 // Test di regressione: tests/unit/lavori-patch-istituzione-sanitaria.test.ts.
+//   🪦 E DALL'08/08/2026 (D319) LA RAGIONE È ANCORA PIÙ SEMPLICE, perché
+//   `lavori.numero_prescrizione` è un CIMITERO DICHIARATO: non la legge né la
+//   scrive più nessuno. Il numero della prescrizione non è un contenuto dovuto
+//   dall'Allegato XIII punto 1 — che sulla prescrizione chiede il NOME di chi ha
+//   prescritto e le CARATTERISTICHE indicate nella prescrizione — quindi è
+//   uscito dal documento, dalle voci correggibili della dichiarazione e
+//   dall'allowlist della RPC `correggi_e_riemetti_atomica`. Ultimo lettore:
+//   `generate-ddc.ts` (chiave `prescrizione_id`), tolto. Ultimo scrittore:
+//   l'UPDATE di quella RPC, tolto. `provato:` 0 lavori su 299 la portano.
+//   ⚠️ Questa riga NON riapre niente e NON è un invito: la voce non torna in
+//   allowlist, perché non c'è più niente da correggere. Sta qui perché fra sei
+//   mesi qualcuno non creda viva una colonna che nessuno alimenta — l'errore
+//   R34, già pagato una volta.
 // ═══ SENTINELLA D7 (spec portale-dentista-v2 §7) ══════════════════════════
 // proposta_dentista e proposta_at NON devono MAI entrare in questa allowlist:
 // si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).
@@ -261,6 +274,51 @@ const CAMPI_TESTO_NORMALIZZATI: ReadonlySet<string> = new Set([
   'istituzione_sanitaria',
 ])
 
+/**
+ * ⚖️ D308 — I CINQUE CAMPI STAMPATI NON SI CORREGGONO FINCHÉ LA DICHIARAZIONE
+ * È VIVA.
+ *
+ * 🔑 Il fatto che l'ha generata: togliere l'annullamento della dichiarazione
+ * (per non cancellare la prova di una consegna avvenuta, D293) ha spento il
+ * meccanismo che faceva arrivare le correzioni sul documento. Senza questo
+ * cancello, un manufatto può uscire con una dichiarazione che nomina un'altra
+ * persona, e ogni controllo resta verde: `precheckMDR` misura il lavoro vivo,
+ * mai la dichiarazione (`src/lib/consegna/precheck.ts`), e `generateDdC` trova
+ * quella già emessa e restituisce quella senza rigenerare nulla
+ * (`src/lib/pdf/generate-ddc.ts:383-392`). **Art. 21(2) MDR:** la dichiarazione
+ * è messa a disposizione di *un determinato paziente*, identificato per nome o
+ * codice — l'identità è la cosa che non può divergere.
+ *
+ * 🛑 NON è un blocco cieco (D262: la PWA dà aiuti, non blocchi): il messaggio
+ * nomina il percorso che RIEMETTE — «Devo intervenire» → «C'è un dato sbagliato
+ * sulla dichiarazione» (`errore_dato_dichiarazione`, `motivi-ui.ts:74`), che
+ * annulla la vecchia CONSERVANDOLA e ne emette una nuova con `sostituisce_id`
+ * (`riemettiDdC`). Il percorso è costruito e provato.
+ *
+ * 🔑 E NON CONTRADDICE LA DIRETTIVA DEL 27/07 («ogni campo del lavoro si
+ * corregge, fino alla consegna»), che va letta col confine che le ha dato il
+ * panel normativo del 29/07: la finestra si aggancia all'EMISSIONE della
+ * dichiarazione, e con una dichiarazione viva è chiusa **per queste cinque voci
+ * soltanto**. Ogni altro campo resta correggibile — la prova ③ di
+ * `tests/unit/lavori-patch-campi-stampati-d308.test.ts` lo tiene fermo.
+ *
+ * ⚠️ Confine dichiarato (spec §1.1): la regola vale per OGNI lavoro con
+ * dichiarazione viva, non solo per quelli tornati a `pronto` dall'ondata «si
+ * deve sempre poter intervenire». È più larga del perimetro dell'ondata, ed è
+ * deliberato: restringerla al caso nuovo lascerebbe la stessa porta aperta su
+ * tutti gli altri.
+ *
+ * La const è esportata solo perché le prove possano leggerla — non per essere
+ * riusata altrove (stessa ragione di `PATCHABLE_FIELDS`).
+ */
+export const CAMPI_STAMPATI = [
+  'paziente_id',
+  'cliente_id',
+  'richiedente_nome',
+  'tipo_dispositivo',
+  'descrizione',
+] as const
+
 type RouteContext = { params: Promise<{ id: string }> }
 
 /**
@@ -439,9 +497,18 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // D117 non troverebbe mai una tinta da togliere: sarebbe **codice morto che
   // passa i test coi finti**. Chi tocca questa riga guardi la prova ② di
   // `tests/unit/tinte-patch.test.ts`, che controlla le colonne CHIESTE.
+  //
+  // 🛑 E LE ALTRE QUATTRO COLONNE SONO IL CANCELLO D308, non decoro nemmeno
+  // loro. `tipo_dispositivo` c'era già; `descrizione`, `richiedente_nome`,
+  // `cliente_id`, `paziente_id` entrano qui perché il cancello confronta il
+  // valore CHIESTO con quello MEMORIZZATO. Una colonna non richiesta torna
+  // `undefined`, che pareggia con qualunque `null` in arrivo: il cancello
+  // smetterebbe di accendersi **in silenzio** su quel campo. La prova ⑯ di
+  // `lavori-patch-campi-stampati-d308.test.ts` guarda le colonne CHIESTE, non
+  // quelle risposte — stessa forma della ② di `tinte-patch.test.ts`.
   const { data: existing } = await svc
     .from('lavori')
-    .select('incluso_in_fattura, tecnico_id, numero_lavoro, tipo_dispositivo, tinta_famiglia, tinta_codice')
+    .select('incluso_in_fattura, tecnico_id, numero_lavoro, tipo_dispositivo, tinta_famiglia, tinta_codice, descrizione, richiedente_nome, cliente_id, paziente_id')
     .eq('id', id)
     .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
@@ -461,6 +528,82 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       payload[field] = CAMPI_TESTO_NORMALIZZATI.has(field)
         ? testoVivoDaCorpo(body[field])
         : body[field]
+    }
+  }
+
+  // ═══ ⚖️ D308 — I CINQUE CAMPI STAMPATI (cappello sopra CAMPI_STAMPATI) ═════
+  // Sta QUI, subito dopo l'allowlist, per due ragioni:
+  //   ① `richiedente_nome` è già passato per `testoVivoDaCorpo` (D242), quindi
+  //      `''` e `null` sono già la STESSA ortografia di «non c'è» e non si
+  //      contano come una correzione (prova ⑪);
+  //   ② è prima di ogni scrittura, che è l'unica cosa che deve essere vera.
+  //
+  // 🛑 SI GUARDA IL VALORE, NON LA CHIAVE — e questa è la correzione più
+  // importante di questo blocco, contro la stesura del piano che filtrava con
+  // `c in aggiornamenti`. La scheda del lavoro manda l'INTERA riga a ogni
+  // salvataggio (`src/hooks/useLavoroForm.ts:316`, `const patchBody = { ...data }`,
+  // con i soli `delete` di `numero_cassetta`, dei sette denti/colore e — se non
+  // cambiata — della tinta): i cinque nomi sono SEMPRE nel corpo, anche quando
+  // l'utente ha toccato le sole note. Un cancello a chiave-presente avrebbe reso
+  // il lavoro di SOLA LETTURA su ogni campo appena esiste una dichiarazione
+  // viva, e sarebbe stata una violazione della direttiva del 27/07 travestita da
+  // conformità. Prove che tengono fermo il confine: ⑤ (i cinque presenti e
+  // identici + una nota cambiata → 200) e ⑥ (lo stesso corpo con una voce
+  // davvero cambiata → 422).
+  //
+  // Il confronto è su `?? null` perché le due sponde scrivono l'assenza in due
+  // modi (`undefined` da un corpo che non nomina, `null` dalla colonna): il
+  // resto è uguaglianza stretta, così un tipo sbagliato conta come CAMBIO e
+  // viene rifiutato invece di scivolare (fail-closed, prova ⑫).
+  const memorizzato: Record<(typeof CAMPI_STAMPATI)[number], unknown> = {
+    paziente_id: existing.paziente_id,
+    cliente_id: existing.cliente_id,
+    richiedente_nome: existing.richiedente_nome,
+    tipo_dispositivo: existing.tipo_dispositivo,
+    descrizione: existing.descrizione,
+  }
+  const stampatiCambiati = CAMPI_STAMPATI.filter(
+    (campo) => campo in payload && (payload[campo] ?? null) !== (memorizzato[campo] ?? null)
+  )
+  if (stampatiCambiati.length > 0) {
+    // `head: true` non porta righe: è il modo di chiedere «ce n'è almeno una»
+    // senza scaricare la dichiarazione intera.
+    // 🔑 «Viva» = `stato <> 'annullata'`, MAI un elenco di stati enumerati: è la
+    // stessa definizione dell'indice parziale `ddc_lavoro_attiva_unique`
+    // (`20260710090000:15-17`), della RPC `riporta_a_pronto_atomica`
+    // (`20260807182614:92-94`) e di `generateDdC` (`generate-ddc.ts:383-387`).
+    // Due definizioni della stessa cosa divergono. `stato` è `NOT NULL`
+    // (`schema.sql:1265`), quindi `<>` non lascia scappare righe con lo stato
+    // assente.
+    // 🛑 La lettura resta DENTRO il laboratorio del chiamante (`laboratorio_id`):
+    // una dichiarazione di un altro laboratorio non deve né bloccare né essere
+    // osservabile da qui (prova ⑭).
+    const { count: ddcVive, error: erroreDdc } = await svc
+      .from('dichiarazioni_conformita')
+      .select('id', { count: 'exact', head: true })
+      .eq('lavoro_id', id)
+      .eq('laboratorio_id', context.laboratorioId)
+      .neq('stato', 'annullata')
+
+    // 🛑 FAIL-CLOSED, e non è pignoleria: senza questo ramo un errore di lettura
+    // darebbe `count: null`, `(null ?? 0) > 0` sarebbe falso e il campo stampato
+    // passerebbe. Un cancello che si apre quando non riesce a guardare non è un
+    // cancello. Prova ⑰.
+    if (erroreDdc) {
+      return NextResponse.json(
+        { error: 'Non riesco a controllare la dichiarazione di questo lavoro: riprova fra un momento.' },
+        { status: 500 }
+      )
+    }
+
+    if ((ddcVive ?? 0) > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Questo dato è già stampato sulla dichiarazione consegnata, e cambiarlo qui la lascerebbe indietro. Per correggerlo apri «Devo intervenire» e scegli «dato sbagliato sulla dichiarazione»: l\'app rifà il documento e conserva quello vecchio.',
+        },
+        { status: 422 }
+      )
     }
   }
 
@@ -656,8 +799,45 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
-  // Forza aggiornamento timestamp (non allowlisted: sempre gestito server-side)
-  payload.updated_at = new Date().toISOString()
+  // ⚖️ D323 — 🔴 QUI C'ERA `payload.updated_at = new Date().toISOString()`, ED
+  //    È STATA TOLTA. Il gettone di concorrenza di `lavori` lo scrive il
+  //    trigger `trg_lavori_updated_at` (funzione `lavori_set_updated_at`), che
+  //    lo muove SOLO se cambia davvero qualcosa che non sia il contatore
+  //    `post_consegna_correzioni`, e altrimenti lo PINZA al valore vecchio.
+  //
+  // 🛑 E NON È UNA RIGA RIDONDANTE CHE SI POTEVA LASCIARE: il predicato del
+  //    trigger tiene `updated_at` DENTRO il confronto di proposito — un
+  //    chiamante che lo assegna sta CHIEDENDO di far avanzare il gettone, ed è
+  //    così che `lavoro_prescrizione_correggi_typo` e
+  //    `lavoro_denti_sostituisci_atomica` lo fanno avanzare quando il
+  //    cambiamento vero vive in un'altra tabella. Finché questa riga c'era,
+  //    OGNI salvataggio da qui — anche uno che non cambia niente — bruciava il
+  //    gettone, e D323 valeva per metà.
+  //    Sentinella: `tests/unit/lavori-patch-senza-updated-at.test.ts`.
+  //
+  // 🔴 E TOGLIERLA HA UN PREZZO, misurato: era anche l'unica chiave SEMPRE
+  //    presente nel carico. Senza, un corpo che non porta nessun campo
+  //    dell'allowlist produce `.update({})`, e PostgREST non aggiorna niente →
+  //    `PGRST116` su `.single()` → 500 al posto del 200 di oggi.
+  //    `provato:` `.update({}).eq(…).select(…).single()` →
+  //    `{"code":"PGRST116","details":"The result contains 0 rows"}` (HTTP 406).
+  //    Ed è raggiungibile per tre strade: un corpo di sole chiavi fuori
+  //    allowlist (che si scartano in silenzio), una mezza coppia di colore
+  //    (`colore_scala` senza `colore_codice`, tolta poco sopra), un corpo di
+  //    soli campi prezzo su un lavoro già in fattura (tolti dal lock).
+  //    ➡️ Un salvataggio che non ha niente da salvare non è un errore: non si
+  //    scrive, e si restituisce la riga com'è — col gettone corrente, che è ciò
+  //    che i fogli leggono per restare in sincronia.
+  if (Object.keys(payload).length === 0) {
+    const { data: invariato } = await svc
+      .from('lavori')
+      .select('id, numero_lavoro, stato, updated_at')
+      .eq('id', id)
+      .eq('laboratorio_id', context.laboratorioId)
+      .is('deleted_at', null)
+      .single()
+    return NextResponse.json({ lavoro: invariato })
+  }
 
   const { data: lavoro, error: updateError } = await svc
     .from('lavori')

@@ -1,0 +1,210 @@
+# Review package: c8b63adf..16f71ab5
+
+## Commits
+16f71ab5 fix(schema): via gli abbinamenti Allegato XIII p.1 non provati dai commenti classificazione/tipo (review Task 7)
+9e352972 docs(schema): fotografia DdC allineata (Allegato XIII, stato annullata, indice parziale) + union domain (ondata B ②)
+
+## Files changed
+ src/types/domain.ts             |  2 +-
+ supabase/schema.sql             | 21 ++++++++++++++++-----
+ tests/unit/generate-ddc.test.ts | 13 +++++++------
+ 3 files changed, 24 insertions(+), 12 deletions(-)
+
+## Diff
+diff --git a/src/types/domain.ts b/src/types/domain.ts
+index 89bb51bc..be128d7f 100644
+--- a/src/types/domain.ts
++++ b/src/types/domain.ts
+@@ -595,21 +595,21 @@ export interface DichiarazioneConformita {
+   progressivo_ddc: number;
+   // PDF archiviato
+   pdf_url: string | null;
+   pdf_sha256: string | null;
+   storage_path_pdf: string | null;
+   pdf_generato_at: string | null;
+   // Invio al dentista
+   inviata_al_dentista: boolean;
+   inviata_al_dentista_at: string | null;
+   data_emissione: string;
+-  stato: 'bozza' | 'generata' | 'firmata' | 'consegnata';
++  stato: 'bozza' | 'generata' | 'firmata' | 'consegnata' | 'annullata';
+   // §1 Allegato XIII — Fabbricante (snapshot immutabile)
+   fabbricante_nome: string;
+   fabbricante_indirizzo: string;
+   fabbricante_piva: string;
+   fabbricante_itca: string | null;
+   luogo_emissione: string;               // Es. "Serre (SA), Italia"
+   // §3 — Prescrittore
+   prescrittore_nome: string;
+   prescrizione_id: string | null;        // Numero prescrizione del dentista
+   // §4 — Paziente
+diff --git a/supabase/schema.sql b/supabase/schema.sql
+index 8b9dad1f..976a30b1 100644
+--- a/supabase/schema.sql
++++ b/supabase/schema.sql
+@@ -868,21 +868,21 @@ CREATE POLICY "fasi_laboratorio" ON fasi_produzione
+ CREATE POLICY "fasi_insert" ON fasi_produzione
+   FOR INSERT WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+ CREATE INDEX idx_fasi_ciclo ON fasi_produzione(ciclo_id, ordine) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_fasi_laboratorio ON fasi_produzione(laboratorio_id) WHERE deleted_at IS NULL;
+ 
+ 
+ -- ============================================================
+ -- LAVORI — tabella core del sistema
+ -- Ogni record = una lavorazione commissionata da un dentista
+--- Contiene i 12 elementi obbligatori per la DoC (Allegato IV MDR)
++-- Contiene gli elementi obbligatori per la DoC (Allegato XIII MDR)
+ -- ============================================================
+ CREATE TABLE lavori (
+   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   laboratorio_id    UUID NOT NULL REFERENCES laboratori(id),
+ 
+   -- Identificazione
+   numero_lavoro     TEXT NOT NULL,      -- Es. "2026/0089" — auto-generato
+   anno_lavoro       SMALLINT NOT NULL DEFAULT EXTRACT(YEAR FROM now())::SMALLINT,
+   codice_interno    TEXT,               -- Codice libero (es. numero cassetta)
+   numero_prescrizione TEXT,             -- Numero prescrizione del dentista (campo protetto)
+@@ -893,37 +893,37 @@ CREATE TABLE lavori (
+   paziente_id       UUID REFERENCES pazienti(id),
+                                         -- Nullable: paziente può essere creato dopo
+   tecnico_id        UUID REFERENCES tecnici(id),
+   ciclo_id          UUID REFERENCES cicli_produzione(id),
+   prescrizione_digitale_id UUID,        -- FK → prescrizioni_digitali (aggiunta dopo)
+ 
+   -- Dati del paziente (copiati per immutabilità MDR al momento della consegna)
+   paziente_nome_snapshot TEXT,          -- Snapshot nome al momento creazione
+   paziente_nascita_snapshot DATE,
+ 
+-  -- Tipo e descrizione dispositivo (MDR Allegato IV §5)
++  -- Tipo e descrizione dispositivo (Allegato XIII MDR)
+   tipo_dispositivo  TEXT NOT NULL
+                     CHECK (tipo_dispositivo IN (
+                       'protesi_fissa', 'protesi_mobile', 'implantologia',
+                       'cad_cam', 'scheletrato', 'ortodonzia',
+                       'provvisorio', 'riparazione', 'altro'
+                     )),
+   descrizione       TEXT NOT NULL,      -- Es. "Corona ceramica 14, colore A2"
+   note_interne      TEXT,
+ 
+   -- Odontogramma / dati clinici
+   colore_dente      TEXT,               -- Scala VITA (es. "A2", "B3")
+   denti_coinvolti   TEXT[],             -- Array FDI (es. {14, 15, 16})
+   arcata            TEXT CHECK (arcata IN ('superiore','inferiore','entrambe')),
+   anamnesi_note     TEXT,               -- Bruxismo, precauzioni, altri dispositivi
+ 
+-  -- MDR — Classificazione (Allegato IV §6 — classe rischio)
++  -- MDR — Classificazione (classe di rischio)
+   classe_rischio    TEXT NOT NULL DEFAULT 'classe_iia'
+                     CHECK (classe_rischio IN ('classe_i','classe_iia','classe_iib','classe_iii')),
+   norma_riferimento TEXT,               -- Es. "EN ISO 6872:2015"
+   da_conformare     BOOLEAN NOT NULL DEFAULT TRUE,
+ 
+   -- Stato workflow
+   stato             TEXT NOT NULL DEFAULT 'in_lavorazione'
+                     CHECK (stato IN (
+                       'in_lavorazione', 'in_prova', 'pronto',
+                       'consegnato', 'annullato', 'in_ritardo'
+@@ -1256,30 +1256,33 @@ CREATE TABLE dichiarazioni_conformita (
+   pdf_sha256            TEXT,               -- SHA-256 del blob PDF al momento della generazione
+   payload_sha256        TEXT,               -- SHA-256 del JSON input usato per generare il PDF
+   template_version      TEXT,               -- Es. "ddc-v1" — versione della FORMA del documento; il registro
+                                             -- di cosa contiene ogni versione vive accanto alla costante in
+                                             -- src/lib/pdf/generate-ddc.ts. NON è un semver: si conta 1, 2, 3.
+   pdf_generato_at       TIMESTAMPTZ,
+   generated_by          UUID REFERENCES utenti(id), -- chi ha premuto "Consegna"
+   storage_object_version TEXT,             -- versione oggetto Supabase Storage (per audit)
+ 
+   stato             TEXT NOT NULL DEFAULT 'bozza'
+-                    CHECK (stato IN ('bozza','generata','firmata','consegnata')),
++                    CHECK (stato IN ('bozza','generata','firmata','consegnata','annullata')),
+ 
+   -- Rischi non eliminabili (4 rischi standard da Odontec/DentalMaster)
+   rischi_json       JSONB,
+ 
+   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+   deleted_at        TIMESTAMPTZ,
+ 
+-  -- Una DoC per lavoro (relazione 1:1 per lo standard)
++  -- Backstop della numerazione: un numero (anno_ddc, progressivo_ddc) non si
++  -- ripete per laboratorio. NON è questo il vincolo "una DdC per lavoro" —
++  -- quello è l'indice parziale ddc_lavoro_attiva_unique (sotto, dopo gli
++  -- indici), che ammette N annullate + 1 attiva per lavoro_id.
+   UNIQUE (laboratorio_id, anno_ddc, progressivo_ddc)
+ );
+ 
+ SELECT apply_updated_at_trigger('dichiarazioni_conformita');
+ 
+ ALTER TABLE dichiarazioni_conformita ENABLE ROW LEVEL SECURITY;
+ 
+ CREATE POLICY "ddc_laboratorio_select" ON dichiarazioni_conformita
+   FOR SELECT USING (
+     laboratorio_id = public.current_lab_id()
+@@ -1300,20 +1303,28 @@ CREATE POLICY "ddc_laboratorio_insert" ON dichiarazioni_conformita
+ -- WITH CHECK (laboratorio_id = public.current_lab_id());
+ 
+ -- DELETE bloccato per tutti: le DoC non si cancellano mai (MDR 10 anni)
+ -- Solo service role può archiviare dopo 10 anni
+ 
+ CREATE INDEX idx_ddc_laboratorio ON dichiarazioni_conformita(laboratorio_id) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_ddc_lavoro ON dichiarazioni_conformita(lavoro_id);
+ CREATE INDEX idx_ddc_anno ON dichiarazioni_conformita(laboratorio_id, anno_ddc) WHERE deleted_at IS NULL;
+ CREATE INDEX idx_ddc_stato ON dichiarazioni_conformita(laboratorio_id, stato) WHERE deleted_at IS NULL;
+ 
++-- Vincolo vero "una DdC per lavoro": indice UNIQUE parziale, non la UNIQUE
++-- sopra su (anno_ddc, progressivo_ddc), che è solo il backstop del numero.
++-- Ammette N annullate + 1 attiva per lavoro_id. Origine:
++-- supabase/migrations/20260710090000_ddc_annullata_unique_parziale.sql:15-17.
++CREATE UNIQUE INDEX ddc_lavoro_attiva_unique
++  ON dichiarazioni_conformita (laboratorio_id, lavoro_id)
++  WHERE stato <> 'annullata';
++
+ 
+ -- ============================================================
+ -- BUONI_CONSEGNA — documento di consegna del lavoro
+ -- Generato automaticamente al tap CONSEGNA
+ -- Due varianti: con prezzi / senza prezzi (come DentalMaster)
+ -- ============================================================
+ CREATE TABLE buoni_consegna (
+   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   laboratorio_id    UUID NOT NULL REFERENCES laboratori(id),
+   lavoro_id         UUID NOT NULL REFERENCES lavori(id),
+diff --git a/tests/unit/generate-ddc.test.ts b/tests/unit/generate-ddc.test.ts
+index 374a8bca..6a127727 100644
+--- a/tests/unit/generate-ddc.test.ts
++++ b/tests/unit/generate-ddc.test.ts
+@@ -181,26 +181,27 @@ describe('generateDdC', () => {
+     const result = await generateDdC(LAVORO_FIXTURE)
+ 
+     expect(result).toEqual({ numero: 'DDC-2026-0007', url: 'https://example.test/ddc-vincitrice.pdf' })
+   })
+ })
+ 
+ describe('D102 ① — le due firme del documento, che non erano MAI state scritte', () => {
+   // 🛑 IL FATTO: `template_version` e `payload_sha256` esistono in
+   //    `supabase/schema.sql` dal primo giorno e per anni NESSUNO le ha
+   //    valorizzate. ⚠️ Non è più vero per OGNI riga in archivio: verificato
+-  //    con una query di sola lettura sul DB live (non solo riletto dal
+-  //    referto), su 4 dichiarazioni presenti in `dichiarazioni_conformita`
+-  //    una sola porta `template_version = 'ddc-v1'` (e `payload_sha256`
+-  //    valorizzato) — è la DdC emessa e subito annullata durante il collaudo
+-  //    dal vivo del 03/08/2026, le altre tre (tutte antecedenti) restano
+-  //    NULL (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
++  //    di nuovo il 04/08/2026 con una query di sola lettura sul DB live
++  //    (`scripts/tmp/verifica-conteggio-ddc.ts`): 6 dichiarazioni in archivio,
++  //    2 `generata` di era pre-v1 (`template_version` e `payload_sha256`
++  //    entrambi NULL, risalenti al 06/07/2026) e 4 `annullata`, di cui 3 con
++  //    `template_version = 'ddc-v1'` e `payload_sha256` valorizzato — le DdC
++  //    emesse e poi annullate durante i collaudi dal vivo del 31/07-03/08/2026
++  //    (`docs/roadmap/2026-08-03-verifica-impronte-ddc-referto.md` §3-4;
+   //    CLAUDE.md §9 «Collaudo dal vivo»). Sono le due colonne che, fra dieci
+   //    anni (quindici per gli impiantabili), dicono «questo PDF è quello di
+   //    allora e nasce da QUESTI dati». Una colonna dichiarata come prova e
+   //    mai scritta è la stessa classe di difetto della guardia dichiarata
+   //    come rete e mai agganciata (CLAUDE.md §9, 28/07).
+   // 🔑 `pdf_sha256` c'era già e NON basta: è l'impronta del FILE. Prova che il
+   //    byte non è stato toccato, non da quali dati sia nato. Le due domande sono
+   //    diverse e servono due impronte.
+   beforeEach(() => {
+     // Questo describe è FRATELLO di `describe('generateDdC', …)` sopra, non

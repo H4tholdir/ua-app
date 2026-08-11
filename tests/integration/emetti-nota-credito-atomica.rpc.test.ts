@@ -132,7 +132,14 @@ describe.skipIf(skipIntegrationTests)('emetti_nota_credito_atomica — comportam
 
       const { rows: [td04] } = await client.query(
         `SELECT tipo_documento, stato_sdi, lavoro_id,
-                data = CURRENT_DATE AS data_is_oggi,
+                -- 🛑 «Oggi» col GIORNO CIVILE DI ROMA, non CURRENT_DATE: la RPC scrive
+                -- v_data := (now() AT TIME ZONE 'Europe/Rome')::date DI PROPOSITO
+                -- («Fix 20/07: giorno civile di Roma» — è un documento fiscale italiano),
+                -- mentre CURRENT_DATE segue il fuso della sessione, che è UTC.
+                -- Con CURRENT_DATE questa prova arrossiva DA SOLA ogni notte fra le
+                -- 22:00Z e mezzanotte (le 00:00-02:00 di Roma): due orologi, due giorni.
+                -- provato: rosso alle 01:38 CEST del 10/08/2026, verde con questa riga.
+                data = (now() AT TIME ZONE 'Europe/Rome')::date AS data_is_oggi,
                 collegata_data::text AS collegata_data, collegata_numero,
                 imponibile::text AS imponibile, causale_storno,
                 fattura_collegata_id, totale::text AS totale, bollo::text AS bollo

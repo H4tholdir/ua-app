@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Design System v2.3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* LIGHT v2.3 */
+  --bg: #DDD8D3; --sfc: #E4DFD9; --elv: #EDEDEA; --prs: #D4CFC9;
+  --t1: #1C1916; --t2: #4A3D33; --t3: #6B5C51;
+  --primary: #D90012;
+  --accent: #2D5C3F;   /* NUOVO — era --gold: #D4A843 */
+
+  /* DARK v2.3 */
+  --dark-bg: #1A1916; --dark-sfc: #222019; --dark-elv: #2C2A27;
+  --dark-t1: #F0EDE8; --dark-t2: #8A8580; --dark-t3: #7A706B;
+  --dark-accent: #4A9A68;   /* verde più chiaro per dark mode */
+
+  --sh: inset 0 1px 0 rgba(255,255,255,.90),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-sm: inset 0 1px 0 rgba(255,255,255,.88),-3px -3px 7px rgba(255,255,255,.72),5px 7px 14px -2px rgba(148,128,118,.38);
+  --sh-dark: -5px -5px 11px rgba(255,255,255,.018),9px 12px 28px -4px rgba(0,0,0,.60);
+  --sh-dark-sm: -3px -3px 7px rgba(255,255,255,.014),5px 7px 18px -2px rgba(0,0,0,.55);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #C8C3BE; font-family: 'DM Sans', sans-serif; padding: 20px 16px 60px; }
+
+/* Layout */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.col-head { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; margin-bottom: 10px; }
+.col-light { color: #6B5C51; }
+.col-dark  { color: #8A8580; }
+
+/* Phone shell */
+.phone-l { background: var(--bg); border-radius: 20px; padding: 14px; box-shadow: var(--sh); }
+.phone-d { background: var(--dark-bg); border-radius: 20px; padding: 14px; box-shadow: var(--sh-dark); }
+
+/* Page header */
+.ph { margin-bottom: 12px; }
+.ph-title-l { font-size: 20px; font-weight: 700; color: var(--t1); line-height: 1.1; }
+.ph-title-d { font-size: 20px; font-weight: 700; color: var(--dark-t1); line-height: 1.1; }
+.ph-sub-l   { font-size: 12px; color: var(--t3); margin-top: 2px; }
+.ph-sub-d   { font-size: 12px; color: var(--dark-t2); margin-top: 2px; }
+
+/* KPI */
+.kpi-row { display: flex; gap: 7px; margin-bottom: 8px; }
+.kpi-l { background: var(--sfc); border-radius: 10px; padding: 9px 10px; box-shadow: var(--sh-sm); flex: 1; }
+.kpi-d { background: var(--dark-sfc); border-radius: 10px; padding: 9px 10px; box-shadow: var(--sh-dark-sm); flex: 1; }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 300; line-height: 1; }
+.kpi-label-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--t3); margin-top: 2px; }
+.kpi-label-d { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dark-t2); margin-top: 2px; }
+
+/* List */
+.li-l { background: var(--sfc); border-radius: 10px; padding: 9px 11px; box-shadow: var(--sh-sm); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.li-d { background: var(--dark-sfc); border-radius: 10px; padding: 9px 11px; box-shadow: var(--sh-dark-sm); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.li-name-l { font-size: 13px; font-weight: 600; color: var(--t1); }
+.li-name-d { font-size: 13px; font-weight: 600; color: var(--dark-t1); }
+.li-meta-l { font-size: 11px; color: var(--t2); margin-top: 1px; }
+.li-meta-d { font-size: 11px; color: var(--dark-t2); margin-top: 1px; }
+
+.badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px; white-space: nowrap; }
+
+/* Nav */
+.nav-l { display: flex; justify-content: space-around; background: var(--sfc); border-radius: 100px; padding: 7px 10px; box-shadow: var(--sh-sm); margin-top: 8px; }
+.nav-d { display: flex; justify-content: space-around; background: var(--dark-sfc); border-radius: 100px; padding: 7px 10px; box-shadow: var(--sh-dark-sm); margin-top: 8px; }
+.nav-i { font-size: 10px; font-weight: 600; text-align: center; }
+
+/* Token table */
+.tokens { background: #E8E3DE; border-radius: 16px; padding: 14px; margin-bottom: 16px; box-shadow: inset 2px 2px 6px rgba(148,128,118,.22), inset -2px -2px 4px rgba(255,255,255,.70); }
+.token-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,.06); }
+.token-row:last-child { border-bottom: none; }
+.sw { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; border: 1px solid rgba(0,0,0,.10); }
+.tok-name { font-size: 11px; font-weight: 600; font-family: monospace; color: #1C1916; flex: 1; }
+.tok-hex  { font-size: 10px; color: #6B5C51; font-family: monospace; }
+.tok-ratio { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 100px; }
+.tr-aaa { background: rgba(22,163,74,.12); color: #155A2A; }
+.tr-aa  { background: rgba(22,163,74,.08); color: #2D7A40; }
+.tr-new { background: rgba(45,92,63,.12); color: #2D5C3F; }
+.tok-old { font-size: 9px; color: #6B5C51; }
+
+.section-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #6B5C51; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #C8C3BE; }
+
+/* Scale */
+.scale-row { display: flex; align-items: baseline; justify-content: space-between; padding: 5px 0; }
+.scale-ex { color: #1C1916; }
+.scale-meta { font-size: 10px; color: #6B5C51; white-space: nowrap; }
+
+.chip-new { display: inline-flex; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; padding: 1px 6px; border-radius: 100px; background: rgba(45,92,63,.12); color: #2D5C3F; }
+.chip-unch { display: inline-flex; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; padding: 1px 6px; border-radius: 100px; background: rgba(0,0,0,.06); color: #6B5C51; }
+
+.summary-card { background: #E8E3DE; border-radius: 16px; padding: 16px; margin-top: 20px; box-shadow: inset 2px 2px 6px rgba(148,128,118,.22), inset -2px -2px 4px rgba(255,255,255,.70); }
+.sum-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,.06); font-size: 13px; }
+.sum-row:last-child { border-bottom: none; }
+.sum-label { color: #6B5C51; }
+.sum-val { font-weight: 600; color: #1C1916; }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<div style="text-align:center; margin-bottom:24px;">
+  <div style="font-size:22px; font-weight:700; color:#1C1916; letter-spacing:-0.02em;">Design System v2.3</div>
+  <div style="font-size:12px; color:#6B5C51; margin-top:4px;">Contrasto corretto · Verde foresta · Type scale 14px</div>
+</div>
+
+<!-- ─── SIDE BY SIDE LIGHT + DARK ─── -->
+<div class="section-head">Mockup reale — light vs dark</div>
+<div class="split">
+  <!-- LIGHT -->
+  <div>
+    <div class="col-head col-light">Light mode</div>
+    <div class="phone-l">
+      <div class="ph">
+        <div class="ph-title-l">Dashboard</div>
+        <div class="ph-sub-l">Aggiornato ora · Francesco</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-l">
+          <div class="kpi-n" style="color:#D90012;">7</div>
+          <div class="kpi-label-l">In ritardo</div>
+        </div>
+        <div class="kpi-l">
+          <div class="kpi-n" style="color:#2D5C3F;">€ 4.280</div>
+          <div class="kpi-label-l">Da fatturare</div>
+        </div>
+      </div>
+      <div class="li-l">
+        <div>
+          <div class="li-name-l">#LAV-2024-0847</div>
+          <div class="li-meta-l">Corona zirconio · Dr. Bianchi</div>
+        </div>
+        <span class="badge" style="background:rgba(217,0,18,.10);color:#D90012;">Urgente</span>
+      </div>
+      <div class="li-l">
+        <div>
+          <div class="li-name-l">#LAV-2024-0846</div>
+          <div class="li-meta-l">Scheletrato · Dr. Russo</div>
+        </div>
+        <span class="badge" style="background:rgba(45,92,63,.12);color:#2D5C3F;">Pronto</span>
+      </div>
+      <div class="nav-l">
+        <div class="nav-i" style="color:#D90012;">Home</div>
+        <div class="nav-i" style="color:#4A3D33;">Lavori</div>
+        <div class="nav-i" style="color:#4A3D33;">Clienti</div>
+        <div class="nav-i" style="color:#4A3D33;">+</div>
+      </div>
+    </div>
+  </div>
+  <!-- DARK -->
+  <div>
+    <div class="col-head col-dark">Dark mode</div>
+    <div class="phone-d">
+      <div class="ph">
+        <div class="ph-title-d">Dashboard</div>
+        <div class="ph-sub-d">Aggiornato ora · Francesco</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-d">
+          <div class="kpi-n" style="color:#E8001A;">7</div>
+          <div class="kpi-label-d">In ritardo</div>
+        </div>
+        <div class="kpi-d">
+          <div class="kpi-n" style="color:#4A9A68;">€ 4.280</div>
+          <div class="kpi-label-d">Da fatturare</div>
+        </div>
+      </div>
+      <div class="li-d">
+        <div>
+          <div class="li-name-d">#LAV-2024-0847</div>
+          <div class="li-meta-d">Corona zirconio · Dr. Bianchi</div>
+        </div>
+        <span class="badge" style="background:rgba(232,0,26,.15);color:#E8001A;">Urgente</span>
+      </div>
+      <div class="li-d">
+        <div>
+          <div class="li-name-d">#LAV-2024-0846</div>
+          <div class="li-meta-d">Scheletrato · Dr. Russo</div>
+        </div>
+        <span class="badge" style="background:rgba(74,154,104,.15);color:#4A9A68;">Pronto</span>
+      </div>
+      <div class="nav-d">
+        <div class="nav-i" style="color:#E8001A;">Home</div>
+        <div class="nav-i" style="color:#8A8580;">Lavori</div>
+        <div class="nav-i" style="color:#8A8580;">Clienti</div>
+        <div class="nav-i" style="color:#8A8580;">+</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOKEN CHANGES ─── -->
+<div class="section-head">Token modificati</div>
+<div class="tokens">
+  <div class="token-row">
+    <div class="sw" style="background:#4A3D33;"></div>
+    <div class="tok-name">--t2 <span class="chip-new">NUOVO</span></div>
+    <div class="tok-hex">#4A3D33</div>
+    <div class="tok-ratio tr-aaa">7.4:1 AAA</div>
+  </div>
+  <div class="token-row">
+    <div class="sw" style="background:#6B5C51;"></div>
+    <div class="tok-name">--t3 <span class="chip-new">NUOVO</span></div>
+    <div class="tok-hex">#6B5C51</div>
+    <div class="tok-ratio tr-aa">4.5:1 AA</div>
+  </div>
+  <div class="token-row">
+    <div class="sw" style="background:#2D5C3F;"></div>
+    <div class="tok-name">--accent <span class="chip-new">NUOVO</span></div>
+    <div class="tok-hex">#2D5C3F <span class="tok-old">(era --gold #D4A843)</span></div>
+    <div class="tok-ratio tr-aa">5.4:1 AA</div>
+  </div>
+  <div class="token-row">
+    <div class="sw" style="background:#4A9A68;"></div>
+    <div class="tok-name">--accent-dark <span class="chip-new">NUOVO</span></div>
+    <div class="tok-hex">#4A9A68 (dark mode only)</div>
+    <div class="tok-ratio tr-aa">4.6:1 AA</div>
+  </div>
+  <div class="token-row">
+    <div class="sw" style="background:#1C1916;"></div>
+    <div class="tok-name">--t1 <span class="chip-unch">invariato</span></div>
+    <div class="tok-hex">#1C1916</div>
+    <div class="tok-ratio tr-aaa">12.4:1 AAA</div>
+  </div>
+  <div class="token-row">
+    <div class="sw" style="background:#D90012;"></div>
+    <div class="tok-name">--primary <span class="chip-unch">invariato</span></div>
+    <div class="tok-hex">#D90012</div>
+    <div class="tok-ratio tr-aa">3.8:1 AA large</div>
+  </div>
+  <div class="token-row">
+    <div class="sw" style="background:#DDD8D3; border:1px solid #C8C3BE;"></div>
+    <div class="tok-name">--bg e superfici <span class="chip-unch">invariati</span></div>
+    <div class="tok-hex">#DDD8D3 / #E4DFD9 / #EDEDEA</div>
+  </div>
+</div>
+
+<!-- ─── TYPE SCALE ─── -->
+<div class="section-head">Type scale — DM Sans, base 14px, ratio 1.2</div>
+<div class="tokens">
+  <div class="scale-row"><span class="scale-ex" style="font-size:24px; font-weight:700;">Titolo pagina</span><span class="scale-meta">24px / 700</span></div>
+  <div class="scale-row"><span class="scale-ex" style="font-size:20px; font-weight:700;">Intestazione sezione</span><span class="scale-meta">20px / 700</span></div>
+  <div class="scale-row"><span class="scale-ex" style="font-size:17px; font-weight:600;">#LAV-2024-0847</span><span class="scale-meta">17px / 600</span></div>
+  <div class="scale-row"><span class="scale-ex" style="font-size:14px; font-weight:400; color:#4A3D33;">Corona zirconio · Dr. Bianchi</span><span class="scale-meta">14px / 400</span></div>
+  <div class="scale-row"><span class="scale-ex" style="font-size:12px; font-weight:400; color:#6B5C51;">Scade: 27 mag · 3 fasi produzione</span><span class="scale-meta">12px / 400</span></div>
+  <div class="scale-row"><span class="scale-ex" style="font-size:10px; font-weight:700; color:#6B5C51; text-transform:uppercase; letter-spacing:0.08em;">MOTIVO · PAZIENTE</span><span class="scale-meta">10px / 700 caps</span></div>
+</div>
+
+<!-- ─── RIEPILOGO ─── -->
+<div class="section-head">Riepilogo modifiche</div>
+<div class="summary-card">
+  <div class="sum-row"><span class="sum-label">Font body</span><span class="sum-val">DM Sans — invariato</span></div>
+  <div class="sum-row"><span class="sum-label">Font KPI display</span><span class="sum-val">Playfair Display 300 — invariato</span></div>
+  <div class="sum-row"><span class="sum-label">--t2 (label, secondary)</span><span class="sum-val" style="color:#4A3D33;">#4A3D33 ↑ da 2.2:1 a 7.4:1</span></div>
+  <div class="sum-row"><span class="sum-label">--t3 (hint, caption)</span><span class="sum-val" style="color:#6B5C51;">#6B5C51 ↑ da 1.5:1 a 4.5:1</span></div>
+  <div class="sum-row"><span class="sum-label">--gold → --accent</span><span class="sum-val" style="color:#2D5C3F;">#2D5C3F verde foresta</span></div>
+  <div class="sum-row"><span class="sum-label">Font size minima operativa</span><span class="sum-val">14px ↑ da 11px</span></div>
+  <div class="sum-row"><span class="sum-label">Sfondi e superfici</span><span class="sum-val">Invariati — warm panna</span></div>
+  <div class="sum-row"><span class="sum-label">--primary rosso</span><span class="sum-val">Invariato — #D90012</span></div>
+</div>
+
+</body>
+</html>

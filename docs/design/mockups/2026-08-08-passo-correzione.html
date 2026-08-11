@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>«Che cosa c'è di sbagliato?» — Task D, due varianti (08/08/2026)</title>
+<style>
+  /* Token DS v3 copiati VERBATIM da src/design-system/v3/tokens.ts, e ripresi
+     dal mockup già approvato del 07/08 (`2026-08-07-devo-intervenire.html`):
+     questo passo vive DENTRO quel foglio, quindi non inventa niente.
+     Mockup di sola lettura: decide la FORMA prima del React (§0B). */
+  :root{
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF; --purple:#7C3F9C;
+    --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC; --purple-tint:#F3EAF7;
+    --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  }
+  .notte{
+    --bg:#171411; --bg-deep:#211D18; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#9A8F80; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF; --purple:#B98BE8;
+    --red-tint:rgba(255,59,68,.14); --amber-tint:rgba(232,161,61,.14); --blue-tint:rgba(91,155,255,.14);
+    --green-tint:rgba(52,196,104,.14); --purple-tint:rgba(185,139,232,.14);
+    --sh-card:none;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#8A8580}
+  .colonne{display:flex;flex-wrap:wrap;gap:0}
+  .tema{flex:1 1 480px;background:var(--bg);padding:28px 20px 60px;min-width:400px}
+  h1.tt{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:0 0 6px}
+  .sez{margin:26px 0 10px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .nota{font-size:13px;color:var(--faint);margin:0 0 16px;max-width:400px;line-height:1.45}
+  .tel{width:390px;max-width:100%;margin:0 auto 30px;background:var(--bg);border:1px solid var(--line);border-radius:34px;padding:16px 14px}
+
+  /* — il foglio (§5.16), identico al mockup approvato — */
+  .foglio{background:var(--card);border-radius:28px 28px 0 0;padding:22px 18px 24px;box-shadow:var(--sh-card)}
+  .maniglia{width:44px;height:5px;border-radius:999px;background:var(--line);margin:0 auto 16px}
+  .domanda{font-size:27px;font-weight:800;color:var(--ink);margin:0 0 4px;letter-spacing:-.02em;line-height:1.15}
+  .sotto{font-size:15.5px;color:var(--muted);margin:0 0 18px;line-height:1.4}
+
+  /* — IL NASTRO DEL PERCORSO: è ciò che distingue le due varianti — */
+  .nastro{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 16px;font-size:12px;font-weight:700;color:var(--faint)}
+  .nastro span{background:var(--bg-deep);border-radius:999px;padding:5px 10px;white-space:nowrap}
+  .notte .nastro span{background:var(--elv)}
+  .nastro span.qui{background:var(--ink);color:var(--bg)}
+  .nastro i{font-style:normal;color:var(--line)}
+
+  /* — LE RIGHE DEI VALORI: mostrano il VALORE, non un controllo — */
+  .righe{display:flex;flex-direction:column;gap:8px}
+  .riga{display:flex;align-items:center;gap:12px;width:100%;background:var(--bg-deep);border:1px solid transparent;border-radius:18px;padding:13px 15px;font:inherit;text-align:left;min-height:60px;cursor:pointer}
+  .notte .riga{background:var(--elv)}
+  .riga:hover{border-color:var(--line)}
+  .riga .tx{flex:1;min-width:0}
+  .riga .tx e{display:block;font-style:normal;font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .riga .tx b{display:block;font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.3;margin-top:2px;overflow-wrap:anywhere}
+  .riga .c{color:var(--faint);font-size:17px;flex:none}
+  /* la riga CORRETTA: vecchio barrato, nuovo in evidenza, e una pastiglia */
+  .riga.fatta{background:var(--blue-tint);border-color:transparent}
+  .notte .riga.fatta{background:var(--blue-tint)}
+  .riga .vecchio{color:var(--muted);text-decoration:line-through;font-weight:600}
+  .riga .frec{color:var(--faint);font-weight:600;padding:0 4px}
+  .pastiglia{display:inline-block;margin-top:6px;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:var(--card);border-radius:999px;padding:3px 9px}
+  .notte .pastiglia{background:var(--elv)}
+  /* la riga del PAZIENTE: non è un campo di testo, apre un elenco di persone */
+  .riga.scegli .tx b{display:flex;align-items:center;gap:8px}
+  .marca{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--purple);background:var(--purple-tint);border-radius:999px;padding:3px 9px;flex:none}
+
+  /* — IL BLOCCO «da qui non si corregge» — */
+  .fuori{margin-top:16px;border-radius:18px;padding:14px 16px;background:var(--bg-deep)}
+  .notte .fuori{background:var(--elv)}
+  .fuori .et{font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--faint);margin:0 0 8px}
+  .fuori p{font-size:14px;color:var(--muted);margin:0 0 8px;line-height:1.5}
+  .fuori p:last-child{margin-bottom:0}
+  .fuori a{color:var(--blue);font-weight:700;text-decoration:none;border-bottom:1.5px solid var(--blue)}
+
+  /* — IL TASTO FINALE, coi due stati — */
+  .zona{margin-top:20px}
+  .primario{display:block;width:100%;background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);color:#fff;border:0;border-radius:20px;padding:15px;font:inherit;font-weight:700;font-size:17px;min-height:56px;box-shadow:0 5px 0 var(--red-dark);cursor:pointer}
+  .primario.spento{background:var(--bg-deep);color:var(--faint);box-shadow:none;cursor:default}
+  .notte .primario.spento{background:var(--elv)}
+  .perche{font-size:13.5px;color:var(--muted);text-align:center;margin:9px 0 0;line-height:1.4}
+
+  /* — il passo di correzione di UNA riga — */
+  .indietro{display:inline-flex;align-items:center;gap:7px;background:transparent;border:0;padding:0;font:inherit;font-size:14.5px;font-weight:700;color:var(--muted);margin-bottom:12px;cursor:pointer;min-height:44px}
+  .campo{margin-top:4px}
+  .campo>label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px}
+  .data{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px 14px;font:inherit;font-size:16px;color:var(--ink);min-height:50px}
+  .notte .data{background:var(--elv)}
+  .data.mod{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-tint)}
+  .era{font-size:13.5px;color:var(--faint);margin:8px 0 0}
+  .era b{color:var(--muted);font-weight:700}
+  .avviso{margin-top:14px;border-radius:16px;padding:12px 14px;background:var(--amber-tint);font-size:13.5px;color:var(--muted);line-height:1.45}
+  .avviso b{display:block;color:var(--ink);font-size:14.5px;margin-bottom:3px}
+
+  /* — l'elenco delle persone (riga «paziente») — */
+  .cerca{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px 14px;font:inherit;font-size:16px;color:var(--muted);min-height:50px;margin-bottom:10px}
+  .notte .cerca{background:var(--elv)}
+  .pers{display:flex;align-items:center;gap:12px;width:100%;background:var(--bg-deep);border:1px solid transparent;border-radius:16px;padding:12px 14px;font:inherit;text-align:left;min-height:56px;cursor:pointer;margin-bottom:7px}
+  .notte .pers{background:var(--elv)}
+  .pers.on{border-color:var(--ink)}
+  .pers .av{width:36px;height:36px;flex:none;border-radius:12px;background:var(--purple-tint);color:var(--purple);display:grid;place-items:center;font-weight:800;font-size:14px}
+  .pers .tx b{display:block;font-size:16px;font-weight:700;color:var(--ink)}
+  .pers .tx s{display:block;font-size:13px;color:var(--muted);text-decoration:none;margin-top:2px}
+
+  /* — le caratteristiche prescritte: due caselle, non una — */
+  .sottoc{margin-top:14px;border-radius:18px;padding:14px 15px;background:var(--bg-deep)}
+  .notte .sottoc{background:var(--elv)}
+  .sottoc .et{font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--faint);margin:0 0 10px}
+  .sottoc .data{background:var(--card)}
+  .notte .sottoc .data{background:var(--card)}
+  .sp{height:12px}
+  .legenda{max-width:400px;font-size:13px;color:var(--faint);line-height:1.5;margin:0 auto 22px;padding:12px 14px;border:1px dashed var(--line);border-radius:14px}
+  .legenda b{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="colonne">
+
+<!-- ═══════════════════ CHIARO ═══════════════════ -->
+<div class="tema">
+  <h1 class="tt">Task D — «Che cosa c'è di sbagliato?» · tema chiaro · 390 px</h1>
+  <p class="nota">Il passo di correzione dentro il foglio «Devo intervenire», dopo il motivo <b>«C'è un dato sbagliato sulla dichiarazione»</b>. Sei righe, una per ogni voce che il documento stampa.</p>
+
+  <div class="legenda">
+    <b>LE DUE VARIANTI, e la differenza è UNA SOLA:</b> dove si mette la correzione rispetto alle quattro caselle di legge (origine · quando l'hai saputo · dov'è il manufatto · potenziale di danno).<br>
+    <b>A</b> — prima si corregge, poi le caselle. <b>B</b> — prima le caselle (come oggi), poi si corregge.
+  </div>
+
+  <!-- ─────────── VARIANTE A ─────────── -->
+  <p class="sez">Variante A — la correzione viene PRIMA</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <div class="nastro"><span>Motivo</span><i>›</i><span class="qui">Che cosa c'è di sbagliato</span><i>›</i><span>Le quattro caselle</span><i>›</i><span>Esito</span></div>
+      <p class="domanda">Che cosa c'è di sbagliato?</p>
+      <p class="sotto">Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.</p>
+
+      <div class="righe">
+        <button class="riga"><div class="tx"><e>Chi ha prescritto</e><b>Dott. Marco Ferri</b></div><div class="c">›</div></button>
+        <button class="riga scegli"><div class="tx"><e>Paziente</e><b>Mario Rossi <span class="marca">altra persona</span></b></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Tipo di dispositivo</e><b>Corona singola</b></div><div class="c">›</div></button>
+        <button class="riga fatta"><div class="tx"><e>Descrizione</e><b><span class="vecchio">Corona in zirconia su 26</span><span class="frec">→</span>Corona in zirconia su 36</b><span class="pastiglia">da rifare</span></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Denti</e><b>26</b></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Caratteristiche prescritte</e><b>Elementi: dente 26 · Colore: A3</b></div><div class="c">›</div></button>
+      </div>
+
+      <div class="fuori">
+        <p class="et">Da qui non si corregge</p>
+        <p>Se è sbagliato un dato del <b>laboratorio</b> — ragione sociale, indirizzo, partita IVA, luogo di fabbricazione — si corregge in <a href="#">Impostazioni</a>, e vale per tutte le dichiarazioni da lì in avanti.</p>
+        <p>Se il <b>nome del paziente</b> è scritto male, si corregge in <a href="#">Anagrafica</a> — così vale per tutti i suoi lavori. Poi torni qui e rifai la dichiarazione. Da questo foglio si cambia <b>quale persona</b> è, non come si chiama.</p>
+      </div>
+
+      <div class="zona">
+        <button class="primario">Correggi e rifai la dichiarazione</button>
+        <p class="perche">Hai corretto <b>1 dato</b>. La dichiarazione di oggi resta in archivio come superata.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="sez">Lo stesso passo, prima di aver corretto qualcosa</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <p class="domanda">Che cosa c'è di sbagliato?</p>
+      <p class="sotto">Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.</p>
+      <div class="righe">
+        <button class="riga"><div class="tx"><e>Chi ha prescritto</e><b>Dott. Marco Ferri</b></div><div class="c">›</div></button>
+        <button class="riga scegli"><div class="tx"><e>Paziente</e><b>Mario Rossi <span class="marca">altra persona</span></b></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Tipo di dispositivo</e><b>Corona singola</b></div><div class="c">›</div></button>
+      </div>
+      <div class="zona">
+        <button class="primario spento">Correggi e rifai la dichiarazione</button>
+        <p class="perche">Tocca una riga e correggi almeno un dato: senza una correzione, il documento nuovo sarebbe identico a quello di oggi.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── VARIANTE B ─────────── -->
+  <p class="sez">Variante B — la correzione viene DOPO le quattro caselle</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <div class="nastro"><span>Motivo</span><i>›</i><span>Le quattro caselle</span><i>›</i><span class="qui">Che cosa c'è di sbagliato</span><i>›</i><span>Esito</span></div>
+      <p class="domanda">Che cosa c'è di sbagliato?</p>
+      <p class="sotto">Le quattro caselle di legge sono a posto. Ora indica il dato da correggere.</p>
+      <div class="righe">
+        <button class="riga"><div class="tx"><e>Chi ha prescritto</e><b>Dott. Marco Ferri</b></div><div class="c">›</div></button>
+        <button class="riga scegli"><div class="tx"><e>Paziente</e><b>Mario Rossi <span class="marca">altra persona</span></b></div><div class="c">›</div></button>
+        <button class="riga fatta"><div class="tx"><e>Descrizione</e><b><span class="vecchio">Corona in zirconia su 26</span><span class="frec">→</span>Corona in zirconia su 36</b><span class="pastiglia">da rifare</span></div><div class="c">›</div></button>
+      </div>
+      <div class="zona">
+        <button class="primario">Correggi e rifai la dichiarazione</button>
+        <p class="perche">Hai corretto <b>1 dato</b>. La dichiarazione di oggi resta in archivio come superata.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── I SOTTO-PASSI, uguali in tutt'e due ─────────── -->
+  <p class="sez">I sotto-passi — uguali in A e in B</p>
+  <p class="nota">Si tocca una riga e <b>cambia il passo del foglio</b>: mai un secondo pannello sopra il primo.</p>
+
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <button class="indietro">‹ Torna all'elenco</button>
+      <p class="domanda">Descrizione</p>
+      <div class="campo">
+        <label for="d1">Come deve dire il documento</label>
+        <input class="data mod" id="d1" value="Corona in zirconia su 36">
+        <p class="era">Adesso dice: <b>Corona in zirconia su 26</b></p>
+      </div>
+      <div class="zona"><button class="primario">Usa questo</button></div>
+    </div>
+  </div>
+
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <button class="indietro">‹ Torna all'elenco</button>
+      <p class="domanda">Quale paziente?</p>
+      <p class="sotto">Da qui si cambia <b>la persona</b>. Per correggere come è scritto un nome si va in <a href="#" style="color:var(--blue);font-weight:700">Anagrafica</a>.</p>
+      <div class="cerca">Cerca per cognome o codice…</div>
+      <button class="pers on"><div class="av">MR</div><div class="tx"><b>Mario Rossi</b><s>PZ-0042 · è quello di adesso</s></div></button>
+      <button class="pers"><div class="av">MR</div><div class="tx"><b>Maria Rossi</b><s>PZ-0117</s></div></button>
+      <button class="pers"><div class="av">GB</div><div class="tx"><b>Giulia Bianchi</b><s>PZ-0088</s></div></button>
+      <div class="zona"><button class="primario spento">Usa questo</button><p class="perche">Scegli una persona diversa da quella di adesso.</p></div>
+    </div>
+  </div>
+
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <button class="indietro">‹ Torna all'elenco</button>
+      <p class="domanda">Caratteristiche prescritte</p>
+      <p class="sotto">Sono le caratteristiche <b>indicate dal medico</b> nella prescrizione: sul documento compaiono in una riga sola.</p>
+      <div class="sottoc">
+        <p class="et">Elementi</p>
+        <input class="data" value="dente 26">
+        <div class="sp"></div>
+        <p class="et">Colore</p>
+        <input class="data mod" value="A3,5">
+      </div>
+      <div class="avviso"><b>Una casella non si può svuotare</b>Se una caratteristica non va più indicata, non si cancella da qui: sul documento è un contenuto dovuto, e toglierla lo farebbe uscire monco.</div>
+      <div class="zona"><button class="primario">Usa questo</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SCURO ═══════════════════ -->
+<div class="tema notte">
+  <h1 class="tt">Task D — «Che cosa c'è di sbagliato?» · tema scuro · 390 px</h1>
+  <p class="nota">Stesse schermate, stesso ordine. In tema scuro le superfici premibili salgono a <b>--elv</b> dentro un pannello <b>--card</b>: una riga dipinta del colore del pannello sparirebbe.</p>
+
+  <p class="sez">Variante A — la correzione viene PRIMA</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <div class="nastro"><span>Motivo</span><i>›</i><span class="qui">Che cosa c'è di sbagliato</span><i>›</i><span>Le quattro caselle</span><i>›</i><span>Esito</span></div>
+      <p class="domanda">Che cosa c'è di sbagliato?</p>
+      <p class="sotto">Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.</p>
+      <div class="righe">
+        <button class="riga"><div class="tx"><e>Chi ha prescritto</e><b>Dott. Marco Ferri</b></div><div class="c">›</div></button>
+        <button class="riga scegli"><div class="tx"><e>Paziente</e><b>Mario Rossi <span class="marca">altra persona</span></b></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Tipo di dispositivo</e><b>Corona singola</b></div><div class="c">›</div></button>
+        <button class="riga fatta"><div class="tx"><e>Descrizione</e><b><span class="vecchio">Corona in zirconia su 26</span><span class="frec">→</span>Corona in zirconia su 36</b><span class="pastiglia">da rifare</span></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Denti</e><b>26</b></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Caratteristiche prescritte</e><b>Elementi: dente 26 · Colore: A3</b></div><div class="c">›</div></button>
+      </div>
+      <div class="fuori">
+        <p class="et">Da qui non si corregge</p>
+        <p>Se è sbagliato un dato del <b>laboratorio</b> — ragione sociale, indirizzo, partita IVA, luogo di fabbricazione — si corregge in <a href="#">Impostazioni</a>, e vale per tutte le dichiarazioni da lì in avanti.</p>
+        <p>Se il <b>nome del paziente</b> è scritto male, si corregge in <a href="#">Anagrafica</a> — così vale per tutti i suoi lavori. Poi torni qui e rifai la dichiarazione. Da questo foglio si cambia <b>quale persona</b> è, non come si chiama.</p>
+      </div>
+      <div class="zona">
+        <button class="primario">Correggi e rifai la dichiarazione</button>
+        <p class="perche">Hai corretto <b>1 dato</b>. La dichiarazione di oggi resta in archivio come superata.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="sez">Lo stesso passo, prima di aver corretto qualcosa</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <p class="domanda">Che cosa c'è di sbagliato?</p>
+      <p class="sotto">Tocca la riga da correggere. Niente viene salvato finché non premi il tasto in fondo.</p>
+      <div class="righe">
+        <button class="riga"><div class="tx"><e>Chi ha prescritto</e><b>Dott. Marco Ferri</b></div><div class="c">›</div></button>
+        <button class="riga scegli"><div class="tx"><e>Paziente</e><b>Mario Rossi <span class="marca">altra persona</span></b></div><div class="c">›</div></button>
+        <button class="riga"><div class="tx"><e>Tipo di dispositivo</e><b>Corona singola</b></div><div class="c">›</div></button>
+      </div>
+      <div class="zona">
+        <button class="primario spento">Correggi e rifai la dichiarazione</button>
+        <p class="perche">Tocca una riga e correggi almeno un dato: senza una correzione, il documento nuovo sarebbe identico a quello di oggi.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="sez">Variante B — la correzione viene DOPO le quattro caselle</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <div class="nastro"><span>Motivo</span><i>›</i><span>Le quattro caselle</span><i>›</i><span class="qui">Che cosa c'è di sbagliato</span><i>›</i><span>Esito</span></div>
+      <p class="domanda">Che cosa c'è di sbagliato?</p>
+      <p class="sotto">Le quattro caselle di legge sono a posto. Ora indica il dato da correggere.</p>
+      <div class="righe">
+        <button class="riga"><div class="tx"><e>Chi ha prescritto</e><b>Dott. Marco Ferri</b></div><div class="c">›</div></button>
+        <button class="riga scegli"><div class="tx"><e>Paziente</e><b>Mario Rossi <span class="marca">altra persona</span></b></div><div class="c">›</div></button>
+        <button class="riga fatta"><div class="tx"><e>Descrizione</e><b><span class="vecchio">Corona in zirconia su 26</span><span class="frec">→</span>Corona in zirconia su 36</b><span class="pastiglia">da rifare</span></div><div class="c">›</div></button>
+      </div>
+      <div class="zona">
+        <button class="primario">Correggi e rifai la dichiarazione</button>
+        <p class="perche">Hai corretto <b>1 dato</b>. La dichiarazione di oggi resta in archivio come superata.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="sez">I sotto-passi — uguali in A e in B</p>
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <button class="indietro">‹ Torna all'elenco</button>
+      <p class="domanda">Descrizione</p>
+      <div class="campo">
+        <label for="d2">Come deve dire il documento</label>
+        <input class="data mod" id="d2" value="Corona in zirconia su 36">
+        <p class="era">Adesso dice: <b>Corona in zirconia su 26</b></p>
+      </div>
+      <div class="zona"><button class="primario">Usa questo</button></div>
+    </div>
+  </div>
+
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <button class="indietro">‹ Torna all'elenco</button>
+      <p class="domanda">Quale paziente?</p>
+      <p class="sotto">Da qui si cambia <b>la persona</b>. Per correggere come è scritto un nome si va in <a href="#" style="color:var(--blue);font-weight:700">Anagrafica</a>.</p>
+      <div class="cerca">Cerca per cognome o codice…</div>
+      <button class="pers on"><div class="av">MR</div><div class="tx"><b>Mario Rossi</b><s>PZ-0042 · è quello di adesso</s></div></button>
+      <button class="pers"><div class="av">MR</div><div class="tx"><b>Maria Rossi</b><s>PZ-0117</s></div></button>
+      <button class="pers"><div class="av">GB</div><div class="tx"><b>Giulia Bianchi</b><s>PZ-0088</s></div></button>
+      <div class="zona"><button class="primario spento">Usa questo</button><p class="perche">Scegli una persona diversa da quella di adesso.</p></div>
+    </div>
+  </div>
+
+  <div class="tel">
+    <div class="foglio">
+      <div class="maniglia"></div>
+      <button class="indietro">‹ Torna all'elenco</button>
+      <p class="domanda">Caratteristiche prescritte</p>
+      <p class="sotto">Sono le caratteristiche <b>indicate dal medico</b> nella prescrizione: sul documento compaiono in una riga sola.</p>
+      <div class="sottoc">
+        <p class="et">Elementi</p>
+        <input class="data" value="dente 26">
+        <div class="sp"></div>
+        <p class="et">Colore</p>
+        <input class="data mod" value="A3,5">
+      </div>
+      <div class="avviso"><b>Una casella non si può svuotare</b>Se una caratteristica non va più indicata, non si cancella da qui: sul documento è un contenuto dovuto, e toglierla lo farebbe uscire monco.</div>
+      <div class="zona"><button class="primario">Usa questo</button></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

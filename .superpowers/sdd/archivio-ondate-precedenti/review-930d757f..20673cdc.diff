@@ -1,0 +1,258 @@
+# Review package: 930d757f..HEAD
+
+## Commits
+20673cdc docs(piano): il §2 nel piano cade sullo stesso scoglio del §7 — terzo difetto dello stesso tipo
+7348be8f feat(ddc): il §2 — Data di emissione entra nella numerazione (D106)
+
+## Files changed
+ docs/superpowers/plans/2026-08-03-accenti-documenti.md       | 12 ++++++++----
+ .../superpowers/specs/2026-08-03-accenti-documenti-design.md |  4 ++--
+ src/components/features/pdf/DdcTemplate.tsx                  | 12 +++++++++++-
+ tests/unit/ddc-pdf-content.test.ts                           | 11 +++++++++++
+ 4 files changed, 32 insertions(+), 7 deletions(-)
+
+## Diff
+diff --git a/docs/superpowers/plans/2026-08-03-accenti-documenti.md b/docs/superpowers/plans/2026-08-03-accenti-documenti.md
+index 92fa684a..7448d06b 100644
+--- a/docs/superpowers/plans/2026-08-03-accenti-documenti.md
++++ b/docs/superpowers/plans/2026-08-03-accenti-documenti.md
+@@ -62,21 +62,21 @@ L'elenco **non** è deciso dall'autore: viene dal censimento sotto.
+ 
+ | identificatore / stringa | dove | destinazione |
+ |---|---|---|
+ | `'Dichiarazione di Conformita …'` (title) | `DdcTemplate.tsx:292` | Task 2 |
+ | `"Dichiarazione di Conformita MDR 2017/745"` (subject) | `:294` | Task 2 |
+ | `Dichiarazione di Conformita` (titolo reso) | `:326` | Task 2 |
+ | `'Si — vedere documentazione allegata'` | `:446` | Task 2, **con il caso che lo raggiunge** |
+ | `§7 — Dichiarazione di Conformita` | `:486` | Task 2 |
+ | `Responsabile della Conformita (PRRC)` | `:514` | Task 2 |
+ | `Responsabilita ai sensi dell'Art. 15(1)…` | `NominaPrrcTemplate.tsx:341` | Task 5 |
+-| `testoConformita` (`…e' conforme…`) | `generate-ddc.ts:119` | Task 3 |
++| `testoConformita` (`…e' conforme…`) | `generate-ddc.ts:132` | Task 3 |
+ | DEFAULT di `testo_conformita_snapshot` | `002_fase2_schema.sql:188-189` | Task 6 (migration nuova) |
+ | `VERSIONE_TEMPLATE_DDC` | `generate-ddc.ts:41` | Task 1 — **resta `'ddc-v1'`**, cambia il commento |
+ | commento `-- Es. "ddc-v1.2.0"` | `supabase/schema.sql:1249` | Task 1 |
+ | intestazione `N. … | Data: …` | `DdcTemplate.tsx:337-339` | Task 4 — la data **esce di lì** |
+ | `VERSIONE_ATTESA = 'ddc-v1'` | `scripts/tmp/leggi-ddc.ts:32` | **nessuna**: file usa-e-getta, ignorato da git, resta valido perché la versione non cambia |
+ | `testo_conformita` in `seed.sql:196-198` | seed | **nessuna in questo piano**: è il referral ① (testo diverso nella sostanza) |
+ 
+ ---
+ 
+ ## Task 1 — Il registro delle versioni, e le due definizioni che si contraddicono
+@@ -289,21 +289,21 @@ git add src/components/features/pdf/DdcTemplate.tsx tests/unit/ddc-pdf-content.t
+ git commit -F <messaggio fuori dal repo>
+ ```
+ 
+ Messaggio: `fix(ddc): gli accenti nel documento — e il test smette di fissare il refuso (D104)`
+ 
+ ---
+ 
+ ## Task 3 — La frase congelata: solo i segni, il resto byte per byte
+ 
+ **Files:**
+-- Modify: `src/lib/pdf/generate-ddc.ts:119`
++- Modify: `src/lib/pdf/generate-ddc.ts:132`
+ - Modify: `tests/unit/ddc-pdf-content.test.ts:68-69` (fixture)
+ 
+ **Interfaces:** nessuna. `testoConformita` resta una costante locale di `generateDdC`.
+ 
+ - [ ] **Step 1: la prova, prima**
+ 
+ In `tests/unit/generate-ddc.test.ts` aggiungi:
+ 
+ Stesso `describe` e stesso apparecchio del Task 1 (`mockInsert.mock.calls[0][0]` dopo `generateDdC`):
+ 
+@@ -318,21 +318,21 @@ Stesso `describe` e stesso apparecchio del Task 1 (`mockInsert.mock.calls[0][0]`
+   })
+ ```
+ 
+ - [ ] **Step 2: esegui e verifica il rosso**
+ 
+ Run: `npx vitest run tests/unit/generate-ddc.test.ts`
+ Atteso: **rosso**, con il testo attuale (`e' conforme`) nel messaggio.
+ 
+ - [ ] **Step 3: cambia UN SOLO carattere**
+ 
+-In `src/lib/pdf/generate-ddc.ts:119`:
++In `src/lib/pdf/generate-ddc.ts:132`:
+ 
+ ```ts
+   const testoConformita = "Il fabbricante dichiara che il presente dispositivo è conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
+ ```
+ 
+ 🛑 **Confronta la stringa nuova con la vecchia carattere per carattere e dichiara la differenza nel referto:
+ deve essere `e'` → `è`, e nient'altro.** Comando suggerito, da eseguire e incollare:
+ 
+ ```bash
+ git diff -U0 --word-diff=porcelain src/lib/pdf/generate-ddc.ts | head -20
+@@ -379,21 +379,25 @@ Messaggio: `fix(ddc): «è conforme» nella frase congelata — un solo caratter
+ 
+ **Interfaces:** nessuna. `formatData` (`:198`) esiste già ed è quella che si usa.
+ 
+ - [ ] **Step 1: la prova, prima**
+ 
+ ```ts
+   it('il §2 — Data di emissione esiste e porta la data', () => {
+     // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
+     // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
+     // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
+-    expect(pdfText).toContain('§2 — Data di emissione')
++    // ⚠️ MAIUSCOLO, come ogni titolo di sezione: `styles.sectionTitle` ha
++    //    `textTransform:'uppercase'`. È il TERZO punto del piano caduto sullo
++    //    stesso scoglio (dopo il §7): quando il piano cita un titolo di sezione,
++    //    la forma attesa nel testo estratto è sempre quella maiuscola.
++    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
+     expect(pdfText).toContain('15/05/2026')     // data della fixture
+   })
+ ```
+ 
+ - [ ] **Step 2: esegui e verifica il rosso**
+ 
+ Run: `npx vitest run tests/unit/ddc-pdf-content.test.ts`
+ Atteso: **rosso** sul `§2 — Data di emissione` (la data invece è già presente: la stampa l'intestazione).
+ 🛑 Se fosse verde su entrambe le asserzioni, il test non misura la sezione: fermati e riferisci.
+ 
+diff --git a/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md b/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md
+index 317a14b0..8cb408e3 100644
+--- a/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md
++++ b/docs/superpowers/specs/2026-08-03-accenti-documenti-design.md
+@@ -32,21 +32,21 @@ codifica giusta. Il gate non blocca più niente.
+ 
+ | # | file:riga | oggi | domani |
+ |---|---|---|---|
+ | 1 | `src/components/features/pdf/DdcTemplate.tsx:292` | `title` del file: `Dichiarazione di Conformita …` | `…Conformità…` |
+ | 2 | `DdcTemplate.tsx:294` | `subject` del file: `…Conformita MDR 2017/745` | `…Conformità…` |
+ | 3 | `DdcTemplate.tsx:326` | titolo stampato (reso maiuscolo): `DICHIARAZIONE DI CONFORMITA` | `…CONFORMITÀ` |
+ | 4 | `DdcTemplate.tsx:446` | `'Si — vedere documentazione allegata'` | `'Sì — …'` |
+ | 5 | `DdcTemplate.tsx:486` | `§7 — Dichiarazione di Conformita` | `…Conformità` |
+ | 6 | `DdcTemplate.tsx:514` | `Responsabile della Conformita (PRRC)` | `…Conformità (PRRC)` |
+ | 7 | `src/components/features/pdf/NominaPrrcTemplate.tsx:341` | `Responsabilita ai sensi dell'Art. 15(1)` | `Responsabilità…` |
+-| 8 | `src/lib/pdf/generate-ddc.ts:119` | frase congelata: `…dispositivo e' conforme…` | `…dispositivo è conforme…` |
++| 8 | `src/lib/pdf/generate-ddc.ts:132` | frase congelata: `…dispositivo e' conforme…` | `…dispositivo è conforme…` |
+ | 9 | `supabase/migrations/002_fase2_schema.sql:188-189` | **DEFAULT della colonna** `testo_conformita_snapshot`: seconda copia della frase con `e'` | allineato da una **migration nuova** |
+ | 10 | `DdcTemplate.tsx` (§1 a `:345`) | la numerazione salta: `§1 → §3` | compare **`§2 — Data di emissione`** |
+ 
+ ### 2.1 Il vincolo sul punto 8 — solo i segni, il resto byte per byte
+ 
+ 🛑 **Si cambia `e'` in `è` e NIENT'ALTRO.** Nessuna riformulazione, nessuna parola aggiunta o tolta. Una
+ modifica dentro la frase di un documento a valore legale è un invito a «già che ci siamo miglioriamo il
+ testo», e quella è una decisione diversa — che il panel ha già isolato (§5, referral ①).
+ 
+ Chi esegue confronta la stringa nuova con la vecchia **carattere per carattere** e dichiara la differenza:
+@@ -129,21 +129,21 @@ numerazione, e che il §2 non abbia spostato niente oltre il salto di pagina.
+ 
+ ---
+ 
+ ## 5. Fuori perimetro — riferiti, NON accorpati (R-E2)
+ 
+ Il panel, leggendo il documento contro l'Allegato XIII, ha trovato cose **più pesanti del refuso**. Nessuna
+ entra qui: ognuna è una voce propria.
+ 
+ | | ritrovamento | dove |
+ |---|---|---|
+-| ① | La frase del §7 dice il dispositivo conforme «**e ai disposti dell'Allegato XIII**»: quello è una **procedura che il fabbricante segue** (Art. 52(8)), non un requisito a cui un dispositivo è conforme. Il trattino 7 chiede la conformità ai soli RGSP dell'Allegato I. ⚠️ `supabase/seed.sql:198` porta una versione **migliore e già accentata** («…dichiara **sotto la propria responsabilità**…», senza la clausola): la stringa in uso è una **regressione**, non una scelta | `generate-ddc.ts:119` |
++| ① | La frase del §7 dice il dispositivo conforme «**e ai disposti dell'Allegato XIII**»: quello è una **procedura che il fabbricante segue** (Art. 52(8)), non un requisito a cui un dispositivo è conforme. Il trattino 7 chiede la conformità ai soli RGSP dell'Allegato I. ⚠️ `supabase/seed.sql:198` porta una versione **migliore e già accentata** («…dichiara **sotto la propria responsabilità**…», senza la clausola): la stringa in uso è una **regressione**, non una scelta | `generate-ddc.ts:132` |
+ | ② | **Il luogo di fabbricazione non è mai stampato**, ed è il **trattino 1**, obbligatorio: la colonna esiste (`schema.sql:1242`, default `'Italia'`) e non arriva sul foglio | `DdcTemplate.tsx` §1 |
+ | ③ | Il foglio **afferma «Sostanze / tessuti: No»** con un valore **codificato a mano** (`contiene_sostanze_o_tessuti: false`), mai raccolto né verificato. Il trattino 8 è condizionale: l'indicazione serve **solo se vero**. Una negazione affermata è surplus volontario, e su materiali di origine animale (Reg. UE 722/2012) è un falso negativo | `generate-ddc.ts:144` |
+ | ④ | **L'identificazione del paziente può svanire**: la catena termina in `?? ''`, la colonna è `NOT NULL` quindi `''` passa, e il template rende `—`. Un foglio che dichiara «esclusivamente per il paziente indicato» **senza indicare il paziente** viola il trattino 4 | `generate-ddc.ts:137` · `DdcTemplate.tsx:265-268` |
+ | ⑤ | Citazione errata: **«Art. 2(1)(3)»**. L'Art. 2 MDR non ha paragrafi (è «Definizioni», a punti): la forma corretta è **«Art. 2, punto 3»**. *(Art. 20(1) e Art. 52(8) nel documento sono invece esatti)* | `DdcTemplate.tsx:451` · `seed.sql:198` |
+ | ⑥ | **La nomina del PRRC non viene conservata e si riscrive la data a ogni scaricamento** (`new Date().toLocaleDateString('it-IT')`): due copie firmate dello stesso atto portano date diverse. E tiene in duro `prrc_cognome: ''`, `ha_accettato: false`, mentre la tabella `prrc_nomine` e la funzione `has_prrc_valido()` **esistono in banca dati e nessuno le legge** | `src/lib/pdf/generate-nomina-prrc.ts:15-23` |
+ | ⑦ | **`payload_sha256` oggi non è ricalcolabile**, misurato: `data_emissione` non sopravvive al giro di andata e ritorno (scritta `…983Z`, riletta `…983+00:00`) e `norma_riferimento` entra nell'impronta senza essere una colonna della riga. Verificatori esistenti: **zero** | `generate-ddc.ts:156` · voce 7 dell'handoff |
+ | ⑧ | **Contraddizione fra due panel, da sciogliere**: il parere normativo sostiene che la base della conservazione decennale sia l'**Allegato XIII punto 4 da solo**, perché l'Art. 10(5) rimanda alla documentazione tecnica (All. XIII **punto 2**), non alla dichiarazione. Il panel del 29/07 aveva ratificato «Art. 10(5) + Allegato XIII punto 4», e quella citazione vive in **tre documenti**. Non ratifico né scarto: **va verificata sul testo** | `../CLAUDE.md` §7 e i due documenti citati lì |
+ | ⑨ | Lo stesso refuso vive **fuori dai PDF**: «Non Conformita Recenti» in una schermata | `src/app/(app)/qualita/page.tsx:83` |
+ 
+ ---
+diff --git a/src/components/features/pdf/DdcTemplate.tsx b/src/components/features/pdf/DdcTemplate.tsx
+index 3f41cb83..27b018f0 100644
+--- a/src/components/features/pdf/DdcTemplate.tsx
++++ b/src/components/features/pdf/DdcTemplate.tsx
+@@ -329,21 +329,20 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+           Ai sensi dell&apos;Art. 52(8) e Allegato XIII del Regolamento UE 2017/745
+         </Text>
+ 
+         {/* ── SEPARATORE ── */}
+         <View style={styles.separator} />
+ 
+         {/* ── NUMERO DDC ── */}
+         {ddc.numero_ddc ? (
+           <Text style={styles.numeroDdc}>
+             N. {ddc.numero_ddc}
+-            {ddc.data_emissione ? `   |   Data: ${formatData(ddc.data_emissione)}` : ''}
+           </Text>
+         ) : null}
+ 
+         {/* ── §1 FABBRICANTE ── */}
+         <View style={styles.section}>
+           <Text style={styles.sectionTitle}>§1 — Fabbricante</Text>
+           <View style={styles.row}>
+             <Text style={styles.label}>Ragione sociale:</Text>
+             <Text style={styles.valueBold}>{ddc.fabbricante_nome ?? '—'}</Text>
+           </View>
+@@ -366,20 +365,31 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
+               <Text style={styles.label}>SRN EUDAMED:</Text>
+               <Text style={styles.value}>{lab.srn_eudamed}</Text>
+             </View>
+           ) : null}
+           <View style={styles.row}>
+             <Text style={styles.label}>Luogo emissione:</Text>
+             <Text style={styles.value}>{ddc.luogo_emissione || '—'}</Text>
+           </View>
+         </View>
+ 
++        {/* ── §2 DATA DI EMISSIONE ── */}
++        <View style={styles.section}>
++          <Text style={styles.sectionTitle}>§2 — Data di emissione</Text>
++          <View style={styles.row}>
++            <Text style={styles.label}>Data:</Text>
++            <Text style={styles.valueBold}>
++              {ddc.data_emissione ? formatData(ddc.data_emissione) : '—'}
++            </Text>
++          </View>
++        </View>
++
+         {/* ── §3 PRESCRITTORE ── */}
+         <View style={styles.section}>
+           <Text style={styles.sectionTitle}>§3 — Prescrittore</Text>
+           <View style={styles.row}>
+             <Text style={styles.label}>Nome prescrittore:</Text>
+             <Text style={styles.valueBold}>{ddc.prescrittore_nome || '—'}</Text>
+           </View>
+           {ddc.prescrizione_id ? (
+             <View style={styles.row}>
+               <Text style={styles.label}>N. prescrizione:</Text>
+diff --git a/tests/unit/ddc-pdf-content.test.ts b/tests/unit/ddc-pdf-content.test.ts
+index e40d32a2..fc5f970f 100644
+--- a/tests/unit/ddc-pdf-content.test.ts
++++ b/tests/unit/ddc-pdf-content.test.ts
+@@ -182,20 +182,31 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)',
+   // ── §2 Numero DdC e data emissione ───────────────────────────────────────
+ 
+   it('§2 stampa numero DdC', () => {
+     expect(pdfText).toContain('DDC-2026-0001')
+   })
+ 
+   it('§2 stampa data di emissione formattata (dd/mm/yyyy)', () => {
+     expect(pdfText).toContain('15/05/2026')
+   })
+ 
++  it('il §2 — Data di emissione esiste e porta la data', () => {
++    // I paragrafi ricalcano gli otto elementi dell'Allegato XIII punto 1: il n. 2
++    // è la data di emissione (src/lib/consegna/precheck.ts:8). Fino al 03/08/2026
++    // il dato c'era ma senza il suo titoletto, e il foglio saltava da §1 a §3.
++    // ⚠️ Il brief del task proponeva questa stringa in maiuscole/minuscole miste,
++    // ma styles.sectionTitle ha textTransform: 'uppercase' (come per ogni altra
++    // sezione, es. il §7 alla riga 138) — il titolo esce in maiuscolo nel PDF.
++    expect(pdfText).toContain('§2 — DATA DI EMISSIONE')
++    expect(pdfText).toContain('15/05/2026')     // data della fixture
++  })
++
+   // ── §3 Prescrittore ───────────────────────────────────────────────────────
+ 
+   it('§3 stampa nome prescrittore', () => {
+     expect(pdfText).toContain('Dott. Mario Rossi')
+   })
+ 
+   // ── §4 Paziente ───────────────────────────────────────────────────────────
+ 
+   it('§4 stampa nome paziente (pseudonimizzato)', () => {
+     expect(pdfText).toContain('M.R.')

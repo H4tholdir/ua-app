@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node .claude/*)"
+      "Bash(node .claude/*)",
+      "Bash(git push*)"
     ],
     "deny": [
       "Read(./.env)",

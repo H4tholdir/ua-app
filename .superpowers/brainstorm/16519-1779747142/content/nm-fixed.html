@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Neumorphism Fixed + Dark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ─── LIGHT TOKENS ─── */
+:root {
+  --bg: #DDD8D3; --t1: #1C1916; --t2: #4A3D33; --t3: #6B5C51;
+  --primary: #D90012; --accent: #2D5C3F;
+  --sd: #B8B0A8; --sl: #F0EDEA;
+  /* shadow scale */
+  --sh-sm:   -3px -3px  6px var(--sl), 3px  3px  8px var(--sd);
+  --sh-md:   -5px -5px 11px var(--sl), 5px  5px 12px var(--sd);
+  --sh-lg:   -8px -8px 18px var(--sl), 8px  8px 20px var(--sd);
+  --sh-flt: -10px -10px 22px var(--sl), 10px 10px 26px var(--sd);
+  --sh-in-sm: inset 3px 3px 7px var(--sd), inset -3px -3px 7px var(--sl);
+  --sh-in-md: inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl);
+}
+/* ─── DARK TOKENS ─── */
+:root[data-theme="dark"],
+.dark-plane {
+  --bg: #1A1916; --t1: #F0EDE8; --t2: #8A8580; --t3: #5C5855;
+  --primary: #E8001A; --accent: #4A9A68;
+  --sd: #0A0907; --sl: #2C2925;
+  --sh-sm:   -3px -3px  6px var(--sl), 3px  3px  8px var(--sd);
+  --sh-md:   -5px -5px 11px var(--sl), 5px  5px 12px var(--sd);
+  --sh-lg:   -8px -8px 18px var(--sl), 8px  8px 20px var(--sd);
+  --sh-flt: -10px -10px 20px var(--sl), 10px 10px 24px var(--sd);
+  --sh-in-sm: inset 3px 3px 7px var(--sd), inset -3px -3px 7px var(--sl);
+  --sh-in-md: inset 4px 4px 9px var(--sd), inset -4px -4px 9px var(--sl);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #C5C0BB; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  padding: 20px 16px 60px;
+  background: transparent;
+}
+
+/* ─── Layout ─── */
+.side-by-side { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+.plane {
+  background: var(--bg);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: var(--sh-lg);
+}
+.plane-title {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
+  margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid rgba(128,128,128,.15);
+}
+.lt { color: #6B5C51; }
+.dk { color: #5C5855; }
+
+.sec-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.10em; color: #8A857F;
+  margin: 24px 0 10px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.col-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: .6; margin-bottom: 6px; }
+
+/* ─── STANDARD BUTTONS ─── */
+.btn {
+  background: var(--bg); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--t1); border-radius: 12px; padding: 12px 14px; width: 100%;
+  transition: box-shadow 100ms ease, transform 80ms ease;
+}
+.btn-raised { box-shadow: var(--sh-sm); }
+.btn-raised:hover { box-shadow: -2px -2px 4px var(--sl), 2px 2px 5px var(--sd); }
+.btn-raised:active { box-shadow: var(--sh-in-sm); transform: scale(0.983); }
+.btn-pressed { box-shadow: var(--sh-in-sm); color: var(--t3); }
+.btn-flat { color: var(--t2); }
+
+/* ─── PUSH BUTTON (deep 3D — CTA principale) ─── */
+/* Bug fix: tutti px, niente em, font-size esplicito */
+.push {
+  position: relative; border: none; background: transparent;
+  padding: 0; cursor: pointer; display: block; width: 100%;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  transition: filter 250ms ease; user-select: none; touch-action: manipulation;
+}
+.push__shadow {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 14px;
+  background: rgba(100,20,10,0.45);    /* più scuro e saturo → ombra più visibile */
+  transform: translateY(5px);          /* +1px rispetto a prima → più profondo */
+  transition: transform 600ms cubic-bezier(.3,.7,.4,1);
+  filter: blur(2px);                   /* blur per ombra più realistica */
+}
+.push__edge {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 14px;
+  /* bordo laterale più saturo e visibile */
+  background: linear-gradient(to left,
+    hsl(4,100%,20%) 0%,
+    hsl(4,100%,32%) 6%,
+    hsl(4,100%,32%) 94%,
+    hsl(4,100%,20%) 100%);
+}
+.push__front {
+  display: block; position: relative;
+  padding: 14px 24px;               /* più alto → più superficie fisica */
+  border-radius: 14px;
+  font-size: 14px; font-weight: 700;
+  color: #fff; text-align: center;
+  background: var(--primary);
+  transform: translateY(-8px);      /* era -4px → raddoppiato: più sollevato */
+  transition: transform 600ms cubic-bezier(.3,.7,.4,1);
+  box-shadow: inset 0 1px 0 rgba(255,180,160,.25); /* riflesso interno sottile */
+}
+/* Hover: si solleva ancora di più */
+.push:hover { filter: brightness(108%); }
+.push:hover .push__front {
+  transform: translateY(-11px);     /* era -6px → più drammatico */
+  transition: transform 250ms cubic-bezier(.3,.7,.4,1.5);
+}
+.push:hover .push__shadow {
+  transform: translateY(8px);       /* ombra segue proporzionalmente */
+  transition: transform 250ms cubic-bezier(.3,.7,.4,1.5);
+}
+/* Press: crolla quasi a piano — effetto fisico deciso */
+.push:active .push__front {
+  transform: translateY(-1px);      /* era -2px → quasi a zero = premuto sul piano */
+  transition: transform 34ms;
+  filter: brightness(90%);
+}
+.push:active .push__shadow {
+  transform: translateY(1px);
+  transition: transform 34ms;
+}
+/* Ghost (Annulla) */
+.push__edge--ghost {
+  background: linear-gradient(to left,
+    rgba(100,80,68,.45) 0%, rgba(120,100,88,.32) 6%,
+    rgba(120,100,88,.32) 94%, rgba(100,80,68,.45) 100%);
+}
+.push__front--ghost {
+  background: var(--bg);
+  color: var(--t1);
+  box-shadow: var(--sh-sm);
+}
+.push__shadow--ghost { background: rgba(110,90,78,.22); }
+
+/* ─── PILL BUTTON — FIX COMPLETO (px everywhere, no em) ─── */
+.pill {
+  /* Reset completo senza all:unset per evitare perdita font-size */
+  display: block; width: 100%;
+  margin: 0; padding: 0;
+  border: none; outline: none;
+  background: var(--bg);
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;    /* ESPLICITO — risolve il bug em */
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    -2px -2px 4px var(--sl),
+     2px  2px 5px var(--sd);
+  transition: box-shadow 300ms ease;
+  overflow: hidden;   /* fix per clip-path issues */
+}
+.pill:hover {
+  box-shadow: none;  /* atterra sul piano */
+}
+.pill__inner {
+  display: block;
+  padding: 12px 24px;      /* px fissi — niente em */
+  border-radius: 100px;
+  background: linear-gradient(135deg, #E4DFD9 0%, #D4CFC9 100%);
+  transition: box-shadow 300ms ease, background 300ms ease, transform 120ms ease;
+  box-shadow:
+    inset 2px 2px 4px rgba(240,237,234,.85),
+    inset -2px -2px 4px rgba(184,176,168,.35);
+}
+.pill:hover .pill__inner {
+  background: linear-gradient(135deg, #D8D3CE 0%, #CCC7C2 100%);
+  box-shadow:
+    inset 3px 3px 7px rgba(184,176,168,.52),
+    inset -3px -3px 7px rgba(240,237,234,.80);
+}
+.pill:active .pill__inner {
+  transform: scale(0.97);
+  box-shadow:
+    inset 4px 4px 8px rgba(184,176,168,.60),
+    inset -2px -2px 5px rgba(240,237,234,.70);
+}
+.pill__label {
+  display: block; text-align: center;
+  font-size: 13px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--t1);    /* testo solido — no clip gradient per affidabilità */
+  user-select: none;
+  transition: transform 250ms ease, opacity 150ms ease;
+}
+.pill:hover .pill__label { transform: scale(0.975); }
+/* Accent verde */
+.pill--accent { background: var(--accent); box-shadow: -2px -2px 4px rgba(90,140,110,.30), 2px 2px 5px rgba(20,50,30,.50); }
+.pill--accent .pill__inner { background: linear-gradient(135deg, #356844 0%, #2D5C3F 100%); }
+.pill--accent .pill__label { color: #fff; }
+.pill--accent:hover .pill__inner { background: linear-gradient(135deg, #2D5C3F 0%, #244D35 100%); }
+
+/* ─── DARK MODE pill ─── */
+.dark-plane .pill { background: var(--bg); box-shadow: -2px -2px 4px var(--sl), 2px 2px 5px var(--sd); }
+.dark-plane .pill__inner { background: linear-gradient(135deg, #28261F 0%, #222019 100%); box-shadow: inset 2px 2px 4px rgba(44,41,37,.80), inset -2px -2px 4px rgba(10,9,7,.90); }
+.dark-plane .pill:hover .pill__inner { background: linear-gradient(135deg, #222019 0%, #1A1710 100%); }
+.dark-plane .pill__label { color: var(--t1); }
+
+/* ─── DARK MODE push ─── */
+.dark-plane .push__shadow { background: rgba(0,0,0,.70); }
+.dark-plane .push__edge { background: linear-gradient(to left, hsl(4,100%,14%) 0%, hsl(4,90%,22%) 6%, hsl(4,90%,22%) 94%, hsl(4,100%,14%) 100%); }
+.dark-plane .push__front { background: var(--primary); box-shadow: inset 0 1px 0 rgba(255,100,80,.18); }
+.dark-plane .push__edge--ghost { background: linear-gradient(to left, rgba(44,41,37,.70) 0%, rgba(50,47,44,.50) 6%, rgba(50,47,44,.50) 94%, rgba(44,41,37,.70) 100%); }
+.dark-plane .push__front--ghost { background: var(--bg); color: var(--t1); box-shadow: var(--sh-sm); }
+
+/* ─── INPUT ─── */
+.field-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t3); margin-bottom: 5px; display: block; }
+.field-in {
+  background: var(--bg); border: none; outline: none;
+  width: 100%; padding: 11px 13px; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--t1);
+  box-shadow: var(--sh-in-md);
+  transition: box-shadow 150ms ease;
+  margin-bottom: 10px;
+}
+.field-in:focus { box-shadow: var(--sh-in-md), 0 0 0 2px rgba(45,92,63,.35); }
+.field-in::placeholder { color: var(--t3); }
+
+/* ─── KPI ─── */
+.kpi-row { display: flex; gap: 7px; margin-bottom: 10px; }
+.kpi-box { flex: 1; background: var(--bg); border-radius: 11px; padding: 10px 11px; box-shadow: var(--sh-sm); }
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--t3); margin-top: 3px; }
+
+/* ─── CARD ─── */
+.card { background: var(--bg); border-radius: 13px; padding: 12px 13px; box-shadow: var(--sh-md); margin-bottom: 7px; }
+.card-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.c-n { font-size: 14px; font-weight: 600; color: var(--t1); }
+.c-s { font-size: 12px; color: var(--t2); margin-top: 2px; }
+.c-h { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+
+/* ─── NAV PILL (float) ─── */
+.nav-pill { background: var(--bg); border-radius: 100px; padding: 8px 10px; box-shadow: var(--sh-flt); display: flex; justify-content: space-around; margin-top: 10px; }
+.nav-i { font-size: 10px; font-weight: 600; color: var(--t2); text-align: center; }
+.nav-i.act { color: var(--primary); }
+
+/* ─── TOGGLE ─── */
+.tog-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tog-track { width: 48px; height: 26px; background: var(--bg); border-radius: 100px; box-shadow: var(--sh-in-sm); position: relative; cursor: pointer; flex-shrink: 0; }
+.tog-thumb { position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; background: var(--bg); border-radius: 50%; box-shadow: var(--sh-sm); transition: transform 180ms cubic-bezier(.2,0,0,1); }
+.tog-track.on .tog-thumb { transform: translateX(22px); background: var(--accent); box-shadow: -2px -2px 4px var(--sl), 2px 2px 5px var(--sd); }
+.tog-lbl { font-size: 13px; color: var(--t2); font-weight: 500; }
+
+/* ─── FAB VASSOIO ─── */
+.fab-tray { display: inline-flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 100px; padding: 4px; box-shadow: var(--sh-sm); }
+.fab-btn { background: var(--primary); border: none; cursor: pointer; border-radius: 100px; padding: 10px 22px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #fff; transition: filter 150ms; }
+.fab-btn:hover { filter: brightness(110%); }
+.fab-btn:active { filter: brightness(85%); }
+</style>
+</head>
+<body>
+
+<div class="sec-title" style="margin-top:0;">UÀ — Neumorphism v2.3 · Fix + Dark mode</div>
+
+<!-- ════════════ SIDE BY SIDE MOCKUP ════════════ -->
+<div class="side-by-side">
+
+  <!-- LIGHT -->
+  <div class="plane">
+    <div class="plane-title lt">Light mode</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-box"><div class="kpi-n" style="color:var(--primary);">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:var(--accent);">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+    </div>
+    <input class="field-in" placeholder="Cerca lavoro…">
+    <div class="card">
+      <div class="card-row">
+        <div><div class="c-n">#LAV-2024-0847</div><div class="c-s">Corona · Dr. Bianchi</div><div class="c-h">27 mag · 3 fasi</div></div>
+        <span class="badge" style="background:rgba(217,0,18,.10); color:var(--primary);">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="c-n">#LAV-2024-0846</div><div class="c-s">Scheletrato · Dr. Russo</div><div class="c-h">29 mag · 2 fasi</div></div>
+        <span class="badge" style="background:rgba(45,92,63,.12); color:var(--accent);">Pronto</span>
+      </div>
+    </div>
+    <div style="margin:10px 0; display:flex; justify-content:center;">
+      <div class="fab-tray">
+        <button class="fab-btn">+ Nuovo lavoro</button>
+      </div>
+    </div>
+    <div class="tog-wrap">
+      <div class="tog-track on" onclick="this.classList.toggle('on')"><div class="tog-thumb"></div></div>
+      <span class="tog-lbl">Vista ibrida</span>
+    </div>
+    <div class="nav-pill">
+      <div class="nav-i act">Home</div><div class="nav-i">Lavori</div><div class="nav-i">Clienti</div><div class="nav-i">+</div>
+    </div>
+  </div>
+
+  <!-- DARK -->
+  <div class="plane dark-plane">
+    <div class="plane-title dk">Dark mode</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:var(--t1);">Dashboard</div>
+      <div style="font-size:12px; color:var(--t3); margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-box"><div class="kpi-n" style="color:var(--primary);">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:var(--accent);">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+    </div>
+    <input class="field-in" placeholder="Cerca lavoro…">
+    <div class="card">
+      <div class="card-row">
+        <div><div class="c-n">#LAV-2024-0847</div><div class="c-s">Corona · Dr. Bianchi</div><div class="c-h">27 mag · 3 fasi</div></div>
+        <span class="badge" style="background:rgba(232,0,26,.18); color:var(--primary);">Urgente</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div><div class="c-n">#LAV-2024-0846</div><div class="c-s">Scheletrato · Dr. Russo</div><div class="c-h">29 mag · 2 fasi</div></div>
+        <span class="badge" style="background:rgba(74,154,104,.15); color:var(--accent);">Pronto</span>
+      </div>
+    </div>
+    <div style="margin:10px 0; display:flex; justify-content:center;">
+      <div class="fab-tray dark-plane">
+        <button class="fab-btn">+ Nuovo lavoro</button>
+      </div>
+    </div>
+    <div class="tog-wrap">
+      <div class="tog-track" style="box-shadow:var(--sh-in-sm);" onclick="this.classList.toggle('on')"><div class="tog-thumb"></div></div>
+      <span class="tog-lbl">Vista ibrida</span>
+    </div>
+    <div class="nav-pill dark-plane" style="background:var(--bg);">
+      <div class="nav-i act">Home</div><div class="nav-i">Lavori</div><div class="nav-i">Clienti</div><div class="nav-i">+</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PUSH BUTTONS — deep 3D ════════════ -->
+<div class="sec-title">Push button — deep 3D (premi)</div>
+<div class="plane" style="margin-bottom:16px;">
+  <div class="col2">
+    <div>
+      <div class="col-lbl" style="color:#6B5C51;">Primary CTA — light</div>
+      <button class="push">
+        <span class="push__shadow"></span>
+        <span class="push__edge"></span>
+        <span class="push__front">Nuova consegna</span>
+      </button>
+    </div>
+    <div>
+      <div class="col-lbl" style="color:#6B5C51;">Ghost — light</div>
+      <button class="push">
+        <span class="push__shadow push__shadow--ghost"></span>
+        <span class="push__edge push__edge--ghost"></span>
+        <span class="push__front push__front--ghost">Annulla</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="plane dark-plane" style="margin-bottom:16px;">
+  <div class="col2">
+    <div>
+      <div class="col-lbl" style="color:#5C5855;">Primary CTA — dark</div>
+      <button class="push dark-plane">
+        <span class="push__shadow"></span>
+        <span class="push__edge"></span>
+        <span class="push__front">Nuova consegna</span>
+      </button>
+    </div>
+    <div>
+      <div class="col-lbl" style="color:#5C5855;">Ghost — dark</div>
+      <button class="push dark-plane">
+        <span class="push__shadow push__shadow--ghost"></span>
+        <span class="push__edge push__edge--ghost"></span>
+        <span class="push__front push__front--ghost">Annulla</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PILL BUTTONS — fixed ════════════ -->
+<div class="sec-title">Pill button — fixed (px, no em)</div>
+<div class="plane" style="margin-bottom:16px;">
+  <div class="col3">
+    <div>
+      <div class="col-lbl" style="color:#6B5C51;">Neutro</div>
+      <button class="pill"><span class="pill__inner"><span class="pill__label">Conferma</span></span></button>
+    </div>
+    <div>
+      <div class="col-lbl" style="color:#6B5C51;">Accent</div>
+      <button class="pill pill--accent"><span class="pill__inner"><span class="pill__label">Pronto</span></span></button>
+    </div>
+    <div>
+      <div class="col-lbl" style="color:#6B5C51;">Pressed</div>
+      <button class="pill" style="box-shadow:none;"><span class="pill__inner" style="box-shadow:inset 4px 4px 8px rgba(184,176,168,.60),inset -2px -2px 5px rgba(240,237,234,.70);background:linear-gradient(135deg,#D8D3CE,#CCC7C2);"><span class="pill__label" style="color:var(--t3);">Selezionato</span></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="plane dark-plane" style="margin-bottom:16px;">
+  <div class="col3">
+    <div>
+      <div class="col-lbl" style="color:#5C5855;">Neutro dark</div>
+      <button class="pill"><span class="pill__inner"><span class="pill__label">Conferma</span></span></button>
+    </div>
+    <div>
+      <div class="col-lbl" style="color:#5C5855;">Accent dark</div>
+      <button class="pill pill--accent"><span class="pill__inner"><span class="pill__label">Pronto</span></span></button>
+    </div>
+    <div>
+      <div class="col-lbl" style="color:#5C5855;">Pressed dark</div>
+      <button class="pill" style="box-shadow:none;"><span class="pill__inner" style="box-shadow:inset 4px 4px 8px rgba(0,0,0,.80),inset -2px -2px 5px rgba(44,41,37,.60);background:linear-gradient(135deg,#131210,#0E0D0B);"><span class="pill__label" style="color:var(--t3);">Selezionato</span></span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ STANDARD BUTTONS ════════════ -->
+<div class="sec-title">3 stati — raised · flat · pressed</div>
+<div class="plane" style="margin-bottom:16px;">
+  <div class="col3">
+    <div><div class="col-lbl" style="color:#6B5C51;">Raised</div><button class="btn btn-raised">Default</button></div>
+    <div><div class="col-lbl" style="color:#6B5C51;">Flat</div><button class="btn btn-flat">Hover</button></div>
+    <div><div class="col-lbl" style="color:#6B5C51;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+  </div>
+</div>
+<div class="plane dark-plane">
+  <div class="col3">
+    <div><div class="col-lbl" style="color:#5C5855;">Raised</div><button class="btn btn-raised">Default</button></div>
+    <div><div class="col-lbl" style="color:#5C5855;">Flat</div><button class="btn btn-flat">Hover</button></div>
+    <div><div class="col-lbl" style="color:#5C5855;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+  </div>
+</div>
+
+<p style="font-size:10px; color:rgba(0,0,0,.35); text-align:center; margin-top:20px; line-height:1.8; font-style:italic;">
+  Premi i push button — senti la profondità aumentata (translateY: -8px default, -1px pressed).<br>
+  Pill button: ora px-based, nessun bug di rendering.<br>
+  Dark mode: shadow chiara quasi impercettibile, scura dominante.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ — Profondità Materica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300&display=swap" rel="stylesheet">
+<style>
+/* ─── SISTEMA ATTUALE (glassy) ─── */
+.sys-old {
+  --bg: #DDD8D3; --sfc: #E4DFD9; --elv: #EDEDEA;
+  --shadow-raised:
+    inset 0 1px 0 rgba(255,255,255,.90),
+    inset 0 -2px 3px rgba(0,0,0,.05),
+    -5px -5px 11px rgba(255,255,255,.78),
+    9px 13px 22px -4px rgba(148,128,118,.44);
+  --shadow-inset:
+    inset 4px 4px 9px rgba(148,128,118,.32),
+    inset -3px -3px 7px rgba(255,255,255,.66);
+  --shadow-sm:
+    inset 0 1px 0 rgba(255,255,255,.88),
+    -3px -3px 7px rgba(255,255,255,.72),
+    5px 7px 14px -2px rgba(148,128,118,.38);
+}
+
+/* ─── SISTEMA NUOVO (materico) ─── */
+.sys-new {
+  /* Colori layer */
+  --bg:  #DDD8D3;     /* Layer 1 — base */
+  --sfc: #E4DFD9;     /* Layer 2 — superficie flottante */
+  --elv: #ECE9E5;     /* Layer 3 — alta elevazione */
+  --pit: #CBC6C1;     /* Layer 0 — incassato (più scuro del bg) */
+
+  /* Shadow materico — luce da top-left 45°, no specular highlight */
+  --shadow-raised:
+    -8px -8px 16px rgba(255,255,255,.85),
+    10px 14px 26px -3px rgba(110,90,78,.52),
+    3px 4px 8px -1px rgba(110,90,78,.22);
+
+  /* Shadow alta elevazione (FAB, bottom sheet, modal) */
+  --shadow-float:
+    -12px -12px 24px rgba(255,255,255,.90),
+    16px 20px 38px -5px rgba(100,80,68,.62),
+    0 6px 12px rgba(100,80,68,.28);
+
+  /* Inset — premuto / input field / bg-pattern */
+  --shadow-inset:
+    inset 4px 4px 9px rgba(100,80,68,.38),
+    inset -4px -4px 8px rgba(255,255,255,.74);
+
+  /* Inset piccolo — stato premuto pulsante */
+  --shadow-pressed:
+    inset 2px 2px 5px rgba(100,80,68,.32),
+    inset -2px -2px 4px rgba(255,255,255,.68);
+
+  /* Surface card — Layer 2 */
+  --shadow-sm:
+    -5px -5px 12px rgba(255,255,255,.82),
+    7px 9px 18px -2px rgba(110,90,78,.44),
+    1px 2px 4px rgba(110,90,78,.16);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #CBC6C1; /* leggermente più scuro per far risaltare il bg */
+  font-family: 'DM Sans', sans-serif;
+  padding: 20px 16px 60px;
+}
+
+/* Titoli */
+.section { margin-bottom: 32px; }
+.sec-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.10em; color: #6B5C51; margin-bottom: 12px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,.10);
+}
+
+/* Griglia comparazione */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.col-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.old-lbl { color: #96918D; }
+.new-lbl { color: #2D5C3F; }
+
+/* ─── DEMO PULSANTI ─── */
+.btn-demo { display: flex; flex-direction: column; gap: 10px; }
+
+/* OLD buttons */
+.btn-old-raised {
+  background: #E4DFD9; border: none; cursor: pointer;
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: #1C1916; width: 100%;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.90),
+              inset 0 -2px 3px rgba(0,0,0,.05),
+              -5px -5px 11px rgba(255,255,255,.78),
+              9px 13px 22px -4px rgba(148,128,118,.44);
+}
+.btn-old-pressed {
+  background: #E4DFD9; border: none;
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: #96918D; width: 100%;
+  box-shadow: inset 4px 4px 9px rgba(148,128,118,.32),
+              inset -3px -3px 7px rgba(255,255,255,.66);
+}
+.btn-old-primary {
+  background: #D90012; border: none; cursor: pointer;
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700;
+  color: #fff; width: 100%;
+  box-shadow: 0 6px 18px -3px rgba(180,0,0,.42);
+}
+
+/* NEW buttons — materico */
+.btn-new-raised {
+  background: #E4DFD9; border: none; cursor: pointer;
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: #1C1916; width: 100%;
+  box-shadow:
+    -8px -8px 16px rgba(255,255,255,.85),
+    10px 14px 26px -3px rgba(110,90,78,.52),
+    3px 4px 8px -1px rgba(110,90,78,.22);
+  transition: box-shadow 0.12s ease, transform 0.08s ease;
+}
+.btn-new-raised:active {
+  box-shadow:
+    inset 2px 2px 5px rgba(100,80,68,.32),
+    inset -2px -2px 4px rgba(255,255,255,.68);
+  transform: scale(0.98);
+}
+.btn-new-pressed {
+  background: #D8D3CE; border: none; /* colore leggermente più scuro = pressed */
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: #6B5C51; width: 100%;
+  box-shadow:
+    inset 2px 2px 5px rgba(100,80,68,.32),
+    inset -2px -2px 4px rgba(255,255,255,.68);
+}
+.btn-new-primary {
+  background: #D90012; border: none; cursor: pointer;
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700;
+  color: #fff; width: 100%;
+  box-shadow:
+    -4px -4px 8px rgba(255,100,80,.15),
+    8px 10px 22px -3px rgba(140,0,10,.55),
+    0 3px 6px rgba(140,0,10,.25);
+  transition: box-shadow 0.12s ease, transform 0.08s ease;
+}
+.btn-new-primary:active {
+  box-shadow:
+    inset 2px 2px 5px rgba(100,0,8,.35),
+    inset -2px -2px 4px rgba(255,120,100,.20);
+  transform: scale(0.98);
+}
+
+/* ─── DEMO INPUT FIELD ─── */
+.input-old {
+  background: #E4DFD9; border: none;
+  padding: 12px 14px; border-radius: 10px; width: 100%;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; color: #1C1916;
+  box-shadow: inset 4px 4px 9px rgba(148,128,118,.32),
+              inset -3px -3px 7px rgba(255,255,255,.66);
+  outline: none;
+}
+.input-new {
+  background: #CBC6C1; /* Layer 0 — incassato nel bg */
+  border: none;
+  padding: 12px 14px; border-radius: 10px; width: 100%;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; color: #1C1916;
+  box-shadow:
+    inset 4px 4px 9px rgba(100,80,68,.38),
+    inset -4px -4px 8px rgba(255,255,255,.74);
+  outline: none;
+}
+
+/* ─── DEMO CARD ─── */
+.card-old {
+  background: #E4DFD9; border-radius: 14px; padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.90),
+              inset 0 -2px 3px rgba(0,0,0,.05),
+              -5px -5px 11px rgba(255,255,255,.78),
+              9px 13px 22px -4px rgba(148,128,118,.44);
+  margin-bottom: 8px;
+}
+.card-new {
+  background: #E4DFD9; border-radius: 14px; padding: 14px;
+  box-shadow:
+    -8px -8px 16px rgba(255,255,255,.85),
+    10px 14px 26px -3px rgba(110,90,78,.52),
+    3px 4px 8px -1px rgba(110,90,78,.22);
+  margin-bottom: 8px;
+}
+
+/* ─── 3 LAYER STACK ─── */
+.layer-title { font-size: 12px; font-weight: 700; color: #4A3D33; margin-bottom: 3px; }
+.layer-sub   { font-size: 11px; color: #6B5C51; }
+.layer-chip  { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 6px; border-radius: 100px; margin-bottom: 8px; }
+
+.l0 { /* Layer 0 — incassato */
+  background: #CBC6C1; border-radius: 14px; padding: 14px;
+  box-shadow: inset 4px 4px 9px rgba(100,80,68,.38),
+              inset -4px -4px 8px rgba(255,255,255,.74);
+  margin-bottom: 10px;
+}
+.l2 { /* Layer 2 — surface card */
+  background: #E4DFD9; border-radius: 14px; padding: 14px;
+  box-shadow:
+    -8px -8px 16px rgba(255,255,255,.85),
+    10px 14px 26px -3px rgba(110,90,78,.52),
+    3px 4px 8px -1px rgba(110,90,78,.22);
+  margin-bottom: 10px;
+}
+.l3 { /* Layer 3 — alta elevazione */
+  background: #ECE9E5; border-radius: 14px; padding: 14px;
+  box-shadow:
+    -12px -12px 24px rgba(255,255,255,.90),
+    16px 20px 38px -5px rgba(100,80,68,.62),
+    0 6px 12px rgba(100,80,68,.28);
+  margin-bottom: 10px;
+}
+
+/* KPI mini */
+.kpi-row { display: flex; gap: 8px; margin: 8px 0; }
+.kpi-box-old {
+  flex: 1; background: #E4DFD9; border-radius: 10px; padding: 9px 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.88),
+              -3px -3px 7px rgba(255,255,255,.72),
+              5px 7px 14px -2px rgba(148,128,118,.38);
+}
+.kpi-box-new {
+  flex: 1; background: #E4DFD9; border-radius: 10px; padding: 9px 10px;
+  box-shadow:
+    -5px -5px 12px rgba(255,255,255,.82),
+    7px 9px 18px -2px rgba(110,90,78,.44),
+    1px 2px 4px rgba(110,90,78,.16);
+}
+.kpi-n { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 300; line-height: 1; }
+.kpi-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #6B5C51; margin-top: 2px; }
+
+.li-new {
+  background: #E4DFD9; border-radius: 10px; padding: 9px 11px; margin-bottom: 6px;
+  box-shadow:
+    -5px -5px 12px rgba(255,255,255,.82),
+    7px 9px 18px -2px rgba(110,90,78,.44),
+    1px 2px 4px rgba(110,90,78,.16);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+
+.divider { height: 1px; background: rgba(0,0,0,.08); margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SEZIONE 1: PULSANTI COMPARAZIONE      -->
+<!-- ══════════════════════════════════════ -->
+<div class="section">
+  <div class="sec-title">Pulsanti — Glassy vs Materico (premi i nuovi!)</div>
+  <div class="compare">
+    <div>
+      <div class="col-label old-lbl">Glassy (ora)</div>
+      <div class="btn-demo">
+        <button class="btn-old-raised">Conferma lavoro</button>
+        <button class="btn-old-pressed">Selezionato</button>
+        <button class="btn-old-primary">Nuova consegna</button>
+      </div>
+    </div>
+    <div>
+      <div class="col-label new-lbl">Materico (proposto)</div>
+      <div class="btn-demo">
+        <button class="btn-new-raised">Conferma lavoro</button>
+        <button class="btn-new-pressed">Selezionato</button>
+        <button class="btn-new-primary">Nuova consegna</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SEZIONE 2: INPUT FIELDS               -->
+<!-- ══════════════════════════════════════ -->
+<div class="section">
+  <div class="sec-title">Input — tasto vs incasso nel piano</div>
+  <div class="compare">
+    <div>
+      <div class="col-label old-lbl">Glassy (ora)</div>
+      <input class="input-old" placeholder="Nome paziente..." readonly>
+      <div style="font-size:10px; color:#96918D; margin-top:5px;">Stesso colore surface</div>
+    </div>
+    <div>
+      <div class="col-label new-lbl">Materico (proposto)</div>
+      <input class="input-new" placeholder="Nome paziente..." readonly>
+      <div style="font-size:10px; color:#6B5C51; margin-top:5px;">Layer 0 — incassato nel bg</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SEZIONE 3: 3 LAYER SYSTEM             -->
+<!-- ══════════════════════════════════════ -->
+<div class="section">
+  <div class="sec-title">Sistema 3 layer — profondità reale</div>
+
+  <div class="l0">
+    <span class="layer-chip" style="background:rgba(0,0,0,.12); color:#4A3D33;">LAYER 0 — Incassato</span>
+    <div class="layer-title">Input fields, sfondo sezioni, stato premuto</div>
+    <div class="layer-sub">Più scuro del bg → dà senso di cavità fisica</div>
+  </div>
+
+  <div style="background:#DDD8D3; border-radius:14px; padding:14px; margin-bottom:10px;">
+    <span class="layer-chip" style="background:rgba(0,0,0,.06); color:#6B5C51;">LAYER 1 — Base (bg)</span>
+    <div class="layer-title">#DDD8D3 — Piano di lavoro</div>
+    <div class="layer-sub">La "scrivania" su cui tutto poggia</div>
+    <div class="kpi-row">
+      <div class="kpi-box-new">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+      <div class="kpi-box-new">
+        <div class="kpi-n" style="color:#2D5C3F;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+    </div>
+    <div class="li-new">
+      <div>
+        <div style="font-size:13px; font-weight:600; color:#1C1916;">#LAV-2024-0847</div>
+        <div style="font-size:11px; color:#4A3D33;">Corona zirconio · Dr. Bianchi</div>
+      </div>
+      <span class="badge" style="background:rgba(217,0,18,.10); color:#D90012;">Urgente</span>
+    </div>
+  </div>
+
+  <div class="l2">
+    <span class="layer-chip" style="background:rgba(45,92,63,.12); color:#2D5C3F;">LAYER 2 — Surface</span>
+    <div class="layer-title">Card, sezioni, pannelli principali</div>
+    <div class="layer-sub">Flotta 8-10px sopra il bg — shadow morbida ma decisa</div>
+  </div>
+
+  <div class="l3">
+    <span class="layer-chip" style="background:rgba(217,0,18,.12); color:#D90012;">LAYER 3 — Elevazione massima</span>
+    <div class="layer-title">FAB, bottom sheet, modal, tooltip</div>
+    <div class="layer-sub">Shadow più drammatica — si "stacca" visibilmente dalla pagina</div>
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <button class="btn-new-primary" style="flex:1;">+ Nuovo lavoro</button>
+      <button class="btn-new-raised" style="flex:1; background:#ECE9E5;">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SEZIONE 4: FULL MOCKUP               -->
+<!-- ══════════════════════════════════════ -->
+<div class="section">
+  <div class="sec-title">Full mockup — sistema materico completo</div>
+  <div style="background:#DDD8D3; border-radius:20px; padding:14px; box-shadow: -10px -10px 22px rgba(255,255,255,.88), 14px 18px 36px -5px rgba(100,80,68,.58);">
+
+    <!-- Header -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:20px; font-weight:700; color:#1C1916; line-height:1.1;">Dashboard</div>
+      <div style="font-size:12px; color:#6B5C51; margin-top:2px;">Aggiornato ora · Francesco</div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi-box-new">
+        <div class="kpi-n" style="color:#D90012;">7</div>
+        <div class="kpi-l">In ritardo</div>
+      </div>
+      <div class="kpi-box-new">
+        <div class="kpi-n" style="color:#2D5C3F;">€ 4.280</div>
+        <div class="kpi-l">Da fatturare</div>
+      </div>
+      <div class="kpi-box-new">
+        <div class="kpi-n" style="color:#1C1916;">12</div>
+        <div class="kpi-l">In lavoraz.</div>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="li-new">
+      <div>
+        <div style="font-size:14px; font-weight:600; color:#1C1916;">#LAV-2024-0847</div>
+        <div style="font-size:12px; color:#4A3D33; margin-top:1px;">Corona zirconio · Dr. Bianchi</div>
+        <div style="font-size:11px; color:#6B5C51; margin-top:1px;">Scade: 27 mag · 3 fasi</div>
+      </div>
+      <span class="badge" style="background:rgba(217,0,18,.10); color:#D90012;">Urgente</span>
+    </div>
+    <div class="li-new">
+      <div>
+        <div style="font-size:14px; font-weight:600; color:#1C1916;">#LAV-2024-0846</div>
+        <div style="font-size:12px; color:#4A3D33; margin-top:1px;">Scheletrato · Dr. Russo</div>
+        <div style="font-size:11px; color:#6B5C51; margin-top:1px;">Scade: 29 mag · 2 fasi</div>
+      </div>
+      <span class="badge" style="background:rgba(45,92,63,.12); color:#2D5C3F;">Pronto</span>
+    </div>
+
+    <!-- Input incassato -->
+    <div style="margin: 10px 0 4px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#6B5C51;">Ricerca</div>
+    <input class="input-new" placeholder="Cerca lavoro, cliente..." readonly style="margin-bottom:10px;">
+
+    <!-- FAB + nav layer 3 -->
+    <div style="background:#ECE9E5; border-radius:100px; padding:7px 10px; display:flex; justify-content:space-around; box-shadow: -12px -12px 24px rgba(255,255,255,.90), 16px 20px 38px -5px rgba(100,80,68,.62), 0 6px 12px rgba(100,80,68,.28);">
+      <div style="font-size:10px; font-weight:700; color:#D90012; text-align:center;">Home</div>
+      <div style="font-size:10px; font-weight:600; color:#4A3D33; text-align:center;">Lavori</div>
+      <div style="font-size:10px; font-weight:600; color:#4A3D33; text-align:center;">Clienti</div>
+      <div style="font-size:10px; font-weight:700; color:#D90012; text-align:center;">+</div>
+    </div>
+  </div>
+</div>
+
+<p style="font-size:11px; color:#6B5C51; text-align:center; font-style:italic; margin-top:16px; line-height:1.6;">
+  Premi i pulsanti "Materico" per sentire la differenza.<br>
+  Scrivi nel terminale cosa vuoi aggiustare.
+</p>
+
+</body>
+</html>

@@ -151,6 +151,22 @@ function buildMockFrom(opts: {
       }
     }
 
+    // D308 — il cancello sui cinque campi stampati conta le dichiarazioni vive.
+    // Su questo lavoro non ce n'è nessuna: il cancello resta un no-op e queste
+    // prove continuano a misurare ciò che misuravano. Il caso col cancello
+    // ACCESO vive in tests/unit/lavori-patch-campi-stampati-d308.test.ts.
+    if (table === 'dichiarazioni_conformita') {
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              neq: async () => ({ count: 0, error: null }),
+            }),
+          }),
+        }),
+      }
+    }
+
     // FK tables
     if (['clienti', 'pazienti', 'tecnici', 'cicli_produzione'].includes(table)) {
       return {
@@ -205,14 +221,20 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation(buildMockFrom({ updateSpy }))
 
+    // 🔄 IL CAMPO VERO ACCANTO ENTRA CON D323 (08/08/2026): da quando la rotta
+    //    non aggiunge più `updated_at` al carico, un corpo di sole chiavi fuori
+    //    allowlist lascia il carico VUOTO e la rotta NON scrive affatto. Senza
+    //    un campo vero questa prova misurerebbe l'assenza di una scrittura, non
+    //    l'allowlist — cioè smetterebbe di misurare ciò per cui esiste.
     const res = await PATCH(
-      req({ appuntamenti: [{ id: 'app-1', data: '2026-07-10' }] }),
+      req({ appuntamenti: [{ id: 'app-1', data: '2026-07-10' }], descrizione: 'Corona' }),
       { params }
     )
 
     expect(res.status).toBe(200)
     expect(updateSpy).toHaveBeenCalled()
     const payload = updateSpy.mock.calls[0][0]
+    expect(payload).toHaveProperty('descrizione', 'Corona')
     expect(payload).not.toHaveProperty('appuntamenti')
   })
 
@@ -220,10 +242,16 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation(buildMockFrom({ updateSpy }))
 
-    const res = await PATCH(req({ stato: 'consegnato' }), { params })
+    // 🔄 IL CAMPO VERO ACCANTO ENTRA CON D323 (08/08/2026): da quando la rotta
+    //    non aggiunge più `updated_at` al carico, un corpo di sole chiavi fuori
+    //    allowlist lascia il carico VUOTO e la rotta NON scrive affatto. Senza
+    //    un campo vero questa prova misurerebbe l'assenza di una scrittura, non
+    //    l'allowlist — cioè smetterebbe di misurare ciò per cui esiste.
+    const res = await PATCH(req({ stato: 'consegnato', descrizione: 'Corona' }), { params })
 
     expect(res.status).toBe(200)
     const payload = updateSpy.mock.calls[0][0]
+    expect(payload).toHaveProperty('descrizione', 'Corona')
     expect(payload).not.toHaveProperty('stato')
   })
 
@@ -231,10 +259,16 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation(buildMockFrom({ updateSpy }))
 
-    const res = await PATCH(req({ fasi: [{ id: 'fase-1' }] }), { params })
+    // 🔄 IL CAMPO VERO ACCANTO ENTRA CON D323 (08/08/2026): da quando la rotta
+    //    non aggiunge più `updated_at` al carico, un corpo di sole chiavi fuori
+    //    allowlist lascia il carico VUOTO e la rotta NON scrive affatto. Senza
+    //    un campo vero questa prova misurerebbe l'assenza di una scrittura, non
+    //    l'allowlist — cioè smetterebbe di misurare ciò per cui esiste.
+    const res = await PATCH(req({ fasi: [{ id: 'fase-1' }], descrizione: 'Corona' }), { params })
 
     expect(res.status).toBe(200)
     const payload = updateSpy.mock.calls[0][0]
+    expect(payload).toHaveProperty('descrizione', 'Corona')
     expect(payload).not.toHaveProperty('fasi')
   })
 
@@ -341,15 +375,24 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
     expect(payload).toMatchObject({ descrizione: 'Ok' })
   })
 
-  it('body sempre include updated_at gestito server-side', async () => {
+  it('\u2696\ufe0f D323 — `updated_at` NON entra nel carico: n\u00e9 quello del client n\u00e9 uno messo dalla rotta', async () => {
+    // 🔄 QUESTA PROVA DICEVA L'OPPOSTO fino al 08/08/2026 («body sempre include
+    //    updated_at gestito server-side»), ed era giusta finch\u00e9 il gettone lo
+    //    scriveva la rotta. Da D323 lo scrive il trigger `trg_lavori_updated_at`,
+    //    che lo muove SOLO se cambia davvero qualcosa: una riga di Node nel
+    //    carico farebbe avanzare il gettone a ogni salvataggio, anche a vuoto.
+    // 🛑 L'asserzione nuova \u00e8 PI\u00d9 FORTE della vecchia: quella ammetteva un
+    //    valore qualunque purch\u00e9 non fosse quello del client; questa chiede
+    //    l'ASSENZA della chiave. Il perch\u00e9 sta in
+    //    `tests/unit/lavori-patch-senza-updated-at.test.ts`.
     const updateSpy = vi.fn()
     mockFrom.mockImplementation(buildMockFrom({ updateSpy }))
 
     await PATCH(req({ descrizione: 'Test', updated_at: '2020-01-01T00:00:00Z' }), { params })
 
     const payload = updateSpy.mock.calls[0][0]
-    expect(payload.updated_at).not.toBe('2020-01-01T00:00:00Z')
-    expect(typeof payload.updated_at).toBe('string')
+    expect(payload).not.toHaveProperty('updated_at')
+    expect(payload).toHaveProperty('descrizione', 'Test')
   })
 
   it('utente non autenticato → 401', async () => {

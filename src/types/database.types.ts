@@ -156,6 +156,108 @@ export type Database = {
         }
         Relationships: []
       }
+      avvisi_dentista: {
+        Row: {
+          campi_corretti: string[]
+          cliente_id: string
+          comunicato_at: string | null
+          comunicato_da: string | null
+          created_at: string
+          dichiarazione_id: string
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          stato: string
+          testo_inviato: string | null
+          visto_dal_dentista_at: string | null
+        }
+        Insert: {
+          campi_corretti?: string[]
+          cliente_id: string
+          comunicato_at?: string | null
+          comunicato_da?: string | null
+          created_at?: string
+          dichiarazione_id: string
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          stato?: string
+          testo_inviato?: string | null
+          visto_dal_dentista_at?: string | null
+        }
+        Update: {
+          campi_corretti?: string[]
+          cliente_id?: string
+          comunicato_at?: string | null
+          comunicato_da?: string | null
+          created_at?: string
+          dichiarazione_id?: string
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          stato?: string
+          testo_inviato?: string | null
+          visto_dal_dentista_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avvisi_dentista_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clienti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "partitario_clienti"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_comunicato_da_fkey"
+            columns: ["comunicato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
+            columns: ["dichiarazione_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_conformita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
+            columns: ["dichiarazione_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_in_scadenza"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avvisi_dentista_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buoni_consegna: {
         Row: {
           anno_buono: number
@@ -897,6 +999,7 @@ export type Database = {
       dichiarazioni_conformita: {
         Row: {
           anno_ddc: number
+          annullata_da_evento_id: string | null
           classe_rischio: string
           contiene_sostanze_o_tessuti: boolean
           created_at: string
@@ -943,6 +1046,7 @@ export type Database = {
           rischi_json: Json | null
           rischi_residui_snapshot: string | null
           sostanze_tessuti_dettaglio: string | null
+          sostituisce_id: string | null
           stato: string
           storage_object_version: string | null
           storage_path_pdf: string | null
@@ -956,6 +1060,7 @@ export type Database = {
         }
         Insert: {
           anno_ddc?: number
+          annullata_da_evento_id?: string | null
           classe_rischio: string
           contiene_sostanze_o_tessuti?: boolean
           created_at?: string
@@ -1002,6 +1107,7 @@ export type Database = {
           rischi_json?: Json | null
           rischi_residui_snapshot?: string | null
           sostanze_tessuti_dettaglio?: string | null
+          sostituisce_id?: string | null
           stato?: string
           storage_object_version?: string | null
           storage_path_pdf?: string | null
@@ -1015,6 +1121,7 @@ export type Database = {
         }
         Update: {
           anno_ddc?: number
+          annullata_da_evento_id?: string | null
           classe_rischio?: string
           contiene_sostanze_o_tessuti?: boolean
           created_at?: string
@@ -1061,6 +1168,7 @@ export type Database = {
           rischi_json?: Json | null
           rischi_residui_snapshot?: string | null
           sostanze_tessuti_dettaglio?: string | null
+          sostituisce_id?: string | null
           stato?: string
           storage_object_version?: string | null
           storage_path_pdf?: string | null
@@ -1073,6 +1181,13 @@ export type Database = {
           uso_esclusivo_paziente?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dichiarazioni_conformita_annullata_da_evento_id_fkey"
+            columns: ["annullata_da_evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventi_qualita"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dichiarazioni_conformita_generated_by_fkey"
             columns: ["generated_by"]
@@ -1102,11 +1217,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dichiarazioni_conformita_sostituisce_id_fkey"
+            columns: ["sostituisce_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_conformita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dichiarazioni_conformita_sostituisce_id_fkey"
+            columns: ["sostituisce_id"]
+            isOneToOne: false
+            referencedRelation: "dichiarazioni_in_scadenza"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dichiarazioni_conformita_tecnico_responsabile_id_fkey"
             columns: ["tecnico_responsabile_id"]
             isOneToOne: false
             referencedRelation: "tecnici"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      eventi_qualita: {
+        Row: {
+          conosciuto_il: string
+          created_at: string
+          created_by: string | null
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          motivo: string
+          motivo_libero: string | null
+          natura: string
+          note: string | null
+          origine_informazione: string
+          potenziale_di_danno: string
+          scelta_intervento: string | null
+          stato_dispositivo: string
+        }
+        Insert: {
+          conosciuto_il: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          motivo: string
+          motivo_libero?: string | null
+          natura: string
+          note?: string | null
+          origine_informazione: string
+          potenziale_di_danno?: string
+          scelta_intervento?: string | null
+          stato_dispositivo: string
+        }
+        Update: {
+          conosciuto_il?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          motivo?: string
+          motivo_libero?: string | null
+          natura?: string
+          note?: string | null
+          origine_informazione?: string
+          potenziale_di_danno?: string
+          scelta_intervento?: string | null
+          stato_dispositivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventi_qualita_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventi_qualita_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventi_qualita_lavoro_fk"
+            columns: ["lavoro_id", "laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id", "laboratorio_id"]
           },
         ]
       }
@@ -2222,6 +2424,7 @@ export type Database = {
           anno_prima_marcatura: string | null
           bollo_default_attivo: boolean
           cap: string | null
+          certificazione_iso13485: string
           citta: string | null
           codice_fiscale: string | null
           codice_itca: string | null
@@ -2287,6 +2490,7 @@ export type Database = {
           anno_prima_marcatura?: string | null
           bollo_default_attivo?: boolean
           cap?: string | null
+          certificazione_iso13485?: string
           citta?: string | null
           codice_fiscale?: string | null
           codice_itca?: string | null
@@ -2352,6 +2556,7 @@ export type Database = {
           anno_prima_marcatura?: string | null
           bollo_default_attivo?: boolean
           cap?: string | null
+          certificazione_iso13485?: string
           citta?: string | null
           codice_fiscale?: string | null
           codice_itca?: string | null
@@ -2490,6 +2695,7 @@ export type Database = {
           post_consegna_correzioni: number
           prescrizione_digitale_id: string | null
           prezzo_unitario: number | null
+          prima_immissione_at: string | null
           priorita: string
           proposta_at: string | null
           proposta_dentista: string | null
@@ -2592,6 +2798,7 @@ export type Database = {
           post_consegna_correzioni?: number
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
+          prima_immissione_at?: string | null
           priorita?: string
           proposta_at?: string | null
           proposta_dentista?: string | null
@@ -2694,6 +2901,7 @@ export type Database = {
           post_consegna_correzioni?: number
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
+          prima_immissione_at?: string | null
           priorita?: string
           proposta_at?: string | null
           proposta_dentista?: string | null
@@ -3441,6 +3649,7 @@ export type Database = {
           costo_interno: number | null
           created_at: string
           created_by: string | null
+          evento_id: string | null
           id: string
           laboratorio_id: string
           lavoro_nuovo_id: string
@@ -3453,6 +3662,7 @@ export type Database = {
           costo_interno?: number | null
           created_at?: string
           created_by?: string | null
+          evento_id?: string | null
           id?: string
           laboratorio_id: string
           lavoro_nuovo_id: string
@@ -3465,6 +3675,7 @@ export type Database = {
           costo_interno?: number | null
           created_at?: string
           created_by?: string | null
+          evento_id?: string | null
           id?: string
           laboratorio_id?: string
           lavoro_nuovo_id?: string
@@ -3480,6 +3691,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "utenti"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_rifacimenti_evento_fk"
+            columns: ["evento_id", "laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "eventi_qualita"
+            referencedColumns: ["id", "laboratorio_id"]
           },
           {
             foreignKeyName: "lavori_rifacimenti_laboratorio_id_fkey"
@@ -5805,6 +6023,74 @@ export type Database = {
           },
         ]
       }
+      valutazioni_evento: {
+        Row: {
+          classificato_da: string | null
+          classificato_il: string
+          esito: string
+          evento_id: string
+          giustificazione: string | null
+          id: string
+          laboratorio_id: string
+          motivo_riclassificazione: string | null
+          sostituisce_id: string | null
+          superata: boolean
+        }
+        Insert: {
+          classificato_da?: string | null
+          classificato_il?: string
+          esito: string
+          evento_id: string
+          giustificazione?: string | null
+          id?: string
+          laboratorio_id: string
+          motivo_riclassificazione?: string | null
+          sostituisce_id?: string | null
+          superata?: boolean
+        }
+        Update: {
+          classificato_da?: string | null
+          classificato_il?: string
+          esito?: string
+          evento_id?: string
+          giustificazione?: string | null
+          id?: string
+          laboratorio_id?: string
+          motivo_riclassificazione?: string | null
+          sostituisce_id?: string | null
+          superata?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valutazioni_evento_classificato_da_fkey"
+            columns: ["classificato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valutazioni_evento_evento_fk"
+            columns: ["evento_id", "laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "eventi_qualita"
+            referencedColumns: ["id", "laboratorio_id"]
+          },
+          {
+            foreignKeyName: "valutazioni_evento_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valutazioni_evento_sostituisce_id_fkey"
+            columns: ["sostituisce_id"]
+            isOneToOne: false
+            referencedRelation: "valutazioni_evento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webauthn_challenges: {
         Row: {
           challenge: string
@@ -6073,6 +6359,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      avvisi_segna_visti: {
+        Args: { p_ids: string[]; p_laboratorio_id: string }
+        Returns: Json
+      }
       calcola_imponibile_lavoro: {
         Args: { p_lavoro_id: string }
         Returns: number
@@ -6133,9 +6423,21 @@ export type Database = {
         Args: { p_laboratorio_id: string; p_lavoro_id: string }
         Returns: Json
       }
+      correggi_e_riemetti_atomica: {
+        Args: {
+          p_atteso_updated_at: string
+          p_correzioni: Json
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+          p_nuova: Json
+        }
+        Returns: Json
+      }
       crea_rifacimento_atomico: {
         Args: {
           p_costo_interno?: number
+          p_evento_id?: string
           p_lavoro_originale_id: string
           p_motivo: string
           p_note?: string
@@ -6275,6 +6577,14 @@ export type Database = {
         }
         Returns: Json
       }
+      riapri_lavoro_atomica: {
+        Args: {
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+        }
+        Returns: Json
+      }
       ricalcola_pagamento_fattura: {
         Args: { p_fattura_id: string }
         Returns: undefined
@@ -6286,6 +6596,27 @@ export type Database = {
           p_lab_id: string
         }
         Returns: boolean
+      }
+      riemetti_ddc_atomica: {
+        Args: {
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+          p_nuova: Json
+        }
+        Returns: Json
+      }
+      riporta_a_pronto_atomica: {
+        Args: {
+          p_evento_id: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+        }
+        Returns: Json
+      }
+      ripristina_lavoro_a_pronto: {
+        Args: { p_laboratorio_id: string; p_lavoro_id: string }
+        Returns: undefined
       }
       salva_fasi_ciclo_atomico: {
         Args: {
@@ -6321,6 +6652,10 @@ export type Database = {
           p_valore: Json
         }
         Returns: undefined
+      }
+      valutazione_supera: {
+        Args: { p_laboratorio_id: string; p_valutazione_vecchia_id: string }
+        Returns: Json
       }
       xmlescape: { Args: { t: string }; Returns: string }
     }

@@ -45,8 +45,6 @@ const CLIENT_MAP: Record<string, string> = {
   '120': 'f8df10db-f2d1-4f95-9f42-39f922ccdbd3', // Dott. Mara Opromolla
 }
 
-type Stato = 'consegnato' | 'sospeso'
-
 interface LavoroStorico {
   dm_cliente: string
   dispositivo: string
@@ -163,6 +161,18 @@ async function main() {
       data_ingresso: dataIngresso,
       data_consegna_prevista: dataConsegna,
       data_consegna_effettiva: dataConsegna,
+      // 🔑 Import storico = lavoro nato GIÀ consegnato: per questa riga
+      // dataConsegna È la prima (e unica) messa a disposizione, quindi
+      // prima_immissione_at si allinea a data_consegna_effettiva — stessa
+      // regola del backfill in 20260807172520_lavori_prima_immissione.sql
+      // (SET prima_immissione_at = data_consegna_effettiva WHERE
+      // stato='consegnato' AND data_consegna_effettiva IS NOT NULL). Senza
+      // questa riga, un import futuro di dati VERI (migrazione di un
+      // laboratorio che entra in UÀ) ricreerebbe in silenzio lo stesso buco
+      // che il Task 2 ha chiuso per l'orchestratore: righe 'consegnato'
+      // senza mai una data da cui contare i 10 anni di conservazione della
+      // dichiarazione (Allegato XIII p.4).
+      prima_immissione_at: dataConsegna,
       classe_rischio: 'classe_iia',
       da_conformare: false,
       conformato: true,

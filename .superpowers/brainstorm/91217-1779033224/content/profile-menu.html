@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile Menu — Mockup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#DDD8D3;--sfc:#E4DFD9;--elv:#EDEDEA;--prs:#D4CFC9;
+  --t1:#1C1916;--t2:#96918D;--t3:#B8B3AE;
+  --red:#D90012;--red-d:#A80010;
+  --green:#16A34A;--amber:#B45309;
+  --sh-c:-5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.90),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i:inset 3px 3px 8px rgba(0,0,0,.13),inset -2px -2px 5px rgba(255,255,255,.70);
+  --sh-red:inset 0 1px 0 rgba(255,255,255,.25),0 6px 18px -2px rgba(180,0,0,.40),0 2px 6px rgba(180,0,0,.26);
+}
+.dark{
+  --bg:#1A1916;--sfc:#222019;--elv:#2C2A27;--prs:#121110;
+  --t1:#F0EDE8;--t2:#8A8580;--t3:#4A4845;
+  --sh-c:-5px -5px 11px rgba(255,255,255,.018),9px 12px 28px -4px rgba(0,0,0,.60);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.05),9px 13px 28px -4px rgba(0,0,0,.52);
+  --sh-i:inset 4px 4px 9px rgba(0,0,0,.60),inset -3px -3px 7px rgba(255,255,255,.04);
+  --sh-red:inset 0 1px 0 rgba(255,255,255,.12),0 6px 18px -2px rgba(232,0,26,.38),0 2px 6px rgba(232,0,26,.22);
+}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;transition:background .25s,color .25s;}
+
+/* Controls */
+.ctrl{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;padding:9px 16px;font-size:12px;color:#fff;font-family:monospace;flex-wrap:wrap}
+.ctrl label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.cbtn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:monospace;font-size:11px}
+.cbtn.on{background:var(--red);border-color:var(--red)}
+
+/* Phone frame */
+.phone-wrap{display:flex;justify-content:center;padding:72px 16px 40px;min-height:100vh}
+.phone{width:390px;min-height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 32px 80px rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.1);transition:background .25s}
+
+/* App header */
+.app-header{display:flex;align-items:center;gap:12px;padding:52px 20px 16px}
+.header-title{flex:1;font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--t1)}
+.avatar-btn{
+  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--red);color:#fff;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--sh-b);flex-shrink:0;
+  font-family:'DM Sans',sans-serif;
+  transition:transform .12s,box-shadow .12s;
+}
+.avatar-btn:active{transform:scale(.93);box-shadow:var(--sh-i)}
+
+/* Page content (stub) */
+.page-content{padding:0 20px;display:flex;flex-direction:column;gap:12px}
+.stub{background:var(--sfc);border-radius:18px;box-shadow:var(--sh-c);padding:16px;height:80px}
+
+/* Bottom nav */
+.bottom-nav{
+  position:absolute;bottom:20px;left:0;right:0;display:flex;justify-content:center;
+}
+.nav-pill{
+  display:flex;align-items:center;gap:4px;background:var(--elv);border-radius:100px;
+  padding:6px 10px;box-shadow:var(--sh-b);
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;min-width:52px;min-height:52px;padding:6px 8px;border-radius:88px;
+  color:var(--t2);font-size:10px;font-weight:400;
+}
+.nav-item.active{background:var(--elv);color:var(--red);font-weight:600;box-shadow:var(--sh-i)}
+.nav-cta{
+  display:flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:50%;background:#fff;color:var(--red);
+  font-size:24px;font-weight:700;box-shadow:var(--sh-b);flex-shrink:0;
+}
+
+/* ─── BOTTOM SHEET ─── */
+.overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);
+  z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.sheet{
+  position:absolute;bottom:0;left:0;right:0;z-index:101;
+  background:var(--sfc);border-radius:28px 28px 0 0;
+  box-shadow:0 -8px 40px rgba(0,0,0,.18);
+  transform:translateY(100%);transition:transform .35s cubic-bezier(0.32,0.72,0,1);
+  padding:0 0 40px;
+}
+.sheet-handle{width:36px;height:4px;background:var(--t3);border-radius:99px;margin:12px auto 8px}
+.sheet-header{padding:12px 20px 16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(0,0,0,.06)}
+.dark .sheet-header{border-bottom-color:rgba(255,255,255,.06)}
+.sheet-avatar{
+  width:52px;height:52px;border-radius:16px;background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;
+  box-shadow:var(--sh-b);flex-shrink:0;
+}
+.sheet-info{flex:1;min-width:0}
+.sheet-name{font-size:16px;font-weight:700;color:var(--t1);line-height:1.2}
+.sheet-email{font-size:12px;color:var(--t2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-badges{display:flex;gap:6px;margin-top:5px}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.04em}
+.badge-role{background:rgba(37,99,235,.1);color:#2563EB}
+.badge-lab{background:rgba(148,145,141,.1);color:var(--t2)}
+
+/* Sheet body */
+.sheet-section{padding:16px 20px 0}
+.sheet-section-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+.sheet-row{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;
+  background:var(--elv);box-shadow:var(--sh-b);margin-bottom:8px;
+  cursor:pointer;text-decoration:none;color:inherit;
+  transition:transform .1s,box-shadow .1s;
+}
+.sheet-row:active{transform:scale(.98);box-shadow:var(--sh-i)}
+.sheet-row-icon{width:36px;height:36px;border-radius:10px;background:var(--prs);box-shadow:var(--sh-i);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--t2)}
+.sheet-row-text{flex:1}
+.sheet-row-label{font-size:14px;font-weight:600;color:var(--t1)}
+.sheet-row-sub{font-size:11px;color:var(--t2);margin-top:1px}
+.sheet-row-arrow{color:var(--t3)}
+
+/* Toggle in sheet */
+.sheet-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:var(--elv);box-shadow:var(--sh-b);margin-bottom:8px}
+.sheet-toggle-left{display:flex;align-items:center;gap:12px}
+
+/* Toggle Galahhad (miniature) */
+.tog{--toggle-size:14px;--container-width:5.625em;--container-height:2.5em;--container-radius:6.25em;--container-light-bg:#3D7EAE;--container-night-bg:#1D1F2C;--circle-container-diameter:3.375em;--sun-moon-diameter:2.125em;--sun-bg:#ECCA2F;--moon-bg:#C4C9D1;--spot-color:#959DB1;--circle-container-offset:calc((var(--circle-container-diameter) - var(--container-height)) / 2 * -1);--stars-color:#fff;--clouds-color:#F3FDFF;--back-clouds-color:#AACADF;--transition:.5s cubic-bezier(0,-0.02,0.4,1.25);--circle-transition:.3s cubic-bezier(0,-0.02,0.35,1.17);}
+.tog,.tog *,.tog *::before,.tog *::after{box-sizing:border-box;margin:0;padding:0;font-size:var(--toggle-size);}
+.tog input{display:none}
+.tog-container{width:var(--container-width);height:var(--container-height);background-color:var(--container-light-bg);border-radius:var(--container-radius);overflow:hidden;cursor:pointer;box-shadow:0em -0.062em 0.062em rgba(0,0,0,.25),0em 0.062em 0.125em rgba(255,255,255,.94);transition:var(--transition);position:relative}
+.tog-container::before{content:"";position:absolute;z-index:1;inset:0;box-shadow:0em 0.05em 0.187em rgba(0,0,0,.25) inset;border-radius:var(--container-radius)}
+.tog-circle{width:var(--circle-container-diameter);height:var(--circle-container-diameter);background-color:rgba(255,255,255,.1);position:absolute;left:var(--circle-container-offset);top:var(--circle-container-offset);border-radius:var(--container-radius);box-shadow:inset 0 0 0 3.375em rgba(255,255,255,.1),0 0 0 0.625em rgba(255,255,255,.1);display:flex;transition:var(--circle-transition);pointer-events:none}
+.tog-sun-moon{pointer-events:auto;position:relative;z-index:2;width:var(--sun-moon-diameter);height:var(--sun-moon-diameter);margin:auto;border-radius:var(--container-radius);background-color:var(--sun-bg);box-shadow:0.062em 0.062em 0.062em 0em rgba(254,255,239,.61) inset,0em -0.062em 0.062em 0em #a1872a inset;filter:drop-shadow(0.062em 0.125em 0.125em rgba(0,0,0,.25));overflow:hidden;transition:var(--transition)}
+.tog-moon{transform:translateX(100%);width:100%;height:100%;background-color:var(--moon-bg);border-radius:inherit;transition:var(--transition);position:relative}
+.tog-spot{position:absolute;top:.75em;left:.312em;width:.75em;height:.75em;border-radius:var(--container-radius);background-color:var(--spot-color)}
+.tog-spot:nth-of-type(2){width:.375em;height:.375em;top:.937em;left:1.375em}
+.tog-spot:nth-last-of-type(3){width:.25em;height:.25em;top:.312em;left:.812em}
+.tog-clouds{width:1.25em;height:1.25em;background-color:var(--clouds-color);border-radius:var(--container-radius);position:absolute;bottom:-.625em;left:.312em;box-shadow:.937em .312em var(--clouds-color),-.312em -.312em var(--back-clouds-color),1.437em .375em var(--clouds-color),.5em -.125em var(--back-clouds-color),2.187em 0 var(--clouds-color),1.25em -.062em var(--back-clouds-color),2.937em .312em var(--clouds-color),2em -.312em var(--back-clouds-color),3.625em -.062em var(--clouds-color),2.625em 0em var(--back-clouds-color),4.5em -.312em var(--clouds-color),3.375em -.437em var(--back-clouds-color),4.625em -1.75em 0 .437em var(--clouds-color),4em -.625em var(--back-clouds-color),4.125em -2.125em 0 .437em var(--back-clouds-color);transition:.5s cubic-bezier(0,-0.02,0.4,1.25)}
+.tog-stars{position:absolute;color:var(--stars-color);top:-100%;left:.312em;width:2.75em;height:auto;transition:var(--transition)}
+.tog input:checked + .tog-container{background-color:var(--container-night-bg)}
+.tog input:checked + .tog-container .tog-circle{left:calc(100% - var(--circle-container-offset) - var(--circle-container-diameter))}
+.tog input:checked + .tog-container .tog-moon{transform:translate(0)}
+.tog input:checked + .tog-container .tog-clouds{bottom:-4.062em}
+.tog input:checked + .tog-container .tog-stars{top:50%;transform:translateY(-50%)}
+
+/* Logout vinodjangid07 */
+.logout-btn{
+  margin:8px 20px 0;
+  display:flex;align-items:center;justify-content:flex-start;
+  width:45px;height:45px;border:none;border-radius:50%;cursor:pointer;
+  position:relative;overflow:hidden;transition-duration:.3s;
+  box-shadow:2px 2px 10px rgba(0,0,0,.199);background-color:rgb(255,65,65);
+}
+.logout-sign{width:100%;transition-duration:.3s;display:flex;align-items:center;justify-content:center}
+.logout-sign svg{width:17px}
+.logout-sign svg path{fill:white}
+.logout-text{position:absolute;right:0%;width:0%;opacity:0;color:white;font-size:.95em;font-weight:600;transition-duration:.3s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.logout-btn:hover{width:140px;border-radius:40px;transition-duration:.3s}
+.logout-btn:hover .logout-sign{width:30%;transition-duration:.3s;padding-left:20px}
+.logout-btn:hover .logout-text{opacity:1;width:70%;transition-duration:.3s;padding-right:10px}
+.logout-btn:active{transform:translate(2px,2px)}
+
+/* States */
+body.sheet-open .overlay{opacity:1;pointer-events:all}
+body.sheet-open .sheet{transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="ctrl">
+  <span style="font-weight:700">Profile Menu</span>
+  <span style="color:rgba(255,255,255,.3)">|</span>
+  <label><input type="checkbox" id="dk"> Dark</label>
+  <span style="color:rgba(255,255,255,.3)">|</span>
+  <button class="cbtn" onclick="toggleSheet()">Toggle sheet</button>
+</div>
+
+<div class="phone-wrap">
+<div class="phone" id="phone">
+
+  <!-- App header -->
+  <div class="app-header">
+    <div class="header-title">Buongiorno, Filippo</div>
+    <button class="avatar-btn" onclick="toggleSheet()" title="Profilo">FO</button>
+  </div>
+
+  <!-- Page content stub -->
+  <div class="page-content">
+    <div class="stub" style="height:96px"></div>
+    <div class="stub" style="height:72px"></div>
+    <div class="stub" style="height:72px"></div>
+    <div class="stub" style="height:120px"></div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-pill">
+      <div class="nav-item active">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="12" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="12" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="12" y="12" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span>Oggi</span>
+      </div>
+      <div class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 6h14M4 11h10M4 16h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Lavori</span>
+      </div>
+      <div class="nav-cta">+</div>
+      <div class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M4 18c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Clienti</span>
+      </div>
+      <div class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="4" y="3" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 8h6M8 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Fatture</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="overlay" onclick="closeSheet()"></div>
+
+  <!-- Profile bottom sheet -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+
+    <!-- Header utente -->
+    <div class="sheet-header">
+      <div class="sheet-avatar">FO</div>
+      <div class="sheet-info">
+        <div class="sheet-name">Filippo Opromolla</div>
+        <div class="sheet-email">filippopromolla@gmail.com</div>
+        <div class="sheet-badges">
+          <span class="badge badge-role">titolare</span>
+          <span class="badge badge-lab">Filippo Opromolla</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preferenze -->
+    <div class="sheet-section">
+      <div class="sheet-section-label">Preferenze</div>
+
+      <!-- Tema toggle -->
+      <div class="sheet-toggle-row">
+        <div class="sheet-toggle-left">
+          <div class="sheet-row-icon" style="background:transparent;box-shadow:none">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.42 1.42M13.36 13.36l1.42 1.42M3.22 14.78l1.42-1.42M13.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="sheet-row-text">
+            <div class="sheet-row-label">Tema</div>
+            <div class="sheet-row-sub" id="themeLabel">Modalità chiara</div>
+          </div>
+        </div>
+        <!-- Toggle Galahhad miniaturizzato -->
+        <label class="tog">
+          <input type="checkbox" id="sheetDarkToggle">
+          <div class="tog-container">
+            <div class="tog-clouds"></div>
+            <div class="tog-stars">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M135.831 3.00688C135.055 3.85027 134.111 4.29946 133 4.35447C134.111 4.40947 135.055 4.85867 135.831 5.71123C136.607 6.55462 136.996 7.56303 136.996 8.72727C136.996 7.95722 137.172 7.25134 137.525 6.59129C137.886 5.93124 138.372 5.39954 138.98 5.00535C139.598 4.60199 140.268 4.39114 141 4.35447C139.88 4.2903 138.936 3.85027 138.16 3.00688C137.384 2.16348 136.996 1.16425 136.996 0C136.996 1.16425 136.607 2.16348 135.831 3.00688ZM31 23.3545C32.1114 23.2995 33.0551 22.8503 33.8313 22.0069C34.6075 21.1635 34.9956 20.1642 34.9956 19C34.9956 20.1642 35.3837 21.1635 36.1599 22.0069C36.9361 22.8503 37.8798 23.2903 39 23.3545C38.2679 23.3911 37.5976 23.602 36.9802 24.0053C36.3716 24.3995 35.8864 24.9312 35.5248 25.5913C35.172 26.2513 34.9956 26.9572 34.9956 27.7273C34.9956 26.563 34.6075 25.5546 33.8313 24.7112C33.0551 23.8587 32.1114 23.4095 31 23.3545ZM0 36.3545C1.11136 36.2995 2.05513 35.8503 2.83131 35.0069C3.6075 34.1635 3.99559 33.1642 3.99559 32C3.99559 33.1642 4.38368 34.1635 5.15987 35.0069C5.93605 35.8503 6.87982 36.2903 8 36.3545C7.26792 36.3911 6.59757 36.602 5.98015 37.0053C5.37155 37.3995 4.88644 37.9312 4.52481 38.5913C4.172 39.2513 3.99559 39.9572 3.99559 40.7273C3.99559 39.563 3.6075 38.5546 2.83131 37.7112C2.05513 36.8587 1.11136 36.4095 0 36.3545ZM56.8313 24.0069C56.0551 24.8503 55.1114 25.2995 54 25.3545C55.1114 25.4095 56.0551 25.8587 56.8313 26.7112C57.6075 27.5546 57.9956 28.563 57.9956 29.7273C57.9956 28.9572 58.172 28.2513 58.5248 27.5913C58.8864 26.9312 59.3716 26.3995 59.9802 26.0053C60.5976 25.602 61.2679 25.3911 62 25.3545C60.8798 25.2903 59.9361 24.8503 59.1599 24.0069C58.3837 23.1635 57.9956 22.1642 57.9956 21C57.9956 22.1642 57.6075 23.1635 56.8313 24.0069Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="tog-circle">
+              <div class="tog-sun-moon">
+                <div class="tog-moon">
+                  <div class="tog-spot"></div>
+                  <div class="tog-spot"></div>
+                  <div class="tog-spot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Gestione -->
+    <div class="sheet-section" style="margin-top:4px">
+      <div class="sheet-section-label">Gestione</div>
+
+      <a class="sheet-row" href="#">
+        <div class="sheet-row-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="sheet-row-text">
+          <div class="sheet-row-label">Profilo</div>
+          <div class="sheet-row-sub">Modifica dati personali</div>
+        </div>
+        <svg class="sheet-row-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </a>
+
+      <a class="sheet-row" href="#">
+        <div class="sheet-row-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="sheet-row-text">
+          <div class="sheet-row-label">Impostazioni lab</div>
+          <div class="sheet-row-sub">PEC, fatturazione, PRRC</div>
+        </div>
+        <svg class="sheet-row-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </a>
+
+      <a class="sheet-row" href="#">
+        <div class="sheet-row-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="5" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h12M5 5V3a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="sheet-row-text">
+          <div class="sheet-row-label">Abbonamento</div>
+          <div class="sheet-row-sub" style="color:#3DCB5C;font-weight:600">● Trial attivo — scade 31 mag</div>
+        </div>
+        <svg class="sheet-row-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 12l4-4-4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </a>
+    </div>
+
+    <!-- Logout -->
+    <div style="padding:16px 20px 0">
+      <button class="logout-btn">
+        <div class="logout-sign">
+          <svg viewBox="0 0 512 512"><path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/></svg>
+        </div>
+        <div class="logout-text">Logout</div>
+      </button>
+    </div>
+  </div>
+
+</div><!-- .phone -->
+</div><!-- .phone-wrap -->
+
+<script>
+document.getElementById('dk').addEventListener('change', function(e){
+  document.body.classList.toggle('dark', e.target.checked)
+  document.getElementById('phone').classList.toggle('dark', e.target.checked)
+})
+
+document.getElementById('sheetDarkToggle').addEventListener('change', function(e){
+  const dark = e.target.checked
+  document.body.classList.toggle('dark', dark)
+  document.getElementById('phone').classList.toggle('dark', dark)
+  document.getElementById('dk').checked = dark
+  document.getElementById('themeLabel').textContent = dark ? 'Modalità scura' : 'Modalità chiara'
+})
+
+function toggleSheet(){
+  document.body.classList.toggle('sheet-open')
+}
+function closeSheet(){
+  document.body.classList.remove('sheet-open')
+}
+</script>
+</body>
+</html>

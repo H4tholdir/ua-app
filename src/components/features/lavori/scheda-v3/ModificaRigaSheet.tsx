@@ -210,7 +210,26 @@ export function ModificaRigaSheet(props: {
         onErrore(MESSAGGIO_TINTA_SCARTATA)
         return
       }
-      onSalvato(patchLocale ?? patch)
+      // 🔴 F1 — IL GETTONE DI CONCORRENZA TORNA DAL SERVER, e senza questa riga
+      //    resta STANTÌO. La `PATCH` **restituisce** l'`updated_at` nuovo
+      //    (`api/lavori/[id]/route.ts:809` — `.select('id, numero_lavoro,
+      //    stato, updated_at')`), ma qui si passava al padre il patch della
+      //    RICHIESTA: lo specchio locale della scheda restava col gettone del
+      //    caricamento. ➡️ Chi correggeva le note e poi apriva «Devo
+      //    intervenire» prendeva un **409 che dava la colpa a «qualcun
+      //    altro»** — ed era stato lui, dieci secondi prima.
+      // 🔑 La ricetta è quella di `handleColoreSalvato`
+      //    (`SchedaLavoroV3.tsx:508`): si applica ciò che il server ha FATTO.
+      //    Sta qui e non nel padre perché questa è l'unica via verso il
+      //    backend, condivisa da tutti i rami: una copia per ramo divergerebbe
+      //    alla prima revisione.
+      // 🛑 STRINGA OPACA, mai una `Date`: `timestamptz` ha i microsecondi e un
+      //    solo riparsing li tronca, cioè un 409 che non si sana più.
+      //    E la lettura resta DIFENSIVA come quella sopra (D251): un corpo
+      //    senza `lavoro` non toglie niente a una scrittura riuscita.
+      const salvato = risposta.lavoro as { updated_at?: unknown } | undefined
+      const gettone = typeof salvato?.updated_at === 'string' ? { updated_at: salvato.updated_at } : {}
+      onSalvato({ ...(patchLocale ?? patch), ...gettone })
       onChiudi()
     } catch {
       onErrore(MESSAGGIO_ERRORE)
