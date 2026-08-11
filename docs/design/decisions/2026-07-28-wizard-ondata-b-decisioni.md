@@ -4275,7 +4275,11 @@ Tre scelte esplicite fra tre opzioni ciascuna; i numeri dati nello stesso turno.
 
 ---
 
-### Centocinquantacinquesima tornata — D359: il ramo si merge su `main` (11/08/2026, 01:35)
+### Centocinquantacinquesima tornata — D359: il ramo si merge su `main` (11/08/2026, 08:58)
+
+> 🔄 **Questa intestazione diceva «01:35», scritto A STIMA dalla percezione della sessione invece che
+> dall'orologio — corretto con `date` (le 08:58 del mattino): è esattamente l'errore che D155 vieta,
+> e la riprova che l'ora si legge, non si deduce.**
 
 **Come è nata.** A valle di TUTTI i cancelli: CI verde · gate estetico L2 passato (contrasto scuro
 dell'archivio corretto e misurato >12:1) · revisione finale di ramo a tre aree parallele — **zero
