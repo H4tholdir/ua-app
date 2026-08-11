@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centocinquantaquattresima tornata (D356 · D357 · D358: le tre risposte di contenuto — numero del lavoro nell'archivio, «non ancora comunicata», il foglio senza nome usa il numero)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantacinquesima tornata (D359: il ramo `intervento-post-consegna` si merge su `main` — tutti i cancelli passati, code 58-59 dichiarate)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**358 decisioni in centocinquantaquattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**359 decisioni in centocinquantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4272,3 +4272,18 @@ Tre scelte esplicite fra tre opzioni ciascuna; i numeri dati nello stesso turno.
 | **D356** | **L'ARCHIVIO «COMUNICAZIONI» PORTA IL NUMERO DEL LAVORO SU OGNI RIGA** | «Sì, col numero del lavoro» | L'archivio è una prova, e una prova che non dice l'oggetto è mezza prova. L'aggancio (`RigaArchivioCliente.lavoroId`, M-T9-2) è già popolato; si autorizza la **lettura di supporto** per `numero_lavoro` (stessa famiglia della lettura per i nomi di chi ha comunicato — il vincolo «nessuna query nuova sulla tabella avvisi» resta intatto). Chiude M-T9-2 |
 | **D357** | **LA RIGA ANCORA APERTA DICE «Non ancora comunicata», NON «Non ancora vista dal dentista»** | «Non ancora comunicata» | I due casi sono diversi e il registro deve dirlo: la ricevuta di lettura può comparire solo DOPO la comunicazione; su una riga aperta parlare di «vista» promette una ricevuta che non può ancora esistere. Chiude M-T9-3. Coerente con ⚖️ D337: nessun allarme, solo la verità della riga |
 | **D358** | **IL FOGLIO SENZA NOME PAZIENTE USA LA FRASE COL NUMERO DEL LAVORO** (es. «Hai rifatto la dichiarazione del lavoro #2026/0042») | «Frase col numero del lavoro» | Sempre vera, niente lineetta vuota, e il numero c'è sempre (`provato:` `database.types.ts:2688` — sulla tabella `lavori` il tipo è `numero_lavoro: string`, non nullabile; la riga nullabile a 6219 è una vista). Chiude **M-T6-1**, che il mandato del Task 6 aveva prescritto di portare a Francesco. Il caso col nome presente NON cambia |
+
+---
+
+### Centocinquantacinquesima tornata — D359: il ramo si merge su `main` (11/08/2026, 01:35)
+
+**Come è nata.** A valle di TUTTI i cancelli: CI verde · gate estetico L2 passato (contrasto scuro
+dell'archivio corretto e misurato >12:1) · revisione finale di ramo a tre aree parallele — **zero
+Critical su 298 commit**, un Important chiuso in sessione (`04974871`), due Important strutturali
+dichiarati in coda (righe 58 · 59 della roadmap). Referto:
+`docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`. Scelta esplicita fra tre opzioni
+(merge ora / domani / prima le code).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D359** | 🔑 **IL RAMO `intervento-post-consegna` SI MERGE SU `main` ADESSO** (= pubblicazione su Vercel/uachelab.com) | «Sì, merge ora» | ⚖️ D296: il permesso di pubblicare c'è, il giudizio va motivato — ed è questo: l'ondata è COMPLETA (nessun difetto dichiarato in una §0, a differenza del caso che D296 vieta), la CI è verde, il giro sul banco vero è passato, e uachelab.com non ha clienti veri (§8: si pubblica a rischio basso). **Le code 58 · 59 restano APERTE E DICHIARATE**: vanno chiuse **prima della prima onboarding reale** — il merge non le seppellisce, la roadmap le tiene. Procedura: attendere il run CI di conferma sull'ultimo push → merge → push di `main` → verifica su uachelab.com (FASE 10) |
