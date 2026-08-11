@@ -1,8 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **aggiornato alla centocinquantacinquesima tornata (D359: il ramo `intervento-post-consegna` si merge su `main` — tutti i cancelli passati, code 58-59 dichiarate)** ·
+**Data:** 28 luglio 2026 · **aggiornato alla centocinquantaseiesima tornata (D360 · D361: l'ordine della striscia resta — contro-argomento pesato e respinto — e si aprono le code 58-59)** ·
 **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**359 decisioni in centocinquantacinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**361 decisioni in centocinquantasei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -4291,3 +4291,18 @@ dichiarati in coda (righe 58 · 59 della roadmap). Referto:
 | # | Decisione | Testo di Francesco | Fondamento |
 |---|---|---|---|
 | **D359** | 🔑 **IL RAMO `intervento-post-consegna` SI MERGE SU `main` ADESSO** (= pubblicazione su Vercel/uachelab.com) | «Sì, merge ora» | ⚖️ D296: il permesso di pubblicare c'è, il giudizio va motivato — ed è questo: l'ondata è COMPLETA (nessun difetto dichiarato in una §0, a differenza del caso che D296 vieta), la CI è verde, il giro sul banco vero è passato, e uachelab.com non ha clienti veri (§8: si pubblica a rischio basso). **Le code 58 · 59 restano APERTE E DICHIARATE**: vanno chiuse **prima della prima onboarding reale** — il merge non le seppellisce, la roadmap le tiene. Procedura: attendere il run CI di conferma sull'ultimo push → merge → push di `main` → verifica su uachelab.com (FASE 10) |
+
+---
+
+### Centocinquantaseiesima tornata — D360 · D361: l'ordine della striscia resta, e si aprono le code 58-59 (11/08/2026, 14:51)
+
+**Come è nata.** Alla ripresa della sessione, dall'handoff dell'11/08 §0①: il contro-argomento
+sull'ordine della striscia — rimandato dal Task 7 «al gate o a Francesco» e passato attraverso il
+gate L2 senza essere pesato — è stato portato a Francesco come **prima domanda**, insieme alla
+scelta del prossimo lavoro. Scelte esplicite fra tre opzioni (spostare su / l'ordine resta /
+mini-panel prima) e fra quattro (code 58-59 / pulizia Minor / collaudo al dito / riga 61).
+
+| # | Decisione | Testo di Francesco | Fondamento |
+|---|---|---|---|
+| **D360** | 🛑 **L'ORDINE DELLA STRISCIA RESTA COM'È: il promemoria dell'avviso NON si sposta** | «No — l'ordine resta» | Il contro-argomento (§0① dell'handoff 11/08: il promemoria non ha pila sotto la striscia — se un segnale più alto parla, lui TACE; osservato dal vivo in R1 del giro 10-B) è stato finalmente PESATO, e respinto: gli allarmi che gli stanno sopra (fiscali, ritardi, pagamenti) restano prioritari, il promemoria parla quando non c'è nulla di più urgente. **Decisione che CANCELLA lavoro potenziale** (le quattro righe in `LIVELLO1_PER_RUOLO`, `src/lib/dashboard/striscia.ts:252-257`) — scritta per prima come impone §0A-bis regola 2, perché senza questa riga una sessione futura riproporrebbe lo spostamento. Chiude il §0① dell'handoff: la questione non si riapre senza fatti nuovi |
+| **D361** | **IL PROSSIMO LAVORO SONO LE CODE 58 · 59** (le due strutturali di banca dati) | «Code 58-59» | Prime della lista «in ordine» dell'handoff §3, da chiudere **prima della prima onboarding reale**. Percorso Grande (migration + RLS = dominio critico, override BP-2); panel advisor non necessario: le due code sono già istruite dal referto della revisione finale (`docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`). Pulizia dei Minor, collaudo al dito e riga 61 restano in coda, invariate |
