@@ -215,11 +215,11 @@ export type Database = {
             referencedColumns: ["cliente_id"]
           },
           {
-            foreignKeyName: "avvisi_dentista_comunicato_da_fkey"
-            columns: ["comunicato_da"]
+            foreignKeyName: "avvisi_dentista_comunicato_da_fk"
+            columns: ["comunicato_da", "laboratorio_id"]
             isOneToOne: false
             referencedRelation: "utenti"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "laboratorio_id"]
           },
           {
             foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
