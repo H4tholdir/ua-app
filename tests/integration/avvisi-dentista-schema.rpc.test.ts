@@ -399,6 +399,11 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
       // ⏱️ Timeout esplicito (default 5000ms altrimenti): questa prova fa ~36
       // chiamate `has_column_privilege` in sequenza, ognuna un viaggio di rete
       // verso il catalogo remoto — il tempo è del viaggio, non della logica.
+      // ⚠️ Da 11/08/2026 il gruppo integration porta GIÀ 15000ms come margine
+      // di `testTimeout` (vitest.config.ts, `test.projects[integration]`),
+      // quindi questo secondo argomento è ridondante (stesso numero, non in
+      // conflitto) — lasciato apposta: è il verbale forense delle due morti
+      // CI che seguono, con i loro run e millisecondi esatti.
       // `provato:` morta per timeout DUE volte in CI, entrambe appena sopra i
       // 5000ms del default: 5007ms il 09/08 (run concorrente) e 5006ms il
       // 10/08 (run 31378884717, SENZA concorrenza — quindi non è contesa di
