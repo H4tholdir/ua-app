@@ -86,7 +86,8 @@ export function formattaQuando(iso: string | null): string | null {
  *    client: `queries.ts:13-20`, `portale.ts:157-160`).
  *
  * 🔑 **NESSUN FILTRO SU `deleted_at`, ED È DELIBERATO.** La colonna gemella
- *    `comunicato_da` è stata disegnata `REFERENCES public.utenti(id)` **senza**
+ *    `comunicato_da` è stata disegnata `REFERENCES public.utenti(id, laboratorio_id)`
+ *    (dall'11/08/2026 FK composita `avvisi_dentista_comunicato_da_fk`, riga 59) **senza**
  *    `ON DELETE SET NULL` proprio perché l'azione referenziale è un `UPDATE`
  *    di `avvisi_dentista`, e la migration lo dice per esteso (`20260809123206`,
  *    righe 48-54): un CHECK vivo pretende l'autore su ogni riga chiusa, quindi
