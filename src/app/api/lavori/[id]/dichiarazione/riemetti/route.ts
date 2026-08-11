@@ -44,6 +44,23 @@ type RouteContext = { params: Promise<{ id: string }> }
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
 /**
+ * 🛑 **ALLOWLIST ESPLICITA DI CHIAVI, MAI BLOCKLIST** (`CLAUDE.md` §9), stesso
+ * modello della rotta gemella (`…/avviso/route.ts:179`). Le tre sono TUTTE e
+ * SOLE le chiavi che questo handler legge: `evento_id` (sotto), `correzioni`
+ * (§⑨) e `atteso_updated_at` (dentro `correggiERifai`, che riceve lo stesso
+ * `corpo`).
+ *
+ * 🔑 **PERCHÉ ESISTE — revisione finale B.** Senza questo controllo una chiave
+ * storpiata dal client (`correzzioni`, o un wrapper che la perde) faceva
+ * scivolare IN SILENZIO sulla riemissione SENZA correzioni: 200 «rifatta» col
+ * documento ancora sbagliato, e un ritentativo che prende `gia_fatto: true`
+ * sul successore non corretto. Stesso scarto muto per `atteso_updated_at`
+ * mandato senza `correzioni` — v. la guardia dedicata più sotto. Rifiutare con
+ * un 422 che nomina la chiave è l'unico modo che non scarta niente in silenzio.
+ */
+const CHIAVI_AMMESSE = ['evento_id', 'correzioni', 'atteso_updated_at'] as const
+
+/**
  * Due gettoni indicano lo STESSO ISTANTE? `null` = non si può decidere.
  *
  * 🛑 QUESTO CONFRONTO DEV'ESSERE PIÙ DEBOLE DI QUELLO DELLA RPC, e il verso
@@ -98,13 +115,34 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (grezzo === null || typeof grezzo !== 'object' || Array.isArray(grezzo)) {
     return err('Non sono riuscita a leggere i dati inviati: riprova.', 400)
   }
+  const corpo = grezzo as Record<string, unknown>
+
+  // Le chiavi fuori elenco si RIFIUTANO, non si scartano — v. il riquadro su
+  // `CHIAVI_AMMESSE`. Prima di leggere qualunque campo, e prima di toccare il
+  // database.
+  for (const chiave of Object.keys(corpo)) {
+    if (!(CHIAVI_AMMESSE as readonly string[]).includes(chiave)) {
+      return err(`Questa richiesta non accetta il campo «${chiave}»: da qui si può solo rifare la dichiarazione, con o senza correzioni.`, 422)
+    }
+  }
 
   // 🛑 D263 — LA RIEMISSIONE NON È MAI SENZA MOTIVO. La forma si controlla QUI e
   // non solo nella RPC: un `evento_id` storto arriverebbe al database come un
   // `22P02` grezzo, e a leggere la risposta è un'operatrice al banco.
-  const eventoId = (grezzo as Record<string, unknown>).evento_id
+  const eventoId = corpo.evento_id
   if (typeof eventoId !== 'string' || !UUID_RE.test(eventoId)) {
     return err('Per rifare la dichiarazione serve la registrazione che ne dà il motivo: aprila da «Devo intervenire».', 422)
+  }
+
+  // 🛑 REVISIONE FINALE B — `atteso_updated_at` SENZA `correzioni` È UN ALTRO
+  // SCARTO MUTO, gemello di quello sopra: senza questa guardia il gettone
+  // mandato dal client veniva letto solo dentro `correggiERifai`, cioè MAI su
+  // questo ramo — un client che crede di proteggere la scrittura con
+  // «correzioni» perso per strada (chiave storpiata, wrapper che la perde)
+  // otteneva comunque un 200 «rifatta», senza che il gettone contasse niente.
+  // Si rifiuta PRIMA di toccare il database, come le altre guardie di forma.
+  if (corpo.atteso_updated_at !== undefined && corpo.correzioni === undefined) {
+    return err('«atteso_updated_at» ha senso solo insieme a «correzioni»: per rifare la sola carta senza correggere niente, ometti entrambe le chiavi.', 422)
   }
 
   const svc = getServiceClient()
@@ -191,9 +229,9 @@ export async function POST(req: Request, { params }: RouteContext) {
   //     quella strada resta aperta, e un oggetto vuoto diventa quel che è, una
   //     richiesta che non chiede niente.
   // ══════════════════════════════════════════════════════════════════════════
-  const correzioniGrezze = (grezzo as Record<string, unknown>).correzioni
+  const correzioniGrezze = corpo.correzioni
   if (correzioniGrezze !== undefined) {
-    return correggiERifai(svc, context.laboratorioId, lavoroCompleto, eventoId, grezzo as Record<string, unknown>, correzioniGrezze)
+    return correggiERifai(svc, context.laboratorioId, lavoroCompleto, eventoId, corpo, correzioniGrezze)
   }
 
   try {

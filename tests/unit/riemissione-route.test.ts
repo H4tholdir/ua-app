@@ -213,6 +213,46 @@ describe('POST …/dichiarazione/riemetti', () => {
     expect(mockRiemetti).not.toHaveBeenCalled()
   })
 
+  // ── revisione finale B — l'allowlist di chiavi, mai uno scarto muto ───────
+  //
+  // 🛑 IL DIFETTO CHE QUESTE DUE PROVE CHIUDONO: senza allowlist una chiave
+  // storpiata dal client (`correzzioni` invece di `correzioni`, o un wrapper
+  // che la perde) faceva scivolare IN SILENZIO sulla riemissione SENZA
+  // correzioni — 200 «rifatta» col documento ancora sbagliato, e un
+  // ritentativo che prende `gia_fatto: true` sul successore mai corretto.
+  it('🛑 chiave storpiata (`correzzioni`) → 422 che la nomina, e NESSUNA riemissione silenziosa', async () => {
+    banco()
+    const res = await POST(
+      req({
+        evento_id: EVENTO_ID,
+        correzzioni: { descrizione: 'x' },
+        atteso_updated_at: '2026-08-08T10:54:08.314024+00:00',
+      }),
+      params()
+    )
+    expect(res.status).toBe(422)
+    expect(String((await res.json()).error)).toContain('correzzioni')
+    // Le TRE strade restano mute: non solo «non si è generato un documento»
+    // (mockRiemetti/mockCorreggi), ma nemmeno «si è toccato il database»
+    // (mockFrom) — la guardia sta prima di ogni lettura.
+    expect(mockFrom).not.toHaveBeenCalled()
+    expect(mockRiemetti).not.toHaveBeenCalled()
+    expect(mockCorreggi).not.toHaveBeenCalled()
+  })
+
+  it('🛑 «atteso_updated_at» senza «correzioni» → 422: non più uno scarto muto', async () => {
+    banco()
+    const res = await POST(
+      req({ evento_id: EVENTO_ID, atteso_updated_at: '2026-08-08T10:54:08.314024+00:00' }),
+      params()
+    )
+    expect(res.status).toBe(422)
+    expect(String((await res.json()).error)).toContain('atteso_updated_at')
+    expect(mockFrom).not.toHaveBeenCalled()
+    expect(mockRiemetti).not.toHaveBeenCalled()
+    expect(mockCorreggi).not.toHaveBeenCalled()
+  })
+
   it('corpo non leggibile → 400, mai 500', async () => {
     banco()
     const res = await POST(
@@ -600,10 +640,28 @@ describe('POST …/riemetti — con le CORREZIONI (Task C)', () => {
 
   it('🛑 il laboratorio NON si sceglie dal corpo: si deriva dalla sessione', async () => {
     banco()
-    await POST(req({ ...corpo({ descrizione: 'x' }), laboratorio_id: 'altro-lab', lavoro_id: 'altro-lavoro' }), params())
+    await POST(req(corpo({ descrizione: 'x' })), params())
     const lavoroPassato = mockCorreggi.mock.calls[0][0] as { laboratorio_id?: string; id?: string }
     expect(lavoroPassato.laboratorio_id).toBe(LAB_ID)
     expect(lavoroPassato.id).toBe(LAVORO_ID)
+  })
+
+  // 🔄 REVISIONE FINALE B — QUESTA PROVA MANDAVA `laboratorio_id`/`lavoro_id`
+  // NEL CORPO STESSO, sopra: dimostrava che, anche presenti, quei valori non
+  // vincevano su quelli di sessione. Con l'allowlist la proprietà è più forte
+  // — quelle due chiavi non possono più nemmeno ARRIVARE in fondo alla rotta —
+  // quindi la prova originale è stata alleggerita del corpo inammissibile
+  // (sopra, invariata nelle sue due asserzioni) e questa qui sotto prova la
+  // cosa nuova: il 422 arriva PRIMA di scegliere qualunque cosa dalla sessione.
+  it('🛑 revisione finale B — «laboratorio_id»/«lavoro_id» nel corpo → 422 che nomina la chiave, non più un valore ignorato', async () => {
+    banco()
+    const res = await POST(
+      req({ ...corpo({ descrizione: 'x' }), laboratorio_id: 'altro-lab', lavoro_id: 'altro-lavoro' }),
+      params()
+    )
+    expect(res.status).toBe(422)
+    expect(String((await res.json()).error)).toContain('laboratorio_id')
+    expect(mockCorreggi).not.toHaveBeenCalled()
   })
 
   it('correggere le caratteristiche di un lavoro SENZA prescrizione → 422 prima del render', async () => {

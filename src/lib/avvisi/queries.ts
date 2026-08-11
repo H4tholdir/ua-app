@@ -121,8 +121,13 @@ function nienteConNota(dove: string, errore: { message?: string } | null): null 
  * essere: `correggi_e_riemetti_atomica` fa un `INSERT` incondizionato
  * (`20260809133546:488`) — quello che si mostra è il **più vecchio**. I due portano
  * `campi_corretti` diversi e sono **due rettifiche distinte** ex Art. 19 GDPR: il registro si
- * legge nell'ordine in cui i fatti sono avvenuti, e chiudendo il primo il promemoria **ricompare**
- * per il secondo — che è la verità, non un difetto.
+ * legge nell'ordine in cui i fatti sono avvenuti. ⚖️ **D354 (10/08/2026, Task 4-quater) — UN ATTO
+ * CHIUDE TUTTE LE RIGHE APERTE DEL LAVORO**: comunicare il promemoria più vecchio non ne lascia
+ * un secondo in attesa — la stessa scrittura (`avviso/route.ts:409-419`, senza `.eq('id', …)`)
+ * chiude in blocco ogni riga aperta di questo lavoro, quindi non c'è mai un «secondo» che
+ * **ricompare** dopo il primo. Le due righe restano distinte nel **registro** (due rettifiche ex
+ * Art. 19 GDPR, con `campi_corretti` diversi), non nella sequenza di ciò che resta da comunicare.
+ * Referto del panel: `docs/roadmap/2026-08-10-panel-due-avvisi-referto.md` §3, §4, §6.
  *
  * 🛑 **È UNA COSTANTE E NON UNA RIGA RIPETUTA PERCHÉ LA SCELTA È A PANEL.** La scheda del lavoro
  * (Task 6) e la striscia della home (Task 7) mostrano lo **stesso** promemoria: se un giorno si
@@ -196,10 +201,13 @@ export async function avvisiDaComunicare(
  *    (`20260809133546:488`), quindi due riemissioni non comunicate lasciano DUE
  *    righe aperte sullo stesso lavoro. Si torna la **più vecchia** (la lettura
  *    ordina crescente): due righe identiche sulla stessa carta non direbbero
- *    niente a nessuno, e chiudendo la prima il promemoria **ricompare** per la
- *    seconda — che è la verità, non un difetto. I due avvisi portano
- *    `campi_corretti` diversi e sono **due rettifiche distinte** ex Art. 19 GDPR:
- *    si consuma prima l'obbligo nato prima.
+ *    niente a nessuno. ⚖️ **D354 (10/08/2026, Task 4-quater)**: comunicare questa
+ *    NON lascia la seconda in attesa — un solo atto (`avviso/route.ts:409-419`)
+ *    chiude TUTTE le righe aperte del lavoro insieme, quindi non c'è un
+ *    «secondo» promemoria che **ricompare** dopo il primo. I due avvisi restano
+ *    **due rettifiche distinte** ex Art. 19 GDPR nel registro (`campi_corretti`
+ *    diversi, si consuma prima l'obbligo nato prima) — la distinzione vive nei
+ *    dati, non più nella sequenza di chiusura.
  *
  * ⚠️ **`avvisiDaComunicare` NON cambia firma** e resta esportata: è la lettura
  *    grezza, e le sue dodici prove restano quelle. Questa la chiama.
