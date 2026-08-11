@@ -346,7 +346,7 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
           client.query(`DELETE FROM public.utenti WHERE id = $1`, [autoreId])
         )
         expect(e.code).toBe('23503')
-        expect(e.message).toMatch(/avvisi_dentista_comunicato_da_fkey/)
+        expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
       })
     })
   })
