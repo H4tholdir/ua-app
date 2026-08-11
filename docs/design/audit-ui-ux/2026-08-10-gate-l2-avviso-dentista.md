@@ -120,7 +120,7 @@ Mandato originario solo-audit: **tutti e tre erano deferiti** al momento della s
 sotto invece che aggiunte in fondo. ❌3 resta deferito — fuori mandato di quella sessione (superficie
 `portale-card-avviso`, non `archivio-*`).
 
-### ❌1 — §5 colore · «Non ancora comunicata» sotto soglia AA in tema scuro — ✅ RISOLTO l'11/08/2026
+### ❌1 — §5 colore · «Non ancora comunicata» sotto soglia AA in tema scuro — ✅ RISOLTO l'11/08/2026 (commit `8063c3be`)
 
 **Scatto (difetto):** `archivio-riga-aperta-390-scuro.png` (stesso componente confermato a occhio anche
 su `-768-scuro.png`).
@@ -159,7 +159,7 @@ sopra 4,5:1 per uso testo (l'unico con lo stesso chiaro, `--brd-cmd`, è vietato
 `globals.css:109`). Non bloccato — vedi la decisione motivata più sotto — ma la resa chiaro NON è più
 byte-identica a prima: **riserva per Francesco**, non un difetto nascosto.
 
-### ❌2 — §5 colore · pillole «DA COMUNICARE» / «A VOCE» sotto soglia AA in tema scuro — ✅ RISOLTO l'11/08/2026
+### ❌2 — §5 colore · pillole «DA COMUNICARE» / «A VOCE» sotto soglia AA in tema scuro — ✅ RISOLTO l'11/08/2026 (commit `8063c3be`)
 
 **Scatti (difetto):** `archivio-riga-aperta-390-scuro.png` (pillola «DA COMUNICARE»),
 `archivio-righe-chiuse-390-scuro.png` (pillola «A VOCE»).
