@@ -83,11 +83,19 @@ function inserisci(
  *   · con `testo`   → 'comunicato_dall_app', che è l'unico stato in cui
  *                     avviso_testo_solo_se_dall_app AMMETTE `testo_inviato`.
  * In entrambe autore e data sono obbligatori (avviso_comunicato_ha_autore_e_data).
+ *
+ * 🛑 IL RAMO SI SCEGLIE PER PRESENZA (`!== undefined`), NON PER VERITÀ: con
+ * `testo ? …` la stringa vuota cadrebbe su 'comunicato_a_voce' IN SILENZIO, e
+ * una prova che si chiama «dall_app» resterebbe VERDE misurando l'altra forma
+ * (misurato dalla ri-revisione del 12/08). La stringa vuota non è un caso di
+ * scuola: la rotta la respinge con un 422 apposta (route.ts:310-313) perché il
+ * CHECK chiede solo NOT NULL e il database la accetterebbe — «la prova di un
+ * avviso senza avviso».
  */
 function chiudiConUpdate(
   client: Client, avvisoId: string, comunicatoDa: string, testo?: string
 ) {
-  const [stato, testoInviato] = testo
+  const [stato, testoInviato]: [string, string | null] = testo !== undefined
     ? ['comunicato_dall_app', testo]
     : ['comunicato_a_voce', null]
   return client.query(
@@ -220,7 +228,8 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — la firma è dello ste
   // Sulle righe già chiuse è l'opposto, ed è coperto altrove
   // (avvisi-chiusura-one-way.rpc.test.ts).
   //
-  // ⚠️ NOTA R-P4 — NON C'È UN ROSSO NATURALE, e va detto invece che nascosto:
+  // ⚠️ NOTA R-P4 — NON C'È UN ROSSO NATURALE, e va detto invece che nascosto
+  // (vale per ⑧ e per ⑪: la mutazione è stata misurata su entrambe):
   // il meccanismo esiste già dal 11/08, quindi queste prove nascono verdi. La
   // loro FORZA è stata misurata con una MUTAZIONE sul banco vivo, in
   // transazione annullata: tolta `avvisi_dentista_comunicato_da_fk`, la stessa
