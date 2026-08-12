@@ -1205,3 +1205,35 @@ MERGE SU MAIN: **2f1d8d83** (11/08 sera, giudizio ex D296: ondata completa, zero
   in_progress; seconda lettura a minuti di distanza (regola del falso allarme). ONDATA CODE 58-59 CHIUSA.
 CI del merge 2f1d8d83: SUCCESS (10m40s, run 31516616997) · CD Vercel: SUCCESS (3m14s, ~19:25 CEST) —
   IN PRODUZIONE. BP-1 committato su main (8df19c6f). ONDATA CODE 58-59: FINITA, da capo a fondo.
+
+ONDATA DI PULIZIA DEI MINOR (12/08 mattina, ramo pulizia-minor-copertura-update-firma):
+Minor n.3 (copertura della forma UPDATE sulla firma composita): **complete** (commit 9953c1b2).
+  Le prove della riga 59 esercitavano il solo INSERT; la forma che l'app usa davvero è l'UPDATE che
+  chiude una riga nata APERTA (route.ts:414-420). 3 prove nuove (7 → 10), poi 5 (→ 12) dopo la revisione.
+  ⚠️ NIENTE ROSSO NATURALE: il meccanismo esiste dall'11/08, quindi le prove nascono verdi. Forza
+  misurata con una MUTAZIONE sul banco vivo in transazione annullata (sonda a sei passi, 12/08):
+  P2 chiusura cross-tenant → 23503 sulla chiave · P3 firma senza lab → 23503 · P4 controprova stesso
+  lab → riuscito · P5 riscrittura su riga chiusa → P0001 (trigger one-way) · P6 MUTAZIONE, tolta la
+  chiave la stessa UPDATE RIESCE → l'asserzione è portante. Senza P6 un verde non distingue «il
+  vincolo protegge» da «l'input non arriva».
+REVISIONE (agente separato, riesegue tutto da sé): «Ready to merge: Yes» — zero Critical, zero
+  Important; ha riprodotto le 10 prove E la mutazione, e verificato una per una le cinque citazioni
+  nei commenti nuovi. UN Minor: la portata DICHIARATA superava quella COPERTA — la rotta chiude in DUE
+  modi (route.ts:284-288), e 'comunicato_dall_app' col testo non aveva né caso né «non coperta, perché»
+  (R-P4). Riferiti FUORI mandato (R-E2, restano a ledger): ① nessuna prova sullo spostamento di
+  laboratorio_id di una riga GIÀ CHIUSA (protetto, misurato dal revisore) · ② nessuna prova su cosa
+  vede l'operatrice quando la chiave morde (route.ts:422-427 schiaccia il 23503 in un 500 generico).
+FIX DEL MINOR (in albero, in ri-revisione): chiudiConUpdate prende un quarto argomento opzionale
+  `testo` (con testo → 'comunicato_dall_app' + testo_inviato; senza → 'comunicato_a_voce') · prove ⑪
+  (dall_app cross-tenant → 23503) e ⑫ (controprova dall_app stesso lab) · commento di sezione non più
+  al singolare. 12/12 · tsc 0 · verify:full VERIFY_EXIT=0 (6069 | 164 su 476 — 162+2, i numeri tornano).
+  🔑 RI-REVISIONE CHIESTA ALLO STESSO REVISORE, ed è la lezione dell'11/08 applicata: un fix non è
+  esente dal cancello che ha appena attraversato il codice che corregge.
+D362 (delega del merge su main): NON RATIFICATA. Indirizzo scelto da Francesco, panel di 3 revisori
+  unanime su «ratificare con emendamenti», testo in attesa di lui.
+  🔴 FATTO NUOVO VERIFICATO: la CI NON gira sui rami (ci.yml:3-7 → solo push main/develop e PR verso
+  main). La corsa 31516616997 dichiarata verde per l'ondata di ieri è girata SU main, SHA 2f1d8d83,
+  17:15Z, cioè DOPO il merge. Il cancello «CI verde prima del merge» oggi non è soddisfacibile.
+  Verbale: docs/processes/2026-08-12-panel-delega-merge-main.md.
+CORREZIONE AL REGISTRO: il merge 2f1d8d83 NON è D361 (grep → 0 citazioni a verbale; D361 dice «il
+  prossimo lavoro sono le code 58-59»). Attribuzione corretta in MEMORY.md e ROADMAP (54b57a55).

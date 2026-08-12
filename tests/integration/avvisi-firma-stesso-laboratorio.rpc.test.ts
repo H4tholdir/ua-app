@@ -77,17 +77,25 @@ function inserisci(
 }
 
 /**
- * La chiusura come la fa l'app: una riga APERTA passa a 'comunicato_a_voce'
- * con autore e data (avviso_comunicato_ha_autore_e_data li vuole entrambi).
- * `testo_inviato` resta NULL: è ammesso solo su 'comunicato_dall_app'.
+ * La chiusura come la fa l'app — ed è una sola funzione perché le forme sono
+ * DUE, scelte da `come` nella rotta (route.ts:284-288):
+ *   · senza `testo` → 'comunicato_a_voce', e `testo_inviato` resta NULL;
+ *   · con `testo`   → 'comunicato_dall_app', che è l'unico stato in cui
+ *                     avviso_testo_solo_se_dall_app AMMETTE `testo_inviato`.
+ * In entrambe autore e data sono obbligatori (avviso_comunicato_ha_autore_e_data).
  */
-function chiudiConUpdate(client: Client, avvisoId: string, comunicatoDa: string) {
+function chiudiConUpdate(
+  client: Client, avvisoId: string, comunicatoDa: string, testo?: string
+) {
+  const [stato, testoInviato] = testo
+    ? ['comunicato_dall_app', testo]
+    : ['comunicato_a_voce', null]
   return client.query(
     `UPDATE public.avvisi_dentista
-        SET stato = 'comunicato_a_voce', comunicato_at = now(), comunicato_da = $2
+        SET stato = $3, comunicato_at = now(), comunicato_da = $2, testo_inviato = $4
       WHERE id = $1
-      RETURNING id, stato, comunicato_at, comunicato_da`,
-    [avvisoId, comunicatoDa]
+      RETURNING id, stato, comunicato_at, comunicato_da, testo_inviato`,
+    [avvisoId, comunicatoDa, stato, testoInviato]
   )
 }
 
@@ -199,10 +207,12 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — la firma è dello ste
   })
 
   // ── la forma UPDATE: la chiusura di una riga APERTA ───────────────────────
-  // ⑧⑨⑩ chiudono il Minor n.3 a ledger (revisione finale di ramo, 11/08/2026):
+  // ⑧-⑫ chiudono il Minor n.3 a ledger (revisione finale di ramo, 11/08/2026):
   // ④⑤⑥ qui sopra provano la chiave sul solo INSERT, ma nella vita vera
   // l'avviso NASCE aperto e viene chiuso DOPO, con un UPDATE
-  // (src/app/api/lavori/[id]/avviso/route.ts:414-420). Era la forma non coperta.
+  // (src/app/api/lavori/[id]/avviso/route.ts:414-420). Era la forma non coperta —
+  // e sono DUE forme, non una: 'a_voce' (⑧⑨⑩) e 'dall_app' col testo (⑪⑫),
+  // scelte da `come` alla riga 284-288 della stessa rotta.
   //
   // 🔑 PERCHÉ QUI MORDE LA CHIAVE E NON IL TRIGGER: trg_avviso_chiusura_one_way
   // ha WHEN (OLD.stato <> 'da_comunicare') (20260811132010:62), quindi su una
@@ -262,6 +272,42 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — la firma è dello ste
       expect(chiuso.rows[0].stato).toBe('comunicato_a_voce')
       expect(chiuso.rows[0].comunicato_da).toBe(utenteA)
       expect(chiuso.rows[0].comunicato_at).not.toBeNull()
+    })
+  })
+
+  it("⑪ l'ALTRA forma di chiusura — 'comunicato_dall_app' col testo — è respinta uguale", async () => {
+    // R-P4, enumerazione delle forme d'ingresso: la rotta chiude in DUE modi
+    // (route.ts:284-288), e ⑧ copre solo 'a_voce'. La variante col testo cambia
+    // stato e riempie testo_inviato, ma NON tocca la coppia
+    // (comunicato_da, laboratorio_id): la chiave deve mordere identica.
+    // Rilievo Minor della revisione del 12/08, chiuso qui invece che con una nota.
+    await withRollback(async (client) => {
+      const rif = await riferimentiVeri(client)
+      const labB = randomUUID()
+      await client.query(`INSERT INTO laboratori (id, nome) VALUES ($1, $2)`, [
+        labB, 'Lab B — prova chiusura dall_app',
+      ])
+      const utenteB = await utenteUsaEGetta(client, labB)
+      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
+
+      const e = await attesoRifiuto(client, "chiusura 'dall_app' firmata dal lab B", () =>
+        chiudiConUpdate(client, rows[0].id, utenteB, 'Buongiorno, il lavoro è pronto.')
+      )
+      expect(e.code).toBe('23503')
+      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
+    })
+  })
+
+  it("⑫ CONTROPROVA della forma 'dall_app': col testo e la firma dello STESSO lab passa", async () => {
+    await withRollback(async (client) => {
+      const rif = await riferimentiVeri(client)
+      const utenteA = await utenteUsaEGetta(client, LAB_A)
+      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
+
+      const chiuso = await chiudiConUpdate(client, rows[0].id, utenteA, 'Il lavoro è pronto.')
+      expect(chiuso.rows[0].stato).toBe('comunicato_dall_app')
+      expect(chiuso.rows[0].comunicato_da).toBe(utenteA)
+      expect(chiuso.rows[0].testo_inviato).toBe('Il lavoro è pronto.')
     })
   })
 })
