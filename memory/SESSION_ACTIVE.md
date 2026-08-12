@@ -15,4 +15,7 @@ silenzio il `search_path`** di una SECURITY DEFINER — ripristinato e inchiodat
 📌 **Misurato in chiusura:** `VERIFY_EXIT=0` · **6069 passate | 159 saltate su 476 file** · guardie verdi.
 Le saltate sono l'integrazione senza `.env.local` (137 + **22 prove nuove** = 159); con ambiente: 155/155.
 
+💾 **Salvataggio database:** era fallito stamattina (rete caduta), **rilanciato e RIUSCITO** — copia
+`2026-08-12_073340` (24M), guardia verde. Se l'allarme torna: si **rilancia**, non si annota (§5).
+
 ⚖️ **361 decisioni in 156 tornate** (D360 striscia · D361 code 58-59). 🗄️ Pavimento: `20260811164953`.

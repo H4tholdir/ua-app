@@ -95,6 +95,7 @@ ricevuta parziale — panel normativo, quando si torna sulle superfici dell'arch
 | 🔴 **Ri-revisione** | Important #1 chiuso **e riverificato coi test rieseguiti**… **e un Important NUOVO trovato nel mio fix** (§0⑤: `search_path` perso) |
 | ✅ **Fix 2** (`7418c8af`) | pin ripristinato (`20260811164953`) + **prova a catalogo** perché la trappola non si ripeta muta. RED 1/4 → GREEN 4/4 |
 | ✅ **Verdetto finale** | «**Ready to merge? Yes**» → merge `2f1d8d83`, CI e CD **SUCCESS** |
+| 🟠 **In chiusura (12/08 mattina): il salvataggio notturno del database era FALLITO** | `provato:` `ULTIMO-ESITO.txt` → `FALLITO 2026-08-12 07:25:34`, `SSL SYSCALL error: EOF detected` mentre scaricava i ruoli (Docker acceso 9 s prima). **Rimediato subito ripetendolo:** `RIUSCITO 07:35:31`, cartella `2026-08-12_073340` (**24M**), allarme sparito da solo, guardia **verde**. Nessun dato è mai stato a rischio: la copia dell'11/08 c'era e c'è |
 
 ## 2. 🔑 Le lezioni — valgono per il codice futuro
 
@@ -118,7 +119,15 @@ ricevuta parziale — panel normativo, quando si torna sulle superfici dell'arch
 5. 🔑 **IL CENSIMENTO DI CHIUSURA PRENDE CIÒ CHE LE GUARDIE NON GUARDANO.** Il contatore sbagliato
    (§0②) è passato sotto una guardia **verde**, perché quella guardia conta le decisioni, non le righe
    di coda. ➡️ **Una guardia verde dice «ciò che controllo è a posto», mai «va tutto bene».**
-6. 🔑 **LE SONDE PRIMA DEL PIANO VALGONO PIÙ DI DIECI PAGINE DI PIANO.** Le due che hanno **riprodotto
+6. 🔑 **UN SALVATAGGIO FALLITO SI RIPROVA PRIMA DI CHIAMARLO GUASTO — ma NON si ignora.** Quello di
+   stamattina è caduto per una connessione interrotta e al secondo tentativo è andato liscio: era un
+   intoppo di rete, non un difetto. 🛑 **La parte che conta però è l'altra:** finché non lo si rilancia,
+   **la copia di oggi non esiste davvero** — l'allarme non è un avviso da leggere e archiviare, è un
+   lavoro da rifare, e sono due minuti (`bash '~/Library/Application Support/UA-salvataggio/scripts/salvataggio-programmato.sh' --forza`).
+   ⚠️ È la stessa famiglia della lezione Vercel dell'11/08, col verso opposto: **là** una misura
+   prematura aveva inventato un guasto che non c'era; **qui** un guasto vero si sarebbe risolto da sé
+   nei registri — ma la copia mancante sarebbe rimasta mancante.
+7. 🔑 **LE SONDE PRIMA DEL PIANO VALGONO PIÙ DI DIECI PAGINE DI PIANO.** Le due che hanno **riprodotto
    i difetti** in transazione annullata hanno reso impossibile scrivere un rimedio a naso, e hanno
    dato ai test la forma esatta del male da impedire.
 
@@ -162,5 +171,8 @@ ricevuta parziale — panel normativo, quando si torna sulle superfici dell'arch
   a `*`; **4 su 4 anche in questa sessione**, rimesso ogni volta — D313: quella cartella **si versiona**).
 - 🔑 Un'assenza nei registri esterni (deploy, CI) si dichiara guasto **solo alla seconda lettura**, a
   distanza di minuti — regola pagata l'11/08 e **rispettata** in questa chiusura.
+- 💾 **Se la guardia del salvataggio avvisa «l'ultimo è FALLITO»: si RILANCIA, non si annota.** Due
+  minuti: `bash '/Users/hatholdir/Library/Application Support/UA-salvataggio/scripts/salvataggio-programmato.sh' --forza`
+  → l'allarme sparisce da solo al primo esito riuscito (`~/Backup-UA-database/ULTIMO-ESITO.txt`).
 - Accesso al banco: D103, `npx tsx scripts/link-accesso.ts` (per l'app locale si riusa il `token_hash`
   su `http://localhost:3000/auth/callback`).
