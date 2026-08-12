@@ -76,6 +76,21 @@ function inserisci(
   )
 }
 
+/**
+ * La chiusura come la fa l'app: una riga APERTA passa a 'comunicato_a_voce'
+ * con autore e data (avviso_comunicato_ha_autore_e_data li vuole entrambi).
+ * `testo_inviato` resta NULL: è ammesso solo su 'comunicato_dall_app'.
+ */
+function chiudiConUpdate(client: Client, avvisoId: string, comunicatoDa: string) {
+  return client.query(
+    `UPDATE public.avvisi_dentista
+        SET stato = 'comunicato_a_voce', comunicato_at = now(), comunicato_da = $2
+      WHERE id = $1
+      RETURNING id, stato, comunicato_at, comunicato_da`,
+    [avvisoId, comunicatoDa]
+  )
+}
+
 /** Un utente vero usa-e-getta, nel laboratorio scelto (ricetta avvisi-dentista-schema:335). */
 async function utenteUsaEGetta(
   client: Parameters<Parameters<typeof withRollback>[0]>[0],
@@ -180,6 +195,73 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — la firma è dello ste
       const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
       expect(rows[0].stato).toBe('da_comunicare')
       expect(rows[0].comunicato_da).toBeNull()
+    })
+  })
+
+  // ── la forma UPDATE: la chiusura di una riga APERTA ───────────────────────
+  // ⑧⑨⑩ chiudono il Minor n.3 a ledger (revisione finale di ramo, 11/08/2026):
+  // ④⑤⑥ qui sopra provano la chiave sul solo INSERT, ma nella vita vera
+  // l'avviso NASCE aperto e viene chiuso DOPO, con un UPDATE
+  // (src/app/api/lavori/[id]/avviso/route.ts:414-420). Era la forma non coperta.
+  //
+  // 🔑 PERCHÉ QUI MORDE LA CHIAVE E NON IL TRIGGER: trg_avviso_chiusura_one_way
+  // ha WHEN (OLD.stato <> 'da_comunicare') (20260811132010:62), quindi su una
+  // riga APERTA non scatta affatto — il rifiuto arriva dalla FK composita.
+  // Sulle righe già chiuse è l'opposto, ed è coperto altrove
+  // (avvisi-chiusura-one-way.rpc.test.ts).
+  //
+  // ⚠️ NOTA R-P4 — NON C'È UN ROSSO NATURALE, e va detto invece che nascosto:
+  // il meccanismo esiste già dal 11/08, quindi queste prove nascono verdi. La
+  // loro FORZA è stata misurata con una MUTAZIONE sul banco vivo, in
+  // transazione annullata: tolta `avvisi_dentista_comunicato_da_fk`, la stessa
+  // UPDATE di ⑧ RIESCE. `provato:` 12/08/2026, sonda a sei passi —
+  // P2 rifiutato 23503 · P6 (senza vincolo) RIUSCITO. Senza quella mutazione
+  // un test verde non distingue «il vincolo protegge» da «l'input non arriva».
+  it('⑧ chiudere una riga APERTA con la firma di UN ALTRO laboratorio è respinto con 23503', async () => {
+    await withRollback(async (client) => {
+      const rif = await riferimentiVeri(client)
+      const labB = randomUUID()
+      await client.query(`INSERT INTO laboratori (id, nome) VALUES ($1, $2)`, [
+        labB, 'Lab B — prova chiusura cross-tenant',
+      ])
+      const utenteB = await utenteUsaEGetta(client, labB)
+      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
+      const avviso = rows[0].id
+
+      const e = await attesoRifiuto(client, 'chiusura del lab A firmata dal lab B', () =>
+        chiudiConUpdate(client, avviso, utenteB)
+      )
+      expect(e.code).toBe('23503')
+      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
+    })
+  })
+
+  it('⑨ chiudere una riga APERTA con la firma di un utente SENZA laboratorio è respinto con 23503', async () => {
+    // Stessa coppia di forme di ④/⑤, ma sull'UPDATE: laboratorio_id NULL è
+    // legale per admin_sistema, e la coppia (id, NULL) non esiste per la FK.
+    await withRollback(async (client) => {
+      const rif = await riferimentiVeri(client)
+      const admin = await utenteUsaEGetta(client, null, 'admin_sistema')
+      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
+
+      const e = await attesoRifiuto(client, 'chiusura firmata da un admin senza lab', () =>
+        chiudiConUpdate(client, rows[0].id, admin)
+      )
+      expect(e.code).toBe('23503')
+      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
+    })
+  })
+
+  it('⑩ CONTROPROVA: chiudere una riga APERTA con la firma DELLO STESSO laboratorio passa', async () => {
+    await withRollback(async (client) => {
+      const rif = await riferimentiVeri(client)
+      const utenteA = await utenteUsaEGetta(client, LAB_A)
+      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
+
+      const chiuso = await chiudiConUpdate(client, rows[0].id, utenteA)
+      expect(chiuso.rows[0].stato).toBe('comunicato_a_voce')
+      expect(chiuso.rows[0].comunicato_da).toBe(utenteA)
+      expect(chiuso.rows[0].comunicato_at).not.toBeNull()
     })
   })
 })
