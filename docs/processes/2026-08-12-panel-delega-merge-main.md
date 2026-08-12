@@ -185,11 +185,16 @@ censimento dei canali (12/08/2026) trova che **due canali sono vivi oggi**, con 
 | **Stripe** | codice **senza freno**; l'addebito dipende **solo dalla chiave** | email dell'utente | `src/lib/stripe/server.ts:4` · `provato:` **0 abbonamenti** in banca dati |
 | **WhatsApp** | **no**: solo un link `wa.me`, serve un dito umano | — | `src/lib/consegna/whatsapp-template.ts:83` |
 
-🛑 **Il punto che pesa di più, e non è nella lista dei «canali»:** la rotta
-`src/app/api/portale/richiedi/route.ts` si dichiara alle righe 3-5 **«Accesso PUBBLICO — nessun token
-di autenticazione richiesto»** e alle righe 179-182 fa partire un push a `titolare` e `front_desk`.
-**Chi possiede un `portale_token` può far squillare quel telefono da fuori**, senza account.
-`provato:` lette le righe, 12/08/2026.
+**Un push parte anche da una rotta pubblica — ma è LIMITATO, e la prima stesura di questa riga
+esagerava.** `src/app/api/portale/richiedi/route.ts` si dichiara alle righe 3-5 **«Accesso PUBBLICO —
+nessun token di autenticazione richiesto»** e alle righe 179-182 fa partire un push a `titolare` e
+`front_desk`: chi possiede un `portale_token` fa squillare quel telefono senza avere un account.
+🔄 **Ma esiste un tetto che il censimento non aveva visto e che ho trovato controllando:** righe 96-110,
+**massimo 10 richieste per cliente in 24 ore**, oltre le quali risponde `429`. Quindi non è «squillo a
+volontà»: è al più dieci notifiche al giorno per token. `provato:` lette le righe, 12/08/2026.
+⚠️ Resta una nota vera, dichiarata nel codice stesso (righe 103-105): se **il conteggio fallisce**, la
+rotta **procede lo stesso** — il limite si apre invece di chiudersi. È una scelta scritta, non una
+svista, e vale la pena riguardarla quando si toccherà quella rotta.
 
 ➡️ **Conseguenza sulla delega:** «nessun cliente vero» copre i **dati**, non le **uscite**. Un'ondata
 che tocca invii, notifiche o pagamenti **non è coperta dal ragionamento di §8** — ed è un argomento
