@@ -1163,3 +1163,45 @@ REVISIONE FINALE DI RAMO (11/08 notte): **PRONTO AL MERGE CON RISERVE A CODA** �
   · Triage M-T*: chiusi nel ramo M-T6-1, M-T9-1 (dal vivo), M-T9-2, M-T9-3; tutti gli altri
     PORTANO la destinazione «ondata di pulizia» e possono viaggiare.
   ➡️ Resta a Francesco: il MERGE (D296 — permesso c'è, giudizio suo).
+
+ONDATA CODE 58-59 (11/08 pomeriggio, piano docs/superpowers/plans/2026-08-11-code-58-59-avvisi-prova-inalterabile.md, ramo code-58-59-prova-inalterabile):
+Task 1 (trigger one-way chiusura avvisi, riga 58): **complete** (commits 2f6e4142..bc938e39, review clean).
+  Migration 20260811132010 applicata e verificata sul catalogo vivo; RED 7/11 → GREEN 11/11; suite esistenti verdi.
+  Minor a coda: ① la nota R-P4 sul no-op update non è nel commento del file di test · ② DELETE di una riga
+  chiusa non coperto dal trigger BEFORE UPDATE (mitigato: DELETE è già REVOKE per i ruoli client — riferito R-E2).
+Task 2 (FK composita firma, riga 59): **complete** (commits bc938e39..8f4976a7, review clean).
+  Migration 20260811133440 applicata, ledger verificato dal REVISORE sul catalogo vivo; RED 5/7+1 → GREEN 34/34.
+  Minor a coda: ③ copertura solo-INSERT — manca la forma UPDATE (chiusura di riga APERTA con firma cross-tenant;
+  meccanismo già sicuro: la FK valida uguale su UPDATE, e sulle chiuse morde il trigger del Task 1) ·
+  ④ utenteUsaEGetta non usa l'alias Client (cosmetico, era già nel piano) · nota: censimento «0 hit» del piano
+  era impreciso (2 hit legittimi nei file nuovi per costruzione).
+Task 3 (verifica piena + chiusura righe 58-59): **complete** (commit 4eb7e9a7, ramo pushato).
+  Misurato: tsc pulito · VERIFY_EXIT=0 (6069 | 155 su 475) · integration con env 155/155 zero saltate ·
+  build verde (dentro verify:full — non rieseguita a parte, output completo a verbale).
+  ⚠️ Deviazioni dichiarate: eseguito IN LINEA dal controller (3 dispacci consecutivi falliti per
+  indisponibilità temporanea del classificatore harness — non un giudizio contro R-E1); le modifiche
+  ROADMAP ereditate dall'esecutore interrotto, verificate frammento per frammento prima di tenerle.
+REVISIONE FINALE DI RAMO (11/08 pomeriggio, modello di punta): ZERO Critical · UN Important CONFERMATO
+  con sonda dal vivo (accept_invite_atomic: cambio lab di chi ha firmato → 23503 non gestito dalla FK
+  composita) · 3 Minor nuovi (commento stantìo archivio.ts:89 · test D274 non esercita i vincoli nuovi ·
+  refuso void rif) · triage dei 4 Minor a ledger: TUTTI a ondata di pulizia (il n.3, forma UPDATE, per primo).
+FIX ROUND (c4253054, IN LINEA — classificatore harness instabile sui dispacci, dichiarato): migration
+  20260811162235 (accept_invite_atomic fallisce PULITO sulla sola nostra FK, re-RAISE altrimenti) ·
+  test nuovo 3/3 (RED 1/3 sul 23503 vivo → GREEN; re-accept stesso lab intatto) · archivio.ts:89
+  aggiornato · riga 62 in coda (scelta di prodotto a Francesco) · guardia verde · tsc pulito · pushato.
+  In attesa: ri-revisione dal revisore finale (SendMessage), poi giudizio di merge D296.
+RI-REVISIONE 1: Important #1 CHIUSO e verificato (revisore ha rieseguito i test: 3/3) · UN NUOVO Important
+  TROVATO, mio, dal fix in linea: il CREATE OR REPLACE della 20260811162235 ha perso in silenzio il pin
+  search_path dell'hardening 20260704190000 (proconfig null a catalogo) · Minor nuovo: stringa utente cita
+  «riga 62 della coda» (riferimento interno in copy utente) → ondata di pulizia.
+FIX ROUND 2 (7418c8af): ALTER FUNCTION ... SET search_path (migration 20260811164953, applicata,
+  proconfig verificato sul vivo) + prova ④ a catalogo nel test (RED 1/4 → GREEN 4/4): la trappola
+  «CREATE OR REPLACE mangia gli ALTER» non può ripetersi muta su questa funzione. In attesa verdetto finale.
+RI-REVISIONE 2 (dopo uno stallo del revisore, ripreso): «Ready to merge? YES» — condizioni verificate dal
+  revisore sul catalogo vivo (proconfig agganciato, prova ④ verde); nota: 1 run su 3 con un timeout
+  transiente, famiglia flake da margine già a ledger, non un difetto.
+MERGE SU MAIN: **2f1d8d83** (11/08 sera, giudizio ex D296: ondata completa, zero difetti dichiarati).
+  13 file, +1790: 4 migrations · 3 file di prova nuovi (22 prove) · piano · docs. CI: prima lettura
+  in_progress; seconda lettura a minuti di distanza (regola del falso allarme). ONDATA CODE 58-59 CHIUSA.
+CI del merge 2f1d8d83: SUCCESS (10m40s, run 31516616997) · CD Vercel: SUCCESS (3m14s, ~19:25 CEST) —
+  IN PRODUZIONE. BP-1 committato su main (8df19c6f). ONDATA CODE 58-59: FINITA, da capo a fondo.

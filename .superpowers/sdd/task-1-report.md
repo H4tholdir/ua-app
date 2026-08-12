@@ -1,207 +1,149 @@
-# Task 1 — Report
+# Task 1 — Report: Vincolo one-way sulla chiusura (riga 58)
 
-Il wizard manda la trascrizione e lo stato dello sgancio (client, no UI)
-Ondata B, sessione ③. Ramo: `ondata-b-sessione-3`.
+**Stato:** DONE
+**Commit:** `bc938e39` — feat(db): trigger one-way sulla chiusura degli avvisi — la prova non si riscrive (riga 58)
+**Branch:** `code-58-59-prova-inalterabile` (verificato con `git branch --show-current` prima di iniziare)
 
 ## Cosa è stato implementato
 
-1. **`src/components/features/wizard/WizardNuovoLavoro.tsx`**
-   - Nuovo tipo esportato `ColoreOrigine = 'prescrizione' | 'lab'` — UNA SOLA CASA,
-     riusato sia da `StatoWizard.coloreOrigine` sia dall'input di `creaLavoroDaWizard`.
-   - `StatoWizard.coloreOrigine?: ColoreOrigine` (opzionale).
-   - `STATO_INIZIALE.coloreOrigine = 'prescrizione'` (valore esplicito, comportamento
-     identico ad "assente" per `undefined !== 'lab'`).
-   - I DUE punti di enumerazione manuale delle chiavi (fatto 3 del censimento) aggiornati:
-     l'effect di `salvaStato` (persistenza abbandono 24h) e `riprendi` (ripristino da
-     localStorage) ora portano `coloreOrigine`.
-   - `continuaPaziente` (dentro `CorpoWizard`) passa `coloreOrigine: stato.coloreOrigine`
-     a `creaLavoroDaWizard` — è il punto reale che "manda" il dato, non solo la capacità
-     di riceverlo.
+Un trigger `BEFORE UPDATE ... FOR EACH ROW` su `public.avvisi_dentista`, con `WHEN (OLD.stato <> 'da_comunicare')`,
+che chiama `public.avviso_chiusura_one_way()`. La funzione rifiuta (RAISE EXCEPTION, SQLSTATE P0001) qualunque
+UPDATE che cambi una delle quattro colonne di chiusura (`stato`, `comunicato_at`, `comunicato_da`,
+`testo_inviato`) su una riga già comunicata — per qualunque ruolo, `service_role` compreso (il suo BYPASSRLS
+non passa da un GRANT per colonna: il trigger scatta comunque). `visto_dal_dentista_at` e `campi_corretti`
+restano fuori dal controllo e continuano a essere scrivibili dopo la chiusura, di proposito.
 
-2. **`src/lib/wizard/persistenza.ts`**
-   - `StatoSalvato.coloreOrigine?: StatoWizard['coloreOrigine']` (opzionale, DRY via
-     indicizzazione del tipo sorgente — stesso pattern già in uso per `passo`/`cliente`).
-   - `v` NON cambiato (campo additivo, salvataggi `v: 1` esistenti restano validi).
+File:
+- `supabase/migrations/20260811132010_avvisi_chiusura_one_way.sql` (nuovo)
+- `tests/integration/avvisi-chiusura-one-way.rpc.test.ts` (nuovo, 11 test)
 
-3. **`src/lib/wizard/crea-lavoro.ts`**
-   - `creaLavoroDaWizard`: nuovo parametro opzionale `coloreOrigine?: ColoreOrigine`.
-   - Nel body del POST `/api/lavori`, la chiave `prescrizione` si aggiunge SOLO quando
-     `coloreOrigine !== 'lab' && colore.trim() !== ''`, con contenuto `{ colore }` dove
-     `colore` è la variabile GREZZA (come digitata, non `coloreCodice` normalizzato) —
-     fedeltà D210, verificata leggendo `src/lib/prescrizione/componi-snapshot.ts` (il
-     server non fa mai trim/uppercase su `prescrizione.colore`).
-   - `numero_prescrizione` NON introdotto: il wizard non ha oggi una casella per questo,
-     e la chiave resta fuori dal payload (nessuna invenzione).
-   - `colore_codice` (dato di caso) invariato: continua a viaggiare quando `coloreCodice`
-     non è vuoto, IN ENTRAMBI gli esiti dello sgancio (verificato coi test).
-
-## Verifica della gate server (R-P2, prima di scrivere il body)
-
-Letto `src/app/api/lavori/route.ts:211-245` e `src/lib/prescrizione/componi-snapshot.ts`
-per intero PRIMA di scrivere il payload:
-- il gate accetta `prescrizione.colore` come qualunque stringa (solo `typeof === 'string'`,
-  nessun trim/regex/length cap) → un valore con spazi (`' a3 '`) NON produce 422;
-- il server stesso preserva il colore byte a byte, incluso "solo spazi" (differenza
-  deliberata dal gate client: qui "solo spazi" è trattato come vuoto PRIMA di mandare la
-  chiave — il server non vede mai questo caso specifico da questo client, la sua
-  tolleranza più ampia serve ad altri chiamanti).
-- Nessun difetto di piano trovato: il gate D216 è coerente con quanto il brief chiedeva.
-
-## Le forme d'input enumerate (R-P4)
-
-| # | Forma | Copertura |
-|---|-------|-----------|
-| 1 | `coloreOrigine` assente + colore compilato | ✅ caso: prescrizione trascritta grezza (`' a3 '`), `colore_codice` normalizzato (`'A3'`) |
-| 2 | `coloreOrigine: 'prescrizione'` esplicito + colore compilato | ✅ caso: stesso esito dell'assente |
-| 3 | `coloreOrigine: 'lab'` + colore compilato | ✅ caso: NESSUNA `prescrizione`, `colore_codice` viaggia comunque |
-| 4 | colore vuoto (`''`) | ✅ caso: nessuna `prescrizione`, nessun `colore_codice` (M-T5-4) |
-| 5 | colore solo spazi (`'   '`) | ✅ caso: vuoto dopo trim, stesso esito del 4 |
-| 6 | colore fuori catalogo (`'zz9'`) | ✅ caso: trascritto comunque grezzo, `colore_codice` normalizzato parte lo stesso (il client non giudica il catalogo) |
-
-File: `tests/unit/crea-lavoro-prescrizione.test.ts` (nuovo, 6 test — copre il glob
-`tests/unit/crea-lavoro*` richiesto dal brief).
-
-## TDD Evidence
-
-### RED
-
-Comando:
-```
-npx vitest run tests/unit/crea-lavoro-prescrizione.test.ts
-```
-Output (con l'abbozzo inerte — parametro `coloreOrigine` accettato dalla firma ma MAI
-letto nel body):
-```
- ❯ tests/unit/crea-lavoro-prescrizione.test.ts (6 tests | 3 failed) 7ms
-     × coloreOrigine ASSENTE + colore compilato → ...
-     × coloreOrigine:'prescrizione' esplicito + colore compilato → ...
-     × colore FUORI CATALOGO → trascritto comunque ...
- Test Files  1 failed (1)
-      Tests  3 failed | 3 passed (6)
-```
-
-### Conteggio R-P4 (a livello di singola asserzione, non di test)
-
-vitest ferma un test al primo `expect` che fallisce, quindi il conteggio per-test (3/6)
-sottostima quante asserzioni erano davvero "accese". Ho rieseguito la stessa suite con
-`expect.soft` (temporaneo, file scartato dopo la misura) per vedere OGNI asserzione senza
-interrompere al primo rosso:
-```
-AssertionError: expected undefined to deeply equal { colore: ' a3 ' }
-AssertionError: expected undefined to deeply equal { colore: 'A2' }
-AssertionError: expected undefined to deeply equal { colore: 'zz9' }
- Tests  3 failed | 3 passed (6)
-```
-Su 12 asserzioni totali (2 per test × 6 test) sono comparsi SOLO 3 `AssertionError` — le
-tre `expect(corpo.prescrizione).toEqual(...)` dei casi 1/2/6. Tutte le altre 9 (i due
-`not.toHaveProperty` dei casi 3/4/5, più il controllo `colore_codice` nei casi 1/2/6, mai
-toccato dall'abbozzo inerte) erano già vere prima di scrivere una riga di logica —
-prevedibile: l'abbozzo non aggiunge mai `prescrizione`, quindi ogni asserzione che si
-aspetta la sua ASSENZA era già soddisfatta, e `colore_codice` non cambia comportamento in
-questo task.
-
-**Conteggio: 3 su 12** (corretto dal controllore su rilievo del revisore: la convenzione R-P4 conta le asserzioni che si ACCENDONO di rosso sull'abbozzo inerte — erano 3; le altre 9 erano già verdi) asserzioni accese all'abbozzo inerte — solo le tre che verificano
-la PRESENZA/contenuto di `prescrizione` erano davvero rosse.
-
-### GREEN
-
-Comando:
-```
-npx vitest run tests/unit/crea-lavoro-prescrizione.test.ts
-```
-Output:
-```
- Test Files  1 passed (1)
-      Tests  6 passed (6)
-```
-
-## Verifica dei sei `toEqual` esistenti (fatto 15)
-
-Censiti tutti i `toEqual` "per intero" (payload o esito, non singole proprietà) in
-`tests/unit/crea-lavoro.test.ts` e `tests/unit/crea-lavoro-denti.test.ts`:
-
-| Riga | Cosa confronta | Colpito dal payload nuovo? |
-|------|-----------------|------------------------------|
-| crea-lavoro.test.ts:90 | `esito` (paziente nuovo, colore vuoto) | No — `esito` non contiene `prescrizione` (è un campo del BODY in uscita, non della risposta) |
-| crea-lavoro.test.ts:105-110 | body POST `/api/pazienti` (colore vuoto) | No — endpoint diverso, e in questo test `colore: ''` |
-| crea-lavoro.test.ts:116-123 | body POST `/api/lavori` (colore vuoto) | No — `colore: ''`, nessuna chiave nuova ad aggiungersi |
-| crea-lavoro.test.ts:144-149 | body POST `/api/pazienti` (alias, colore vuoto) | No — endpoint diverso |
-| crea-lavoro.test.ts:526 | `esito` (409 codice occupato) | No — bloccante prima del POST lavori, `esito` non cambia forma |
-| crea-lavoro-denti.test.ts (vari `.denti`/`not.toHaveProperty`) | proprietà singole, non l'intero body | No — non sono full-object |
-
-**Esito empirico**: `npx vitest run tests/unit/crea-lavoro.test.ts tests/unit/crea-lavoro-denti.test.ts`
-→ **62/62 verdi, ZERO modifiche necessarie**. Nessuno dei sei è caduto: tutti i casi che
-userebbero un body POST /api/lavori con colore non-vuoto verificano PROPRIETÀ SINGOLE
-(`.colore_codice`, `.denti`, `not.toHaveProperty`), mai l'intero oggetto — quindi
-l'aggiunta della chiave `prescrizione` (una chiave IN PIÙ) non li tocca. Non ho indebolito
-nessun `toEqual` per farli passare: sono rimasti letterali, invariati.
-
-## Guardia sulla trappola nota (fatto 3 — enumerazione manuale delle chiavi)
-
-Aggiunto un test in `tests/unit/WizardNuovoLavoro.test.tsx`:
-`"coloreOrigine sopravvive al giro Riprendi → un vero avanzamento → salvaStato (trappola nota, fatto 3)"`.
-
-Seed di uno stato salvato con `coloreOrigine: 'lab'` → click «Riprendi» → click «Indietro»
-(un avanzamento reale, nessuna UI nuova serve) → verifica che il valore sia ancora `'lab'`
-nel localStorage riscritto.
-
-**Verifica che il test morda davvero (non solo che sia verde)**: ho rimosso a turno
-`coloreOrigine: statoSalvato.coloreOrigine` da `riprendi` e `coloreOrigine: stato.coloreOrigine`
-dall'effect di `salvaStato`, rieseguendo il test isolato in entrambi i casi — **fallisce in
-entrambi** (`expected "lab", received undefined`), poi ripristinato e riverificato verde.
-Un singolo test copre entrambe le metà della trappola.
-
-## Comandi di verifica finale
+## Step 1 — Timestamp
 
 ```
-npx vitest run tests/unit/crea-lavoro.test.ts tests/unit/crea-lavoro-denti.test.ts \
-  tests/unit/crea-lavoro-prescrizione.test.ts tests/unit/wizard-persistenza.test.ts \
-  tests/unit/WizardNuovoLavoro.test.tsx tests/unit/PassoPaziente.test.tsx
-→ 6 file, 117 test, tutti verdi
+date -u "+%Y%m%d%H%M%S"
+```
+→ `20260811132010` (TS1). Supera il pavimento `20260810072748`.
 
+## Verifica preliminare su `avvisi_segna_visti` (nota nel brief, ⑨)
+
+```
+node scripts/psql.mjs -c "SELECT prosrc FROM pg_proc WHERE proname='avvisi_segna_visti'"
+```
+Corpo vivo:
+```
+UPDATE public.avvisi_dentista
+   SET visto_dal_dentista_at = now()
+ WHERE id = ANY(p_ids)
+   AND laboratorio_id = p_laboratorio_id
+   AND visto_dal_dentista_at IS NULL;
+GET DIAGNOSTICS v_rows = ROW_COUNT;
+RETURN json_build_object('esito', 'ok', 'aggiornati', v_rows);
+```
+La chiave di ritorno è **`aggiornati`**, esattamente come scritto nel test del brief (`ris.r.aggiornati`).
+**Nessun adattamento necessario** — il test ⑨ è stato trascritto senza modifiche.
+
+## TDD — RED
+
+```
+cd "…/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-chiusura-one-way.rpc.test.ts
+```
+
+Risultato: **7 failed | 4 passed (11)** — esattamente l'atteso del brief («7 su 11»: 6 comportamento + 1
+catalogo).
+
+- ① riapertura → `ATTESO RIFIUTO, INVECE ACCETTATO: riapertura di un avviso comunicato`
+- ② riattribuzione firma → `ATTESO RIFIUTO, INVECE ACCETTATO: cambio di comunicato_da su riga chiusa`
+- ③ retrodatazione → `ATTESO RIFIUTO, INVECE ACCETTATO: retrodatazione della comunicazione`
+- ④ riscrittura testo → `ATTESO RIFIUTO, INVECE ACCETTATO: riscrittura di testo_inviato`
+- ⑤ scambio stati chiusi → `ATTESO RIFIUTO, INVECE ACCETTATO: comunicato_a_voce → comunicato_dall_app`
+- ⑥ service_role → `ATTESO RIFIUTO, INVECE ACCETTATO: riapertura come service_role`
+- ⑪ catalogo → `AssertionError: expected [] to have a length of 1 but got +0`
+
+Passati subito (controprove, senza trigger): ⑦ chiusura a voce, ⑧ chiusura dall'app, ⑨ ricevuta di lettura,
+⑩ correzione `campi_corretti`. Coerente col fatto che il banco, prima di questa migration, non aveva alcun
+trigger su `avvisi_dentista` (il piano l'aveva già provato con una transazione annullata l'11/08).
+
+Perché è il rosso giusto: i sei test di comportamento falliscono perché l'UPDATE **riesce** quando doveva
+essere rifiutato (non un errore di connessione o di sintassi), e il test di catalogo fallisce perché la
+query su `pg_trigger` restituisce zero righe — il trigger non esiste ancora. È il rosso "il banco accetta
+tutto", non un rosso di ambiente.
+
+## Step 4-5 — Migration + applicazione
+
+`supabase/migrations/20260811132010_avvisi_chiusura_one_way.sql` trascritta verbatim dal brief.
+
+```
+cd "…/ua-app" && npx supabase db push --linked --yes
+```
+→ `Applying migration 20260811132010_avvisi_chiusura_one_way.sql...` →
+`{"upToDate":false,"dryRun":false,"migrations":["20260811132010_avvisi_chiusura_one_way.sql"],"seeds":[],"roles":[],"message":"Finished supabase db push."}`
+Nessun errore.
+
+## TDD — GREEN
+
+```
+cd "…/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-chiusura-one-way.rpc.test.ts
+```
+→ **Test Files 1 passed (1) — Tests 11 passed (11)**. Nessuno skippato (contato: 11 esecuzioni reali,
+nessuna riga "skipped" nell'output — l'env era caricato).
+
+Catalogo:
+```
+node scripts/psql.mjs -c "SELECT tgname FROM pg_trigger WHERE tgrelid='public.avvisi_dentista'::regclass AND NOT tgisinternal"
+```
+→ `trg_avviso_chiusura_one_way` (1 riga). Conferma indipendente dal file: il trigger è davvero nel banco.
+
+## FASE 6b — Migration gate
+
+```
+npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
+```
+→ `git diff --stat src/types/database.types.ts` = **nessun output, nessun diff** (checksum md5 identico
+prima/dopo: `8536abccf144ada5a35d147f4322ee46`). Confermato l'atteso: un trigger non appare nei types
+generati.
+
+```
 npx tsc --noEmit
-→ 0 errori
-
-npx vitest run   (suite intera)
-→ 398 file passati, 3 skip preesistenti; 4575 test passati, 19 skip preesistenti
 ```
+→ exit 0, nessun errore.
 
-## File toccati
+## Suite avvisi esistente (non deve rompersi)
 
-- `src/components/features/wizard/WizardNuovoLavoro.tsx`
-- `src/lib/wizard/crea-lavoro.ts`
-- `src/lib/wizard/persistenza.ts`
-- `tests/unit/WizardNuovoLavoro.test.tsx` (1 test nuovo)
-- `tests/unit/crea-lavoro-prescrizione.test.ts` (nuovo, 6 test)
+```
+cd "…/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-dentista-schema.rpc.test.ts tests/integration/avvisi-segna-visti.rpc.test.ts
+```
+→ **Test Files 2 passed (2) — Tests 36 passed (36)**. Il trigger non rompe le prove esistenti.
+
+## Commit
+
+```
+git status --short              # solo i 2 file nuovi + una modifica pre-esistente non mia (.gitignore)
+git add supabase/migrations/20260811132010_avvisi_chiusura_one_way.sql tests/integration/avvisi-chiusura-one-way.rpc.test.ts
+git commit -F <messaggio>
+```
+Commit `bc938e39`. Pre-commit hook: DS compliance OK, Guardia CSRF verde, Guardia coerenza documenti verde
+(3 documenti vivi controllati), Guardia salvataggio automatico OK, eslint pulito su `.ts`. Nessun guard
+bypassato.
 
 ## Self-review
 
-- **Completezza rispetto al brief**: tipo nuovo, campo su `StatoWizard`/`STATO_INIZIALE`,
-  i due punti di enumerazione manuale, `StatoSalvato`, firma e body di `creaLavoroDaWizard`
-  — tutti i punti elencati nei "fatti verificati dal censimento" sono toccati.
-- **YAGNI**: nessuna UI aggiunta (Task 2), nessun campo `numero_prescrizione` inventato,
-  nessuna scala colore, nessun default diverso da quanto richiesto.
-- **`v` di persistenza**: non toccato (verificato: campo opzionale, salvataggi vecchi restano validi).
-- **Qualità test**: nessun `toEqual` indebolito; il test di persistenza è stato verificato
-  a rovescio (rotto apposta due volte, in RED su entrambe le rotture).
+- Test file e migration trascritti verbatim dal brief — confrontati riga per riga col brief prima del commit.
+- `git status --short` prima dello staging mostrava una sola riga estranea (`M .superpowers/sdd/.gitignore`,
+  pre-esistente, non toccata da questo task) — **non** aggiunta al commit (`git add` con path espliciti,
+  mai `-A`).
+- Nessun placeholder, nessun TODO lasciato nel codice.
+- Output dei test riportato per intero (RED e GREEN), non solo il conteggio finale.
+- Verifica indipendente del trigger sul catalogo (non solo "il file esiste"), come richiesto dal brief.
 
-## Dubbio riferito (fuori mandato, R-E2) — nessuna discrepanza col brief, ma un'osservazione
+## Cosa NON ho trovato di sbagliato nel brief
 
-Ho letto per intero il gate server (`route.ts:211-245`, `componi-snapshot.ts`) prima di
-scrivere il payload, come richiesto da R-P2: il contratto combacia esattamente con quanto
-il brief descriveva, nessuna discrepanza da segnalare.
+Il brief è risultato accurato in ogni punto verificabile:
+- Il conteggio RED previsto (7 rossi su 11, coi messaggi esatti) ha corrisposto esattamente.
+- La chiave di ritorno di `avvisi_segna_visti` (`aggiornati`) era già quella giusta — nessun adattamento
+  necessario, ma la verifica preliminare richiesta dal brief è stata comunque eseguita e documentata sopra.
+- Nessun diff sui types generati, come previsto.
+- Nessuna rottura nelle suite esistenti.
 
-⚠️ **Osservazione per chi tocca questo canale dopo (Task 2, o chi aggiunge
-`numero_prescrizione`):** client e server giudicano diversamente il colore "solo spazi".
-Questo task lo tratta come VUOTO (gate client, trim-based — M-T5-4, per scelta del brief),
-mentre `componi-snapshot.ts:11` lo preserva DELIBERATAMENTE come trascrizione legittima
-("«solo spazi» invece si preserva: giudicarlo vuoto richiederebbe il trim"). Nessuna delle
-due letture è sbagliata — sono scritte per contesti diversi — ma oggi NESSUN client esercita
-mai il ramo server che preserva gli spazi, perché il gate di questo file non manda mai quella
-chiave in quel caso. Chi cambia il gate client in futuro deve sapere che il server è già
-pronto a un comportamento diverso.
+## Concerns
 
-Un punto NON un difetto ma degno di nota per chi farà il Task 2 (framing/UI): oggi
-`STATO_INIZIALE.coloreOrigine` è `'prescrizione'` esplicito — la UI del Task 2 dovrà
-scrivere `'lab'` quando l'operatore sgancia, usando `cambiaPaziente({ coloreOrigine: 'lab' })`
-(il canale già esistente, `Partial<StatoWizard>`), nessun canale nuovo necessario.
+Nessuno. Task completato senza scostamenti dal brief.

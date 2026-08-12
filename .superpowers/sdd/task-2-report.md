@@ -1,229 +1,259 @@
-# Task 2 — Report: Passo 3, framing D223 variante B + sgancio + stato sganciato (UI)
+# Task 2 — Report: La firma non può puntare a un altro laboratorio (riga 59)
 
-**Quando:** 4 agosto 2026, sera (`provato:` `date` → `Tue Aug 4 19:48:25 CEST 2026`).
-**Ramo:** `ondata-b-sessione-3` (repo principale, MAI worktree).
-**Brief:** `.superpowers/sdd/task-2-brief.md` · decisione a monte: `docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md` (D223).
+**Stato:** DONE (scostamenti dal brief indagati e chiusi con prova — v. §Concerns; nessuno blocca)
+**Commit:** `8f4976a7` — feat(db): la firma dell'avviso è dello stesso laboratorio — FK composita (riga 59)
+**Branch:** `code-58-59-prova-inalterabile` (verificato con `git branch --show-current` prima di iniziare)
 
----
+## Cosa è stato implementato
 
-## 1. Implementato
+`comunicato_da` su `public.avvisi_dentista` era una FK semplice verso `utenti(id)`: la chiusura
+di un avviso poteva essere attribuita a un utente di un ALTRO laboratorio (o a un `admin_sistema`
+con `laboratorio_id` NULL), perché la RLS vincola solo `laboratorio_id`, non la coppia
+(autore, laboratorio dell'avviso). Rimedio, stesso modello già applicato tre volte in
+`20260806142910`:
+1. `utenti_id_lab_uk UNIQUE (id, laboratorio_id)` su `utenti` — il bersaglio.
+2. `avvisi_dentista_comunicato_da_fk (comunicato_da, laboratorio_id) → utenti (id, laboratorio_id)`
+   al posto della `_fkey` semplice, MATCH SIMPLE (righe aperte con `comunicato_da` NULL non
+   vincolate) e NO ACTION.
 
-`PassoPaziente.tsx` guadagna `RigaColore`, un componente dedicato che sostituisce l'istanza
-generica di `RigaOpzionale` usata finora per «Colore» (Elemento e Nome o alias restano su
-`RigaOpzionale`, invariata a parte la rimozione di `onAttiva`, v. §3).
+File:
+- `supabase/migrations/20260811133440_avvisi_firma_stesso_laboratorio.sql` (nuovo)
+- `tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts` (nuovo, 7 test)
+- `tests/integration/avvisi-dentista-schema.rpc.test.ts:349` (1 riga: nome della FK atteso
+  nel messaggio d'errore, `_fkey` → `_fk`)
+- `src/types/database.types.ts` (rigenerato)
 
-**I tre stati (D223 + derivazione Task 2):**
-
-| Stato | Nome/etichetta | Sottotitolo/aiuto | Link |
-|---|---|---|---|
-| Chiusa, `coloreOrigine` assente/`'prescrizione'` | «Colore» | «come scritto sulla prescrizione · es. A2» | «Salta» |
-| Chiusa, `coloreOrigine==='lab'` | «Colore» | «lo scegliamo noi» | «Salta» |
-| Aperta, assente/`'prescrizione'` | «Colore — come scritto sulla prescrizione» | «Quello che scrivi qui vale come **trascrizione** del foglio del dentista, e finisce così sulla Dichiarazione.» | «Non è sulla prescrizione: lo scegliamo noi» → `onCambia({coloreOrigine:'lab'})` |
-| Aperta, `'lab'` | «Colore — lo scegliamo noi» | «Scelta del laboratorio: resta **fuori** dalla Dichiarazione, perché non è sulla prescrizione.» | «In realtà è sulla prescrizione: torno a trascrivere» → `onCambia({coloreOrigine:'prescrizione'})` |
-
-Testi delle scene aperte VERBATIM dal mockup (`p3-aperta`/`p3-sganciata`, testi D210/D223
-invariati). **Due derivazioni dichiarate, non presenti come scena nel mockup** (documentate anche
-nel JSDoc di `RigaColore`):
-- l'esempio della riga chiusa in trascrizione è `es. A2` (non `es. A3` come nel mockup/verbale
-  D223): risoluzione esplicita del controllore in `task-2-brief.md` — A3 era il valore
-  dimostrativo della scena, A2 è il valore già in produzione.
-- il sottotitolo chiuso per `coloreOrigine==='lab'` («lo scegliamo noi») non ha una scena propria
-  nel mockup (nessuna «chiusa + sganciata»): deriva dalla coda dell'etichetta aperta della scena
-  `p3-sganciata`, stesso pattern della riga chiusa in trascrizione (nome + coda del framing) — è
-  la derivazione che il brief chiedeva esplicitamente («segui il pattern del mockup»).
-
-**Vincolo D223 a verbale**, scritto come commento sul componente `RigaColore`: la variante B regge
-SOLO finché lo stato aperto ripete per intero il framing di D210 — se il campo diventasse
-compilabile in-place, da chiuso, la scelta va ripensata da capo, non solo aggiustata.
-
-**PillVoce rimossa** (D13, §5.15 abrogata): mount + import rimossi da `PassoPaziente.tsx`. Con lei
-è sparito anche il tracciamento del "campo attivo" (`campoAttivo`/`CampoAttivo`/`CampoOpzionale`/
-`pillOnTesto`/`onAttiva` su ogni riga) — era codice vivo SOLO per alimentare PillVoce, non
-serviva a nient'altro nel file. Il file del componente `src/components/ds/PillVoce.tsx` NON è
-stato toccato (fuori mandato, per istruzione esplicita).
-
-**Wiring:** `WizardNuovoLavoro.tsx` passa `coloreOrigine={stato.coloreOrigine}` a `PassoPaziente`
-(unica riga aggiunta in quel file). `cambiaPaziente` (già esistente, Task 11) fa da passthrough
-generico con spread (`{...s, ...patch}`, `WizardNuovoLavoro.tsx:284-286`) — letto per verificare
-che NON enumeri le chiavi a mano (a differenza di `salvaStato`/`riprendi`, Task 1): confermato,
-`{coloreOrigine:'lab'}` attraversa il giro senza bisogno di toccare quella funzione.
-
----
-
-## 2. Test + evidenza TDD (R-P4)
-
-**Perché niente "abbozzo inerte" separato:** `PassoPaziente.tsx` e le sue prop esistevano già
-prima di questo task (Task 11) — il primo rosso non è mai stato un errore di import/modulo
-mancante che avrebbe mascherato il segnale a livello di asserzione. Il componente NON modificato
-era già di per sé la baseline inerte: eseguire i test nuovi contro quel codice dà direttamente il
-conteggio "N su M" a livello di asserzione, senza bisogno di un passo intermedio artificiale.
-
-**Primo rosso (contro `PassoPaziente.tsx` non ancora toccato): 8 su 8** test nuovi rossi (16
-asserzioni), 16 test preesistenti verdi (nessuna interferenza).
-
-**Prova di forza, non solo di rosso:** il primo abbozzo del test «PillVoce assente» passava già
-PRIMA di ogni modifica — falso verde, non perché PillVoce fosse rimossa ma perché jsdom non ha di
-default `window.SpeechRecognition`/`webkitSpeechRecognition`, quindi PillVoce si autoesclude
-(progressive enhancement, `PillVoce.tsx:6-8`) indipendentemente dal mount. Corretto iniettando lo
-stesso mock usato per «PillVoce presente» PRIMA del render: se il mount fosse ancora lì, il
-bottone comparirebbe comunque. Con questa correzione il test torna a provare la RIMOZIONE, non un
-caso limite del jsdom.
-
-**Enumerazione delle forme d'input** (`coloreOrigine`): assente (default trascrizione) ·
-`'prescrizione'` esplicito (stesso esito dell'assente, un test dedicato lo verifica) · `'lab'`.
-Tre forme, tutte e tre coperte, in stato chiuso E aperto.
-
-**Gap trovato dal secondo giro di revisione (advisor), corretto prima del commit:** i due test
-"sgancio"/"ritorno" originali verificavano SOLO la chiamata a `onCambia` (spy) — non che il giro
-di boa funzionasse davvero su un componente controllato. Un bug plausibile (es. `sganciato`
-derivato da uno stato locale «congelato» invece che dalla prop `origine` a ogni render) sarebbe
-passato inosservato. Aggiunto un test Harness stateful (stesso pattern delle prove sulla foto già
-nel file) che chiude il giro: chiusa → apri → sgancio → verifica che la riga resti APERTA col
-framing di laboratorio. **Controllo negativo eseguito e poi ripristinato** (R-P1): iniettata
-temporaneamente la classe di bug descritta (`sganciato` congelato in uno `useState` al mount
-invece che calcolato da `origine` a ogni render) — il nuovo test Harness è FALLITO come atteso,
-mentre i due test-spy sarebbero rimasti verdi. Diff post-ripristino confrontato byte a byte col
-backup pre-iniezione: identico.
-
-**Risultato finale:** `tests/unit/PassoPaziente.test.tsx` — **23 test** (14 preesistenti
-conservati + 9 nuovi: 8 sugli stati/testi/sgancio-ritorno + 1 round-trip; 2 test PillVoce-specifici
-rimossi perché testavano un mount che non esiste più — un test che verificasse ancora quel mount
-sarebbe stato un test falso).
+## Step 1 — Timestamp
 
 ```
-npx vitest run tests/unit/PassoPaziente* tests/unit/WizardNuovoLavoro*
- Test Files  2 passed (2)
-      Tests  52 passed (52)   (23 PassoPaziente + 29 WizardNuovoLavoro)
+date -u "+%Y%m%d%H%M%S"
+```
+→ `20260811133440` (TS2). Supera il pavimento `20260811132010` (TS1, Task 1).
 
+## Step 2-3 — Test nuovo + riga 349
+
+Helper locali (`riferimentiVeri`, `attesoRifiuto`, `inserisci`) copiati VERBATIM da
+`tests/integration/avvisi-chiusura-one-way.rpc.test.ts` (confrontati carattere per carattere
+prima del commit), come richiesto dal brief e dalla convenzione viva di `tests/integration/`.
+
+`git diff` sulla riga 349 — l'UNICA riga toccata nel file esistente:
+```diff
+-        expect(e.message).toMatch(/avvisi_dentista_comunicato_da_fkey/)
++        expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
+```
+
+## TDD — RED (R-P4)
+
+Comando dal brief:
+```
+cd "…/ua-app" && set -a && . ./.env.local; set +a && npx vitest run \
+  tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts \
+  tests/integration/avvisi-dentista-schema.rpc.test.ts
+```
+
+**Nella corsa COMBINATA (i due file insieme) sono usciti 8 rossi, non 6.** I 6 attesi c'erano
+tutti — ①②③④⑤ nel file nuovo + riga 349 nell'esistente — ma sono comparsi ANCHE 2 timeout
+da 15000ms su due test dell'esistente NON toccati da questo task (`(p7) l'UPDATE è concesso
+SOLO...` e `cancellare un laboratorio che ha un avviso arriva in fondo...`).
+
+Ho isolato la causa eseguendo i due file SEPARATAMENTE:
+- `tests/integration/avvisi-dentista-schema.rpc.test.ts` da solo → **esattamente 1 rosso**
+  (riga 349), 26 verdi. Nessun timeout.
+- `tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts` da solo → **esattamente
+  5 rossi su 7** (①②③④⑤), ⑥⑦ verdi. Nessun timeout.
+
+Conclusione: i 2 timeout sono un artefatto di CONCORRENZA fra i due file quando girano insieme
+contro il banco Supabase remoto condiviso (più connessioni/transazioni aperte in parallelo →
+più contesa di lock/round-trip di rete) — non un difetto del mio lavoro né una rottura reale.
+`vitest.config.ts` stesso documenta questa classe di flakiness (commento sopra `testTimeout: 15000`
+nel progetto `integration`, che cita tre episodi precedenti della stessa natura, l'ultimo proprio
+l'11/08). **Conteggio da scrivere, come richiesto: 5 su 7 nel file nuovo + 1 nell'esistente**
+(isolati; la corsa combinata resta soggetta a flake di rete non imputabile allo schema).
+
+Eccerpt dei rossi (isolati):
+
+File nuovo — ①②③ (catalogo):
+```
+① AssertionError: expected [] to have a length of 1 but got +0   (utenti_id_lab_uk non esiste ancora)
+② AssertionError: expected [] to have a length of 1 but got +0   (avvisi_dentista_comunicato_da_fk non esiste ancora)
+③ AssertionError: expected [ { '?column?': 1 } ] to have a length of +0 but got 1   (la _fkey vecchia c'è ancora)
+```
+File nuovo — ④⑤ (comportamento):
+```
+④ Error: ATTESO RIFIUTO, INVECE ACCETTATO: avviso del lab A firmato dal lab B
+⑤ Error: ATTESO RIFIUTO, INVECE ACCETTATO: avviso firmato da un admin senza lab
+```
+File esistente — riga 349:
+```
+AssertionError: expected 'update or delete on table "utenti" vi…' to match /"avvisi_dentista_comunicato_da_fk"/
++ Received: "...violates foreign key constraint \"avvisi_dentista_comunicato_da_fkey\"..."
+```
+
+## Probe pre-migration (R-P1)
+
+Prima di applicare la `ADD CONSTRAINT`, verificato che non esistano righe cross-tenant nei dati
+vivi (altrimenti la ADD CONSTRAINT sarebbe abortita):
+```sql
+SELECT count(*) FROM public.avvisi_dentista a JOIN public.utenti u ON u.id = a.comunicato_da
+ WHERE a.comunicato_da IS NOT NULL AND u.laboratorio_id IS DISTINCT FROM a.laboratorio_id
+```
+→ `0` (su 3 avvisi chiusi totali nel banco). Confermata anche la claim della migration
+("`admin_delete_laboratorio` porta via gli avvisi in cascata prima di toccare utenti"): letto
+`20260809123206_avvisi_dentista.sql:24-25` — `dichiarazione_id` e `lavoro_id` sono
+`ON DELETE CASCADE`, e `admin_delete_laboratorio` (`20260806170700_d274...sql`) cancella
+`dichiarazioni_conformita` (riga 67) e `lavori` ben prima di `utenti` (riga 132) — confermato.
+
+## Step 5-6 — Migration + GREEN
+
+```
+cd "…/ua-app" && npx supabase db push --linked --yes
+```
+→ `Applying migration 20260811133440_avvisi_firma_stesso_laboratorio.sql...` →
+`{"upToDate":false,"dryRun":false,"migrations":["20260811133440_..."],...,"message":"Finished supabase db push."}`
+
+```
+cd "…/ua-app" && set -a && . ./.env.local; set +a && npx vitest run \
+  tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts \
+  tests/integration/avvisi-dentista-schema.rpc.test.ts
+```
+→ **Test Files 2 passed (2) — Tests 34 passed (34)**. Nessuno skippato (env caricato, 34
+esecuzioni reali). Riverificato anche il solo file nuovo isolato: **7 passed (7)**.
+
+## FASE 6b — Migration gate
+
+```
+npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
+```
+Nessuna riga di rumore CLI in coda (verificato: le ultime righe sono `export const Constants = {...}`).
+
+`git diff src/types/database.types.ts` — SOLO la Relationship di `comunicato_da`, come previsto:
+```diff
+           {
+-            foreignKeyName: "avvisi_dentista_comunicato_da_fkey"
+-            columns: ["comunicato_da"]
++            foreignKeyName: "avvisi_dentista_comunicato_da_fk"
++            columns: ["comunicato_da", "laboratorio_id"]
+             isOneToOne: false
+             referencedRelation: "utenti"
+-            referencedColumns: ["id"]
++            referencedColumns: ["id", "laboratorio_id"]
+           },
+```
+
+```
 npx tsc --noEmit
- (nessun output — 0 errori)
+```
+→ nessun output, exit pulito.
+
+## Censimento finale
+
+```
+grep -rn "comunicato_da_fkey" src tests supabase --include="*.ts" --include="*.sql"
+```
+Il brief prevedeva **0 hit**. Sono usciti **2 hit** — entrambi nei DUE FILE che questo stesso
+task ha creato:
+1. `tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts:123` — test ③, l'asserzione
+   che PROVA l'assenza del vecchio nome (deve nominarlo per cercarlo).
+2. `supabase/migrations/20260811133440_avvisi_firma_stesso_laboratorio.sql:39` — la
+   `DROP CONSTRAINT avvisi_dentista_comunicato_da_fkey`, che deve nominare ciò che rimuove.
+
+Riverificato filtrando via questi due file:
+```
+grep -rn "comunicato_da_fkey" src tests supabase --include="*.ts" --include="*.sql" \
+  | grep -v "avvisi-firma-stesso-laboratorio.rpc.test.ts\|20260811133440_..."
+```
+→ nessun hit (exit 1). L'invariante VERO che il censimento vuole proteggere — nessun
+riferimento ORFANO/vivo al nome ritirato altrove nel codice — è verificato. Il testo del brief
+("0 hit") era impreciso perché non teneva conto che il suo stesso Step 5 (DROP CONSTRAINT) e il
+suo stesso Step 2 (test ③) devono per forza nominare la stringa che dichiarano ritirata.
+
+## Verifica post-implementazione (sollecitata dall'advisor, non nel brief)
+
+La FK composita rende `laboratorio_id` parte della chiave REFERENZIATA — a differenza della
+`_fkey` semplice (che puntava solo a `id`, immutabile), un `UPDATE` che cambi `laboratorio_id`
+di un `utenti` firmatario ora può sollevare 23503 (NO ACTION vale anche on-update, non solo
+on-delete). Due controlli non coperti dai test né dal censimento originale:
+
+1. **Esiste un altro scrittore di `utenti.laboratorio_id` oltre `admin_delete_laboratorio`?**
+   `grep -rn "from('utenti')" src --include="*.ts" -A2` → tutte le occorrenze in `src/` sono
+   `.select(...)`, ZERO `.update(`/`.upsert(` su `utenti` lato client.
+   `grep -rn "UPDATE.*utenti\b" supabase/migrations/*.sql` → ogni hit è una revisione storica
+   della STESSA istruzione (`SET laboratorio_id = NULL WHERE laboratorio_id = p_lab_id AND
+   ruolo = 'admin_sistema'`, dentro `admin_delete_laboratorio`, l'ultima in
+   `20260806170700_d274_difetti_vivi_intervento.sql:138-139`). Nessun altro punto del codice
+   scrive `laboratorio_id` su `utenti`. Quell'unico UPDATE gira DOPO che gli avvisi del
+   laboratorio sono già spariti (cascata da `dichiarazioni_conformita`/`lavori`, verificato
+   sopra) — e comunque tocca solo `admin_sistema`, un ruolo che RUOLI_CHIUSURA_AVVISO esclude
+   per nome dalla firma: non avrebbe mai potuto essere in `comunicato_da`. **Nessun percorso
+   vivo rompe sotto la nuova FK.**
+
+2. **Un embed PostgREST (`utenti!comunicato_da(...)` o simile) dipende dalla vecchia forma a
+   una colonna?** `grep -rn "comunicato_da" src --include="*.ts"` → l'unico punto che risolve
+   l'autore in un nome (`src/lib/avvisi/archivio.ts:107-121`, `nomiComunicatori`) NON usa un
+   embed: fa una query `.from('utenti').select('id, nome, cognome').in('id', …).eq('laboratorio_id',
+   laboratorioId)` separata, per scelta di difesa in profondità già documentata nel commento
+   della funzione (righe 81-86). **Zero consumatori di un embed via questa FK, oggi.**
+
+Anche i due timeout di concorrenza nella corsa RED combinata sono stati confermati non
+sistemici: la corsa GREEN combinata (stesso comando, stessi due file) è risultata
+**34 passed (34)** — cioè comprende ANCHE gli stessi due test che avevano fatto timeout in
+RED, ora verdi, nella stessa configurazione di concorrenza. Non solo inferenza da un commento
+di configurazione: è una misura diretta sullo stesso paio di file.
+
+## Files modificati (commit)
+
+```
+supabase/migrations/20260811133440_avvisi_firma_stesso_laboratorio.sql   (nuovo)
+tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts            (nuovo)
+tests/integration/avvisi-dentista-schema.rpc.test.ts                     (1 riga, 349)
+src/types/database.types.ts                                              (rigenerato)
 ```
 
-Test preesistenti aggiornati (testi cambiati dalla D223, non indeboliti):
-- `'blocco "Se vuoi, aggiungi" mostra le 3 righe...'` → l'assert su `es. A2` isolato è diventato
-  l'assert sul sottotitolo combinato `come scritto sulla prescrizione · es. A2` (variante B).
-- `'riga già valorizzata... è aperta di default'` → l'etichetta accessibile è ora
-  `Colore — come scritto sulla prescrizione`, non più `Colore` nudo.
-- Rimossi i due test PillVoce-specifici (dead feature, D13) — `act`, `ultimaIstanza` e
-  `istanzeCostruite`-come-letto sono spariti con loro (import/funzione inutilizzati puliti).
+`git status --short` prima dello staging mostrava anche 3 righe estranee, PRE-esistenti e non
+mie (`M .superpowers/sdd/.gitignore`, `.superpowers/sdd/progress.md`,
+`.superpowers/sdd/task-1-report.md` — bookkeeping del Task 1, fuori dal mio mandato) —
+**non** aggiunte al commit (`git add` con path espliciti, mai `-A`), coerenti con R-E2.
 
----
+Guard pre-commit: DS compliance OK, Guardia CSRF verde, Guardia coerenza documenti verde
+(3 documenti vivi), Guardia salvataggio automatico OK, eslint pulito, lint-staged pulito.
+Nessun guard bypassato.
 
-## 3. File toccati
+## Self-review
 
-- `src/components/features/wizard/PassoPaziente.tsx` — `RigaColore` nuovo componente (D223, i tre
-  stati); `RigaOpzionale` perde `onAttiva` (dead code); mount+import di `PillVoce` rimossi;
-  `campoAttivo`/`CampoAttivo`/`CampoOpzionale`/`pillOnTesto` rimossi (dead code, erano solo per
-  PillVoce); prop `coloreOrigine?: ColoreOrigine` aggiunta al contratto del componente; 4 nuovi
-  style const (`stileRigaColoreChiusa`/`Aperta`/`ApertaTop`/`AiutoColore`).
-- `src/components/features/wizard/WizardNuovoLavoro.tsx` — una riga: `coloreOrigine={stato.coloreOrigine}`
-  passata a `PassoPaziente` in `RenderPasso`.
-- `tests/unit/PassoPaziente.test.tsx` — nuovo describe «riga «Colore» variante B, framing D223 +
-  sgancio (Task 2)» (9 test); 2 test aggiornati; 2 test PillVoce-specifici rimossi; mock Web
-  Speech API alleggerito (rimossi `act`/`ultimaIstanza` inutilizzati).
+- Helper copiati verbatim, confrontati riga per riga col file del Task 1 prima del commit.
+- Migration trascritta verbatim dal brief; probato prima di applicare (0 righe cross-tenant nei
+  dati vivi, claim sulla cascata di `admin_delete_laboratorio` verificata leggendo il codice).
+- RED e GREEN misurati sia in corsa combinata sia isolati per file, per separare il segnale
+  vero (conteggio atteso) dal rumore di concorrenza di rete.
+- Diff dei types letto per intero e riportato: tocca SOLO la Relationship di `comunicato_da`.
+- Census riverificato con esclusione dei due file propri del task: zero hit altrove.
+- Nessun placeholder, nessun TODO lasciato nel codice.
 
-`PillVoce.tsx` (il file del componente) **non è stato toccato** — per istruzione esplicita, fuori
-mandato di questo task.
+## Concerns
 
----
+1. **Timeout di concorrenza nella corsa combinata (chiuso con prova diretta, non bloccante):**
+   eseguendo insieme i due file di test contro il banco remoto condiviso sono comparsi 2 timeout
+   in più rispetto ai 6 rossi previsti dal brief, su test NON toccati da questo task. Isolando i
+   file il conteggio torna esattamente quello atteso (5/7 + 1). E la corsa GREEN, STESSA coppia
+   di file, STESSA concorrenza, è risultata 34/34 verdi — inclusi proprio i due test che avevano
+   fatto timeout in RED: non è un'inferenza da un commento di configurazione, è una misura
+   diretta che il timeout non è sistemico. Attribuibile a contesa di rete/lock sul banco remoto
+   condiviso, categoria già documentata in `vitest.config.ts` (tre episodi precedenti citati nel
+   commento sopra `testTimeout: 15000`). Nessuna azione correttiva presa: fuori mandato (R-E2).
+2. **Census "0 hit" del brief era impreciso** (dettaglio sopra): il vero invariante (nessun
+   riferimento orfano al nome ritirato FUORI dai due file che lo ritirano) è verificato pulito.
+   Nessuna azione richiesta, solo segnalazione per accuratezza del piano futuro.
+3. **Due controlli non richiesti dal brief, fatti dopo un confronto con un secondo revisore**
+   (dettaglio sopra, §Verifica post-implementazione): la FK composita rende `laboratorio_id`
+   parte della chiave referenziata, quindi un futuro `UPDATE utenti SET laboratorio_id = ...`
+   su un utente firmatario potrebbe fallire con 23503 dove prima non falliva. Verificato:
+   l'UNICO scrittore vivo di `utenti.laboratorio_id` è dentro `admin_delete_laboratorio`
+   (`SET ... = NULL` solo per `admin_sistema`, dopo che gli avvisi del lab sono già cascata-
+   cancellati, e comunque un ruolo escluso per nome dalla firma) — nessun percorso rotto.
+   Verificato anche che nessun embed PostgREST (`utenti!comunicato_da(...)`) dipenda dalla FK:
+   l'unico punto che risolve l'autore in un nome fa una query separata filtrata per
+   `laboratorio_id`, per scelta già documentata nel codice. Nessuna azione richiesta.
 
-## 4. Self-review
-
-- Testi delle scene aperte verbatim dal mockup, verificati carattere per carattere (em dash «—»,
-  punto medio «·», grassetto su «trascrizione»/«fuori») leggendo il file HTML sorgente con
-  `python3` (non fidandomi della resa terminale per i caratteri non-ASCII).
-- Il vincolo D223 è scritto come commento sul componente, come richiesto.
-- L'aiuto con markup (`<b>`) è renderizzato come paragrafo proprio, NON tramite la prop `aiuto` di
-  `CampoTesto` (che accetta solo `string`) — stesso pattern già in uso in `FoglioConferma.tsx`
-  (`testo: ReactNode`, regola scoped nel `<style>` per colorare il tag `<b>`/`<strong>`).
-- Touch target: i tre `LinkQuieto` (Salta, sgancio, ritorno) ereditano il min-height 44px del
-  componente condiviso — nessuna misura nuova da verificare.
-- Motion: nessuna animazione nuova introdotta (la riga cambia stato per re-render puro, come le
-  altre `RigaOpzionale` già in produzione) — nessun token v3/motion coinvolto, nessuna duration
-  inline.
-- Duplicazione di `<style>{'.ds-riga-opzionale-bottone:focus-visible {...}'}</style>` fra
-  `RigaOpzionale` e `RigaColore` quando entrambe sono chiuse contemporaneamente: pattern
-  PREESISTENTE nel file (ogni istanza di `RigaOpzionale` già iniettava la propria copia identica
-  prima di questo task, quando c'erano 3 righe chiuse) — non è una regressione introdotta qui,
-  solo estesa a una quarta istanza dello stesso pattern.
-
----
-
-## 5. Rilievi FUORI mandato (R-E2 — riferiti, non corretti)
-
-1. **`aria-describedby` mancante sull'aiuto ricco di `RigaColore`.** `CampoTesto.aiuto` accetta
-   solo `string` (`Campo.tsx:77`), quindi non può portare `<b>trascrizione</b>`: l'aiuto di
-   `RigaColore` è un paragrafo separato, non wired via `aria-describedby` all'input come fa invece
-   il meccanismo interno di `CampoTesto` per gli aiuti in stringa semplice. Un futuro allargamento
-   di `CampoTesto` (es. `aiuto?: string | ReactNode`, o una prop `aiutoNode` dedicata) chiuderebbe
-   il gap — tocca un componente condiviso usato da tutto il wizard e gli sheet, fuori mandato di
-   questo task.
-2. **`Salta` sulla riga Colore non resetta `coloreOrigine`.** Se l'odontotecnico si sgancia, poi
-   preme «Salta» sul campo ormai vuoto, `coloreOrigine` resta `'lab'` (la riga richiusa mostra
-   «lo scegliamo noi» anche senza valore). Lettura più semplice e coerente col testo del brief:
-   l'origine è un'intenzione dell'operatore che persiste, non legata al valore del momento. Nessun
-   requisito del brief/mockup lo contraddice — segnalato come domanda di prodotto aperta, non
-   corretto.
-3. **Nessuna verifica visiva a browser (screenshot vs mockup) in questo task.** Il brief di
-   sessione cita «scatti di confronto col mockup» come parte della verifica generale
-   dell'ondata; l'istruzione di esecuzione ricevuta per questo task specifico elencava solo
-   `vitest`+`tsc`. Il gate estetico L2 (FASE 9b, `docs/design/audit-ui-ux/`) resta da eseguire a
-   fine ondata, non duplicato per ogni task atomico — dichiarato qui per non farlo sparire in
-   silenzio.
-4. **`next build` non eseguito.** Le modifiche toccano solo componenti client (`'use client'`),
-   nessun route handler / RSC: la classe di errore che solo `next build` vede (firme di handler di
-   rotta) non si applica a questo diff. Omissione dichiarata, non dimenticata.
-5. **BP-1 (MEMORY.md / ROADMAP-UFFICIALE.md) NON eseguito a questo livello.** Il §0A del CLAUDE.md
-   di progetto lo rende una REGOLA ZERO dopo «lavoro significativo», ma l'orchestratore di sessione
-   possiede il bookkeeping a livello di ondata/wave — dichiarato esplicitamente qui perché non
-   sparisca in silenzio (§0A-bis: una decisione/step non scritto è come non essere mai avvenuto).
-
----
-
-## 6. Commit
-
-Ramo `ondata-b-sessione-3`, nessun worktree. Un commit, formato `feat(wizard): …` in italiano +
-trailer `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>` (SHA nel messaggio finale allo
-orchestratore).
-
----
-
-## 7. Fix di revisione post-commit `0e3c9e74` (4 agosto 2026, sera)
-
-Due findings del controllore, corretti senza toccare altro (contratto: solo questi due).
-
-**Finding 1 (Important) — citazione falsa nel commento.** Il JSDoc di `RigaColore`
-(`PassoPaziente.tsx` ~righe 178-180) attribuiva la risoluzione «resta es. A2» a
-`task-2-brief.md`, che non la contiene (il brief di sessione, letto per la verifica, parla solo
-degli stati/testi D223, non della sostituzione A3→A2). La risoluzione vera è registrata in
-`docs/design/decisions/2026-08-04-ondata-b3-schermate-vere.md` §4 («Valori dimostrativi ≠ testi
-vincolanti»). Il commento ora cita quel file + paragrafo, non più il brief.
-
-**Finding 2 (Minor) — contratto di tipo incompleto nel test.** `tests/unit/PassoPaziente.test.tsx`
-~riga 313, il type-check di compilazione `_Contratto` enumerava le prop di `PassoPaziente` contro
-`StatoWizard` ma non includeva `coloreOrigine` (introdotta nel Task 2). Aggiunta la riga
-`coloreOrigine: StatoWizard['coloreOrigine']`, stesso stile delle altre. Prova a denti (R-P1,
-usa-e-getta, non committata): rinominato temporaneamente in `StatoWizard['coloreOrigineXX']` →
-`tsc` va rosso (`Property 'coloreOrigineXX' does not exist on type 'StatoWizard'`) → ripristinato.
-Il guardiano funziona, con un limite dichiarato: essendo `void (0 as unknown as _Contratto)` un
-cast attraverso `unknown`, non incrocia le prop di `PassoPaziente` — verifica solo che le chiavi
-esistano su `StatoWizard`.
-
-**Trovato FUORI mandato, NON corretto (R-E2 — si riferisce, non si tocca):** lo stesso blocco
-JSDoc, poche righe sotto (~riga 188), attribuisce un'altra derivazione — il sottotitolo chiuso
-«lo scegliamo noi» per `coloreOrigine==='lab'` — al «brief del Task 2». Letto `task-2-brief.md`
-per verifica di questo fix: il brief nomina «lo scegliamo noi» solo per gli stati APERTO/SGANCIATO
-(etichetta + link), non descrive esplicitamente una derivazione per lo stato CHIUSO+sganciato.
-Stessa famiglia del Finding 1 (citazione a un documento che potrebbe non coprire l'affermazione),
-ma fuori dal mandato di questo task: segnalato all'orchestratore, non modificato qui.
-
-**Verifica:** `npx vitest run tests/unit/PassoPaziente.test.tsx` → 23/23 passati. `npx tsc --noEmit`
-→ 0 errori (confermato che `tests/` è nel programma tsc: `--listFiles` include
-`PassoPaziente.test.tsx`). Commit `ac4d1f88`, pre-commit hook verde (ESLint, guardia DS, guardia
-CSRF, guardia coerenza documenti, guardia salvataggio automatico).
-
-**Adjudicazione (stesso giorno):** l'orchestratore ha adottato il ritrovamento fuori mandato sopra
-e ne ha ordinato la correzione, stesso contratto (R-E2 rispettato: riferito, poi corretto solo su
-mandato esplicito). Riga ~188 riscritta per citare `docs/design/decisions/2026-08-04-ondata-b3-
-schermate-vere.md` §4 invece del brief; `vitest` 23/23 e `tsc --noEmit` 0 errori confermati di
-nuovo. Commit `9e1d7fcd`, pre-commit hook verde.
+Nessun altro scostamento. Il resto del brief è risultato accurato in ogni punto verificabile
+(timestamp, precedente `20260806142910`, `RUOLI_CHIUSURA_AVVISO`/`ruoli.ts:72`,
+`utenti_lab_required_for_non_admin`, cascata di `admin_delete_laboratorio`).

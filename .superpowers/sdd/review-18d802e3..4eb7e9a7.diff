@@ -1,0 +1,1654 @@
+# Review package: 18d802e313abf322ac80d3c7f6e9a460cf7c6b2f..HEAD
+
+## Commits
+4eb7e9a7 docs(roadmap): righe 58-59 chiuse — prova inalterabile e firma same-lab
+8f4976a7 feat(db): la firma dell'avviso è dello stesso laboratorio — FK composita (riga 59)
+bc938e39 feat(db): trigger one-way sulla chiusura degli avvisi — la prova non si riscrive (riga 58)
+2f6e4142 docs(piano): piano code 58-59 — one-way sulla chiusura avvisi + FK composita firma
+
+## Files changed
+ docs/roadmap/ROADMAP-UFFICIALE.md                  |   6 +-
+ ...6-08-11-code-58-59-avvisi-prova-inalterabile.md | 898 +++++++++++++++++++++
+ memory/MEMORY.md                                   |   2 +-
+ src/types/database.types.ts                        |   6 +-
+ .../20260811132010_avvisi_chiusura_one_way.sql     |  69 ++
+ ...60811133440_avvisi_firma_stesso_laboratorio.sql |  47 ++
+ .../avvisi-chiusura-one-way.rpc.test.ts            | 283 +++++++
+ .../integration/avvisi-dentista-schema.rpc.test.ts |   2 +-
+ .../avvisi-firma-stesso-laboratorio.rpc.test.ts    | 185 +++++
+ 9 files changed, 1490 insertions(+), 8 deletions(-)
+
+## Diff
+diff --git a/docs/roadmap/ROADMAP-UFFICIALE.md b/docs/roadmap/ROADMAP-UFFICIALE.md
+index 42e53220..7be91b33 100644
+--- a/docs/roadmap/ROADMAP-UFFICIALE.md
++++ b/docs/roadmap/ROADMAP-UFFICIALE.md
+@@ -1,12 +1,12 @@
+ # UÀ — Roadmap Ufficiale
+-**Ultimo aggiornamento:** 🚀 ✅ **IN PRODUZIONE — merge `5e4af0ac` (⚖️ D359) SU uachelab.com, e il gancio automatico Vercel FUNZIONA: la riga 60 era un FALSO ALLARME MIO, chiuso lo stesso giorno da Francesco («ha sempre funzionato vercel controlla» — aveva ragione)** (103) — la sequenza vera: merge 09:34 · miei controlli prematuri 09:36-09:43 («niente deploy», vero solo in quell'istante) · **tre deploy AUTOMATICI 09:45-09:53** (coda Vercel ~10 min) · **sito già aggiornato DA SOLO alle ~09:57** · deploy manuale di Francesco 10:49 (innocuo, stesso codice) · controprova: push 11:00 → deploy automatico 11:11 senza tocco umano. Dettaglio e lezione: **riga 60 (chiusa)** — 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-11-merge-avviso-in-produzione-handoff.md`, la §0 per prima** (contro-argomento striscia: **PESATO E RESPINTO, ⚖️ D360 — l'ordine resta** · riga 61 nuova · collaudo al dito · code 58-59 **IN LAVORAZIONE, ⚖️ D361**). 📌 Misurato in chiusura: `VERIFY_EXIT=0` · **6069 | 137 su 473 file** — tutti i cancelli passati PRIMA del merge: CI verde (dopo la chiusura di TRE flake da margine: p7 ×2 e `torna-a-pronto`, tutti morti a 5006-5007 ms → margine di GRUPPO a 15000 in `vitest.config.ts`, `85e892fc`) · giro completo sul banco vero (Task 10-B, 33 scatti, ⚖️ D354 vista dal vivo) · gate estetico L2 (contrasto scuro archivio corretto >12:1) · revisione finale a tre aree parallele: **ZERO Critical su 298 commit**, un Important chiuso in sessione (`04974871`, allowlist sulla rotta riemetti). ⚖️ **D354 → D361 = 361 decisioni in 156 tornate** (156ª, 11/08 pomeriggio: **D360** l'ordine della striscia resta — contro-argomento §0① pesato e respinto · **D361** si aprono le code 58-59). 🚪 **PUNTO DI RIPRESA:** ① 🔴 **le code 58 · 59** (vincolo one-way sulla chiusura degli avvisi · FK composita per `comunicato_da` — **da chiudere PRIMA della prima onboarding reale**) · ② l'ondata di pulizia dei Minor (M-T* a ledger, `.superpowers/sdd/progress.md`) · ③ la migrazione del portale (⚖️ D347, che assorbe le code 48 e 56). Referto della revisione finale: `docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`. **Righe della coda: 42 → 59.**
++**Ultimo aggiornamento:** 🚀 ✅ **IN PRODUZIONE — merge `5e4af0ac` (⚖️ D359) SU uachelab.com, e il gancio automatico Vercel FUNZIONA: la riga 60 era un FALSO ALLARME MIO, chiuso lo stesso giorno da Francesco («ha sempre funzionato vercel controlla» — aveva ragione)** (103) — la sequenza vera: merge 09:34 · miei controlli prematuri 09:36-09:43 («niente deploy», vero solo in quell'istante) · **tre deploy AUTOMATICI 09:45-09:53** (coda Vercel ~10 min) · **sito già aggiornato DA SOLO alle ~09:57** · deploy manuale di Francesco 10:49 (innocuo, stesso codice) · controprova: push 11:00 → deploy automatico 11:11 senza tocco umano. Dettaglio e lezione: **riga 60 (chiusa)** — 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-11-merge-avviso-in-produzione-handoff.md`, la §0 per prima** (contro-argomento striscia: **PESATO E RESPINTO, ⚖️ D360 — l'ordine resta** · riga 61 nuova · collaudo al dito · code 58-59 **CHIUSE l'11/08 pomeriggio (⚖️ D361: trigger one-way + FK composita, migrations 20260811132010 · 20260811133440, 18 prove d'integrazione nuove)**). 📌 Misurato in chiusura: `VERIFY_EXIT=0` · **6069 | 137 su 473 file** — tutti i cancelli passati PRIMA del merge: CI verde (dopo la chiusura di TRE flake da margine: p7 ×2 e `torna-a-pronto`, tutti morti a 5006-5007 ms → margine di GRUPPO a 15000 in `vitest.config.ts`, `85e892fc`) · giro completo sul banco vero (Task 10-B, 33 scatti, ⚖️ D354 vista dal vivo) · gate estetico L2 (contrasto scuro archivio corretto >12:1) · revisione finale a tre aree parallele: **ZERO Critical su 298 commit**, un Important chiuso in sessione (`04974871`, allowlist sulla rotta riemetti). ⚖️ **D354 → D361 = 361 decisioni in 156 tornate** (156ª, 11/08 pomeriggio: **D360** l'ordine della striscia resta — contro-argomento §0① pesato e respinto · **D361** si aprono le code 58-59). 🚪 **PUNTO DI RIPRESA:** ① ✅ code 58 · 59 CHIUSE (11/08: trigger one-way + FK composita) · ② l'ondata di pulizia dei Minor (M-T* a ledger, `.superpowers/sdd/progress.md`) · ③ la migrazione del portale (⚖️ D347, che assorbe le code 48 e 56). Referto della revisione finale: `docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`. **Righe della coda: 42 → 59.**
+ 
+ **Aggiornamento precedente:** 🏁 **CHIUSURA DEL 09/08 SERA — cinque task su dieci, il disegno approvato, e il foglio NON È ANCORA AGGANCIATO A NIENTE** (103) — 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-09-avviso-al-dentista-cinque-task-handoff.md`, la §0 per prima.** 🔴 Il foglio esiste (56 prove verdi) ma `provato:` **non è montato**; mancano i Task **6-10**; il **gate estetico L2 NON è fatto** (89 scatti = FASE 9); **merge su `main`: NO**. 📌 **Misurato: `VERIFY_EXIT=0` · 5902 | 119 su 465 file** (apertura `5725 | 84 su 458`). 🗄️ **Pavimento `20260809133546`.** ⚖️ **D342 → D351 — 351 decisioni in 150 tornate.** ➡️ **Prima cosa: il Task 6.** 🛑 **Domanda aperta per Francesco:** la parità dei tocchi di D335 è rotta (WhatsApp 3, «a voce» 2) e chiuderla tocca **D334**. **Righe nuove in coda: 42 → 51.**
+ 
+ **Aggiornamento precedente:** ✅ **IL FOGLIO DELL'AVVISO ESISTE (A2) + ⚖️ D350-D351 — la via di fuga della Legge 6 ha cambiato posto** (103) — 🚪 **PUNTO DI RIPRESA: il TASK 6** del piano `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md` (il promemoria sulla scheda, più il modulo delle due letture, **da creare**). 🛑 **Pavimento invariato: `20260809133546`.** Costruito: `AvvisoDentista.tsx` (variante **A2**, due strade di peso identico) + **il primo campo multilinea del DS** (`CampoTestoLungo`, non ne esisteva nessuno). 📌 **Misurato: 56 prove su 56 · 94 su 94 col campo · zero `duration` inline · zero `router.push` · saltate invariate.** ⚖️ **D350: terza deroga a §2.1** — il nome del paziente si vede nel foglio (il componente **non decide**: riceve il valore, la deroga vive in un punto solo, spec già aggiornata) · ⚖️ **D351: «a voce» chiude con un tocco**, e la via di fuga passa **dopo** la scrittura — **10 secondi differiti**, annullo che **sopravvive alla chiusura**. 🔑 **Il censimento ha deciso meglio del mandato:** la consegna ha **due** meccanismi di annullo divisi per reversibilità, e l'avviso sta su quello del **differimento** perché non ha uno stato «annullato». 🔴 **Il mio mandato sbagliava un numero: il ritorno chiede TRE campi a `NULL`, non due** — cancellerebbe la prova ex Art. 5(2). 🔑 **Per Francesco: la parità nei tocchi di D335 non c'è più** (WhatsApp 3, «a voce» 2): chiuderla significa toccare **D334**. Verbale: **centocinquantesima tornata**
+ 
+ **Aggiornamento precedente:** 🎨 **CANCELLO §0B PASSATO — ⚖️ D344 → D349, e il mockup ha scoperto una FIRMA SBAGLIATA IN PRODUZIONE** (103) — 🚪 **PUNTO DI RIPRESA: il TASK 4-ter** (la firma dei messaggi, D345), **poi il Task 5** (foglio, variante **A2**) del piano `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md`. 🛑 **Pavimento invariato: `20260809133546`.** Mockup approvato: `docs/design/mockups/2026-08-09-avviso-al-dentista.html`, sei scatti 390/768/1280 × chiaro/scuro. ⚖️ **D344 foglio = A2** · ⚖️ **D346 portale = B1** · 🔴 **D345 la firma è il NOME DEL LABORATORIO, mai «UÀ Lab»** — `provato:` **tre punti, due in produzione** (tutti dentro la funzione della **consegna**; 🔄 **una mia riga diceva «anche i solleciti» ed era FALSA: il sollecito non era firmato AFFATTO**, difetto diverso e peggiore, e nessuna prova lo guardava) · 🔴 **D347 il portale si migra INTERO al v3 con tema scuro: ondata a sé** (riga **48**) · 🔴 **D348 il collegamento non scade più a tempo**, si spegne e riaccende dall'anagrafica (riga **49**, dominio critico) · 🟠 **D349 i due condivisi si sistemano** (riga **50**). 📌 Due difetti del mockup trovati **misurando** prima di far scegliere: messaggio **tagliato** e una data a **2,54:1**. Verbale: **centoquarantanovesima tornata**
+ 
+ **Aggiornamento precedente:** ⚖️ **D342 · D343 — IL PANEL HA RIBALTATO LA PROPOSTA SUI RUOLI, e una precauzione era una NECESSITÀ MISURATA** (103) — 🚪 **PUNTO DI RIPRESA: il 🎨 CANCELLO §0B** del piano `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md` (mockup delle due superfici, chiaro e scuro, 390 · 768 · 1280, **più varianti**, approvazione di Francesco **prima** di React), poi il Task 5. 🛑 **Pavimento invariato: `20260809133546`.** Fatto: la rotta che chiude l'avviso, con l'allowlist esportata `RUOLI_CHIUSURA_AVVISO`. 📌 **Misurato: 31 prove su 31 · cinque ruoli riletti dal `CHECK` vivo · saltate invariate a 119.** ⚖️ **D342: chiudono `titolare` · `tecnico` · `front_desk`** (esclusi `admin_rete` e `admin_sistema` **per nome**) · ⚖️ **D343: nessuna seconda data.** 🔑 **Il tecnico resta dentro perché escluderlo produce ATTRIBUZIONI FALSE** — due advisor indipendenti, stesso argomento. 🔑 **E `admin_sistema` PUÒ avere un laboratorio** (`CHECK` a implicazione singola, provato): il cancello per nome chiude un caso raggiungibile. ➡️ **Righe nuove 46 e 47:** `schema.sql:247` dichiara **quattro** ruoli su cinque — lo stesso file e lo stesso modo in cui `admin_sistema` fu dimenticato per mesi — e `striscia.ts` contraddice D342 su `admin_rete`. Verbale: **centoquarantottesima tornata**
+ 
+ **Aggiornamento precedente:** ✅ **TRE TASK SU DIECI DELL'AVVISO AL DENTISTA — la prova del piano era verde su un abbozzo VUOTO, e ora è misurato** (103) — 🚪 **PUNTO DI RIPRESA: il TASK 4** del piano `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md`, a esecutore fresco. 🛑 **Pavimento invariato: `20260809133546`.** Fatto: `src/lib/avvisi/messaggio.ts`, due funzioni che **non si chiamano fra loro** (⚖️ D334: su WhatsApp **solo il fatto**), con il confine tenuto da una prova che **deriva** le frasi vietate dall'elenco vivo dei campi. 📌 **Misurato: 14 prove su 14 · `tsc` 0 · saltate invariate a 119** (prove unitarie: la verifica locale le esegue). 🔴 **Contro un abbozzo vuoto passavano 3 `it` su 14, e uno era quello del piano.** 🔑 **N1:** il tipo stretto del piano avrebbe stampato «undefined» a un dentista, perché `campi_corretti` è `string[]` **senza vincolo per scelta** (Art. 19). ➡️ **Riga 45 nuova:** l'indirizzo dell'app è scritto a mano in **dieci** punti, due con `!` sui percorsi del pagamento — **e nasce dalla smentita di una riga del mio brief, misurata dall'esecutore**. Revisione: `.superpowers/sdd/avviso-dentista-task-3-revisione.md`
+@@ -367,22 +367,22 @@ controllo automatico glielo dirà.** ➡️ **Percorso GRANDE** (tocca validazio
+ | **48** | 🆕 🔴 ⚖️ **D347 — ONDATA A SÉ: IL PORTALE DEL DENTISTA SI MIGRA INTERO AL DS v3, CON TEMA SCURO E TRE VIEWPORT (09/08/2026).** Francesco: «*va migrato completamente al design system v3, e deve avere il tema scuro e tutte le varianti per ogni viewport*». 🔑 **Perché è un'ondata e non un ritocco, misurato leggendo la pagina:** `src/app/portale/[token]/page.tsx` **non è né v3 né v2.3** — **zero** `data-ds`, **zero** import da `@/design-system/*`, colori **esadecimali scritti a mano** (`#111827` · `#6B7280` · `#9CA3AF` · `#E5E7EB`), font **DM Sans** ripetuto inline su ogni stile, fondo **`#F8F9FA`** che **contraddice l'invariante del fondo unico** (`#F4F0E7`/`#171411`), **zero** `prefers-color-scheme` e **zero** breakpoint di layout (una colonna a 680px, identica sui tre formati). La scelta è **dichiarata nel codice** (`FatturazioneSection.tsx:13-15`). 🛑 **Il tema scuro là non esiste**, ed è per questo che il cancello §0B del 09/08 **non poteva** essere soddisfatto su quella superficie: la variante **B1** è stata approvata **nello stile di oggi**, non in v3. ➡️ **E nella stessa ondata Francesco chiede di RIVEDERE IL DISEGNO, non solo di ridipingerlo:** «*potremmo anche rivedere più di una variante per comprendere se la pagina del dentista dia modo di visionare ogni lavoro a lui collegato con tutte le possibili azioni da poter effettuare sui lavori e sulle comunicazioni con il laboratorio*». 📌 **Perimetro misurato di ciò che c'è da migrare:** `page.tsx` (513 righe) + `FatturazioneSection` + `FattureStoricoSection` + `SituazioneEconomicaSection` + il proprio `layout.tsx`, che rende un `<html>`/`<body>` **annidato** dentro quelli del layout radice. ⚠️ **Superficie usata da un'altra persona su un altro telefono:** FASE 9 su tre viewport **e** gate L2 dovuti. **Cancello §0B obbligatorio, con più varianti** |
+ | **49** | 🆕 🔴 ⚖️ **D348 — IL COLLEGAMENTO AL PORTALE NON SCADE PIÙ A TEMPO: vive finché la collaborazione è attiva (09/08/2026).** Francesco: «*non deve mai scadere finchè il dottore lavora e collabora con lo studio, cessa di funzionare quando il laboratorio nell'anagrafica del cliente segnala che è terminata la collaborazione e questa cosa può essere ripristinata in qualsiasi momento*». **Oggi** `clienti.portale_token_scade_at` porta una scadenza a **un anno**, controllata a `portale/[token]/page.tsx:299-302`. ➡️ **Che cosa serve, ed è un lavoro a sé:** ① un segnale di **collaborazione attiva/finita** nell'anagrafica del cliente (**migration**) · ② il **comando** per spegnere e **riaccendere**, in anagrafica · ③ il portale che guarda **quel** segnale invece della data · ④ una decisione su cosa fare del campo esistente (si spegne? si tiene per i gettoni già emessi?). ✅ **Chiude il problema ② del mockup:** non serve più rigenerare un gettone scaduto mentre si compone un avviso. ⚠️ **Riserva di sicurezza, scritta e non nascosta:** un collegamento **permanente** inoltrato per sbaglio dà accesso permanente ai lavori di quel dentista — con la scadenza il danno si chiudeva da sé. **La mitigazione esiste già** (`POST /api/clienti/[id]/rigenera-portale-token`) e l'interruttore della collaborazione **diventa** la revoca: va progettato così, non aggiunto dopo. 🛑 **Dominio critico** (accesso pubblico senza login) → **percorso GRANDE, panel obbligatorio** |
+ | **50** | 🆕 🟠 ⚖️ **D349 — I DUE DIFETTI DI CONTRASTO NEI COMPONENTI CONDIVISI VANNO SISTEMATI, e il quando è delegato a chi esegue (09/08/2026).** Francesco: «*va sistemato, vedi tu come e quando*». ① **`src/components/ds/TastoPrimario.tsx:90`** — il tasto **spento** usa `var(--bg-deep)` con testo `var(--faint)`: in tema scuro è **`#100E0B` su pannello `#211D18` = 1,15:1**, senza filo. ② **`src/components/ds/Campo.tsx:28`** — la didascalia dei campi è `var(--faint)` **13px/800**: su `--bg-deep` in chiaro fa **4,17:1** contro 4,5. 🔑 **Perché la delega di tempo cambia la natura del lavoro:** stanno in `src/components/ds/`, quindi **ogni** superficie v3 li erediterà — e infatti il foglio nuovo di questa ondata li eredita nell'istante in cui mostra un tasto spento o un campo. ➡️ **Non si aggiustano da una singola superficie** (v3 §14: la migrazione è per route, mai per componente): è un intervento sul design system, e va misurato su **tutte** le superfici v3 prima e dopo. 📌 **Erano deferiti dentro la riga 37 senza destinazione: da oggi hanno la loro riga**, ed è la differenza fra un rilievo rimandato e un rilievo perso |
+ | **51** | 🆕 🟠 **DUE MESSAGGI CHE ESCONO DALL'APP SENZA NESSUNA FIRMA — dentro il perimetro di ⚖️ D345, fuori dal mandato che l'ha applicata (09/08/2026, riferiti dal Task 4-ter, non corretti).** D345 dice «*ogni messaggio che inviamo*»: il Task 4-ter ha chiuso i tre punti che portavano la firma **sbagliata**, e censendo ha trovato due punti che **non ne hanno affatto**. ① 🟠 **`PortaleLinkButtons.tsx:86` — è un messaggio a un DENTISTA**, cioè lo stesso destinatario dell'avviso, e non dice chi scrive: **è il caso di confine da prendere per primo**. ② 🟡 **`NuovoOrdineSheet.tsx:151` porta `const labNome = ''`** — l'ordine al **fornitore** esce senza firma, e la riga è **spenta per costruzione**: servono due prop passate lungo `ordini/page.tsx` → `OrdiniList:55` → il foglio. 📌 **Escluso per sostanza, e la ragione è scritta:** `PecSetupWidget.tsx:166` non è un messaggio del laboratorio a un cliente ma dell'utente al **fornitore del software** — lì la firma del laboratorio non c'entra. 🔑 **Perché non li ha chiusi il Task 4-ter:** ognuno richiede di **portare il nome fin dove il messaggio nasce** (due catene di prop diverse), quindi sono due lavori con il loro censimento, non due righe di testo |
+ | **52** | 🆕 🟠 **DUE COMMENTI DI `AvvisoDentista.tsx` CONTRADDICONO IL SUO UNICO CHIAMANTE (10/08/2026, riferiti dal Task 6, **non corretti**: R-E2).** ① **`AvvisoDentista.tsx:268-269`** documenta la proprietà `telefonoStudio` come «`clienti.telefono`», ma il valore giusto è **`cellulare_whatsapp`** — `src/types/domain.ts:174-176` lo scrive a chiare lettere («*chi manda WhatsApp legge **SEMPRE** questo campo, mai `telefono`, altrimenti il messaggio riparte su un fisso*»), e `provato:` **tutti** i chiamanti veri di `buildWhatsappUrl` passano quello (scadenzario · accettazione · consegna), **zero** passano `telefono`. Il Task 6 ha cablato il campo giusto **con una prova che lo difende**, e ha lasciato il commento perché sta nel file del Task 5. ② **`AvvisoDentista.tsx:247`** dice «*lo trova il Task 6 (`avvisiDaComunicare`)*»: oggi lo trova **`avvisoPerLaScheda`**, e la lettura grezza da una pagina è **vietata da una sentinella**. 🔑 **Perché sono una riga sola e non due:** è lo stesso file e lo stesso mestiere — un commento che punta dove la cosa non sta più. ⚠️ **Perché non è cosmesi in questo progetto:** il secondo manda chi legge verso una funzione **senza cancello di ruolo**, cioè verso il difetto che la revisione del Task 6 ha chiuso |
+ | **53** | 🆕 🟡 **LA PULIZIA CHE SEGUE IL TASK 7, e va fatta DOPO, non prima (10/08/2026, dalla revisione del Task 6).** Tre code lasciate consapevolmente: ① **`route.ts:166` ri-esporta `RUOLI_CHIUSURA_AVVISO`** da `@/lib/avvisi/ruoli` — era il **tripwire di perimetro** del passaggio che spostò la fonte (serviva a far restare verdi le prove della rotta senza toccarle); lo stato pulito è puntare `tests/unit/api-avviso.test.ts:87` al modulo e togliere la ri-esportazione da un file speciale di Next · ② **`STATI_APERTI` è la stessa derivazione in due file** (`queries.ts:87` · `route.ts:136`): non possono divergere sui valori, ma il posto naturale è `src/lib/avvisi/stati.ts`, che già ospita `STATI_CHIUSI` · ③ **`avvisiDaComunicare` resta esportata senza cancello di ruolo** (`queries.ts:190`) — **zero consumatori applicativi oggi**, e la pagina è tenuta lontana dalla lettura grezza da una sentinella. 🛑 **Il terzo NON è pulizia: è una decisione**, e va presa **prima** del Task 7 (v. la domanda aperta nell'handoff) |
+ | **54** | 🆕 🟠 **L'ANTEPRIMA ADMIN SI FINGE «titolare» E MOSTRA GIÀ OGGI FISCALI E PAGAMENTI DI LABORATORI ALTRUI, senza che una riga lo dichiari (10/08/2026, riferito dal Task 7 — non corretto: R-E2).** `provato:` `admin/labs/[id]/live/page.tsx:25` pretende `admin_sistema`, poi `:58` passa a `getSegnaleStriscia` la stringa **cablata** `'titolare'` — quindi la striscia calcola per il personale UÀ tutti i candidati del titolare, fiscali e pagamenti compresi. Il **promemoria dell'avviso** NON passa di lì (il Task 7 l'ha tenuto fuori per costruzione: la lettura è propagata dal chiamante e per l'anteprima resta `undefined`, con tre sentinelle), ma il precedente resta. 🔑 **E nella stessa famiglia:** il ripiego `?? tecnico` di `candidatiLivello1` (`striscia.ts`) resta **fail-open per gli altri cinque candidati** — un ruolo sconosciuto vede la lista del tecnico invece di niente. ➡️ **Va sciolto insieme alla riga 47** (che cosa può fare chi sta sopra più laboratori dentro il laboratorio di un altro): è lo stesso mestiere |
+ | **55** | 🆕 🟠 **DUE TABELLE SENZA TRIGGER DI AUDIT, e una regge la prova di un obbligo di legge (10/08/2026, dal panel «due avvisi», advisor dei dati — misurato sul catalogo vivo, non sui file).** `provato:` `_audit_trigger_fn` copre 11 tabelle, ma **`lavori_prescrizioni` → 0 trigger** e **`avvisi_dentista` → 0 trigger**. Conseguenze distinte: ① `prescrizione_caratteristiche` è l'**unica voce su sei** dei campi correggibili del documento senza NESSUNA rete di recupero (le altre cinque si ricostruiscono da `audit_log`, con fatica); ② `avvisi_dentista` è la tabella che **prova** la comunicazione ex Art. 5(2) GDPR e nessuno storicizza chi la tocca. ⚠️ Da pesare con giudizio, non di riflesso: l'audit di una tabella-prova potrebbe essere ridondante (le righe non si cancellano per costruzione) — ma la decisione va **presa**, non lasciata al caso |
+ | **56** | 🆕 🟠 **IL LAYOUT DEL PORTALE ANNIDA UN SECONDO `<html>` DENTRO QUELLO RADICE — errore di hydration a OGNI caricamento della pagina (10/08/2026, riferito dal giro del Task 10-B: PRE-ESISTENTE, da un commit fondativo del portale, non di questa ondata).** La pagina funziona (React si riprende), ma ogni visita del dentista parte con un errore in console, e un markup `<html>` dentro `<html>` è terreno su cui i browser possono divergere. Da chiudere nell'ondata della migrazione del portale (⚖️ D347), che tocca quella pagina intera comunque — prima, se l'errore inizia a mangiarsi qualcosa di visibile |
+ | **57** | 🆕 🟡 **`stato='annullata'` SULLE DICHIARAZIONI È RIUSATO PER DUE FATTI DIVERSI — l'annullo manuale e la supersessione da riemissione (10/08/2026, riferito dal Task 10-B).** Il modello li distingue già in colonna (`sostituisce_id` / `annullata_da_evento_id`), ma **nulla obbliga chi legge solo `stato`** a guardare le colonne: una lettura futura che tratti «annullata» come «documento ritirato» conterebbe fra i ritirati anche i semplicemente superseduti. Non un difetto vivo oggi (i lettori censiti guardano le colonne giuste), ma una trappola di vocabolario da sciogliere quando si tocca il modello delle dichiarazioni |
+-| **58** | 🆕 🟠 **UN AVVISO GIÀ CHIUSO RESTA RISCRIVIBILE — E PERSINO RIAPRIBILE — DAI RUOLI COL GRANT DELLE QUATTRO COLONNE (11/08/2026, revisione finale di ramo, area banca dati).** Il GRANT per colonna di `20260809124517` concede `stato·comunicato_at·comunicato_da·testo_inviato` senza NESSUN vincolo di transizione: su una riga chiusa si possono riscrivere autore, data e testo, e `stato→'da_comunicare'` coi tre NULL passa il CHECK. Delle quattro minacce elencate nel cappello di quella stessa migration, il grant chiude solo «ripuntare la riga». **La tabella è la prova ex Art. 5(2) GDPR: alterabile da dentro il tenant, senza traccia** (si lega alla riga 55: zero trigger di audit). Rimedio: vincolo one-way (trigger di transizione) o chiusura via RPC (modello `valutazioni_evento`). Non sfruttabile da fuori (INSERT/DELETE restano chiusi, serve un attore interno o un difetto di rotta) — ma va chiuso PRIMA della prima onboarding reale |
+-| **59** | 🆕 🟠 **`comunicato_da` È UNA FK SEMPLICE A `utenti(id)`: LA FIRMA DELLA CHIUSURA PUÒ PUNTARE A UN UTENTE DI UN ALTRO LABORATORIO (11/08/2026, revisione finale di ramo).** La RLS vincola solo `laboratorio_id`: un client `authenticated` può attribuire la chiusura a un utente altrui — la stessa classe che il ramo ha bollato CRITICA e chiuso con la FK COMPOSITA in `20260806142910`, qui non applicata. Effetto collaterale misurato: un riferimento cross-tenant farebbe abortire `admin_delete_laboratorio` dell'altro laboratorio (23503, FK NO ACTION). 🛑 **Ondata propria, non una riga di fix:** su `utenti` manca `UNIQUE(id, laboratorio_id)` (`provato:` catalogo vivo, solo `utenti_pkey`) — la composita richiede prima quel vincolo, col suo censimento |
++| **58** | ✅ **CHIUSA l'11/08/2026 (ondata code 58-59, ⚖️ D361).** Chiusa dal trigger `trg_avviso_chiusura_one_way` (migration `20260811132010`, BEFORE UPDATE, WHEN stato ≠ 'da_comunicare'): dopo la chiusura stato/autore/data/testo sono congelati per OGNI attore, service_role compreso; `visto_dal_dentista_at` e `campi_corretti` restano liberi di proposito (ricevuta di lettura e correzioni). Prova: `tests/integration/avvisi-chiusura-one-way.rpc.test.ts`, 11 prove (RED 7→GREEN 11). Il GRANT per colonna resta: serve alla chiusura legittima delle righe aperte |
++| **59** | ✅ **CHIUSA l'11/08/2026 (ondata code 58-59, ⚖️ D361).** Chiusa da `utenti_id_lab_uk UNIQUE (id, laboratorio_id)` + FK composita `avvisi_dentista_comunicato_da_fk (comunicato_da, laboratorio_id) → utenti (id, laboratorio_id)` (migration `20260811133440`, modello `20260806142910`, terza applicazione). Il nome vecchio `avvisi_dentista_comunicato_da_fkey` NON esiste più (censimento: types rigenerati, asserzione test aggiornata). MATCH SIMPLE: righe aperte (comunicato_da NULL) non vincolate. Prova: `tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts`, 7 prove. Zero firme cross-tenant preesistenti: applicata senza pulizia |
+ | **60** | ✅ **CHIUSA LO STESSO GIORNO: ERA UN FALSO ALLARME MIO, non un guasto — il gancio «push→deploy» FUNZIONA, l'ha detto Francesco («ha sempre funzionato vercel controlla») e la ricontrollata gli ha dato ragione.** 🔴 **L'errore, per intero e senza attenuanti:** il merge è delle **09:34**; i miei controlli (GitHub deployments + `vercel ls`) sono delle **09:36-09:43** — e in quell'istante dicevano davvero «niente deploy dal 06/08»; ma la coda di Vercel quel mattino partiva con **~10 minuti di ritardo**: `provato:` TRE deploy automatici alle **09:45 · 09:47 · 09:53** (registri GitHub, tutti etichettati `ee0e13d7` perché Vercel clona la PUNTA del ramo), e **uachelab.com era GIÀ aggiornato da solo alle ~09:57** — prima del deploy manuale di Francesco (10:49, innocuo: stesso codice) e mentre io scrivevo «serve la build vecchia». Controprova definitiva: il push delle 11:00 ha generato **da solo** il deploy delle 11:11 (`ua-n3h9cr6ql`), nessuno ha toccato niente. Il «vuoto dal 06/08» nei registri era solo «nessun push su `main` dal 06/08». 🔑 **La lezione, terza della stessa famiglia in un giorno (con le due ore scritte a stima):** una misura fatta PRIMA che l'effetto arrivi non misura il guasto — misura la fretta; un'assenza nei registri si dichiara guasto solo dopo una **seconda lettura a distanza di minuti**. La riga «push → Vercel automatico» dei CLAUDE.md è VERA |
+ | **61** | 🆕 🟠 **LA RISERVA NORMATIVA SULL'ARCHIVIO «PER PAZIENTE» (Art. 19 GDPR) E IL CASO DI CONFINE DELLA RICEVUTA PARZIALE vivevano SOLO in handoff e referti — salvati in coda dal censimento di chiusura dell'11/08.** Due questioni sorelle, rimandate insieme e MAI approdate qui: ① l'Art. 19 seconda frase impone al titolare di saper dire all'interessato **QUALI destinatari ha informato** — oggi l'archivio si interroga per cliente, non per paziente (riserva aperta dall'handoff 09/08 §0⑧②, richiede panel normativo: il fondamento va pesato contro Art. 5(1)(d)+5(2), v. referto panel 10/08 §5); ② se il dentista apre il portale FRA due correzioni, la ricevuta di lettura vale solo per la prima rettifica e **nessuna superficie lo distingue** (referto D354 §4, «deciso di non deciderlo» coi Task 8/9 — i task sono finiti, la questione no). Si sciolgono INSIEME, con panel, quando si torna sulle superfici dell'archivio |
+ 
+ ⚠️ **Nota che lega la voce 1 e la 5:** correggere il paziente **non** aggiorna lo snapshot sui lavori già creati. Probabilmente giusto per i lavori consegnati, quasi certamente sbagliato per quelli aperti — da sciogliere insieme.
+ 
+ **Aggiornamento precedente:** 27 luglio 2026 (18) — 🔎 **RICERCA (input per una decisione, nessuna riga di codice): «Elemento e colore vanno chiesti al Passo 3 del wizard "Nuovo lavoro"?»** Documento `docs/roadmap/2026-07-27-ricerca-presa-in-carico-lavoro.md` — quattro sezioni con fonte per ogni affermazione (ricerca web IT/EN, normativa `ANALISI/17`, codice `file:riga`, pattern UX con fonti Baymard/NN·g/GOV.UK), nessuna proposta: la decisione spetta a Francesco con un panel di 2-3 advisor (Regola Advisor). **Fatti principali:** elemento/colore **non sono mai parte della creazione del lavoro nel codice attuale** — `crea-lavoro.ts` li scrive con una PATCH separata e fail-soft dopo il POST, ed esiste già una schermata più ricca per correggerli dopo (`TabClinica.tsx`, tab «Clinica» di `/lavori/[id]/modifica`, con odontogramma FDI + scala VITA — molto più espressiva delle due righe di testo libero del wizard) · la fonte più diretta trovata è **interna**: `ANALISI/05_workflow_completo.md` (flusso reale del laboratorio di Filippo) mostra che «Registra Lavoro» non include mai elemento/colore, e il colore compare solo in «Completamento/Produzione fisica», due fasi dopo · normativamente (Allegato XIII MDR, `ANALISI/17_adempimenti_lab_2026.md`) dente/arcata e colore sono obbligatori per la Dichiarazione di Conformità **alla consegna**, non obbligo di legge trovato per l'apertura del lavoro. **Voce collegata a un punto già aperto in questa roadmap** (censimento `PATCHABLE_FIELDS`/D10 «ogni campo si corregge fino alla consegna», `arcata` oggi senza writer): stessa famiglia di campi, punti distinti. Dettaglio: MEMORY.md **voce 50**.
+ 
+ **Aggiornamento precedente:** 27 luglio 2026 (17) — ✅ **NOME E COGNOME DEL PAZIENTE: SPEC RATIFICATA, NIENTE CODICE.** Il punto 1 della coda dell'ondata parete/home è passato per BP-2 pieno (brainstorming → gate FASE 3 → panel 3×) e si esegue in **sessione nuova**: spec `docs/superpowers/specs/2026-07-27-nome-cognome-paziente-design.md`, handoff `docs/roadmap/2026-07-27-nome-cognome-paziente-execution-handoff.md`. **Le colonne `pazienti.nome`/`cognome` esistono già** e il trigger compone `COGNOME NOME`: niente migration, percorso Media, e la tappa 1 risolve la lamentela **senza toccare `Cassetta.tsx`**. Il panel (1 conferma con riserve, **2 «da rivedere»**) ha trovato tre trappole invisibili ai 3364 test — la peggiore avrebbe reso **non consegnabile** ogni lavoro creato dal wizard senza nome. **Decisioni nuove di Francesco:** D6 due caselle confermate · D7 lavoro in due tappe · D8 il tecnico continua a vedere il nome sulla parete (⚠️ `ANALISI/17` va allineata) · D9 correzione anche dalla scheda del lavoro (⚠️ **apre una tappa 1-bis GRANDE** sulla fotografia congelata). Dettaglio: MEMORY.md **voce 49**.
+ 
+ **Aggiornamento precedente:** 26 luglio 2026 (16) — ✅ **«UN TEMA SOLO»: TUTTE E TRE LE TAPPE IN PRODUZIONE.** Merge `e42601b8`, CI verde, deploy Vercel verde, **verificato su `uachelab.com`**: lo script legge `ua-tema` e **cancella** `ua-theme` senza mai leggerla, la pagina offline è alla chiave nuova, i due fondi sono serviti e del rosso non c'è traccia. L'app aveva **sette** posti che decidevano se essere chiara o scura, con **quattro** regole diverse: ora ne ha **uno** — Impostazioni → Aspetto → Tema (*Automatico* · *Sempre chiaro* · *Sempre scuro*). tsc 0 · vitest **3364 verdi / 19 skip** · build ok · QA **18/18** + prova dal vivo con Francesco dentro l'app. 📌 L'approvazione di `blocked`/`billing` è **CONDIZIONATA** alla revisione in **F2** (D6-bis): se F2 cambia, decade. ➕ Nuovo difetto di leggibilità appuntato a **F1** (token secondari v2.3 in tema scuro, §difetti). Dettaglio: MEMORY.md **voce 48**.
+diff --git a/docs/superpowers/plans/2026-08-11-code-58-59-avvisi-prova-inalterabile.md b/docs/superpowers/plans/2026-08-11-code-58-59-avvisi-prova-inalterabile.md
+new file mode 100644
+index 00000000..58b92d32
+--- /dev/null
++++ b/docs/superpowers/plans/2026-08-11-code-58-59-avvisi-prova-inalterabile.md
+@@ -0,0 +1,898 @@
++# Code 58-59 — La prova non si riscrive: one-way sulla chiusura degli avvisi + firma same-lab
++
++> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
++
++**Scritto:** 11 agosto 2026, 15:13 (`provato:` `date` → `Tue Aug 11 15:13:05 CEST 2026`).
++**Mandato:** ⚖️ **D361** (156ª tornata) — le due strutturali di banca dati della revisione finale di ramo
++(`docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`, Area A → righe **58** e **59** della coda in
++`docs/roadmap/ROADMAP-UFFICIALE.md`). Panel advisor non necessario: già istruite dal referto (fondamento D361).
++**Ramo:** `code-58-59-prova-inalterabile` (nel repo principale — 🛑 worktree VIETATI).
++
++**Goal:** rendere la chiusura di un avviso al dentista **irreversibile e inalterabile** (riga 58) e la sua
++firma **impossibile da attribuire a un utente di un altro laboratorio** (riga 59) — al livello del database,
++prima della prima onboarding reale.
++
++**Architecture:** due migration indipendenti. ① Un **trigger BEFORE UPDATE one-way** su
++`avvisi_dentista`: una riga già comunicata non cambia mai più `stato`, `comunicato_at`, `comunicato_da`,
++`testo_inviato` (le altre colonne — `visto_dal_dentista_at`, `campi_corretti` — restano libere per i loro
++flussi). ② Il **modello FK composita anti cross-tenant** già usato tre volte nel progetto
++(`20260806142910`): `UNIQUE (id, laboratorio_id)` su `utenti` + sostituzione della FK semplice di
++`comunicato_da` con la composita `(comunicato_da, laboratorio_id) → utenti (id, laboratorio_id)`.
++
++**Tech Stack:** PostgreSQL (Supabase, progetto `iagibumwjstnveqpjbwq`) · migrations SQL ·
++test d'integrazione vitest (progetto `integration`, `tests/integration/*.rpc.test.ts`, client `pg`,
++transazioni sempre annullate).
++
++## Global Constraints
++
++- 🗄️ **D311:** timestamp migration con `date -u "+%Y%m%d%H%M%S"`, in comando SEPARATO, e si usa QUELL'output. **Pavimento: `20260810072748`** (qualunque timestamp di oggi lo supera; verificarlo comunque a vista).
++- 🗄️ **D284:** le migration si applicano da soli: `npx supabase db push --linked --yes` (dalla cartella `ua-app/`, `--yes` obbligatorio). ⚠️ `scripts/psql.mjs` NON registra la migration nel ledger: non è un sostituto.
++- 🗄️ **Il file NON è la prova:** dopo ogni push, verifica sul catalogo vivo via `node scripts/psql.mjs -c "…"`.
++- 🧪 Test d'integrazione in locale: servono le variabili di `.env.local` — `set -a && . ./.env.local; set +a && npx vitest run tests/integration/<file>`. Senza, i test si SALTANO (non falliscono): un run «verde» senza `SUPABASE_DB_URL` non prova niente — controllare che il conteggio dica *passed*, non *skipped*.
++- 🧪 Margine di gruppo del progetto `integration`: 15000 ms (`vitest.config.ts`) — non aggiungere timeout per-prova salvo misura che lo imponga.
++- 📐 Convenzioni di nome (misurate sul modello `20260806142910`): UNIQUE composito → `<tabella>_id_lab_uk` · FK composita → `<nome>_fk` (sostituisce la `_fkey` auto-generata, che si droppa) · trigger → prefisso `trg_`.
++- 🛑 **D318:** `git status` prima di ogni commit · `git add <percorsi>` (MAI `-A`) · messaggi con `-F <file>`.
++- 🛑 FASE 6b dopo OGNI migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → rimuovere eventuale riga CLI spuria in fondo → `npx tsc --noEmit`.
++- 🛑 R-E2: un difetto trovato fuori mandato si RIFERISCE nel report del task, non si corregge.
++- Gate estetico L2 e FASE 9 browser: **non dovuti** — nessuna superficie toccata, solo banca dati e test. La FASE 7 piena (tsc + vitest + next build) resta dovuta e sta nel Task 3.
++
++---
++
++## Registro delle prove (R-P1) — tutte eseguite l'11/08/2026 sul catalogo/banco vivo
++
++| # | Sonda | Esito incollato |
++|---|---|---|
++| P0 | `SELECT to_regclass('public.avvisi_dentista')` | `'avvisi_dentista'` (il nome vero; `public.avvisi` → `null`) |
++| P1 | vincoli su `avvisi_dentista` e `utenti` (`pg_constraint`) | avvisi: 5 FK + PK + 3 CHECK (`avviso_stato_vocabolario` · `avviso_comunicato_ha_autore_e_data` · `avviso_testo_solo_se_dall_app`); `comunicato_da` FK **semplice** `REFERENCES utenti(id)`. utenti: PK(id) · CHECK `utenti_lab_required_for_non_admin` = `ruolo='admin_sistema' OR laboratorio_id IS NOT NULL` · **NESSUN UNIQUE (id, laboratorio_id)** |
++| P2 | FK che referenziano `utenti(id)` (catalogo) | **23 vincoli** (censimento sotto), nessuno composito |
++| P3 | GRANT UPDATE per colonna su `avvisi_dentista` | `authenticated` e `service_role`: esattamente `stato · comunicato_at · comunicato_da · testo_inviato` |
++| P4 | trigger su `avvisi_dentista` (`pg_trigger`, non-internal) | **0 righe** — nessun trigger: niente impedisce la riapertura |
++| P5 | nullabilità | `utenti.laboratorio_id` → `attnotnull = false` (nullable) |
++| P6a | **riapertura di un avviso chiuso** (BEGIN…ROLLBACK TO SAVEPOINT) | `UPDATE … SET stato='da_comunicare', comunicato_at=NULL, comunicato_da=NULL, testo_inviato=NULL WHERE stato='comunicato_dall_app'` → **1 riga, RIUSCITO** (il difetto 58 è vivo) |
++| P6b | **riattribuzione firma su avviso chiuso** (stessa transazione annullata) | `UPDATE … SET comunicato_da=(SELECT id FROM utenti WHERE ruolo='admin_sistema' LIMIT 1)` → **1 riga, RIUSCITO** verso un utente con `laboratorio_id NULL` (il difetto 59 è vivo) |
++| P7 | funzioni che toccano `avvisi_dentista` (`pg_proc`) | solo `avvisi_segna_visti` e `correggi_e_riemetti_atomica`, entrambe SECURITY DEFINER |
++| P8 | dati esistenti | utenti: 1 `admin_sistema` con lab **NULL**, 6 utenti lab-bound · **0 firme cross-tenant** in `avvisi_dentista` (la FK composita valida i dati di oggi senza pulizia) |
++| P9 | collisioni sui nomi nuovi | `avviso_chiusura_one_way` (pg_proc) → 0 · `trg_avviso_chiusura_one_way` (pg_trigger) → 0 · `utenti_id_lab_uk` / `avvisi_dentista_comunicato_da_fk` (pg_constraint) → 0 |
++| P10 | ordine in `admin_delete_laboratorio` (corpo vivo, `pg_get_functiondef`) | `DELETE FROM dichiarazioni_conformita` e `DELETE FROM lavori` (che portano via gli avvisi in CASCATA) stanno **PRIMA** di `DELETE FROM utenti … ruolo <> 'admin_sistema'` → `UPDATE utenti SET laboratorio_id=NULL … ruolo='admin_sistema'` → `DELETE FROM laboratori`. Quando la funzione tocca `utenti`, nessun avviso è più vivo: la FK composita **non cambia** il comportamento della cancellazione |
++
++I blocchi SQL e di test nei task qui sotto sono **`non eseguito`**: accanto a ciascuno sta il comando con
++cui l'esecutore li verifica (è la forma R-P1 per il codice di piano).
++
++## Registro delle letture (R-P2)
++
++Letture delegabili fatte da **sei lettori subagent con domande falsificabili** (risposte con citazioni
++testuali, workflow `letture-piano-code-58-59` dell'11/08/2026); letture dirette dell'autore del piano
++marcate «diretta».
++
++| File | Letto | Da chi |
++|---|---|---|
++| `supabase/migrations/20260809123206_avvisi_dentista.sql` | intero | lettore grant-e-check (DDL, 3 CHECK, RLS, righe 15-97 citate) |
++| `supabase/migrations/20260809124517_avvisi_dentista_update_per_colonne.sql` | intero | lettore grant-e-check (REVOKE:32, GRANT:38-39, 4 minacce:11-22) |
++| `supabase/migrations/20260806142910_correzione_eventi_qualita_cross_tenant.sql` | intero | lettore modello-fk (UNIQUE:23-26, 3 FK composite:30-50, REVOKE/GRANT:89-90) |
++| `supabase/migrations/20260806140823_eventi_qualita.sql` | intero | lettore modello-fk (RLS append-only:78-84, COMMENT:86-89) |
++| `supabase/migrations/20260810072748_avvisi_segna_visti.sql` | intero | lettore rpc-recenti (firma:31-36, UPDATE solo `visto_dal_dentista_at`:41-45, REVOKE/GRANT:51-52) |
++| `supabase/migrations/20260809133546_correggi_e_riemetti_con_avviso.sql` | intero | lettore rpc-recenti (INSERT incondizionato:488-496, MAI update di avvisi esistenti) |
++| `src/app/api/lavori/[id]/avviso/route.ts` | funzioni intere | lettore scritture-server (UPDATE:414-420 con `.in('stato', STATI_APERTI)` — mai una riga chiusa; 409 sul già chiuso:362-364; cancello `puoChiudereAvviso`:249-251) |
++| `src/lib/avvisi/{stati,ruoli,portale,queries}.ts` | funzioni intere | lettore scritture-server (STATI_AVVISO:8, STATI_CHIUSI:18, `RUOLI_CHIUSURA_AVVISO = ['titolare','tecnico','front_desk']`:72 — **admin_rete e admin_sistema esclusi per nome, D342**) |
++| `src/components/features/lavori/scheda-v3/AvvisoDentista.tsx` | commenti architetturali 60-101 | lettore scritture-server («non esiste uno stato annullato», il ritorno è vietato di proposito) |
++| `supabase/schema.sql` + migrations su `utenti` | mirate | lettore censimento-utenti (nullable da `20260517000003`; ⚠️ schema.sql è una FOTO STANTIA: NOT NULL e 4 ruoli — non fidarsene) |
++| `vitest.config.ts` · `tests/integration/helpers/pg-client.ts` · `tests/integration/eventi-qualita-schema.rpc.test.ts` | intero/mirate | lettore pattern-test (progetto `integration`:58-65, `withRollback`, `skipIntegrationTests`, prove FK composite:103-145) |
++| `tests/integration/avvisi-dentista-schema.rpc.test.ts` | **intero, diretta** (633 righe) | autore del piano — helper `riferimentiVeri`/`attesoRifiuto`/`inserisci` da rispecchiare; ⚠️ riga 349 asserisce il NOME della FK che il Task 2 rinomina; riga 335: `INSERT INTO auth.users (id)` funziona in transazione annullata (ricetta per utenti usa-e-getta) |
++| `docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md` | intero, diretta | autore del piano (il mandato, Area A) |
++| corpo vivo di `admin_delete_laboratorio` | intero, diretta (P10) | autore del piano |
++
++**NON letti** (dichiarato): gli altri file che referenziano `utenti(id)` — nessuno è toccato da questo piano
++(v. censimento).
++
++## Censimento degli identificatori (R-P6)
++
++**Toccati da questo piano:**
++
++| Identificatore | Dove | Che cosa gli succede |
++|---|---|---|
++| `avvisi_dentista_comunicato_da_fkey` | catalogo · `src/types/database.types.ts:218` · `tests/integration/avvisi-dentista-schema.rpc.test.ts:349` | **DROPPATA e sostituita** da `avvisi_dentista_comunicato_da_fk` (composita). I tre punti si aggiornano così: catalogo → migration Task 2 · types → rigenerazione FASE 6b (Task 2, passo 7) · test:349 → modifica esplicita (Task 2, passo 3). `grep -rn "comunicato_da_fkey" src tests supabase docs` DEVE dare 0 hit di codice a fine Task 2 (la citazione STORICA in `ROADMAP-UFFICIALE.md` riga 43 resta: racconta il passato, non il presente — e la riga 59 chiusa nel Task 3 dichiarerà il nome nuovo) |
++| `utenti_id_lab_uk` (nuovo) | `utenti` | UNIQUE (id, laboratorio_id) — P9: nessuna collisione |
++| `avviso_chiusura_one_way()` + `trg_avviso_chiusura_one_way` (nuovi) | `avvisi_dentista` | funzione + trigger — P9: nessuna collisione |
++| `stato · comunicato_at · comunicato_da · testo_inviato` | `avvisi_dentista` | congelate DOPO la chiusura dal trigger; il GRANT per colonna (P3) resta INVARIATO (serve alla chiusura legittima delle righe aperte) |
++| `visto_dal_dentista_at` · `campi_corretti` | `avvisi_dentista` | **fuori dal congelamento**, di proposito: la ricevuta di lettura (`avvisi_segna_visti`) e gli update futuri anticipati da `20260809133546:60-67` devono passare anche su righe chiuse |
++
++**Censiti e NON toccati (fuori mandato, si dichiara e basta):** le altre **22 FK verso `utenti(id)`**
++(P2: `cicli_produzione.created_by/updated_by`, `credito_clienti_movimenti.registrato_da`,
++`data_processing_agreements.emesso_da`, `dichiarazioni_conformita.generated_by`,
++`eventi_qualita.created_by`, `fascicoli_tecnici.approvato_da`, `fasi_produzione.updated_by`,
++`inviti_rete.invitato_da`, `lavori.segnalazione_by`, `lavori_prescrizioni.confermata_da`,
++`lavori_rifacimenti.created_by`, `lavoro_prove.created_by`, `messaggi.utente_id`, `notifiche.utente_id`,
++`pagamenti.registrato_da/annullato_da`, `reti_membri.aggiunto_da_admin`, `risk_analyses.approvato_da`,
++`scarichi_magazzino.operatore_id`, `tecnici.utente_id`, `valutazioni_evento.classificato_da`,
++`incidenti_mdr.created_by`) restano semplici: se meritino la composita è una valutazione da riferire
++(R-E2) come voce di coda futura, NON si corregge qui. Nessuna allowlist TypeScript è toccata; nessun nome
++esce da un'allowlist (la casistica R-P6 «riga senza destinazione» non si dà).
++
++## FASE 3 — gate architetturale (risposte)
++
++1. **Tenant isolation:** tocca l'isolamento NEL VERSO GIUSTO — la FK composita lo rafforza. RLS e `current_lab_id()` invariati (P1/p5: le due policy restano identiche).
++2. **Schema drift:** 2 migration → FASE 6b (gen types + tsc) dopo ciascuna. Il diff atteso dei types è la sola voce `foreignKeyName`/`columns` della Relationship di `comunicato_da` (censimento).
++3. **API contract:** nessun payload cambia. La rotta di chiusura filtra già `.in('stato', STATI_APERTI)` e risponde 409 sul già-chiuso: **nessun flusso legittimo incontra il trigger né la FK** (lettore scritture-server, domanda 2: «NON TROVATO» un percorso che riapre — con tre prove citate).
++4. **Rollback:** una migration inversa (DROP TRIGGER + DROP FUNCTION; DROP CONSTRAINT composita + ricrea la `_fkey` semplice + DROP UNIQUE). Nessun dato viene riscritto da queste migration: reversibilità piena.
++5. **Dominio critico:** sì (migrations) → percorso Grande: questo piano, esecutori freschi per task (R-E1), review fra i task.
++
++---
++
++### Task 1: Vincolo one-way sulla chiusura (riga 58)
++
++**Files:**
++- Create: `tests/integration/avvisi-chiusura-one-way.rpc.test.ts`
++- Create: `supabase/migrations/<TS1>_avvisi_chiusura_one_way.sql` (TS1 dal passo 1)
++
++**Interfaces:**
++- Consumes: helper `withRollback`/`skipIntegrationTests` da `tests/integration/helpers/pg-client` (esistenti, invariati).
++- Produces: trigger `trg_avviso_chiusura_one_way` + funzione `public.avviso_chiusura_one_way()` sul banco. Il Task 2 non dipende da questo task; il Task 3 verifica entrambi.
++
++- [ ] **Step 1: timestamp della migration (D311)**
++
++```bash
++date -u "+%Y%m%d%H%M%S"
++```
++Output = `<TS1>`. Deve superare `20260810072748` (lo supera per costruzione: oggi è l'11/08).
++
++- [ ] **Step 2: scrivi il test che DEVE fallire** — `non eseguito` · verifica: passo 3
++
++Crea `tests/integration/avvisi-chiusura-one-way.rpc.test.ts`:
++
++```typescript
++import { describe, it, expect } from 'vitest'
++import { randomUUID } from 'node:crypto'
++import { withRollback, skipIntegrationTests } from './helpers/pg-client'
++
++// Riga 58 della coda (revisione finale di ramo, 11/08/2026): un avviso GIÀ
++// COMUNICATO restava riscrivibile e riapribile — `provato:` in transazione
++// annullata l'11/08 la riapertura coi tre NULL e la riattribuzione della firma
++// RIUSCIVANO entrambe. La tabella è «la prova che è avvenuta» (GDPR Art. 5(2)):
++// da questa migration un trigger one-way congela stato, autore, data e testo
++// DOPO la chiusura. Le altre colonne (visto_dal_dentista_at, campi_corretti)
++// restano libere: la ricevuta di lettura e le correzioni future devono passare.
++//
++// ⚠️ Helper locali RICOPIATI da avvisi-dentista-schema.rpc.test.ts (riferimentiVeri,
++// attesoRifiuto, inserisci): è la convenzione viva di tests/integration/ (ogni file
++// è autosufficiente). La loro estrazione in helpers/ è pulizia da riferire, non da
++// fare qui (R-E2).
++
++const LAB_A = '00000000-0000-0000-0000-000000000001' // lab E2E dedicato
++
++type Client = Parameters<Parameters<typeof withRollback>[0]>[0]
++
++async function riferimentiVeri(client: Client) {
++  const { rows } = await client.query(
++    `SELECT (SELECT id FROM lavori   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS lavoro_id,
++            (SELECT id FROM clienti  WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS cliente_id,
++            (SELECT id FROM dichiarazioni_conformita WHERE laboratorio_id = $1
++              ORDER BY created_at LIMIT 1) AS dichiarazione_id,
++            (SELECT id FROM utenti   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS utente_id`,
++    [LAB_A]
++  )
++  const r = rows[0]
++  for (const [nome, valore] of Object.entries(r)) {
++    if (!valore) throw new Error(`il lab E2E ${LAB_A} non ha ${nome}: eseguire scripts/seed-e2e.ts`)
++  }
++  return r as {
++    lavoro_id: string; cliente_id: string; dichiarazione_id: string; utente_id: string
++  }
++}
++
++async function attesoRifiuto(
++  client: Client, cosa: string, fn: () => Promise<unknown>
++): Promise<{ code: string; message: string }> {
++  const sp = `sp_${randomUUID().replace(/-/g, '').slice(0, 12)}`
++  await client.query(`SAVEPOINT ${sp}`)
++  try {
++    await fn()
++    throw new Error(`ATTESO RIFIUTO, INVECE ACCETTATO: ${cosa}`)
++  } catch (e) {
++    const err = e as Error & { code?: string }
++    if (err.message.startsWith('ATTESO RIFIUTO')) {
++      await client.query(`ROLLBACK TO SAVEPOINT ${sp}`)
++      throw err
++    }
++    await client.query(`ROLLBACK TO SAVEPOINT ${sp}`)
++    return { code: err.code ?? '', message: err.message.split('\n')[0] }
++  }
++}
++
++function inserisci(
++  client: Client,
++  rif: { lavoro_id: string; cliente_id: string; dichiarazione_id: string },
++  campi: Record<string, unknown>
++) {
++  const base: Record<string, unknown> = {
++    laboratorio_id: LAB_A,
++    lavoro_id: rif.lavoro_id,
++    cliente_id: rif.cliente_id,
++    dichiarazione_id: rif.dichiarazione_id,
++    ...campi,
++  }
++  const nomi = Object.keys(base)
++  const segnaposti = nomi.map((_, i) => `$${i + 1}`).join(', ')
++  return client.query(
++    `INSERT INTO public.avvisi_dentista (${nomi.join(', ')}) VALUES (${segnaposti})
++     RETURNING id, stato, testo_inviato, comunicato_at, comunicato_da, visto_dal_dentista_at, campi_corretti`,
++    Object.values(base)
++  )
++}
++
++/** Un avviso già comunicato a voce, nato dentro la transazione. */
++async function avvisoChiusoAVoce(client: Client) {
++  const rif = await riferimentiVeri(client)
++  const { rows: [avviso] } = await inserisci(client, rif, {
++    stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: rif.utente_id,
++  })
++  return { rif, avviso }
++}
++
++/** Un avviso già comunicato dall'app (col testo), nato dentro la transazione. */
++async function avvisoChiusoDallApp(client: Client) {
++  const rif = await riferimentiVeri(client)
++  const { rows: [avviso] } = await inserisci(client, rif, {
++    stato: 'comunicato_dall_app', comunicato_at: new Date(),
++    comunicato_da: rif.utente_id, testo_inviato: 'La dichiarazione e stata corretta e rifatta.',
++  })
++  return { rif, avviso }
++}
++
++describe.skipIf(skipIntegrationTests)('avvisi_dentista — la chiusura è one-way (riga 58)', () => {
++  // ── i cinque movimenti che DEVONO essere respinti ─────────────────────────
++  describe('una riga comunicata non si riscrive', () => {
++    it('① la RIAPERTURA (ritorno a da_comunicare coi tre NULL) è respinta', async () => {
++      // `provato:` l'11/08, PRIMA del trigger, questo UPDATE riusciva (P6a).
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const e = await attesoRifiuto(client, 'riapertura di un avviso comunicato', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista
++                SET stato='da_comunicare', comunicato_at=NULL, comunicato_da=NULL, testo_inviato=NULL
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('② la RIATTRIBUZIONE della firma è respinta', async () => {
++      // `provato:` P6b — prima del trigger la firma si spostava perfino su un
++      // utente con laboratorio_id NULL.
++      await withRollback(async (client) => {
++        const { rif, avviso } = await avvisoChiusoAVoce(client)
++        // un secondo utente vero, usa-e-getta (ricetta avvisi-dentista-schema:335)
++        const altroId = randomUUID()
++        await client.query(`INSERT INTO auth.users (id) VALUES ($1)`, [altroId])
++        await client.query(
++          `INSERT INTO public.utenti (id, laboratorio_id, nome, cognome, ruolo)
++           VALUES ($1, $2, 'Altro', 'Autore', 'tecnico')`, [altroId, LAB_A]
++        )
++        void rif
++        const e = await attesoRifiuto(client, 'cambio di comunicato_da su riga chiusa', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista SET comunicato_da = $2 WHERE id = $1`,
++            [avviso.id, altroId]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('③ la RETRODATAZIONE di comunicato_at è respinta', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const e = await attesoRifiuto(client, 'retrodatazione della comunicazione', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista SET comunicato_at = comunicato_at - interval '30 days'
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('④ la RISCRITTURA del testo già mandato è respinta', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoDallApp(client)
++        const e = await attesoRifiuto(client, 'riscrittura di testo_inviato', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista SET testo_inviato = 'un testo mai mandato'
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('⑤ lo SCAMBIO fra i due stati chiusi è respinto', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const e = await attesoRifiuto(client, 'comunicato_a_voce → comunicato_dall_app', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista
++                SET stato='comunicato_dall_app', testo_inviato='fabbricato dopo'
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('⑥ e vale anche per service_role, il ruolo VERO delle rotte: il GRANT resta, il trigger morde', async () => {
++      // È la minaccia della riga 58 così com'è scritta: «riscrivibile dai ruoli
++      // col GRANT delle quattro colonne». Il GRANT c'è ancora (serve alla
++      // chiusura legittima): a fermare la riscrittura ora è il trigger.
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        await client.query('SET LOCAL ROLE service_role')
++        const { rows: [chi] } = await client.query('SELECT current_user AS u')
++        expect(chi.u).toBe('service_role')
++        const e = await attesoRifiuto(client, 'riapertura come service_role', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista
++                SET stato='da_comunicare', comunicato_at=NULL, comunicato_da=NULL, testo_inviato=NULL
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++        await client.query('RESET ROLE')
++      })
++    })
++  })
++
++  // ── le controprove: ciò che DEVE continuare a passare ─────────────────────
++  describe('i flussi legittimi non sono toccati', () => {
++    it('⑦ la chiusura di un avviso APERTO passa (a voce)', async () => {
++      await withRollback(async (client) => {
++        const rif = await riferimentiVeri(client)
++        const { rows: [aperto] } = await inserisci(client, rif, { stato: 'da_comunicare' })
++        const { rows } = await client.query(
++          `UPDATE public.avvisi_dentista
++              SET stato='comunicato_a_voce', comunicato_at=now(), comunicato_da=$2
++            WHERE id = $1 RETURNING stato`, [aperto.id, rif.utente_id]
++        )
++        expect(rows[0].stato).toBe('comunicato_a_voce')
++      })
++    })
++
++    it('⑧ la chiusura di un avviso APERTO passa (dall\'app, col testo)', async () => {
++      await withRollback(async (client) => {
++        const rif = await riferimentiVeri(client)
++        const { rows: [aperto] } = await inserisci(client, rif, { stato: 'da_comunicare' })
++        const { rows } = await client.query(
++          `UPDATE public.avvisi_dentista
++              SET stato='comunicato_dall_app', comunicato_at=now(), comunicato_da=$2,
++                  testo_inviato='Il documento del lavoro e stato rifatto.'
++            WHERE id = $1 RETURNING stato, testo_inviato`, [aperto.id, rif.utente_id]
++        )
++        expect(rows[0].stato).toBe('comunicato_dall_app')
++        expect(rows[0].testo_inviato).not.toBeNull()
++      })
++    })
++
++    it('⑨ la ricevuta di lettura passa ANCHE su una riga chiusa (avvisi_segna_visti)', async () => {
++      // visto_dal_dentista_at è FUORI dalle quattro colonne congelate, di
++      // proposito: il dentista legge QUANDO legge, anche dopo la chiusura.
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const { rows: [ris] } = await client.query(
++          `SELECT public.avvisi_segna_visti(ARRAY[$1]::uuid[], $2) AS r`,
++          [avviso.id, LAB_A]
++        )
++        expect(ris.r.aggiornati).toBe(1)
++        const { rows: [dopo] } = await client.query(
++          `SELECT visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = $1`,
++          [avviso.id]
++        )
++        expect(dopo.visto_dal_dentista_at).not.toBeNull()
++      })
++    })
++
++    it('⑩ campi_corretti resta correggibile anche dopo la chiusura (20260809133546:60-67 lo anticipa)', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const { rows } = await client.query(
++          `UPDATE public.avvisi_dentista SET campi_corretti = ARRAY['paziente_nome']
++            WHERE id = $1 RETURNING campi_corretti`, [avviso.id]
++        )
++        expect(rows[0].campi_corretti).toEqual(['paziente_nome'])
++      })
++    })
++  })
++
++  // ── il catalogo: il trigger esiste ed è BEFORE UPDATE per riga ────────────
++  it('⑪ il trigger è nel catalogo: BEFORE UPDATE, FOR EACH ROW, con la sua WHEN', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_triggerdef(oid) AS def FROM pg_trigger
++          WHERE tgrelid = 'public.avvisi_dentista'::regclass AND NOT tgisinternal
++            AND tgname = 'trg_avviso_chiusura_one_way'`
++      )
++      expect(rows).toHaveLength(1)
++      expect(rows[0].def).toMatch(/BEFORE UPDATE/)
++      expect(rows[0].def).toMatch(/FOR EACH ROW/)
++      expect(rows[0].def).toMatch(/WHEN \(\(old\.stato <> 'da_comunicare'::text\)\)/)
++      expect(rows[0].def).toMatch(/EXECUTE FUNCTION avviso_chiusura_one_way\(\)/)
++    })
++  })
++})
++```
++
++⚠️ Nota su ⑨: il valore di ritorno di `avvisi_segna_visti` — la chiave `aggiornati` — va verificato
++sul corpo vivo PRIMA di fidarsi dell'asserzione: `node scripts/psql.mjs -c "SELECT prosrc FROM pg_proc WHERE proname='avvisi_segna_visti'"`.
++Se la chiave è diversa (es. `json_build_object` con altro nome), l'asserzione si adegua al corpo vero.
++
++- [ ] **Step 3: RED — esegui e CONTA (R-P4)**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-chiusura-one-way.rpc.test.ts
++```
++Atteso: **6 rossi su 11** — ①-⑥ falliscono con `ATTESO RIFIUTO, INVECE ACCETTATO` (il banco accetta
++ancora tutto) e ⑪ fallisce con `expected [] to have length 1` (il trigger non esiste); ⚠️ sono 7 rossi
++contando ⑪. **Conteggio da scrivere nel report: `7 su 11`** (6 di comportamento + 1 di catalogo);
++⑦-⑩ verdi da subito (controprove: passano anche senza trigger).
++Le forme d'input enumerate: riapertura · riattribuzione · retrodatazione · riscrittura testo · scambio
++chiusa→chiusa · ruolo service_role · chiusura legittima ×2 · ricevuta su chiusa · campi_corretti su chiusa.
++Non coperta, e perché: l'UPDATE no-op su riga chiusa (`SET stato=stato`) — `IS DISTINCT FROM` lo lascia
++passare per costruzione e nessun flusso lo esegue.
++
++- [ ] **Step 4: scrivi la migration** — `non eseguito` · verifica: passi 5-6
++
++Crea `supabase/migrations/<TS1>_avvisi_chiusura_one_way.sql`:
++
++```sql
++-- ═══ PERCHÉ QUESTA MIGRATION ═════════════════════════════════════════════════
++-- Riga 58 della coda (revisione finale di ramo, 11/08/2026, area banca dati):
++-- un avviso GIÀ COMUNICATO restava riscrivibile — e perfino riapribile — da
++-- chiunque avesse il GRANT delle quattro colonne (20260809124517): il ritorno
++-- a 'da_comunicare' coi tre NULL soddisfa avviso_comunicato_ha_autore_e_data
++-- e avviso_testo_solo_se_dall_app, e nessun trigger esisteva (pg_trigger: 0).
++-- `provato:` 11/08/2026, transazione annullata sul banco vero — riapertura coi
++-- tre NULL: RIUSCITA; riattribuzione della firma a un altro utente: RIUSCITA.
++-- COMMENT ON TABLE dichiara questa tabella «la prova che è avvenuta» (GDPR
++-- Art. 5(2)): una prova riscrivibile a piacere non è una prova.
++--
++-- ═══ IL RIMEDIO: TRIGGER DI TRANSIZIONE ONE-WAY ══════════════════════════════
++-- Una riga con stato ≠ 'da_comunicare' non cambia MAI più le quattro colonne
++-- della chiusura: stato, comunicato_at, comunicato_da, testo_inviato. Le altre
++-- colonne restano libere DI PROPOSITO: visto_dal_dentista_at è la ricevuta di
++-- lettura (avvisi_segna_visti scrive DOPO la chiusura, è il suo mestiere) e
++-- campi_corretti ha già una nota che ne anticipa gli update su avvisi vecchi
++-- (20260809133546:60-67).
++--
++-- PERCHÉ IL TRIGGER E NON IL MODELLO REVOKE+RPC (valutazione_supera,
++-- 20260806142910): là l'UPDATE era revocabile PER INTERO perché nessuna rotta
++-- lo usava; qui la chiusura legittima È un UPDATE di rotta
++-- (src/app/api/lavori/[id]/avviso/route.ts:414-420, ridisegnato da D354 e
++-- collaudato sul banco vero il 10/08). Revocare e spostare in RPC
++-- riscriverebbe una rotta appena approvata; il trigger chiude il buco per
++-- OGNI attore (service_role col suo BYPASSRLS compreso) senza toccare una
++-- riga di server. Il GRANT per colonna resta: serve alle righe APERTE.
++--
++-- I flussi vivi NON incontrano il trigger, misurato prima di scriverlo:
++-- · la rotta di chiusura filtra .in('stato', STATI_APERTI) — mai una riga chiusa;
++-- · correggi_e_riemetti_atomica fa un INSERT, mai update (20260809133546:488);
++-- · avvisi_segna_visti tocca solo visto_dal_dentista_at (20260810072748:41-45).
++
++CREATE FUNCTION public.avviso_chiusura_one_way()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.stato         IS DISTINCT FROM OLD.stato
++  OR NEW.comunicato_at IS DISTINCT FROM OLD.comunicato_at
++  OR NEW.comunicato_da IS DISTINCT FROM OLD.comunicato_da
++  OR NEW.testo_inviato IS DISTINCT FROM OLD.testo_inviato
++  THEN
++    RAISE EXCEPTION
++      'trg_avviso_chiusura_one_way: l''avviso % è già comunicato (stato %): stato, autore, data e testo non si riscrivono — la riga è la prova (GDPR Art. 5(2))',
++      OLD.id, OLD.stato;
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++-- Una funzione RETURNS trigger non è chiamabile direttamente («trigger
++-- functions can only be called as triggers»), ma l'idioma di casa REVOca
++-- comunque: dopo un CREATE, Postgres concede EXECUTE a PUBLIC.
++REVOKE ALL ON FUNCTION public.avviso_chiusura_one_way() FROM PUBLIC, anon, authenticated;
++
++-- La WHEN tiene il trigger FUORI dal percorso caldo: sulle righe aperte
++-- (la chiusura legittima, l'unico UPDATE che l'app esegue) non scatta affatto.
++CREATE TRIGGER trg_avviso_chiusura_one_way
++  BEFORE UPDATE ON public.avvisi_dentista
++  FOR EACH ROW
++  WHEN (OLD.stato <> 'da_comunicare')
++  EXECUTE FUNCTION public.avviso_chiusura_one_way();
++
++COMMENT ON FUNCTION public.avviso_chiusura_one_way() IS
++  'Riga 58: dopo la chiusura, stato/comunicato_at/comunicato_da/testo_inviato '
++  'sono congelati per OGNI attore (service_role compreso). visto_dal_dentista_at '
++  'e campi_corretti restano liberi di proposito. La riga è la prova ex Art. 5(2) '
++  'GDPR: one-way, senza strada di ritorno.';
++```
++
++- [ ] **Step 5: applica (D284)**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx supabase db push --linked --yes
++```
++Atteso: applica `<TS1>_avvisi_chiusura_one_way.sql` senza errori.
++
++- [ ] **Step 6: GREEN — riesegui e verifica sul catalogo**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-chiusura-one-way.rpc.test.ts
++```
++Atteso: **11 passed** (nessuno saltato: controlla il conteggio).
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && node scripts/psql.mjs -c "SELECT tgname FROM pg_trigger WHERE tgrelid='public.avvisi_dentista'::regclass AND NOT tgisinternal"
++```
++Atteso: `trg_avviso_chiusura_one_way` — il file non è la prova, il catalogo sì.
++
++- [ ] **Step 7: FASE 6b + suite avvisi esistente**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts && npx tsc --noEmit
++```
++Atteso: tsc pulito; `git diff --stat src/types/database.types.ts` → **nessun diff** (un trigger non
++appare nei types). Se un diff c'è, si legge e si capisce PRIMA di proseguire.
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-dentista-schema.rpc.test.ts tests/integration/avvisi-segna-visti.rpc.test.ts
++```
++Atteso: tutti passed — il trigger non rompe le prove esistenti (in particolare (p8) e la famiglia D274).
++
++- [ ] **Step 8: commit (D318)**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && git status --short
++git add supabase/migrations/<TS1>_avvisi_chiusura_one_way.sql tests/integration/avvisi-chiusura-one-way.rpc.test.ts
++git commit -F <file-messaggio>
++```
++Messaggio: `feat(db): trigger one-way sulla chiusura degli avvisi — la prova non si riscrive (riga 58)`
++più due righe sul perché (trigger e non RPC; le due colonne lasciate libere).
++
++---
++
++### Task 2: La firma non può puntare a un altro laboratorio (riga 59)
++
++**Files:**
++- Create: `tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts`
++- Modify: `tests/integration/avvisi-dentista-schema.rpc.test.ts:349` (asserzione sul nome della FK)
++- Create: `supabase/migrations/<TS2>_avvisi_firma_stesso_laboratorio.sql` (TS2 dal passo 1, > TS1)
++
++**Interfaces:**
++- Consumes: niente dal Task 1 (indipendente).
++- Produces: `utenti_id_lab_uk` UNIQUE (id, laboratorio_id) su `utenti` — disponibile come bersaglio per
++  OGNI futura FK composita verso utenti (le altre 22 restano semplici, fuori mandato) — e
++  `avvisi_dentista_comunicato_da_fk` composita al posto della `_fkey` semplice.
++
++- [ ] **Step 1: timestamp (D311)**
++
++```bash
++date -u "+%Y%m%d%H%M%S"
++```
++Output = `<TS2>`. Deve superare `<TS1>` (lo supera: l'orologio UTC cresce sempre — è il punto di D311).
++
++- [ ] **Step 2: scrivi il test che DEVE fallire** — `non eseguito` · verifica: passo 4
++
++Crea `tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts` (stessi helper locali del file del
++Task 1 — `riferimentiVeri`, `attesoRifiuto`, `inserisci`, ricopiati identici; qui si mostrano solo le
++prove):
++
++```typescript
++import { describe, it, expect } from 'vitest'
++import { randomUUID } from 'node:crypto'
++import { withRollback, skipIntegrationTests } from './helpers/pg-client'
++
++// Riga 59 della coda (revisione finale di ramo, 11/08/2026): comunicato_da era
++// una FK SEMPLICE verso utenti(id) — la chiusura poteva essere attribuita a un
++// utente di UN ALTRO laboratorio (`provato:` P6b, 11/08: la firma si spostava
++// perfino su un utente con laboratorio_id NULL). Il rimedio è il modello già
++// applicato tre volte da 20260806142910: UNIQUE (id, laboratorio_id) sul padre
++// e FK composita (comunicato_da, laboratorio_id) sul figlio.
++// [helper locali identici a avvisi-chiusura-one-way.rpc.test.ts — v. quel file]
++
++const LAB_A = '00000000-0000-0000-0000-000000000001'
++
++// … riferimentiVeri, attesoRifiuto, inserisci: COPIARE dal file del Task 1 …
++
++/** Un utente vero usa-e-getta, nel laboratorio scelto (ricetta avvisi-dentista-schema:335). */
++async function utenteUsaEGetta(
++  client: Parameters<Parameters<typeof withRollback>[0]>[0],
++  laboratorioId: string | null,
++  ruolo = 'tecnico'
++) {
++  const id = randomUUID()
++  await client.query(`INSERT INTO auth.users (id) VALUES ($1)`, [id])
++  await client.query(
++    `INSERT INTO public.utenti (id, laboratorio_id, nome, cognome, ruolo)
++     VALUES ($1, $2, 'Usa', 'E getta', $3)`, [id, laboratorioId, ruolo]
++  )
++  return id
++}
++
++describe.skipIf(skipIntegrationTests)('avvisi_dentista — la firma è dello stesso laboratorio (riga 59)', () => {
++  // ── il catalogo: i due vincoli nuovi esistono, il vecchio non c'è più ─────
++  it('① utenti ha il vincolo UNIQUE (id, laboratorio_id) — il bersaglio delle composite', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
++          WHERE conrelid='public.utenti'::regclass AND conname='utenti_id_lab_uk'`)
++      expect(rows).toHaveLength(1)
++      expect(rows[0].def).toBe('UNIQUE (id, laboratorio_id)')
++    })
++  })
++
++  it('② la FK di comunicato_da è COMPOSITA e punta a utenti (id, laboratorio_id)', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
++          WHERE conrelid='public.avvisi_dentista'::regclass
++            AND conname='avvisi_dentista_comunicato_da_fk'`)
++      expect(rows).toHaveLength(1)
++      expect(rows[0].def).toBe(
++        'FOREIGN KEY (comunicato_da, laboratorio_id) REFERENCES utenti(id, laboratorio_id)')
++    })
++  })
++
++  it('③ la vecchia FK semplice non esiste più', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT 1 FROM pg_constraint
++          WHERE conrelid='public.avvisi_dentista'::regclass
++            AND conname='avvisi_dentista_comunicato_da_fkey'`)
++      expect(rows).toHaveLength(0)
++    })
++  })
++
++  // ── il comportamento: la coppia deve esistere in utenti ───────────────────
++  it('④ la firma di un utente di UN ALTRO laboratorio è respinta con 23503', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const labB = randomUUID()
++      await client.query(`INSERT INTO laboratori (id, nome) VALUES ($1, $2)`, [
++        labB, 'Lab B — prova firma cross-tenant',
++      ])
++      const utenteB = await utenteUsaEGetta(client, labB)
++      const e = await attesoRifiuto(client, 'avviso del lab A firmato dal lab B', () =>
++        inserisci(client, rif, {
++          stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: utenteB,
++        })
++      )
++      expect(e.code).toBe('23503')
++      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
++    })
++  })
++
++  it('⑤ la firma di un admin_sistema senza laboratorio è respinta con 23503', async () => {
++    // laboratorio_id NULL è legale per admin_sistema (CHECK
++    // utenti_lab_required_for_non_admin) — ma la coppia (id, NULL) non esiste
++    // per la FK. Coerente con D342: admin_rete e admin_sistema sono già
++    // esclusi PER NOME dalla chiusura (RUOLI_CHIUSURA_AVVISO, ruoli.ts:72).
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const admin = await utenteUsaEGetta(client, null, 'admin_sistema')
++      const e = await attesoRifiuto(client, 'avviso firmato da un admin senza lab', () =>
++        inserisci(client, rif, {
++          stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: admin,
++        })
++      )
++      expect(e.code).toBe('23503')
++      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
++    })
++  })
++
++  // ── le controprove ────────────────────────────────────────────────────────
++  it('⑥ la firma di un utente DELLO STESSO laboratorio passa', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const utenteA = await utenteUsaEGetta(client, LAB_A)
++      const { rows } = await inserisci(client, rif, {
++        stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: utenteA,
++      })
++      expect(rows[0].comunicato_da).toBe(utenteA)
++    })
++  })
++
++  it('⑦ un avviso APERTO (comunicato_da NULL) nasce ancora: MATCH SIMPLE non morde sui NULL', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
++      expect(rows[0].stato).toBe('da_comunicare')
++      expect(rows[0].comunicato_da).toBeNull()
++    })
++  })
++})
++```
++
++- [ ] **Step 3: aggiorna l'asserzione sul nome della FK nel test esistente** — `non eseguito` · verifica: passo 4 (rosso) e 6 (verde)
++
++In `tests/integration/avvisi-dentista-schema.rpc.test.ts`, riga 349:
++
++```typescript
++// PRIMA:
++        expect(e.message).toMatch(/avvisi_dentista_comunicato_da_fkey/)
++// DOPO (il nome nuovo; le virgolette ancorano il nome ESATTO nel messaggio Postgres):
++        expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
++```
++⚠️ SOLO questa riga: il resto del file non si tocca (il test a riga 306-317 asserisce `/comunicato_da/`,
++che il nome nuovo soddisfa; il test-catalogo a riga 285-304 cerca per COLONNA, non per nome).
++
++- [ ] **Step 4: RED — esegui e CONTA (R-P4)**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts tests/integration/avvisi-dentista-schema.rpc.test.ts
++```
++Atteso: **6 rossi** nel file nuovo — ①②③ (catalogo: i vincoli non esistono ancora) e ④⑤ (`ATTESO
++RIFIUTO, INVECE ACCETTATO`: il banco accetta ancora le firme altrui) più la riga 349 aggiornata (nel
++messaggio c'è ancora `_fkey`) — **conteggio da scrivere: `5 su 7` nel file nuovo + `1` nell'esistente**;
++⑥⑦ verdi da subito. Forme d'input: cross-tenant · lab NULL · stesso lab · NULL (riga aperta) ·
++uuid inesistente (già coperto dall'esistente:306) · DELETE dell'autore (già coperto dall'esistente:319).
++
++- [ ] **Step 5: scrivi la migration** — `non eseguito` · verifica: passi 6-7
++
++Crea `supabase/migrations/<TS2>_avvisi_firma_stesso_laboratorio.sql`:
++
++```sql
++-- ═══ PERCHÉ QUESTA MIGRATION ═════════════════════════════════════════════════
++-- Riga 59 della coda (revisione finale di ramo, 11/08/2026): comunicato_da era
++-- una FK SEMPLICE verso utenti(id) — la RLS vincola solo laboratorio_id, quindi
++-- la chiusura poteva essere attribuita a un utente di UN ALTRO laboratorio.
++-- `provato:` 11/08, transazione annullata: la firma di un avviso chiuso si
++-- spostava su un utente con laboratorio_id NULL, senza errori.
++-- È la stessa classe che il ramo ha bollato CRITICA e chiuso con la FK
++-- COMPOSITA in 20260806142910 (tre volte: eventi_qualita→lavori,
++-- valutazioni_evento→eventi_qualita, lavori_rifacimenti→eventi_qualita) —
++-- qui non applicata perché a utenti mancava il bersaglio UNIQUE.
++--
++-- ═══ I DUE ATTI ══════════════════════════════════════════════════════════════
++-- ① Il bersaglio: UNIQUE (id, laboratorio_id) su utenti. id è già PK, quindi
++--    la coppia è unica per costruzione: il vincolo non può fallire sui dati
++--    esistenti e costa un indice. Modello di nome: lavori_id_lab_uk
++--    (20260727120000), eventi_qualita_id_lab_uk (20260806142910).
++-- ② La sostituzione: via la _fkey semplice, dentro la composita. MATCH SIMPLE
++--    (default): sulle righe APERTE comunicato_da è NULL e la FK non morde;
++--    sulle righe CHIUSE la coppia (autore, laboratorio dell'avviso) DEVE
++--    esistere in utenti — cioè l'autore è del laboratorio dell'avviso.
++--    NO ACTION (default), come il modello e come la _fkey che sostituisce.
++--
++-- `provato:` prima di scrivere: 0 firme cross-tenant nei dati vivi (la ADD
++-- CONSTRAINT valida le righe esistenti senza pulizia) · admin_delete_laboratorio
++-- porta via gli avvisi IN CASCATA (dichiarazioni_conformita e lavori) PRIMA di
++-- toccare utenti, quindi la composita non cambia la cancellazione di un lab ·
++-- l'unico admin_sistema (lab NULL) non è mai una firma legittima: D342 esclude
++-- admin_rete e admin_sistema PER NOME dalla chiusura (RUOLI_CHIUSURA_AVVISO).
++--
++-- ⚠️ Il nome cambia (…_fkey → …_fk, convenzione delle composite): i tre punti
++-- che lo nominavano sono censiti nel piano — database.types.ts (rigenerato),
++-- avvisi-dentista-schema.rpc.test.ts:349 (aggiornato nello stesso task),
++-- ROADMAP riga 43 (citazione storica, resta).
++
++ALTER TABLE public.utenti
++  ADD CONSTRAINT utenti_id_lab_uk UNIQUE (id, laboratorio_id);
++
++ALTER TABLE public.avvisi_dentista
++  DROP CONSTRAINT avvisi_dentista_comunicato_da_fkey,
++  ADD CONSTRAINT avvisi_dentista_comunicato_da_fk
++    FOREIGN KEY (comunicato_da, laboratorio_id)
++    REFERENCES public.utenti (id, laboratorio_id);
++
++COMMENT ON CONSTRAINT avvisi_dentista_comunicato_da_fk ON public.avvisi_dentista IS
++  'Riga 59: la firma della chiusura è un utente DELLO STESSO laboratorio. '
++  'Composita anti cross-tenant, modello 20260806142910. MATCH SIMPLE: le righe '
++  'aperte (comunicato_da NULL) non sono vincolate.';
++```
++
++- [ ] **Step 6: applica (D284) e GREEN**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx supabase db push --linked --yes
++```
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts tests/integration/avvisi-dentista-schema.rpc.test.ts
++```
++Atteso: **tutti passed** (7 nuovi + l'intero file esistente, riga 349 compresa).
++
++- [ ] **Step 7: FASE 6b — i types CAMBIANO qui**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts && npx tsc --noEmit
++```
++Atteso: `git diff src/types/database.types.ts` mostra SOLO la Relationship di `comunicato_da`:
++`foreignKeyName: "avvisi_dentista_comunicato_da_fk"` e `columns: ["comunicato_da", "laboratorio_id"]`
++(o forma equivalente del generatore). tsc pulito. Un diff più ampio si legge e si capisce PRIMA di
++proseguire. Controllo finale del censimento:
++```bash
++grep -rn "comunicato_da_fkey" src tests supabase --include="*.ts" --include="*.sql"
++```
++Atteso: **0 hit**.
++
++- [ ] **Step 8: commit (D318)**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && git status --short
++git add supabase/migrations/<TS2>_avvisi_firma_stesso_laboratorio.sql tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts tests/integration/avvisi-dentista-schema.rpc.test.ts src/types/database.types.ts
++git commit -F <file-messaggio>
++```
++Messaggio: `feat(db): la firma dell'avviso è dello stesso laboratorio — FK composita (riga 59)`
++più il censimento del nome in due righe.
++
++---
++
++### Task 3: Verifica piena, chiusura delle righe 58-59, pubblicazione
++
++**Files:**
++- Modify: `docs/roadmap/ROADMAP-UFFICIALE.md` (righe 58 e 59 → CHIUSE, con le prove; testa aggiornata)
++- Modify: `memory/MEMORY.md` (testa: code 58-59 chiuse)
++
++**Interfaces:** consuma i due task; nessun produce.
++
++- [ ] **Step 1: FASE 7 piena, output reale**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx tsc --noEmit && echo TSC_OK
++```
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npm run verify:full; VERIFY_EXIT=$?; echo "VERIFY_EXIT=$VERIFY_EXIT"
++```
++(⚠️ uscita da variabile, SENZA pipe, timeout 600000 — le ~137 saltate d'integrazione in locale sono
++attese; le nostre nuove prove girano col comando sotto.)
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && set -a && . ./.env.local; set +a && npx vitest run tests/integration/
++```
++Atteso: l'intero progetto integration verde (nessun file saltato).
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && npx next build
++```
++Atteso: build pulita (nessun handler toccato, ma i tre comandi sono tre — FASE 7).
++
++- [ ] **Step 2: chiudi le righe 58 e 59 nella roadmap**
++
++In `docs/roadmap/ROADMAP-UFFICIALE.md`: le righe **58** e **59** si riscrivono CHIUSE — ✅, la data, il
++rimedio vero (trigger `trg_avviso_chiusura_one_way` · `utenti_id_lab_uk` + `avvisi_dentista_comunicato_da_fk`),
++le migration `<TS1>`/`<TS2>`, i due file di prova, e il nome nuovo della FK dichiarato dove la riga 59
++citava il vecchio. Testa del documento aggiornata (code 58-59 chiuse). In `memory/MEMORY.md`: testa
++aggiornata allo stesso modo. La guardia di coerenza (`node scripts/guardia-coerenza-documenti.mjs`)
++DEVE restare verde.
++
++- [ ] **Step 3: commit docs + push del ramo**
++
++```bash
++cd "/Users/hatholdir/Downloads/SOFTWARE FILIPPO/ua-app" && git status --short
++git add docs/roadmap/ROADMAP-UFFICIALE.md memory/MEMORY.md
++git commit -F <file-messaggio>   # docs(roadmap): righe 58-59 chiuse — prova inalterabile e firma same-lab
++git push -u origin code-58-59-prova-inalterabile
++```
++
++- [ ] **Step 4: review di ramo (FASE 8) e merge (FASE 10 — giudizio D296)**
++
++Review con `/code-review` + `superpowers:requesting-code-review` sul diff del ramo. Poi il giudizio
++D296, motivato: ondata COMPLETA (nessun difetto dichiarato), CI verde sul ramo, migrations già vive sul
++banco di prova, zero superfici toccate → merge su `main`, push, CI, verifica deploy. Se un Critical o un
++Important emergono dalla review, si chiudono PRIMA del merge.
++
++---
++
++## Self-Review (fatta il 11/08/2026 prima di consegnare il piano)
++
++1. **Copertura del mandato:** riga 58 → Task 1 (trigger + 11 prove); riga 59 → Task 2 (UNIQUE + FK + 7
++   prove + 1 asserzione esistente aggiornata); «prima dell'onboarding reale» → Task 3 chiude le righe e
++   pubblica. ✔
++2. **Segnaposto:** nessun TBD/TODO; l'unico blocco «da copiare» (helper del Task 2) rimanda a codice
++   COMPLETO nel Task 1 dello stesso documento, con la ragione (convenzione file-locali). L'asserzione ⑨
++   (`ris.r.aggiornati`) porta il comando per verificarla sul corpo vivo prima di fidarsene. ✔
++3. **Coerenza dei nomi fra i task:** `trg_avviso_chiusura_one_way` (Task 1, prova ⑪ e messaggio RAISE) ·
++   `utenti_id_lab_uk` e `avvisi_dentista_comunicato_da_fk` (Task 2, prove ①②③④⑤ e migration) — identici
++   ovunque, verificati rileggendo. ✔
++4. **Rischio dichiarato:** la forma esatta del diff dei types al Task 2/7 dipende dal generatore
++   Supabase — per questo il passo prescrive di LEGGERE il diff, non di assumerlo. Il valore di ritorno
++   di `avvisi_segna_visti` (⑨) va verificato sul corpo vivo. Sono i due soli punti in cui il piano
++   prevede una lettura invece di un'asserzione cieca.
+diff --git a/memory/MEMORY.md b/memory/MEMORY.md
+index 312bdb45..d1a49e94 100644
+--- a/memory/MEMORY.md
++++ b/memory/MEMORY.md
+@@ -1,12 +1,12 @@
+ # UÀ — Project Memory
+-**Ultimo aggiornamento:** 🚀 ✅ **IN PRODUZIONE — merge `5e4af0ac` (⚖️ D359) su uachelab.com, VERIFICATO con le impronte di build — e il gancio Vercel FUNZIONA: il «guasto dal 06/08» era un FALSO ALLARME MIO, smontato da Francesco con una frase («ha sempre funzionato vercel controlla»)** (196) — 🔴 **l'errore, senza attenuanti:** ho misurato i registri deploy alle 09:36-09:43, il merge era delle 09:34, e la coda Vercel quella mattina partiva con ~10 minuti di ritardo — TRE deploy automatici alle 09:45-09:53 (registri GitHub), **sito già aggiornato DA SOLO alle ~09:57**, mentre io scrivevo «serve la build vecchia» e facevo lanciare a Francesco un deploy manuale (10:49, innocuo). Controprova: push 11:00 → deploy automatico 11:11, zero mani. Il «vuoto dal 06/08» era solo «zero push su main dal 06/08». 🔑 **Terza lezione della stessa famiglia in un giorno** (due ore scritte a stima + questa): una misura fatta PRIMA che l'effetto arrivi misura la fretta, non il guasto — un'assenza si dichiara guasto solo alla SECONDA lettura, a minuti di distanza. Dettaglio: **riga 60 della coda (chiusa)**. 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-11-merge-avviso-in-produzione-handoff.md`, la §0 per prima** — ① contro-argomento striscia **PESATO E RESPINTO l'11/08 pomeriggio (⚖️ D360: l'ordine resta, nessuna modifica a `striscia.ts` — la questione non si riapre senza fatti nuovi)** · ② riga 61 nuova (Art. 19 + ricevuta parziale) · ③ collaudo al dito · code 58 · 59 **IN LAVORAZIONE (⚖️ D361, percorso Grande)** · pulizia Minor · migrazione portale D347. 📌 **Misurato in chiusura: `VERIFY_EXIT=0` · 6069 | 137 su 473 file.** — la giornata del 10-11/08 in una frase: **D354 ratificata al mattino → rotta di chiusura (4-quater) → Task 8 (portale + migration `avvisi_segna_visti`, pavimento `20260810072748`) → Task 9 + 9-ter (archivio con D356-358) → 10-A (contratto foglio→rotta) → 10-B (giro sul banco VERO, 33 scatti, D354 dal vivo) → gate L2 (contrasto corretto `8063c3be`) → revisione finale a tre aree (ZERO Critical; allowlist riemetti `04974871`) → D359 → merge.** ⚖️ **361 decisioni in 156 tornate** (156ª, 11/08 pomeriggio: **D360** l'ordine della striscia resta · **D361** si aprono le code 58-59). 🚪 **PUNTO DI RIPRESA: la testa di `docs/roadmap/ROADMAP-UFFICIALE.md`** — ① code **58 · 59** PRIMA dell'onboarding reale · ② pulizia Minor (ledger) · ③ migrazione portale D347 (assorbe 48 e 56). 🛑 Regole vive invariate: worktree VIETATI · D318 · il numero si dà subito · l'ora si legge dall'orologio (violata e corretta due volte in questa sessione: verbale 155ª).
++**Ultimo aggiornamento:** 🚀 ✅ **IN PRODUZIONE — merge `5e4af0ac` (⚖️ D359) su uachelab.com, VERIFICATO con le impronte di build — e il gancio Vercel FUNZIONA: il «guasto dal 06/08» era un FALSO ALLARME MIO, smontato da Francesco con una frase («ha sempre funzionato vercel controlla»)** (196) — 🔴 **l'errore, senza attenuanti:** ho misurato i registri deploy alle 09:36-09:43, il merge era delle 09:34, e la coda Vercel quella mattina partiva con ~10 minuti di ritardo — TRE deploy automatici alle 09:45-09:53 (registri GitHub), **sito già aggiornato DA SOLO alle ~09:57**, mentre io scrivevo «serve la build vecchia» e facevo lanciare a Francesco un deploy manuale (10:49, innocuo). Controprova: push 11:00 → deploy automatico 11:11, zero mani. Il «vuoto dal 06/08» era solo «zero push su main dal 06/08». 🔑 **Terza lezione della stessa famiglia in un giorno** (due ore scritte a stima + questa): una misura fatta PRIMA che l'effetto arrivi misura la fretta, non il guasto — un'assenza si dichiara guasto solo alla SECONDA lettura, a minuti di distanza. Dettaglio: **riga 60 della coda (chiusa)**. 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-11-merge-avviso-in-produzione-handoff.md`, la §0 per prima** — ① contro-argomento striscia **PESATO E RESPINTO l'11/08 pomeriggio (⚖️ D360: l'ordine resta, nessuna modifica a `striscia.ts` — la questione non si riapre senza fatti nuovi)** · ② riga 61 nuova (Art. 19 + ricevuta parziale) · ③ collaudo al dito · code 58 · 59 **CHIUSE l'11/08 pomeriggio (⚖️ D361: trigger `trg_avviso_chiusura_one_way` + FK composita `avvisi_dentista_comunicato_da_fk`, migrations 20260811132010 · 20260811133440, 18 prove d'integrazione nuove)** · pulizia Minor · migrazione portale D347. 📌 **Misurato in chiusura: `VERIFY_EXIT=0` · 6069 | 137 su 473 file.** — la giornata del 10-11/08 in una frase: **D354 ratificata al mattino → rotta di chiusura (4-quater) → Task 8 (portale + migration `avvisi_segna_visti`, pavimento `20260810072748`) → Task 9 + 9-ter (archivio con D356-358) → 10-A (contratto foglio→rotta) → 10-B (giro sul banco VERO, 33 scatti, D354 dal vivo) → gate L2 (contrasto corretto `8063c3be`) → revisione finale a tre aree (ZERO Critical; allowlist riemetti `04974871`) → D359 → merge.** ⚖️ **361 decisioni in 156 tornate** (156ª, 11/08 pomeriggio: **D360** l'ordine della striscia resta · **D361** si aprono le code 58-59). 🚪 **PUNTO DI RIPRESA: la testa di `docs/roadmap/ROADMAP-UFFICIALE.md`** — ① ✅ code 58 · 59 **CHIUSE (11/08: trigger one-way + FK composita)** · ② pulizia Minor (ledger) · ③ migrazione portale D347 (assorbe 48 e 56). 🛑 Regole vive invariate: worktree VIETATI · D318 · il numero si dà subito · l'ora si legge dall'orologio (violata e corretta due volte in questa sessione: verbale 155ª).
+ 
+ **Aggiornamento precedente:** 🏁 **CHIUSURA DEL 10/08 NOTTE — IL PROMEMORIA SI VEDE (scheda E home), il panel ha risposto alla domanda di Francesco, e la RATIFICA che sblocca il Task 8 non è ancora arrivata** (196) — 🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-08-10-avviso-task-6-7-handoff.md`, la §0 per prima.** 🔴 **La §0 in una frase:** Task 6 e 7 **fatti e approvati** (il 6 dopo tre giri: il cancello di D342 si poteva INVERTIRE con 22 prove verdi — ora si prova per inversione; il 7 al primo giro: la falla vera stava nell'**anteprima admin** che si finge `'titolare'`) · **①** il panel a tre sulla domanda «il secondo promemoria spegne il primo?» è **unanime** — NO: un solo ATTO chiude tutte le righe aperte e il dentista vede l'UNIONE delle voci — 🌅 ✅ **RATIFICATA IL 10/08 MATTINA: È ⚖️ D354, il Task 8 è SBLOCCATO** e il compito nuovo sulla rotta di chiusura è ✅ **GIÀ FATTO E APPROVATO in mattinata (Task 4-quater**: la POST verifica l'avviso indicato PRIMA, poi chiude TUTTE le aperte del lavoro; contratto client invariato; b88c98b9 + fix 97ea8082 — la revisione ha preteso e ottenuto la prova PER INVERSIONE del perimetro `laboratorio_id`+`lavoro_id` sull'UPDATE: filtro commentato → 1 rosso su 34, quello giusto) · **②** ✅ **il Task 9 è FATTO E APPROVATO al primo giro (10/08 mattina)**: la sezione «Comunicazioni» in `/clienti/[id]` (v2.3), cancello ⚖️ D352 con costante NUOVA `RUOLI_ARCHIVIO_CLIENTE` (non alias di D342) e secondo entry point `archivioPerSchedaCliente` — il portale del Task 8 resta sul SUO chiamante senza cancello (autorità = token), provato intatto · impl `97e1ab7b` · tre decisioni di contenuto rimandate a Francesco (riferimento al lavoro nell'archivio · testo della riga aperta · M-T6-1) · **③** 🌅 **il TASK 10 È QUASI TUTTO FATTO (10/08 h13):** 10-A = la prova a contratto foglio→rotta VERA (riga 38, `f8a18d52`, approvata) · 10-B = **IL GIRO SUL BANCO VERO È PASSATO TUTTO** — D354 dal vivo (due righe → un atto → entrambe chiuse, stesso orologio; portale con l'UNIONE e la dichiarazione ULTIMA; ricevuta di lettura idempotente; «dall'app» scrive il testo mostrato SENZA nome paziente, verificato sul cognome), **33 scatti** committati (`47f69245`), M-T9-1 chiuso (archivio reso CON righe), due difetti pre-esistenti riferiti → **coda 56·57**. 🌙 **11/08 NOTTE — TUTTI I CANCELLI PASSATI:** gate L2 ✅ (superfici v3 pulite; contrasto scuro archivio corretto e misurato >12:1, `8063c3be`; bottone portale deferito a D347 con motivo) · **revisione finale di ramo ✅ PRONTO AL MERGE CON RISERVE A CODA** (tre revisori paralleli, ZERO Critical su 298 commit; l'Important della rotta riemetti — allowlist di chiavi mancante — CHIUSO in sessione `04974871`; due Important strutturali di banca dati → **code 58 · 59**, da chiudere prima della prima onboarding reale; referto `docs/roadmap/2026-08-11-revisione-finale-ramo-referto.md`) · triage M-T*: quattro chiusi nel ramo, il resto viaggia con destinazione «ondata di pulizia» — ⚠️ resta «da verificare al dito» la tappabilità (il giro ha usato click DOM) ➡️ **RESTA SOLO IL MERGE, ed è di Francesco (D296)** · **④** CI: un rosso chiuso stanotte CON PROVA DAL VIVO (la prova della nota di credito confrontava il giorno di ROMA scritto dalla RPC con il CURRENT_DATE UTC → rossa da sola ogni notte 22:00Z-24:00Z, `97536cdd`) e un rosso residuo da guardare (sonda p7, 5007 ms con due run concorrenti sullo stesso banco) — 🌅 **10/08 mattina, guardato: gli ultimi due run (23:35Z) sono VERDI ENTRAMBI, e di nuovo concorrenti (partiti a 29 s l'uno dall'altro): p7 ha retto proprio nello scenario che la faceva sospettare, NESSUN rosso residuo**. 📌 **Misurato (in chiusura di notte):** `VERIFY_EXIT=0` · **5980 | 128 su 469 file** · `tsc` 0 · build ok · zero migration nella notte — 🔄 **dal 10/08 mattina il pavimento è `20260810072748`** (la funzione del visto, v. ②-bis). 🌅 **②-bis, 10/08 mattina: TASK 8 FATTO E APPROVATO AL PRIMO GIRO** — la sezione «Avvisi dal laboratorio» nel portale (card per lavoro con l'UNIONE delle voci D354, dichiarazione ULTIMA, audit `view_avviso`, ricevuta `visto_dal_dentista_at` scritta SOLO dalla SECURITY DEFINER nuova `avvisi_segna_visti` — 🗄️ migration `20260810072748`, applicata, sonde sul catalogo vivo) · impl `8625854a` + prova D336 `9cea1339` · 28/28 unit + 9/9 integrazione live · suite 6143/6148 · zero Critical/Important, due Minor a ledger. ⚖️ **D352 · D353** (la disparità dei tocchi resta, D334 non si tocca — «va bene così») · 🌅 **10/08 mattina: ⚖️ D354 ratificata** (un atto chiude tutto, unione delle voci) **+ ⚖️ D355** (l'ordine della ripresa è delegato: rotta di chiusura → Task 8 → Task 9 → Task 10) **+ ⚖️ D356 · D357 · D358** (le tre risposte di contenuto delle 11:09: il numero del lavoro entra nell'archivio · la riga aperta dice «Non ancora comunicata» · il foglio senza nome usa il numero del lavoro — chiudono M-T9-2, M-T9-3 e M-T6-1) = **358 in 154 tornate** — ✅ **e sono GIÀ IMPLEMENTATE E APPROVATE** (Task 9-ter, `f0636b64`, primo giro pulito; `buildAvvisoMessage` provatamente intatto). 🛑 **Regola nuova pagata 3 volte:** dopo ogni `review-package`, `git status` su `.superpowers/sdd/.gitignore` — lo strumento lo riscrive a `*`. 🔴 **Miei errori a §0⑤:** un'affermazione del revisore ricopiata in memoria senza verifica · una decisione di Francesco rimasta 90 minuti senza numero (§0A-bis violata, presa dal censimento di chiusura).
+ 
+ **Aggiornamento precedente:** ✅ **IL TASK 6 È FATTO E APPROVATO — il promemoria ARRIVA sulla scheda, e la protezione che lo governa si poteva SPEGNERE senza che una prova diventasse rossa** (196) — 🚪 **PUNTO DI RIPRESA: il TASK 7** del piano `docs/superpowers/plans/2026-08-09-avviso-al-dentista.md` — **e NESSUNA domanda lo blocca.** 🔄 **QUESTA RIGA DICEVA «due domande per Francesco PRIMA del Task 7», ED ERA FALSA: riscritta al suo posto, non corretta in fondo.** `provato:` il perimetro per ruolo del Task 7 **e' gia' deciso** da ⚖️ D342 (`titolare` · `tecnico` · `front_desk`) ed e' scritto nel piano alla riga 416. Le domande aperte riguardano il **Task 9** e il **gate**, non il settimo. **Costruito:** `src/lib/avvisi/queries.ts` (le due letture) · `src/lib/avvisi/ruoli.ts` (la fonte dei ruoli, **spostata** dalla rotta) · il montaggio in `SchedaLavoroV3.tsx` con le sue otto proprietà · la lettura lato server in `lavori/[id]/page.tsx`. 📌 **Misurato:** `verify:full` **`VERIFY_EXIT=0`** · **5949 passate | 126 saltate su 469 file** (apertura del task: `5902 | 119 su 465`) · `tsc` 0 · build ok. 🗄️ **Nessuna migration: pavimento invariato `20260809133546`.** ⚖️ **Nessuna decisione nuova: siamo a 351 in 150 tornate, la prossima è D352.**
+ 🔴 **UN DIFETTO DEL MIO MANDATO, e l'esecutore l'ha MISURATO invece di dedurlo:** avevo chiesto il cancello per ruolo **dentro `SchedaLavoroV3`**, che è un componente client — non si può, perché l'elenco dei ruoli viveva in un file che importa `getServiceClient` → `import 'server-only'`. Lui ha innestato l'import vero e lanciato la build: **`SONDA_BUILD_EXIT=1`**. 🔑 **`tsc` non lo vede: solo `next build`** — terzo caso in cui i tre comandi della FASE 7 non si sostituiscono a vicenda. Il cancello è salito in `page.tsx`, che è server, **ed è più stretto**: a chi non può chiudere l'avviso l'identificativo non arriva proprio.
+ 🔴 **LA REVISIONE HA TROVATO CHE IL CANCELLO SI POTEVA INVERTIRE CON TUTTE LE PROVE VERDI:** le sentinelle provavano che il controllo *esistesse*, non che *guardasse dal verso giusto* — capovolgendolo, a vedere il promemoria sarebbero rimasti **solo `admin_rete` e `admin_sistema`**, cioè i due esclusi da ⚖️ D342, e **22 prove su 22 restavano verdi**. ✅ **Chiuso:** cancello e lettura stanno in **una funzione sola** (`avvisoPerLaScheda`), con `ruolo` **chiave obbligatoria** del tipo — chi non dichiara chi guarda **non compila** — e il ternario **non esiste più**. Capovolgendolo ora si accendono **10 prove su 22**, e il motivo è strutturale: 🔑 **la spia guarda SE IL BANCO È STATO INTERROGATO, non il valore di ritorno** — che per «escluso» e per «non c'è niente» sarebbe **identico**.
+ 🔴 **E UN GUASTO CHE SAREBBE STATO INVISIBILE PER SEMPRE:** la scheda chiede al banco **undici colonne per nome** con un `as unknown as`, quindi `tsc` non poteva accorgersi di un nome sbagliato — una colonna rinominata avrebbe fatto sparire il promemoria **ex Art. 19 GDPR** in silenzio, con le prove unitarie verdi perché parlano con un finto. ✅ Ora una prova d'integrazione le lega allo schema vero, **e gira nell'ambiente che conta** (`provato:` la CI passa `SUPABASE_DB_URL`): un nome storpiato muore sulla `select` (`column avvisi_dentista.creato_at does not exist`), un nome **tolto** — che nessuna `select` rifiuterebbe — lo prende il confronto con `pg_attribute`.
+ 🛑 **UN DIFETTO DELLO STRUMENTO, COL NOME DEL COLPEVOLE:** `scripts/review-package` **riscrive `.superpowers/sdd/.gitignore` con `*`**, cioè rimette fuori da git **la mappa di recupero e tutti i resoconti**. `provato:` intatto prima del comando, `*` subito dopo, **due volte di fila**. ✅ Il file si è difeso da solo (⚖️ D313 gli aveva messo dentro l'avvertimento), ripristinato entrambe le volte. ➡️ **Dopo ogni `review-package`: `git status` su quel file.**
+ 🟠 **LE DOMANDE APERTE, E NESSUNA FERMA IL TASK 7.** ① **Prima del Task 9:** `avvisiDaComunicare` resta esportata **senza cancello di ruolo** (zero consumatori applicativi oggi) — e soprattutto **chi può vedere l'archivio delle comunicazioni di un dentista non è deciso da nessuna parte**: il Task 9 non ha un D342 suo. ② **Prima del gate:** invariata dalla tornata scorsa, la parità dei tocchi di D335 rotta da D351 (WhatsApp **3**, «a voce» **2**), che si chiude solo toccando **D334**. 📌 **Aperte anche, e sono dell'esecutore:** fra **due** avvisi aperti sullo stesso lavoro (possibili: la RPC inserisce senza condizioni) oggi si mostra **il più vecchio** — scelta sua, motivata «*si consuma prima l'obbligo nato prima*», **da ratificare**; e la posizione della riga sulla carta. Ledger: `.superpowers/sdd/progress.md` · **righe 52 e 53 nuove nella coda della roadmap**
+ 
+diff --git a/src/types/database.types.ts b/src/types/database.types.ts
+index d12b4393..40a6adcc 100644
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -208,25 +208,25 @@ export type Database = {
+             referencedColumns: ["id"]
+           },
+           {
+             foreignKeyName: "avvisi_dentista_cliente_id_fkey"
+             columns: ["cliente_id"]
+             isOneToOne: false
+             referencedRelation: "partitario_clienti"
+             referencedColumns: ["cliente_id"]
+           },
+           {
+-            foreignKeyName: "avvisi_dentista_comunicato_da_fkey"
+-            columns: ["comunicato_da"]
++            foreignKeyName: "avvisi_dentista_comunicato_da_fk"
++            columns: ["comunicato_da", "laboratorio_id"]
+             isOneToOne: false
+             referencedRelation: "utenti"
+-            referencedColumns: ["id"]
++            referencedColumns: ["id", "laboratorio_id"]
+           },
+           {
+             foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
+             columns: ["dichiarazione_id"]
+             isOneToOne: false
+             referencedRelation: "dichiarazioni_conformita"
+             referencedColumns: ["id"]
+           },
+           {
+             foreignKeyName: "avvisi_dentista_dichiarazione_id_fkey"
+diff --git a/supabase/migrations/20260811132010_avvisi_chiusura_one_way.sql b/supabase/migrations/20260811132010_avvisi_chiusura_one_way.sql
+new file mode 100644
+index 00000000..d7e7a465
+--- /dev/null
++++ b/supabase/migrations/20260811132010_avvisi_chiusura_one_way.sql
+@@ -0,0 +1,69 @@
++-- ═══ PERCHÉ QUESTA MIGRATION ═════════════════════════════════════════════════
++-- Riga 58 della coda (revisione finale di ramo, 11/08/2026, area banca dati):
++-- un avviso GIÀ COMUNICATO restava riscrivibile — e perfino riapribile — da
++-- chiunque avesse il GRANT delle quattro colonne (20260809124517): il ritorno
++-- a 'da_comunicare' coi tre NULL soddisfa avviso_comunicato_ha_autore_e_data
++-- e avviso_testo_solo_se_dall_app, e nessun trigger esisteva (pg_trigger: 0).
++-- `provato:` 11/08/2026, transazione annullata sul banco vero — riapertura coi
++-- tre NULL: RIUSCITA; riattribuzione della firma a un altro utente: RIUSCITA.
++-- COMMENT ON TABLE dichiara questa tabella «la prova che è avvenuta» (GDPR
++-- Art. 5(2)): una prova riscrivibile a piacere non è una prova.
++--
++-- ═══ IL RIMEDIO: TRIGGER DI TRANSIZIONE ONE-WAY ══════════════════════════════
++-- Una riga con stato ≠ 'da_comunicare' non cambia MAI più le quattro colonne
++-- della chiusura: stato, comunicato_at, comunicato_da, testo_inviato. Le altre
++-- colonne restano libere DI PROPOSITO: visto_dal_dentista_at è la ricevuta di
++-- lettura (avvisi_segna_visti scrive DOPO la chiusura, è il suo mestiere) e
++-- campi_corretti ha già una nota che ne anticipa gli update su avvisi vecchi
++-- (20260809133546:60-67).
++--
++-- PERCHÉ IL TRIGGER E NON IL MODELLO REVOKE+RPC (valutazione_supera,
++-- 20260806142910): là l'UPDATE era revocabile PER INTERO perché nessuna rotta
++-- lo usava; qui la chiusura legittima È un UPDATE di rotta
++-- (src/app/api/lavori/[id]/avviso/route.ts:414-420, ridisegnato da D354 e
++-- collaudato sul banco vero il 10/08). Revocare e spostare in RPC
++-- riscriverebbe una rotta appena approvata; il trigger chiude il buco per
++-- OGNI attore (service_role col suo BYPASSRLS compreso) senza toccare una
++-- riga di server. Il GRANT per colonna resta: serve alle righe APERTE.
++--
++-- I flussi vivi NON incontrano il trigger, misurato prima di scriverlo:
++-- · la rotta di chiusura filtra .in('stato', STATI_APERTI) — mai una riga chiusa;
++-- · correggi_e_riemetti_atomica fa un INSERT, mai update (20260809133546:488);
++-- · avvisi_segna_visti tocca solo visto_dal_dentista_at (20260810072748:41-45).
++
++CREATE FUNCTION public.avviso_chiusura_one_way()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.stato         IS DISTINCT FROM OLD.stato
++  OR NEW.comunicato_at IS DISTINCT FROM OLD.comunicato_at
++  OR NEW.comunicato_da IS DISTINCT FROM OLD.comunicato_da
++  OR NEW.testo_inviato IS DISTINCT FROM OLD.testo_inviato
++  THEN
++    RAISE EXCEPTION
++      'trg_avviso_chiusura_one_way: l''avviso % è già comunicato (stato %): stato, autore, data e testo non si riscrivono — la riga è la prova (GDPR Art. 5(2))',
++      OLD.id, OLD.stato;
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++-- Una funzione RETURNS trigger non è chiamabile direttamente («trigger
++-- functions can only be called as triggers»), ma l'idioma di casa REVOca
++-- comunque: dopo un CREATE, Postgres concede EXECUTE a PUBLIC.
++REVOKE ALL ON FUNCTION public.avviso_chiusura_one_way() FROM PUBLIC, anon, authenticated;
++
++-- La WHEN tiene il trigger FUORI dal percorso caldo: sulle righe aperte
++-- (la chiusura legittima, l'unico UPDATE che l'app esegue) non scatta affatto.
++CREATE TRIGGER trg_avviso_chiusura_one_way
++  BEFORE UPDATE ON public.avvisi_dentista
++  FOR EACH ROW
++  WHEN (OLD.stato <> 'da_comunicare')
++  EXECUTE FUNCTION public.avviso_chiusura_one_way();
++
++COMMENT ON FUNCTION public.avviso_chiusura_one_way() IS
++  'Riga 58: dopo la chiusura, stato/comunicato_at/comunicato_da/testo_inviato '
++  'sono congelati per OGNI attore (service_role compreso). visto_dal_dentista_at '
++  'e campi_corretti restano liberi di proposito. La riga è la prova ex Art. 5(2) '
++  'GDPR: one-way, senza strada di ritorno.';
+diff --git a/supabase/migrations/20260811133440_avvisi_firma_stesso_laboratorio.sql b/supabase/migrations/20260811133440_avvisi_firma_stesso_laboratorio.sql
+new file mode 100644
+index 00000000..19009088
+--- /dev/null
++++ b/supabase/migrations/20260811133440_avvisi_firma_stesso_laboratorio.sql
+@@ -0,0 +1,47 @@
++-- ═══ PERCHÉ QUESTA MIGRATION ═════════════════════════════════════════════════
++-- Riga 59 della coda (revisione finale di ramo, 11/08/2026): comunicato_da era
++-- una FK SEMPLICE verso utenti(id) — la RLS vincola solo laboratorio_id, quindi
++-- la chiusura poteva essere attribuita a un utente di UN ALTRO laboratorio.
++-- `provato:` 11/08, transazione annullata: la firma di un avviso chiuso si
++-- spostava su un utente con laboratorio_id NULL, senza errori.
++-- È la stessa classe che il ramo ha bollato CRITICA e chiuso con la FK
++-- COMPOSITA in 20260806142910 (tre volte: eventi_qualita→lavori,
++-- valutazioni_evento→eventi_qualita, lavori_rifacimenti→eventi_qualita) —
++-- qui non applicata perché a utenti mancava il bersaglio UNIQUE.
++--
++-- ═══ I DUE ATTI ══════════════════════════════════════════════════════════════
++-- ① Il bersaglio: UNIQUE (id, laboratorio_id) su utenti. id è già PK, quindi
++--    la coppia è unica per costruzione: il vincolo non può fallire sui dati
++--    esistenti e costa un indice. Modello di nome: lavori_id_lab_uk
++--    (20260727120000), eventi_qualita_id_lab_uk (20260806142910).
++-- ② La sostituzione: via la _fkey semplice, dentro la composita. MATCH SIMPLE
++--    (default): sulle righe APERTE comunicato_da è NULL e la FK non morde;
++--    sulle righe CHIUSE la coppia (autore, laboratorio dell'avviso) DEVE
++--    esistere in utenti — cioè l'autore è del laboratorio dell'avviso.
++--    NO ACTION (default), come il modello e come la _fkey che sostituisce.
++--
++-- `provato:` prima di scrivere: 0 firme cross-tenant nei dati vivi (la ADD
++-- CONSTRAINT valida le righe esistenti senza pulizia) · admin_delete_laboratorio
++-- porta via gli avvisi IN CASCATA (dichiarazioni_conformita e lavori) PRIMA di
++-- toccare utenti, quindi la composita non cambia la cancellazione di un lab ·
++-- l'unico admin_sistema (lab NULL) non è mai una firma legittima: D342 esclude
++-- admin_rete e admin_sistema PER NOME dalla chiusura (RUOLI_CHIUSURA_AVVISO).
++--
++-- ⚠️ Il nome cambia (…_fkey → …_fk, convenzione delle composite): i tre punti
++-- che lo nominavano sono censiti nel piano — database.types.ts (rigenerato),
++-- avvisi-dentista-schema.rpc.test.ts:349 (aggiornato nello stesso task),
++-- ROADMAP riga 43 (citazione storica, resta).
++
++ALTER TABLE public.utenti
++  ADD CONSTRAINT utenti_id_lab_uk UNIQUE (id, laboratorio_id);
++
++ALTER TABLE public.avvisi_dentista
++  DROP CONSTRAINT avvisi_dentista_comunicato_da_fkey,
++  ADD CONSTRAINT avvisi_dentista_comunicato_da_fk
++    FOREIGN KEY (comunicato_da, laboratorio_id)
++    REFERENCES public.utenti (id, laboratorio_id);
++
++COMMENT ON CONSTRAINT avvisi_dentista_comunicato_da_fk ON public.avvisi_dentista IS
++  'Riga 59: la firma della chiusura è un utente DELLO STESSO laboratorio. '
++  'Composita anti cross-tenant, modello 20260806142910. MATCH SIMPLE: le righe '
++  'aperte (comunicato_da NULL) non sono vincolate.';
+diff --git a/tests/integration/avvisi-chiusura-one-way.rpc.test.ts b/tests/integration/avvisi-chiusura-one-way.rpc.test.ts
+new file mode 100644
+index 00000000..88450f11
+--- /dev/null
++++ b/tests/integration/avvisi-chiusura-one-way.rpc.test.ts
+@@ -0,0 +1,283 @@
++import { describe, it, expect } from 'vitest'
++import { randomUUID } from 'node:crypto'
++import { withRollback, skipIntegrationTests } from './helpers/pg-client'
++
++// Riga 58 della coda (revisione finale di ramo, 11/08/2026): un avviso GIÀ
++// COMUNICATO restava riscrivibile e riapribile — `provato:` in transazione
++// annullata l'11/08 la riapertura coi tre NULL e la riattribuzione della firma
++// RIUSCIVANO entrambe. La tabella è «la prova che è avvenuta» (GDPR Art. 5(2)):
++// da questa migration un trigger one-way congela stato, autore, data e testo
++// DOPO la chiusura. Le altre colonne (visto_dal_dentista_at, campi_corretti)
++// restano libere: la ricevuta di lettura e le correzioni future devono passare.
++//
++// ⚠️ Helper locali RICOPIATI da avvisi-dentista-schema.rpc.test.ts (riferimentiVeri,
++// attesoRifiuto, inserisci): è la convenzione viva di tests/integration/ (ogni file
++// è autosufficiente). La loro estrazione in helpers/ è pulizia da riferire, non da
++// fare qui (R-E2).
++
++const LAB_A = '00000000-0000-0000-0000-000000000001' // lab E2E dedicato
++
++type Client = Parameters<Parameters<typeof withRollback>[0]>[0]
++
++async function riferimentiVeri(client: Client) {
++  const { rows } = await client.query(
++    `SELECT (SELECT id FROM lavori   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS lavoro_id,
++            (SELECT id FROM clienti  WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS cliente_id,
++            (SELECT id FROM dichiarazioni_conformita WHERE laboratorio_id = $1
++              ORDER BY created_at LIMIT 1) AS dichiarazione_id,
++            (SELECT id FROM utenti   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS utente_id`,
++    [LAB_A]
++  )
++  const r = rows[0]
++  for (const [nome, valore] of Object.entries(r)) {
++    if (!valore) throw new Error(`il lab E2E ${LAB_A} non ha ${nome}: eseguire scripts/seed-e2e.ts`)
++  }
++  return r as {
++    lavoro_id: string; cliente_id: string; dichiarazione_id: string; utente_id: string
++  }
++}
++
++async function attesoRifiuto(
++  client: Client, cosa: string, fn: () => Promise<unknown>
++): Promise<{ code: string; message: string }> {
++  const sp = `sp_${randomUUID().replace(/-/g, '').slice(0, 12)}`
++  await client.query(`SAVEPOINT ${sp}`)
++  try {
++    await fn()
++    throw new Error(`ATTESO RIFIUTO, INVECE ACCETTATO: ${cosa}`)
++  } catch (e) {
++    const err = e as Error & { code?: string }
++    if (err.message.startsWith('ATTESO RIFIUTO')) {
++      await client.query(`ROLLBACK TO SAVEPOINT ${sp}`)
++      throw err
++    }
++    await client.query(`ROLLBACK TO SAVEPOINT ${sp}`)
++    return { code: err.code ?? '', message: err.message.split('\n')[0] }
++  }
++}
++
++function inserisci(
++  client: Client,
++  rif: { lavoro_id: string; cliente_id: string; dichiarazione_id: string },
++  campi: Record<string, unknown>
++) {
++  const base: Record<string, unknown> = {
++    laboratorio_id: LAB_A,
++    lavoro_id: rif.lavoro_id,
++    cliente_id: rif.cliente_id,
++    dichiarazione_id: rif.dichiarazione_id,
++    ...campi,
++  }
++  const nomi = Object.keys(base)
++  const segnaposti = nomi.map((_, i) => `$${i + 1}`).join(', ')
++  return client.query(
++    `INSERT INTO public.avvisi_dentista (${nomi.join(', ')}) VALUES (${segnaposti})
++     RETURNING id, stato, testo_inviato, comunicato_at, comunicato_da, visto_dal_dentista_at, campi_corretti`,
++    Object.values(base)
++  )
++}
++
++/** Un avviso già comunicato a voce, nato dentro la transazione. */
++async function avvisoChiusoAVoce(client: Client) {
++  const rif = await riferimentiVeri(client)
++  const { rows: [avviso] } = await inserisci(client, rif, {
++    stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: rif.utente_id,
++  })
++  return { rif, avviso }
++}
++
++/** Un avviso già comunicato dall'app (col testo), nato dentro la transazione. */
++async function avvisoChiusoDallApp(client: Client) {
++  const rif = await riferimentiVeri(client)
++  const { rows: [avviso] } = await inserisci(client, rif, {
++    stato: 'comunicato_dall_app', comunicato_at: new Date(),
++    comunicato_da: rif.utente_id, testo_inviato: 'La dichiarazione e stata corretta e rifatta.',
++  })
++  return { rif, avviso }
++}
++
++describe.skipIf(skipIntegrationTests)('avvisi_dentista — la chiusura è one-way (riga 58)', () => {
++  // ── i cinque movimenti che DEVONO essere respinti ─────────────────────────
++  describe('una riga comunicata non si riscrive', () => {
++    it('① la RIAPERTURA (ritorno a da_comunicare coi tre NULL) è respinta', async () => {
++      // `provato:` l'11/08, PRIMA del trigger, questo UPDATE riusciva (P6a).
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const e = await attesoRifiuto(client, 'riapertura di un avviso comunicato', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista
++                SET stato='da_comunicare', comunicato_at=NULL, comunicato_da=NULL, testo_inviato=NULL
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('② la RIATTRIBUZIONE della firma è respinta', async () => {
++      // `provato:` P6b — prima del trigger la firma si spostava perfino su un
++      // utente con laboratorio_id NULL.
++      await withRollback(async (client) => {
++        const { rif, avviso } = await avvisoChiusoAVoce(client)
++        // un secondo utente vero, usa-e-getta (ricetta avvisi-dentista-schema:335)
++        const altroId = randomUUID()
++        await client.query(`INSERT INTO auth.users (id) VALUES ($1)`, [altroId])
++        await client.query(
++          `INSERT INTO public.utenti (id, laboratorio_id, nome, cognome, ruolo)
++           VALUES ($1, $2, 'Altro', 'Autore', 'tecnico')`, [altroId, LAB_A]
++        )
++        void rif
++        const e = await attesoRifiuto(client, 'cambio di comunicato_da su riga chiusa', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista SET comunicato_da = $2 WHERE id = $1`,
++            [avviso.id, altroId]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('③ la RETRODATAZIONE di comunicato_at è respinta', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const e = await attesoRifiuto(client, 'retrodatazione della comunicazione', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista SET comunicato_at = comunicato_at - interval '30 days'
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('④ la RISCRITTURA del testo già mandato è respinta', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoDallApp(client)
++        const e = await attesoRifiuto(client, 'riscrittura di testo_inviato', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista SET testo_inviato = 'un testo mai mandato'
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('⑤ lo SCAMBIO fra i due stati chiusi è respinto', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const e = await attesoRifiuto(client, 'comunicato_a_voce → comunicato_dall_app', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista
++                SET stato='comunicato_dall_app', testo_inviato='fabbricato dopo'
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++      })
++    })
++
++    it('⑥ e vale anche per service_role, il ruolo VERO delle rotte: il GRANT resta, il trigger morde', async () => {
++      // È la minaccia della riga 58 così com'è scritta: «riscrivibile dai ruoli
++      // col GRANT delle quattro colonne». Il GRANT c'è ancora (serve alla
++      // chiusura legittima): a fermare la riscrittura ora è il trigger.
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        await client.query('SET LOCAL ROLE service_role')
++        const { rows: [chi] } = await client.query('SELECT current_user AS u')
++        expect(chi.u).toBe('service_role')
++        const e = await attesoRifiuto(client, 'riapertura come service_role', () =>
++          client.query(
++            `UPDATE public.avvisi_dentista
++                SET stato='da_comunicare', comunicato_at=NULL, comunicato_da=NULL, testo_inviato=NULL
++              WHERE id = $1`, [avviso.id]
++          )
++        )
++        expect(e.code).toBe('P0001')
++        expect(e.message).toMatch(/trg_avviso_chiusura_one_way/)
++        await client.query('RESET ROLE')
++      })
++    })
++  })
++
++  // ── le controprove: ciò che DEVE continuare a passare ─────────────────────
++  describe('i flussi legittimi non sono toccati', () => {
++    it('⑦ la chiusura di un avviso APERTO passa (a voce)', async () => {
++      await withRollback(async (client) => {
++        const rif = await riferimentiVeri(client)
++        const { rows: [aperto] } = await inserisci(client, rif, { stato: 'da_comunicare' })
++        const { rows } = await client.query(
++          `UPDATE public.avvisi_dentista
++              SET stato='comunicato_a_voce', comunicato_at=now(), comunicato_da=$2
++            WHERE id = $1 RETURNING stato`, [aperto.id, rif.utente_id]
++        )
++        expect(rows[0].stato).toBe('comunicato_a_voce')
++      })
++    })
++
++    it('⑧ la chiusura di un avviso APERTO passa (dall\'app, col testo)', async () => {
++      await withRollback(async (client) => {
++        const rif = await riferimentiVeri(client)
++        const { rows: [aperto] } = await inserisci(client, rif, { stato: 'da_comunicare' })
++        const { rows } = await client.query(
++          `UPDATE public.avvisi_dentista
++              SET stato='comunicato_dall_app', comunicato_at=now(), comunicato_da=$2,
++                  testo_inviato='Il documento del lavoro e stato rifatto.'
++            WHERE id = $1 RETURNING stato, testo_inviato`, [aperto.id, rif.utente_id]
++        )
++        expect(rows[0].stato).toBe('comunicato_dall_app')
++        expect(rows[0].testo_inviato).not.toBeNull()
++      })
++    })
++
++    it('⑨ la ricevuta di lettura passa ANCHE su una riga chiusa (avvisi_segna_visti)', async () => {
++      // visto_dal_dentista_at è FUORI dalle quattro colonne congelate, di
++      // proposito: il dentista legge QUANDO legge, anche dopo la chiusura.
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const { rows: [ris] } = await client.query(
++          `SELECT public.avvisi_segna_visti(ARRAY[$1]::uuid[], $2) AS r`,
++          [avviso.id, LAB_A]
++        )
++        expect(ris.r.aggiornati).toBe(1)
++        const { rows: [dopo] } = await client.query(
++          `SELECT visto_dal_dentista_at FROM public.avvisi_dentista WHERE id = $1`,
++          [avviso.id]
++        )
++        expect(dopo.visto_dal_dentista_at).not.toBeNull()
++      })
++    })
++
++    it('⑩ campi_corretti resta correggibile anche dopo la chiusura (20260809133546:60-67 lo anticipa)', async () => {
++      await withRollback(async (client) => {
++        const { avviso } = await avvisoChiusoAVoce(client)
++        const { rows } = await client.query(
++          `UPDATE public.avvisi_dentista SET campi_corretti = ARRAY['paziente_nome']
++            WHERE id = $1 RETURNING campi_corretti`, [avviso.id]
++        )
++        expect(rows[0].campi_corretti).toEqual(['paziente_nome'])
++      })
++    })
++  })
++
++  // ── il catalogo: il trigger esiste ed è BEFORE UPDATE per riga ────────────
++  it('⑪ il trigger è nel catalogo: BEFORE UPDATE, FOR EACH ROW, con la sua WHEN', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_triggerdef(oid) AS def FROM pg_trigger
++          WHERE tgrelid = 'public.avvisi_dentista'::regclass AND NOT tgisinternal
++            AND tgname = 'trg_avviso_chiusura_one_way'`
++      )
++      expect(rows).toHaveLength(1)
++      expect(rows[0].def).toMatch(/BEFORE UPDATE/)
++      expect(rows[0].def).toMatch(/FOR EACH ROW/)
++      expect(rows[0].def).toMatch(/WHEN \(\(old\.stato <> 'da_comunicare'::text\)\)/)
++      expect(rows[0].def).toMatch(/EXECUTE FUNCTION avviso_chiusura_one_way\(\)/)
++    })
++  })
++})
+diff --git a/tests/integration/avvisi-dentista-schema.rpc.test.ts b/tests/integration/avvisi-dentista-schema.rpc.test.ts
+index e644ae56..4fe87a3e 100644
+--- a/tests/integration/avvisi-dentista-schema.rpc.test.ts
++++ b/tests/integration/avvisi-dentista-schema.rpc.test.ts
+@@ -339,21 +339,21 @@ describe.skipIf(skipIntegrationTests)('avvisi_dentista — comportamento reale',
+           [autoreId, LAB_A]
+         )
+         await inserisci(client, rif, {
+           stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: autoreId,
+         })
+ 
+         const e = await attesoRifiuto(client, 'DELETE dell\'utente autore', () =>
+           client.query(`DELETE FROM public.utenti WHERE id = $1`, [autoreId])
+         )
+         expect(e.code).toBe('23503')
+-        expect(e.message).toMatch(/avvisi_dentista_comunicato_da_fkey/)
++        expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
+       })
+     })
+   })
+ 
+   // ── ⑤ i permessi: la RLS da sola non basta, perché service_role la aggira ─
+   describe('⑤ nessuno crea un avviso dall\'applicazione — e non è la RLS a garantirlo', () => {
+     it('(p1) come `authenticated` l\'INSERT è rifiutato: nessuna politica di INSERT', async () => {
+       await withRollback(async (client) => {
+         const rif = await riferimentiVeri(client)
+         await client.query('SET LOCAL ROLE authenticated')
+diff --git a/tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts b/tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts
+new file mode 100644
+index 00000000..b23ec28e
+--- /dev/null
++++ b/tests/integration/avvisi-firma-stesso-laboratorio.rpc.test.ts
+@@ -0,0 +1,185 @@
++import { describe, it, expect } from 'vitest'
++import { randomUUID } from 'node:crypto'
++import { withRollback, skipIntegrationTests } from './helpers/pg-client'
++
++// Riga 59 della coda (revisione finale di ramo, 11/08/2026): comunicato_da era
++// una FK SEMPLICE verso utenti(id) — la chiusura poteva essere attribuita a un
++// utente di UN ALTRO laboratorio (`provato:` P6b, 11/08: la firma si spostava
++// perfino su un utente con laboratorio_id NULL). Il rimedio è il modello già
++// applicato tre volte da 20260806142910: UNIQUE (id, laboratorio_id) sul padre
++// e FK composita (comunicato_da, laboratorio_id) sul figlio.
++//
++// ⚠️ Helper locali RICOPIATI da avvisi-chiusura-one-way.rpc.test.ts
++// (riferimentiVeri, attesoRifiuto, inserisci): è la convenzione viva di
++// tests/integration/ (ogni file è autosufficiente). La loro estrazione in
++// helpers/ è pulizia da riferire, non da fare qui (R-E2).
++
++const LAB_A = '00000000-0000-0000-0000-000000000001' // lab E2E dedicato
++
++type Client = Parameters<Parameters<typeof withRollback>[0]>[0]
++
++async function riferimentiVeri(client: Client) {
++  const { rows } = await client.query(
++    `SELECT (SELECT id FROM lavori   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS lavoro_id,
++            (SELECT id FROM clienti  WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS cliente_id,
++            (SELECT id FROM dichiarazioni_conformita WHERE laboratorio_id = $1
++              ORDER BY created_at LIMIT 1) AS dichiarazione_id,
++            (SELECT id FROM utenti   WHERE laboratorio_id = $1 ORDER BY created_at LIMIT 1) AS utente_id`,
++    [LAB_A]
++  )
++  const r = rows[0]
++  for (const [nome, valore] of Object.entries(r)) {
++    if (!valore) throw new Error(`il lab E2E ${LAB_A} non ha ${nome}: eseguire scripts/seed-e2e.ts`)
++  }
++  return r as {
++    lavoro_id: string; cliente_id: string; dichiarazione_id: string; utente_id: string
++  }
++}
++
++async function attesoRifiuto(
++  client: Client, cosa: string, fn: () => Promise<unknown>
++): Promise<{ code: string; message: string }> {
++  const sp = `sp_${randomUUID().replace(/-/g, '').slice(0, 12)}`
++  await client.query(`SAVEPOINT ${sp}`)
++  try {
++    await fn()
++    throw new Error(`ATTESO RIFIUTO, INVECE ACCETTATO: ${cosa}`)
++  } catch (e) {
++    const err = e as Error & { code?: string }
++    if (err.message.startsWith('ATTESO RIFIUTO')) {
++      await client.query(`ROLLBACK TO SAVEPOINT ${sp}`)
++      throw err
++    }
++    await client.query(`ROLLBACK TO SAVEPOINT ${sp}`)
++    return { code: err.code ?? '', message: err.message.split('\n')[0] }
++  }
++}
++
++function inserisci(
++  client: Client,
++  rif: { lavoro_id: string; cliente_id: string; dichiarazione_id: string },
++  campi: Record<string, unknown>
++) {
++  const base: Record<string, unknown> = {
++    laboratorio_id: LAB_A,
++    lavoro_id: rif.lavoro_id,
++    cliente_id: rif.cliente_id,
++    dichiarazione_id: rif.dichiarazione_id,
++    ...campi,
++  }
++  const nomi = Object.keys(base)
++  const segnaposti = nomi.map((_, i) => `$${i + 1}`).join(', ')
++  return client.query(
++    `INSERT INTO public.avvisi_dentista (${nomi.join(', ')}) VALUES (${segnaposti})
++     RETURNING id, stato, testo_inviato, comunicato_at, comunicato_da, visto_dal_dentista_at, campi_corretti`,
++    Object.values(base)
++  )
++}
++
++/** Un utente vero usa-e-getta, nel laboratorio scelto (ricetta avvisi-dentista-schema:335). */
++async function utenteUsaEGetta(
++  client: Parameters<Parameters<typeof withRollback>[0]>[0],
++  laboratorioId: string | null,
++  ruolo = 'tecnico'
++) {
++  const id = randomUUID()
++  await client.query(`INSERT INTO auth.users (id) VALUES ($1)`, [id])
++  await client.query(
++    `INSERT INTO public.utenti (id, laboratorio_id, nome, cognome, ruolo)
++     VALUES ($1, $2, 'Usa', 'E getta', $3)`, [id, laboratorioId, ruolo]
++  )
++  return id
++}
++
++describe.skipIf(skipIntegrationTests)('avvisi_dentista — la firma è dello stesso laboratorio (riga 59)', () => {
++  // ── il catalogo: i due vincoli nuovi esistono, il vecchio non c'è più ─────
++  it('① utenti ha il vincolo UNIQUE (id, laboratorio_id) — il bersaglio delle composite', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
++          WHERE conrelid='public.utenti'::regclass AND conname='utenti_id_lab_uk'`)
++      expect(rows).toHaveLength(1)
++      expect(rows[0].def).toBe('UNIQUE (id, laboratorio_id)')
++    })
++  })
++
++  it('② la FK di comunicato_da è COMPOSITA e punta a utenti (id, laboratorio_id)', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
++          WHERE conrelid='public.avvisi_dentista'::regclass
++            AND conname='avvisi_dentista_comunicato_da_fk'`)
++      expect(rows).toHaveLength(1)
++      expect(rows[0].def).toBe(
++        'FOREIGN KEY (comunicato_da, laboratorio_id) REFERENCES utenti(id, laboratorio_id)')
++    })
++  })
++
++  it('③ la vecchia FK semplice non esiste più', async () => {
++    await withRollback(async (client) => {
++      const { rows } = await client.query(
++        `SELECT 1 FROM pg_constraint
++          WHERE conrelid='public.avvisi_dentista'::regclass
++            AND conname='avvisi_dentista_comunicato_da_fkey'`)
++      expect(rows).toHaveLength(0)
++    })
++  })
++
++  // ── il comportamento: la coppia deve esistere in utenti ───────────────────
++  it('④ la firma di un utente di UN ALTRO laboratorio è respinta con 23503', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const labB = randomUUID()
++      await client.query(`INSERT INTO laboratori (id, nome) VALUES ($1, $2)`, [
++        labB, 'Lab B — prova firma cross-tenant',
++      ])
++      const utenteB = await utenteUsaEGetta(client, labB)
++      const e = await attesoRifiuto(client, 'avviso del lab A firmato dal lab B', () =>
++        inserisci(client, rif, {
++          stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: utenteB,
++        })
++      )
++      expect(e.code).toBe('23503')
++      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
++    })
++  })
++
++  it('⑤ la firma di un admin_sistema senza laboratorio è respinta con 23503', async () => {
++    // laboratorio_id NULL è legale per admin_sistema (CHECK
++    // utenti_lab_required_for_non_admin) — ma la coppia (id, NULL) non esiste
++    // per la FK. Coerente con D342: admin_rete e admin_sistema sono già
++    // esclusi PER NOME dalla chiusura (RUOLI_CHIUSURA_AVVISO, ruoli.ts:72).
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const admin = await utenteUsaEGetta(client, null, 'admin_sistema')
++      const e = await attesoRifiuto(client, 'avviso firmato da un admin senza lab', () =>
++        inserisci(client, rif, {
++          stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: admin,
++        })
++      )
++      expect(e.code).toBe('23503')
++      expect(e.message).toMatch(/"avvisi_dentista_comunicato_da_fk"/)
++    })
++  })
++
++  // ── le controprove ────────────────────────────────────────────────────────
++  it('⑥ la firma di un utente DELLO STESSO laboratorio passa', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const utenteA = await utenteUsaEGetta(client, LAB_A)
++      const { rows } = await inserisci(client, rif, {
++        stato: 'comunicato_a_voce', comunicato_at: new Date(), comunicato_da: utenteA,
++      })
++      expect(rows[0].comunicato_da).toBe(utenteA)
++    })
++  })
++
++  it('⑦ un avviso APERTO (comunicato_da NULL) nasce ancora: MATCH SIMPLE non morde sui NULL', async () => {
++    await withRollback(async (client) => {
++      const rif = await riferimentiVeri(client)
++      const { rows } = await inserisci(client, rif, { stato: 'da_comunicare' })
++      expect(rows[0].stato).toBe('da_comunicare')
++      expect(rows[0].comunicato_da).toBeNull()
++    })
++  })
++})
