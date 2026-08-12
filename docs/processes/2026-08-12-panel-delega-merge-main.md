@@ -170,13 +170,40 @@ ci sono. I pareri si verificano, non si recepiscono.
   scritti **nel corpo del commit di merge**, che è l'unico artefatto dentro l'atto e non riscrivibile
   in silenzio (`git log --merges` li rilegge tutti in un comando).
 
-## 6. Non verificato — dichiarato, non risolto
+## 6. 🔴 VERIFICATO IL 12/08 — E LA RISPOSTA CAMBIA LA PREMESSA: QUALCOSA ESCE DAVVERO
 
-- **Se dall'ambiente di produzione escano davvero PEC, email d'invito o chiamate Stripe.** La §8 dice
-  che i **dati** sono di prova; non dice che gli invii non partano. Percorsi esistenti:
-  `src/lib/fattura/send-pec.ts`, `src/lib/invito/send-invito-email.ts`, `src/app/api/stripe`,
-  `src/app/api/pec`. Finché non è letto (chiavi di test o live? mittenti dietro un interruttore
-  d'ambiente?), **«nessun cliente vero» non copre quelle rotte** — e non si ratifica né un'esclusione
-  né la sua assenza.
+La domanda era: la §8 dice che i **dati** sono di prova, ma dice qualcosa sugli **invii**? **No.** E il
+censimento dei canali (12/08/2026) trova che **due canali sono vivi oggi**, con destinatari veri, e
+**nessuno dei percorsi d'invio ha un interruttore su `NODE_ENV`**.
+
+| canale | esce davvero? | destinatario | verificato |
+|---|---|---|---|
+| **Email d'invito** (Resend) | 🔴 **SÌ** | l'indirizzo vero digitato da chi invita | `src/lib/invito/send-invito-email.ts:21-24,32-34` — unico freno: la chiave assente |
+| **Email di autenticazione** (Supabase) | 🔴 **SÌ**, e `/forgot-password` è **pubblica** | i 7 utenti veri in `utenti` | `src/app/(auth)/forgot-password/forgot-form.tsx:64` |
+| **Notifiche push** (VAPID) | 🔴 **SÌ — c'è già 1 iPhone iscritto** | endpoint veri in `push_subscriptions` | `src/lib/notifications/push.ts:19-27,45` · `provato:` `count(push_subscriptions)` → **1** |
+| **PEC → SdI** | codice **senza freno**, ma oggi bloccato da precondizione | AdE vera (`sdi01@pec.fatturapa.it`) | `send-pec.ts:113-138` · `provato:` **3 laboratori, 0 con PEC configurata**, 0 PEC mai partite |
+| **Stripe** | codice **senza freno**; l'addebito dipende **solo dalla chiave** | email dell'utente | `src/lib/stripe/server.ts:4` · `provato:` **0 abbonamenti** in banca dati |
+| **WhatsApp** | **no**: solo un link `wa.me`, serve un dito umano | — | `src/lib/consegna/whatsapp-template.ts:83` |
+
+🛑 **Il punto che pesa di più, e non è nella lista dei «canali»:** la rotta
+`src/app/api/portale/richiedi/route.ts` si dichiara alle righe 3-5 **«Accesso PUBBLICO — nessun token
+di autenticazione richiesto»** e alle righe 179-182 fa partire un push a `titolare` e `front_desk`.
+**Chi possiede un `portale_token` può far squillare quel telefono da fuori**, senza account.
+`provato:` lette le righe, 12/08/2026.
+
+➡️ **Conseguenza sulla delega:** «nessun cliente vero» copre i **dati**, non le **uscite**. Un'ondata
+che tocca invii, notifiche o pagamenti **non è coperta dal ragionamento di §8** — ed è un argomento
+concreto a favore dell'esclusione proposta dal terzo revisore, almeno per quei percorsi.
+
+### Resta NON determinabile dal repository (va guardato nei pannelli, non nel codice)
+
+- **Le chiavi di produzione vivono su Vercel**, non qui: `STRIPE_SECRET_KEY` (il prefisso `sk_test_` o
+  `sk_live_` **chiude da solo la domanda sugli addebiti veri**), `RESEND_API_KEY`, `EMAIL_FROM`,
+  `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`. In locale Stripe è di **prova**; **la produzione non l'ho
+  vista**, e non la si deduce.
+- **Chi spedisce materialmente le email di autenticazione** (SMTP integrato di Supabase o proprio) sta
+  nel pannello Supabase.
 - **Il flag meccanico** che dovrebbe far decadere la delega alla comparsa del primo laboratorio vero
   non esiste: oggi la decadenza è solo scritta.
+- Nota a margine: `.env.example:16-20` elenca ancora `SMTP_HOST/PORT/USER/PASS`, che **nessuna riga di
+  `src/` legge** — righe morte.
